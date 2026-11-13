@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
-    "build": "tsc && cp -r src/db/migrations dist/db/",
+    "dev": "tsx watch --conditions=development src/index.ts",
+    "build": "tsc && cp -r src/db/migrations dist/db/ && cp src/auth/common-passwords.txt dist/auth/",
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit"
   },
@@ -15,13 +15,13 @@
     "@ai-sdk/openai": "^4.0.117",
     "@ai-sdk/openai-compatible": "^3.0.92",
     "@hono/node-server": "^2.1.8",
+    "@oct/shared": "workspace:*",
     "ai": "^7.0.172",
     "better-sqlite3": "^13.1.1",
     "hono": "^4.13.18",
     "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@oct/shared": "workspace:*",
     "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^26.6.6",
     "tsx": "^4.23.15"

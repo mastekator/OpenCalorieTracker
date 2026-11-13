@@ -44,6 +44,9 @@ importers:
       '@hono/node-server':
         specifier: ^2.1.8
         version: 2.1.8(hono@4.13.18)
+      '@oct/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       ai:
         specifier: ^7.0.172
         version: 7.0.172(zod@4.6.7)
@@ -57,9 +60,6 @@ importers:
         specifier: ^4.6.7
         version: 4.6.7
     devDependencies:
-      '@oct/shared':
-        specifier: workspace:*
-        version: link:../../packages/shared
       '@types/better-sqlite3':
         specifier: ^9.6.0
         version: 9.6.0

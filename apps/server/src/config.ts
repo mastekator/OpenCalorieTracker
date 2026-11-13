@@ -1,11 +1,16 @@
 import { z } from 'zod';
 import type { Database } from 'better-sqlite3';
-import type { AuthMethod, Registration, SetupError } from '@oct/shared';
+import {
+  authMethodSchema,
+  emailSchema,
+  passwordProblems,
+  registrationSchema,
+  type AuthMethod,
+  type Registration,
+  type SetupError,
+} from '@oct/shared';
+import { isCommonPassword } from './auth/password.js';
 import { aiProviders } from './ai/settings.js';
-
-// Local enums: @oct/shared ships TS sources, so the server imports only its types at runtime.
-const authMethod = z.enum(['password', 'passkey'] satisfies AuthMethod[]);
-const registration = z.enum(['invite', 'open'] satisfies Registration[]);
 
 const envSchema = z.object({
   PUBLIC_URL: z.string().optional(),
@@ -13,8 +18,8 @@ const envSchema = z.object({
     .string()
     .default('password,passkey')
     .transform((s) => [...new Set(s.split(',').map((m) => m.trim()))])
-    .pipe(z.array(authMethod).min(1)),
-  REGISTRATION: registration.default('invite'),
+    .pipe(z.array(authMethodSchema).min(1)),
+  REGISTRATION: registrationSchema.default('invite'),
   ADMIN_EMAIL: z.string().trim().toLowerCase().optional(),
   ADMIN_PASSWORD: z.string().optional(),
   TRUST_PROXY_HOPS: z.coerce.number().int().min(0).default(1),
@@ -101,9 +106,19 @@ export function setupErrors(config: Config, db: Database): SetupError[] {
   if (!config.publicUrl) errors.push('public_url_invalid');
   // The admin from env is only used to seed an empty database.
   if (!db.prepare('SELECT 1 FROM users LIMIT 1').get()) {
-    if (!config.adminEmail) errors.push('admin_missing');
-    if (config.authMethods.includes('password') && !config.adminPassword) {
-      errors.push('admin_password_missing');
+    const { adminEmail: email, adminPassword: password } = config;
+    if (!email) errors.push('admin_missing');
+    else if (!emailSchema.safeParse(email).success) {
+      errors.push('admin_email_invalid');
+    }
+    if (config.authMethods.includes('password')) {
+      if (!password) errors.push('admin_password_missing');
+      else if (
+        passwordProblems(password, email).length ||
+        isCommonPassword(password)
+      ) {
+        errors.push('admin_password_invalid');
+      }
     }
   }
   return errors;
@@ -113,6 +128,9 @@ export const setupErrorMessages: Record<SetupError, string> = {
   public_url_invalid:
     'PUBLIC_URL must be the origin users open, e.g. https://food.example.com (https required except for localhost, no path).',
   admin_missing: 'ADMIN_EMAIL is not set and the database has no users yet.',
+  admin_email_invalid: 'ADMIN_EMAIL is not a valid email address.',
   admin_password_missing:
     'ADMIN_PASSWORD is not set, but password sign-in is enabled and the database has no users yet.',
+  admin_password_invalid:
+    'ADMIN_PASSWORD must be 8-128 characters with a letter, a digit and a symbol, differ from ADMIN_EMAIL and not be a common password.',
 };

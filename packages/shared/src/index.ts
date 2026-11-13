@@ -1,10 +1,14 @@
 import { z } from 'zod';
+import { authMethodSchema } from './auth.js';
 
 /** Stable error codes in `{ error: { code } }` bodies; clients translate them (ADR-0001). */
 export type ErrorCode =
   | 'validation_failed'
   | 'unauthenticated'
   | 'invalid_credentials'
+  | 'method_disabled'
+  | 'password_invalid'
+  | 'password_too_common'
   | 'forbidden'
   | 'not_found'
   | 'email_taken'
@@ -24,9 +28,6 @@ export interface ErrorBody {
   error: { code: ErrorCode; details?: unknown };
 }
 
-export const authMethodSchema = z.enum(['password', 'passkey']);
-export type AuthMethod = z.infer<typeof authMethodSchema>;
-
 export const registrationSchema = z.enum(['invite', 'open']);
 export type Registration = z.infer<typeof registrationSchema>;
 
@@ -34,7 +35,9 @@ export type Registration = z.infer<typeof registrationSchema>;
 export const setupErrorSchema = z.enum([
   'public_url_invalid',
   'admin_missing',
+  'admin_email_invalid',
   'admin_password_missing',
+  'admin_password_invalid',
 ]);
 export type SetupError = z.infer<typeof setupErrorSchema>;
 
@@ -48,6 +51,7 @@ export const configResponseSchema = z.object({
 });
 export type ConfigResponse = z.infer<typeof configResponseSchema>;
 
+export * from './auth.js';
 export * from './units.js';
 export * from './recognition.js';
 export * from './norm/schemas.js';

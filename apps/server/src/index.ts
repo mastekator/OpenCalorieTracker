@@ -2,6 +2,7 @@ import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { serve } from '@hono/node-server';
 import { createApp } from './app.js';
+import { ensureAdmin } from './auth/admin.js';
 import { loadConfig, setupErrorMessages, setupErrors } from './config.js';
 import { migrate } from './db/migrate.js';
 import { openDb } from './db/open.js';
@@ -10,6 +11,7 @@ const config = loadConfig(process.env);
 mkdirSync(config.dataDir, { recursive: true });
 const db = openDb(join(config.dataDir, 'oct.sqlite'));
 migrate(db);
+await ensureAdmin(config, db);
 
 // Installation problems keep the server up so the sign-in screen can explain them.
 for (const error of setupErrors(config, db)) {

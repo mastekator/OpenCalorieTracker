@@ -8,7 +8,7 @@ export function testApp(env: Record<string, string | undefined> = {}) {
   const config = loadConfig({
     PUBLIC_URL: 'http://localhost:3000',
     ADMIN_EMAIL: 'admin@example.com',
-    ADMIN_PASSWORD: 'correct horse battery staple',
+    ADMIN_PASSWORD: 'Correct-horse-battery-9',
     ...env,
   });
   const db = openDb(':memory:');
