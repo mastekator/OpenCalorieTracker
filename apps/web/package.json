@@ -6,7 +6,7 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
-    "icons": "mkdir -p public && cp ../../docs/design/oct-25/icon.svg public/icon.svg && pwa-assets-generator"
+    "icons": "mkdir -p public && cp ../../docs/design/oct-25/icon.svg public/icon.svg && node scripts/splash-master.mjs && pwa-assets-generator && pwa-assets-generator -c pwa-splash.config.ts && rm public/icon-splash.svg"
   },
   "dependencies": {
     "@oct/shared": "workspace:*",
