@@ -5,6 +5,7 @@ import { serveStatic } from '@hono/node-server/serve-static';
 import type { Database } from 'better-sqlite3';
 import type { ConfigResponse } from '@oct/shared';
 import { accountRoutes } from './account/routes.js';
+import { adminRoutes } from './admin/routes.js';
 import { aiRoutes } from './ai/routes.js';
 import type { AiModel } from './ai/model.js';
 import { authRoutes } from './auth/routes.js';
@@ -46,6 +47,7 @@ export function createApp(deps: AppDeps) {
   app.use('/api/*', device(config));
   app.use('/api/*', session(deps));
   app.route('/api', authRoutes(deps));
+  app.route('/api', adminRoutes(deps));
   app.route('/api', profileRoutes(deps));
   app.route('/api', accountRoutes(deps));
   app.route('/api', aiRoutes(deps));
