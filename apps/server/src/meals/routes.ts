@@ -99,9 +99,15 @@ export function mealRoutes({ config, db }: AppDeps) {
     };
   };
 
-  const insertItems = (mealId: number, items: MealItemInput[]) => {
-    // Provider and model come from the server's current settings, never from the client (AC-4.1).
-    const ai = getAiSettings(config);
+  const insertItems = (
+    mealId: number,
+    items: MealItemInput[],
+    // Provider and model come from the server, never from the client (AC-4.1).
+    ai: {
+      provider: string | null;
+      model: string | null;
+    } | null = getAiSettings(config),
+  ) => {
     const insert = db.prepare(
       `INSERT INTO meal_items (meal_id, position, name, name_key, grams, kcal, protein_g, fat_g,
          carbs_g, source, ai_provider, ai_model, confidence)
@@ -266,8 +272,16 @@ export function mealRoutes({ config, db }: AppDeps) {
             meal.id,
           );
           if (patch.items) {
+            // An edit keeps the model that recognized the photo, even if the server's AI changed since.
+            const recognizedBy = db
+              .prepare(
+                `SELECT ai_provider AS provider, ai_model AS model FROM meal_items
+                 WHERE meal_id = ? AND source = 'ai' LIMIT 1`,
+              )
+              .get(meal.id) as
+              { provider: string | null; model: string | null } | undefined;
             db.prepare('DELETE FROM meal_items WHERE meal_id = ?').run(meal.id);
-            insertItems(meal.id, patch.items);
+            insertItems(meal.id, patch.items, recognizedBy);
           }
         })();
         return c.json(readMeal(meal.id));

@@ -180,6 +180,22 @@ describe('meals', () => {
       ['manual', null, null, null],
     ]);
 
+    // An edit after the server switched models keeps the model that recognized the photo.
+    withAi.db
+      .prepare(
+        "UPDATE meal_items SET ai_provider = 'openai', ai_model = 'gpt-old'",
+      )
+      .run();
+    const edited = (await (
+      await withAi.call(withAi.cookie, 'PATCH', `/meals/${meal.id}`, {
+        items: input().items,
+      })
+    ).json()) as Meal;
+    expect(edited.items[0]).toMatchObject({
+      aiProvider: 'openai',
+      aiModel: 'gpt-old',
+    });
+
     const manual = await setup();
     const m2 = (await (
       await manual.call(manual.cookie, 'POST', '/meals', input())
