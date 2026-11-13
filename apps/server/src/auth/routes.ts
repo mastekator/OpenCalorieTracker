@@ -31,13 +31,9 @@ import {
   type User,
 } from './session.js';
 
-/**
- * Sign-in, sign-out, registration, password recovery, the current user and the password of
- * one's own account (ADR-0003).
- */
-export function authRoutes(deps: AppDeps) {
+/** What sign-in, registration and recovery share, for both the password and the passkey routes. */
+export function authHelpers(deps: AppDeps) {
   const { config, db } = deps;
-  const passwordOn = methodEnabled(config, 'password');
   const passwordHash = (userId: number) =>
     (
       db.prepare('SELECT hash FROM passwords WHERE user_id = ?').get(userId) as
@@ -92,6 +88,29 @@ export function authRoutes(deps: AppDeps) {
       methods,
     };
   };
+
+  /** An open registration for this email would collide with an account or a pending invite (AC-3.6, AC-2.9). */
+  const emailTaken = (email: string) =>
+    !!db
+      .prepare(
+        `SELECT 1 FROM users WHERE email = ?
+         UNION ALL SELECT 1 FROM invites WHERE kind = 'invite' AND email = ?
+           AND used_at IS NULL AND revoked_at IS NULL AND expires_at > ?`,
+      )
+      .get(email, email, Date.now());
+
+  return { passwordHash, userById, signedIn, usableLink, me, emailTaken };
+}
+
+/**
+ * Sign-in, sign-out, registration, password recovery, the current user and the password of
+ * one's own account (ADR-0003).
+ */
+export function authRoutes(deps: AppDeps) {
+  const { config, db } = deps;
+  const passwordOn = methodEnabled(config, 'password');
+  const { passwordHash, userById, signedIn, usableLink, me, emailTaken } =
+    authHelpers(deps);
 
   return new Hono<AuthEnv>()
     .post(
@@ -170,16 +189,7 @@ export function authRoutes(deps: AppDeps) {
         try {
           userId = db.transaction(() => {
             if (token) consumeLink(db, token, 'invite');
-            else if (
-              db
-                .prepare(
-                  `SELECT 1 FROM invites WHERE kind = 'invite' AND email = ?
-                   AND used_at IS NULL AND revoked_at IS NULL AND expires_at > ?`,
-                )
-                .get(email, now)
-            ) {
-              throw taken;
-            }
+            else if (emailTaken(email)) throw taken;
             const { lastInsertRowid } = db
               .prepare(
                 `INSERT INTO users (email, name, role, webauthn_user_id, locale, created_at, last_login_at)

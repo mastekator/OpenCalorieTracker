@@ -124,3 +124,47 @@ export const inviteSchema = z.object({
   status: z.enum(['pending', 'used', 'expired', 'revoked']),
 });
 export type Invite = z.infer<typeof inviteSchema>;
+
+/** Starts the passkey path of registration; the fields mean what they do in `registerRequestSchema`. */
+export const passkeyRegisterOptionsRequestSchema = registerRequestSchema.omit({
+  password: true,
+});
+export type PasskeyRegisterOptionsRequest = z.infer<
+  typeof passkeyRegisterOptionsRequestSchema
+>;
+
+export const passkeyRecoverOptionsRequestSchema = z.object({
+  token: tokenSchema,
+});
+export type PasskeyRecoverOptionsRequest = z.infer<
+  typeof passkeyRecoverOptionsRequestSchema
+>;
+
+/** `options` goes to the browser's WebAuthn call as is; `challengeId` comes back with its answer. */
+export interface PasskeyOptionsResponse {
+  challengeId: string;
+  options: unknown;
+}
+
+/** The authenticator's answer; the server checks it, the schema only its shape. */
+export const passkeyVerifyRequestSchema = z.object({
+  challengeId: z.string().min(1).max(64),
+  response: z.looseObject({
+    id: z.string().min(1).max(1024),
+    response: z.looseObject({ userHandle: z.string().max(1024).optional() }),
+  }),
+});
+export type PasskeyVerifyRequest = z.infer<typeof passkeyVerifyRequestSchema>;
+
+export const passkeyRenameRequestSchema = z.object({
+  name: z.string().trim().min(1).max(100),
+});
+export type PasskeyRenameRequest = z.infer<typeof passkeyRenameRequestSchema>;
+
+export const passkeySchema = z.object({
+  id: z.number().int(),
+  name: z.string(),
+  createdAt: z.number().int(),
+  lastUsedAt: z.number().int().nullable(),
+});
+export type Passkey = z.infer<typeof passkeySchema>;
