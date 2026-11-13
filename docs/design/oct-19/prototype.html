@@ -1,0 +1,794 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OCT-19 · Сегодня, дневник и неделя</title>
+<link rel="stylesheet" href="../oct-13/tokens.css">
+<script>
+  const t = new URLSearchParams(location.search).get('theme');
+  if (t) document.documentElement.dataset.theme = t;
+</script>
+<style>
+/* Base components = ../oct-13 + ../oct-16 prototypes (same spec) */
+/* ===== Prototype canvas (not part of the app) ===== */
+*{box-sizing:border-box;margin:0}
+html{background:var(--color-bg);color:var(--color-text);font-family:var(--font-sans);-webkit-font-smoothing:antialiased}
+::selection{background:var(--color-selection)}
+body{padding:var(--space-10) var(--space-8)}
+.doc-h1{font-size:var(--text-large-title-size);line-height:var(--text-large-title-lh);font-weight:700;letter-spacing:var(--tracking-tight)}
+.doc-lead{font-size:var(--text-subhead-size);color:var(--color-text-secondary);max-width:70ch;margin-top:var(--space-2)}
+.doc-section{margin-top:var(--space-12)}
+.doc-h2{font-size:var(--text-title-size);font-weight:600;margin-bottom:var(--space-2)}
+.row{display:flex;flex-wrap:wrap;gap:var(--space-8);align-items:flex-start;margin-top:var(--space-6)}
+.frame{display:flex;flex-direction:column;gap:var(--space-3);width:390px}
+.frame>figcaption{font-size:var(--text-footnote-size);color:var(--color-text-secondary);line-height:var(--text-footnote-lh)}
+.frame>figcaption b{color:var(--color-text);font-weight:600}
+
+/* ===== Device chrome (prototype only) ===== */
+.phone{position:relative;width:390px;height:844px;border-radius:48px;overflow:hidden;background:var(--color-bg);outline:1px solid var(--color-separator);display:flex;flex-direction:column}
+.status{height:54px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 32px 0 40px;font-size:var(--text-body-size);font-weight:600}
+.status::after{content:"";width:68px;height:12px;border-radius:var(--radius-full);background:currentColor;opacity:.85;-webkit-mask:linear-gradient(90deg,#000 0 30%,transparent 30% 38%,#000 38% 62%,transparent 62% 70%,#000 70%)}
+.island{position:absolute;top:11px;left:50%;translate:-50% 0;width:124px;height:36px;border-radius:var(--radius-full);background:#000;z-index:100}
+.home-ind{position:absolute;bottom:8px;left:50%;translate:-50% 0;width:134px;height:5px;border-radius:var(--radius-full);background:var(--color-text);z-index:100}
+
+/* ===== App components (tokens only) ===== */
+.icon{width:var(--icon-size);height:var(--icon-size);flex:none;fill:none;stroke:currentColor;stroke-width:var(--icon-stroke);stroke-linecap:round;stroke-linejoin:round}
+.icon.sm{width:var(--icon-size-sm);height:var(--icon-size-sm)}
+.scroll{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.navbar{height:var(--navbar-height);flex:none;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 var(--space-2)}
+.navbar .title{font-size:var(--text-headline-size);font-weight:600}
+.navbar .back{display:flex;align-items:center;gap:2px;color:var(--color-accent);font-size:var(--text-body-size);min-height:var(--tap-min);padding-right:var(--space-2)}
+.navbar .act{justify-self:end;color:var(--color-accent);font-size:var(--text-body-size);min-height:var(--tap-min);display:flex;align-items:center;padding:0 var(--space-2)}
+.large-title{font-size:var(--text-large-title-size);line-height:var(--text-large-title-lh);font-weight:700;letter-spacing:var(--tracking-tight);padding:var(--space-1) var(--screen-gutter) var(--space-2)}
+.pad{padding:0 var(--screen-gutter)}
+.stack{display:flex;flex-direction:column;gap:var(--space-4)}
+.stack-sm{display:flex;flex-direction:column;gap:var(--space-2)}
+.grow{flex:1}
+.bottom{padding:var(--space-4) var(--screen-gutter) calc(34px + var(--space-2));display:flex;flex-direction:column;gap:var(--space-3)}
+.t-title{font-size:var(--text-title-size);line-height:var(--text-title-lh);font-weight:600}
+.t-headline{font-size:var(--text-headline-size);line-height:var(--text-headline-lh);font-weight:600}
+.t-body{font-size:var(--text-body-size);line-height:var(--text-body-lh)}
+.t-sub{font-size:var(--text-subhead-size);line-height:var(--text-subhead-lh)}
+.t-foot{font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh)}
+.t-cap{font-size:var(--text-caption-size);line-height:var(--text-caption-lh);font-weight:500}
+.muted{color:var(--color-text-secondary)}
+.center{text-align:center}
+.num{font-variant-numeric:tabular-nums}
+
+/* brand */
+.brand{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-headline-size);font-weight:600}
+.brand .mark{width:32px;height:32px;border-radius:var(--radius-sm);background:var(--color-accent);color:var(--color-on-accent);display:grid;place-items:center}
+
+/* buttons */
+.btn{appearance:none;border:0;font:inherit;width:100%;min-height:var(--control-height-lg);border-radius:var(--radius-md);font-size:var(--text-headline-size);font-weight:600;display:flex;align-items:center;justify-content:center;gap:var(--space-2);padding:0 var(--space-4);cursor:pointer;transition:transform var(--duration-fast) var(--ease-out),background var(--duration-fast) var(--ease-out)}
+.btn:active{transform:scale(var(--press-scale))}
+.btn:focus-visible{outline:2px solid var(--color-focus-ring);outline-offset:2px}
+.btn-primary{background:var(--color-accent);color:var(--color-on-accent)}
+.btn-primary.pressed{background:var(--color-accent-pressed)}
+.btn-tonal{background:var(--color-accent-soft);color:var(--color-accent)}
+.btn-plain{background:transparent;color:var(--color-accent);min-height:var(--tap-min)}
+.btn-danger{background:var(--color-danger);color:var(--color-on-danger)}
+.btn-danger-plain{background:transparent;color:var(--color-danger);min-height:var(--tap-min)}
+.btn[disabled],.btn.disabled{background:var(--color-surface-2);color:var(--color-text-disabled);cursor:default}
+.btn-plain.disabled{background:transparent}
+.btn-sm{min-height:var(--control-height);width:auto;font-size:var(--text-subhead-size);padding:0 var(--space-4)}
+.link{color:var(--color-accent);font-weight:500;text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px}
+.spinner{width:20px;height:20px;border-radius:50%;border:2px solid currentColor;border-right-color:transparent;animation:spin 800ms linear infinite}
+@keyframes spin{to{rotate:360deg}}
+
+/* fields */
+.field{display:flex;flex-direction:column;gap:var(--space-2)}
+.field label{font-size:var(--text-subhead-size);font-weight:500}
+.input{display:flex;align-items:center;gap:var(--space-2);min-height:var(--control-height-lg);padding:0 var(--space-4);border-radius:var(--radius-md);background:var(--color-surface);border:1px solid var(--color-border-strong);font-size:var(--text-body-size)}
+.input .ph{color:var(--color-text-secondary)}
+.input .val{flex:1}
+.input .trail{color:var(--color-text-secondary);display:grid;place-items:center;width:var(--tap-min);height:var(--tap-min);margin-right:calc(-1 * var(--space-3))}
+.input.focus{border-color:var(--color-accent);box-shadow:inset 0 0 0 1px var(--color-accent)}
+.input.caret .val::after{content:"";display:inline-block;width:2px;height:1.1em;background:var(--color-accent);vertical-align:-3px;margin-left:1px}
+.input.error{border-color:var(--color-danger);box-shadow:inset 0 0 0 1px var(--color-danger)}
+.input.locked{background:var(--color-surface-2);border-color:transparent;color:var(--color-text-secondary)}
+.field .msg{display:flex;gap:var(--space-1);align-items:flex-start;font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);color:var(--color-text-secondary)}
+.field .msg.err{color:var(--color-danger)}
+.rules{list-style:none;padding:0;display:grid;gap:var(--space-1);font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh)}
+.rules li{display:flex;gap:var(--space-2);align-items:center;color:var(--color-text-secondary)}
+.rules li.ok{color:var(--color-accent)}
+.rules li.bad{color:var(--color-danger)}
+
+/* segmented */
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;padding:2px;border-radius:var(--radius-md);background:var(--color-surface-2);min-height:var(--control-height)}
+.seg span{display:grid;place-items:center;border-radius:calc(var(--radius-md) - 2px);font-size:var(--text-subhead-size);font-weight:500;color:var(--color-text-secondary)}
+.seg span.on{background:var(--color-surface);color:var(--color-text);font-weight:600;box-shadow:0 1px 3px rgb(0 0 0 / .12)}
+
+/* grouped lists */
+.group-h{font-size:var(--text-footnote-size);color:var(--color-text-secondary);padding:0 var(--space-4) var(--space-2);margin-top:var(--space-6)}
+.group{background:var(--color-surface);border-radius:var(--radius-md);overflow:hidden}
+.group-f{font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);color:var(--color-text-secondary);padding:var(--space-2) var(--space-4) 0}
+.cell{display:flex;align-items:center;gap:var(--space-3);min-height:var(--control-height);padding:var(--space-3) var(--space-4);position:relative;font-size:var(--text-body-size)}
+.cell+.cell::before{content:"";position:absolute;top:0;right:0;left:var(--space-4);border-top:1px solid var(--color-separator)}
+.cell.ic+.cell::before,.cell.ic+.cell.ic::before{left:calc(var(--space-4) + 30px + var(--space-3))}
+.cell .lead-ic{width:30px;height:30px;border-radius:var(--radius-sm);display:grid;place-items:center;background:var(--color-accent-soft);color:var(--color-accent);flex:none}
+.cell .lead-ic.danger{background:var(--color-danger-soft);color:var(--color-danger)}
+.cell .main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.cell .main .sub{font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.cell .val{color:var(--color-text-secondary)}
+.cell .chev{color:var(--color-text-secondary)}
+.cell.danger{color:var(--color-danger)}
+.cell.accent{color:var(--color-accent)}
+.cell.dis{color:var(--color-text-disabled)}
+.badge{font-size:var(--text-caption-size);font-weight:600;padding:2px var(--space-2);border-radius:var(--radius-sm);background:var(--color-surface-2);color:var(--color-text-secondary);white-space:nowrap}
+.badge.ok{background:var(--color-accent-soft);color:var(--color-accent)}
+.badge.warn{background:var(--color-warning-soft);color:var(--color-warning)}
+.badge.err{background:var(--color-danger-soft);color:var(--color-danger)}
+
+/* banners */
+.banner{display:flex;gap:var(--space-3);align-items:flex-start;padding:var(--space-3) var(--space-4);border-radius:var(--radius-lg);font-size:var(--text-subhead-size);line-height:var(--text-subhead-lh)}
+.banner .b-title{font-weight:600}
+.banner.notice{background:var(--color-notice)}
+.banner.warning{background:var(--color-warning-soft)}
+.banner.warning .icon{color:var(--color-warning)}
+.banner.danger{background:var(--color-danger-soft)}
+.banner.danger .icon{color:var(--color-danger)}
+.banner.accent{background:var(--color-accent-soft)}
+.banner.accent .icon{color:var(--color-accent)}
+.banner .close{margin:-10px -12px -10px auto;width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;color:var(--color-text-secondary);flex:none}
+.offline-bar{display:flex;gap:var(--space-2);align-items:center;justify-content:center;min-height:32px;padding:var(--space-1) var(--space-4);background:var(--color-notice);font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+
+/* divider "или" */
+.or{display:flex;align-items:center;gap:var(--space-3);font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.or::before,.or::after{content:"";flex:1;border-top:1px solid var(--color-separator)}
+
+/* overlays */
+.scrim{position:absolute;inset:0;background:var(--color-scrim);z-index:var(--z-sheet)}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:var(--z-sheet);background:var(--color-surface);border-radius:var(--radius-xl) var(--radius-xl) 0 0;box-shadow:var(--shadow-sheet);padding:var(--space-2) var(--screen-gutter) calc(34px + var(--space-4));display:flex;flex-direction:column;gap:var(--space-4)}
+.sheet .grab{width:36px;height:5px;border-radius:var(--radius-full);background:var(--color-separator);margin:0 auto var(--space-1)}
+.sheet .sheet-head{display:flex;align-items:center;justify-content:space-between}
+.sheet .x{width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;margin-right:calc(-1 * var(--space-3));color:var(--color-text-secondary)}
+.sheet .inset{background:var(--color-surface-2)}
+.alert{position:absolute;left:50%;top:50%;translate:-50% -50%;width:300px;z-index:var(--z-alert);background:var(--color-surface);border-radius:var(--radius-lg);padding:var(--space-5) var(--space-4) var(--space-4);display:flex;flex-direction:column;gap:var(--space-2);text-align:center;box-shadow:var(--shadow-toast)}
+.alert .btns{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-2);margin-top:var(--space-3)}
+.alert .btns.col{grid-template-columns:1fr}
+.toast{position:absolute;left:var(--screen-gutter);right:var(--screen-gutter);bottom:calc(34px + var(--tabbar-height) + var(--space-3));z-index:var(--z-toast);display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);background:var(--color-text);color:var(--color-bg);box-shadow:var(--shadow-toast);font-size:var(--text-subhead-size)}
+.toast .act{margin-left:auto;font-weight:600;min-height:var(--tap-min);display:flex;align-items:center}
+
+/* state blocks */
+.state{display:flex;flex-direction:column;align-items:center;text-align:center;gap:var(--space-2);padding:var(--space-8) var(--space-6)}
+.state .s-ic{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;background:var(--color-surface-2);color:var(--color-text-secondary);margin-bottom:var(--space-2)}
+.state .s-ic.danger{background:var(--color-danger-soft);color:var(--color-danger)}
+.state .s-ic.warning{background:var(--color-warning-soft);color:var(--color-warning)}
+.state p{max-width:30ch}
+.state .btn{margin-top:var(--space-3)}
+.skel{background:var(--color-surface-2);border-radius:var(--radius-sm);height:14px;position:relative;overflow:hidden}
+.skel::after{content:"";position:absolute;inset:0;translate:-100% 0;background:linear-gradient(90deg,transparent,var(--color-surface),transparent);animation:shimmer 1.4s var(--ease-in-out) infinite}
+@keyframes shimmer{to{translate:100% 0}}
+
+/* tab bar */
+.tabbar{position:absolute;left:0;right:0;bottom:0;z-index:var(--z-tabbar);height:calc(var(--tabbar-height) + 34px);padding-bottom:34px;background:var(--tabbar-bg);-webkit-backdrop-filter:var(--tabbar-blur);backdrop-filter:var(--tabbar-blur);border-top:1px solid var(--color-separator);display:grid;grid-template-columns:repeat(5,1fr);align-items:center}
+.tab{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:var(--text-tab-size);font-weight:var(--text-tab-weight);color:var(--color-text-secondary);min-height:var(--tabbar-height);justify-content:center}
+.tab.on{color:var(--color-accent)}
+.cam{justify-self:center;width:var(--camera-button-size);height:var(--camera-button-size);border-radius:50%;background:var(--color-accent);color:var(--color-on-accent);display:grid;place-items:center;box-shadow:var(--shadow-camera);translate:0 -14px}
+.cam .icon{width:30px;height:30px}
+
+/* swatches (docs only) */
+.sw-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-2)}
+.sw{border-radius:var(--radius-md);overflow:hidden;background:var(--color-surface);font-size:var(--text-caption-size);outline:1px solid var(--color-separator)}
+.sw i{display:block;height:44px}
+.sw div{padding:var(--space-2);line-height:1.3}
+.sheetdoc{width:390px;background:var(--color-surface);border-radius:var(--radius-lg);padding:var(--space-5);display:flex;flex-direction:column;gap:var(--space-4);outline:1px solid var(--color-separator)}
+.sheetdoc h3{font-size:var(--text-headline-size)}
+.doc-note{font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.navmap{width:820px;background:var(--color-surface);border-radius:var(--radius-lg);padding:var(--space-6);outline:1px solid var(--color-separator);display:grid;grid-template-columns:repeat(5,1fr);gap:var(--space-3);font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh)}
+.navmap .col{display:flex;flex-direction:column;gap:var(--space-2)}
+.navmap .nd{padding:var(--space-2) var(--space-3);border-radius:var(--radius-sm);background:var(--color-surface-2)}
+.navmap .nd.tab{background:var(--color-accent-soft);color:var(--color-accent);font-weight:600;align-items:flex-start;font-size:var(--text-footnote-size)}
+.navmap .nd.modal{outline:1px dashed var(--color-border-strong);background:transparent}
+.navmap .arrow{color:var(--color-text-secondary);text-align:center}
+
+/* ===== Desktop (≥ 1024px) — section 6 ===== */
+.frame.wide{width:1280px}
+.desk{position:relative;width:1280px;height:800px;border-radius:var(--radius-lg);overflow:hidden;background:var(--color-bg);outline:1px solid var(--color-separator);display:flex;flex-direction:column}
+.desk .chrome{height:36px;flex:none;display:flex;align-items:center;gap:var(--space-2);padding:0 var(--space-4);background:var(--color-surface-2);border-bottom:1px solid var(--color-separator);font-size:var(--text-caption-size);color:var(--color-text-secondary)}
+.desk .chrome i{width:12px;height:12px;border-radius:50%;background:var(--color-separator)}
+.desk .chrome .url{margin-left:var(--space-6);padding:var(--space-1) var(--space-3);border-radius:var(--radius-sm);background:var(--color-surface)}
+.desk .body{flex:1;display:flex;min-height:0}
+.side{width:var(--sidebar-width);flex:none;display:flex;flex-direction:column;gap:var(--space-1);padding:var(--space-6) var(--space-4);border-right:1px solid var(--color-separator)}
+.side .brand{padding:0 var(--space-3) var(--space-6)}
+.side .btn{margin-bottom:var(--space-4)}
+.nav-i{display:flex;align-items:center;gap:var(--space-3);min-height:var(--tap-min);padding:0 var(--space-3);border-radius:var(--radius-md);font-size:var(--text-body-size);color:var(--color-text)}
+.nav-i .icon{color:var(--color-text-secondary)}
+.nav-i.hover{background:var(--color-hover)}
+.nav-i.on{background:var(--color-accent-soft);color:var(--color-accent);font-weight:600}
+.nav-i.on .icon{color:var(--color-accent)}
+.side .foot{margin-top:auto;display:flex;flex-direction:column;gap:var(--space-1)}
+.side .who{padding:var(--space-2) var(--space-3);font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.main-area{flex:1;overflow:hidden;padding:var(--space-8) var(--desktop-gutter)}
+.main-area .inner{max-width:var(--content-max-width-wide);margin:0 auto;display:flex;flex-direction:column;gap:var(--space-6)}
+.main-area .large-title{padding:0}
+.cols{display:grid;grid-template-columns:3fr 2fr;gap:var(--space-6)}
+.drop{display:flex;flex-direction:column;align-items:center;gap:var(--space-2);padding:var(--space-8);border:2px dashed var(--color-border-strong);border-radius:var(--radius-lg);color:var(--color-text-secondary);text-align:center;font-size:var(--text-subhead-size)}
+.auth-desk{flex:1;display:grid;place-items:center}
+.auth-card{width:var(--content-max-width);background:var(--color-surface);border-radius:var(--radius-lg);padding:var(--space-10);box-shadow:var(--shadow-toast)}
+.dialog{position:absolute;left:50%;top:50%;translate:-50% -50%;width:var(--dialog-max-width);z-index:var(--z-sheet);background:var(--color-surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-toast);padding:var(--space-6);display:flex;flex-direction:column;gap:var(--space-4)}
+.dialog .sheet-head{display:flex;align-items:center;justify-content:space-between}
+.dialog .x{width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;margin-right:calc(-1 * var(--space-3));color:var(--color-text-secondary)}
+.kbd{font-size:var(--text-caption-size);padding:1px var(--space-1);border-radius:var(--radius-sm);outline:1px solid var(--color-separator);color:var(--color-text-secondary)}
+.toast.desk-toast{left:50%;right:auto;translate:-50% 0;bottom:var(--space-6);width:auto;max-width:var(--dialog-max-width)}
+
+/* ===== OCT-16 additions (tokens only; prototype-only bits marked) ===== */
+.frame.sm{width:390px}
+.phone .content{flex:1;overflow:hidden;display:flex;flex-direction:column;gap:var(--space-4);padding-bottom:var(--space-4)}
+.navbar .x-btn{width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;color:var(--color-text-secondary)}
+.navbar .txt-btn{color:var(--color-accent);font-size:var(--text-body-size);min-height:var(--tap-min);display:flex;align-items:center;padding:0 var(--space-2)}
+.bottom.bar{background:var(--color-bg);border-top:1px solid var(--color-separator);margin-top:auto}
+.foot-note{display:flex;gap:var(--space-2);align-items:flex-start;font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);color:var(--color-text-secondary)}
+.foot-note .icon{color:var(--color-accent)}
+
+/* photo (user content) */
+.photo{display:block;width:100%;height:var(--photo-preview-height);border-radius:var(--radius-lg);overflow:hidden;position:relative;background:var(--color-surface-2)}
+.photo svg{width:100%;height:100%;display:block}
+.photo.scan::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgb(255 255 255 / .28) 50%,transparent 70%);translate:-100% 0;animation:sweep 1.8s var(--ease-in-out) infinite}
+@keyframes sweep{to{translate:100% 0}}
+.photo.dim{height:calc(var(--photo-preview-height) * .6)}
+.thumb{width:var(--thumb-size);height:var(--thumb-size);border-radius:var(--radius-md);overflow:hidden;flex:none;background:var(--color-surface-2)}
+.thumb svg{width:100%;height:100%;display:block}
+.thumb.add{display:grid;place-items:center;color:var(--color-accent);background:var(--color-accent-soft);font-size:var(--text-caption-size);font-weight:600;text-align:center;align-content:center;gap:2px}
+
+/* totals header */
+.totals{display:flex;gap:var(--space-4);align-items:center}
+.kcal-big{display:flex;align-items:baseline;gap:var(--space-1)}
+.kcal-big b{font-size:var(--text-large-title-size);line-height:var(--text-large-title-lh);font-weight:700;letter-spacing:var(--tracking-tight);font-variant-numeric:tabular-nums}
+.macros{display:flex;gap:var(--space-3);font-size:var(--text-footnote-size);color:var(--color-text-secondary);font-variant-numeric:tabular-nums}
+.macros span{display:flex;align-items:center;gap:var(--space-1)}
+.macros i{width:var(--space-2);height:var(--space-2);border-radius:var(--radius-full)}
+.m-p{background:var(--color-protein)} .m-f{background:var(--color-fat)} .m-c{background:var(--color-carbs)}
+
+/* dish row */
+.dish{display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-3) var(--space-4);position:relative;background:var(--color-surface)}
+.dish+.dish::before{content:"";position:absolute;top:0;right:0;left:var(--space-4);border-top:1px solid var(--color-separator)}
+.dish-top{display:flex;justify-content:space-between;align-items:baseline;gap:var(--space-3)}
+.dish-top .name{font-size:var(--text-headline-size);font-weight:600;line-height:var(--text-headline-lh)}
+.dish-top .kc{font-size:var(--text-headline-size);font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.dish-meta{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-footnote-size);color:var(--color-text-secondary);font-variant-numeric:tabular-nums}
+.badge{display:inline-flex;align-items:center;gap:2px}
+.badge .icon{width:14px;height:14px}
+.dish-ctl{display:flex;align-items:center;gap:var(--space-2)}
+.step{width:var(--tap-min);height:var(--tap-min);border-radius:var(--radius-full);background:var(--color-surface-2);color:var(--color-accent);display:grid;place-items:center;flex:none}
+.step.dis{color:var(--color-text-disabled)}
+.wv{width:var(--stepper-value-width);height:var(--control-height);border:1px solid var(--color-border-strong);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;gap:var(--space-1);font-size:var(--text-body-size);font-variant-numeric:tabular-nums;background:var(--color-surface)}
+.wv small{font-size:var(--text-subhead-size);color:var(--color-text-secondary)}
+.wv.focus{border-color:var(--color-accent);box-shadow:inset 0 0 0 1px var(--color-accent)}
+.wv.error{border-color:var(--color-danger);box-shadow:inset 0 0 0 1px var(--color-danger)}
+.dish .more{margin-left:auto;width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;color:var(--color-text-secondary)}
+.dish .err-msg{display:flex;gap:var(--space-1);align-items:center;font-size:var(--text-footnote-size);color:var(--color-danger)}
+.hint{display:flex;flex-direction:column;gap:var(--space-1);padding:var(--space-2) var(--space-3);border-radius:var(--radius-md);background:var(--color-accent-soft);font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh)}
+.hint .acts{display:flex;gap:var(--space-4)}
+.hint .acts span{color:var(--color-accent);font-weight:600;min-height:var(--tap-min);display:flex;align-items:center}
+.hint .acts span+span{color:var(--color-text-secondary);font-weight:500}
+/* swipe-to-delete reveal */
+.swipe{position:relative;background:var(--color-danger);overflow:hidden}
+.swipe .dish{translate:-96px 0}
+.swipe .del{position:absolute;right:0;top:0;bottom:0;width:96px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--color-on-danger);font-size:var(--text-footnote-size);font-weight:600}
+.add-row{display:flex;align-items:center;gap:var(--space-2);color:var(--color-accent);font-size:var(--text-body-size);font-weight:500;min-height:var(--tap-min);padding:0 var(--space-4)}
+
+/* recognition */
+.recog-title{display:flex;align-items:center;gap:var(--space-3)}
+.skel-dish{display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-3) var(--space-4);background:var(--color-surface);border-radius:var(--radius-md)}
+.state.compact{padding:var(--space-4) var(--space-6) 0}
+
+/* today (minimal stand-in; full screen is OCT-19) */
+.today-card{background:var(--color-surface);border-radius:var(--radius-lg);padding:var(--space-5);display:flex;flex-direction:column;gap:var(--space-2)}
+.display{font-size:var(--text-display-size);line-height:var(--text-display-lh);font-weight:700;letter-spacing:var(--tracking-tight);font-variant-numeric:tabular-nums}
+.quick{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3)}
+.quick .btn{width:100%}
+.meal{display:flex;align-items:center;gap:var(--space-3)}
+.meal .thumb{width:44px;height:44px;border-radius:var(--radius-sm)}
+.meal.new{background:var(--color-accent-soft)}
+.action-sheet{position:absolute;left:var(--space-2);right:var(--space-2);bottom:calc(34px + var(--space-2));z-index:var(--z-sheet);display:flex;flex-direction:column;gap:var(--space-2)}
+.action-sheet .grp{background:var(--color-surface);border-radius:var(--radius-lg);overflow:hidden}
+.action-sheet .it{display:flex;align-items:center;justify-content:center;gap:var(--space-2);min-height:var(--control-height-lg);font-size:var(--text-body-size);color:var(--color-accent);position:relative}
+.action-sheet .it+.it::before{content:"";position:absolute;top:0;left:0;right:0;border-top:1px solid var(--color-separator)}
+.action-sheet .cancel{font-weight:600}
+
+/* manual form */
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-3)}
+.field .input.num .val{font-variant-numeric:tabular-nums}
+.field .input .unit{color:var(--color-text-secondary);font-size:var(--text-subhead-size)}
+.field .msg.warn{color:var(--color-warning)}
+.result{display:flex;justify-content:space-between;align-items:baseline;padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);background:var(--color-surface-2);font-size:var(--text-subhead-size);font-variant-numeric:tabular-nums}
+.result b{font-size:var(--text-headline-size)}
+.req{color:var(--color-text-secondary);font-weight:400}
+
+/* ===== Prototype-only: system camera of iOS & tap markers ===== */
+.sys{background:#000;color:#fff}
+.sys .viewfinder{flex:1;margin-top:var(--space-12);overflow:hidden}
+.sys .viewfinder svg{width:100%;height:100%;display:block}
+.sys .shutter-row{height:180px;display:flex;align-items:center;justify-content:space-around;padding-bottom:34px;font-size:var(--text-body-size)}
+.sys .shutter{width:72px;height:72px;border-radius:50%;border:4px solid #fff;display:grid;place-items:center}
+.sys .shutter::after{content:"";width:58px;height:58px;border-radius:50%;background:#fff}
+.tap{position:absolute;z-index:200;width:64px;height:64px;border-radius:50%;border:3px solid var(--color-accent);box-shadow:0 0 0 6px var(--color-accent-soft);pointer-events:none}
+.tap b{position:absolute;top:-14px;right:-14px;width:28px;height:28px;border-radius:50%;background:var(--color-accent);color:var(--color-on-accent);display:grid;place-items:center;font-size:var(--text-subhead-size)}
+.flow-arrow{align-self:center;color:var(--color-text-secondary)}
+.auto{position:absolute;z-index:200;top:64px;right:16px;padding:var(--space-1) var(--space-3);border-radius:var(--radius-full);background:var(--color-accent);color:var(--color-on-accent);font-size:var(--text-footnote-size);font-weight:600}
+
+/* ===== Desktop modal flow ===== */
+.flow-win{position:absolute;left:50%;top:50%;translate:-50% -50%;width:var(--modal-flow-max-width);max-height:90%;z-index:var(--z-sheet);background:var(--color-bg);border-radius:var(--radius-lg);box-shadow:var(--shadow-toast);display:flex;flex-direction:column;overflow:hidden}
+.flow-win .wh{display:flex;align-items:center;justify-content:space-between;padding:var(--space-3) var(--space-3) var(--space-3) var(--space-6);border-bottom:1px solid var(--color-separator)}
+.flow-win .wb{display:grid;grid-template-columns:240px 1fr;gap:var(--space-6);padding:var(--space-6);overflow:hidden}
+.flow-win .wf{display:flex;justify-content:flex-end;gap:var(--space-3);padding:var(--space-4) var(--space-6);border-top:1px solid var(--color-separator)}
+.flow-win .wf .btn{width:auto;min-width:160px}
+.flow-win .photo{height:240px}
+.dish .trash{width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;color:var(--color-danger);border-radius:var(--radius-md);background:var(--color-hover)}
+.dropzone{position:absolute;inset:var(--space-4);z-index:var(--z-sheet);border:2px dashed var(--color-accent);border-radius:var(--radius-lg);background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--space-2);color:var(--color-accent);font-size:var(--text-title-size);font-weight:600}
+.dropzone .icon{width:48px;height:48px}
+
+
+/* ===== OCT-19 additions: Today, Diary, Week (tokens only) ===== */
+.phone .content{padding-bottom:calc(var(--tabbar-height) + 34px + var(--space-4))}
+.phone .content.modal{padding-bottom:var(--space-4)}
+.phone .bottom.bar{flex:none}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.large-title .date{display:block;font-size:var(--text-subhead-size);font-weight:400;letter-spacing:0;color:var(--color-text-secondary);margin-top:2px}
+.title-row{display:flex;align-items:flex-end;justify-content:space-between;gap:var(--space-2)}
+.title-row .txt-btn{color:var(--color-accent);font-size:var(--text-body-size);min-height:var(--tap-min);display:flex;align-items:center;padding:0 var(--screen-gutter);font-weight:500}
+
+/* card + numbers */
+.card{background:var(--color-surface);border-radius:var(--radius-lg);padding:var(--space-5);display:flex;flex-direction:column;gap:var(--space-3)}
+.card .lbl{display:flex;align-items:center;gap:var(--space-1);font-size:var(--text-subhead-size);color:var(--color-text-secondary)}
+.card .lbl.over{color:var(--color-warning);font-weight:600}
+.big{display:flex;align-items:baseline;gap:var(--space-2)}
+.big .unit{font-size:var(--text-subhead-size);color:var(--color-text-secondary)}
+.big .display.sm{font-size:var(--text-large-title-size);line-height:var(--text-large-title-lh)}
+.week-line{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);min-height:var(--tap-min);margin:0 calc(-1 * var(--space-5)) calc(-1 * var(--space-5));padding:0 var(--space-3) 0 var(--space-5);border-top:1px solid var(--color-separator);font-size:var(--text-subhead-size);font-variant-numeric:tabular-nums}
+.week-line b{font-weight:600}
+.week-line .icon{color:var(--color-text-secondary)}
+.week-line.over b{color:var(--color-warning)}
+.invite{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);background:var(--color-accent-soft);font-size:var(--text-subhead-size)}
+.invite .icon{color:var(--color-accent)}
+.invite .go{margin-left:auto;color:var(--color-accent);font-weight:600;min-height:var(--tap-min);display:flex;align-items:center;white-space:nowrap}
+
+/* progress bars: fill = eaten up to the norm; hatched tail = over the norm (pattern, not only colour) */
+.pbar{height:var(--progress-height);border-radius:var(--radius-full);background:var(--color-surface-2);display:flex;overflow:hidden}
+.pbar i{display:block;height:100%;background:var(--color-accent)}
+.pbar i.p{background:var(--color-protein)} .pbar i.f{background:var(--color-fat)} .pbar i.c{background:var(--color-carbs)}
+.pbar i.ov,.hatch{background-image:repeating-linear-gradient(-45deg,var(--color-warning) 0 calc(var(--hatch-size) / 2),transparent 0 var(--hatch-size))}
+.pbar.none{background:transparent;outline:1px dashed var(--color-separator)}
+
+/* macros block */
+.mac-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-3)}
+.mac{display:flex;flex-direction:column;gap:var(--space-1);min-width:0}
+.mac-h{display:flex;align-items:center;gap:var(--space-1);font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.mac-h i{width:var(--space-2);height:var(--space-2);border-radius:var(--radius-full)}
+.mac-v{font-size:var(--text-headline-size);font-weight:600;font-variant-numeric:tabular-nums}
+.mac-v small{font-size:var(--text-footnote-size);font-weight:400;color:var(--color-text-secondary)}
+.mac .pbar{margin:var(--space-1) 0}
+.mac .rest{white-space:nowrap;font-size:var(--text-footnote-size);color:var(--color-text-secondary);font-variant-numeric:tabular-nums;display:flex;align-items:center;gap:2px}
+.mac .rest.over{color:var(--color-warning);font-weight:600}
+.mac .rest .icon{width:14px;height:14px}
+.mac-rows{display:flex;flex-direction:column;gap:var(--space-3)}
+.mac-row{display:grid;grid-template-columns:auto 1fr;gap:var(--space-1) var(--space-3);align-items:center}
+.mac-row .mac-h{font-size:var(--text-subhead-size);color:var(--color-text)}
+.mac-row .mac-v{justify-self:end;font-size:var(--text-subhead-size)}
+.mac-row .pbar{grid-column:1 / -1}
+
+/* meal rows (Today / Diary) */
+.sec-h{display:flex;justify-content:space-between;align-items:baseline;font-size:var(--text-footnote-size);color:var(--color-text-secondary);padding:0 var(--space-4) var(--space-2)}
+.cell.meal .thumb{width:var(--meal-thumb-size);height:var(--meal-thumb-size);border-radius:var(--radius-sm)}
+.cell.meal .thumb.icon-only{display:grid;place-items:center;color:var(--color-text-secondary)}
+.cell.meal .main .t{display:flex;gap:var(--space-2);align-items:center;font-weight:600;font-size:var(--text-body-size)}
+.cell.meal .main .t small{font-weight:400;color:var(--color-text-secondary);font-size:var(--text-subhead-size);font-variant-numeric:tabular-nums}
+.cell.meal .main .sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cell.meal .main .st{display:flex;gap:var(--space-1);margin-top:2px}
+.cell.meal .val{color:var(--color-text);font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.cell.meal .val.zero{color:var(--color-text-secondary);font-weight:400}
+.cell.meal.queued .thumb{opacity:.7}
+.swipe .cell.meal{translate:-96px 0;background:var(--color-surface)}
+.cell.meal .trash{width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;color:var(--color-danger);border-radius:var(--radius-md);background:var(--color-hover);flex:none}
+.cell.meal.hover{background:var(--color-hover)}
+
+/* day / period switcher */
+.pager{display:grid;grid-template-columns:var(--tap-min) 1fr var(--tap-min);align-items:center;gap:var(--space-2)}
+.pager .ib{width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;border-radius:var(--radius-full);color:var(--color-accent);background:var(--color-surface)}
+.pager .ib.dis{color:var(--color-text-disabled);background:transparent}
+.pager .pick{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:var(--tap-min);text-align:center}
+.pager .pick .t-headline{display:flex;align-items:center;gap:var(--space-1)}
+.pager .pick .icon{width:16px;height:16px;color:var(--color-text-secondary)}
+.sum-line{display:flex;justify-content:space-between;align-items:baseline;gap:var(--space-2);font-variant-numeric:tabular-nums}
+.sum-line .rest{font-size:var(--text-subhead-size);color:var(--color-text-secondary)}
+.sum-line .rest.over{color:var(--color-warning);font-weight:600}
+
+/* chart */
+.chart{display:flex;flex-direction:column;gap:var(--space-2)}
+.plot{position:relative;height:var(--chart-height);display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:var(--space-2);align-items:end;border-bottom:1px solid var(--color-separator)}
+.plot.month{gap:2px}
+.plot.wide{height:var(--chart-height-wide);gap:var(--space-4)}
+.plot .norm{position:absolute;left:0;right:0;border-top:2px dashed var(--color-text-secondary);z-index:1;pointer-events:none}
+.plot .norm span{position:absolute;right:0;bottom:2px;font-size:var(--text-caption-size);color:var(--color-text-secondary);background:var(--color-surface);padding:0 var(--space-1);font-variant-numeric:tabular-nums}
+.col{position:relative;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:stretch;min-height:var(--tap-min);border-radius:var(--radius-sm) var(--radius-sm) 0 0}
+.col .b{display:flex;flex-direction:column-reverse;border-radius:var(--radius-sm) var(--radius-sm) 0 0;overflow:hidden;min-height:2px}
+.col .b .in{background:var(--color-accent);flex:none}
+.col .b .ov{flex:none;background-color:var(--color-warning-soft)}
+.col .b .ov.hatch{background-color:var(--color-warning-soft)}
+.col.today .b .in{background:var(--color-accent)}
+.col.past .b .in{opacity:1}
+.col .v{font-size:var(--text-caption-size);font-weight:500;color:var(--color-text-secondary);text-align:center;font-variant-numeric:tabular-nums;margin-bottom:var(--space-1);white-space:nowrap}
+.col .v.over{color:var(--color-warning);font-weight:600}
+.col.zero .b{background:var(--color-separator);height:2px}
+.col.sel{outline:2px solid var(--color-focus-ring);outline-offset:2px}
+.col .clip{position:absolute;left:-2px;right:-2px;height:8px;background:var(--color-surface);clip-path:polygon(0 50%,15% 0,30% 50%,45% 0,60% 50%,75% 0,90% 50%,100% 0,100% 50%,85% 100%,70% 50%,55% 100%,40% 50%,25% 100%,10% 50%,0 100%)}
+.xl{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:var(--space-2);font-size:var(--text-caption-size);color:var(--color-text-secondary);text-align:center;font-variant-numeric:tabular-nums;line-height:var(--text-caption-lh)}
+.xl.month{gap:2px}
+.xl.wide{gap:var(--space-4)}
+.xl span em{display:block;font-style:normal;margin-top:2px;color:var(--color-text-secondary)}
+.xl span em.over{color:var(--color-warning);font-weight:600}
+.xl span b{display:block;font-weight:600;color:var(--color-text)}
+.xl span.today{color:var(--color-accent)}
+.xl span.today b{color:var(--color-accent)}
+.xl span.future{color:var(--color-text-disabled)}
+.xl span.future b{color:var(--color-text-disabled)}
+.legend{display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-3);font-size:var(--text-caption-size);color:var(--color-text-secondary)}
+.legend span{display:flex;align-items:center;gap:var(--space-1)}
+.legend i{width:14px;height:10px;border-radius:2px;background-color:var(--color-accent)}
+.legend i.ov{background-color:var(--color-warning-soft)}
+.legend i.ln{height:0;border-top:2px dashed var(--color-text-secondary);border-radius:0}
+.chart-empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--space-1);text-align:center;color:var(--color-text-secondary);font-size:var(--text-subhead-size)}
+.tip{position:absolute;z-index:2;translate:-50% 0;padding:var(--space-2) var(--space-3);border-radius:var(--radius-md);background:var(--color-text);color:var(--color-bg);font-size:var(--text-footnote-size);white-space:nowrap;box-shadow:var(--shadow-toast);font-variant-numeric:tabular-nums}
+.avg-note{font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.callout{display:flex;flex-direction:column;gap:2px;padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);background:var(--color-accent-soft);font-size:var(--text-subhead-size);font-variant-numeric:tabular-nums}
+.callout b{font-size:var(--text-headline-size);color:var(--color-accent)}
+.callout.over{background:var(--color-warning-soft)}
+.callout.over b{color:var(--color-warning)}
+
+/* edit-record additions (screen 4 opened from Diary) */
+.when{display:flex;align-items:center;gap:var(--space-3);min-height:var(--control-height);padding:0 var(--space-4);border-radius:var(--radius-md);background:var(--color-surface);font-size:var(--text-body-size)}
+.when .v{margin-left:auto;color:var(--color-accent);font-variant-numeric:tabular-nums}
+.when .icon{color:var(--color-text-secondary)}
+.late{display:flex;flex-direction:column;gap:var(--space-2)}
+.picker{position:absolute;left:0;right:0;bottom:0;z-index:var(--z-sheet);background:var(--color-surface-2);border-radius:var(--radius-xl) var(--radius-xl) 0 0;padding:var(--space-3) var(--space-4) calc(34px + var(--space-3));display:flex;flex-direction:column;gap:var(--space-2);box-shadow:var(--shadow-sheet)}
+.picker .ph{display:flex;justify-content:space-between;font-size:var(--text-body-size);color:var(--color-accent);min-height:var(--tap-min);align-items:center}
+.picker .wheel{display:grid;grid-template-columns:2fr 1fr 1fr;text-align:center;font-size:var(--text-body-size);color:var(--color-text-secondary);font-variant-numeric:tabular-nums}
+.picker .wheel div{display:flex;flex-direction:column;gap:var(--space-2)}
+.picker .wheel .on{color:var(--color-text);font-weight:600;background:var(--color-surface);border-radius:var(--radius-sm);padding:var(--space-1) 0}
+
+/* desktop */
+.desk .cols.even{grid-template-columns:1fr 1fr}
+.desk .cols.side-r{grid-template-columns:3fr 2fr}
+.desk-title{display:flex;align-items:flex-end;justify-content:space-between;gap:var(--space-4)}
+.desk-title .large-title .date{display:inline;margin-left:var(--space-3)}
+.desk .pager{grid-template-columns:var(--tap-min) auto var(--tap-min)}
+.desk .seg{min-width:240px}
+</style></head><body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-key" viewBox="0 0 24 24"><path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"/><circle cx="16.5" cy="7.5" r=".5"/></symbol>
+  <symbol id="i-chev-r" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="i-chev-l" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+  <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 2v13"/><path d="m16 6-4-4-4 4"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-camera" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></symbol>
+  <symbol id="i-wifi-off" viewBox="0 0 24 24"><path d="M12 20h.01"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/><path d="M5 12.859a10 10 0 0 1 5.17-2.69"/><path d="M19 12.859a10 10 0 0 0-2.007-1.523"/><path d="M2 8.82a15 15 0 0 1 4.177-2.643"/><path d="M22 8.82a15 15 0 0 0-11.288-3.764"/><path d="m2 2 20 20"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
+  <symbol id="i-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></symbol>
+  <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+  <symbol id="i-user-plus" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6"/><path d="M22 11h-6"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></symbol>
+  <symbol id="i-plate" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/></symbol>
+</svg>
+<!-- Extra icons for OCT-16 (Lucide geometry; lucide-react names in the doc) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></symbol>
+  <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/></symbol>
+  <symbol id="i-retake" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></symbol>
+  <symbol id="i-history" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></symbol>
+  <symbol id="i-gauge" viewBox="0 0 24 24"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></symbol>
+  <symbol id="i-cloud-off" viewBox="0 0 24 24"><path d="m2 2 20 20"/><path d="M5.782 5.782A7 7 0 0 0 9 19h8.5a4.5 4.5 0 0 0 1.307-.193"/><path d="M21.532 16.5A4.5 4.5 0 0 0 17.5 10h-1.79A7.008 7.008 0 0 0 10 5.07"/></symbol>
+  <symbol id="i-search-x" viewBox="0 0 24 24"><path d="m13.5 8.5-5 5"/><path d="m8.5 8.5 5 5"/><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m17 8-5-5-5 5"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></symbol>
+  <!-- Prototype-only stand-in for the user's photo (real app shows the actual photo) -->
+  <symbol id="ph-food" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice">
+    <rect width="400" height="300" fill="#7a6552"/><rect width="400" height="300" fill="url(#wood)" opacity=".35"/>
+    <ellipse cx="200" cy="160" rx="150" ry="118" fill="#e9e5dc"/><ellipse cx="200" cy="160" rx="118" ry="92" fill="#f5f2ea"/>
+    <path d="M110 150c10-40 60-52 90-40 20 8 22 40 6 58-22 24-74 22-90 6-8-8-9-16-6-24z" fill="#8a5b37"/>
+    <g fill="#6e4528"><circle cx="135" cy="140" r="5"/><circle cx="160" cy="128" r="4"/><circle cx="180" cy="150" r="5"/><circle cx="150" cy="160" r="4"/></g>
+    <path d="M210 110c30-18 76-10 88 10 10 18-6 40-40 44-30 4-56-6-58-24-1-12 2-22 10-30z" fill="#d9a86a"/>
+    <path d="M222 122l60 6M220 138l66 4M226 152l52 2" stroke="#b5803f" stroke-width="5" stroke-linecap="round"/>
+    <ellipse cx="236" cy="210" rx="28" ry="20" fill="#fbfaf5"/><circle cx="236" cy="210" r="11" fill="#f2b632"/>
+    <ellipse cx="282" cy="196" rx="26" ry="19" fill="#fbfaf5"/><circle cx="282" cy="196" r="10" fill="#f2b632"/>
+    <ellipse cx="160" cy="212" rx="24" ry="14" fill="#f4eedb"/>
+    <defs><pattern id="wood" width="40" height="300" patternUnits="userSpaceOnUse"><path d="M0 0v300M20 0v300" stroke="#5a4636" stroke-width="2"/></pattern></defs>
+  </symbol>
+</svg>
+<!-- Extra icons for OCT-19 (Lucide geometry; lucide-react names in the doc) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-calendar" viewBox="0 0 24 24"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></symbol>
+  <symbol id="i-chev-d" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></symbol>
+  <symbol id="i-utensils" viewBox="0 0 24 24"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 3 2h3Zm0 0v7"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></symbol>
+  <symbol id="i-moon-star" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+  <symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol>
+</svg>
+
+<h1 class="doc-h1">OCT-19 · «Сегодня», дневник и неделя</h1>
+<p class="doc-lead">Экраны 2, 6, 7 эпика OCT-4. Только токены и компоненты OCT-13 и OCT-16 (<code>../oct-13/tokens.css</code>; добавлено 5 размеров: <code>--meal-thumb-size</code>, <code>--progress-height</code>, <code>--chart-height</code>, <code>--chart-height-wide</code>, <code>--hatch-size</code>). iPhone 14/15, 390 × 844 pt. <code>?theme=light|dark</code>, <code>?section=today|diary|week|desktop</code>. Спецификация, логика и тексты RU/EN — документ «Дизайн OCT-19» в проекте. Данные примера: норма 2 100 ккал, Б 120 · Ж 70 · У 240 г; сегодня чт, 13 ноября.</p>
+
+<section class="doc-section" id="today">
+  <h2 class="doc-h2">2 · Сегодня</h2>
+  <div class="row" id="today-row"></div>
+</section>
+
+<section class="doc-section" id="diary">
+  <h2 class="doc-h2">6 · Дневник и правка записи</h2>
+  <div class="row" id="diary-row"></div>
+</section>
+
+<section class="doc-section" id="week">
+  <h2 class="doc-h2">7 · Неделя и месяц</h2>
+  <div class="row" id="week-row"></div>
+</section>
+
+<section class="doc-section" id="desktop">
+  <h2 class="doc-h2">D · Десктоп ≥ 1024 px</h2>
+  <div class="row" id="desk-row"></div>
+</section>
+<script>
+const I = (id, cls='') => `<svg class="icon ${cls}" aria-hidden="true"><use href="#i-${id}"/></svg>`;
+const PHOTO = `<svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Фото еды"><use href="#ph-food"/></svg>`;
+const frame = (id, title, note, inner, cls='') => `<figure class="frame"><div class="phone ${cls}">${inner}</div><figcaption><b>${id} ${title}.</b> ${note}</figcaption></figure>`;
+const arrow = `<div class="flow-arrow">${I('chev-r')}</div>`;
+
+/* ---------- data ---------- */
+const D = {
+  egg:  {n:'Яйцо варёное, 2 шт', g:100, k:155, p:13, f:11, c:1,  conf:'exact'},
+  buck: {n:'Гречка с грибами',  g:180, k:230, p:8,  f:6,  c:36, conf:'high'},
+  chick:{n:'Куриная грудка гриль', g:150, k:248, p:46, f:6, c:0, conf:'mid'},
+  sauce:{n:'Сметанный соус',     g:40,  k:84,  p:1,  f:8,  c:2,  conf:'low'},
+};
+const BADGE = {
+  exact:`<span class="badge ok" aria-label="Уверенность: точно">${I('check')}точно</span>`,
+  high:'',
+  mid:`<span class="badge" aria-label="Уверенность: средняя">примерно</span>`,
+  low:`<span class="badge warn" aria-label="Уверенность: низкая, проверьте">${I('alert')}проверьте</span>`,
+  manual:`<span class="badge">вручную</span>`,
+  history:`<span class="badge">${I('history')}как в прошлый раз</span>`,
+  edited:'',
+};
+function dish(d, o={}){
+  const unit = o.oz ? 'oz' : 'г';
+  const w = o.oz ? (d.g/28.35).toFixed(1).replace('.',',') : (o.w ?? d.g);
+  const wcls = o.focus ? 'focus' : o.err ? 'error' : '';
+  const conf = o.conf ?? d.conf;
+  const ctl = o.desk
+    ? `<div class="dish-ctl"><span class="step" aria-label="Меньше на 10 г">${I('minus')}</span><span class="wv ${wcls}">${w}<small>${unit}</small></span><span class="step" aria-label="Больше на 10 г">${I('plus')}</span><span class="more" style="margin-left:auto" aria-label="Изменить">${I('pencil','sm')}</span><span class="trash" aria-label="Удалить ${d.n}">${I('trash','sm')}</span></div>`
+    : `<div class="dish-ctl"><span class="step ${o.min?'dis':''}" aria-label="Меньше на 10 г">${I('minus')}</span><span class="wv ${wcls}">${w}<small>${unit}</small></span><span class="step" aria-label="Больше на 10 г">${I('plus')}</span><span class="more" aria-label="Изменить ${d.n}">${I('pencil','sm')}</span></div>`;
+  const hint = o.hint ? `<div class="hint"><span>${I('history','sm')} Похоже на запись 12 нояб.: <b class="num">250 г · 420 ккал</b></span><div class="acts"><span>Как в прошлый раз</span><span>Оставить оценку</span></div></div>` : '';
+  return `<div class="dish"><div class="dish-top"><span class="name">${o.name ?? d.n}</span><span class="kc">${o.k ?? d.k} ккал</span></div>
+    <div class="dish-meta">${BADGE[conf]}<span>Б ${o.p ?? d.p} · Ж ${o.f ?? d.f} · У ${o.c ?? d.c}</span></div>
+    ${ctl}${o.err?`<div class="err-msg">${I('alert','sm')}Вес от 1 до 5000 г</div>`:''}${hint}</div>`;
+}
+const nav = (title, left=`<span class="x-btn" aria-label="Закрыть">${I('x')}</span>`) => `<div class="navbar"><div>${left}</div><div class="title num">${title}</div><div></div></div>`;
+const seg = (on='Обед') => `<div class="seg" role="radiogroup" aria-label="Приём пищи">${['Завтрак','Обед','Ужин','Перекус'].map(x=>`<span class="${x===on?'on':''}">${x}</span>`).join('')}</div>`;
+const totals = (k='717', p=68, f=31, c=39, thumb=PHOTO) => `<div class="totals"><div class="thumb">${thumb}</div><div class="stack-sm"><div class="kcal-big"><b>${k}</b><span class="t-sub muted">ккал</span></div><div class="macros"><span><i class="m-p"></i>Б ${p} г</span><span><i class="m-f"></i>Ж ${f} г</span><span><i class="m-c"></i>У ${c} г</span></div></div></div>`;
+const estimate = `<div class="foot-note">${I('spark','sm')}<span>Оценка ИИ по фото — проверьте вес. Ккал и БЖУ пересчитаются сами.</span></div>`;
+const saveBar = (btn=`<button class="btn btn-primary">Сохранить</button>`, note='') => `<div class="bottom bar">${note}${btn}</div>`;
+function editScreen({title='Сегодня, 13:24', meal='Обед', dishes, top='', note=estimate, totalsHtml=totals(), bar=saveBar(), extra=''}){
+  return `${nav(title)}${top}<div class="content"><div class="pad stack">${totalsHtml}${seg(meal)}${note}</div>
+    <div class="pad"><div class="group">${dishes}</div><div class="add-row">${I('plus','sm')}Добавить блюдо вручную</div></div></div>${bar}${extra}`;
+}
+
+/* ================= OCT-19 ================= */
+const fmt = n => Math.round(n).toLocaleString('ru-RU').replace(/ /g,' ');
+const NORM = {k:2100, p:120, f:70, c:240};
+const ICON_ONLY = `<span class="thumb icon-only">${I('utensils','sm')}</span>`;
+const pct = (v, n) => Math.min(100, v / n * 100);
+
+function tabbar(on='Сегодня'){
+  const t = (ic, l) => `<span class="tab ${l===on?'on':''}" ${l===on?'aria-current="page"':''}>${I(ic)}${l}</span>`;
+  return `<nav class="tabbar">${t('home','Сегодня')}${t('book','Дневник')}<span class="cam" aria-label="Сфотографировать еду">${I('camera')}</span>${t('chart','Неделя')}${t('user','Профиль')}</nav>`;
+}
+/* kcal bar: fill up to the norm, hatched tail beyond it */
+function bar(v, n, cls=''){
+  if (!n) return `<div class="pbar none" aria-hidden="true"></div>`;
+  if (v <= n) return `<div class="pbar" aria-hidden="true"><i class="${cls}" style="width:${pct(v,n)}%"></i></div>`;
+  return `<div class="pbar" aria-hidden="true"><i class="${cls}" style="width:${n/v*100}%"></i><i class="ov" style="width:${(v-n)/v*100}%"></i></div>`;
+}
+function kcalCard({eaten=1240, norm=NORM.k, week='Осталось на неделю', weekVal=7270, weekOver=false, macros=[68,52,141], macroNorm=NORM, compact=false}={}){
+  let head;
+  if (!norm) head = `<span class="lbl">Съедено сегодня</span><div class="big"><span class="display num">${fmt(eaten)}</span><span class="unit">ккал</span></div>`;
+  else if (eaten > norm) head = `<span class="lbl over">${I('alert','sm')}Перебор</span><div class="big"><span class="display num">${fmt(eaten-norm)}</span><span class="unit">ккал</span></div>${bar(eaten,norm)}<span class="t-foot muted num">${fmt(eaten)} из ${fmt(norm)} ккал</span>`;
+  else head = `<span class="lbl">Осталось</span><div class="big"><span class="display num">${fmt(norm-eaten)}</span><span class="unit">ккал</span></div>${bar(eaten,norm)}<span class="t-foot muted num">${fmt(eaten)} из ${fmt(norm)} ккал</span>`;
+  const mac = macroBlock(macros, macroNorm);
+  const wl = norm ? `<a class="week-line ${weekOver?'over':''}" aria-label="${weekOver?'Перебор за неделю':'На неделю осталось'} ${fmt(weekVal)} ккал. Открыть неделю"><span>${weekOver?'Перебор за неделю':'На неделю осталось'} <b>${fmt(weekVal)} ккал</b></span>${I('chev-r','sm')}</a>` : '';
+  return `<section class="card" aria-label="Итог дня">${head}${mac}${wl}</section>`;
+}
+function macroBlock([p,f,c], n=NORM){
+  const one = (name, cls, v, nv) => {
+    let rest = '';
+    if (nv) rest = v > nv ? `<span class="rest over">${I('alert')}перебор ${fmt(v-nv)} г</span>` : `<span class="rest">осталось ${fmt(nv-v)} г</span>`;
+    return `<div class="mac"><span class="mac-h"><i class="m-${cls}"></i>${name}</span><span class="mac-v">${fmt(v)}${nv?`<small> / ${nv} г</small>`:'<small> г</small>'}</span>${nv?bar(v,nv,cls):''}${rest}</div>`;
+  };
+  return `<div class="mac-grid">${one('Белки','p',p,n&&n.p)}${one('Жиры','f',f,n&&n.f)}${one('Углеводы','c',c,n&&n.c)}</div>`;
+}
+const quick = `<div class="quick"><button class="btn btn-tonal btn-sm">${I('image','sm')}Из галереи</button><button class="btn btn-tonal btn-sm">${I('pencil','sm')}Вручную</button></div>`;
+function meal({type, time, sub, k, photo=true, st='', cls='', late=false}){
+  const kc = k===null ? `<span class="val zero num">— ккал</span>` : `<span class="val num">${fmt(k)} ккал</span>`;
+  return `<div class="cell meal ${cls}" role="button"><span class="thumb ${photo?'':'icon-only'}">${photo?PHOTO:I('utensils','sm')}</span><span class="main"><span class="t">${type}<small>${time}</small></span><span class="sub">${sub}</span>${st||late?`<span class="st">${late?`<span class="badge">${I('moon')}поздний</span>`:''}${st}</span>`:''}</span>${kc}</div>`;
+}
+const M = {
+  lunch: meal({type:'Обед', time:'13:24', sub:'Гречка с грибами, куриная грудка гриль, яйцо…', k:717}),
+  bf: meal({type:'Завтрак', time:'08:12', sub:'Овсянка на молоке, кофе с молоком', k:523, photo:false}),
+};
+const ST = {
+  queued: `<span class="badge">${I('cloud-off')}Ждёт отправки</span>`,
+  photoq: `<span class="badge">${I('cloud-off')}Распознаем, когда появится сеть</span>`,
+  check: `<span class="badge warn">${I('alert')}Проверьте</span>`,
+  failed: `<span class="badge err">${I('alert')}Не распознано</span>`,
+};
+const mealsGroup = (rows, h='Приёмы пищи', right='') => `<div><div class="sec-h"><span>${h}</span><span class="num">${right}</span></div><div class="group">${rows}</div></div>`;
+function todayScreen({card=kcalCard(), meals=mealsGroup(M.lunch+M.bf), top='', extra='', invite=''}={}){
+  return `<div class="large-title">Сегодня<span class="date">четверг, 13 ноября</span></div>${top}<div class="content"><div class="pad stack">${invite}${card}${quick}${meals}</div></div>${tabbar('Сегодня')}${extra}`;
+}
+const emptyMeals = `<div class="card" style="align-items:center;text-align:center;gap:var(--space-2)"><span class="s-ic" style="width:56px;height:56px;border-radius:50%;display:grid;place-items:center;background:var(--color-surface-2);color:var(--color-text-secondary)">${I('camera')}</span><span class="t-headline">Сегодня пока пусто</span><span class="t-sub muted" style="max-width:30ch">Сфотографируйте еду — калории и БЖУ посчитаем сами.</span></div>`;
+const invite = `<div class="invite">${I('target')}<span>Задайте норму — покажем, сколько осталось</span><span class="go">Задать</span></div>`;
+const offBar = (t='Офлайн · данные на 12:40') => `<div class="offline-bar">${I('wifi-off','sm')}${t}</div>`;
+const skelCard = `<div class="card"><div class="skel" style="width:40%"></div><div class="skel" style="width:55%;height:48px"></div><div class="skel" style="height:var(--progress-height)"></div><div class="mac-grid"><div class="skel" style="height:44px"></div><div class="skel" style="height:44px"></div><div class="skel" style="height:44px"></div></div></div>`;
+const skelRows = `<div class="group">${[1,2].map(()=>`<div class="cell"><div class="skel" style="width:var(--meal-thumb-size);height:var(--meal-thumb-size)"></div><div class="main"><div class="skel" style="width:50%"></div><div class="skel" style="width:80%"></div></div></div>`).join('')}</div>`;
+const errState = (title='Не удалось загрузить день', body='Проверьте сеть и попробуйте ещё раз.') => `<div class="state" role="alert"><span class="s-ic danger">${I('alert')}</span><span class="t-headline">${title}</span><p class="t-sub muted">${body}</p><button class="btn btn-primary btn-sm">${I('refresh','sm')}Повторить</button></div>`;
+const toast = (txt, act='Вернуть', ic='trash') => `<div class="toast" role="status">${I(ic,'sm')}<span>${txt}</span>${act?`<span class="act">${act}</span>`:''}</div>`;
+
+document.getElementById('today-row').innerHTML = [
+  frame('2.1','Обычный день','Главное число — остаток ккал (display 56). Под ним полоса и «съедено из нормы». Три БЖУ: съедено / норма и остаток. Строка «На неделю осталось» ведёт на «Неделю». Ниже — «Из галереи» / «Вручную» (OCT-16) и приёмы пищи от новых к старым. Камера — в центре таб-бара, в зоне большого пальца.', todayScreen()),
+  frame('2.2','Перебор','«Перебор 140 ккал» с иконкой, без минуса и оценок (AC-1.4, 1.6). Полоса заполнена, хвост сверх нормы заштрихован — отличие не только цветом. БЖУ — каждый отдельно: здесь перебор по жирам при остатке по белкам и углеводам (AC-1.5). Записывать можно как обычно.', todayScreen({card:kcalCard({eaten:2240, macros:[96,82,232], weekVal:6270}), meals:mealsGroup(meal({type:'Ужин',time:'19:40',sub:'Паста карбонара, салат',k:1000})+M.lunch+M.bf)})),
+  frame('2.3','Норма не задана','«Съедено N ккал» вместо остатка, БЖУ в граммах без полос, строки «на неделю» нет (AC-1.10). Сверху — плашка «Задать норму» → экран 8. Не блокирует: еду записывать можно сразу. Плашку не закрыть крестиком — она уходит, когда норма задана.', todayScreen({card:kcalCard({norm:0, macroNorm:null}), invite})),
+  frame('2.4','Пустой день','Остаток = норме, полосы пустые (AC-1.11). Вместо списка — карточка «Сегодня пока пусто» с подсказкой. Отдельной кнопки нет: камера в таб-баре и «Из галереи» / «Вручную» уже на экране.', todayScreen({card:kcalCard({eaten:0, macros:[0,0,0]}), meals:emptyMeals})),
+  frame('2.5','Первый запуск','Нет ни нормы, ни записей — 2.3 + 2.4, без онбординга (E-1.3). Одна плашка, одна подсказка, камера на месте.', todayScreen({card:kcalCard({norm:0, eaten:0, macros:[0,0,0], macroNorm:null}), meals:emptyMeals, invite})),
+  frame('2.6','Загрузка','Скелетоны формы контента, если ответ дольше 300 мс. Обычно этого не видно: «Сегодня» сразу рисуется из кэша на телефоне и тихо обновляется.', todayScreen({card:skelCard, meals:skelRows})),
+  frame('2.7','Ошибка, кэша нет','Сервер не ответил и сохранённых данных нет. Состояние экрана с «Повторить». Камера и ручной ввод доступны — запись уйдёт в очередь.', `<div class="large-title">Сегодня<span class="date">четверг, 13 ноября</span></div><div class="content"><div class="pad stack">${errState()}${quick}</div></div>${tabbar()}`),
+  frame('2.8','Офлайн и очередь','Полоса «Офлайн · данные на 12:40» (AC-0.6). Записанное без сети — сверху с бейджем «Ждёт отправки» и уже в остатке. Фото без распознавания: 0 ккал («— ккал»), бейдж «Распознаем, когда появится сеть» (AC-0.8). Отправка — сама, без действий.', todayScreen({top:offBar(), card:kcalCard({eaten:1460, weekVal:7050}), meals:mealsGroup(meal({type:'Перекус',time:'16:05',sub:'Фото без распознавания',k:null,st:ST.photoq,cls:'queued'})+meal({type:'Перекус',time:'15:10',sub:'Яблоко, кефир 1 %',k:220,photo:false,st:ST.queued,cls:'queued'})+M.lunch+M.bf)})),
+  frame('2.9','Сеть вернулась','Очередь ушла сама. Распознанное фото — с бейджем «Проверьте» до первого открытия; если распознать не вышло — «Не распознано», запись открывается в ручной ввод с фото (E-0.6). Тост «Отправили 2 записи».', todayScreen({card:kcalCard({eaten:1840, weekVal:6670}), meals:mealsGroup(meal({type:'Перекус',time:'16:05',sub:'Творожный сырок, чай',k:380,st:ST.check})+meal({type:'Перекус',time:'15:10',sub:'Яблоко, кефир 1 %',k:220,photo:false})+M.lunch+M.bf), extra:toast('Отправили 2 записи','', 'check')})),
+].join('');
+
+/* ---------- 6. Diary ---------- */
+function pager(title, sub, {next=true, cal=true}={}){
+  return `<div class="pager"><span class="ib" role="button" aria-label="Предыдущий день">${I('chev-l')}</span><span class="pick" role="button" aria-label="${title}, ${sub}. Выбрать дату"><span class="t-headline">${title}${cal?I('chev-d'):''}</span><span class="t-foot muted">${sub}</span></span><span class="ib ${next?'':'dis'}" role="button" aria-label="Следующий день" ${next?'':'aria-disabled="true"'}>${I('chev-r')}</span></div>`;
+}
+function daySum(eaten, macros, norm=NORM.k){
+  const rest = !norm ? '' : eaten > norm ? `<span class="rest over">перебор ${fmt(eaten-norm)}</span>` : `<span class="rest">осталось ${fmt(norm-eaten)}</span>`;
+  return `<section class="card" aria-label="Итог дня"><div class="sum-line"><span class="t-title num">${fmt(eaten)}<span class="t-sub muted"> ${norm?`из ${fmt(norm)} `:''}ккал</span></span>${rest}</div>${norm?bar(eaten,norm):''}${macroBlock(macros, norm?NORM:null)}</section>`;
+}
+const addEntry = `<button class="btn btn-tonal">${I('plus','sm')}Добавить запись в этот день</button>`;
+function diaryScreen({title='Вчера', sub='среда, 12 ноября', next=true, today=true, sum=daySum(1960,[104,66,228]), list, top='', extra='', add=addEntry}={}){
+  return `<div class="title-row"><div class="large-title">Дневник</div>${today?'<span class="txt-btn">Сегодня</span>':''}</div>${top}<div class="content"><div class="pad stack">${pager(title,sub,{next})}${sum}${list}${add}</div></div>${tabbar('Дневник')}${extra}`;
+}
+const Y = {
+  bf: meal({type:'Завтрак',time:'08:30',sub:'Сырники со сметаной, кофе',k:540}),
+  lunch: meal({type:'Обед',time:'13:10',sub:'Борщ, хлеб бородинский, котлета',k:760}),
+  snack: meal({type:'Перекус',time:'16:40',sub:'Банан, йогурт',k:210,photo:false}),
+  dinner: meal({type:'Ужин',time:'19:55',sub:'Рыба на пару, рис, салат',k:450}),
+  late: meal({type:'Перекус',time:'00:35',sub:'Бутерброд с сыром',k:0,photo:false,late:true}).replace('0 ккал','260 ккал'),
+};
+const yList = mealsGroup(Y.bf+Y.lunch+Y.snack+Y.dinner+Y.late, '5 приёмов пищи');
+const swipeRow = `<div class="swipe">${Y.dinner}<span class="del">${I('trash','sm')}Удалить</span></div>`;
+
+/* edit-record (screen 4 from Diary) */
+const whenRow = (v='ср, 12 нояб., 19:55') => `<div class="when" role="button">${I('calendar','sm')}<span>Дата и время</span><span class="v">${v}</span></div>`;
+function editRecord({title='Ужин, 12 нояб.', when=whenRow(), late='', extra='', bar}={}){
+  const dishes = dish({n:'Рыба на пару',g:200,k:220,p:38,f:7,c:0,conf:'edited'})+dish({n:'Рис отварной',g:150,k:170,p:4,f:0,c:37,conf:'edited'})+dish({n:'Салат из огурцов',g:120,k:60,p:1,f:5,c:3,conf:'edited'});
+  const b = bar ?? `<div class="bottom bar"><button class="btn btn-primary">Сохранить</button><button class="btn btn-danger-plain">Удалить запись</button></div>`;
+  return `${nav(title)}<div class="content modal"><div class="pad stack">${totals('450',43,12,40)}${seg('Ужин')}${late}${when}</div><div class="pad"><div class="group">${dishes}</div><div class="add-row">${I('plus','sm')}Добавить блюдо вручную</div></div></div>${b}${extra}`;
+}
+const lateSeg = `<div class="late"><div class="seg" role="radiogroup" aria-label="К какому дню отнести"><span class="on">Вчера</span><span>Сегодня</span></div><span class="t-foot muted">Сейчас 00:35 — поздний перекус отнесём ко вчера, 12 ноября.</span></div>`;
+const picker = `<div class="scrim"></div><div class="picker"><div class="ph"><span>Отмена</span><b>Готово</b></div><div class="wheel"><div><span>пн, 10 нояб.</span><span>вт, 11 нояб.</span><span class="on">ср, 12 нояб.</span><span>чт, 13 нояб.</span><span style="visibility:hidden">—</span></div><div><span>17</span><span>18</span><span class="on">19</span><span>20</span><span>21</span></div><div><span>45</span><span>50</span><span class="on">55</span><span>00</span><span>05</span></div></div><span class="t-foot muted" style="text-align:center">Системный выбор даты и времени · будущее недоступно</span></div>`;
+const leave = `<div class="scrim"></div><div class="alert" role="alertdialog"><span class="t-headline">Сохранить изменения?</span><span class="t-sub muted">Иначе правки в этой записи пропадут.</span><div class="btns col"><button class="btn btn-primary btn-sm" style="width:100%">Сохранить и выйти</button><button class="btn btn-danger-plain btn-sm" style="width:100%">Не сохранять</button><button class="btn btn-plain btn-sm" style="width:100%">Остаться</button></div></div>`;
+
+document.getElementById('diary-row').innerHTML = [
+  frame('6.1','День в прошлом','Сверху — переключатель дня: ‹ «Вчера, среда, 12 ноября» ›. Касание по дате — системный выбор даты (будущее недоступно). Свайп по экрану влево/вправо тоже листает. «Сегодня» справа от заголовка — быстрый возврат, его нет, когда открыт сегодняшний день. Итог дня — как на «Сегодня», но компактнее. Приёмы — от раннего к позднему; поздний перекус после полуночи — в конце с пометкой «поздний».', diaryScreen({list:yList})),
+  frame('6.2','Сегодня в дневнике','Тот же день, что на «Сегодня», но порядок — по времени. «›» неактивна (AC-2.3), кнопки «Сегодня» нет.', diaryScreen({title:'Сегодня', sub:'четверг, 13 ноября', next:false, today:false, sum:daySum(1240,[68,52,141]), list:mealsGroup(M.bf+M.lunch,'2 приёма пищи'), add:`<button class="btn btn-tonal">${I('plus','sm')}Добавить запись</button>`})),
+  frame('6.3','Удаление свайпом','Свайп влево — красная «Удалить» (96), полный свайп удаляет сразу. Без диалога: тост 5 с «Ужин удалён · Вернуть» (AC-2.6). Итог дня пересчитан сразу. Без жеста — custom action «Удалить» для VoiceOver и «Удалить запись» в правке.', diaryScreen({sum:daySum(1510,[66,59,188]), list:mealsGroup(Y.bf+Y.lunch+Y.snack+swipeRow+Y.late,'5 приёмов пищи'), extra:toast('Ужин удалён','Вернуть')})),
+  frame('6.4','Пустой день','Итог 0, «Записей нет» и одно действие — «Добавить запись в этот день» (AC-2.5). Удаление последней записи приводит сюда же (E-2.1).', diaryScreen({title:'вт, 4 ноября', sub:'2026', sum:daySum(0,[0,0,0]), list:`<div class="state"><span class="s-ic">${I('book')}</span><span class="t-headline">Записей нет</span><p class="t-sub muted">Забыли записать? Добавьте задним числом.</p></div>`, add:`<button class="btn btn-primary">${I('plus','sm')}Добавить запись в этот день</button>`})),
+  frame('6.5','Правка записи','Экран 4 из OCT-16 + строка «Дата и время» (AC-2.9) и «Удалить запись» внизу (danger-plain). Заголовок — тип и дата. Правки применяются только по «Сохранить».', editRecord()),
+  frame('6.6','Дата и время','Касание строки — системный выбор даты и времени, будущее недоступно. Тип приёма пищи от времени не меняется и наоборот (E-2.5).', editRecord({extra:picker})),
+  frame('6.7','Перенесено','После сохранения с новой датой остаёмся на исходном дне, запись из него ушла, итог пересчитан. Тост «Перенесено на 11 нояб. · Открыть» (E-2.4).', diaryScreen({sum:daySum(1510,[66,59,188]), list:mealsGroup(Y.bf+Y.lunch+Y.snack+Y.late,'4 приёма пищи'), extra:toast('Перенесено на 11 нояб.','Открыть','calendar')})),
+  frame('6.8','Уйти с правками','Крестик, свайп от края, «Назад» и таб-бар при несохранённых правках — alertdialog (AC-0.7). Фокус по умолчанию на «Остаться». Без правок — уходим без вопроса. Невалидные данные при «Сохранить и выйти» — остаёмся, ошибка у поля (E-0.4).', editRecord({extra:leave})),
+  frame('6.9','Поздний перекус','С 00:00 до 03:59 на экране правки под типом приёма — сегмент «Вчера | Сегодня», по умолчанию «Вчера», с подписью (AC-0.1a). Это не диалог: не нажали — ушло во вчера, касаний не прибавилось. Тот же блок на экране 4 при новой записи.', editRecord({title:'Сегодня, 00:35', when:'', late:lateSeg, bar:`<div class="bottom bar"><button class="btn btn-primary">Сохранить</button></div>`}).replace("seg('Ужин')",'').replace('<span class="on">Ужин</span>','<span>Ужин</span>').replace('<span class="">Перекус</span>','<span class="on">Перекус</span>')),
+  frame('6.10','Офлайн','Полоса «Офлайн · данные на 12:40». Загруженные дни видны; «Добавить запись» работает (в очередь). Касание по старой записи — тост «Без сети записи не изменить. Новые добавлять можно.» Свайп удаления отключён. Записи из очереди («Ждёт отправки») правятся и удаляются как обычно (E-0.8).', diaryScreen({top:offBar(), list:yList, extra:toast('Без сети записи не изменить. Новые добавлять можно.','', 'wifi-off')})),
+  frame('6.11','Не удалось удалить','Запись вернулась в список, над итогом — баннер danger с «Повторить» (E-2.2). Он же для неудачного переноса.', diaryScreen({list:yList, top:`<div class="pad" style="margin-bottom:var(--space-3)"><div class="banner danger" role="alert">${I('alert')}<div><div class="b-title">Не удалось удалить «Ужин»</div>Проверьте сеть. <span class="link">Повторить</span></div></div></div>`})),
+  frame('6.12','Загрузка дня','Листание мгновенное: переключатель и дата меняются сразу, итог и список — скелетоны, пока день грузится (≥ 300 мс). Ошибка — как 2.7, внутри дня.', diaryScreen({title:'пн, 10 ноября', sub:'2026', sum:skelCard, list:skelRows, add:''})),
+].join('');
+
+/* ---------- 7. Week & Month ---------- */
+/* scale: max(maxDay, norm) × 1.15, capped at 2 × norm; taller days are clipped with a break mark (E-3.4) */
+function chart(days, {norm=NORM.k, month=false, wide=false, sel=-1, values=false, tip=''}={}){
+  const max = Math.max(norm||0, ...days.map(d=>d.k||0));
+  const top = norm ? Math.min(max*1.15, norm*2) : max*1.15 || 1;
+  const cols = days.map((d,i)=>{
+    const lab = `${d.w} ${d.d} нояб.: ${d.k==null?'нет данных':fmt(d.k)+' ккал'}${norm&&d.k!=null?' из '+fmt(norm):''}${norm&&d.k>norm?', перебор '+fmt(d.k-norm):''}`;
+    if (d.k==null) return `<span class="col" role="listitem" aria-label="${d.w} ${d.d} нояб.: ещё не наступил"></span>`;
+    if (d.k===0) return `<span class="col zero" role="listitem" aria-label="${lab}"><span class="b"></span></span>`;
+    const h = Math.min(d.k, top)/top*100;
+    const inn = norm ? Math.min(d.k, norm)/Math.min(d.k, top) : 1;
+    const over = norm && d.k>norm;
+    const clip = d.k>top ? `<span class="clip" style="bottom:calc(${h}% - 28px)"></span>` : '';
+    return `<span class="col ${i===sel?'sel':''}" role="listitem" tabindex="0" aria-label="${lab}">${values?`<span class="v ${over?'over':''}">${fmt(d.k)}</span>`:''}<span class="b" style="height:${values?`calc(${h}% * (1 - 20 / ${wide?280:184}))`:h+'%'}">${'<span class="in" style="height:'+(inn*100)+'%"></span>'}${over?`<span class="ov hatch" style="height:${(1-inn)*100}%"></span>`:''}</span>${clip}</span>`;
+  }).join('');
+  const nl = norm ? `<span class="norm" style="bottom:${norm/top*100}%"></span>` : '';
+  const tIdx = days.findIndex(d=>d.t);
+  const tick = d => d.t || ([1,5,10,15,20,25,30].includes(d.d) && (tIdx<0 || Math.abs(days[tIdx].d-d.d)>2));
+  const xl = days.map(d=> month ? `<span class="${d.t?'today':''}${d.k==null?' future':''}">${tick(d)?d.d:''}</span>` : `<span class="${d.t?'today':''}${d.k==null?' future':''}">${d.w}<b>${d.d}</b><em class="${norm&&d.k>norm?'over':''}">${d.k?fmt(d.k):d.k===0?'0':''}</em></span>`).join('');
+  return `<div class="chart"><div class="plot ${month?'month':''} ${wide?'wide':''}" role="list" aria-label="Ккал по дням${norm?', норма '+fmt(norm)+' в день':''}">${nl}${cols}${tip}</div><div class="xl ${month?'month':''} ${wide?'wide':''}" aria-hidden="true">${xl}</div>
+  <div class="legend" aria-hidden="true"><span><i></i>съедено</span>${norm?`<span><i class="ln"></i>норма ${fmt(norm)} в день</span><span><i class="ov hatch"></i>сверх нормы</span>`:''}</div></div>`;
+}
+const W = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+const wk = (ks, start=10, today=3) => ks.map((k,i)=>({w:W[i], d:start+i, k, t:i===today}));
+const CUR = wk([1850,2380,1960,1240,null,null,null]);
+const PREV = wk([2050,1890,2600,2200,1720,2900,2400],3,-1);
+function budget({eaten=7430, days=4, past=false, norm=NORM.k}={}){
+  const total = norm*7, rest = total-eaten;
+  if (!norm) return `<section class="card"><span class="lbl">Съедено за неделю</span><div class="big"><span class="display sm num">${fmt(eaten)}</span><span class="unit">ккал</span></div></section>`;
+  const head = rest>=0
+    ? `<span class="lbl">${past?'Итог недели':'Осталось на неделю'}</span><div class="big"><span class="display sm num">${fmt(past?eaten:rest)}</span><span class="unit">${past?`из ${fmt(total)} `:''}ккал</span></div>`
+    : `<span class="lbl over">${I('alert','sm')}Перебор за неделю</span><div class="big"><span class="display sm num">${fmt(-rest)}</span><span class="unit">ккал</span></div>`;
+  const foot = past ? (rest<0?`<span class="t-foot muted num">Съедено ${fmt(eaten)} из ${fmt(total)} ккал</span>`:`<span class="t-foot muted num">${fmt(rest)} ккал осталось неиспользованными</span>`) : `<span class="t-foot muted num">Съедено ${fmt(eaten)} из ${fmt(total)} ккал (${fmt(norm)} × 7)</span>`;
+  const call = past || rest<0 ? '' : `<div class="callout"><span>В среднем на оставшиеся ${days} дн.</span><b>${fmt(rest/days)} ккал в день</b></div>`;
+  return `<section class="card" aria-label="Недельный бюджет">${head}${bar(eaten,total)}${foot}${call}</section>`;
+}
+function avg(m=[92,68,206], n=4, norm=NORM){
+  const row = (name, cls, v, nv) => `<div class="mac-row"><span class="mac-h"><i class="m-${cls}"></i>${name}</span><span class="mac-v">${v} г${nv?` <small>из ${nv}</small>`:''}</span>${nv?bar(v,nv,cls):''}</div>`;
+  return `<section class="card" aria-label="Средние БЖУ"><div class="sum-line"><span class="t-headline">В среднем за день</span><span class="avg-note">за ${n} дн. с записями</span></div><div class="mac-rows">${row('Белки','p',m[0],norm&&norm.p)}${row('Жиры','f',m[1],norm&&norm.f)}${row('Углеводы','c',m[2],norm&&norm.c)}</div></section>`;
+}
+function weekScreen({mode='Неделя', title='Эта неделя', sub='10–16 ноября', next=false, ch=chart(CUR,{}), cards=budget()+avg(), top='', extra='', inv=''}={}){
+  return `<div class="large-title">Неделя</div>${top}<div class="content"><div class="pad stack"><div class="seg" role="radiogroup" aria-label="Период"><span class="${mode==='Неделя'?'on':''}">Неделя</span><span class="${mode==='Месяц'?'on':''}">Месяц</span></div>${pager(title,sub,{next,cal:false}).replace(/день/g, mode==='Неделя'?'неделя':'месяц').replace('Предыдущий неделя','Предыдущая неделя').replace('Следующий неделя','Следующая неделя')}${inv}<section class="card">${ch}</section>${cards}</div></div>${tabbar('Неделя')}${extra}`;
+}
+const MONTH = Array.from({length:30},(_,i)=>({w:W[(i+5)%7], d:i+1, k: i>12?null: [1980,2150,1700,0,2240,2600,1900,2050,1890,1850,2380,1960,1240][i], t:i===12}));
+const BIG = wk([1850,6000,1960,1240,null,null,null]);
+const EMPTYW = wk([0,0,0,0,null,null,null]);
+
+document.getElementById('week-row').innerHTML = [
+  frame('7.1','Текущая неделя','Календарная Пн–Вс (AC-3.1). Сегмент «Неделя | Месяц», переключатель ‹ «Эта неделя, 10–16 ноября» › (свайп тоже листает). Столбики со значениями, пунктир — дневная норма, сверх нормы — штриховка. Сегодня — акцентная подпись, будущие дни подписаны, без столбиков. Касание столбика → этот день в дневнике. Ниже бюджет: «Осталось на неделю», «Съедено X из Y» и «В среднем на оставшиеся 4 дн.» (AC-3.8), затем средние БЖУ.', weekScreen()),
+  frame('7.2','Прошлая неделя, перебор','«Перебор за неделю 1 060 ккал», без «на оставшиеся дни» (AC-3.10, E-3.6). «›» снова активна. Тон нейтральный.', weekScreen({title:'Прошлая неделя', sub:'3–9 ноября', next:true, ch:chart(PREV,{}).replace(/нояб\./g,'нояб.'), cards:budget({eaten:15760, past:true})+avg([101,79,247],7)})),
+  frame('7.3','Месяц','Столбик на каждый день, подписи — 1, 5, 10… и сегодня. Значений над столбиками нет: касание показывает подсказку «Вт 11 нояб.: 2 380 ккал из 2 100» и второе касание открывает день. Итог месяца — «съедено X из 2 100 × 30» (AC-3.11).', weekScreen({mode:'Месяц', title:'Ноябрь', sub:'2026', ch:chart(MONTH,{month:true, sel:10, tip:`<span class="tip" style="left:37%;top:-6px">Вт 11 нояб.: 2 380 из 2 100</span>`}), cards:`<section class="card"><span class="lbl">Осталось на месяц</span><div class="big"><span class="display sm num">38 060</span><span class="unit">ккал</span></div>${bar(24940,63000)}<span class="t-foot muted num">Съедено 24 940 из 63 000 ккал (2 100 × 30)</span><div class="callout"><span>В среднем на оставшиеся 18 дн.</span><b>2 114 ккал в день</b></div></section>`+avg([95,71,214],12)})),
+  frame('7.4','Очень большой день','6 000 ккал при норме 2 100: ось не выше 2 × нормы, столбик срезан знаком разрыва, значение подписано полностью (E-3.4). Остальные столбики и линия нормы читаются.', weekScreen({ch:chart(BIG,{}), cards:budget({eaten:11050})})),
+  frame('7.5','Норма не задана','Столбики есть, линии нормы и бюджета нет, средние БЖУ без сравнения (E-3.1). Плашка «Задать норму» как на «Сегодня».', weekScreen({inv:invite, ch:chart(CUR,{norm:0}), cards:budget({norm:0})+avg([92,68,206],4,null)})),
+  frame('7.6','Нет записей за период','Ось с днями остаётся, вместо столбиков — «За эту неделю записей нет» (E-3.3). Бюджет показывается полностью, средних нет.', weekScreen({ch:chart(EMPTYW,{tip:`<span class="chart-empty">${I('chart')}За эту неделю записей нет</span>`}), cards:budget({eaten:0})})),
+  frame('7.7','Офлайн','Полоса «Офлайн · данные на 12:40»; график и бюджет — из последних данных, включая записи из очереди. Неделя, которую не открывали, — состояние «Нет сети, эта неделя не загружена».', weekScreen({top:offBar()})),
+  frame('7.8','Загрузка','Скелетон столбиков и карточек, если ждём ≥ 300 мс.', weekScreen({ch:`<div class="plot" style="align-items:end">${[60,80,70,50,30,40,55].map(h=>`<div class="skel" style="height:${h}%;border-radius:var(--radius-sm) var(--radius-sm) 0 0"></div>`).join('')}</div>`, cards:skelCard})),
+].join('');
+
+/* ---------- Desktop ---------- */
+const side = on => `<aside class="side"><div class="brand"><span class="mark">${I('plate','sm')}</span>OpenCalorieTracker</div><button class="btn btn-primary">${I('camera','sm')}Добавить еду</button>${[['home','Сегодня'],['book','Дневник'],['chart','Неделя'],['user','Профиль']].map(([ic,l])=>`<span class="nav-i ${l===on?'on':''}">${I(ic)}${l}</span>`).join('')}<div class="foot"><span class="nav-i">${I('settings')}Настройки</span><span class="who">anna@example.com</span></div></aside>`;
+const desk = (url, on, main) => `<figure class="frame wide"><div class="desk"><div class="chrome"><i></i><i></i><i></i><span class="url">calories.home.lan/${url}</span></div><div class="body">${side(on)}<main class="main-area"><div class="inner">${main}</div></main></div></div>`;
+const cap = (id, t, n) => `<figcaption><b>${id} ${t}.</b> ${n}</figcaption></figure>`;
+const dRow = (m) => m.replace('</div>', '</div>').replace(/<span class="val num">([^<]+)<\/span><\/div>$/, `<span class="val num">$1</span><span class="trash" aria-label="Удалить">${I('trash','sm')}</span></div>`);
+document.getElementById('desk-row').innerHTML = [
+  desk('today','Сегодня', `<div class="desk-title"><div class="large-title">Сегодня<span class="date">четверг, 13 ноября</span></div></div><div class="cols side-r"><div class="stack">${kcalCard()}${mealsGroup(M.lunch+M.bf)}</div><div class="stack"><div class="drop">${I('upload')}<b style="color:var(--color-text)">Перетащите фото еды сюда</b>или вставьте: <span><span class="kbd">⌘</span> + <span class="kbd">V</span></span></div><button class="btn btn-tonal">${I('pencil','sm')}Ввести вручную</button></div></div>`)
+    + cap('D.1','Сегодня','Две колонки: слева итог дня и приёмы пищи, справа — зона перетаскивания и «Ввести вручную» (OCT-16 E.1). Все состояния 2.x — те же, в левой колонке.'),
+  desk('diary/2026-11-12','Дневник', `<div class="desk-title"><div class="large-title">Дневник</div><div style="display:flex;gap:var(--space-3);align-items:center">${pager('Вчера','среда, 12 ноября')}<button class="btn btn-tonal btn-sm">Сегодня</button></div></div><div class="cols side-r"><div class="stack">${mealsGroup([Y.bf,Y.lunch,Y.snack,Y.dinner,Y.late].map(dRow).join('').replace('class="cell meal "','class="cell meal hover"'),'5 приёмов пищи')}</div><div class="stack">${daySum(1960,[104,66,228])}${addEntry}</div></div>`)
+    + cap('D.2','Дневник','Слева — список: свайпа нет, у строки видна корзина (удаление с тостом «Вернуть»), наведение — <code>--color-hover</code>. Справа — итог дня и «Добавить запись». Переключатель дня справа от заголовка, клавиши ← / → листают дни, у каждого дня свой адрес (/diary/2026-11-12).'),
+  desk('week/2026-W46','Неделя', `<div class="desk-title"><div class="large-title">Неделя</div><div style="display:flex;gap:var(--space-4);align-items:center"><div class="seg"><span class="on">Неделя</span><span>Месяц</span></div>${pager('Эта неделя','10–16 ноября',{next:false,cal:false})}</div></div><section class="card">${chart(CUR,{wide:true})}</section><div class="cols even">${budget()}${avg()}</div>`)
+    + cap('D.3','Неделя','График на всю ширину (<code>--chart-height-wide</code>), под ним бюджет и средние БЖУ в две колонки. Наведение на столбик — та же подсказка, что в 7.3; клик — день в дневнике. ← / → листают недели.'),
+].join('');
+/* device chrome + section filter (prototype only) */
+document.querySelectorAll('.phone').forEach(p=>{p.insertAdjacentHTML('afterbegin','<div class="status"><span>9:41</span></div><div class="island"></div>');p.insertAdjacentHTML('beforeend','<div class="home-ind"></div>');});
+const only = new URLSearchParams(location.search).get('section');
+if(only) document.querySelectorAll('.doc-section').forEach(s=>{ if(s.id!==only) s.remove(); });
+if(only) document.querySelectorAll('.doc-h1,.doc-lead').forEach(e=>e.remove());
+</script>
+</body>
+</html>

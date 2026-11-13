@@ -40,6 +40,11 @@
   --thumb-size: 64px;           /* OCT-16: meal photo thumbnail on the edit screen */
   --photo-preview-height: 280px; /* OCT-16: photo on the recognition screen (phone) */
   --stepper-value-width: 96px;  /* OCT-16: weight field between − and + */
+  --meal-thumb-size: 44px;      /* OCT-19: meal photo in Today / Diary lists */
+  --progress-height: 8px;       /* OCT-19: kcal & macro bars on Today / Diary / Week */
+  --chart-height: 184px;        /* OCT-19: plot area of the Week / Month chart (phone) */
+  --chart-height-wide: 280px;   /* OCT-19: same, desktop */
+  --hatch-size: 6px;            /* OCT-19: stripe period of the "over the norm" pattern (not colour-only) */
   --icon-size: 24px;  --icon-size-sm: 20px;  --icon-stroke: 1.75;
   --content-max-width: 560px;   /* phone-like column: auth, settings, tablet/narrow window */
   /* Desktop (window ≥ 1024px; CSS vars can't be used in @media — keep 1024 in one place in code):
