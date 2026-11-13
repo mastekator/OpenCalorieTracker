@@ -4,6 +4,7 @@ import { csrf } from 'hono/csrf';
 import { serveStatic } from '@hono/node-server/serve-static';
 import type { Database } from 'better-sqlite3';
 import type { ConfigResponse } from '@oct/shared';
+import { accountRoutes } from './account/routes.js';
 import { authRoutes } from './auth/routes.js';
 import { dummyHash } from './auth/password.js';
 import { session } from './auth/session.js';
@@ -39,6 +40,7 @@ export function createApp(deps: AppDeps) {
   app.use('/api/*', session(deps));
   app.route('/api', authRoutes(deps));
   app.route('/api', profileRoutes(deps));
+  app.route('/api', accountRoutes(deps));
 
   app.get('/api/health', (c) => c.json({ ok: true, version }));
   app.get('/api/config', (c) =>

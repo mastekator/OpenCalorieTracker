@@ -14,7 +14,7 @@ describe('migrate', () => {
   it('brings an empty database to the latest version', () => {
     const db = openDb(':memory:');
     migrate(db);
-    expect(db.pragma('user_version', { simple: true })).toBe(2);
+    expect(db.pragma('user_version', { simple: true })).toBe(3);
     expect(tables(db)).toEqual([
       'invites',
       'login_guards',
@@ -34,7 +34,7 @@ describe('migrate', () => {
       .pluck()
       .all();
     migrate(db);
-    expect(db.pragma('user_version', { simple: true })).toBe(2);
+    expect(db.pragma('user_version', { simple: true })).toBe(3);
     expect(
       db.prepare('SELECT sql FROM sqlite_master ORDER BY name').pluck().all(),
     ).toEqual(before);

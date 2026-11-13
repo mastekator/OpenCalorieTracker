@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import { localeSchema, themeSchema } from './settings.js';
+import { unitsSchema } from './units.js';
 
 export const authMethodSchema = z.enum(['password', 'passkey']);
 export type AuthMethod = z.infer<typeof authMethodSchema>;
@@ -52,8 +54,9 @@ export const meResponseSchema = z.object({
   email: z.string(),
   name: z.string().nullable(),
   role: z.enum(['admin', 'user']),
-  locale: z.string(),
-  theme: z.string(),
+  locale: localeSchema,
+  theme: themeSchema,
+  units: unitsSchema,
   /** The admin still signs in with ADMIN_PASSWORD from the compose file (AC-1.7). */
   passwordFromConfig: z.boolean(),
   /** Sign-in methods the user has set up, whether or not they are enabled. */

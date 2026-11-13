@@ -46,6 +46,7 @@ export function authRoutes(deps: AppDeps) {
       role: user.role,
       locale: user.locale,
       theme: user.theme,
+      units: user.units,
       passwordFromConfig: user.password_from_config === 1,
       methods,
     };
@@ -60,7 +61,7 @@ export function authRoutes(deps: AppDeps) {
         const { email, password } = c.req.valid('json');
         const user = db
           .prepare(
-            `SELECT id, email, name, role, locale, theme, password_from_config
+            `SELECT id, email, name, role, locale, theme, units, password_from_config
              FROM users WHERE email = ?`,
           )
           .get(email) as User | undefined;

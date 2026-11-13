@@ -59,3 +59,4 @@ export * from './norm/calculate.js';
 export * from './norm/interview.js';
 export { addDays, addYears } from './norm/dates.js';
 export * from './locales.js';
+export * from './settings.js';
