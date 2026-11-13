@@ -1,0 +1,1032 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OCT-25 · Установка, офлайн, настройки, иконка и splash</title>
+<link rel="stylesheet" href="../oct-13/tokens.css">
+<link rel="icon" href="icon.svg">
+<script>
+  const t = new URLSearchParams(location.search).get('theme');
+  if (t) document.documentElement.dataset.theme = t;
+</script>
+<style>
+/* Base components = ../oct-13 + ../oct-16 prototypes (same spec) */
+/* ===== Prototype canvas (not part of the app) ===== */
+*{box-sizing:border-box;margin:0}
+html{background:var(--color-bg);color:var(--color-text);font-family:var(--font-sans);-webkit-font-smoothing:antialiased}
+::selection{background:var(--color-selection)}
+body{padding:var(--space-10) var(--space-8)}
+.doc-h1{font-size:var(--text-large-title-size);line-height:var(--text-large-title-lh);font-weight:700;letter-spacing:var(--tracking-tight)}
+.doc-lead{font-size:var(--text-subhead-size);color:var(--color-text-secondary);max-width:70ch;margin-top:var(--space-2)}
+.doc-section{margin-top:var(--space-12)}
+.doc-h2{font-size:var(--text-title-size);font-weight:600;margin-bottom:var(--space-2)}
+.row{display:flex;flex-wrap:wrap;gap:var(--space-8);align-items:flex-start;margin-top:var(--space-6)}
+.frame{display:flex;flex-direction:column;gap:var(--space-3);width:390px}
+.frame>figcaption{font-size:var(--text-footnote-size);color:var(--color-text-secondary);line-height:var(--text-footnote-lh)}
+.frame>figcaption b{color:var(--color-text);font-weight:600}
+
+/* ===== Device chrome (prototype only) ===== */
+.phone{position:relative;width:390px;height:844px;border-radius:48px;overflow:hidden;background:var(--color-bg);outline:1px solid var(--color-separator);display:flex;flex-direction:column}
+.status{height:54px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 32px 0 40px;font-size:var(--text-body-size);font-weight:600}
+.status::after{content:"";width:68px;height:12px;border-radius:var(--radius-full);background:currentColor;opacity:.85;-webkit-mask:linear-gradient(90deg,#000 0 30%,transparent 30% 38%,#000 38% 62%,transparent 62% 70%,#000 70%)}
+.island{position:absolute;top:11px;left:50%;translate:-50% 0;width:124px;height:36px;border-radius:var(--radius-full);background:#000;z-index:100}
+.home-ind{position:absolute;bottom:8px;left:50%;translate:-50% 0;width:134px;height:5px;border-radius:var(--radius-full);background:var(--color-text);z-index:100}
+
+/* ===== App components (tokens only) ===== */
+.icon{width:var(--icon-size);height:var(--icon-size);flex:none;fill:none;stroke:currentColor;stroke-width:var(--icon-stroke);stroke-linecap:round;stroke-linejoin:round}
+.icon.sm{width:var(--icon-size-sm);height:var(--icon-size-sm)}
+.scroll{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.navbar{height:var(--navbar-height);flex:none;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 var(--space-2)}
+.navbar .title{font-size:var(--text-headline-size);font-weight:600}
+.navbar .back{display:flex;align-items:center;gap:2px;color:var(--color-accent);font-size:var(--text-body-size);min-height:var(--tap-min);padding-right:var(--space-2)}
+.navbar .act{justify-self:end;color:var(--color-accent);font-size:var(--text-body-size);min-height:var(--tap-min);display:flex;align-items:center;padding:0 var(--space-2)}
+.large-title{font-size:var(--text-large-title-size);line-height:var(--text-large-title-lh);font-weight:700;letter-spacing:var(--tracking-tight);padding:var(--space-1) var(--screen-gutter) var(--space-2)}
+.pad{padding:0 var(--screen-gutter)}
+.stack{display:flex;flex-direction:column;gap:var(--space-4)}
+.stack-sm{display:flex;flex-direction:column;gap:var(--space-2)}
+.grow{flex:1}
+.bottom{padding:var(--space-4) var(--screen-gutter) calc(34px + var(--space-2));display:flex;flex-direction:column;gap:var(--space-3)}
+.t-title{font-size:var(--text-title-size);line-height:var(--text-title-lh);font-weight:600}
+.t-headline{font-size:var(--text-headline-size);line-height:var(--text-headline-lh);font-weight:600}
+.t-body{font-size:var(--text-body-size);line-height:var(--text-body-lh)}
+.t-sub{font-size:var(--text-subhead-size);line-height:var(--text-subhead-lh)}
+.t-foot{font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh)}
+.t-cap{font-size:var(--text-caption-size);line-height:var(--text-caption-lh);font-weight:500}
+.muted{color:var(--color-text-secondary)}
+.center{text-align:center}
+.num{font-variant-numeric:tabular-nums}
+
+/* brand */
+.brand{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-headline-size);font-weight:600}
+.brand .mark{width:32px;height:32px;border-radius:var(--radius-sm);background:var(--color-accent);color:var(--color-on-accent);display:grid;place-items:center}
+
+/* buttons */
+.btn{appearance:none;border:0;font:inherit;width:100%;min-height:var(--control-height-lg);border-radius:var(--radius-md);font-size:var(--text-headline-size);font-weight:600;display:flex;align-items:center;justify-content:center;gap:var(--space-2);padding:0 var(--space-4);cursor:pointer;transition:transform var(--duration-fast) var(--ease-out),background var(--duration-fast) var(--ease-out)}
+.btn:active{transform:scale(var(--press-scale))}
+.btn:focus-visible{outline:2px solid var(--color-focus-ring);outline-offset:2px}
+.btn-primary{background:var(--color-accent);color:var(--color-on-accent)}
+.btn-primary.pressed{background:var(--color-accent-pressed)}
+.btn-tonal{background:var(--color-accent-soft);color:var(--color-accent)}
+.btn-plain{background:transparent;color:var(--color-accent);min-height:var(--tap-min)}
+.btn-danger{background:var(--color-danger);color:var(--color-on-danger)}
+.btn-danger-plain{background:transparent;color:var(--color-danger);min-height:var(--tap-min)}
+.btn[disabled],.btn.disabled{background:var(--color-surface-2);color:var(--color-text-disabled);cursor:default}
+.btn-plain.disabled{background:transparent}
+.btn-sm{min-height:var(--control-height);width:auto;font-size:var(--text-subhead-size);padding:0 var(--space-4)}
+.link{color:var(--color-accent);font-weight:500;text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px}
+.spinner{width:20px;height:20px;border-radius:50%;border:2px solid currentColor;border-right-color:transparent;animation:spin 800ms linear infinite}
+@keyframes spin{to{rotate:360deg}}
+
+/* fields */
+.field{display:flex;flex-direction:column;gap:var(--space-2)}
+.field label{font-size:var(--text-subhead-size);font-weight:500}
+.input{display:flex;align-items:center;gap:var(--space-2);min-height:var(--control-height-lg);padding:0 var(--space-4);border-radius:var(--radius-md);background:var(--color-surface);border:1px solid var(--color-border-strong);font-size:var(--text-body-size)}
+.input .ph{color:var(--color-text-secondary)}
+.input .val{flex:1}
+.input .trail{color:var(--color-text-secondary);display:grid;place-items:center;width:var(--tap-min);height:var(--tap-min);margin-right:calc(-1 * var(--space-3))}
+.input.focus{border-color:var(--color-accent);box-shadow:inset 0 0 0 1px var(--color-accent)}
+.input.caret .val::after{content:"";display:inline-block;width:2px;height:1.1em;background:var(--color-accent);vertical-align:-3px;margin-left:1px}
+.input.error{border-color:var(--color-danger);box-shadow:inset 0 0 0 1px var(--color-danger)}
+.input.locked{background:var(--color-surface-2);border-color:transparent;color:var(--color-text-secondary)}
+.field .msg{display:flex;gap:var(--space-1);align-items:flex-start;font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);color:var(--color-text-secondary)}
+.field .msg.err{color:var(--color-danger)}
+.rules{list-style:none;padding:0;display:grid;gap:var(--space-1);font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh)}
+.rules li{display:flex;gap:var(--space-2);align-items:center;color:var(--color-text-secondary)}
+.rules li.ok{color:var(--color-accent)}
+.rules li.bad{color:var(--color-danger)}
+
+/* segmented */
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;padding:2px;border-radius:var(--radius-md);background:var(--color-surface-2);min-height:var(--control-height)}
+.seg span{display:grid;place-items:center;border-radius:calc(var(--radius-md) - 2px);font-size:var(--text-subhead-size);font-weight:500;color:var(--color-text-secondary)}
+.seg span.on{background:var(--color-surface);color:var(--color-text);font-weight:600;box-shadow:0 1px 3px rgb(0 0 0 / .12)}
+
+/* grouped lists */
+.group-h{font-size:var(--text-footnote-size);color:var(--color-text-secondary);padding:0 var(--space-4) var(--space-2);margin-top:var(--space-6)}
+.group{background:var(--color-surface);border-radius:var(--radius-md);overflow:hidden}
+.group-f{font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);color:var(--color-text-secondary);padding:var(--space-2) var(--space-4) 0}
+.cell{display:flex;align-items:center;gap:var(--space-3);min-height:var(--control-height);padding:var(--space-3) var(--space-4);position:relative;font-size:var(--text-body-size)}
+.cell+.cell::before{content:"";position:absolute;top:0;right:0;left:var(--space-4);border-top:1px solid var(--color-separator)}
+.cell.ic+.cell::before,.cell.ic+.cell.ic::before{left:calc(var(--space-4) + 30px + var(--space-3))}
+.cell .lead-ic{width:30px;height:30px;border-radius:var(--radius-sm);display:grid;place-items:center;background:var(--color-accent-soft);color:var(--color-accent);flex:none}
+.cell .lead-ic.danger{background:var(--color-danger-soft);color:var(--color-danger)}
+.cell .main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.cell .main .sub{font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.cell .val{color:var(--color-text-secondary)}
+.cell .chev{color:var(--color-text-secondary)}
+.cell.danger{color:var(--color-danger)}
+.cell.accent{color:var(--color-accent)}
+.cell.dis{color:var(--color-text-disabled)}
+.badge{font-size:var(--text-caption-size);font-weight:600;padding:2px var(--space-2);border-radius:var(--radius-sm);background:var(--color-surface-2);color:var(--color-text-secondary);white-space:nowrap}
+.badge.ok{background:var(--color-accent-soft);color:var(--color-accent)}
+.badge.warn{background:var(--color-warning-soft);color:var(--color-warning)}
+.badge.err{background:var(--color-danger-soft);color:var(--color-danger)}
+
+/* banners */
+.banner{display:flex;gap:var(--space-3);align-items:flex-start;padding:var(--space-3) var(--space-4);border-radius:var(--radius-lg);font-size:var(--text-subhead-size);line-height:var(--text-subhead-lh)}
+.banner .b-title{font-weight:600}
+.banner.notice{background:var(--color-notice)}
+.banner.warning{background:var(--color-warning-soft)}
+.banner.warning .icon{color:var(--color-warning)}
+.banner.danger{background:var(--color-danger-soft)}
+.banner.danger .icon{color:var(--color-danger)}
+.banner.accent{background:var(--color-accent-soft)}
+.banner.accent .icon{color:var(--color-accent)}
+.banner .close{margin:-10px -12px -10px auto;width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;color:var(--color-text-secondary);flex:none}
+.offline-bar{display:flex;gap:var(--space-2);align-items:center;justify-content:center;min-height:32px;padding:var(--space-1) var(--space-4);background:var(--color-notice);font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+
+/* divider "или" */
+.or{display:flex;align-items:center;gap:var(--space-3);font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.or::before,.or::after{content:"";flex:1;border-top:1px solid var(--color-separator)}
+
+/* overlays */
+.scrim{position:absolute;inset:0;background:var(--color-scrim);z-index:var(--z-sheet)}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:var(--z-sheet);background:var(--color-surface);border-radius:var(--radius-xl) var(--radius-xl) 0 0;box-shadow:var(--shadow-sheet);padding:var(--space-2) var(--screen-gutter) calc(34px + var(--space-4));display:flex;flex-direction:column;gap:var(--space-4)}
+.sheet .grab{width:36px;height:5px;border-radius:var(--radius-full);background:var(--color-separator);margin:0 auto var(--space-1)}
+.sheet .sheet-head{display:flex;align-items:center;justify-content:space-between}
+.sheet .x{width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;margin-right:calc(-1 * var(--space-3));color:var(--color-text-secondary)}
+.sheet .inset{background:var(--color-surface-2)}
+.alert{position:absolute;left:50%;top:50%;translate:-50% -50%;width:300px;z-index:var(--z-alert);background:var(--color-surface);border-radius:var(--radius-lg);padding:var(--space-5) var(--space-4) var(--space-4);display:flex;flex-direction:column;gap:var(--space-2);text-align:center;box-shadow:var(--shadow-toast)}
+.alert .btns{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-2);margin-top:var(--space-3)}
+.alert .btns.col{grid-template-columns:1fr}
+.toast{position:absolute;left:var(--screen-gutter);right:var(--screen-gutter);bottom:calc(34px + var(--tabbar-height) + var(--space-3));z-index:var(--z-toast);display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);background:var(--color-text);color:var(--color-bg);box-shadow:var(--shadow-toast);font-size:var(--text-subhead-size)}
+.toast .act{margin-left:auto;font-weight:600;min-height:var(--tap-min);display:flex;align-items:center}
+
+/* state blocks */
+.state{display:flex;flex-direction:column;align-items:center;text-align:center;gap:var(--space-2);padding:var(--space-8) var(--space-6)}
+.state .s-ic{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;background:var(--color-surface-2);color:var(--color-text-secondary);margin-bottom:var(--space-2)}
+.state .s-ic.danger{background:var(--color-danger-soft);color:var(--color-danger)}
+.state .s-ic.warning{background:var(--color-warning-soft);color:var(--color-warning)}
+.state p{max-width:30ch}
+.state .btn{margin-top:var(--space-3)}
+.skel{background:var(--color-surface-2);border-radius:var(--radius-sm);height:14px;position:relative;overflow:hidden}
+.skel::after{content:"";position:absolute;inset:0;translate:-100% 0;background:linear-gradient(90deg,transparent,var(--color-surface),transparent);animation:shimmer 1.4s var(--ease-in-out) infinite}
+@keyframes shimmer{to{translate:100% 0}}
+
+/* tab bar */
+.tabbar{position:absolute;left:0;right:0;bottom:0;z-index:var(--z-tabbar);height:calc(var(--tabbar-height) + 34px);padding-bottom:34px;background:var(--tabbar-bg);-webkit-backdrop-filter:var(--tabbar-blur);backdrop-filter:var(--tabbar-blur);border-top:1px solid var(--color-separator);display:grid;grid-template-columns:repeat(5,1fr);align-items:center}
+.tab{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:var(--text-tab-size);font-weight:var(--text-tab-weight);color:var(--color-text-secondary);min-height:var(--tabbar-height);justify-content:center}
+.tab.on{color:var(--color-accent)}
+.cam{justify-self:center;width:var(--camera-button-size);height:var(--camera-button-size);border-radius:50%;background:var(--color-accent);color:var(--color-on-accent);display:grid;place-items:center;box-shadow:var(--shadow-camera);translate:0 -14px}
+.cam .icon{width:30px;height:30px}
+
+/* swatches (docs only) */
+.sw-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-2)}
+.sw{border-radius:var(--radius-md);overflow:hidden;background:var(--color-surface);font-size:var(--text-caption-size);outline:1px solid var(--color-separator)}
+.sw i{display:block;height:44px}
+.sw div{padding:var(--space-2);line-height:1.3}
+.sheetdoc{width:390px;background:var(--color-surface);border-radius:var(--radius-lg);padding:var(--space-5);display:flex;flex-direction:column;gap:var(--space-4);outline:1px solid var(--color-separator)}
+.sheetdoc h3{font-size:var(--text-headline-size)}
+.doc-note{font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.navmap{width:820px;background:var(--color-surface);border-radius:var(--radius-lg);padding:var(--space-6);outline:1px solid var(--color-separator);display:grid;grid-template-columns:repeat(5,1fr);gap:var(--space-3);font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh)}
+.navmap .col{display:flex;flex-direction:column;gap:var(--space-2)}
+.navmap .nd{padding:var(--space-2) var(--space-3);border-radius:var(--radius-sm);background:var(--color-surface-2)}
+.navmap .nd.tab{background:var(--color-accent-soft);color:var(--color-accent);font-weight:600;align-items:flex-start;font-size:var(--text-footnote-size)}
+.navmap .nd.modal{outline:1px dashed var(--color-border-strong);background:transparent}
+.navmap .arrow{color:var(--color-text-secondary);text-align:center}
+
+/* ===== Desktop (≥ 1024px) — section 6 ===== */
+.frame.wide{width:1280px}
+.desk{position:relative;width:1280px;height:800px;border-radius:var(--radius-lg);overflow:hidden;background:var(--color-bg);outline:1px solid var(--color-separator);display:flex;flex-direction:column}
+.desk .chrome{height:36px;flex:none;display:flex;align-items:center;gap:var(--space-2);padding:0 var(--space-4);background:var(--color-surface-2);border-bottom:1px solid var(--color-separator);font-size:var(--text-caption-size);color:var(--color-text-secondary)}
+.desk .chrome i{width:12px;height:12px;border-radius:50%;background:var(--color-separator)}
+.desk .chrome .url{margin-left:var(--space-6);padding:var(--space-1) var(--space-3);border-radius:var(--radius-sm);background:var(--color-surface)}
+.desk .body{flex:1;display:flex;min-height:0}
+.side{width:var(--sidebar-width);flex:none;display:flex;flex-direction:column;gap:var(--space-1);padding:var(--space-6) var(--space-4);border-right:1px solid var(--color-separator)}
+.side .brand{padding:0 var(--space-3) var(--space-6)}
+.side .btn{margin-bottom:var(--space-4)}
+.nav-i{display:flex;align-items:center;gap:var(--space-3);min-height:var(--tap-min);padding:0 var(--space-3);border-radius:var(--radius-md);font-size:var(--text-body-size);color:var(--color-text)}
+.nav-i .icon{color:var(--color-text-secondary)}
+.nav-i.hover{background:var(--color-hover)}
+.nav-i.on{background:var(--color-accent-soft);color:var(--color-accent);font-weight:600}
+.nav-i.on .icon{color:var(--color-accent)}
+.side .foot{margin-top:auto;display:flex;flex-direction:column;gap:var(--space-1)}
+.side .who{padding:var(--space-2) var(--space-3);font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.main-area{flex:1;overflow:hidden;padding:var(--space-8) var(--desktop-gutter)}
+.main-area .inner{max-width:var(--content-max-width-wide);margin:0 auto;display:flex;flex-direction:column;gap:var(--space-6)}
+.main-area .large-title{padding:0}
+.cols{display:grid;grid-template-columns:3fr 2fr;gap:var(--space-6)}
+.drop{display:flex;flex-direction:column;align-items:center;gap:var(--space-2);padding:var(--space-8);border:2px dashed var(--color-border-strong);border-radius:var(--radius-lg);color:var(--color-text-secondary);text-align:center;font-size:var(--text-subhead-size)}
+.auth-desk{flex:1;display:grid;place-items:center}
+.auth-card{width:var(--content-max-width);background:var(--color-surface);border-radius:var(--radius-lg);padding:var(--space-10);box-shadow:var(--shadow-toast)}
+.dialog{position:absolute;left:50%;top:50%;translate:-50% -50%;width:var(--dialog-max-width);z-index:var(--z-sheet);background:var(--color-surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-toast);padding:var(--space-6);display:flex;flex-direction:column;gap:var(--space-4)}
+.dialog .sheet-head{display:flex;align-items:center;justify-content:space-between}
+.dialog .x{width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;margin-right:calc(-1 * var(--space-3));color:var(--color-text-secondary)}
+.kbd{font-size:var(--text-caption-size);padding:1px var(--space-1);border-radius:var(--radius-sm);outline:1px solid var(--color-separator);color:var(--color-text-secondary)}
+.toast.desk-toast{left:50%;right:auto;translate:-50% 0;bottom:var(--space-6);width:auto;max-width:var(--dialog-max-width)}
+
+/* ===== OCT-16 additions (tokens only; prototype-only bits marked) ===== */
+.frame.sm{width:390px}
+.phone .content{flex:1;overflow:hidden;display:flex;flex-direction:column;gap:var(--space-4);padding-bottom:var(--space-4)}
+.navbar .x-btn{width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;color:var(--color-text-secondary)}
+.navbar .txt-btn{color:var(--color-accent);font-size:var(--text-body-size);min-height:var(--tap-min);display:flex;align-items:center;padding:0 var(--space-2)}
+.bottom.bar{background:var(--color-bg);border-top:1px solid var(--color-separator);margin-top:auto}
+.foot-note{display:flex;gap:var(--space-2);align-items:flex-start;font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);color:var(--color-text-secondary)}
+.foot-note .icon{color:var(--color-accent)}
+
+/* photo (user content) */
+.photo{display:block;width:100%;height:var(--photo-preview-height);border-radius:var(--radius-lg);overflow:hidden;position:relative;background:var(--color-surface-2)}
+.photo svg{width:100%;height:100%;display:block}
+.photo.scan::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgb(255 255 255 / .28) 50%,transparent 70%);translate:-100% 0;animation:sweep 1.8s var(--ease-in-out) infinite}
+@keyframes sweep{to{translate:100% 0}}
+.photo.dim{height:calc(var(--photo-preview-height) * .6)}
+.thumb{width:var(--thumb-size);height:var(--thumb-size);border-radius:var(--radius-md);overflow:hidden;flex:none;background:var(--color-surface-2)}
+.thumb svg{width:100%;height:100%;display:block}
+.thumb.add{display:grid;place-items:center;color:var(--color-accent);background:var(--color-accent-soft);font-size:var(--text-caption-size);font-weight:600;text-align:center;align-content:center;gap:2px}
+
+/* totals header */
+.totals{display:flex;gap:var(--space-4);align-items:center}
+.kcal-big{display:flex;align-items:baseline;gap:var(--space-1)}
+.kcal-big b{font-size:var(--text-large-title-size);line-height:var(--text-large-title-lh);font-weight:700;letter-spacing:var(--tracking-tight);font-variant-numeric:tabular-nums}
+.macros{display:flex;gap:var(--space-3);font-size:var(--text-footnote-size);color:var(--color-text-secondary);font-variant-numeric:tabular-nums}
+.macros span{display:flex;align-items:center;gap:var(--space-1)}
+.macros i{width:var(--space-2);height:var(--space-2);border-radius:var(--radius-full)}
+.m-p{background:var(--color-protein)} .m-f{background:var(--color-fat)} .m-c{background:var(--color-carbs)}
+
+/* dish row */
+.dish{display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-3) var(--space-4);position:relative;background:var(--color-surface)}
+.dish+.dish::before{content:"";position:absolute;top:0;right:0;left:var(--space-4);border-top:1px solid var(--color-separator)}
+.dish-top{display:flex;justify-content:space-between;align-items:baseline;gap:var(--space-3)}
+.dish-top .name{font-size:var(--text-headline-size);font-weight:600;line-height:var(--text-headline-lh)}
+.dish-top .kc{font-size:var(--text-headline-size);font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.dish-meta{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-footnote-size);color:var(--color-text-secondary);font-variant-numeric:tabular-nums}
+.badge{display:inline-flex;align-items:center;gap:2px}
+.badge .icon{width:14px;height:14px}
+.dish-ctl{display:flex;align-items:center;gap:var(--space-2)}
+.step{width:var(--tap-min);height:var(--tap-min);border-radius:var(--radius-full);background:var(--color-surface-2);color:var(--color-accent);display:grid;place-items:center;flex:none}
+.step.dis{color:var(--color-text-disabled)}
+.wv{width:var(--stepper-value-width);height:var(--control-height);border:1px solid var(--color-border-strong);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;gap:var(--space-1);font-size:var(--text-body-size);font-variant-numeric:tabular-nums;background:var(--color-surface)}
+.wv small{font-size:var(--text-subhead-size);color:var(--color-text-secondary)}
+.wv.focus{border-color:var(--color-accent);box-shadow:inset 0 0 0 1px var(--color-accent)}
+.wv.error{border-color:var(--color-danger);box-shadow:inset 0 0 0 1px var(--color-danger)}
+.dish .more{margin-left:auto;width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;color:var(--color-text-secondary)}
+.dish .err-msg{display:flex;gap:var(--space-1);align-items:center;font-size:var(--text-footnote-size);color:var(--color-danger)}
+.hint{display:flex;flex-direction:column;gap:var(--space-1);padding:var(--space-2) var(--space-3);border-radius:var(--radius-md);background:var(--color-accent-soft);font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh)}
+.hint .acts{display:flex;gap:var(--space-4)}
+.hint .acts span{color:var(--color-accent);font-weight:600;min-height:var(--tap-min);display:flex;align-items:center}
+.hint .acts span+span{color:var(--color-text-secondary);font-weight:500}
+/* swipe-to-delete reveal */
+.swipe{position:relative;background:var(--color-danger);overflow:hidden}
+.swipe .dish{translate:-96px 0}
+.swipe .del{position:absolute;right:0;top:0;bottom:0;width:96px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--color-on-danger);font-size:var(--text-footnote-size);font-weight:600}
+.add-row{display:flex;align-items:center;gap:var(--space-2);color:var(--color-accent);font-size:var(--text-body-size);font-weight:500;min-height:var(--tap-min);padding:0 var(--space-4)}
+
+/* recognition */
+.recog-title{display:flex;align-items:center;gap:var(--space-3)}
+.skel-dish{display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-3) var(--space-4);background:var(--color-surface);border-radius:var(--radius-md)}
+.state.compact{padding:var(--space-4) var(--space-6) 0}
+
+/* today (minimal stand-in; full screen is OCT-19) */
+.today-card{background:var(--color-surface);border-radius:var(--radius-lg);padding:var(--space-5);display:flex;flex-direction:column;gap:var(--space-2)}
+.display{font-size:var(--text-display-size);line-height:var(--text-display-lh);font-weight:700;letter-spacing:var(--tracking-tight);font-variant-numeric:tabular-nums}
+.quick{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3)}
+.quick .btn{width:100%}
+.meal{display:flex;align-items:center;gap:var(--space-3)}
+.meal .thumb{width:44px;height:44px;border-radius:var(--radius-sm)}
+.meal.new{background:var(--color-accent-soft)}
+.action-sheet{position:absolute;left:var(--space-2);right:var(--space-2);bottom:calc(34px + var(--space-2));z-index:var(--z-sheet);display:flex;flex-direction:column;gap:var(--space-2)}
+.action-sheet .grp{background:var(--color-surface);border-radius:var(--radius-lg);overflow:hidden}
+.action-sheet .it{display:flex;align-items:center;justify-content:center;gap:var(--space-2);min-height:var(--control-height-lg);font-size:var(--text-body-size);color:var(--color-accent);position:relative}
+.action-sheet .it+.it::before{content:"";position:absolute;top:0;left:0;right:0;border-top:1px solid var(--color-separator)}
+.action-sheet .cancel{font-weight:600}
+
+/* manual form */
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-3)}
+.field .input.num .val{font-variant-numeric:tabular-nums}
+.field .input .unit{color:var(--color-text-secondary);font-size:var(--text-subhead-size)}
+.field .msg.warn{color:var(--color-warning)}
+.result{display:flex;justify-content:space-between;align-items:baseline;padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);background:var(--color-surface-2);font-size:var(--text-subhead-size);font-variant-numeric:tabular-nums}
+.result b{font-size:var(--text-headline-size)}
+.req{color:var(--color-text-secondary);font-weight:400}
+
+/* ===== Prototype-only: system camera of iOS & tap markers ===== */
+.sys{background:#000;color:#fff}
+.sys .viewfinder{flex:1;margin-top:var(--space-12);overflow:hidden}
+.sys .viewfinder svg{width:100%;height:100%;display:block}
+.sys .shutter-row{height:180px;display:flex;align-items:center;justify-content:space-around;padding-bottom:34px;font-size:var(--text-body-size)}
+.sys .shutter{width:72px;height:72px;border-radius:50%;border:4px solid #fff;display:grid;place-items:center}
+.sys .shutter::after{content:"";width:58px;height:58px;border-radius:50%;background:#fff}
+.tap{position:absolute;z-index:200;width:64px;height:64px;border-radius:50%;border:3px solid var(--color-accent);box-shadow:0 0 0 6px var(--color-accent-soft);pointer-events:none}
+.tap b{position:absolute;top:-14px;right:-14px;width:28px;height:28px;border-radius:50%;background:var(--color-accent);color:var(--color-on-accent);display:grid;place-items:center;font-size:var(--text-subhead-size)}
+.flow-arrow{align-self:center;color:var(--color-text-secondary)}
+.auto{position:absolute;z-index:200;top:64px;right:16px;padding:var(--space-1) var(--space-3);border-radius:var(--radius-full);background:var(--color-accent);color:var(--color-on-accent);font-size:var(--text-footnote-size);font-weight:600}
+
+/* ===== Desktop modal flow ===== */
+.flow-win{position:absolute;left:50%;top:50%;translate:-50% -50%;width:var(--modal-flow-max-width);max-height:90%;z-index:var(--z-sheet);background:var(--color-bg);border-radius:var(--radius-lg);box-shadow:var(--shadow-toast);display:flex;flex-direction:column;overflow:hidden}
+.flow-win .wh{display:flex;align-items:center;justify-content:space-between;padding:var(--space-3) var(--space-3) var(--space-3) var(--space-6);border-bottom:1px solid var(--color-separator)}
+.flow-win .wb{display:grid;grid-template-columns:240px 1fr;gap:var(--space-6);padding:var(--space-6);overflow:hidden}
+.flow-win .wf{display:flex;justify-content:flex-end;gap:var(--space-3);padding:var(--space-4) var(--space-6);border-top:1px solid var(--color-separator)}
+.flow-win .wf .btn{width:auto;min-width:160px}
+.flow-win .photo{height:240px}
+.dish .trash{width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;color:var(--color-danger);border-radius:var(--radius-md);background:var(--color-hover)}
+.dropzone{position:absolute;inset:var(--space-4);z-index:var(--z-sheet);border:2px dashed var(--color-accent);border-radius:var(--radius-lg);background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--space-2);color:var(--color-accent);font-size:var(--text-title-size);font-weight:600}
+.dropzone .icon{width:48px;height:48px}
+
+
+/* ===== OCT-19 additions: Today, Diary, Week (tokens only) ===== */
+.phone .content{padding-bottom:calc(var(--tabbar-height) + 34px + var(--space-4))}
+.phone .content.modal{padding-bottom:var(--space-4)}
+.phone .bottom.bar{flex:none}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.large-title .date{display:block;font-size:var(--text-subhead-size);font-weight:400;letter-spacing:0;color:var(--color-text-secondary);margin-top:2px}
+.title-row{display:flex;align-items:flex-end;justify-content:space-between;gap:var(--space-2)}
+.title-row .txt-btn{color:var(--color-accent);font-size:var(--text-body-size);min-height:var(--tap-min);display:flex;align-items:center;padding:0 var(--screen-gutter);font-weight:500}
+
+/* card + numbers */
+.card{background:var(--color-surface);border-radius:var(--radius-lg);padding:var(--space-5);display:flex;flex-direction:column;gap:var(--space-3)}
+.card .lbl{display:flex;align-items:center;gap:var(--space-1);font-size:var(--text-subhead-size);color:var(--color-text-secondary)}
+.card .lbl.over{color:var(--color-warning);font-weight:600}
+.big{display:flex;align-items:baseline;gap:var(--space-2)}
+.big .unit{font-size:var(--text-subhead-size);color:var(--color-text-secondary)}
+.big .display.sm{font-size:var(--text-large-title-size);line-height:var(--text-large-title-lh)}
+.week-line{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);min-height:var(--tap-min);margin:0 calc(-1 * var(--space-5)) calc(-1 * var(--space-5));padding:0 var(--space-3) 0 var(--space-5);border-top:1px solid var(--color-separator);font-size:var(--text-subhead-size);font-variant-numeric:tabular-nums}
+.week-line b{font-weight:600}
+.week-line .icon{color:var(--color-text-secondary)}
+.week-line.over b{color:var(--color-warning)}
+.invite{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);background:var(--color-accent-soft);font-size:var(--text-subhead-size)}
+.invite .icon{color:var(--color-accent)}
+.invite .go{margin-left:auto;color:var(--color-accent);font-weight:600;min-height:var(--tap-min);display:flex;align-items:center;white-space:nowrap}
+
+/* progress bars: fill = eaten up to the norm; hatched tail = over the norm (pattern, not only colour) */
+.pbar{height:var(--progress-height);border-radius:var(--radius-full);background:var(--color-surface-2);display:flex;overflow:hidden}
+.pbar i{display:block;height:100%;background:var(--color-accent)}
+.pbar i.p{background:var(--color-protein)} .pbar i.f{background:var(--color-fat)} .pbar i.c{background:var(--color-carbs)}
+.pbar i.ov,.hatch{background-image:repeating-linear-gradient(-45deg,var(--color-warning) 0 calc(var(--hatch-size) / 2),transparent 0 var(--hatch-size))}
+.pbar.none{background:transparent;outline:1px dashed var(--color-separator)}
+
+/* macros block */
+.mac-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-3)}
+.mac{display:flex;flex-direction:column;gap:var(--space-1);min-width:0}
+.mac-h{display:flex;align-items:center;gap:var(--space-1);font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.mac-h i{width:var(--space-2);height:var(--space-2);border-radius:var(--radius-full)}
+.mac-v{font-size:var(--text-headline-size);font-weight:600;font-variant-numeric:tabular-nums}
+.mac-v small{font-size:var(--text-footnote-size);font-weight:400;color:var(--color-text-secondary)}
+.mac .pbar{margin:var(--space-1) 0}
+.mac .rest{white-space:nowrap;font-size:var(--text-footnote-size);color:var(--color-text-secondary);font-variant-numeric:tabular-nums;display:flex;align-items:center;gap:2px}
+.mac .rest.over{color:var(--color-warning);font-weight:600}
+.mac .rest .icon{width:14px;height:14px}
+.mac-rows{display:flex;flex-direction:column;gap:var(--space-3)}
+.mac-row{display:grid;grid-template-columns:auto 1fr;gap:var(--space-1) var(--space-3);align-items:center}
+.mac-row .mac-h{font-size:var(--text-subhead-size);color:var(--color-text)}
+.mac-row .mac-v{justify-self:end;font-size:var(--text-subhead-size)}
+.mac-row .pbar{grid-column:1 / -1}
+
+/* meal rows (Today / Diary) */
+.sec-h{display:flex;justify-content:space-between;align-items:baseline;font-size:var(--text-footnote-size);color:var(--color-text-secondary);padding:0 var(--space-4) var(--space-2)}
+.cell.meal .thumb{width:var(--meal-thumb-size);height:var(--meal-thumb-size);border-radius:var(--radius-sm)}
+.cell.meal .thumb.icon-only{display:grid;place-items:center;color:var(--color-text-secondary)}
+.cell.meal .main .t{display:flex;gap:var(--space-2);align-items:center;font-weight:600;font-size:var(--text-body-size)}
+.cell.meal .main .t small{font-weight:400;color:var(--color-text-secondary);font-size:var(--text-subhead-size);font-variant-numeric:tabular-nums}
+.cell.meal .main .sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cell.meal .main .st{display:flex;gap:var(--space-1);margin-top:2px}
+.cell.meal .val{color:var(--color-text);font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.cell.meal .val.zero{color:var(--color-text-secondary);font-weight:400}
+.cell.meal.queued .thumb{opacity:.7}
+.swipe .cell.meal{translate:-96px 0;background:var(--color-surface)}
+.cell.meal .trash{width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;color:var(--color-danger);border-radius:var(--radius-md);background:var(--color-hover);flex:none}
+.cell.meal.hover{background:var(--color-hover)}
+
+/* day / period switcher */
+.pager{display:grid;grid-template-columns:var(--tap-min) 1fr var(--tap-min);align-items:center;gap:var(--space-2)}
+.pager .ib{width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;border-radius:var(--radius-full);color:var(--color-accent);background:var(--color-surface)}
+.pager .ib.dis{color:var(--color-text-disabled);background:transparent}
+.pager .pick{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:var(--tap-min);text-align:center}
+.pager .pick .t-headline{display:flex;align-items:center;gap:var(--space-1)}
+.pager .pick .icon{width:16px;height:16px;color:var(--color-text-secondary)}
+.sum-line{display:flex;justify-content:space-between;align-items:baseline;gap:var(--space-2);font-variant-numeric:tabular-nums}
+.sum-line .rest{font-size:var(--text-subhead-size);color:var(--color-text-secondary)}
+.sum-line .rest.over{color:var(--color-warning);font-weight:600}
+
+/* chart */
+.chart{display:flex;flex-direction:column;gap:var(--space-2)}
+.plot{position:relative;height:var(--chart-height);display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:var(--space-2);align-items:end;border-bottom:1px solid var(--color-separator)}
+.plot.month{gap:2px}
+.plot.wide{height:var(--chart-height-wide);gap:var(--space-4)}
+.plot .norm{position:absolute;left:0;right:0;border-top:2px dashed var(--color-text-secondary);z-index:1;pointer-events:none}
+.plot .norm span{position:absolute;right:0;bottom:2px;font-size:var(--text-caption-size);color:var(--color-text-secondary);background:var(--color-surface);padding:0 var(--space-1);font-variant-numeric:tabular-nums}
+.col{position:relative;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:stretch;min-height:var(--tap-min);border-radius:var(--radius-sm) var(--radius-sm) 0 0}
+.col .b{display:flex;flex-direction:column-reverse;border-radius:var(--radius-sm) var(--radius-sm) 0 0;overflow:hidden;min-height:2px}
+.col .b .in{background:var(--color-accent);flex:none}
+.col .b .ov{flex:none;background-color:var(--color-warning-soft)}
+.col .b .ov.hatch{background-color:var(--color-warning-soft)}
+.col.today .b .in{background:var(--color-accent)}
+.col.past .b .in{opacity:1}
+.col .v{font-size:var(--text-caption-size);font-weight:500;color:var(--color-text-secondary);text-align:center;font-variant-numeric:tabular-nums;margin-bottom:var(--space-1);white-space:nowrap}
+.col .v.over{color:var(--color-warning);font-weight:600}
+.col.zero .b{background:var(--color-separator);height:2px}
+.col.sel{outline:2px solid var(--color-focus-ring);outline-offset:2px}
+.col .clip{position:absolute;left:-2px;right:-2px;height:8px;background:var(--color-surface);clip-path:polygon(0 50%,15% 0,30% 50%,45% 0,60% 50%,75% 0,90% 50%,100% 0,100% 50%,85% 100%,70% 50%,55% 100%,40% 50%,25% 100%,10% 50%,0 100%)}
+.xl{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:var(--space-2);font-size:var(--text-caption-size);color:var(--color-text-secondary);text-align:center;font-variant-numeric:tabular-nums;line-height:var(--text-caption-lh)}
+.xl.month{gap:2px}
+.xl.wide{gap:var(--space-4)}
+.xl span em{display:block;font-style:normal;margin-top:2px;color:var(--color-text-secondary)}
+.xl span em.over{color:var(--color-warning);font-weight:600}
+.xl span b{display:block;font-weight:600;color:var(--color-text)}
+.xl span.today{color:var(--color-accent)}
+.xl span.today b{color:var(--color-accent)}
+.xl span.future{color:var(--color-text-disabled)}
+.xl span.future b{color:var(--color-text-disabled)}
+.legend{display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-3);font-size:var(--text-caption-size);color:var(--color-text-secondary)}
+.legend span{display:flex;align-items:center;gap:var(--space-1)}
+.legend i{width:14px;height:10px;border-radius:2px;background-color:var(--color-accent)}
+.legend i.ov{background-color:var(--color-warning-soft)}
+.legend i.ln{height:0;border-top:2px dashed var(--color-text-secondary);border-radius:0}
+.chart-empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--space-1);text-align:center;color:var(--color-text-secondary);font-size:var(--text-subhead-size)}
+.tip{position:absolute;z-index:2;translate:-50% 0;padding:var(--space-2) var(--space-3);border-radius:var(--radius-md);background:var(--color-text);color:var(--color-bg);font-size:var(--text-footnote-size);white-space:nowrap;box-shadow:var(--shadow-toast);font-variant-numeric:tabular-nums}
+.avg-note{font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.callout{display:flex;flex-direction:column;gap:2px;padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);background:var(--color-accent-soft);font-size:var(--text-subhead-size);font-variant-numeric:tabular-nums}
+.callout b{font-size:var(--text-headline-size);color:var(--color-accent)}
+.callout.over{background:var(--color-warning-soft)}
+.callout.over b{color:var(--color-warning)}
+
+/* edit-record additions (screen 4 opened from Diary) */
+.when{display:flex;align-items:center;gap:var(--space-3);min-height:var(--control-height);padding:0 var(--space-4);border-radius:var(--radius-md);background:var(--color-surface);font-size:var(--text-body-size)}
+.when .v{margin-left:auto;color:var(--color-accent);font-variant-numeric:tabular-nums}
+.when .icon{color:var(--color-text-secondary)}
+.late{display:flex;flex-direction:column;gap:var(--space-2)}
+.picker{position:absolute;left:0;right:0;bottom:0;z-index:var(--z-sheet);background:var(--color-surface-2);border-radius:var(--radius-xl) var(--radius-xl) 0 0;padding:var(--space-3) var(--space-4) calc(34px + var(--space-3));display:flex;flex-direction:column;gap:var(--space-2);box-shadow:var(--shadow-sheet)}
+.picker .ph{display:flex;justify-content:space-between;font-size:var(--text-body-size);color:var(--color-accent);min-height:var(--tap-min);align-items:center}
+.picker .wheel{display:grid;grid-template-columns:2fr 1fr 1fr;text-align:center;font-size:var(--text-body-size);color:var(--color-text-secondary);font-variant-numeric:tabular-nums}
+.picker .wheel div{display:flex;flex-direction:column;gap:var(--space-2)}
+.picker .wheel .on{color:var(--color-text);font-weight:600;background:var(--color-surface);border-radius:var(--radius-sm);padding:var(--space-1) 0}
+
+/* desktop */
+.desk .cols.even{grid-template-columns:1fr 1fr}
+.desk .cols.side-r{grid-template-columns:3fr 2fr}
+.desk-title{display:flex;align-items:flex-end;justify-content:space-between;gap:var(--space-4)}
+.desk-title .large-title .date{display:inline;margin-left:var(--space-3)}
+.desk .pager{grid-template-columns:var(--tap-min) auto var(--tap-min)}
+.desk .seg{min-width:240px}
+
+/* ===== OCT-22 additions: Profile & norm (8), norm agent chat (9) — tokens only ===== */
+.title-row .ic-btn{width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;color:var(--color-accent);margin-right:var(--space-3)}
+.norm-head{display:flex;justify-content:space-between;align-items:center;gap:var(--space-2)}
+.norm-head .lbl{display:flex;align-items:center;gap:var(--space-1);font-size:var(--text-subhead-size);color:var(--color-text-secondary)}
+.norm-empty{font-size:var(--text-headline-size);font-weight:600;line-height:var(--text-headline-lh)}
+/* macro split: one bar, share of kcal per macro */
+.split{display:flex;gap:2px;height:var(--progress-height);border-radius:var(--radius-full);overflow:hidden}
+.split i{display:block;height:100%}
+.split-l{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-3)}
+.split-l .v{font-size:var(--text-headline-size);font-weight:600;font-variant-numeric:tabular-nums}
+.split-l .v small{font-size:var(--text-footnote-size);font-weight:400;color:var(--color-text-secondary)}
+.calc-line{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);min-height:var(--tap-min);margin:0 calc(-1 * var(--space-5)) calc(-1 * var(--space-5));padding:0 var(--space-3) 0 var(--space-5);border-top:1px solid var(--color-separator);font-size:var(--text-subhead-size);color:var(--color-accent);font-weight:500}
+.calc-line .icon{color:var(--color-text-secondary)}
+.calc-line .sub{color:var(--color-text-secondary);font-weight:400;font-variant-numeric:tabular-nums}
+.override-line{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);font-size:var(--text-subhead-size);color:var(--color-text-secondary);font-variant-numeric:tabular-nums}
+.override-line .btn{margin-right:calc(-1 * var(--space-4))}
+.disclaimer{display:flex;gap:var(--space-2);align-items:flex-start;font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);color:var(--color-text-secondary);padding:0 var(--space-1)}
+.disclaimer .icon{flex:none;color:var(--color-text-secondary)}
+.paths{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3)}
+.path{display:flex;flex-direction:column;gap:var(--space-1);padding:var(--space-4);border-radius:var(--radius-md);background:var(--color-accent-soft);color:var(--color-text);min-height:var(--tap-min);font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh)}
+.path b{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-headline-size);color:var(--color-accent)}
+.path span{color:var(--color-text-secondary)}
+.path.dis{background:var(--color-surface-2)}
+.path.dis b{color:var(--color-text-disabled)}
+/* form-as-list: inline fields in grouped cells */
+.cell .inp{margin-left:auto;display:flex;align-items:baseline;gap:var(--space-1);font-variant-numeric:tabular-nums;color:var(--color-text);white-space:nowrap}
+.cell .inp .u{color:var(--color-text-secondary);font-size:var(--text-subhead-size)}
+.cell .inp.ph{color:var(--color-accent)}
+.cell .inp.opt{color:var(--color-text-secondary)}
+.cell .inp.focus b::after{content:"";display:inline-block;width:2px;height:1.1em;background:var(--color-accent);vertical-align:-3px;margin-left:1px}
+.cell .inp.err{color:var(--color-danger)}
+.cell .inp.err .u{color:var(--color-danger)}
+.cell .inp.ro{color:var(--color-text-secondary)}
+.cell .inp .box{min-width:var(--space-8);text-align:right;padding:var(--space-1) var(--space-2);border-radius:var(--radius-sm);background:var(--color-surface-2)}
+.cell .inp.focus .box{box-shadow:inset 0 0 0 1px var(--color-accent)}
+.cell .inp.err .box{box-shadow:inset 0 0 0 1px var(--color-danger)}
+.cell.col-cell{flex-direction:column;align-items:stretch;gap:var(--space-2)}
+.cell .mac-dot{width:var(--space-2);height:var(--space-2);border-radius:var(--radius-full);flex:none}
+.cell .g{color:var(--color-text-secondary);font-size:var(--text-subhead-size);font-variant-numeric:tabular-nums;min-width:4.5em;text-align:right}
+.cell .sum{margin-left:auto;font-variant-numeric:tabular-nums;font-weight:600}
+.cell .sum.ok{color:var(--color-accent)}
+.cell .sum.bad{color:var(--color-danger)}
+.group-f.err{color:var(--color-danger);display:flex;gap:var(--space-1);align-items:flex-start}
+.group-f.warn{color:var(--color-warning);display:flex;gap:var(--space-1);align-items:flex-start}
+.group-f .icon{width:16px;height:16px;flex:none;margin-top:1px}
+.group-f.pace{color:var(--color-text);font-variant-numeric:tabular-nums}
+.switch{width:var(--switch-width);height:var(--switch-height);border-radius:var(--radius-full);background:var(--color-border-strong);position:relative;flex:none;margin-left:auto;transition:background var(--duration-fast) var(--ease-out)}
+.switch::after{content:"";position:absolute;top:2px;left:2px;width:calc(var(--switch-height) - 4px);height:calc(var(--switch-height) - 4px);border-radius:50%;background:var(--color-surface);box-shadow:0 2px 4px rgb(0 0 0 / .2);transition:translate var(--duration-fast) var(--ease-out)}
+.switch.on{background:var(--color-accent)}
+.switch.on::after{translate:calc(var(--switch-width) - var(--switch-height)) 0}
+.switch.dis{opacity:.5}
+.banner .acts{display:flex;gap:var(--space-4);margin-top:var(--space-1)}
+.banner .acts span{color:var(--color-accent);font-weight:600;min-height:var(--tap-min);display:flex;align-items:center}
+.banner.warning .acts span{color:var(--color-warning)}
+.banner .acts span+span{color:var(--color-text-secondary);font-weight:500}
+/* sticky save bar with live preview, above the tab bar (AC-1.2) */
+.save-bar{position:absolute;left:0;right:0;bottom:calc(var(--tabbar-height) + 34px);z-index:var(--z-tabbar);display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--screen-gutter);background:var(--tabbar-bg);-webkit-backdrop-filter:var(--tabbar-blur);backdrop-filter:var(--tabbar-blur);border-top:1px solid var(--color-separator)}
+.save-bar .pv{flex:1;display:flex;flex-direction:column;font-variant-numeric:tabular-nums}
+.save-bar .pv small{font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.save-bar .pv b{font-size:var(--text-headline-size)}
+.save-bar .btn{width:auto;min-width:144px}
+.phone .content.has-save{padding-bottom:calc(var(--tabbar-height) + 34px + var(--control-height-lg) + var(--space-8))}
+/* radio list in the activity sheet */
+.cell.radio .main b{font-weight:600}
+.cell.radio .k{color:var(--color-text-secondary);font-size:var(--text-footnote-size);font-variant-numeric:tabular-nums}
+.cell.radio .ck{width:var(--icon-size);color:var(--color-accent)}
+/* «How it's calculated» */
+.steps{display:flex;flex-direction:column;gap:var(--space-4);counter-reset:st}
+.st{display:grid;grid-template-columns:var(--chat-avatar-size) 1fr;gap:var(--space-1) var(--space-3);font-size:var(--text-subhead-size);line-height:var(--text-subhead-lh)}
+.st::before{counter-increment:st;content:counter(st);grid-row:span 2;width:var(--chat-avatar-size);height:var(--chat-avatar-size);border-radius:50%;background:var(--color-accent-soft);color:var(--color-accent);display:grid;place-items:center;font-weight:600;font-size:var(--text-footnote-size)}
+.st b{font-weight:600}
+.st .calc{font-variant-numeric:tabular-nums;color:var(--color-text-secondary)}
+.st .calc strong{color:var(--color-text);font-weight:600}
+.st .calc .w{color:var(--color-warning);font-weight:600}
+.total{display:flex;justify-content:space-between;align-items:baseline;padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);background:var(--color-accent-soft);font-variant-numeric:tabular-nums}
+.total b{font-size:var(--text-title-size);color:var(--color-accent)}
+.src{font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);color:var(--color-text-secondary);display:flex;flex-direction:column;gap:var(--space-1)}
+.src a{color:var(--color-accent)}
+
+/* ===== 9 · Chat with the norm agent ===== */
+.chat{flex:1;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;gap:var(--space-4);padding:var(--space-2) var(--screen-gutter) var(--space-4)}
+.chat.end{padding-bottom:calc(34px + var(--space-4))}
+.chat-note{align-self:center;display:flex;gap:var(--space-2);align-items:flex-start;max-width:34ch;font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);color:var(--color-text-secondary);text-align:left;padding:var(--space-2) var(--space-3);border-radius:var(--radius-md);background:var(--color-surface-2)}
+.chat-note .icon{flex:none;width:16px;height:16px;margin-top:1px}
+.msg-a{display:grid;grid-template-columns:var(--chat-avatar-size) 1fr;gap:var(--space-3);font-size:var(--text-body-size);line-height:var(--text-body-lh);padding-right:var(--space-6)}
+.msg-a .av{width:var(--chat-avatar-size);height:var(--chat-avatar-size);border-radius:50%;background:var(--color-accent-soft);color:var(--color-accent);display:grid;place-items:center}
+.msg-a .av .icon{width:16px;height:16px}
+.msg-a p+p{margin-top:var(--space-2)}
+.msg-a .num{font-variant-numeric:tabular-nums}
+.msg-u{align-self:flex-end;max-width:var(--chat-bubble-max-width);padding:var(--space-2) var(--space-4);border-radius:var(--radius-lg) var(--radius-lg) var(--radius-sm) var(--radius-lg);background:var(--color-accent-soft);font-size:var(--text-body-size);line-height:var(--text-body-lh)}
+.msg-err{align-self:flex-end;display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-footnote-size);color:var(--color-danger)}
+.msg-err .icon{width:16px;height:16px}
+.msg-err .link{font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:var(--space-2);padding-left:calc(var(--chat-avatar-size) + var(--space-3))}
+.chip{min-height:var(--control-height);padding:0 var(--space-4);border-radius:var(--radius-full);border:1px solid var(--color-accent);color:var(--color-accent);background:var(--color-surface);font-size:var(--text-subhead-size);font-weight:500;display:flex;align-items:center;gap:var(--space-1)}
+.chip.solid{background:var(--color-accent);color:var(--color-on-accent)}
+.typing{display:flex;gap:var(--space-1);align-items:center;height:var(--chat-avatar-size)}
+.typing i{width:6px;height:6px;border-radius:50%;background:var(--color-text-secondary);animation:blink 1.2s var(--ease-in-out) infinite}
+.typing i:nth-child(2){animation-delay:.2s}.typing i:nth-child(3){animation-delay:.4s}
+@keyframes blink{50%{opacity:.25}}
+.composer{flex:none;display:flex;gap:var(--space-2);align-items:center;padding:var(--space-2) var(--screen-gutter) calc(34px + var(--space-2));border-top:1px solid var(--color-separator);background:var(--color-bg)}
+.composer .cf{flex:1;min-height:var(--control-height);display:flex;align-items:center;padding:0 var(--space-4);border-radius:var(--radius-full);background:var(--color-surface);border:1px solid var(--color-border-strong);font-size:var(--text-body-size);color:var(--color-text-secondary)}
+.composer .cf.typed{color:var(--color-text)}
+.composer .cf.dis{background:var(--color-surface-2);border-color:transparent;color:var(--color-text-disabled)}
+.send{width:var(--tap-min);height:var(--tap-min);border-radius:50%;background:var(--color-accent);color:var(--color-on-accent);display:grid;place-items:center;flex:none}
+.send.dis{background:var(--color-surface-2);color:var(--color-text-disabled)}
+.composer-note{flex:none;display:flex;flex-direction:column;gap:var(--space-3);padding:var(--space-3) var(--screen-gutter) calc(34px + var(--space-3));border-top:1px solid var(--color-separator);background:var(--color-bg)}
+.summary{margin-left:calc(var(--chat-avatar-size) + var(--space-3))}
+.kv{display:flex;flex-direction:column}
+.kv div{display:flex;justify-content:space-between;gap:var(--space-3);padding:var(--space-2) 0;font-size:var(--text-subhead-size);font-variant-numeric:tabular-nums}
+.kv div+div{border-top:1px solid var(--color-separator)}
+.kv span:first-child{color:var(--color-text-secondary)}
+.kv span:last-child{text-align:right}
+.navbar .more{justify-self:end;width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;color:var(--color-accent)}
+.desk .dialog.chat-dlg{width:var(--modal-flow-max-width);height:88%;padding:0;gap:0;overflow:hidden;background:var(--color-bg)}
+.chat-dlg .wh{display:flex;align-items:center;justify-content:space-between;padding:var(--space-2) var(--space-3) var(--space-2) var(--space-6);border-bottom:1px solid var(--color-separator)}
+.chat-dlg .composer{padding-bottom:var(--space-4)}
+.desk .sticky{position:sticky;top:0}
+
+/* ===== OCT-25 additions: install, offline, settings, AI status, update (tokens only) ===== */
+.app-icon{width:var(--app-icon-size);height:var(--app-icon-size);border-radius:22.5%;flex:none;display:block;overflow:hidden}
+.app-icon.splash{width:var(--splash-icon-size);height:var(--splash-icon-size)}
+/* the icon is a fixed raster asset (icon.svg → PNG); it does not switch with the theme */
+
+/* install hint */
+.install-card{display:flex;gap:var(--space-3);align-items:flex-start;padding:var(--space-4);border-radius:var(--radius-lg);background:var(--color-surface);position:relative}
+.install-card .txt{flex:1;display:flex;flex-direction:column;gap:var(--space-1);padding-right:var(--space-6)}
+.install-card .close{position:absolute;top:var(--space-1);right:var(--space-1);width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;color:var(--color-text-secondary)}
+.install-card .go{color:var(--color-accent);font-weight:600;font-size:var(--text-subhead-size);min-height:var(--tap-min);display:inline-flex;align-items:center;gap:var(--space-1);margin-bottom:calc(-1 * var(--space-3))}
+.steps-i{list-style:none;padding:0;display:flex;flex-direction:column;gap:var(--space-4)}
+.steps-i li{display:flex;gap:var(--space-3);align-items:flex-start;font-size:var(--text-body-size);line-height:var(--text-body-lh)}
+.steps-i .n{width:var(--chat-avatar-size);height:var(--chat-avatar-size);border-radius:50%;background:var(--color-accent-soft);color:var(--color-accent);display:grid;place-items:center;font-size:var(--text-footnote-size);font-weight:700;flex:none}
+.steps-i .sub{display:block;font-size:var(--text-footnote-size);color:var(--color-text-secondary);margin-top:2px}
+.syskey{display:inline-flex;align-items:center;gap:var(--space-1);padding:1px var(--space-2);border-radius:var(--radius-sm);background:var(--color-surface-2);font-weight:600;white-space:nowrap;vertical-align:1px}
+.syskey .icon{width:16px;height:16px;color:var(--color-accent)}
+.why{display:flex;flex-direction:column;gap:var(--space-2);font-size:var(--text-subhead-size);color:var(--color-text-secondary)}
+.why span{display:flex;gap:var(--space-2);align-items:center}
+.why .icon{color:var(--color-accent)}
+.addr{display:flex;align-items:center;gap:var(--space-2);min-height:var(--control-height-lg);padding:0 var(--space-4);border-radius:var(--radius-md);background:var(--color-surface-2);font-size:var(--text-body-size);font-variant-numeric:tabular-nums}
+
+/* Safari chrome (prototype only) */
+.safari-bar{position:absolute;left:0;right:0;bottom:0;z-index:calc(var(--z-tabbar) + 1);height:84px;padding:var(--space-2) var(--space-4) 34px;background:var(--color-surface-2);display:flex;align-items:center;gap:var(--space-3);font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.safari-bar .u{flex:1;text-align:center;background:var(--color-surface);border-radius:var(--radius-md);padding:var(--space-2)}
+.safari-bar .icon{color:var(--color-accent)}
+.phone.in-safari .tabbar{bottom:84px;height:var(--tabbar-height);padding-bottom:0}
+.phone.in-safari .content{padding-bottom:calc(var(--tabbar-height) + 84px + var(--space-4))}
+
+/* home screen + splash (prototype only) */
+.home-screen{flex:1;background:linear-gradient(160deg,var(--color-accent-soft),var(--color-surface-2) 60%);display:grid;grid-template-columns:repeat(4,1fr);align-content:start;gap:var(--space-6) 0;padding:var(--space-6) var(--space-5)}
+.home-screen .app{display:flex;flex-direction:column;align-items:center;gap:var(--space-1);font-size:var(--text-tab-size);color:var(--color-text)}
+.home-screen .app i{width:62px;height:62px;border-radius:22.5%;background:var(--color-surface);display:block;opacity:.7}
+.home-screen .app .app-icon{width:62px;height:62px}
+.splash-screen{flex:1;display:grid;place-items:center;background:var(--color-bg);margin-top:-54px}
+.icon-sizes{display:flex;gap:var(--space-6);align-items:flex-end;flex-wrap:wrap}
+.icon-sizes figure{display:flex;flex-direction:column;align-items:center;gap:var(--space-2);font-size:var(--text-caption-size);color:var(--color-text-secondary)}
+.icon-sizes .safe{position:relative}
+.icon-sizes .safe::after{content:"";position:absolute;inset:10%;border-radius:50%;outline:2px dashed var(--color-warning)}
+.icon-sizes .square{border-radius:0}
+
+/* settings */
+.cell .seg{flex:1}
+.cell.col-cell .lbl-row{display:flex;align-items:center;gap:var(--space-3)}
+.cell.dis .lead-ic{background:var(--color-surface-2);color:var(--color-text-disabled)}
+.cell.dis .main .sub{color:var(--color-text-disabled)}
+.seg.dis span{color:var(--color-text-disabled)}
+.seg.dis span.on{color:var(--color-text-disabled);box-shadow:none}
+.cell.radio{min-height:var(--control-height)}
+.cell.radio .ck{margin-left:auto;color:var(--color-accent);width:24px}
+.ver{font-size:var(--text-footnote-size);color:var(--color-text-secondary);text-align:center;font-variant-numeric:tabular-nums;padding:var(--space-4) 0}
+
+/* AI provider status */
+.prov{display:flex;flex-direction:column;gap:var(--space-3)}
+.prov-top{display:flex;align-items:center;gap:var(--space-3)}
+.prov-top .lead-ic{width:44px;height:44px;border-radius:var(--radius-md);display:grid;place-items:center;background:var(--color-accent-soft);color:var(--color-accent);flex:none}
+.prov-top .lead-ic.danger{background:var(--color-danger-soft);color:var(--color-danger)}
+.prov-top .lead-ic.warning{background:var(--color-warning-soft);color:var(--color-warning)}
+.prov-top .lead-ic.off{background:var(--color-surface-2);color:var(--color-text-secondary)}
+.prov-top .nm{flex:1;display:flex;flex-direction:column;gap:2px}
+.status-line{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-subhead-size);font-weight:600}
+.status-line .dot{width:10px;height:10px;border-radius:50%;background:currentColor;flex:none}
+.status-line.ok{color:var(--color-accent)}
+.status-line.err{color:var(--color-danger)}
+.status-line.warn{color:var(--color-warning)}
+.status-line.off{color:var(--color-text-secondary)}
+.status-line.err .dot{border-radius:2px;rotate:45deg}
+.status-line.warn .dot{border-radius:0;clip-path:polygon(50% 0,100% 100%,0 100%)}
+.status-line.off .dot{background:transparent;border:2px solid currentColor}
+.mono{font-family:var(--font-mono);font-size:var(--text-footnote-size)}
+.code{font-family:var(--font-mono);font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);background:var(--color-surface-2);border-radius:var(--radius-md);padding:var(--space-3) var(--space-4);white-space:pre;overflow:hidden;color:var(--color-text)}
+.details{display:flex;flex-direction:column;gap:var(--space-2)}
+.details .sum{display:flex;align-items:center;gap:var(--space-1);color:var(--color-accent);font-size:var(--text-subhead-size);font-weight:500;min-height:var(--tap-min)}
+.check-note{font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);color:var(--color-text-secondary);text-align:center}
+.ext{display:inline-flex;align-items:center;gap:2px}
+.ext .icon{width:14px;height:14px}
+.status-table{display:grid;grid-template-columns:auto 1fr;gap:var(--space-3) var(--space-4);align-items:start;font-size:var(--text-subhead-size);line-height:var(--text-subhead-lh)}
+.status-table .status-line{white-space:nowrap}
+
+/* update pill */
+.toast .x{margin:calc(-1 * var(--space-3)) calc(-1 * var(--space-3)) calc(-1 * var(--space-3)) 0;width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;opacity:.7}
+.toast .act{margin-left:auto}
+.toast.over-bar{bottom:calc(34px + var(--control-height-lg) + var(--space-8))}
+.toast.no-tab{bottom:calc(34px + var(--space-3))}
+.bar-banner{display:flex;flex-direction:column;gap:var(--space-3)}
+
+/* desktop */
+.settings-col{max-width:var(--content-max-width);width:100%}
+.desk .offline-bar{margin:calc(-1 * var(--space-8)) calc(-1 * var(--desktop-gutter)) 0}
+.phone.in-safari .toast{bottom:calc(84px + var(--tabbar-height) + var(--space-3))}
+</style></head><body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-key" viewBox="0 0 24 24"><path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"/><circle cx="16.5" cy="7.5" r=".5"/></symbol>
+  <symbol id="i-chev-r" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="i-chev-l" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+  <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 2v13"/><path d="m16 6-4-4-4 4"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-camera" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></symbol>
+  <symbol id="i-wifi-off" viewBox="0 0 24 24"><path d="M12 20h.01"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/><path d="M5 12.859a10 10 0 0 1 5.17-2.69"/><path d="M19 12.859a10 10 0 0 0-2.007-1.523"/><path d="M2 8.82a15 15 0 0 1 4.177-2.643"/><path d="M22 8.82a15 15 0 0 0-11.288-3.764"/><path d="m2 2 20 20"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
+  <symbol id="i-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></symbol>
+  <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+  <symbol id="i-user-plus" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6"/><path d="M22 11h-6"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></symbol>
+  <symbol id="i-plate" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/></symbol>
+</svg>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></symbol>
+  <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/></symbol>
+  <symbol id="i-retake" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></symbol>
+  <symbol id="i-history" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></symbol>
+  <symbol id="i-gauge" viewBox="0 0 24 24"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></symbol>
+  <symbol id="i-cloud-off" viewBox="0 0 24 24"><path d="m2 2 20 20"/><path d="M5.782 5.782A7 7 0 0 0 9 19h8.5a4.5 4.5 0 0 0 1.307-.193"/><path d="M21.532 16.5A4.5 4.5 0 0 0 17.5 10h-1.79A7.008 7.008 0 0 0 10 5.07"/></symbol>
+  <symbol id="i-search-x" viewBox="0 0 24 24"><path d="m13.5 8.5-5 5"/><path d="m8.5 8.5 5 5"/><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m17 8-5-5-5 5"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></symbol>
+  <!-- Prototype-only stand-in for the user's photo (real app shows the actual photo) -->
+  <symbol id="ph-food" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice">
+    <rect width="400" height="300" fill="#7a6552"/><rect width="400" height="300" fill="url(#wood)" opacity=".35"/>
+    <ellipse cx="200" cy="160" rx="150" ry="118" fill="#e9e5dc"/><ellipse cx="200" cy="160" rx="118" ry="92" fill="#f5f2ea"/>
+    <path d="M110 150c10-40 60-52 90-40 20 8 22 40 6 58-22 24-74 22-90 6-8-8-9-16-6-24z" fill="#8a5b37"/>
+    <g fill="#6e4528"><circle cx="135" cy="140" r="5"/><circle cx="160" cy="128" r="4"/><circle cx="180" cy="150" r="5"/><circle cx="150" cy="160" r="4"/></g>
+    <path d="M210 110c30-18 76-10 88 10 10 18-6 40-40 44-30 4-56-6-58-24-1-12 2-22 10-30z" fill="#d9a86a"/>
+    <path d="M222 122l60 6M220 138l66 4M226 152l52 2" stroke="#b5803f" stroke-width="5" stroke-linecap="round"/>
+    <ellipse cx="236" cy="210" rx="28" ry="20" fill="#fbfaf5"/><circle cx="236" cy="210" r="11" fill="#f2b632"/>
+    <ellipse cx="282" cy="196" rx="26" ry="19" fill="#fbfaf5"/><circle cx="282" cy="196" r="10" fill="#f2b632"/>
+    <ellipse cx="160" cy="212" rx="24" ry="14" fill="#f4eedb"/>
+    <defs><pattern id="wood" width="40" height="300" patternUnits="userSpaceOnUse"><path d="M0 0v300M20 0v300" stroke="#5a4636" stroke-width="2"/></pattern></defs>
+  </symbol>
+</svg>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-calendar" viewBox="0 0 24 24"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></symbol>
+  <symbol id="i-chev-d" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></symbol>
+  <symbol id="i-utensils" viewBox="0 0 24 24"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 3 2h3Zm0 0v7"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></symbol>
+  <symbol id="i-moon-star" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+  <symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol>
+</svg>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-more" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></symbol>
+  <symbol id="i-arrow-up" viewBox="0 0 24 24"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></symbol>
+  <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></symbol>
+  <symbol id="i-flag" viewBox="0 0 24 24"><path d="M4 22V4a1 1 0 0 1 .4-.8A6 6 0 0 1 8 2c3 0 5 2 7.333 2q2 0 3.067-.8A1 1 0 0 1 20 4v10a1 1 0 0 1-.4.8A6 6 0 0 1 16 16c-3 0-5-2-8-2a6 6 0 0 0-4 1.528"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M3 12h.01"/><path d="M3 18h.01"/><path d="M3 6h.01"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M8 6h13"/></symbol>
+</svg>
+<!-- Extra icons for OCT-25 (Lucide geometry; lucide-react names in the doc) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-square-plus" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M8 12h8"/><path d="M12 8v8"/></symbol>
+  <symbol id="i-compass" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m16.24 7.76-1.804 5.411a2 2 0 0 1-1.265 1.265L7.76 16.24l1.804-5.411a2 2 0 0 1 1.265-1.265z"/></symbol>
+  <symbol id="i-server-off" viewBox="0 0 24 24"><path d="M7 2h13a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-5"/><path d="M10 10 2.5 2.5C2 2 2 2.5 2 5v3a2 2 0 0 0 2 2h6z"/><path d="M22 17v-1a2 2 0 0 0-2-2h-1"/><path d="M4 14a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h16.5l1-.5.5.5-8-8H4z"/><path d="M6 18h.01"/><path d="m2 2 20 20"/></symbol>
+  <symbol id="i-ruler" viewBox="0 0 24 24"><path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z"/><path d="m14.5 12.5 2-2"/><path d="m11.5 9.5 2-2"/><path d="m8.5 6.5 2-2"/><path d="m17.5 15.5 2-2"/></symbol>
+  <symbol id="i-ext" viewBox="0 0 24 24"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></symbol>
+  <symbol id="i-zap" viewBox="0 0 24 24"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></symbol>
+  <symbol id="i-smartphone" viewBox="0 0 24 24"><rect width="14" height="20" x="5" y="2" rx="2"/><path d="M12 18h.01"/></symbol>
+</svg>
+
+<h1 class="doc-h1">OCT-25 · Установка, офлайн, настройки, иконка и splash</h1>
+<p class="doc-lead">Эпик OCT-6. Только токены и компоненты OCT-13, OCT-16, OCT-19 и OCT-22 (<code>../oct-13/tokens.css</code>). Добавлено три токена: <code>--font-mono</code>, <code>--app-icon-size</code>, <code>--splash-icon-size</code>. Иконка — <code>icon.svg</code> рядом. Макет — iPhone 14/15, 390 × 844 pt. Параметры адреса: <code>?theme=light|dark</code>, <code>?section=icon|install|offline|settings|provider|update|desktop</code>. Логика, тексты RU/EN и решения — в документе «Дизайн OCT-25» в проекте.</p>
+
+<section class="doc-section" id="icon"><h2 class="doc-h2">1. Иконка и запуск</h2><div class="row" id="icon-row"></div></section>
+<section class="doc-section" id="install"><h2 class="doc-h2">2. Установка на экран «Домой»</h2><div class="row" id="install-row"></div></section>
+<section class="doc-section" id="offline"><h2 class="doc-h2">3. Офлайн</h2><div class="row" id="offline-row"></div></section>
+<section class="doc-section" id="settings"><h2 class="doc-h2">4. Настройки (экран 10)</h2><div class="row" id="settings-row"></div></section>
+<section class="doc-section" id="provider"><h2 class="doc-h2">5. ИИ-провайдер (администратор)</h2><div class="row" id="provider-row"></div></section>
+<section class="doc-section" id="update"><h2 class="doc-h2">6. Новая версия</h2><div class="row" id="update-row"></div></section>
+<section class="doc-section" id="desktop"><h2 class="doc-h2">7. Десктоп ≥ 1024 px</h2><div class="row" id="desk-row"></div></section>
+
+<script>
+const I = (id, cls='') => `<svg class="icon ${cls}" aria-hidden="true"><use href="#i-${id}"/></svg>`;
+const PHOTO = `<svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Фото еды"><use href="#ph-food"/></svg>`;
+const frame = (id, title, note, inner, cls='') => `<figure class="frame"><div class="phone ${cls}">${inner}</div><figcaption><b>${id} ${title}.</b> ${note}</figcaption></figure>`;
+const arrow = `<div class="flow-arrow">${I('chev-r')}</div>`;
+
+/* ---------- data ---------- */
+const D = {
+  egg:  {n:'Яйцо варёное, 2 шт', g:100, k:155, p:13, f:11, c:1,  conf:'exact'},
+  buck: {n:'Гречка с грибами',  g:180, k:230, p:8,  f:6,  c:36, conf:'high'},
+  chick:{n:'Куриная грудка гриль', g:150, k:248, p:46, f:6, c:0, conf:'mid'},
+  sauce:{n:'Сметанный соус',     g:40,  k:84,  p:1,  f:8,  c:2,  conf:'low'},
+};
+const BADGE = {
+  exact:`<span class="badge ok" aria-label="Уверенность: точно">${I('check')}точно</span>`,
+  high:'',
+  mid:`<span class="badge" aria-label="Уверенность: средняя">примерно</span>`,
+  low:`<span class="badge warn" aria-label="Уверенность: низкая, проверьте">${I('alert')}проверьте</span>`,
+  manual:`<span class="badge">вручную</span>`,
+  history:`<span class="badge">${I('history')}как в прошлый раз</span>`,
+  edited:'',
+};
+function dish(d, o={}){
+  const unit = o.oz ? 'oz' : 'г';
+  const w = o.oz ? (d.g/28.35).toFixed(1).replace('.',',') : (o.w ?? d.g);
+  const wcls = o.focus ? 'focus' : o.err ? 'error' : '';
+  const conf = o.conf ?? d.conf;
+  const ctl = o.desk
+    ? `<div class="dish-ctl"><span class="step" aria-label="Меньше на 10 г">${I('minus')}</span><span class="wv ${wcls}">${w}<small>${unit}</small></span><span class="step" aria-label="Больше на 10 г">${I('plus')}</span><span class="more" style="margin-left:auto" aria-label="Изменить">${I('pencil','sm')}</span><span class="trash" aria-label="Удалить ${d.n}">${I('trash','sm')}</span></div>`
+    : `<div class="dish-ctl"><span class="step ${o.min?'dis':''}" aria-label="Меньше на 10 г">${I('minus')}</span><span class="wv ${wcls}">${w}<small>${unit}</small></span><span class="step" aria-label="Больше на 10 г">${I('plus')}</span><span class="more" aria-label="Изменить ${d.n}">${I('pencil','sm')}</span></div>`;
+  const hint = o.hint ? `<div class="hint"><span>${I('history','sm')} Похоже на запись 12 нояб.: <b class="num">250 г · 420 ккал</b></span><div class="acts"><span>Как в прошлый раз</span><span>Оставить оценку</span></div></div>` : '';
+  return `<div class="dish"><div class="dish-top"><span class="name">${o.name ?? d.n}</span><span class="kc">${o.k ?? d.k} ккал</span></div>
+    <div class="dish-meta">${BADGE[conf]}<span>Б ${o.p ?? d.p} · Ж ${o.f ?? d.f} · У ${o.c ?? d.c}</span></div>
+    ${ctl}${o.err?`<div class="err-msg">${I('alert','sm')}Вес от 1 до 5000 г</div>`:''}${hint}</div>`;
+}
+const nav = (title, left=`<span class="x-btn" aria-label="Закрыть">${I('x')}</span>`) => `<div class="navbar"><div>${left}</div><div class="title num">${title}</div><div></div></div>`;
+const seg = (on='Обед') => `<div class="seg" role="radiogroup" aria-label="Приём пищи">${['Завтрак','Обед','Ужин','Перекус'].map(x=>`<span class="${x===on?'on':''}">${x}</span>`).join('')}</div>`;
+const totals = (k='717', p=68, f=31, c=39, thumb=PHOTO) => `<div class="totals"><div class="thumb">${thumb}</div><div class="stack-sm"><div class="kcal-big"><b>${k}</b><span class="t-sub muted">ккал</span></div><div class="macros"><span><i class="m-p"></i>Б ${p} г</span><span><i class="m-f"></i>Ж ${f} г</span><span><i class="m-c"></i>У ${c} г</span></div></div></div>`;
+const estimate = `<div class="foot-note">${I('spark','sm')}<span>Оценка ИИ по фото — проверьте вес. Ккал и БЖУ пересчитаются сами.</span></div>`;
+const saveBar = (btn=`<button class="btn btn-primary">Сохранить</button>`, note='') => `<div class="bottom bar">${note}${btn}</div>`;
+function editScreen({title='Сегодня, 13:24', meal='Обед', dishes, top='', note=estimate, totalsHtml=totals(), bar=saveBar(), extra=''}){
+  return `${nav(title)}${top}<div class="content"><div class="pad stack">${totalsHtml}${seg(meal)}${note}</div>
+    <div class="pad"><div class="group">${dishes}</div><div class="add-row">${I('plus','sm')}Добавить блюдо вручную</div></div></div>${bar}${extra}`;
+}
+
+/* ================= OCT-19 ================= */
+const fmt = n => Math.round(n).toLocaleString('ru-RU').replace(/ /g,' ');
+const NORM = {k:2100, p:120, f:70, c:240};
+const ICON_ONLY = `<span class="thumb icon-only">${I('utensils','sm')}</span>`;
+const pct = (v, n) => Math.min(100, v / n * 100);
+
+function tabbar(on='Сегодня'){
+  const t = (ic, l) => `<span class="tab ${l===on?'on':''}" ${l===on?'aria-current="page"':''}>${I(ic)}${l}</span>`;
+  return `<nav class="tabbar">${t('home','Сегодня')}${t('book','Дневник')}<span class="cam" aria-label="Сфотографировать еду">${I('camera')}</span>${t('chart','Неделя')}${t('user','Профиль')}</nav>`;
+}
+/* kcal bar: fill up to the norm, hatched tail beyond it */
+function bar(v, n, cls=''){
+  if (!n) return `<div class="pbar none" aria-hidden="true"></div>`;
+  if (v <= n) return `<div class="pbar" aria-hidden="true"><i class="${cls}" style="width:${pct(v,n)}%"></i></div>`;
+  return `<div class="pbar" aria-hidden="true"><i class="${cls}" style="width:${n/v*100}%"></i><i class="ov" style="width:${(v-n)/v*100}%"></i></div>`;
+}
+function kcalCard({eaten=1240, norm=NORM.k, week='Осталось на неделю', weekVal=7270, weekOver=false, macros=[68,52,141], macroNorm=NORM, compact=false}={}){
+  let head;
+  if (!norm) head = `<span class="lbl">Съедено сегодня</span><div class="big"><span class="display num">${fmt(eaten)}</span><span class="unit">ккал</span></div>`;
+  else if (eaten > norm) head = `<span class="lbl over">${I('alert','sm')}Перебор</span><div class="big"><span class="display num">${fmt(eaten-norm)}</span><span class="unit">ккал</span></div>${bar(eaten,norm)}<span class="t-foot muted num">${fmt(eaten)} из ${fmt(norm)} ккал</span>`;
+  else head = `<span class="lbl">Осталось</span><div class="big"><span class="display num">${fmt(norm-eaten)}</span><span class="unit">ккал</span></div>${bar(eaten,norm)}<span class="t-foot muted num">${fmt(eaten)} из ${fmt(norm)} ккал</span>`;
+  const mac = macroBlock(macros, macroNorm);
+  const wl = norm ? `<a class="week-line ${weekOver?'over':''}" aria-label="${weekOver?'Перебор за неделю':'На неделю осталось'} ${fmt(weekVal)} ккал. Открыть неделю"><span>${weekOver?'Перебор за неделю':'На неделю осталось'} <b>${fmt(weekVal)} ккал</b></span>${I('chev-r','sm')}</a>` : '';
+  return `<section class="card" aria-label="Итог дня">${head}${mac}${wl}</section>`;
+}
+function macroBlock([p,f,c], n=NORM){
+  const one = (name, cls, v, nv) => {
+    let rest = '';
+    if (nv) rest = v > nv ? `<span class="rest over">${I('alert')}перебор ${fmt(v-nv)} г</span>` : `<span class="rest">осталось ${fmt(nv-v)} г</span>`;
+    return `<div class="mac"><span class="mac-h"><i class="m-${cls}"></i>${name}</span><span class="mac-v">${fmt(v)}${nv?`<small> / ${nv} г</small>`:'<small> г</small>'}</span>${nv?bar(v,nv,cls):''}${rest}</div>`;
+  };
+  return `<div class="mac-grid">${one('Белки','p',p,n&&n.p)}${one('Жиры','f',f,n&&n.f)}${one('Углеводы','c',c,n&&n.c)}</div>`;
+}
+const quick = `<div class="quick"><button class="btn btn-tonal btn-sm">${I('image','sm')}Из галереи</button><button class="btn btn-tonal btn-sm">${I('pencil','sm')}Вручную</button></div>`;
+function meal({type, time, sub, k, photo=true, st='', cls='', late=false}){
+  const kc = k===null ? `<span class="val zero num">— ккал</span>` : `<span class="val num">${fmt(k)} ккал</span>`;
+  return `<div class="cell meal ${cls}" role="button"><span class="thumb ${photo?'':'icon-only'}">${photo?PHOTO:I('utensils','sm')}</span><span class="main"><span class="t">${type}<small>${time}</small></span><span class="sub">${sub}</span>${st||late?`<span class="st">${late?`<span class="badge">${I('moon')}поздний</span>`:''}${st}</span>`:''}</span>${kc}</div>`;
+}
+const M = {
+  lunch: meal({type:'Обед', time:'13:24', sub:'Гречка с грибами, куриная грудка гриль, яйцо…', k:717}),
+  bf: meal({type:'Завтрак', time:'08:12', sub:'Овсянка на молоке, кофе с молоком', k:523, photo:false}),
+};
+const ST = {
+  queued: `<span class="badge">${I('cloud-off')}Ждёт отправки</span>`,
+  photoq: `<span class="badge">${I('cloud-off')}Распознаем, когда появится сеть</span>`,
+  check: `<span class="badge warn">${I('alert')}Проверьте</span>`,
+  failed: `<span class="badge err">${I('alert')}Не распознано</span>`,
+};
+const mealsGroup = (rows, h='Приёмы пищи', right='') => `<div><div class="sec-h"><span>${h}</span><span class="num">${right}</span></div><div class="group">${rows}</div></div>`;
+function todayScreen({card=kcalCard(), meals=mealsGroup(M.lunch+M.bf), top='', extra='', invite=''}={}){
+  return `<div class="large-title">Сегодня<span class="date">четверг, 13 ноября</span></div>${top}<div class="content"><div class="pad stack">${invite}${card}${quick}${meals}</div></div>${tabbar('Сегодня')}${extra}`;
+}
+const emptyMeals = `<div class="card" style="align-items:center;text-align:center;gap:var(--space-2)"><span class="s-ic" style="width:56px;height:56px;border-radius:50%;display:grid;place-items:center;background:var(--color-surface-2);color:var(--color-text-secondary)">${I('camera')}</span><span class="t-headline">Сегодня пока пусто</span><span class="t-sub muted" style="max-width:30ch">Сфотографируйте еду — калории и БЖУ посчитаем сами.</span></div>`;
+const invite = `<div class="invite">${I('target')}<span>Задайте норму — покажем, сколько осталось</span><span class="go">Задать</span></div>`;
+const offBar = (t='Офлайн · данные на 12:40') => `<div class="offline-bar">${I('wifi-off','sm')}${t}</div>`;
+const skelCard = `<div class="card"><div class="skel" style="width:40%"></div><div class="skel" style="width:55%;height:48px"></div><div class="skel" style="height:var(--progress-height)"></div><div class="mac-grid"><div class="skel" style="height:44px"></div><div class="skel" style="height:44px"></div><div class="skel" style="height:44px"></div></div></div>`;
+const skelRows = `<div class="group">${[1,2].map(()=>`<div class="cell"><div class="skel" style="width:var(--meal-thumb-size);height:var(--meal-thumb-size)"></div><div class="main"><div class="skel" style="width:50%"></div><div class="skel" style="width:80%"></div></div></div>`).join('')}</div>`;
+const errState = (title='Не удалось загрузить день', body='Проверьте сеть и попробуйте ещё раз.') => `<div class="state" role="alert"><span class="s-ic danger">${I('alert')}</span><span class="t-headline">${title}</span><p class="t-sub muted">${body}</p><button class="btn btn-primary btn-sm">${I('refresh','sm')}Повторить</button></div>`;
+const toast = (txt, act='Вернуть', ic='trash') => `<div class="toast" role="status">${I(ic,'sm')}<span>${txt}</span>${act?`<span class="act">${act}</span>`:''}</div>`;
+
+
+/* ================= OCT-25 ================= */
+const APPICON = (cls='') => `<img class="app-icon ${cls}" src="icon.svg" alt="">`;
+const xBtn = `<span class="x-btn" role="button" aria-label="Закрыть">${I('x')}</span>`;
+const backNav = (back, title='') => `<div class="navbar"><span class="back">${I('chev-l')}${back}</span><div class="title">${title}</div><div></div></div>`;
+const segm = (opts, on, aria, dis=false) => `<div class="seg ${dis?'dis':''}" role="radiogroup" aria-label="${aria}">${opts.map(o=>`<span role="radio" aria-checked="${o===on}" class="${o===on?'on':''}">${o}</span>`).join('')}</div>`;
+const cell = (ic, label, right='', {sub='', chev=true, dis=false, cls='', icCls=''}={}) => `<div class="cell ic ${dis?'dis':''} ${cls}" role="button" ${dis?'aria-disabled="true"':''}><span class="lead-ic ${icCls}">${I(ic,'sm')}</span><span class="main"><span>${label}</span>${sub?`<span class="sub">${sub}</span>`:''}</span>${right?`<span class="val num">${right}</span>`:''}${chev&&!dis?`<span class="chev">${I('chev-r','sm')}</span>`:''}</div>`;
+const segCell = (ic, label, seg) => `<div class="cell col-cell"><span class="lbl-row"><span class="lead-ic">${I(ic,'sm')}</span>${label}</span>${seg}</div>`;
+const alertBox = (title, body, btns, col=false) => `<div class="scrim"></div><div class="alert" role="alertdialog" aria-label="${title}"><span class="t-headline">${title}</span><span class="t-sub muted">${body}</span><div class="btns ${col?'col':''}">${btns}</div></div>`;
+const b = (t, cls='btn-plain') => `<button class="btn ${cls} btn-sm" style="width:100%">${t}</button>`;
+
+/* ---------- 1. Icon & splash ---------- */
+const homeApps = ['Фото','Камера','Почта','Заметки','Карты','Музыка','Погода','Часы'].map(n=>`<span class="app"><i></i>${n}</span>`).join('');
+document.getElementById('icon-row').innerHTML = [
+  `<figure class="frame" style="width:auto"><div class="sheetdoc" style="width:560px">
+    <h3>Иконка приложения</h3>
+    <div class="icon-sizes">
+      <figure><img class="app-icon" src="icon.svg" alt="Иконка OpenCalorieTracker" style="width:180px;height:180px">iOS 180 × 180</figure>
+      <figure><img class="app-icon" src="icon.svg" alt="" style="width:60px;height:60px">60 pt</figure>
+      <figure><img class="app-icon" src="icon.svg" alt="" style="width:40px;height:40px">40 pt</figure>
+      <figure><img class="app-icon" src="icon.svg" alt="" style="width:29px;height:29px">29</figure>
+      <figure><span class="safe"><img class="app-icon square" src="icon.svg" alt="" style="width:120px;height:120px;border-radius:0"></span>maskable, зона 80 %</figure>
+    </div>
+    <p class="doc-note">Тарелка сверху (знак бренда из OCT-13) и искра — «посчитаем по фото». Мастер — <code>icon.svg</code>, 1024 × 1024, квадрат без скруглений и прозрачности: углы скругляет система. Всё важное — внутри круга 80 %, поэтому тот же файл годится как <code>maskable</code> для Android. Цвета — <code>--color-accent</code>, <code>--color-on-accent</code> и тёмный <code>--color-accent</code> для искры. Иконка одна для обеих тем: iOS не умеет тёмные иконки для веб-приложений.</p>
+  </div><figcaption><b>1.1 Иконка.</b> Нужные размеры PNG: 180 (apple-touch-icon), 192 и 512 (manifest, purpose any + maskable). Короткое имя под иконкой — <b>OpenCalorie</b> (11 знаков, не обрезается).</figcaption></figure>`,
+  frame('1.2','Домашний экран','Иконка среди системных: зелёная, без мелких деталей, читается на любых обоях. Подпись — короткое имя из манифеста.', `<div class="home-screen">${homeApps}<span class="app">${APPICON()}OpenCalorie</span></div>`),
+  frame('1.3','Запуск','Splash — фон <code>--theme-color</code> и иконка <code>--splash-icon-size</code> по центру, в светлой и тёмной теме (переключите <code>?theme=dark</code>). Без текста и индикатора: обычно он виден меньше секунды. Следом сразу «Сегодня» из кэша на том же фоне — без белой вспышки (AC-1.2). Для iOS нужны картинки <code>apple-touch-startup-image</code> под размеры iPhone, отдельно для светлой и тёмной темы (media <code>prefers-color-scheme</code>) — их генерирует сборка из <code>icon.svg</code> и токенов. Статус-бар — <code>black-translucent</code>, текст следует теме.', `<div class="splash-screen">${APPICON('splash')}</div>`),
+].join('');
+
+/* ---------- 2. Install hint ---------- */
+const safari = `<div class="safari-bar"><span>${I('chev-l')}</span><span class="u">calories.home.lan</span><span>${I('share')}</span><span>${I('more')}</span></div>`;
+const installCard = `<section class="install-card" aria-label="Установка">${APPICON()}<div class="txt"><span class="t-headline">Установите на экран «Домой»</span><span class="t-sub muted">Откроется одним касанием, во весь экран и без сети.</span><span class="go" role="button">Как установить${I('chev-r','sm')}</span></div><span class="close" role="button" aria-label="Скрыть подсказку">${I('x','sm')}</span></section>`;
+const stepsList = `<ol class="steps-i">
+  <li><span class="n">1</span><span>Нажмите <span class="syskey">${I('share')}Поделиться</span><span class="sub">Внизу экрана Safari. Если её не видно — сначала <span class="syskey">${I('more')}</span></span></span></li>
+  <li><span class="n">2</span><span>Выберите <span class="syskey">${I('square-plus')}На экран «Домой»</span><span class="sub">Если пункта нет — прокрутите список вниз</span></span></li>
+  <li><span class="n">3</span><span>Нажмите <span class="syskey">Добавить</span></span></li></ol>`;
+const installSheet = `<div class="scrim"></div><div class="sheet" role="dialog" aria-label="Установка на экран «Домой»"><div class="grab"></div><div class="sheet-head"><span class="t-title">Установка на iPhone</span><span class="x" aria-label="Закрыть">${I('x')}</span></div>${stepsList}<div class="why"><span>${I('zap','sm')}Открывается одним касанием, без адресной строки</span><span>${I('wifi-off','sm')}Показывает последние данные без сети</span></div><button class="btn btn-tonal">Понятно</button></div>`;
+const notSafariSheet = `<div class="scrim"></div><div class="sheet" role="dialog" aria-label="Установка"><div class="grab"></div><div class="sheet-head"><span class="t-title">Откройте в Safari</span><span class="x" aria-label="Закрыть">${I('x')}</span></div><p class="t-body">На iPhone установить приложение можно только из Safari. Скопируйте адрес и вставьте его в Safari — там появится подсказка.</p><div class="addr">${I('compass','sm')}calories.home.lan</div><button class="btn btn-primary">${I('copy','sm')}Скопировать адрес</button></div>`;
+document.getElementById('install-row').innerHTML = [
+  frame('2.1','Подсказка на «Сегодня»','Только iPhone + Safari + не установлено (AC-1.3). Появляется после входа, на «Сегодня», карточкой над итогом дня — ничего не перекрывает и не требует ответа. Не показывается на экране входа, поверх камеры, распознавания и правки. В установленной PWA её нет нигде (AC-1.5).', todayScreen({invite:installCard}).replace('</nav>','</nav>'+safari), 'in-safari'),
+  frame('2.2','Как установить','«Как установить» в карточке или строка в Настройках → лист с тремя шагами. Значки — как в iOS, в «плашках», чтобы их было легко найти на экране. Шаг 1 учитывает новые iOS, где «Поделиться» спрятана за «•••». Лист закрывается свайпом, × или «Понятно» — сама подсказка при этом остаётся.', todayScreen({invite:installCard}).replace('</nav>','</nav>'+safari) + installSheet, 'in-safari'),
+  frame('2.3','Скрыли подсказку','× в карточке скрывает её на 30 дней на этом устройстве (AC-1.4). Тост подсказывает, где найти её снова. Без диалога и без «Больше не показывать».', todayScreen({extra:toast('Установить можно в Настройках','', 'info')}).replace('</nav>','</nav>'+safari), 'in-safari'),
+  frame('2.4','Не Safari','Chrome, Firefox, браузер Telegram или Instagram на iPhone (E-1.1): вместо шагов — «Откройте в Safari» и копирование адреса. Карточка на «Сегодня» та же, меняется только лист. После копирования — тост «Адрес скопирован».', todayScreen({invite:installCard}) + notSafariSheet),
+].join('');
+
+/* ---------- 3. Offline ---------- */
+const serverBar = `<div class="offline-bar" role="status">${I('server-off','sm')}Сервер недоступен · данные на 12:40</div>`;
+const noCache = `<div class="content" style="justify-content:center"><div class="state" role="alert"><span class="s-ic">${I('wifi-off')}</span><span class="t-headline">Нет сети и сохранённых данных</span><p class="t-sub muted">Подключитесь к интернету — приложение загрузится само.</p><button class="btn btn-tonal btn-sm">${I('refresh','sm')}Повторить</button></div></div>`;
+const staleToday = `<div class="large-title">Вчера<span class="date">среда, 12 ноября</span></div>${offBar('Офлайн · данные за вчера, 23:40')}<div class="content"><div class="pad stack"><div class="banner notice" role="status">${I('info')}<div>Сегодняшний день загрузится, когда появится сеть. Записать еду можно уже сейчас.</div></div>${kcalCard({eaten:1980, weekVal:5290})}${quick}${mealsGroup(meal({type:'Ужин',time:'19:40',sub:'Паста с курицей, салат',k:740})+M.lunch+M.bf)}</div></div>${tabbar('Сегодня')}`;
+const diaryOff = `<div class="title-row"><div class="large-title">Дневник</div></div>${offBar()}<div class="content"><div class="pad stack"><div class="seg" role="group" aria-label="День" style="grid-template-columns:auto 1fr auto;grid-auto-flow:row;background:transparent"><span style="color:var(--color-accent);width:var(--tap-min)">${I('chev-l')}</span><span style="color:var(--color-text);font-weight:600">пн, 2 ноября</span><span style="color:var(--color-accent);width:var(--tap-min)">${I('chev-r')}</span></div><div class="card"><div class="state"><span class="s-ic">${I('cloud-off')}</span><span class="t-headline">Этот день недоступен офлайн</span><p class="t-sub muted">Без сети открываются последние 7 дней и дни, которые вы уже смотрели.</p></div></div></div></div>${tabbar('Дневник')}`;
+const signIn = (banner) => `<div class="content" style="padding-top:var(--space-12)"><div class="pad stack"><div class="brand"><span class="mark">${I('plate','sm')}</span>OpenCalorieTracker</div><div class="large-title" style="padding:var(--space-4) 0">Вход</div>${banner}<button class="btn btn-primary">${I('key','sm')}Войти с passkey</button><button class="btn btn-plain">Войти по паролю</button></div></div>`;
+document.getElementById('offline-row').innerHTML = [
+  frame('3.1','Офлайн','Полоса под статус-баром на каждом экране: «Офлайн · данные на 12:40» (AC-2.3). Не закрывается, не мигает, <code>role="status"</code>. Запись еды работает — в очередь (OCT-19 2.8). Что недоступно, объясняется в момент касания (3.6), а не заранее.', todayScreen({top:offBar(), card:kcalCard({eaten:1240})})),
+  frame('3.2','Сервер недоступен','Сеть есть, сервер не отвечает (E-2.4) — всё как в 3.1, но значок и текст другие: «Сервер недоступен». Пользователь сразу понимает, что дело не в его телефоне.', todayScreen({top:serverBar})),
+  frame('3.3','Наступили новые сутки','В кэше вчерашний день (E-2.3). Заголовок честно говорит «Вчера» с датой, полоса — «данные за вчера, 23:40», баннер объясняет, что сегодняшний день появится с сетью. Записать еду можно — запись уйдёт в сегодняшний день.', staleToday),
+  frame('3.4','Нет ни сети, ни кэша','Первый запуск без сети или после очистки хранилища iOS (E-2.1, E-8.8). Никаких нулей, которые выглядят как правда, — только состояние. «Повторить» проверяет сеть, но экран обновится и сам, когда она появится.', noCache),
+  frame('3.5','День не загружен','Открыли в дневнике день, которого нет в кэше (E-2.2). Листание к соседним дням работает. Последние 7 дней кэшируются всегда.', diaryOff),
+  frame('3.6','Недоступное действие','Правка или удаление уже отправленной записи, сохранение профиля, агент, раздел администратора (AC-2.4). Кнопки не прячем: касание показывает тост с причиной. Иконка <code>wifi-off</code>, 4 с, без действия.', todayScreen({top:offBar(), extra:toast('Без сети нельзя изменить сохранённую запись','', 'wifi-off')})),
+  frame('3.7','Сессия истекла','Сеть вернулась, а сессия уже недействительна (E-8.11). Экран входа с баннером; неотправленные записи не теряются — об этом вторая строка. После входа — туда, где пользователь был, и очередь уходит сама.', signIn(`<div class="banner notice" role="status">${I('clock')}<div><div class="b-title">Сессия истекла, войдите снова</div>2 записи без сети сохранены — отправим после входа.</div></div>`)),
+  frame('3.8','Вход другим аккаунтом','В очереди остались записи прошлого пользователя (E-8.11, AC-2.7). Перед входом — предупреждение. «Войти» удаляет кэш и очередь прошлого пользователя.', signIn('') + alertBox('Войти другим аккаунтом?', '2 записи anna@example.com ещё не отправлены. Они пропадут с этого телефона.', b('Отмена')+b('Войти','btn-danger'))),
+].join('');
+
+/* ---------- 4. Settings ---------- */
+const LANG = (on='Русский', dis=false) => segCell('globe', on==='English'?'Language':'Язык', segm(['English','Русский'], on, 'Язык', dis));
+const THEME = (on='Системная', dis=false, en=false) => segCell('moon', en?'Appearance':'Тема', segm(en?['System','Light','Dark']:['Системная','Светлая','Тёмная'], on, 'Тема', dis));
+const UNITS = (dis=false, en=false) => segCell('ruler', en?'Units':'Единицы', segm(en?['Metric','US']:['Метрические','Американские'], en?'Metric':'Метрические', 'Единицы', dis));
+function settings({admin=false, top='', ro=false, part='top', en=false, provider='Google Gemini. Фото отправляются этому сервису', installed=false}={}){
+  const T = en ? {s:'Settings', ap:'Appearance', dt:'Data', ph:'Keep meal photos', phv:'30 days', phf:'Photos let you recalculate a meal later. Thumbnails are always kept.', unf:'Food in oz, body weight in lb. Calories and macros stay the same.', ad:'Administration', inv:'Invites', invv:'1 pending', us:'Users', lk:'Lockouts', ai:'AI provider', aiOk:'Working', sg:'Sign-in · anna@example.com', pk:'My passkeys', pw:'Change password', app:'App', inst:'Add to Home Screen', rec:'Photo recognition', recs:'Google Gemini. Your photos are sent to this service', out:'Sign out', ver:'Version 0.1.0', back:'Profile'}
+    : {s:'Настройки', ap:'Внешний вид', dt:'Данные', ph:'Хранить фото', phv:'30 дней', phf:'Фото нужны, чтобы пересчитать запись. Превью остаётся всегда.', unf:'Вес еды — в унциях, вес тела — в фунтах. Калории и БЖУ не меняются.', ad:'Администрирование', inv:'Приглашения', invv:'1 ожидает', us:'Пользователи', lk:'Блокировки', ai:'ИИ-провайдер', aiOk:'Работает', sg:'Вход · anna@example.com', pk:'Мои passkey', pw:'Сменить пароль', app:'Приложение', inst:'Установить на экран «Домой»', rec:'Распознавание фото', recs:provider, out:'Выйти', ver:'Версия 0.1.0', back:'Профиль'};
+  const adminG = admin ? `<div class="group-h">${T.ad}</div><div class="group">${cell('user-plus',T.inv,T.invv,{dis:ro})}${cell('users',T.us,'3',{dis:ro})}${cell('spark',T.ai,ro?'':`<span class="badge ok">${T.aiOk}</span>`,{dis:ro})}</div>` : '';
+  const look = `<div class="group-h">${T.ap}</div><div class="group">${LANG(en?'English':'Русский')}${THEME(en?'System':'Системная', false, en)}</div>`;
+  const data = `<div class="group-h">${T.dt}</div><div class="group">${UNITS(ro, en)}${cell('image',T.ph,ro?T.phv:T.phv,{dis:ro})}</div><p class="group-f">${T.phf}</p>`;
+  const sign = `<div class="group-h">${T.sg}</div><div class="group">${cell('key',T.pk,'2',{dis:ro})}${cell('lock',T.pw,'',{dis:ro})}</div>`;
+  const app = `<div class="group-h">${T.app}</div><div class="group">${installed?'':cell('download',T.inst,'',{})}${cell('spark',T.rec,'',{sub:T.recs, chev:false})}</div>`;
+  const out = `<div class="group" style="margin-top:var(--space-6)"><div class="cell danger" role="button" style="justify-content:center">${T.out}</div></div><p class="ver">${T.ver}</p>`;
+  const roNote = ro ? `<div class="banner notice" role="status" style="margin-top:var(--space-2)">${I('wifi-off')}<div>Без сети можно сменить язык и тему — остальное станет доступно, когда сеть вернётся.</div></div>` : '';
+  const body = part==='top' ? `${roNote}${adminG}${look}${data}${admin?'':sign}` : `${sign}${app}${out}`;
+  const head = part==='top' ? `<div class="large-title">${T.s}</div>` : `<div class="navbar"><span class="back">${I('chev-l')}${T.back}</span><div class="title">${T.s}</div><div></div></div>`;
+  return `${top}${part==='top'?`<div class="navbar"><span class="back">${I('chev-l')}${T.back}</span><div></div><div></div></div>`:''}${head}<div class="content modal"><div class="pad">${body}</div></div>`;
+}
+const RET = [['Не хранить',''],['7 дней',''],['30 дней','по умолчанию'],['90 дней',''],['Бессрочно','']];
+const retSheet = `<div class="scrim"></div><div class="sheet" role="dialog" aria-label="Хранить фото"><div class="grab"></div><div class="sheet-head"><span class="t-headline">Хранить фото</span><span class="x" aria-label="Закрыть">${I('x')}</span></div><p class="t-foot muted">Пока фото хранится, запись можно пересчитать с ИИ. Превью в дневнике остаётся всегда. Срок считается от времени приёма пищи.</p><div class="group inset" role="radiogroup">${RET.map(([t,s])=>`<div class="cell radio" role="radio" aria-checked="${t==='30 дней'}"><span class="main"><span>${t}</span>${s?`<span class="sub">${s}</span>`:''}</span><span class="ck">${t==='30 дней'?I('check'):''}</span></div>`).join('')}</div></div>`;
+document.getElementById('settings-row').innerHTML = [
+  frame('4.1','Настройки','Вход — значок в навбаре «Профиля» (OCT-22). Язык, тема и единицы — сегменты прямо в строке: одно касание, применяется сразу, без перезагрузки (AC-3.3, AC-4.3). Названия языков — каждое на своём языке (AC-3.2). Подписи групп объясняют последствия выбора.', settings()),
+  frame('4.1b','Настройки, низ','«Установить на экран „Домой“» — только если не установлено (AC-1.4), открывает лист 2.2. Строка о провайдере для всех (AC-6.10) — без модели и статуса. Если ИИ не настроен: «ИИ не настроен — доступен ручной ввод». «Выйти» — отдельной группой, версия мелко внизу.', settings({part:'bottom'})),
+  frame('4.2','Администратор','Группа «Администрирование» первой (OCT-13 3.2). У строки «ИИ-провайдер» — бейдж текущего состояния (5.x). Бейдж «Блокировки» — по OCT-13, когда они есть.', settings({admin:true})),
+  frame('4.3','English','Тот же экран после «English» — меняется сразу всё, включая даты и числа (AC-3.4, 3.5). Строки на английском заметно короче, на узком iPhone SE (375 pt) влезает и русский: самый длинный сегмент «Американские».', settings({en:true})),
+  frame('4.4','Хранить фото','Лист с пятью вариантами, по умолчанию 30 дней (OCT-3 AC-10.2). Выбор закрывает лист и сохраняет. Увеличение срока — сразу.', settings() + retSheet),
+  frame('4.5','Срок короче','Если новый срок удалит уже сохранённые фото — сначала спрашиваем и называем число (OCT-3 AC-10.4). «Удалить фото» — danger.', settings() + alertBox('Хранить фото 7 дней?', '23 фото старше 7 дней удалятся сейчас. Записи и превью останутся.', b('Удалить фото','btn-danger')+b('Отмена'), true)),
+  frame('4.6','Выйти','Подтверждение (AC-5.1). Текст снимает страх потерять данные. Если есть несохранённые правки — добавляется строка «Несохранённые изменения пропадут» (E-5.1).', settings({part:'bottom'}) + alertBox('Выйти из аккаунта?', 'Дневник останется на сервере. Чтобы вернуться, войдите с passkey или паролем.', b('Отмена')+b('Выйти','btn-danger'))),
+  frame('4.7','Выйти, есть очередь','Офлайн и есть неотправленные записи (E-5.1a) — называем число и что будет. Онлайн очередь сначала отправляется: на кнопке «Выйти» спиннер «Отправляем записи…», потом выход без вопроса.', settings({part:'bottom', top:offBar()}) + alertBox('Выйти из аккаунта?', '2 записи ещё не отправлены — без сети они пропадут вместе с выходом.', b('Выйти и удалить записи','btn-danger')+b('Отмена'), true)),
+  frame('4.8','Офлайн','Язык и тема работают: применяются сразу, на сервер уйдут позже (E-4.2). Остальные строки неактивны (серые, без стрелки), «Выйти» работает (E-5.2). Баннер объясняет это один раз сверху.', settings({top:offBar(), ro:true})),
+].join('');
+
+/* ---------- 5. AI provider (admin) ---------- */
+const provNav = backNav('Настройки','ИИ-провайдер');
+const head = (ic, icCls, name, line) => `<div class="prov-top"><span class="lead-ic ${icCls}">${I(ic)}</span><span class="nm"><span class="t-title">${name}</span>${line}</span></div>`;
+const SL = {
+  ok: `<span class="status-line ok"><i class="dot"></i>Работает</span>`,
+  off: `<span class="status-line off"><i class="dot"></i>Не настроен</span>`,
+  key: `<span class="status-line err"><i class="dot"></i>Ошибка ключа или доступа</span>`,
+  quota: `<span class="status-line warn"><i class="dot"></i>Превышена квота</span>`,
+  down: `<span class="status-line err"><i class="dot"></i>Провайдер недоступен</span>`,
+  noimg: `<span class="status-line warn"><i class="dot"></i>Модель не принимает изображения</span>`,
+};
+const kv = rows => `<div class="group">${rows.map(([k,v])=>`<div class="cell"><span class="main"><span>${k}</span></span><span class="val">${v}</span></div>`).join('')}</div>`;
+const checkBtn = (busy=false) => `<button class="btn btn-tonal" ${busy?'aria-busy="true"':''}>${busy?'<span class="spinner"></span>Проверяем…':`${I('refresh','sm')}Проверить сейчас`}</button><p class="check-note">Отправит короткий тестовый запрос — это потратит немного квоты.</p>`;
+const privacy = ({to='Google Gemini', gemini=true, link='Политика данных Google'}={}) => `<div class="group-h" style="margin-top:var(--space-2)">Куда уходят данные</div><div class="card" style="gap:var(--space-3)"><p class="t-sub">Фото еды и сообщения агента нормы отправляются <b>${to}</b> для обработки. Фото без EXIF и геолокации. Как данные хранятся и используются, решает провайдер.</p>${gemini?`<div class="banner warning" role="note">${I('alert')}<div><div class="b-title">Бесплатный тариф Gemini</div>Google может использовать запросы для улучшения своих продуктов. Чтобы этого избежать — платный тариф, другой провайдер, локальная модель или работа без ИИ.</div></div>`:''}${link?`<span class="link t-sub ext">${link}${I('ext')}</span>`:''}</div>`;
+const provScreen = (inner, top='') => `${provNav}${top}<div class="content modal"><div class="pad stack">${inner}</div></div>`;
+const okScreen = (busy=false) => provScreen(`${head('spark','', 'Google Gemini', SL.ok)}<p class="t-foot muted">По последнему запросу · сегодня в 12:40</p>${kv([['Модель','<span class="mono">gemini-2.5-flash</span>'],['Ключ','задан']])}${checkBtn(busy)}${privacy()}`);
+const ENVS = `AI_PROVIDER=google
+AI_MODEL=gemini-2.5-flash
+AI_API_KEY=…
+# для OpenAI-совместимого:
+AI_BASE_URL=http://…`;
+document.getElementById('provider-row').innerHTML = [
+  frame('5.1','Работает','Сверху — провайдер и состояние: цвет + форма точки + текст (не только цветом). Время — из последнего реального запроса (AC-6.3). Модель и «Ключ: задан» — ключ не показывается никогда (AC-6.1). Ниже — «Проверить сейчас» с честной подписью про квоту и блок «Куда уходят данные» (AC-6.7). Для Gemini — всегда предупреждение о бесплатном тарифе (AC-6.8).', okScreen()),
+  frame('5.2','Ошибка ключа','Понятный заголовок и что делать, без кодов (AC-6.5). Технические детали — под «Подробнее» моноширинным шрифтом, без ключа. «Проверить сейчас» после исправления env и перезапуска.', provScreen(`${head('spark','danger','Google Gemini', SL.key)}<p class="t-foot muted">Последний запрос · сегодня в 12:40</p><div class="banner danger" role="alert">${I('alert')}<div><div class="b-title">Провайдер не принял ключ</div>Проверьте AI_API_KEY и доступ к модели в кабинете провайдера, затем перезапустите контейнер. Пока распознавание не работает, пользователи вводят еду вручную.</div></div><div class="details"><span class="sum" role="button" aria-expanded="true">${I('chev-d','sm')}Подробнее</span><div class="code">HTTP 403 · PERMISSION_DENIED
+API key not valid. Please pass a
+valid API key.</div></div>${kv([['Модель','<span class="mono">gemini-2.5-flash</span>'],['Ключ','задан']])}${checkBtn()}`)),
+  frame('5.3','Не настроен','Штатный режим, не ошибка: серый значок, без красного (AC-6.4). Что задать — блоком переменных и ссылкой на README. Блок приватности говорит, что фото никуда не уходят. Кнопки проверки нет — проверять нечего.', provScreen(`${head('spark','off','ИИ не подключён', SL.off)}<p class="t-sub">Распознавание фото и агент нормы выключены. Дневник, ручной ввод и норма работают.</p><div class="group-h" style="margin-top:0">Как подключить</div><p class="t-sub muted">Задайте переменные окружения и перезапустите контейнер:</p><div class="code">${ENVS}</div><span class="link t-sub ext">Инструкция в README${I('ext')}</span><div class="group-h" style="margin-top:var(--space-2)">Куда уходят данные</div><div class="card"><p class="t-sub">Пока ИИ не подключён, фото никуда не отправляются.</p></div>`)),
+  frame('5.4','Свой сервер','OpenAI-совместимый адрес — Ollama, LM Studio, vLLM (AC-6.9). Показываем только хост, ключ «не задан» — норма для локальных моделей. Приложение не утверждает, что модель локальная: только «данные отправляются на хост». Ссылки на политику нет.', provScreen(`${head('spark','', 'OpenAI-совместимый', SL.ok)}<p class="t-foot muted">По последнему запросу · сегодня в 12:40</p>${kv([['Адрес','<span class="mono">192.168.1.20:11434</span>'],['Модель','<span class="mono">qwen2.5vl:7b</span>'],['Ключ','не задан']])}${checkBtn(true)}${privacy({to:'на 192.168.1.20', gemini:false, link:''}).replace('отправляются <b>на 192.168.1.20</b> для обработки','отправляются на <b>192.168.1.20</b> для обработки').replace(' Как данные хранятся и используются, решает провайдер.','')}`)),
+  `<figure class="frame" style="width:auto"><div class="sheetdoc" style="width:820px"><h3>Все состояния провайдера</h3><div class="status-table">
+    ${SL.ok}<span>Последний запрос прошёл. Бейдж в настройках — <span class="badge ok">Работает</span></span>
+    ${SL.off}<span>Нет AI_PROVIDER или ключа. Серый, без тревоги — 5.3. Бейдж <span class="badge">Не настроен</span></span>
+    ${SL.key}<span>401/403. «Провайдер не принял ключ» — 5.2. Бейдж <span class="badge err">Ошибка</span></span>
+    ${SL.quota}<span>429. «Лимит запросов исчерпан. Распознавание заработает, когда квота обновится, или смените тариф.» Бейдж <span class="badge warn">Квота</span></span>
+    ${SL.down}<span>5xx, таймаут, нет соединения. «Провайдер не отвечает. Проверьте адрес и сеть сервера.» Бейдж <span class="badge err">Недоступен</span></span>
+    ${SL.noimg}<span>«Модель не принимает изображения — распознавание фото отключено. Агент нормы работает. Выберите модель с поддержкой изображений.» Бейдж <span class="badge warn">Без фото</span></span>
+  </div><p class="doc-note">Форма точки дублирует цвет: круг — работает, ромб — ошибка, треугольник — предупреждение, кольцо — не настроен. В тёмной теме те же токены.</p></div><figcaption><b>5.5 Таблица состояний</b> (AC-6.2). Структура экрана в каждом — как в 5.2: заголовок, баннер с тем, что делать, «Подробнее», «Проверить сейчас».</figcaption></figure>`,
+  frame('5.6','Офлайн','Раздел администратора недоступен без сети (E-6.2): в настройках строки неактивны (4.8). Если раздел уже был открыт — показываем состояние вместо устаревших данных.', provScreen(`<div class="state"><span class="s-ic">${I('wifi-off')}</span><span class="t-headline">Нужна сеть</span><p class="t-sub muted">Состояние провайдера показываем только свежим — откройте раздел, когда появится сеть.</p></div>`, offBar())),
+].join('');
+
+/* ---------- 6. Update ---------- */
+const upd = (cls='') => `<div class="toast ${cls}" role="status">${I('refresh','sm')}<span>Доступна новая версия</span><span class="act" role="button">Обновить</span><span class="x" role="button" aria-label="Скрыть">${I('x','sm')}</span></div>`;
+const editLunch = (extra='', bar) => editScreen({dishes: dish(D.buck)+dish(D.chick,{w:200,k:331,p:61,f:8,c:0,conf:'edited'})+dish(D.egg), extra, bar});
+document.getElementById('update-row').innerHTML = [
+  frame('6.1','Доступна новая версия','Найдена, пока PWA открыта (E-8.2). Плашка над таб-баром — стиль тоста, но не исчезает сама. «Обновить» — перезагрузка в новую версию на том же экране. × скрывает до следующего запуска — при холодном старте новая версия применится сама (E-8.1).', todayScreen({extra:upd()})),
+  frame('6.2','Обновить с правками','На экране с несохранёнными данными (правка блюд, профиль, агент) — то же правило, что при уходе (E-8.3, OCT-4 AC-0.7). Без правок — сразу. Очередь записей обновление не трогает.', editLunch(upd('over-bar') + alertBox('Обновить приложение?', 'На этом экране есть несохранённые изменения.', b('Сохранить и обновить','btn-primary')+b('Не сохранять','btn-danger-plain')+b('Остаться'), true))),
+  frame('6.3','Версия устарела','Сервер обновился и не принял сохранение старого клиента (E-8.4). Ничего не сохранено частично, введённое на месте. Баннер над кнопкой; «Сохранить» меняется на «Обновить». После перезагрузки экран открывается с теми же правками, и пользователь нажимает «Сохранить» ещё раз.', editLunch('', `<div class="bottom bar bar-banner"><div class="banner danger" role="alert">${I('refresh')}<div><div class="b-title">Приложение обновилось</div>Обновите и сохраните ещё раз — изменения останутся.</div></div><button class="btn btn-primary">${I('refresh','sm')}Обновить</button></div>`)),
+].join('');
+
+/* ---------- 7. Desktop ---------- */
+const side = on => `<aside class="side"><div class="brand"><span class="mark">${I('plate','sm')}</span>OpenCalorieTracker</div><button class="btn btn-primary">${I('camera','sm')}Добавить еду</button>${[['home','Сегодня'],['book','Дневник'],['chart','Неделя'],['user','Профиль']].map(([ic,l])=>`<span class="nav-i ${l===on?'on':''}">${I(ic)}${l}</span>`).join('')}<div class="foot"><span class="nav-i ${on==='Настройки'?'on':''}">${I('settings')}Настройки</span><span class="who">anna@example.com</span></div></aside>`;
+const desk = (url, main, over='', on='Настройки') => `<figure class="frame wide"><div class="desk"><div class="chrome"><i></i><i></i><i></i><span class="url">calories.home.lan/${url}</span></div><div class="body">${side(on)}<main class="main-area"><div class="inner">${main}</div></main></div>${over}</div>`;
+const cap = (id, t, n) => `<figcaption><b>${id} ${t}.</b> ${n}</figcaption></figure>`;
+const deskSettings = settings({admin:true, installed:true}).replace(/^[\s\S]*?<div class="large-title">/,'<div class="large-title">').replace('<div class="content modal"><div class="pad">','<div class="cols" style="grid-template-columns:1fr 1fr;align-items:start"><div>').replace(/<\/div><\/div>$/,'</div>') + `<div>${settings({part:'bottom', installed:true}).replace(/^[\s\S]*?<div class="content modal"><div class="pad">/,'').replace(/<\/div><\/div>$/,'')}</div></div>`;
+const deskProv = `<div class="desk-title"><div class="large-title">ИИ-провайдер</div></div><div class="cols" style="align-items:start"><div class="stack">${head('spark','', 'Google Gemini', SL.ok)}<p class="t-foot muted">По последнему запросу · сегодня в 12:40</p>${kv([['Модель','<span class="mono">gemini-2.5-flash</span>'],['Ключ','задан']])}<div style="display:flex;gap:var(--space-3);align-items:center"><button class="btn btn-tonal btn-sm">${I('refresh','sm')}Проверить сейчас</button><span class="t-foot muted">Потратит немного квоты</span></div></div><div class="stack">${privacy().replace('<div class="group-h" style="margin-top:var(--space-2)">Куда уходят данные</div>','<div class="group-h" style="margin-top:0">Куда уходят данные</div>')}</div></div>`;
+document.getElementById('desk-row').innerHTML = [
+  desk('settings', deskSettings, `<div class="toast desk-toast" role="status">${I('refresh','sm')}<span>Доступна новая версия</span><span class="act" role="button" style="margin-left:var(--space-4)">Обновить</span><span class="x" role="button" aria-label="Скрыть">${I('x','sm')}</span></div>`) + cap('D.1','Настройки','Пункт «Настройки» внизу боковой панели (OCT-13). Группы в две колонки по ширине <code>--content-max-width-wide</code>. Строки «Установить» нет: в Chrome и Edge есть своя кнопка установки в адресной строке (AC-1.6). Плашка новой версии — по центру внизу, как тосты на десктопе.'),
+  desk('settings/ai', deskProv) + cap('D.2','ИИ-провайдер','Те же блоки, что 5.1, в две колонки: слева состояние и проверка, справа приватность. Адрес <code>/settings/ai</code>, «назад» — браузерный.'),
+].join('');
+
+/* ---------- common ---------- */
+document.querySelectorAll('.phone').forEach(p=>{p.insertAdjacentHTML('afterbegin','<div class="status"><span>9:41</span></div><div class="island"></div>');p.insertAdjacentHTML('beforeend','<div class="home-ind"></div>');});
+const only = new URLSearchParams(location.search).get('section');
+if(only) document.querySelectorAll('.doc-section').forEach(s=>{ if(s.id!==only) s.remove(); });
+if(only) document.querySelectorAll('.doc-h1,.doc-lead').forEach(e=>e.remove());
+</script>
+</body>
+</html>

@@ -11,6 +11,7 @@
   /* ── Typography: system face (SF Pro on iOS) — native feel, zero download, works offline ── */
   --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-numeric: var(--font-sans); /* always with font-variant-numeric: tabular-nums */
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace; /* OCT-25: env variables, technical details in admin AI status */
 
   /* size / line-height / weight — iOS Dynamic Type "Large" defaults */
   --text-display-size: 3.5rem;   --text-display-lh: 1;        --text-display-weight: 700; /* calories left on «Сегодня» */
@@ -49,6 +50,8 @@
   --switch-height: 31px;
   --chat-avatar-size: 28px;     /* OCT-22: agent mark in chat, step numbers in «Как считается» */
   --chat-bubble-max-width: 80%; /* OCT-22: user message width in chat */
+  --app-icon-size: 40px;        /* OCT-25: app icon in the install hint card */
+  --splash-icon-size: 120px;    /* OCT-25: icon on the launch screen (splash images are generated from it) */
   --icon-size: 24px;  --icon-size-sm: 20px;  --icon-stroke: 1.75;
   --content-max-width: 560px;   /* phone-like column: auth, settings, tablet/narrow window */
   /* Desktop (window ≥ 1024px; CSS vars can't be used in @media — keep 1024 in one place in code):
