@@ -6,12 +6,13 @@ import {
   calculateNorm,
   CM_PER_INCH,
   deadlineError,
-  lbToKg,
   profileSchema,
   REQUIRED_FIELDS,
+  round1,
   targetWeightError,
   unitRanges,
   weightFromKg,
+  weightToKg,
   type AssistantMessage,
   type InterviewDraft,
   type InterviewField,
@@ -43,13 +44,11 @@ const PLAUSIBLE: Record<Kind, { min: number; max: number }> = {
   weight: { min: 35, max: 150 },
 };
 
-const round1 = (x: number) => Math.round(x * 10) / 10;
-
 /** Value in cm or kg, rounded in the entered unit like the form does (ADR-0014 §2). */
 const toBase = (value: number, unit: Unit) => {
   if (unit === 'in') return Math.round(value) * CM_PER_INCH;
-  if (unit === 'lb') return lbToKg(round1(value));
-  return round1(value);
+  if (unit === 'cm') return round1(value);
+  return weightToKg(value, unit === 'lb' ? 'us' : 'metric');
 };
 
 /** cm or kg shown in the user's system: whole inches, else 0.1. */

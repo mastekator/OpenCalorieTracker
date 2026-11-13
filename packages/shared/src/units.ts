@@ -11,7 +11,8 @@ export type Units = z.infer<typeof unitsSchema>;
 export const CM_PER_INCH = 2.54;
 export const KG_PER_LB = 0.45359237;
 
-const round1 = (x: number) => Math.round(x * 10) / 10;
+/** Rounds to 0.1, the step of every user-entered or shown decimal. */
+export const round1 = (x: number) => Math.round(x * 10) / 10;
 
 export const lbToKg = (lb: number) => lb * KG_PER_LB;
 export const kgToLb = (kg: number) => kg / KG_PER_LB;
