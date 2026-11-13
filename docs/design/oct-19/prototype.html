@@ -643,7 +643,7 @@ const ST = {
 };
 const mealsGroup = (rows, h='Приёмы пищи', right='') => `<div><div class="sec-h"><span>${h}</span><span class="num">${right}</span></div><div class="group">${rows}</div></div>`;
 function todayScreen({card=kcalCard(), meals=mealsGroup(M.lunch+M.bf), top='', extra='', invite=''}={}){
-  return `<div class="large-title">Сегодня<span class="date">четверг, 13 ноября</span></div>${top}<div class="content"><div class="pad stack">${invite}${card}${quick}${meals}</div></div>${tabbar('Сегодня')}${extra}`;
+  return `${top}<div class="large-title">Сегодня<span class="date">четверг, 13 ноября</span></div><div class="content"><div class="pad stack">${invite}${card}${quick}${meals}</div></div>${tabbar('Сегодня')}${extra}`;
 }
 const emptyMeals = `<div class="card" style="align-items:center;text-align:center;gap:var(--space-2)"><span class="s-ic" style="width:56px;height:56px;border-radius:50%;display:grid;place-items:center;background:var(--color-surface-2);color:var(--color-text-secondary)">${I('camera')}</span><span class="t-headline">Сегодня пока пусто</span><span class="t-sub muted" style="max-width:30ch">Сфотографируйте еду — калории и БЖУ посчитаем сами.</span></div>`;
 const invite = `<div class="invite">${I('target')}<span>Задайте норму — покажем, сколько осталось</span><span class="go">Задать</span></div>`;
@@ -675,7 +675,7 @@ function daySum(eaten, macros, norm=NORM.k){
 }
 const addEntry = `<button class="btn btn-tonal">${I('plus','sm')}Добавить запись в этот день</button>`;
 function diaryScreen({title='Вчера', sub='среда, 12 ноября', next=true, today=true, sum=daySum(1960,[104,66,228]), list, top='', extra='', add=addEntry}={}){
-  return `<div class="title-row"><div class="large-title">Дневник</div>${today?'<span class="txt-btn">Сегодня</span>':''}</div>${top}<div class="content"><div class="pad stack">${pager(title,sub,{next})}${sum}${list}${add}</div></div>${tabbar('Дневник')}${extra}`;
+  return `${top}<div class="title-row"><div class="large-title">Дневник</div>${today?'<span class="txt-btn">Сегодня</span>':''}</div><div class="content"><div class="pad stack">${pager(title,sub,{next})}${sum}${list}${add}</div></div>${tabbar('Дневник')}${extra}`;
 }
 const Y = {
   bf: meal({type:'Завтрак',time:'08:30',sub:'Сырники со сметаной, кофе',k:540}),
@@ -754,7 +754,7 @@ function avg(m=[92,68,206], n=4, norm=NORM){
   return `<section class="card" aria-label="Средние БЖУ"><div class="sum-line"><span class="t-headline">В среднем за день</span><span class="avg-note">за ${n} дн. с записями</span></div><div class="mac-rows">${row('Белки','p',m[0],norm&&norm.p)}${row('Жиры','f',m[1],norm&&norm.f)}${row('Углеводы','c',m[2],norm&&norm.c)}</div></section>`;
 }
 function weekScreen({mode='Неделя', title='Эта неделя', sub='10–16 ноября', next=false, ch=chart(CUR,{}), cards=budget()+avg(), top='', extra='', inv=''}={}){
-  return `<div class="large-title">Неделя</div>${top}<div class="content"><div class="pad stack"><div class="seg" role="radiogroup" aria-label="Период"><span class="${mode==='Неделя'?'on':''}">Неделя</span><span class="${mode==='Месяц'?'on':''}">Месяц</span></div>${pager(title,sub,{next,cal:false}).replace(/день/g, mode==='Неделя'?'неделя':'месяц').replace('Предыдущий неделя','Предыдущая неделя').replace('Следующий неделя','Следующая неделя')}${inv}<section class="card">${ch}</section>${cards}</div></div>${tabbar('Неделя')}${extra}`;
+  return `${top}<div class="large-title">Неделя</div><div class="content"><div class="pad stack"><div class="seg" role="radiogroup" aria-label="Период"><span class="${mode==='Неделя'?'on':''}">Неделя</span><span class="${mode==='Месяц'?'on':''}">Месяц</span></div>${pager(title,sub,{next,cal:false}).replace(/день/g, mode==='Неделя'?'неделя':'месяц').replace('Предыдущий неделя','Предыдущая неделя').replace('Следующий неделя','Следующая неделя')}${inv}<section class="card">${ch}</section>${cards}</div></div>${tabbar('Неделя')}${extra}`;
 }
 const MONTH = Array.from({length:30},(_,i)=>({w:W[(i+5)%7], d:i+1, k: i>12?null: [1980,2150,1700,0,2240,2600,1900,2050,1890,1850,2380,1960,1240][i], t:i===12}));
 const BIG = wk([1850,6000,1960,1240,null,null,null]);
