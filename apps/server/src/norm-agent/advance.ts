@@ -120,11 +120,16 @@ export function advanceInterview(
 
   if (e.sex) p.sex = e.sex;
 
+  const invalidBirthDate = () =>
+    invalid('birthDate', { min: addYears(today, -100), max: today });
+  // Checked before addYears: an absurd age ("300000") makes an invalid date and throws.
+  const ageOk = e.ageYears == null || (e.ageYears >= 0 && e.ageYears <= 100);
+  if (!e.birthDate && !ageOk) invalidBirthDate();
   const birthDate =
-    e.birthDate ?? (e.ageYears != null ? addYears(today, -e.ageYears) : null);
+    e.birthDate ??
+    (e.ageYears != null && ageOk ? addYears(today, -e.ageYears) : null);
   if (birthDate) {
-    if (birthDateError(birthDate, today))
-      invalid('birthDate', { min: addYears(today, -100), max: today });
+    if (birthDateError(birthDate, today)) invalidBirthDate();
     else p.birthDate = birthDate;
   }
 
