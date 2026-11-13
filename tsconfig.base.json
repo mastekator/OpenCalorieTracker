@@ -3,6 +3,8 @@
     "target": "ES2023",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
+    // Workspace packages resolve to their TS sources in dev, tests and typecheck.
+    "customConditions": ["development"],
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "isolatedModules": true,

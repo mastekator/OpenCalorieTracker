@@ -4,6 +4,9 @@ import { csrf } from 'hono/csrf';
 import { serveStatic } from '@hono/node-server/serve-static';
 import type { Database } from 'better-sqlite3';
 import type { ConfigResponse } from '@oct/shared';
+import { authRoutes } from './auth/routes.js';
+import { dummyHash } from './auth/password.js';
+import { session } from './auth/session.js';
 import { setupErrors, type Config } from './config.js';
 import { ApiError, onError } from './http/errors.js';
 
@@ -19,15 +22,21 @@ export interface AppDeps {
   db: Database;
 }
 
-export function createApp({ config, db }: AppDeps) {
+export function createApp(deps: AppDeps) {
+  const { config, db } = deps;
   const app = new Hono();
   app.onError(onError);
+  // Warm up now so the first unknown-email sign-in is not slower than the rest (AC-5.2).
+  void dummyHash();
 
   // Without a valid PUBLIC_URL no origin is trusted: mutating form-like requests get 403.
   app.use(
     '/api/*',
     csrf({ origin: config.publicUrl ? [config.publicUrl] : [] }),
   );
+
+  app.use('/api/*', session(deps));
+  app.route('/api', authRoutes(deps));
 
   app.get('/api/health', (c) => c.json({ ok: true, version }));
   app.get('/api/config', (c) =>
