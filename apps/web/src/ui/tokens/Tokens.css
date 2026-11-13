@@ -16,6 +16,12 @@
   font-weight: var(--text-title-weight);
 }
 
+.tokens__rows {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-3) var(--space-4);
+}
+
 .tokens__row {
   display: grid;
   grid-template-columns: var(--space-12) minmax(0, 1fr);
@@ -32,6 +38,12 @@
   display: grid;
   place-items: center;
   overflow: hidden;
+}
+
+.tokens__text {
+  min-width: var(--space-12);
+  text-align: center;
+  white-space: nowrap;
 }
 
 .tokens__bar {
