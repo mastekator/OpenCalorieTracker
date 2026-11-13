@@ -24,6 +24,7 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @oct/shared build # the preview imports its dist
       - run: pnpm --filter @oct/web build-storybook
       - name: Force-push the build as a single orphan commit
         working-directory: apps/web/storybook-static
