@@ -49,6 +49,7 @@ const ru: DeepPartial<typeof en> = {
     photo_invalid: 'Не удалось прочитать файл как фото',
     client_outdated: 'Приложение обновилось. Сохраните ещё раз',
     photo_expired: 'Полное фото уже удалено. Сделайте новое',
+    payload_too_large: 'Запрос слишком большой',
     internal: 'Что-то пошло не так. Попробуйте ещё раз',
   },
 };

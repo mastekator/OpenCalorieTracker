@@ -32,6 +32,7 @@ export type ErrorCode =
   | 'photo_invalid'
   | 'client_outdated'
   | 'photo_expired'
+  | 'payload_too_large'
   | 'internal';
 
 export interface ErrorBody {
