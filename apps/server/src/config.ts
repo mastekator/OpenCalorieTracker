@@ -10,6 +10,7 @@ import {
   type SetupError,
 } from '@oct/shared';
 import { isCommonPassword } from './auth/password.js';
+import { aiProviders } from './ai/settings.js';
 
 const envSchema = z.object({
   PUBLIC_URL: z.string().optional(),
@@ -27,6 +28,10 @@ const envSchema = z.object({
   WEB_DIST: z.string().default('../web/dist'),
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
   HOST: z.string().default('0.0.0.0'),
+  AI_PROVIDER: z.enum(aiProviders).optional(),
+  AI_MODEL: z.string().optional(),
+  AI_API_KEY: z.string().optional(),
+  AI_BASE_URL: z.url().optional(),
 });
 
 export interface Config {
@@ -41,6 +46,12 @@ export interface Config {
   webDist: string;
   port: number;
   host: string;
+  ai: {
+    provider: (typeof aiProviders)[number] | undefined;
+    model: string | undefined;
+    apiKey: string | undefined;
+    baseUrl: string | undefined;
+  };
 }
 
 /** Parses the environment once. Nonsense values throw; installation problems surface via setupErrors(). */
@@ -64,6 +75,12 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
     webDist: e.WEB_DIST,
     port: e.PORT,
     host: e.HOST,
+    ai: {
+      provider: e.AI_PROVIDER,
+      model: e.AI_MODEL,
+      apiKey: e.AI_API_KEY,
+      baseUrl: e.AI_BASE_URL,
+    },
   };
 }
 

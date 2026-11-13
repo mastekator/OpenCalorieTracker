@@ -10,8 +10,13 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^4.0.104",
+    "@ai-sdk/google": "^4.0.120",
+    "@ai-sdk/openai": "^4.0.117",
+    "@ai-sdk/openai-compatible": "^3.0.92",
     "@hono/node-server": "^2.1.8",
     "@oct/shared": "workspace:*",
+    "ai": "^7.0.172",
     "better-sqlite3": "^13.1.1",
     "hono": "^4.13.18",
     "zod": "^4.6.7"

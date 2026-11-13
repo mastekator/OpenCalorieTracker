@@ -17,7 +17,11 @@ export type ErrorCode =
   | 'device_blocked'
   | 'ip_blocked'
   | 'not_configured'
+  | 'ai_not_configured'
+  | 'ai_no_vision'
+  | 'ai_quota_exceeded'
   | 'ai_unavailable'
+  | 'ai_invalid_response'
   | 'internal';
 
 export interface ErrorBody {
@@ -49,5 +53,6 @@ export type ConfigResponse = z.infer<typeof configResponseSchema>;
 
 export * from './auth.js';
 export * from './units.js';
+export * from './recognition.js';
 export * from './norm/schemas.js';
 export * from './norm/calculate.js';
