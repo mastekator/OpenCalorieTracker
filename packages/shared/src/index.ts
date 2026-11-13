@@ -22,6 +22,8 @@ export type ErrorCode =
   | 'ai_quota_exceeded'
   | 'ai_unavailable'
   | 'ai_invalid_response'
+  | 'photo_too_large'
+  | 'photo_invalid'
   | 'internal';
 
 export interface ErrorBody {
