@@ -27,7 +27,10 @@ export function startUpdates() {
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') updater.visible();
   });
+  let reloading = false; // several in-flight writes can all get client_outdated
   setOutdatedHandler(() => {
+    if (reloading) return;
+    reloading = true;
     for (const [key, get] of drafts)
       sessionStorage.setItem(key, JSON.stringify(get()));
     sessionStorage.setItem(STALE_KEY, '1');
