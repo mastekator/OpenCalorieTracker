@@ -1,14 +1,18 @@
 import {
   APICallError,
   generateText,
-  NoObjectGeneratedError,
   Output,
-  TypeValidationError,
   UnsupportedFunctionalityError,
 } from 'ai';
 import { z } from 'zod';
 import type { Recognition, RecognizedDish } from '@oct/shared';
 import { ApiError } from '../http/errors.js';
+import {
+  failureNote,
+  isSchemaError,
+  languageName,
+  toApiError,
+} from './common.js';
 import type { AiModel } from './model.js';
 import { markNoVision } from './status.js';
 
@@ -43,14 +47,6 @@ Confidence is 0..1:
 - mixed dishes, sauces and oil: at most 0.9;
 - blurry, dark or partial photos: below 0.5.
 If there is no food on the photo, return an empty list.`;
-}
-
-function languageName(locale: string) {
-  try {
-    return new Intl.DisplayNames(['en'], { type: 'language' }).of(locale)!;
-  } catch {
-    return 'English';
-  }
 }
 
 /**
@@ -100,15 +96,15 @@ export async function recognizeMeal(
       }
     }
   } catch (err) {
-    // Only the error class and provider status are logged, never its text (AC-6.2).
-    failure = ` error=${(err as Error)?.name ?? 'unknown'}`;
-    if (APICallError.isInstance(err) && err.statusCode)
-      failure += ` status=${err.statusCode}`;
+    failure = failureNote(err);
     if (signal?.aborted) {
       result = 'aborted';
       throw err;
     }
-    const apiError = toApiError(err, timeout.signal.aborted);
+    const apiError =
+      !timeout.signal.aborted && isNoVision(err)
+        ? (markNoVision(), new ApiError(409, 'ai_no_vision'))
+        : toApiError(err, timeout.signal.aborted);
     result = apiError.code;
     throw apiError;
   } finally {
@@ -117,25 +113,6 @@ export async function recognizeMeal(
       `ai.recognize provider=${model.provider} model=${model.modelId} prompt=${RECOGNIZE_PROMPT_VERSION} ms=${Date.now() - started} dishes=${dishes} result=${result}${failure}`,
     );
   }
-}
-
-function isSchemaError(err: unknown) {
-  return (
-    NoObjectGeneratedError.isInstance(err) ||
-    TypeValidationError.isInstance(err)
-  );
-}
-
-function toApiError(err: unknown, timedOut: boolean): ApiError {
-  if (timedOut) return new ApiError(503, 'ai_unavailable');
-  if (isSchemaError(err)) return new ApiError(502, 'ai_invalid_response');
-  if (isNoVision(err)) {
-    markNoVision();
-    return new ApiError(409, 'ai_no_vision');
-  }
-  if (APICallError.isInstance(err) && err.statusCode === 429)
-    return new ApiError(429, 'ai_quota_exceeded');
-  return new ApiError(503, 'ai_unavailable');
 }
 
 // shortcut: detected by the provider's 400 error text; add env AI_VISION=true|false if this misfires.
