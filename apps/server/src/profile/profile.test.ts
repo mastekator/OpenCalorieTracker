@@ -64,7 +64,12 @@ async function setup() {
   const cookie = await signIn();
   const put = (profile: Partial<Profile>, manual: unknown = null) =>
     call('PUT', cookie, { profile: { ...EMPTY, ...profile }, manual });
-  return { ...t, call, signIn, addUser, cookie, put };
+  const syncRev = () =>
+    t.db
+      .prepare("SELECT sync_rev FROM users WHERE email = 'admin@example.com'")
+      .pluck()
+      .get();
+  return { ...t, call, signIn, addUser, cookie, put, syncRev };
 }
 
 afterEach(() => vi.restoreAllMocks());
@@ -86,30 +91,44 @@ describe('GET/PUT /api/profile', () => {
   });
 
   it('saves a partial profile and returns weight without rounding (AC-1.3, AC-0.4a)', async () => {
-    const { put, call, cookie } = await setup();
+    const { put, call, cookie, syncRev } = await setup();
     const weightKg = 180 * 0.45359237; // 81.6466266 kg from 180 lb
     const res = await put({ sex: 'male', weightKg });
     expect(res.status).toBe(200);
     const body = {
       profile: { ...EMPTY, sex: 'male', weightKg },
       manual: null,
-      rev: 0,
+      rev: syncRev(),
     };
     expect(await res.json()).toEqual(body);
     expect(await (await call('GET', cookie)).json()).toEqual(body);
   });
 
   it('replaces the whole profile and clears the manual norm with null', async () => {
-    const { put, call, cookie, db } = await setup();
+    const { put, call, cookie, db, syncRev } = await setup();
     await put(FULL, MANUAL);
     expect((await (await call('GET', cookie)).json()).manual).toEqual(MANUAL);
     await put({ weightKg: 71 });
     expect(await (await call('GET', cookie)).json()).toEqual({
       profile: { ...EMPTY, weightKg: 71 },
       manual: null,
-      rev: 0,
+      rev: syncRev(),
     });
     expect(db.prepare('SELECT COUNT(*) FROM profiles').pluck().get()).toBe(1);
+  });
+
+  it('bumps rev and users.sync_rev on every save, not on a rejected one', async () => {
+    const { put, syncRev } = await setup();
+    const first = (await (await put(FULL)).json()).rev;
+    expect(first).toBe(syncRev());
+    expect(first).toBeGreaterThan(0);
+    const second = (await (await put({ ...FULL, weightKg: 69 })).json()).rev;
+    expect(second).toBe(first + 1);
+    expect(second).toBe(syncRev());
+    expect((await put({ ...FULL, birthDate: addDays(TODAY, 1) })).status).toBe(
+      400,
+    );
+    expect(syncRev()).toBe(second);
   });
 
   it('rejects an out-of-range field with its path (AC-1.4)', async () => {

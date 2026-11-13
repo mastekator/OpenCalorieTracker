@@ -9,6 +9,7 @@ import type { AppDeps } from '../app.js';
 import { requireUser, type AuthEnv } from '../auth/session.js';
 import { ApiError } from '../http/errors.js';
 import { validate } from '../http/validate.js';
+import { bumpRev } from '../sync/rev.js';
 import { readProfile } from './norm.js';
 
 /** Local date of the process, i.e. in the installation's TZ (ADR-0014 §3). */
@@ -55,34 +56,38 @@ export function profileRoutes({ db }: AppDeps) {
         );
         if (errors.length) throw new ApiError(400, 'validation_failed', errors);
 
-        // shortcut: rev stays 0 until bumpRev (OCT-72) lands; OCT-86 wires profile sync.
-        db.prepare(
-          `INSERT INTO profiles (user_id, sex, birth_date, height_cm, weight_kg, activity, goal,
-             target_weight_kg, deadline, kcal_override, protein_pct, fat_pct, carbs_pct, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        db.transaction(() =>
+          db
+            .prepare(
+              `INSERT INTO profiles (user_id, sex, birth_date, height_cm, weight_kg, activity, goal,
+             target_weight_kg, deadline, kcal_override, protein_pct, fat_pct, carbs_pct, updated_at, rev)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            ON CONFLICT (user_id) DO UPDATE SET
              sex = excluded.sex, birth_date = excluded.birth_date, height_cm = excluded.height_cm,
              weight_kg = excluded.weight_kg, activity = excluded.activity, goal = excluded.goal,
              target_weight_kg = excluded.target_weight_kg, deadline = excluded.deadline,
              kcal_override = excluded.kcal_override, protein_pct = excluded.protein_pct,
              fat_pct = excluded.fat_pct, carbs_pct = excluded.carbs_pct,
-             updated_at = excluded.updated_at`,
-        ).run(
-          userId,
-          p.sex,
-          p.birthDate,
-          p.heightCm,
-          p.weightKg,
-          p.activity,
-          p.goal,
-          p.targetWeightKg,
-          p.deadline,
-          m?.kcal ?? null,
-          m?.proteinPct ?? null,
-          m?.fatPct ?? null,
-          m?.carbsPct ?? null,
-          Date.now(),
-        );
+             updated_at = excluded.updated_at, rev = excluded.rev`,
+            )
+            .run(
+              userId,
+              p.sex,
+              p.birthDate,
+              p.heightCm,
+              p.weightKg,
+              p.activity,
+              p.goal,
+              p.targetWeightKg,
+              p.deadline,
+              m?.kcal ?? null,
+              m?.proteinPct ?? null,
+              m?.fatPct ?? null,
+              m?.carbsPct ?? null,
+              Date.now(),
+              bumpRev(db, userId),
+            ),
+        )();
         return c.json(readProfile(db, userId));
       },
     );
