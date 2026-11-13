@@ -27,6 +27,7 @@ export type ErrorCode =
   | 'ai_invalid_response'
   | 'photo_too_large'
   | 'photo_invalid'
+  | 'photo_expired'
   | 'internal';
 
 export interface ErrorBody {

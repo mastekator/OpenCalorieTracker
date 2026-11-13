@@ -43,6 +43,7 @@ export const en = {
     ai_invalid_response: 'The AI returned an unreadable answer. Try again',
     photo_too_large: 'The photo is too large',
     photo_invalid: 'This file isn’t a photo we can read',
+    photo_expired: 'The full photo is no longer stored. Take a new one',
     internal: 'Something went wrong. Try again',
   } satisfies Record<ErrorCode, string>,
 };

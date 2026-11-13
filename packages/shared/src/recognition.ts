@@ -22,6 +22,13 @@ export const recognitionSchema = z.object({
 });
 export type Recognition = z.infer<typeof recognitionSchema>;
 
+/** GET /api/ai/status: whether photo recognition can be used; never reveals provider, model or key. */
+export const aiStatusSchema = z.object({
+  recognition: z.enum(['ready', 'not_configured', 'no_vision']),
+});
+export type AiStatus = z.infer<typeof aiStatusSchema>;
+export type RecognitionStatus = AiStatus['recognition'];
+
 export type ConfidenceLevel = 'exact' | 'high' | 'medium' | 'low';
 
 /** Display level of a 0..1 confidence (AC-2.8). */

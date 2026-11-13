@@ -2,6 +2,8 @@ import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { serve } from '@hono/node-server';
 import { createApp } from './app.js';
+import { createModel, type AiModel } from './ai/model.js';
+import { getAiSettings } from './ai/settings.js';
 import { ensureAdmin } from './auth/admin.js';
 import { loadConfig, setupErrorMessages, setupErrors } from './config.js';
 import { migrate } from './db/migrate.js';
@@ -18,9 +20,19 @@ for (const error of setupErrors(config, db)) {
   console.error(`[setup] ${error}: ${setupErrorMessages[error]}`);
 }
 
+// Broken AI settings must not take the server down: it falls back to manual mode.
+let model: AiModel | null = null;
+try {
+  model = await createModel(getAiSettings(config));
+} catch (err) {
+  console.error(
+    `[setup] AI model could not be created (${(err as Error).name}); AI is off.`,
+  );
+}
+
 serve(
   {
-    fetch: createApp({ config, db }).fetch,
+    fetch: createApp({ config, db, model }).fetch,
     port: config.port,
     hostname: config.host,
   },
