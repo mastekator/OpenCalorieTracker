@@ -1,15 +1,52 @@
+import { readFileSync } from 'node:fs';
 import { Hono } from 'hono';
+import { csrf } from 'hono/csrf';
 import { serveStatic } from '@hono/node-server/serve-static';
+import type { Database } from 'better-sqlite3';
+import type { ConfigResponse } from '@oct/shared';
+import { setupErrors, type Config } from './config.js';
+import { ApiError, onError } from './http/errors.js';
 
-// WEB_DIST overrides where the built frontend lives (e.g. inside a container).
-const webDist = process.env.WEB_DIST ?? '../web/dist';
+// Same relative path from src/ (dev, tests) and dist/ (production).
+const { version } = JSON.parse(
+  readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
+) as {
+  version: string;
+};
 
-export const app = new Hono();
+export interface AppDeps {
+  config: Config;
+  db: Database;
+}
 
-app.get('/api/health', (c) => c.json({ ok: true }));
-// Unknown API routes must 404, not fall through to the SPA's index.html.
-app.all('/api/*', (c) => c.notFound());
+export function createApp({ config, db }: AppDeps) {
+  const app = new Hono();
+  app.onError(onError);
 
-app.use('*', serveStatic({ root: webDist }));
-// SPA fallback: unknown non-API paths get index.html.
-app.get('*', serveStatic({ root: webDist, path: 'index.html' }));
+  // Without a valid PUBLIC_URL no origin is trusted: mutating form-like requests get 403.
+  app.use(
+    '/api/*',
+    csrf({ origin: config.publicUrl ? [config.publicUrl] : [] }),
+  );
+
+  app.get('/api/health', (c) => c.json({ ok: true, version }));
+  app.get('/api/config', (c) =>
+    c.json({
+      version,
+      apiVersion: 1,
+      publicUrl: config.publicUrl,
+      authMethods: config.authMethods,
+      registration: config.registration,
+      setupError: setupErrors(config, db)[0] ?? null,
+    } satisfies ConfigResponse),
+  );
+  // Unknown API routes must 404, not fall through to the SPA's index.html.
+  app.all('/api/*', () => {
+    throw new ApiError(404, 'not_found');
+  });
+
+  app.use('*', serveStatic({ root: config.webDist }));
+  // SPA fallback: unknown non-API paths get index.html.
+  app.get('*', serveStatic({ root: config.webDist, path: 'index.html' }));
+  return app;
+}
