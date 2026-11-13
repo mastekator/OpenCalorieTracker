@@ -1,8 +1,40 @@
 <!doctype html>
-<html lang="ru">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <!-- Values = --theme-color in src/styles/tokens.css (light / dark). -->
+    <meta
+      name="theme-color"
+      content="#F8FAF9"
+      media="(prefers-color-scheme: light)"
+    />
+    <meta
+      name="theme-color"
+      content="#0E1110"
+      media="(prefers-color-scheme: dark)"
+    />
+    <script>
+      // Apply the chosen theme before first paint (ADR-0004). No key = follow the system.
+      (function () {
+        try {
+          var theme = localStorage.getItem('oct.theme');
+          if (theme !== 'light' && theme !== 'dark') return;
+          document.documentElement.dataset.theme = theme;
+          var color = theme === 'dark' ? '#0E1110' : '#F8FAF9';
+          document
+            .querySelectorAll('meta[name="theme-color"]')
+            .forEach(function (meta) {
+              meta.content = color;
+            });
+        } catch (e) {
+          // localStorage can be unavailable (privacy modes): keep the system theme.
+        }
+      })();
+    </script>
     <title>OpenCalorieTracker</title>
   </head>
   <body>

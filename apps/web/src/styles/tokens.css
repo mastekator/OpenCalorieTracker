@@ -1,0 +1,177 @@
+/*
+ * OpenCalorieTracker — design tokens (OCT-13).
+ * The ONLY place for visual values. Components use var(--…) only.
+ * Theme: system by default; [data-theme="light"|"dark"] on <html> overrides it (settings → «Тема»).
+ * Contrast verified: text ≥ 4.5:1, field borders and graphics ≥ 3:1, both themes.
+ */
+
+:root {
+  color-scheme: light dark;
+
+  /* ── Typography: system face (SF Pro on iOS) — native feel, zero download, works offline ── */
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-numeric: var(--font-sans); /* always with font-variant-numeric: tabular-nums */
+
+  /* size / line-height / weight — iOS Dynamic Type "Large" defaults */
+  --text-display-size: 3.5rem;   --text-display-lh: 1;        --text-display-weight: 700; /* calories left on «Сегодня» */
+  --text-large-title-size: 2.125rem; --text-large-title-lh: 1.2; --text-large-title-weight: 700; /* 34 */
+  --text-title-size: 1.375rem;   --text-title-lh: 1.27;       --text-title-weight: 600;   /* 22 */
+  --text-headline-size: 1.0625rem; --text-headline-lh: 1.3;  --text-headline-weight: 600; /* 17 */
+  --text-body-size: 1.0625rem;   --text-body-lh: 1.3;         --text-body-weight: 400;    /* 17; inputs never < 16 (iOS zoom) */
+  --text-subhead-size: 0.9375rem; --text-subhead-lh: 1.33;    --text-subhead-weight: 400; /* 15 */
+  --text-footnote-size: 0.8125rem; --text-footnote-lh: 1.38;  --text-footnote-weight: 400; /* 13 */
+  --text-tab-size: 0.6875rem;     --text-tab-weight: 500;      /* 11, tab bar labels */
+  --text-caption-size: 0.75rem;  --text-caption-lh: 1.33;     --text-caption-weight: 500; /* 12 */
+  --tracking-tight: -0.02em;     /* large title & display only */
+
+  /* ── Spacing (4pt grid) ── */
+  --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
+  --space-5: 20px; --space-6: 24px; --space-8: 32px; --space-10: 40px; --space-12: 48px;
+  --screen-gutter: var(--space-5);          /* left/right page padding — airy */
+  --section-gap: var(--space-10);           /* between grouped sections */
+
+  /* ── Sizes ── */
+  --tap-min: 44px;              /* minimum hit area, every control */
+  --control-height: 44px;       /* rows, regular buttons, segmented */
+  --control-height-lg: 52px;    /* primary buttons, text fields */
+  --camera-button-size: 64px;   /* center of tab bar */
+  --tabbar-height: 49px;        /* + env(safe-area-inset-bottom) */
+  --navbar-height: 44px;        /* + env(safe-area-inset-top) */
+  --icon-size: 24px;  --icon-size-sm: 20px;  --icon-stroke: 1.75;
+  --content-max-width: 560px;   /* phone-like column: auth, settings, tablet/narrow window */
+  /* Desktop (window ≥ 1024px; CSS vars can't be used in @media — keep 1024 in one place in code):
+     sidebar instead of tab bar, wider content, sheets become centred dialogs */
+  --sidebar-width: 248px;
+  --content-max-width-wide: 960px; /* desktop main area (Today, Diary, Week) */
+  --dialog-max-width: 480px;       /* desktop: sheets & alerts as centred dialogs */
+  --modal-flow-max-width: 720px;   /* desktop: camera → recognition → edit window */
+  --desktop-gutter: var(--space-10);
+
+  /* ── Radii ── */
+  --radius-sm: 8px;   /* chips, small badges */
+  --radius-md: 12px;  /* fields, buttons, grouped lists */
+  --radius-lg: 16px;  /* cards, banners */
+  --radius-xl: 24px;  /* bottom sheets (top corners) */
+  --radius-full: 999px;
+
+  /* ── Motion ── */
+  --duration-fast: 120ms;   /* press, toggle */
+  --duration-base: 220ms;   /* banners, field state */
+  --duration-slow: 360ms;   /* sheets, screen push */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --press-scale: 0.97;
+
+  /* ── Layers ── */
+  --z-tabbar: 10; --z-banner: 20; --z-sheet: 30; --z-alert: 40; --z-toast: 50;
+
+  /* ── Colour: light (default) ── */
+  --color-bg: #F8FAF9;              /* page canvas, cool airy white */
+  --color-surface: #FFFFFF;
+  --color-surface-2: #F1F4F2;
+  --color-separator: #E7ECEA;
+  --color-border-strong: #7C8782;
+  --color-text: #18211D;
+  --color-text-secondary: #5A6661;
+  --color-text-disabled: #7F8A85;
+  --color-accent: #13784A;          /* fresh green: primary actions, links, focus */
+  --color-accent-pressed: #0F653E;
+  --color-on-accent: #FFFFFF;
+  --color-accent-soft: #E5F5EC;
+  --color-danger: #C0362C;
+  --color-danger-soft: #FDEDEB;
+  --color-on-danger: #FFFFFF;
+  --color-warning: #8A5A00;
+  --color-warning-soft: #FFF4DB;
+  --color-notice: #EEF3F0;
+  --color-focus-ring: #13784A;
+  --color-scrim: rgb(24 33 29 / 0.32);
+  --color-selection: rgb(19 120 74 / 0.2);
+  /* macros (graphics, ≥ 3:1 on surface) — used by OCT-16/19/22 */
+  --color-protein: #4766C4;
+  --color-fat: #B36F00;
+  --color-carbs: #16847E;
+
+  --shadow-sheet: 0 -4px 24px rgb(24 33 29 / 0.06);
+  --shadow-toast: 0 6px 20px rgb(24 33 29 / 0.10);
+  --shadow-camera: 0 4px 14px rgb(19 120 74 / 0.24);
+  --tabbar-blur: saturate(180%) blur(20px);
+  --tabbar-bg: rgb(248 250 249 / 0.88);
+  --color-hover: rgb(24 33 29 / 0.05); /* desktop: pointer hover on rows, nav, plain buttons */
+
+  --theme-color: #F8FAF9; /* <meta name="theme-color">, status bar */
+}
+
+/* Dark values (duplicated below for explicit choice — CSS can't share one block for media + attribute): applied by system preference or explicit choice */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-bg: #0E1110;
+    --color-surface: #171B19;
+    --color-surface-2: #212624;
+    --color-separator: #2A302E;
+    --color-border-strong: #76817C;
+    --color-text: #EEF3F0;
+    --color-text-secondary: #A4AFAA;
+    --color-text-disabled: #727C78;
+    --color-accent: #5FD394;
+    --color-accent-pressed: #4CC183;
+    --color-on-accent: #06200F;
+    --color-accent-soft: #16301F;
+    --color-danger: #FF8A80;
+    --color-danger-soft: #3A1916;
+    --color-on-danger: #2A0906;
+    --color-warning: #F2C062;
+    --color-warning-soft: #33290F;
+    --color-notice: #212624;
+    --color-focus-ring: #5FD394;
+    --color-scrim: rgb(0 0 0 / 0.56);
+    --color-selection: rgb(95 211 148 / 0.3);
+    --color-protein: #93ABF2;
+    --color-fat: #EBB45C;
+    --color-carbs: #5ECFC6;
+    --shadow-sheet: 0 -8px 32px rgb(0 0 0 / 0.5);
+    --shadow-toast: 0 8px 24px rgb(0 0 0 / 0.5);
+    --shadow-camera: 0 6px 16px rgb(0 0 0 / 0.5);
+    --tabbar-bg: rgb(14 17 16 / 0.86);
+    --color-hover: rgb(238 243 240 / 0.06);
+    --theme-color: #0E1110;
+  }
+}
+:root[data-theme="dark"] {
+  --color-bg: #0E1110;
+  --color-surface: #171B19;
+  --color-surface-2: #212624;
+  --color-separator: #2A302E;
+  --color-border-strong: #76817C;
+  --color-text: #EEF3F0;
+  --color-text-secondary: #A4AFAA;
+  --color-text-disabled: #727C78;
+  --color-accent: #5FD394;
+  --color-accent-pressed: #4CC183;
+  --color-on-accent: #06200F;
+  --color-accent-soft: #16301F;
+  --color-danger: #FF8A80;
+  --color-danger-soft: #3A1916;
+  --color-on-danger: #2A0906;
+  --color-warning: #F2C062;
+  --color-warning-soft: #33290F;
+  --color-notice: #212624;
+  --color-focus-ring: #5FD394;
+  --color-scrim: rgb(0 0 0 / 0.56);
+  --color-selection: rgb(95 211 148 / 0.3);
+  --color-protein: #93ABF2;
+  --color-fat: #EBB45C;
+  --color-carbs: #5ECFC6;
+  --shadow-sheet: 0 -8px 32px rgb(0 0 0 / 0.5);
+  --shadow-toast: 0 8px 24px rgb(0 0 0 / 0.5);
+  --shadow-camera: 0 6px 16px rgb(0 0 0 / 0.5);
+  --tabbar-bg: rgb(14 17 16 / 0.86);
+  --color-hover: rgb(238 243 240 / 0.06);
+  --theme-color: #0E1110;
+  color-scheme: dark;
+}
+:root[data-theme="light"] { color-scheme: light; }
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --duration-fast: 0ms; --duration-base: 0ms; --duration-slow: 0ms; --press-scale: 1; }
+}
