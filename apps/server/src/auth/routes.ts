@@ -8,6 +8,8 @@ import {
 import type { AppDeps } from '../app.js';
 import { ApiError } from '../http/errors.js';
 import { validate } from '../http/validate.js';
+import { renewDevice } from './device.js';
+import { guard } from './guard.js';
 import {
   assertPasswordAllowed,
   dummyHash,
@@ -59,6 +61,8 @@ export function authRoutes(deps: AppDeps) {
       validate('json', loginRequestSchema),
       async (c) => {
         const { email, password } = c.req.valid('json');
+        const attempts = guard(c, deps);
+        attempts.check();
         const user = db
           .prepare(
             `SELECT id, email, name, role, locale, theme, units, password_from_config
@@ -69,8 +73,11 @@ export function authRoutes(deps: AppDeps) {
         // Unknown email, passkey-only user and wrong password all cost one scrypt and look alike (AC-5.2).
         const ok = await verifyPassword(password, hash ?? (await dummyHash()));
         if (!user || !hash || !ok) {
+          attempts.fail(email);
           throw new ApiError(401, 'invalid_credentials');
         }
+        attempts.succeed();
+        renewDevice(c, config);
         db.prepare('UPDATE users SET last_login_at = ? WHERE id = ?').run(
           Date.now(),
           user.id,
