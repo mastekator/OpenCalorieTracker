@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM node:24-slim AS build
+FROM node:24-alpine AS build
 WORKDIR /src
 RUN corepack enable
 COPY . .
@@ -9,7 +9,8 @@ RUN pnpm install --frozen-lockfile \
  # --legacy: pnpm 10 deploy without inject-workspace-packages.
  && pnpm --filter @oct/server deploy --prod --legacy /out
 
-FROM node:24-slim
+# Alpine, not slim: node:24-slim is ~230 MB unpacked, over the 200 MB budget.
+FROM node:24-alpine
 ENV NODE_ENV=production \
     DATA_DIR=/data \
     WEB_DIST=/app/web \
