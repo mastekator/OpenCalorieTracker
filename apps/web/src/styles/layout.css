@@ -1,0 +1,16 @@
+/* The only place with the 1024px breakpoint (CSS vars can't be used in @media); JS uses styles/breakpoints.ts. */
+
+.page {
+  max-width: var(--content-max-width);
+  margin-inline: auto;
+  padding: calc(var(--space-6) + env(safe-area-inset-top))
+    max(var(--screen-gutter), env(safe-area-inset-right))
+    calc(var(--space-6) + env(safe-area-inset-bottom))
+    max(var(--screen-gutter), env(safe-area-inset-left));
+}
+
+@media (min-width: 1024px) {
+  .page {
+    padding-inline: var(--desktop-gutter);
+  }
+}

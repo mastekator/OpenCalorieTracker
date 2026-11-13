@@ -56,3 +56,4 @@ export * from './units.js';
 export * from './recognition.js';
 export * from './norm/schemas.js';
 export * from './norm/calculate.js';
+export * from './locales.js';
