@@ -135,6 +135,7 @@ describe('sign-in', () => {
       role: 'admin',
       locale: 'en',
       theme: 'system',
+      units: 'metric',
       passwordFromConfig: true,
       methods: ['password'],
     });

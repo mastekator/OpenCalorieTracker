@@ -57,3 +57,4 @@ export * from './recognition.js';
 export * from './norm/schemas.js';
 export * from './norm/calculate.js';
 export * from './locales.js';
+export * from './settings.js';

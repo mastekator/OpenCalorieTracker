@@ -1,9 +1,12 @@
+import { z } from 'zod';
+
 /**
  * Unit conversion without drift (ADR-0014 §2): input is rounded in the user's
  * system, converted and stored unrounded in cm/kg; display converts back and
  * rounds the same way, so the user always sees what they typed.
  */
-export type Units = 'metric' | 'us';
+export const unitsSchema = z.enum(['metric', 'us']);
+export type Units = z.infer<typeof unitsSchema>;
 
 export const CM_PER_INCH = 2.54;
 export const KG_PER_LB = 0.45359237;

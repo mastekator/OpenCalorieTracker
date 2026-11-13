@@ -2,7 +2,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import type { Context } from 'hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { createMiddleware } from 'hono/factory';
-import type { AuthMethod } from '@oct/shared';
+import type { AuthMethod, Locale, Theme, Units } from '@oct/shared';
 import type { AppDeps } from '../app.js';
 import type { Config } from '../config.js';
 import { ApiError } from '../http/errors.js';
@@ -18,8 +18,9 @@ export interface User {
   email: string;
   name: string | null;
   role: 'admin' | 'user';
-  locale: string;
-  theme: string;
+  locale: Locale;
+  theme: Theme;
+  units: Units;
   password_from_config: 0 | 1;
 }
 
@@ -78,7 +79,7 @@ export const session = ({ config, db }: AppDeps) =>
       const row = db
         .prepare(
           `SELECT s.id AS session_id, s.last_seen_at, u.id, u.email, u.name, u.role,
-                  u.locale, u.theme, u.password_from_config
+                  u.locale, u.theme, u.units, u.password_from_config
            FROM sessions s JOIN users u ON u.id = s.user_id
            WHERE s.token_hash = ? AND s.expires_at > ?`,
         )
