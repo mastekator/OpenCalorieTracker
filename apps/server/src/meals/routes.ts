@@ -14,7 +14,7 @@ import { getAiSettings } from '../ai/settings.js';
 import { requireUser, type AuthEnv } from '../auth/session.js';
 import { ApiError } from '../http/errors.js';
 import { validate } from '../http/validate.js';
-import { photoPath } from '../photos/store.js';
+import { photoPath, type PhotoSize } from '../photos/store.js';
 import { bumpRev } from '../sync/rev.js';
 
 const DAY_MS = 86_400_000;
@@ -130,7 +130,7 @@ export function mealRoutes({ config, db }: AppDeps) {
   const removePhoto = (
     userId: number,
     photoId: string,
-    sizes = ['full', 'preview'] as const,
+    sizes: readonly PhotoSize[] = ['full', 'preview'],
   ) =>
     Promise.all(
       sizes.map((s) => {
