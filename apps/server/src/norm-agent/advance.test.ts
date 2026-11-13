@@ -6,7 +6,7 @@ import {
   type InterviewTurn,
   type Profile,
 } from '@oct/shared';
-import { advanceInterview } from './advance.js';
+import { advanceInterview, nextField } from './advance.js';
 
 const today = '2026-11-13';
 const metric = { units: 'metric' as const, today };
@@ -275,4 +275,17 @@ describe('advanceInterview', () => {
     expect(r.draft.profile).toEqual(before.profile);
     expect(r.messages.filter((m) => m.kind === 'invalid')).toHaveLength(2);
   });
+
+  it.each([300000, -300000, 101, -1])(
+    'marks age %i invalid instead of throwing',
+    (ageYears) => {
+      const before = draftOf({ sex: 'female' });
+      const r = advanceInterview(before, turn({ ageYears }), metric);
+      expect(r.draft.profile).toEqual(before.profile);
+      expect(r.messages.slice(1)).toEqual([
+        { kind: 'invalid', field: 'birthDate', min: '1926-11-13', max: today },
+      ]);
+      expect(nextField(r.draft)).toBe('birthDate');
+    },
+  );
 });
