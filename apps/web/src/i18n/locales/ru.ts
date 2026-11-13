@@ -19,6 +19,9 @@ const ru: DeepPartial<typeof en> = {
     recover: 'Восстановление доступа',
     register: 'Регистрация',
   },
+  update: {
+    stale: 'Приложение обновилось · сохраните ещё раз',
+  },
   errors: {
     validation_failed: 'Проверьте отмеченные поля',
     unauthenticated: 'Войдите в аккаунт',
@@ -41,6 +44,7 @@ const ru: DeepPartial<typeof en> = {
     ai_invalid_response: 'ИИ вернул непонятный ответ. Попробуйте ещё раз',
     photo_too_large: 'Фото слишком большое',
     photo_invalid: 'Не удалось прочитать файл как фото',
+    client_outdated: 'Приложение обновилось. Сохраните ещё раз',
     internal: 'Что-то пошло не так. Попробуйте ещё раз',
   },
 };

@@ -1,6 +1,9 @@
 import { z } from 'zod';
 import { authMethodSchema } from './auth.js';
 
+/** Raised only on a breaking API change; older web clients then get 409 client_outdated (ADR-0012). */
+export const API_VERSION = 1;
+
 /** Stable error codes in `{ error: { code } }` bodies; clients translate them (ADR-0001). */
 export type ErrorCode =
   | 'validation_failed'
@@ -24,6 +27,7 @@ export type ErrorCode =
   | 'ai_invalid_response'
   | 'photo_too_large'
   | 'photo_invalid'
+  | 'client_outdated'
   | 'internal';
 
 export interface ErrorBody {

@@ -3,7 +3,7 @@ import { Hono } from 'hono';
 import { csrf } from 'hono/csrf';
 import { serveStatic } from '@hono/node-server/serve-static';
 import type { Database } from 'better-sqlite3';
-import type { ConfigResponse } from '@oct/shared';
+import { API_VERSION, type ConfigResponse } from '@oct/shared';
 import { accountRoutes } from './account/routes.js';
 import { authRoutes } from './auth/routes.js';
 import { device } from './auth/device.js';
@@ -12,6 +12,7 @@ import { session } from './auth/session.js';
 import { photoRoutes } from './photos/routes.js';
 import { profileRoutes } from './profile/routes.js';
 import { setupErrors, type Config } from './config.js';
+import { apiVersion } from './http/apiVersion.js';
 import { ApiError, onError } from './http/errors.js';
 
 // Same relative path from src/ (dev, tests) and dist/ (production).
@@ -39,6 +40,7 @@ export function createApp(deps: AppDeps) {
     csrf({ origin: config.publicUrl ? [config.publicUrl] : [] }),
   );
 
+  app.use('/api/*', apiVersion);
   app.use('/api/*', device(config));
   app.use('/api/*', session(deps));
   app.route('/api', authRoutes(deps));
@@ -50,7 +52,7 @@ export function createApp(deps: AppDeps) {
   app.get('/api/config', (c) =>
     c.json({
       version,
-      apiVersion: 1,
+      apiVersion: API_VERSION,
       publicUrl: config.publicUrl,
       authMethods: config.authMethods,
       registration: config.registration,
