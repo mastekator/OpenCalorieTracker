@@ -36,7 +36,10 @@ interface Row {
  * Brute-force protection for password sign-in, registration and token checks (ADR-0003):
  * call check() before the secret is verified, then fail() or succeed().
  */
-export function guard(c: Context<AuthEnv>, { config, db }: AppDeps) {
+export function guard<E extends AuthEnv>(
+  c: Context<E>,
+  { config, db }: AppDeps,
+) {
   const ip = clientIp(c, config.trustProxyHops);
   const deviceId = c.var.deviceId;
   const load = (kind: Row['kind'], device_id: string): Row | undefined =>

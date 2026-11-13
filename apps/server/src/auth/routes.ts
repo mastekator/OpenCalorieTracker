@@ -256,12 +256,18 @@ export function authRoutes(deps: AppDeps) {
         const { currentPassword, newPassword } = c.req.valid('json');
         const user = c.var.user;
         const hash = passwordHash(user.id);
-        // Setting a first password needs no current one; changing it does.
-        if (
-          hash &&
-          !(currentPassword && (await verifyPassword(currentPassword, hash)))
-        ) {
-          throw new ApiError(400, 'invalid_credentials');
+        // Setting a first password needs no current one; changing it does, guarded like sign-in.
+        if (hash) {
+          const attempts = guard(c, deps);
+          attempts.check();
+          const ok =
+            !!currentPassword && (await verifyPassword(currentPassword, hash));
+          attempts.check();
+          if (!ok) {
+            attempts.fail(user.email);
+            throw new ApiError(400, 'invalid_credentials');
+          }
+          attempts.succeed();
         }
         assertPasswordAllowed(newPassword, user.email);
         const newHash = await hashPassword(newPassword);

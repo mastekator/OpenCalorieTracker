@@ -3,7 +3,9 @@ services:
     image: ghcr.io/mastekator/opencalorietracker:latest
     restart: unless-stopped
     ports:
-      - '3000:3000'
+      # Loopback only: the reverse proxy must be the sole way in, or X-Forwarded-For can be forged.
+      # Proxy on another host: publish on a private interface (e.g. '10.0.0.5:3000:3000') that only it reaches.
+      - '127.0.0.1:3000:3000'
     volumes:
       - oct-data:/data
     env_file: .env
