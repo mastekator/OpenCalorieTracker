@@ -1,0 +1,17 @@
+import { describe, expect, it } from 'vitest';
+import { app } from './app.js';
+
+describe('GET /api/health', () => {
+  it('returns ok', async () => {
+    const res = await app.request('/api/health');
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true });
+  });
+});
+
+describe('unknown API route', () => {
+  it('returns 404, not the SPA', async () => {
+    const res = await app.request('/api/nope');
+    expect(res.status).toBe(404);
+  });
+});
