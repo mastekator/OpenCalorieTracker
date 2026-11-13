@@ -27,9 +27,9 @@ AI_PROVIDER=google AI_MODEL=gemini-2.5-flash AI_API_KEY=... pnpm --filter @oct/s
 
 It prints a table per photo and `N/9 passed`. Send a pull request with your row:
 
-| Provider | Model | Passed | Date | Notes |
-| -------- | ----- | ------ | ---- | ----- |
-| _No results yet — run `check-model` and send a PR_ | | | | |
+| Provider                                           | Model | Passed | Date | Notes |
+| -------------------------------------------------- | ----- | ------ | ---- | ----- |
+| _No results yet — run `check-model` and send a PR_ |       |        |      |       |
 
 ## Privacy
 
