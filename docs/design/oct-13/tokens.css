@@ -27,8 +27,8 @@
   /* ── Spacing (4pt grid) ── */
   --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
   --space-5: 20px; --space-6: 24px; --space-8: 32px; --space-10: 40px; --space-12: 48px;
-  --screen-gutter: var(--space-4);          /* left/right page padding */
-  --section-gap: var(--space-8);            /* between grouped sections */
+  --screen-gutter: var(--space-5);          /* left/right page padding — airy */
+  --section-gap: var(--space-10);           /* between grouped sections */
 
   /* ── Sizes ── */
   --tap-min: 44px;              /* minimum hit area, every control */
@@ -59,105 +59,105 @@
   --z-tabbar: 10; --z-banner: 20; --z-sheet: 30; --z-alert: 40; --z-toast: 50;
 
   /* ── Colour: light (default) ── */
-  --color-bg: #F6F4EF;              /* page canvas, warm bone */
-  --color-surface: #FFFFFF;         /* grouped lists, cards, sheets */
-  --color-surface-2: #EFECE5;       /* fields, segmented track, pressed rows */
-  --color-separator: #E2DED5;       /* hairlines between rows (decorative) */
-  --color-border-strong: #8C8679;   /* field outline, ≥ 3:1 */
-  --color-text: #1B1A17;
-  --color-text-secondary: #5E594F;  /* also placeholders, ≥ 4.5:1 */
-  --color-text-disabled: #8A8478;   /* disabled only; ≥ 3:1 on surface-2 for legibility */
-  --color-accent: #2D6A49;          /* herb green: primary actions, links, focus */
-  --color-accent-pressed: #24563B;
+  --color-bg: #F8FAF9;              /* page canvas, cool airy white */
+  --color-surface: #FFFFFF;
+  --color-surface-2: #F1F4F2;
+  --color-separator: #E7ECEA;
+  --color-border-strong: #7C8782;
+  --color-text: #18211D;
+  --color-text-secondary: #5A6661;
+  --color-text-disabled: #7F8A85;
+  --color-accent: #13784A;          /* fresh green: primary actions, links, focus */
+  --color-accent-pressed: #0F653E;
   --color-on-accent: #FFFFFF;
-  --color-accent-soft: #E2EDE5;     /* tonal buttons, selected */
-  --color-danger: #B3261E;
-  --color-danger-soft: #FBE9E6;
+  --color-accent-soft: #E5F5EC;
+  --color-danger: #C0362C;
+  --color-danger-soft: #FDEDEB;
   --color-on-danger: #FFFFFF;
-  --color-warning: #7F5300;
-  --color-warning-soft: #FCEFD2;
-  --color-notice: #ECE8DF;          /* offline / neutral banner */
-  --color-focus-ring: #2D6A49;
-  --color-scrim: rgb(27 26 23 / 0.4);
-  --color-selection: rgb(45 106 73 / 0.22);
+  --color-warning: #8A5A00;
+  --color-warning-soft: #FFF4DB;
+  --color-notice: #EEF3F0;
+  --color-focus-ring: #13784A;
+  --color-scrim: rgb(24 33 29 / 0.32);
+  --color-selection: rgb(19 120 74 / 0.2);
   /* macros (graphics, ≥ 3:1 on surface) — used by OCT-16/19/22 */
-  --color-protein: #3F5FB0;
-  --color-fat: #A86A00;
-  --color-carbs: #1F7F7A;
+  --color-protein: #4766C4;
+  --color-fat: #B36F00;
+  --color-carbs: #16847E;
 
-  --shadow-sheet: 0 -8px 32px rgb(27 26 23 / 0.12);
-  --shadow-toast: 0 8px 24px rgb(27 26 23 / 0.18);
-  --shadow-camera: 0 6px 16px rgb(45 106 73 / 0.32);
+  --shadow-sheet: 0 -4px 24px rgb(24 33 29 / 0.06);
+  --shadow-toast: 0 6px 20px rgb(24 33 29 / 0.10);
+  --shadow-camera: 0 4px 14px rgb(19 120 74 / 0.24);
   --tabbar-blur: saturate(180%) blur(20px);
-  --tabbar-bg: rgb(246 244 239 / 0.86);
+  --tabbar-bg: rgb(248 250 249 / 0.88);
 
-  --theme-color: #F6F4EF; /* <meta name="theme-color">, status bar */
+  --theme-color: #F8FAF9; /* <meta name="theme-color">, status bar */
 }
 
 /* Dark values (duplicated below for explicit choice — CSS can't share one block for media + attribute): applied by system preference or explicit choice */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --color-bg: #121110;
-    --color-surface: #1D1C19;
-    --color-surface-2: #282621;
-    --color-separator: #34312B;
-    --color-border-strong: #7B7568;
-    --color-text: #F2EFE8;
-    --color-text-secondary: #ABA596;
-    --color-text-disabled: #77716A;
-    --color-accent: #74C99D;
-    --color-accent-pressed: #5FB488;
-    --color-on-accent: #0B1F14;
-    --color-accent-soft: #1E3328;
-    --color-danger: #FF8F84;
-    --color-danger-soft: #3B1C18;
+    --color-bg: #0E1110;
+    --color-surface: #171B19;
+    --color-surface-2: #212624;
+    --color-separator: #2A302E;
+    --color-border-strong: #76817C;
+    --color-text: #EEF3F0;
+    --color-text-secondary: #A4AFAA;
+    --color-text-disabled: #727C78;
+    --color-accent: #5FD394;
+    --color-accent-pressed: #4CC183;
+    --color-on-accent: #06200F;
+    --color-accent-soft: #16301F;
+    --color-danger: #FF8A80;
+    --color-danger-soft: #3A1916;
     --color-on-danger: #2A0906;
-    --color-warning: #F0BE5E;
-    --color-warning-soft: #34290F;
-    --color-notice: #2A2823;
-    --color-focus-ring: #74C99D;
+    --color-warning: #F2C062;
+    --color-warning-soft: #33290F;
+    --color-notice: #212624;
+    --color-focus-ring: #5FD394;
     --color-scrim: rgb(0 0 0 / 0.56);
-    --color-selection: rgb(116 201 157 / 0.3);
-    --color-protein: #8FA8F0;
-    --color-fat: #E8B15A;
-    --color-carbs: #63C7BF;
+    --color-selection: rgb(95 211 148 / 0.3);
+    --color-protein: #93ABF2;
+    --color-fat: #EBB45C;
+    --color-carbs: #5ECFC6;
     --shadow-sheet: 0 -8px 32px rgb(0 0 0 / 0.5);
     --shadow-toast: 0 8px 24px rgb(0 0 0 / 0.5);
     --shadow-camera: 0 6px 16px rgb(0 0 0 / 0.5);
-    --tabbar-bg: rgb(18 17 16 / 0.86);
-    --theme-color: #121110;
+    --tabbar-bg: rgb(14 17 16 / 0.86);
+    --theme-color: #0E1110;
   }
 }
 :root[data-theme="dark"] {
-  --color-bg: #121110;
-  --color-surface: #1D1C19;
-  --color-surface-2: #282621;
-  --color-separator: #34312B;
-  --color-border-strong: #7B7568;
-  --color-text: #F2EFE8;
-  --color-text-secondary: #ABA596;
-  --color-text-disabled: #77716A;
-  --color-accent: #74C99D;
-  --color-accent-pressed: #5FB488;
-  --color-on-accent: #0B1F14;
-  --color-accent-soft: #1E3328;
-  --color-danger: #FF8F84;
-  --color-danger-soft: #3B1C18;
+  --color-bg: #0E1110;
+  --color-surface: #171B19;
+  --color-surface-2: #212624;
+  --color-separator: #2A302E;
+  --color-border-strong: #76817C;
+  --color-text: #EEF3F0;
+  --color-text-secondary: #A4AFAA;
+  --color-text-disabled: #727C78;
+  --color-accent: #5FD394;
+  --color-accent-pressed: #4CC183;
+  --color-on-accent: #06200F;
+  --color-accent-soft: #16301F;
+  --color-danger: #FF8A80;
+  --color-danger-soft: #3A1916;
   --color-on-danger: #2A0906;
-  --color-warning: #F0BE5E;
-  --color-warning-soft: #34290F;
-  --color-notice: #2A2823;
-  --color-focus-ring: #74C99D;
+  --color-warning: #F2C062;
+  --color-warning-soft: #33290F;
+  --color-notice: #212624;
+  --color-focus-ring: #5FD394;
   --color-scrim: rgb(0 0 0 / 0.56);
-  --color-selection: rgb(116 201 157 / 0.3);
-  --color-protein: #8FA8F0;
-  --color-fat: #E8B15A;
-  --color-carbs: #63C7BF;
+  --color-selection: rgb(95 211 148 / 0.3);
+  --color-protein: #93ABF2;
+  --color-fat: #EBB45C;
+  --color-carbs: #5ECFC6;
   --shadow-sheet: 0 -8px 32px rgb(0 0 0 / 0.5);
   --shadow-toast: 0 8px 24px rgb(0 0 0 / 0.5);
   --shadow-camera: 0 6px 16px rgb(0 0 0 / 0.5);
-  --tabbar-bg: rgb(18 17 16 / 0.86);
-  --theme-color: #121110;
+  --tabbar-bg: rgb(14 17 16 / 0.86);
+  --theme-color: #0E1110;
   color-scheme: dark;
 }
 :root[data-theme="light"] { color-scheme: light; }
