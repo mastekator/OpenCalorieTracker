@@ -1,0 +1,12 @@
+services:
+  opencalorietracker:
+    image: ghcr.io/mastekator/opencalorietracker:latest
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    volumes:
+      - oct-data:/data
+    env_file: .env
+
+volumes:
+  oct-data:
