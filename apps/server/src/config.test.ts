@@ -20,7 +20,7 @@ describe('loadConfig', () => {
       registration: 'invite',
       adminPassword: undefined,
       trustProxyHops: 1,
-      dataDir: '/data',
+      dataDir: './data',
       port: 3000,
     });
   });

@@ -17,7 +17,8 @@ const envSchema = z.object({
   ADMIN_EMAIL: z.string().trim().toLowerCase().optional(),
   ADMIN_PASSWORD: z.string().optional(),
   TRUST_PROXY_HOPS: z.coerce.number().int().min(0).default(1),
-  DATA_DIR: z.string().default('/data'),
+  // The image sets DATA_DIR=/data; this default keeps `pnpm dev` off the filesystem root.
+  DATA_DIR: z.string().default('./data'),
   WEB_DIST: z.string().default('../web/dist'),
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
   HOST: z.string().default('0.0.0.0'),
