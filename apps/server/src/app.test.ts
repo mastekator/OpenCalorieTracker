@@ -8,3 +8,10 @@ describe('GET /api/health', () => {
     expect(await res.json()).toEqual({ ok: true });
   });
 });
+
+describe('unknown API route', () => {
+  it('returns 404, not the SPA', async () => {
+    const res = await app.request('/api/nope');
+    expect(res.status).toBe(404);
+  });
+});
