@@ -61,6 +61,25 @@ describe('PATCH /api/account/settings', () => {
     ).toMatchObject({ theme: 'light', settingsRev: 2 });
   });
 
+  it('clamps a future editedAt to server time so later edits still apply', async () => {
+    const { patch, db } = await setup();
+    const year = 365 * 24 * 3600 * 1000;
+    const before = Date.now();
+    await patch({ theme: 'dark', editedAt: before + year });
+    const { settings_edited_at: stored } = db
+      .prepare('SELECT settings_edited_at FROM users')
+      .get() as { settings_edited_at: number };
+    expect(stored).toBeLessThanOrEqual(Date.now());
+    expect(
+      await (await patch({ theme: 'light', editedAt: Date.now() })).json(),
+    ).toMatchObject({ theme: 'light' });
+    // A future date already stored before the fix does not block edits either.
+    db.prepare('UPDATE users SET settings_edited_at = ?').run(before + year);
+    expect(
+      await (await patch({ theme: 'dark', editedAt: Date.now() })).json(),
+    ).toMatchObject({ theme: 'dark' });
+  });
+
   it('writes nothing for an empty change', async () => {
     const { patch, syncRev } = await setup();
     expect(await (await patch({ editedAt: 5 })).json()).toMatchObject({
