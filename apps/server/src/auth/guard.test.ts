@@ -119,6 +119,18 @@ describe('device timeout and block', () => {
     expect((await b.login()).res.status).toBe(200);
   });
 
+  it('answers no concurrent guess once the pair times out', async () => {
+    const { browser } = await setup();
+    const b = browser();
+    await b.request('GET', '/api/config');
+    const results = await Promise.all(
+      Array.from({ length: DEVICE_FAILS * 2 }, () => b.login('Wrong-pass-1')),
+    );
+    const statuses = results.map((r) => r.res.status);
+    expect(statuses.filter((s) => s === 401)).toHaveLength(DEVICE_FAILS);
+    expect(statuses.filter((s) => s === 429)).toHaveLength(DEVICE_FAILS);
+  });
+
   it('lets another device on the same IP sign in (E-5.5)', async () => {
     const { browser } = await setup();
     const bad = browser();

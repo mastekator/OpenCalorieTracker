@@ -72,6 +72,8 @@ export function authRoutes(deps: AppDeps) {
         const hash = user && passwordHash(user.id);
         // Unknown email, passkey-only user and wrong password all cost one scrypt and look alike (AC-5.2).
         const ok = await verifyPassword(password, hash ?? (await dummyHash()));
+        // Concurrent guesses all pass the first check before any fails; none may answer once the guard closes.
+        attempts.check();
         if (!user || !hash || !ok) {
           attempts.fail(email);
           throw new ApiError(401, 'invalid_credentials');
