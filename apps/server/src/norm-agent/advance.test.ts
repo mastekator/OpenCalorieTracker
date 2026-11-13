@@ -172,6 +172,29 @@ describe('advanceInterview', () => {
     });
   });
 
+  it('drops an earlier target that a corrected weight puts on the wrong side', () => {
+    const r = advanceInterview(
+      draftOf({
+        ...adult,
+        goal: 'lose',
+        targetWeightKg: 80,
+        deadline: addDays(today, 90),
+      }),
+      turn({ weight: { value: 78, unit: 'kg' } }),
+      metric,
+    );
+    expect(r.draft.profile).toMatchObject({
+      weightKg: 78,
+      targetWeightKg: null,
+      deadline: null,
+    });
+    expect(r.messages[1]).toEqual({
+      kind: 'invalid',
+      field: 'targetWeightKg',
+      max: 78,
+    });
+  });
+
   it('warns about a fast pace once, then shows the summary (AC-5.1a)', () => {
     const deadline = addDays(today, 70);
     const first = advanceInterview(

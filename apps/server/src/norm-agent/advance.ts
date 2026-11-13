@@ -150,18 +150,21 @@ export function advanceInterview(
     } else {
       const kg = measure('targetWeightKg', 'weight', e.targetWeight);
       if (kg !== null) {
-        if (targetWeightError({ ...p, targetWeightKg: kg })) {
-          const weight = display(p.weightKg!, 'weight', units);
-          invalid(
-            'targetWeightKg',
-            p.goal === 'lose' ? { max: weight } : { min: weight },
-          );
-        } else {
-          p.targetWeightKg = kg;
-          unknown = unknown.filter((f) => f !== 'targetWeightKg');
-        }
+        p.targetWeightKg = kg;
+        unknown = unknown.filter((f) => f !== 'targetWeightKg');
       }
     }
+  }
+
+  // On the result, not the new target only: a corrected weight can flip an earlier target too.
+  if (targetWeightError(p)) {
+    const weight = display(p.weightKg!, 'weight', units);
+    invalid(
+      'targetWeightKg',
+      p.goal === 'lose' ? { max: weight } : { min: weight },
+    );
+    p.targetWeightKg = null;
+    p.deadline = null;
   }
 
   // A deadline needs a target (profileSchema).
