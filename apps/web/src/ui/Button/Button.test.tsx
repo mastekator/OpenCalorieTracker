@@ -39,20 +39,34 @@ describe('Button', () => {
     expect(button.hasAttribute('aria-busy')).toBe(false);
   });
 
-  it('is busy, disabled and shows a hidden spinner while loading', () => {
+  it('stays focused and blocks clicks and submit while loading', () => {
     const onClick = vi.fn();
-    render(
-      <Button loading onClick={onClick}>
-        Signing in…
-      </Button>,
+    const onSubmit = vi.fn();
+    const { rerender } = render(
+      <form onSubmit={onSubmit}>
+        <Button type="submit" onClick={onClick}>
+          Sign in
+        </Button>
+      </form>,
+    );
+    screen.getByRole('button').focus();
+    rerender(
+      <form onSubmit={onSubmit}>
+        <Button type="submit" loading onClick={onClick}>
+          Signing in…
+        </Button>
+      </form>,
     );
     const button = screen.getByRole('button', { name: 'Signing in…' });
+    expect(document.activeElement).toBe(button);
+    expect((button as HTMLButtonElement).disabled).toBe(false);
+    expect(button.getAttribute('aria-disabled')).toBe('true');
     expect(button.getAttribute('aria-busy')).toBe('true');
-    expect((button as HTMLButtonElement).disabled).toBe(true);
     expect(
       button.querySelector('.button__spinner')?.getAttribute('aria-hidden'),
     ).toBe('true');
     fireEvent.click(button);
     expect(onClick).not.toHaveBeenCalled();
+    expect(onSubmit).not.toHaveBeenCalled();
   });
 });

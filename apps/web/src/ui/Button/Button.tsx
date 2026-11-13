@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes } from 'react';
+import type { ButtonHTMLAttributes, MouseEvent } from 'react';
 import './Button.css';
 
 type Props = Omit<
@@ -18,6 +18,7 @@ export function Button({
   loading = false,
   disabled,
   type = 'button',
+  onClick,
   children,
   ...rest
 }: Props) {
@@ -26,8 +27,15 @@ export function Button({
       {...rest}
       type={type}
       className={`button button--${variant}${small ? ' button--small' : ''}`}
-      disabled={disabled || loading}
+      // Loading keeps focus (VoiceOver, keyboard): aria-disabled instead of disabled.
+      disabled={disabled}
+      aria-disabled={loading || undefined}
       aria-busy={loading || undefined}
+      onClick={(event: MouseEvent<HTMLButtonElement>) => {
+        if (loading)
+          event.preventDefault(); // also stops a form submit
+        else onClick?.(event);
+      }}
     >
       {loading && <span className="button__spinner" aria-hidden="true" />}
       {children}

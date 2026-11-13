@@ -68,7 +68,8 @@
   /* ── Layers ── */
   --z-tabbar: 10; --z-banner: 20; --z-sheet: 30; --z-alert: 40; --z-toast: 50;
 
-  /* ── Colour: light (default) ── */
+  /* ── Colour ── */
+  /* light values (default); dark overrides below */
   --color-bg: #F8FAF9;              /* page canvas, cool airy white */
   --color-surface: #FFFFFF;
   --color-surface-2: #F1F4F2;

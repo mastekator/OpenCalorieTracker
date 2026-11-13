@@ -60,6 +60,7 @@ export const Matrix: Story = {
     <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
       {variants.map((variant) => (
         <div key={variant} style={{ display: 'grid', gap: 'var(--space-2)' }}>
+          <code>{variant}</code>
           <Labelled variant={variant} />
           <Labelled variant={variant} disabled />
           <Labelled variant={variant} loading />
