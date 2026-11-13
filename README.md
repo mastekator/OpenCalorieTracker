@@ -3,7 +3,7 @@
 Self-hosted calorie tracker that works from a photo: snap your plate, an AI vision model of your choice estimates the dishes with grams, kcal, protein, fat and carbs, you fix what's off and save it to your diary.
 
 - **Self-hosted.** One Docker container (API + SQLite). Runs anywhere Docker runs: home server, NAS, mini PC, Raspberry Pi, VPS.
-- **Pluggable AI provider.** Google Gemini by default; OpenAI, Anthropic, OpenRouter, Ollama or any OpenAI-compatible endpoint.
+- **Pluggable AI provider.** Gemini, OpenAI, Anthropic, OpenRouter, Ollama or any OpenAI-compatible endpoint. No AI configured — enter food manually.
 - **PWA.** Install it on your phone's home screen.
 
 _Russian version of this README: coming later._
@@ -27,8 +27,9 @@ AI_PROVIDER=google AI_MODEL=gemini-2.5-flash AI_API_KEY=... pnpm --filter @oct/s
 
 It prints a table per photo and `N/9 passed`. Send a pull request with your row:
 
-| Provider | Model | Passed | Date | Notes |
-| -------- | ----- | ------ | ---- | ----- |
+| Provider                                           | Model | Passed | Date | Notes |
+| -------------------------------------------------- | ----- | ------ | ---- | ----- |
+| _No results yet — run `check-model` and send a PR_ |       |        |      |       |
 
 ## Privacy
 
