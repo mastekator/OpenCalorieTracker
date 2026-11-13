@@ -1,10 +1,14 @@
+import type { AiModel } from '../ai/model.js';
 import { createApp } from '../app.js';
 import { loadConfig } from '../config.js';
 import { migrate } from '../db/migrate.js';
 import { openDb } from '../db/open.js';
 
-/** The app over a migrated in-memory database; `env` overrides a valid default setup. */
-export function testApp(env: Record<string, string | undefined> = {}) {
+/** The app over a migrated in-memory database; `env` overrides a valid default setup, `model` is the AI. */
+export function testApp(
+  env: Record<string, string | undefined> = {},
+  model: AiModel | null = null,
+) {
   const config = loadConfig({
     PUBLIC_URL: 'http://localhost:3000',
     ADMIN_EMAIL: 'admin@example.com',
@@ -13,7 +17,7 @@ export function testApp(env: Record<string, string | undefined> = {}) {
   });
   const db = openDb(':memory:');
   migrate(db);
-  return { app: createApp({ config, db }), config, db };
+  return { app: createApp({ config, db, model }), config, db };
 }
 
 /** The Set-Cookie line for `name`, if the response sets it. */

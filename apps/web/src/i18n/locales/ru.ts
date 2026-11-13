@@ -41,6 +41,7 @@ const ru: DeepPartial<typeof en> = {
     ai_invalid_response: 'ИИ вернул непонятный ответ. Попробуйте ещё раз',
     photo_too_large: 'Фото слишком большое',
     photo_invalid: 'Не удалось прочитать файл как фото',
+    photo_expired: 'Полное фото уже удалено. Сделайте новое',
     internal: 'Что-то пошло не так. Попробуйте ещё раз',
   },
 };

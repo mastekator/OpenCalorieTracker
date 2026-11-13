@@ -5,6 +5,8 @@ import { serveStatic } from '@hono/node-server/serve-static';
 import type { Database } from 'better-sqlite3';
 import type { ConfigResponse } from '@oct/shared';
 import { accountRoutes } from './account/routes.js';
+import { aiRoutes } from './ai/routes.js';
+import type { AiModel } from './ai/model.js';
 import { authRoutes } from './auth/routes.js';
 import { device } from './auth/device.js';
 import { dummyHash } from './auth/password.js';
@@ -24,6 +26,8 @@ const { version } = JSON.parse(
 export interface AppDeps {
   config: Config;
   db: Database;
+  /** Null or absent: manual mode, no AI configured. */
+  model?: AiModel | null;
 }
 
 export function createApp(deps: AppDeps) {
@@ -44,6 +48,7 @@ export function createApp(deps: AppDeps) {
   app.route('/api', authRoutes(deps));
   app.route('/api', profileRoutes(deps));
   app.route('/api', accountRoutes(deps));
+  app.route('/api', aiRoutes(deps));
   app.route('/api', photoRoutes(deps));
 
   app.get('/api/health', (c) => c.json({ ok: true, version }));
