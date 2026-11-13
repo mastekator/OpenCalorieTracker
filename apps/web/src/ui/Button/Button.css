@@ -1,0 +1,99 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: var(--control-height-lg);
+  padding: var(--space-2) var(--space-4);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--text-headline-size);
+  line-height: var(--text-headline-lh);
+  font-weight: var(--text-headline-weight);
+  text-align: center;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    transform var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
+}
+
+.button:active:not(:disabled) {
+  transform: scale(var(--press-scale));
+}
+
+.button--primary {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+.button--primary:active:not(:disabled) {
+  background: var(--color-accent-pressed);
+}
+
+.button--tonal {
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+
+.button--danger {
+  background: var(--color-danger);
+  color: var(--color-on-danger);
+}
+
+.button--plain,
+.button--danger-plain {
+  min-height: var(--control-height);
+  background: transparent;
+  color: var(--color-accent);
+}
+
+.button--danger-plain {
+  color: var(--color-danger);
+}
+
+.button--small {
+  width: auto;
+  min-height: var(--control-height);
+  font-size: var(--text-subhead-size);
+  line-height: var(--text-subhead-lh);
+}
+
+/* Loading keeps its colours; only a plain disabled button greys out. */
+.button:disabled {
+  cursor: default;
+}
+
+.button:disabled:not([aria-busy]) {
+  background: var(--color-surface-2);
+  color: var(--color-text-disabled);
+}
+
+.button--plain:disabled:not([aria-busy]),
+.button--danger-plain:disabled:not([aria-busy]) {
+  background: transparent;
+}
+
+@media (hover: hover) {
+  .button--plain:hover:not(:disabled),
+  .button--danger-plain:hover:not(:disabled) {
+    background: var(--color-hover);
+  }
+}
+
+.button__spinner {
+  flex: none;
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+  border: calc(var(--icon-stroke) * 1px) solid currentColor; /* same stroke as Lucide icons */
+  border-right-color: transparent;
+  border-radius: var(--radius-full);
+  animation: button-spin var(--duration-spinner) linear infinite;
+}
+
+@keyframes button-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}

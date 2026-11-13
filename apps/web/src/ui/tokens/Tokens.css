@@ -1,0 +1,54 @@
+/* Storybook only: the tokens page. */
+.tokens {
+  display: grid;
+  gap: var(--section-gap);
+  padding: var(--screen-gutter);
+}
+
+.tokens__group {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.tokens__title {
+  font-size: var(--text-title-size);
+  line-height: var(--text-title-lh);
+  font-weight: var(--text-title-weight);
+}
+
+.tokens__row {
+  display: grid;
+  grid-template-columns: var(--space-12) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.tokens__sample {
+  width: var(--space-12);
+  height: var(--space-12);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-separator);
+  background: var(--color-surface);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.tokens__bar {
+  height: var(--space-2);
+  max-width: var(--space-12);
+  background: var(--color-accent);
+}
+
+.tokens__name {
+  font-size: var(--text-subhead-size);
+  font-weight: var(--text-headline-weight);
+  overflow-wrap: anywhere;
+}
+
+.tokens__value {
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+}
