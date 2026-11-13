@@ -1,6 +1,5 @@
+import type { RecognitionStatus } from '@oct/shared';
 import type { AiModel } from './model.js';
-
-export type RecognitionStatus = 'ready' | 'not_configured' | 'no_vision';
 
 // Learned from the first failed call (ADR-0007); kept until restart.
 let vision = true;

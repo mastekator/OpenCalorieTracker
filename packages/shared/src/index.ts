@@ -16,6 +16,9 @@ export type ErrorCode =
   | 'not_found'
   | 'email_taken'
   | 'invite_used'
+  | 'invite_invalid'
+  | 'invite_expired'
+  | 'registration_failed'
   | 'too_many_attempts'
   | 'device_blocked'
   | 'ip_blocked'
@@ -28,6 +31,7 @@ export type ErrorCode =
   | 'photo_too_large'
   | 'photo_invalid'
   | 'client_outdated'
+  | 'photo_expired'
   | 'internal';
 
 export interface ErrorBody {

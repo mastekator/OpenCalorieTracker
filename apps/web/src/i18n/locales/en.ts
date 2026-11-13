@@ -32,6 +32,9 @@ export const en = {
     not_found: 'Not found',
     email_taken: 'This email is already registered',
     invite_used: 'This invitation has already been used',
+    invite_invalid: 'This link is invalid or has been revoked',
+    invite_expired: 'This link has expired',
+    registration_failed: 'Could not create an account with these details',
     too_many_attempts: 'Too many attempts. Try again later',
     device_blocked: 'Sign-in from this device is temporarily blocked',
     ip_blocked: 'Sign-in from this network is temporarily blocked',
@@ -44,6 +47,7 @@ export const en = {
     photo_too_large: 'The photo is too large',
     photo_invalid: 'This file isn’t a photo we can read',
     client_outdated: 'The app has been updated. Please save again',
+    photo_expired: 'The full photo is no longer stored. Take a new one',
     internal: 'Something went wrong. Try again',
   } satisfies Record<ErrorCode, string>,
 };
