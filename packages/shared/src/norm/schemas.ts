@@ -94,3 +94,14 @@ export const targetWeightError = (p: Profile) => {
     return 'target_not_above_weight';
   return null;
 };
+
+/** `PUT /api/profile` body: full replacement of the profile and the manual norm. */
+export const profileRequestSchema = z.object({
+  profile: profileSchema,
+  manual: manualNormSchema.nullable(),
+});
+export type ProfileRequest = z.infer<typeof profileRequestSchema>;
+
+export interface ProfileResponse extends ProfileRequest {
+  rev: number;
+}
