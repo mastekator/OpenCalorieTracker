@@ -1,0 +1,51 @@
+[
+  {
+    "file": "banana.jpg",
+    "dishes": ["banana"],
+    "kcal": [70, 160],
+    "level": "exact"
+  },
+  {
+    "file": "eggs.jpg",
+    "dishes": ["egg", "egg", "egg"],
+    "kcal": [150, 300],
+    "level": "exact"
+  },
+  {
+    "file": "bread-slice.jpg",
+    "dishes": ["rye bread slice"],
+    "kcal": [50, 180],
+    "level": "exact"
+  },
+  {
+    "file": "plov.jpg",
+    "dishes": ["plov"],
+    "kcal": [300, 6000],
+    "level": "notExact"
+  },
+  {
+    "file": "salad.jpg",
+    "dishes": ["spinach and tuna salad with dressing"],
+    "kcal": [150, 650],
+    "level": "notExact"
+  },
+  {
+    "file": "spaghetti.jpg",
+    "dishes": ["spaghetti with tomato sauce and cheese"],
+    "kcal": [300, 1000],
+    "level": "notExact"
+  },
+  {
+    "file": "borscht.jpg",
+    "dishes": ["borscht with sour cream"],
+    "kcal": [100, 450],
+    "level": "notExact"
+  },
+  {
+    "file": "pilaf-and-meat.jpg",
+    "dishes": ["pilaf", "meat in cherry sauce"],
+    "kcal": [800, 6000],
+    "level": "notExact"
+  },
+  { "file": "chair.jpg", "empty": true }
+]
