@@ -1,0 +1,971 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OCT-13 · Визуальная система и экраны входа</title>
+<link rel="stylesheet" href="tokens.css">
+<script>
+  // ?theme=dark|light — для скриншотов; иначе системная тема
+  const t = new URLSearchParams(location.search).get('theme');
+  if (t) document.documentElement.dataset.theme = t;
+</script>
+<style>
+/* ===== Prototype canvas (not part of the app) ===== */
+*{box-sizing:border-box;margin:0}
+html{background:var(--color-bg);color:var(--color-text);font-family:var(--font-sans);-webkit-font-smoothing:antialiased}
+::selection{background:var(--color-selection)}
+body{padding:var(--space-10) var(--space-8)}
+.doc-h1{font-size:var(--text-large-title-size);line-height:var(--text-large-title-lh);font-weight:700;letter-spacing:var(--tracking-tight)}
+.doc-lead{font-size:var(--text-subhead-size);color:var(--color-text-secondary);max-width:70ch;margin-top:var(--space-2)}
+.doc-section{margin-top:var(--space-12)}
+.doc-h2{font-size:var(--text-title-size);font-weight:600;margin-bottom:var(--space-2)}
+.row{display:flex;flex-wrap:wrap;gap:var(--space-8);align-items:flex-start;margin-top:var(--space-6)}
+.frame{display:flex;flex-direction:column;gap:var(--space-3);width:390px}
+.frame>figcaption{font-size:var(--text-footnote-size);color:var(--color-text-secondary);line-height:var(--text-footnote-lh)}
+.frame>figcaption b{color:var(--color-text);font-weight:600}
+
+/* ===== Device chrome (prototype only) ===== */
+.phone{position:relative;width:390px;height:844px;border-radius:48px;overflow:hidden;background:var(--color-bg);outline:1px solid var(--color-separator);display:flex;flex-direction:column}
+.status{height:54px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 32px 0 40px;font-size:var(--text-body-size);font-weight:600}
+.status::after{content:"";width:68px;height:12px;border-radius:var(--radius-full);background:currentColor;opacity:.85;-webkit-mask:linear-gradient(90deg,#000 0 30%,transparent 30% 38%,#000 38% 62%,transparent 62% 70%,#000 70%)}
+.island{position:absolute;top:11px;left:50%;translate:-50% 0;width:124px;height:36px;border-radius:var(--radius-full);background:#000;z-index:100}
+.home-ind{position:absolute;bottom:8px;left:50%;translate:-50% 0;width:134px;height:5px;border-radius:var(--radius-full);background:var(--color-text);z-index:100}
+
+/* ===== App components (tokens only) ===== */
+.icon{width:var(--icon-size);height:var(--icon-size);flex:none;fill:none;stroke:currentColor;stroke-width:var(--icon-stroke);stroke-linecap:round;stroke-linejoin:round}
+.icon.sm{width:var(--icon-size-sm);height:var(--icon-size-sm)}
+.scroll{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.navbar{height:var(--navbar-height);flex:none;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 var(--space-2)}
+.navbar .title{font-size:var(--text-headline-size);font-weight:600}
+.navbar .back{display:flex;align-items:center;gap:2px;color:var(--color-accent);font-size:var(--text-body-size);min-height:var(--tap-min);padding-right:var(--space-2)}
+.navbar .act{justify-self:end;color:var(--color-accent);font-size:var(--text-body-size);min-height:var(--tap-min);display:flex;align-items:center;padding:0 var(--space-2)}
+.large-title{font-size:var(--text-large-title-size);line-height:var(--text-large-title-lh);font-weight:700;letter-spacing:var(--tracking-tight);padding:var(--space-1) var(--screen-gutter) var(--space-2)}
+.pad{padding:0 var(--screen-gutter)}
+.stack{display:flex;flex-direction:column;gap:var(--space-4)}
+.stack-sm{display:flex;flex-direction:column;gap:var(--space-2)}
+.grow{flex:1}
+.bottom{padding:var(--space-4) var(--screen-gutter) calc(34px + var(--space-2));display:flex;flex-direction:column;gap:var(--space-3)}
+.t-title{font-size:var(--text-title-size);line-height:var(--text-title-lh);font-weight:600}
+.t-headline{font-size:var(--text-headline-size);line-height:var(--text-headline-lh);font-weight:600}
+.t-body{font-size:var(--text-body-size);line-height:var(--text-body-lh)}
+.t-sub{font-size:var(--text-subhead-size);line-height:var(--text-subhead-lh)}
+.t-foot{font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh)}
+.t-cap{font-size:var(--text-caption-size);line-height:var(--text-caption-lh);font-weight:500}
+.muted{color:var(--color-text-secondary)}
+.center{text-align:center}
+.num{font-variant-numeric:tabular-nums}
+
+/* brand */
+.brand{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-headline-size);font-weight:600}
+.brand .mark{width:32px;height:32px;border-radius:var(--radius-sm);background:var(--color-accent);color:var(--color-on-accent);display:grid;place-items:center}
+
+/* buttons */
+.btn{appearance:none;border:0;font:inherit;width:100%;min-height:var(--control-height-lg);border-radius:var(--radius-md);font-size:var(--text-headline-size);font-weight:600;display:flex;align-items:center;justify-content:center;gap:var(--space-2);padding:0 var(--space-4);cursor:pointer;transition:transform var(--duration-fast) var(--ease-out),background var(--duration-fast) var(--ease-out)}
+.btn:active{transform:scale(var(--press-scale))}
+.btn:focus-visible{outline:2px solid var(--color-focus-ring);outline-offset:2px}
+.btn-primary{background:var(--color-accent);color:var(--color-on-accent)}
+.btn-primary.pressed{background:var(--color-accent-pressed)}
+.btn-tonal{background:var(--color-accent-soft);color:var(--color-accent)}
+.btn-plain{background:transparent;color:var(--color-accent);min-height:var(--tap-min)}
+.btn-danger{background:var(--color-danger);color:var(--color-on-danger)}
+.btn-danger-plain{background:transparent;color:var(--color-danger);min-height:var(--tap-min)}
+.btn[disabled],.btn.disabled{background:var(--color-surface-2);color:var(--color-text-disabled);cursor:default}
+.btn-plain.disabled{background:transparent}
+.btn-sm{min-height:var(--control-height);width:auto;font-size:var(--text-subhead-size);padding:0 var(--space-4)}
+.link{color:var(--color-accent);font-weight:500;text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px}
+.spinner{width:20px;height:20px;border-radius:50%;border:2px solid currentColor;border-right-color:transparent;animation:spin 800ms linear infinite}
+@keyframes spin{to{rotate:360deg}}
+
+/* fields */
+.field{display:flex;flex-direction:column;gap:var(--space-2)}
+.field label{font-size:var(--text-subhead-size);font-weight:500}
+.input{display:flex;align-items:center;gap:var(--space-2);min-height:var(--control-height-lg);padding:0 var(--space-4);border-radius:var(--radius-md);background:var(--color-surface);border:1px solid var(--color-border-strong);font-size:var(--text-body-size)}
+.input .ph{color:var(--color-text-secondary)}
+.input .val{flex:1}
+.input .trail{color:var(--color-text-secondary);display:grid;place-items:center;width:var(--tap-min);height:var(--tap-min);margin-right:calc(-1 * var(--space-3))}
+.input.focus{border-color:var(--color-accent);box-shadow:inset 0 0 0 1px var(--color-accent)}
+.input.caret .val::after{content:"";display:inline-block;width:2px;height:1.1em;background:var(--color-accent);vertical-align:-3px;margin-left:1px}
+.input.error{border-color:var(--color-danger);box-shadow:inset 0 0 0 1px var(--color-danger)}
+.input.locked{background:var(--color-surface-2);border-color:transparent;color:var(--color-text-secondary)}
+.field .msg{display:flex;gap:var(--space-1);align-items:flex-start;font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);color:var(--color-text-secondary)}
+.field .msg.err{color:var(--color-danger)}
+.rules{list-style:none;padding:0;display:grid;gap:var(--space-1);font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh)}
+.rules li{display:flex;gap:var(--space-2);align-items:center;color:var(--color-text-secondary)}
+.rules li.ok{color:var(--color-accent)}
+.rules li.bad{color:var(--color-danger)}
+
+/* segmented */
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;padding:2px;border-radius:var(--radius-md);background:var(--color-surface-2);min-height:var(--control-height)}
+.seg span{display:grid;place-items:center;border-radius:calc(var(--radius-md) - 2px);font-size:var(--text-subhead-size);font-weight:500;color:var(--color-text-secondary)}
+.seg span.on{background:var(--color-surface);color:var(--color-text);font-weight:600;box-shadow:0 1px 3px rgb(0 0 0 / .12)}
+
+/* grouped lists */
+.group-h{font-size:var(--text-footnote-size);color:var(--color-text-secondary);padding:0 var(--space-4) var(--space-2);margin-top:var(--space-6)}
+.group{background:var(--color-surface);border-radius:var(--radius-md);overflow:hidden}
+.group-f{font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);color:var(--color-text-secondary);padding:var(--space-2) var(--space-4) 0}
+.cell{display:flex;align-items:center;gap:var(--space-3);min-height:var(--control-height);padding:var(--space-3) var(--space-4);position:relative;font-size:var(--text-body-size)}
+.cell+.cell::before{content:"";position:absolute;top:0;right:0;left:var(--space-4);border-top:1px solid var(--color-separator)}
+.cell.ic+.cell::before,.cell.ic+.cell.ic::before{left:calc(var(--space-4) + 30px + var(--space-3))}
+.cell .lead-ic{width:30px;height:30px;border-radius:var(--radius-sm);display:grid;place-items:center;background:var(--color-accent-soft);color:var(--color-accent);flex:none}
+.cell .lead-ic.danger{background:var(--color-danger-soft);color:var(--color-danger)}
+.cell .main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.cell .main .sub{font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.cell .val{color:var(--color-text-secondary)}
+.cell .chev{color:var(--color-text-secondary)}
+.cell.danger{color:var(--color-danger)}
+.cell.accent{color:var(--color-accent)}
+.cell.dis{color:var(--color-text-disabled)}
+.badge{font-size:var(--text-caption-size);font-weight:600;padding:2px var(--space-2);border-radius:var(--radius-sm);background:var(--color-surface-2);color:var(--color-text-secondary);white-space:nowrap}
+.badge.ok{background:var(--color-accent-soft);color:var(--color-accent)}
+.badge.warn{background:var(--color-warning-soft);color:var(--color-warning)}
+.badge.err{background:var(--color-danger-soft);color:var(--color-danger)}
+
+/* banners */
+.banner{display:flex;gap:var(--space-3);align-items:flex-start;padding:var(--space-3) var(--space-4);border-radius:var(--radius-lg);font-size:var(--text-subhead-size);line-height:var(--text-subhead-lh)}
+.banner .b-title{font-weight:600}
+.banner.notice{background:var(--color-notice)}
+.banner.warning{background:var(--color-warning-soft)}
+.banner.warning .icon{color:var(--color-warning)}
+.banner.danger{background:var(--color-danger-soft)}
+.banner.danger .icon{color:var(--color-danger)}
+.banner.accent{background:var(--color-accent-soft)}
+.banner.accent .icon{color:var(--color-accent)}
+.banner .close{margin:-10px -12px -10px auto;width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;color:var(--color-text-secondary);flex:none}
+.offline-bar{display:flex;gap:var(--space-2);align-items:center;justify-content:center;min-height:32px;padding:var(--space-1) var(--space-4);background:var(--color-notice);font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+
+/* divider "или" */
+.or{display:flex;align-items:center;gap:var(--space-3);font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.or::before,.or::after{content:"";flex:1;border-top:1px solid var(--color-separator)}
+
+/* overlays */
+.scrim{position:absolute;inset:0;background:var(--color-scrim);z-index:var(--z-sheet)}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:var(--z-sheet);background:var(--color-surface);border-radius:var(--radius-xl) var(--radius-xl) 0 0;box-shadow:var(--shadow-sheet);padding:var(--space-2) var(--screen-gutter) calc(34px + var(--space-4));display:flex;flex-direction:column;gap:var(--space-4)}
+.sheet .grab{width:36px;height:5px;border-radius:var(--radius-full);background:var(--color-separator);margin:0 auto var(--space-1)}
+.sheet .sheet-head{display:flex;align-items:center;justify-content:space-between}
+.sheet .x{width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;margin-right:calc(-1 * var(--space-3));color:var(--color-text-secondary)}
+.sheet .inset{background:var(--color-surface-2)}
+.alert{position:absolute;left:50%;top:50%;translate:-50% -50%;width:300px;z-index:var(--z-alert);background:var(--color-surface);border-radius:var(--radius-lg);padding:var(--space-5) var(--space-4) var(--space-4);display:flex;flex-direction:column;gap:var(--space-2);text-align:center;box-shadow:var(--shadow-toast)}
+.alert .btns{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-2);margin-top:var(--space-3)}
+.alert .btns.col{grid-template-columns:1fr}
+.toast{position:absolute;left:var(--screen-gutter);right:var(--screen-gutter);bottom:calc(34px + var(--tabbar-height) + var(--space-3));z-index:var(--z-toast);display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);background:var(--color-text);color:var(--color-bg);box-shadow:var(--shadow-toast);font-size:var(--text-subhead-size)}
+.toast .act{margin-left:auto;font-weight:600;min-height:var(--tap-min);display:flex;align-items:center}
+
+/* state blocks */
+.state{display:flex;flex-direction:column;align-items:center;text-align:center;gap:var(--space-2);padding:var(--space-8) var(--space-6)}
+.state .s-ic{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;background:var(--color-surface-2);color:var(--color-text-secondary);margin-bottom:var(--space-2)}
+.state .s-ic.danger{background:var(--color-danger-soft);color:var(--color-danger)}
+.state .s-ic.warning{background:var(--color-warning-soft);color:var(--color-warning)}
+.state p{max-width:30ch}
+.state .btn{margin-top:var(--space-3)}
+.skel{background:var(--color-surface-2);border-radius:var(--radius-sm);height:14px;position:relative;overflow:hidden}
+.skel::after{content:"";position:absolute;inset:0;translate:-100% 0;background:linear-gradient(90deg,transparent,var(--color-surface),transparent);animation:shimmer 1.4s var(--ease-in-out) infinite}
+@keyframes shimmer{to{translate:100% 0}}
+
+/* tab bar */
+.tabbar{position:absolute;left:0;right:0;bottom:0;z-index:var(--z-tabbar);height:calc(var(--tabbar-height) + 34px);padding-bottom:34px;background:var(--tabbar-bg);-webkit-backdrop-filter:var(--tabbar-blur);backdrop-filter:var(--tabbar-blur);border-top:1px solid var(--color-separator);display:grid;grid-template-columns:repeat(5,1fr);align-items:center}
+.tab{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:var(--text-tab-size);font-weight:var(--text-tab-weight);color:var(--color-text-secondary);min-height:var(--tabbar-height);justify-content:center}
+.tab.on{color:var(--color-accent)}
+.cam{justify-self:center;width:var(--camera-button-size);height:var(--camera-button-size);border-radius:50%;background:var(--color-accent);color:var(--color-on-accent);display:grid;place-items:center;box-shadow:var(--shadow-camera);translate:0 -14px}
+.cam .icon{width:30px;height:30px}
+
+/* swatches (docs only) */
+.sw-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-2)}
+.sw{border-radius:var(--radius-md);overflow:hidden;background:var(--color-surface);font-size:var(--text-caption-size);outline:1px solid var(--color-separator)}
+.sw i{display:block;height:44px}
+.sw div{padding:var(--space-2);line-height:1.3}
+.sheetdoc{width:390px;background:var(--color-surface);border-radius:var(--radius-lg);padding:var(--space-5);display:flex;flex-direction:column;gap:var(--space-4);outline:1px solid var(--color-separator)}
+.sheetdoc h3{font-size:var(--text-headline-size)}
+.doc-note{font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.navmap{width:820px;background:var(--color-surface);border-radius:var(--radius-lg);padding:var(--space-6);outline:1px solid var(--color-separator);display:grid;grid-template-columns:repeat(5,1fr);gap:var(--space-3);font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh)}
+.navmap .col{display:flex;flex-direction:column;gap:var(--space-2)}
+.navmap .nd{padding:var(--space-2) var(--space-3);border-radius:var(--radius-sm);background:var(--color-surface-2)}
+.navmap .nd.tab{background:var(--color-accent-soft);color:var(--color-accent);font-weight:600;align-items:flex-start;font-size:var(--text-footnote-size)}
+.navmap .nd.modal{outline:1px dashed var(--color-border-strong);background:transparent}
+.navmap .arrow{color:var(--color-text-secondary);text-align:center}
+
+/* ===== Desktop (≥ 1024px) — section 6 ===== */
+.frame.wide{width:1280px}
+.desk{position:relative;width:1280px;height:800px;border-radius:var(--radius-lg);overflow:hidden;background:var(--color-bg);outline:1px solid var(--color-separator);display:flex;flex-direction:column}
+.desk .chrome{height:36px;flex:none;display:flex;align-items:center;gap:var(--space-2);padding:0 var(--space-4);background:var(--color-surface-2);border-bottom:1px solid var(--color-separator);font-size:var(--text-caption-size);color:var(--color-text-secondary)}
+.desk .chrome i{width:12px;height:12px;border-radius:50%;background:var(--color-separator)}
+.desk .chrome .url{margin-left:var(--space-6);padding:var(--space-1) var(--space-3);border-radius:var(--radius-sm);background:var(--color-surface)}
+.desk .body{flex:1;display:flex;min-height:0}
+.side{width:var(--sidebar-width);flex:none;display:flex;flex-direction:column;gap:var(--space-1);padding:var(--space-6) var(--space-4);border-right:1px solid var(--color-separator)}
+.side .brand{padding:0 var(--space-3) var(--space-6)}
+.side .btn{margin-bottom:var(--space-4)}
+.nav-i{display:flex;align-items:center;gap:var(--space-3);min-height:var(--tap-min);padding:0 var(--space-3);border-radius:var(--radius-md);font-size:var(--text-body-size);color:var(--color-text)}
+.nav-i .icon{color:var(--color-text-secondary)}
+.nav-i.hover{background:var(--color-hover)}
+.nav-i.on{background:var(--color-accent-soft);color:var(--color-accent);font-weight:600}
+.nav-i.on .icon{color:var(--color-accent)}
+.side .foot{margin-top:auto;display:flex;flex-direction:column;gap:var(--space-1)}
+.side .who{padding:var(--space-2) var(--space-3);font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.main-area{flex:1;overflow:hidden;padding:var(--space-8) var(--desktop-gutter)}
+.main-area .inner{max-width:var(--content-max-width-wide);margin:0 auto;display:flex;flex-direction:column;gap:var(--space-6)}
+.main-area .large-title{padding:0}
+.cols{display:grid;grid-template-columns:3fr 2fr;gap:var(--space-6)}
+.drop{display:flex;flex-direction:column;align-items:center;gap:var(--space-2);padding:var(--space-8);border:2px dashed var(--color-border-strong);border-radius:var(--radius-lg);color:var(--color-text-secondary);text-align:center;font-size:var(--text-subhead-size)}
+.auth-desk{flex:1;display:grid;place-items:center}
+.auth-card{width:var(--content-max-width);background:var(--color-surface);border-radius:var(--radius-lg);padding:var(--space-10);box-shadow:var(--shadow-toast)}
+.dialog{position:absolute;left:50%;top:50%;translate:-50% -50%;width:var(--dialog-max-width);z-index:var(--z-sheet);background:var(--color-surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-toast);padding:var(--space-6);display:flex;flex-direction:column;gap:var(--space-4)}
+.dialog .sheet-head{display:flex;align-items:center;justify-content:space-between}
+.dialog .x{width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;margin-right:calc(-1 * var(--space-3));color:var(--color-text-secondary)}
+.kbd{font-size:var(--text-caption-size);padding:1px var(--space-1);border-radius:var(--radius-sm);outline:1px solid var(--color-separator);color:var(--color-text-secondary)}
+.toast.desk-toast{left:50%;right:auto;translate:-50% 0;bottom:var(--space-6);width:auto;max-width:var(--dialog-max-width)}
+</style>
+</head>
+<body>
+
+<!-- Icon sprite: Lucide geometry, 24 grid, stroke 1.75 — dev uses lucide-react with the same names -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-key" viewBox="0 0 24 24"><path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"/><circle cx="16.5" cy="7.5" r=".5"/></symbol>
+  <symbol id="i-chev-r" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="i-chev-l" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+  <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 2v13"/><path d="m16 6-4-4-4 4"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-camera" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></symbol>
+  <symbol id="i-wifi-off" viewBox="0 0 24 24"><path d="M12 20h.01"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/><path d="M5 12.859a10 10 0 0 1 5.17-2.69"/><path d="M19 12.859a10 10 0 0 0-2.007-1.523"/><path d="M2 8.82a15 15 0 0 1 4.177-2.643"/><path d="M22 8.82a15 15 0 0 0-11.288-3.764"/><path d="m2 2 20 20"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
+  <symbol id="i-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></symbol>
+  <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+  <symbol id="i-user-plus" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6"/><path d="M22 11h-6"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></symbol>
+  <symbol id="i-plate" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/></symbol>
+</svg>
+
+<h1 class="doc-h1">OCT-13 · Визуальная система и экраны входа</h1>
+<p class="doc-lead">Макеты для эпика OCT-2. Все значения — из <code>tokens.css</code>. Экран iPhone 14/15 (390 × 844 pt), safe area сверху 54, снизу 34. Тема: системная; для скриншотов — <code>?theme=light</code> / <code>?theme=dark</code>. Спецификация, тексты RU/EN и логика состояний — в документе «Дизайн OCT-13» в проекте.</p>
+
+<!-- ================= 1. SYSTEM ================= -->
+<section class="doc-section" id="system">
+<h2 class="doc-h2">1. Визуальная система и компоненты</h2>
+<div class="row">
+
+  <div class="sheetdoc">
+    <h3>Цвет</h3>
+    <div class="sw-grid">
+      <div class="sw"><i style="background:var(--color-bg)"></i><div>bg</div></div>
+      <div class="sw"><i style="background:var(--color-surface)"></i><div>surface</div></div>
+      <div class="sw"><i style="background:var(--color-surface-2)"></i><div>surface-2</div></div>
+      <div class="sw"><i style="background:var(--color-notice)"></i><div>notice</div></div>
+      <div class="sw"><i style="background:var(--color-text)"></i><div>text</div></div>
+      <div class="sw"><i style="background:var(--color-text-secondary)"></i><div>text-secondary</div></div>
+      <div class="sw"><i style="background:var(--color-border-strong)"></i><div>border-strong</div></div>
+      <div class="sw"><i style="background:var(--color-separator)"></i><div>separator</div></div>
+      <div class="sw"><i style="background:var(--color-accent)"></i><div>accent</div></div>
+      <div class="sw"><i style="background:var(--color-accent-soft)"></i><div>accent-soft</div></div>
+      <div class="sw"><i style="background:var(--color-danger)"></i><div>danger</div></div>
+      <div class="sw"><i style="background:var(--color-warning-soft)"></i><div>warning-soft</div></div>
+      <div class="sw"><i style="background:var(--color-protein)"></i><div>protein</div></div>
+      <div class="sw"><i style="background:var(--color-fat)"></i><div>fat</div></div>
+      <div class="sw"><i style="background:var(--color-carbs)"></i><div>carbs</div></div>
+      <div class="sw"><i style="background:var(--color-danger-soft)"></i><div>danger-soft</div></div>
+    </div>
+    <h3>Типографика · системный шрифт (SF Pro)</h3>
+    <div class="stack-sm">
+      <div class="num" style="font-size:var(--text-display-size);line-height:var(--text-display-lh);font-weight:700;letter-spacing:var(--tracking-tight)">1 240</div>
+      <div class="t-cap muted">display 56 — остаток ккал на «Сегодня»</div>
+      <div class="large-title" style="padding:0">Настройки</div>
+      <div class="t-title">Вас пригласили</div>
+      <div class="t-headline">Headline 17 — кнопки, заголовки строк</div>
+      <div class="t-body">Body 17 — основной текст и поля ввода</div>
+      <div class="t-sub">Subhead 15 — подписи полей, баннеры</div>
+      <div class="t-foot muted">Footnote 13 — подсказки, заголовки групп</div>
+      <div class="t-cap muted">Caption 12 — бейджи</div>
+    </div>
+    <p class="doc-note">Числа всегда <code>tabular-nums</code>. Поддержать Dynamic Type: размеры в rem от 17 px.</p>
+  </div>
+
+  <div class="sheetdoc">
+    <h3>Кнопки (высота 52, радиус 12)</h3>
+    <button class="btn btn-primary"><svg class="icon"><use href="#i-key"/></svg>Войти с passkey</button>
+    <button class="btn btn-primary pressed">Нажата</button>
+    <button class="btn btn-tonal">Войти</button>
+    <button class="btn btn-primary"><span class="spinner"></span>Входим…</button>
+    <button class="btn" disabled>Недоступна</button>
+    <button class="btn btn-danger">Удалить</button>
+    <div style="display:flex;gap:var(--space-2)"><button class="btn btn-plain">Текстовая</button><button class="btn btn-danger-plain">Отозвать</button></div>
+    <h3>Сегмент</h3>
+    <div class="seg"><span class="on">Passkey</span><span>Пароль</span></div>
+    <h3>Бейджи статуса</h3>
+    <div style="display:flex;gap:var(--space-2);flex-wrap:wrap"><span class="badge warn">ожидает</span><span class="badge ok">использовано</span><span class="badge">истекло</span><span class="badge err">отозвано</span><span class="badge ok">админ</span></div>
+    <h3>Тост</h3>
+    <div class="toast" style="position:static"><svg class="icon sm"><use href="#i-check"/></svg>Ссылка скопирована</div>
+  </div>
+
+  <div class="sheetdoc">
+    <h3>Поля (высота 52, ввод 17 pt)</h3>
+    <div class="field"><label>Email</label><div class="input"><span class="ph">name@example.com</span></div></div>
+    <div class="field"><label>Email</label><div class="input focus caret"><span class="val">anna@</span></div></div>
+    <div class="field"><label>Пароль</label><div class="input error"><span class="val">••••••</span><span class="trail"><svg class="icon"><use href="#i-eye"/></svg></span></div><div class="msg err"><svg class="icon sm"><use href="#i-alert"/></svg>Пароли не совпадают</div></div>
+    <div class="field"><label>Email</label><div class="input locked"><span class="val">anna@example.com</span><svg class="icon sm"><use href="#i-lock"/></svg></div><div class="msg">Указан администратором в приглашении</div></div>
+    <h3>Баннеры</h3>
+    <div class="banner notice"><svg class="icon"><use href="#i-wifi-off"/></svg><div>Офлайн — нужно подключение</div></div>
+    <div class="banner warning"><svg class="icon"><use href="#i-clock"/></svg><div><div class="b-title">Слишком много попыток</div>Попробуйте через 14 мин.</div></div>
+    <div class="banner danger"><svg class="icon"><use href="#i-alert"/></svg><div>Неверный email или пароль</div></div>
+    <div class="banner accent"><svg class="icon"><use href="#i-key"/></svg><div>Смените пароль, заданный при установке</div><span class="close"><svg class="icon sm"><use href="#i-x"/></svg></span></div>
+  </div>
+
+  <div class="sheetdoc">
+    <h3>Список (grouped, строка ≥ 44)</h3>
+    <div style="background:var(--color-bg);padding:var(--space-3);border-radius:var(--radius-md)">
+      <div class="group">
+        <div class="cell ic"><span class="lead-ic"><svg class="icon sm"><use href="#i-globe"/></svg></span><span class="main">Язык</span><span class="val">Русский</span><svg class="icon sm chev"><use href="#i-chev-r"/></svg></div>
+        <div class="cell ic"><span class="lead-ic"><svg class="icon sm"><use href="#i-moon"/></svg></span><span class="main">Тема</span><span class="val">Как в системе</span><svg class="icon sm chev"><use href="#i-chev-r"/></svg></div>
+      </div>
+      <div class="group-f">Подпись под группой — пояснение, footnote.</div>
+    </div>
+    <h3>Состояния экрана</h3>
+    <div style="background:var(--color-bg);border-radius:var(--radius-md)">
+      <div class="state" style="padding:var(--space-5)"><div class="s-ic"><svg class="icon"><use href="#i-user-plus"/></svg></div><div class="t-headline">Пусто</div><p class="t-sub muted">Иконка, заголовок, одна фраза, действие</p></div>
+    </div>
+    <div style="background:var(--color-bg);border-radius:var(--radius-md);padding:var(--space-4);display:grid;gap:var(--space-3)">
+      <div class="t-foot muted">Загрузка: скелетоны формы контента, без спиннера на весь экран. Спиннер только в кнопке.</div>
+      <div class="skel" style="width:60%"></div><div class="skel"></div><div class="skel" style="width:80%"></div>
+    </div>
+    <div style="background:var(--color-bg);border-radius:var(--radius-md)">
+      <div class="state" style="padding:var(--space-5)"><div class="s-ic danger"><svg class="icon"><use href="#i-alert"/></svg></div><div class="t-headline">Не удалось загрузить</div><p class="t-sub muted">Проверьте соединение и попробуйте ещё раз</p><button class="btn btn-tonal btn-sm">Повторить</button></div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ================= 2. NAVIGATION ================= -->
+<section class="doc-section" id="nav">
+<h2 class="doc-h2">2. Навигация приложения</h2>
+<div class="row">
+  <figure class="frame">
+    <div class="phone"><div class="island"></div><div class="status">9:41</div>
+      <div class="large-title">Сегодня</div>
+      <div class="pad stack" style="opacity:.55">
+        <div class="skel" style="height:120px;border-radius:var(--radius-lg)"></div>
+        <div class="skel" style="height:64px;border-radius:var(--radius-md)"></div>
+        <div class="skel" style="height:64px;border-radius:var(--radius-md)"></div>
+        <div class="t-foot muted center">Содержимое «Сегодня» — задача OCT-19</div>
+      </div>
+      <nav class="tabbar" aria-label="Разделы">
+        <span class="tab on"><svg class="icon"><use href="#i-home"/></svg>Сегодня</span>
+        <span class="tab"><svg class="icon"><use href="#i-book"/></svg>Дневник</span>
+        <span class="cam" role="button" aria-label="Сфотографировать еду"><svg class="icon"><use href="#i-camera"/></svg></span>
+        <span class="tab"><svg class="icon"><use href="#i-chart"/></svg>Неделя</span>
+        <span class="tab"><svg class="icon"><use href="#i-user"/></svg>Профиль</span>
+      </nav>
+      <div class="home-ind"></div></div>
+    <figcaption><b>Таб-бар на всех основных экранах.</b> Камера — в центре, в зоне большого пальца, видна с любой вкладки: «открыл → камера» = 1 касание. Подпись для VoiceOver «Сфотографировать еду». Таб-бар скрывается на экранах входа, в потоке камеры и на вложенных экранах настроек.</figcaption>
+  </figure>
+
+  <div class="navmap" style="align-self:flex-start">
+    <div class="col"><div class="nd tab">Сегодня (2)</div><div class="arrow">↓</div><div class="nd">Запись приёма → Правка (4)</div></div>
+    <div class="col"><div class="nd tab">Дневник (6)</div><div class="arrow">↓</div><div class="nd">День → запись → Правка (4)</div></div>
+    <div class="col"><div class="nd tab">Камера (кнопка)</div><div class="arrow">↓ модально</div><div class="nd modal">Распознавание (3)</div><div class="arrow">↓</div><div class="nd modal">Правка блюд (4)</div><div class="arrow">↕</div><div class="nd modal">Ручной ввод (5)</div><div class="arrow">Сохранить → Сегодня</div></div>
+    <div class="col"><div class="nd tab">Неделя (7)</div><div class="arrow">↓</div><div class="nd">День недели → Дневник (6)</div></div>
+    <div class="col"><div class="nd tab">Профиль (8)</div><div class="arrow">↓</div><div class="nd">Чат с агентом (9) — модально</div><div class="nd">Настройки (10) — кнопка в навбаре</div><div class="arrow">↓</div><div class="nd">Вход, Мои passkey, Пароль</div><div class="nd">Админ: Приглашения, Пользователи, Блокировки, ИИ-провайдер</div></div>
+    <div class="col" style="grid-column:1/-1;flex-direction:row;gap:var(--space-3);align-items:center"><div class="nd" style="flex:1"><b>Вне таб-бара:</b> Вход (1), Регистрация по приглашению, Восстановление, Недействительная ссылка. Нет сессии → Вход; после входа — «Сегодня» или экран, где выкинуло.</div><div class="nd modal" style="flex:1">Пунктир — модальный поток (лист на весь экран, закрытие «Отмена» / свайп вниз с подтверждением при несохранённых правках).</div></div>
+  </div>
+</div>
+</section>
+
+<!-- ================= 3. LOGIN ================= -->
+<section class="doc-section" id="login">
+<h2 class="doc-h2">3. Вход (экран 1)</h2>
+<div class="row">
+
+  <figure class="frame"><div class="phone"><div class="island"></div><div class="status">9:41</div>
+    <div class="scroll pad" style="padding-top:var(--space-12)">
+      <div class="brand"><span class="mark"><svg class="icon sm"><use href="#i-plate"/></svg></span>OpenCalorieTracker</div>
+      <div class="large-title" style="padding:var(--space-6) 0 var(--space-6)">Вход</div>
+      <div class="stack">
+        <button class="btn btn-primary"><svg class="icon"><use href="#i-key"/></svg>Войти с passkey</button>
+        <div class="or">или по паролю</div>
+        <div class="field"><label>Email</label><div class="input"><span class="ph">name@example.com</span></div></div>
+        <div class="field"><label>Пароль</label><div class="input"><span class="val"></span><span class="trail"><svg class="icon"><use href="#i-eye"/></svg></span></div></div>
+        <button class="btn btn-tonal">Войти</button>
+        <button class="btn btn-plain">Забыли пароль?</button>
+      </div>
+    </div><div class="home-ind"></div></div>
+    <figcaption><b>1.1 По умолчанию</b> (оба способа, регистрация по приглашению). Passkey — главная кнопка: одно касание. Поле email: <code>autocomplete="username webauthn"</code> — iOS сам предложит passkey над клавиатурой. Пароль — с кнопкой «Показать».</figcaption>
+  </figure>
+
+  <figure class="frame"><div class="phone"><div class="island"></div><div class="status">9:41</div>
+    <div class="scroll pad" style="padding-top:var(--space-12)">
+      <div class="brand"><span class="mark"><svg class="icon sm"><use href="#i-plate"/></svg></span>OpenCalorieTracker</div>
+      <div class="large-title" style="padding:var(--space-6) 0 var(--space-6)">Вход</div>
+      <div class="stack">
+        <button class="btn btn-primary"><svg class="icon"><use href="#i-key"/></svg>Войти с passkey</button>
+        <div class="or">или по паролю</div>
+        <div class="banner danger" role="alert"><svg class="icon"><use href="#i-alert"/></svg><div>Неверный email или пароль</div></div>
+        <div class="field"><label>Email</label><div class="input"><span class="val">anna@example.com</span></div></div>
+        <div class="field"><label>Пароль</label><div class="input focus caret"><span class="val"></span><span class="trail"><svg class="icon"><use href="#i-eye"/></svg></span></div></div>
+        <button class="btn btn-tonal">Войти</button>
+        <button class="btn btn-plain">Забыли пароль?</button>
+      </div>
+    </div><div class="home-ind"></div></div>
+    <figcaption><b>1.2 Неверные данные.</b> Баннер над полями, email сохраняется, пароль очищается и получает фокус. Текст одинаковый для неверного email и пароля. Во время запроса — кнопка «Входим…» со спиннером, поля заблокированы.</figcaption>
+  </figure>
+
+  <figure class="frame"><div class="phone"><div class="island"></div><div class="status">9:41</div>
+    <div class="scroll pad" style="padding-top:var(--space-12)">
+      <div class="brand"><span class="mark"><svg class="icon sm"><use href="#i-plate"/></svg></span>OpenCalorieTracker</div>
+      <div class="large-title" style="padding:var(--space-6) 0 var(--space-6)">Вход</div>
+      <div class="stack">
+        <button class="btn btn-primary"><svg class="icon"><use href="#i-key"/></svg>Войти с passkey</button>
+        <div class="or">или по паролю</div>
+        <div class="banner warning" role="status"><svg class="icon"><use href="#i-clock"/></svg><div><div class="b-title">Слишком много попыток</div>Вход по паролю с этого устройства откроется через 14 мин. Passkey работает.</div></div>
+        <div class="field"><label>Email</label><div class="input locked"><span class="val">anna@example.com</span></div></div>
+        <div class="field"><label>Пароль</label><div class="input locked"><span class="val"></span></div></div>
+        <button class="btn" disabled>Войти</button>
+      </div>
+    </div><div class="home-ind"></div></div>
+    <figcaption><b>1.3 Таймаут.</b> Поля и кнопка недоступны, минуты обновляются раз в минуту (<code>aria-live="polite"</code>, без посекундного счётчика). По окончании баннер исчезает сам.</figcaption>
+  </figure>
+
+  <figure class="frame"><div class="phone"><div class="island"></div><div class="status">9:41</div>
+    <div class="scroll pad" style="padding-top:var(--space-12)">
+      <div class="brand"><span class="mark"><svg class="icon sm"><use href="#i-plate"/></svg></span>OpenCalorieTracker</div>
+      <div class="large-title" style="padding:var(--space-6) 0 var(--space-6)">Вход</div>
+      <div class="stack">
+        <button class="btn btn-primary"><svg class="icon"><use href="#i-key"/></svg>Войти с passkey</button>
+        <div class="or">или по паролю</div>
+        <div class="banner danger" role="alert"><svg class="icon"><use href="#i-shield"/></svg><div><div class="b-title">Вход по паролю с этого устройства заблокирован</div>Попросите администратора снять блокировку. Passkey работает.</div></div>
+      </div>
+    </div><div class="home-ind"></div></div>
+    <figcaption><b>1.4 Устройство или адрес заблокированы.</b> Форма пароля скрыта — вводить бесполезно. Passkey остаётся (AC-5.10). Если passkey выключен в конфигурации — без последней фразы.</figcaption>
+  </figure>
+
+  <figure class="frame"><div class="phone"><div class="island"></div><div class="status">9:41</div>
+    <div class="scroll pad" style="padding-top:var(--space-12)">
+      <div class="brand"><span class="mark"><svg class="icon sm"><use href="#i-plate"/></svg></span>OpenCalorieTracker</div>
+      <div class="large-title" style="padding:var(--space-6) 0 var(--space-6)">Вход</div>
+      <div class="stack">
+        <div class="banner notice" role="status"><svg class="icon"><use href="#i-key"/></svg><div><div class="b-title">Нет passkey на этом устройстве</div>Войдите с устройства, где он есть, или попросите администратора прислать ссылку для восстановления.</div></div>
+        <div class="grow"></div>
+      </div>
+    </div>
+    <div class="bottom">
+      <button class="btn btn-primary"><svg class="icon"><use href="#i-key"/></svg>Войти с passkey</button>
+      <button class="btn btn-plain">Потеряли доступ?</button>
+    </div><div class="home-ind"></div></div>
+    <figcaption><b>1.5 Только passkey</b> + нет passkey на устройстве. Кнопка уходит вниз, в зону большого пальца. Если включён пароль — в баннере «Войдите по паролю» вместо второй фразы. «Этот passkey больше не действует» — тот же баннер.</figcaption>
+  </figure>
+
+  <figure class="frame"><div class="phone"><div class="island"></div><div class="status">9:41</div>
+    <div class="scroll pad" style="padding-top:var(--space-12)">
+      <div class="brand"><span class="mark"><svg class="icon sm"><use href="#i-plate"/></svg></span>OpenCalorieTracker</div>
+      <div class="large-title" style="padding:var(--space-6) 0 var(--space-6)">Вход</div>
+      <div class="stack">
+        <div class="banner notice"><svg class="icon"><use href="#i-clock"/></svg><div>Сессия истекла, войдите снова</div></div>
+        <div class="field"><label>Email</label><div class="input"><span class="ph">name@example.com</span></div></div>
+        <div class="field"><label>Пароль</label><div class="input"><span class="val"></span><span class="trail"><svg class="icon"><use href="#i-eye"/></svg></span></div></div>
+        <button class="btn btn-primary">Войти</button>
+        <button class="btn btn-plain">Забыли пароль?</button>
+      </div>
+    </div>
+    <div class="bottom"><div class="t-sub center muted">Нет аккаунта? <span class="link">Создать аккаунт</span></div></div>
+    <div class="home-ind"></div></div>
+    <figcaption><b>1.6 Только пароль + открытая регистрация</b>, вход после истёкшей сессии. Без passkey кнопка «Войти» становится главной. «Создать аккаунт» — внизу, только при открытой регистрации.</figcaption>
+  </figure>
+
+  <figure class="frame"><div class="phone"><div class="island"></div><div class="status">9:41</div>
+    <div class="scroll pad" style="padding-top:var(--space-12)">
+      <div class="brand"><span class="mark"><svg class="icon sm"><use href="#i-plate"/></svg></span>OpenCalorieTracker</div>
+      <div class="large-title" style="padding:var(--space-6) 0 var(--space-6)">Вход</div>
+      <div class="stack" style="opacity:.4"><div class="btn btn-primary">Войти с passkey</div></div>
+    </div>
+    <div class="scrim"></div>
+    <div class="sheet" role="dialog" aria-labelledby="fp">
+      <div class="grab"></div>
+      <div class="sheet-head"><div class="t-title" id="fp">Забыли пароль?</div><span class="x" aria-label="Закрыть"><svg class="icon"><use href="#i-x"/></svg></span></div>
+      <p class="t-body">Приложение не отправляет письма. Попросите администратора этой установки прислать вам ссылку для восстановления — по ней можно задать новый пароль или создать passkey. Дневник сохранится.</p>
+      <button class="btn btn-tonal">Понятно</button>
+    </div><div class="home-ind"></div></div>
+    <figcaption><b>1.7 «Забыли пароль?» / «Потеряли доступ?»</b> — нижний лист. Закрытие: кнопка, крестик, свайп вниз, тап по затемнению.</figcaption>
+  </figure>
+
+  <figure class="frame"><div class="phone"><div class="island"></div><div class="status">9:41</div>
+    <div class="scroll pad" style="padding-top:var(--space-12)">
+      <div class="brand"><span class="mark"><svg class="icon sm"><use href="#i-plate"/></svg></span>OpenCalorieTracker</div>
+      <div class="grow" style="display:grid;place-items:center">
+        <div class="state"><div class="s-ic warning"><svg class="icon"><use href="#i-link"/></svg></div>
+          <div class="t-title">Откройте приложение по его адресу</div>
+          <p class="t-body muted">Вход по passkey работает только по адресу, заданному при установке.</p>
+          <a class="btn btn-primary">Открыть calories.example.com</a></div>
+      </div>
+    </div><div class="home-ind"></div></div>
+    <figcaption><b>1.8 Не тот адрес</b> (IP, http, другой домен). Passkey не вызывается. Вариант «Установка не настроена» — тот же макет без кнопки: «Задайте администратора (или PUBLIC_URL) в конфигурации контейнера. Подробности — в README».</figcaption>
+  </figure>
+
+  <figure class="frame"><div class="phone"><div class="island"></div><div class="status">9:41</div>
+    <div class="offline-bar" role="status"><svg class="icon sm"><use href="#i-wifi-off"/></svg>Нет сети</div>
+    <div class="scroll pad" style="padding-top:var(--space-10)">
+      <div class="brand"><span class="mark"><svg class="icon sm"><use href="#i-plate"/></svg></span>OpenCalorieTracker</div>
+      <div class="large-title" style="padding:var(--space-6) 0 var(--space-6)">Вход</div>
+      <div class="stack">
+        <button class="btn" disabled><svg class="icon"><use href="#i-key"/></svg>Войти с passkey</button>
+        <div class="or">или по паролю</div>
+        <div class="field"><label>Email</label><div class="input"><span class="ph">name@example.com</span></div></div>
+        <div class="field"><label>Пароль</label><div class="input"><span class="val"></span></div></div>
+        <button class="btn" disabled>Войти</button>
+        <p class="t-foot muted center">Для входа нужно подключение к интернету</p>
+      </div>
+    </div><div class="home-ind"></div></div>
+    <figcaption><b>1.9 Офлайн.</b> Поля доступны (можно ввести заранее), кнопки — нет. Сервер недоступен при живой сети — та же полоса с текстом «Сервер недоступен».</figcaption>
+  </figure>
+
+  <figure class="frame"><div class="phone" lang="en"><div class="island"></div><div class="status">9:41</div>
+    <div class="scroll pad" style="padding-top:var(--space-12)">
+      <div class="brand"><span class="mark"><svg class="icon sm"><use href="#i-plate"/></svg></span>OpenCalorieTracker</div>
+      <div class="large-title" style="padding:var(--space-6) 0 var(--space-6)">Sign in</div>
+      <div class="stack">
+        <button class="btn btn-primary"><svg class="icon"><use href="#i-key"/></svg>Sign in with passkey</button>
+        <div class="or">or with password</div>
+        <div class="banner warning"><svg class="icon"><use href="#i-clock"/></svg><div><div class="b-title">Too many attempts</div>Password sign-in on this device reopens in 14 min. Passkey still works.</div></div>
+        <div class="field"><label>Email</label><div class="input locked"><span class="val">anna@example.com</span></div></div>
+        <div class="field"><label>Password</label><div class="input locked"></div></div>
+        <button class="btn" disabled>Sign in</button>
+      </div>
+    </div><div class="home-ind"></div></div>
+    <figcaption><b>1.10 EN</b> — проверка длины строк.</figcaption>
+  </figure>
+</div>
+</section>
+
+<!-- ================= 4. REGISTRATION ================= -->
+<section class="doc-section" id="register">
+<h2 class="doc-h2">4. Приглашение, регистрация, восстановление</h2>
+<div class="row">
+
+  <figure class="frame"><div class="phone"><div class="island"></div><div class="status">9:41</div>
+    <div class="scroll pad" style="padding-top:var(--space-10)">
+      <div class="brand"><span class="mark"><svg class="icon sm"><use href="#i-plate"/></svg></span>OpenCalorieTracker</div>
+      <div class="t-title" style="margin:var(--space-6) 0 var(--space-2)">Вас пригласили в OpenCalorieTracker</div>
+      <p class="t-sub muted" style="margin-bottom:var(--space-6)">Фото еды → калории и БЖУ. Данные хранятся на сервере этой установки.</p>
+      <div class="stack">
+        <div class="field"><label>Email</label><div class="input locked"><span class="val">anna@example.com</span><svg class="icon sm"><use href="#i-lock"/></svg></div></div>
+        <div class="field"><label>Как вас зовут</label><div class="input focus caret"><span class="val">Анна</span></div></div>
+        <div class="field"><label>Способ входа</label><div class="seg"><span class="on">Passkey</span><span>Пароль</span></div>
+          <div class="msg">Вход по Face ID или Touch ID, без пароля. Пароль или passkey можно добавить позже в настройках.</div></div>
+      </div>
+    </div>
+    <div class="bottom"><button class="btn btn-primary"><svg class="icon"><use href="#i-key"/></svg>Создать passkey</button></div>
+    <div class="home-ind"></div></div>
+    <figcaption><b>2.1 Приглашение, passkey.</b> Сегмент только если включены оба способа; по умолчанию — Passkey. Главная кнопка внизу. Отмена системного диалога — без ошибки.</figcaption>
+  </figure>
+
+  <figure class="frame"><div class="phone"><div class="island"></div><div class="status">9:41</div>
+    <div class="scroll pad" style="padding-top:var(--space-4)">
+      <div class="stack">
+        <div class="field"><label>Email</label><div class="input locked"><span class="val">anna@example.com</span><svg class="icon sm"><use href="#i-lock"/></svg></div></div>
+        <div class="field"><label>Как вас зовут</label><div class="input"><span class="val">Анна</span></div></div>
+        <div class="field"><label>Способ входа</label><div class="seg"><span>Passkey</span><span class="on">Пароль</span></div></div>
+        <div class="field"><label>Пароль</label><div class="input"><span class="val">••••••••••</span><span class="trail"><svg class="icon"><use href="#i-eye"/></svg></span></div>
+          <ul class="rules" aria-label="Требования к паролю">
+            <li class="ok"><svg class="icon sm"><use href="#i-check"/></svg>От 8 символов</li>
+            <li class="ok"><svg class="icon sm"><use href="#i-check"/></svg>Буква и цифра</li>
+            <li class="bad"><svg class="icon sm"><use href="#i-x"/></svg>Символ, например ! - _ или пробел</li>
+            <li class="ok"><svg class="icon sm"><use href="#i-check"/></svg>Не совпадает с email</li>
+          </ul></div>
+        <div class="field"><label>Повторите пароль</label><div class="input error"><span class="val">•••••••••</span></div><div class="msg err"><svg class="icon sm"><use href="#i-alert"/></svg>Пароли не совпадают</div></div>
+      </div>
+    </div>
+    <div class="bottom"><button class="btn btn-primary">Создать аккаунт</button></div>
+    <div class="home-ind"></div></div>
+    <figcaption><b>2.2 Приглашение, пароль, ошибки.</b> Правила видны сразу серыми, при вводе — зелёная галочка / красный крест (иконка + цвет). Ошибки — при отправке и при уходе из поля, не на каждую букву. Пароль из списка частых — сообщение под полем: «Этот пароль слишком распространён».</figcaption>
+  </figure>
+
+  <figure class="frame"><div class="phone"><div class="island"></div><div class="status">9:41</div>
+    <div class="scroll pad" style="padding-top:var(--space-10)">
+      <div class="brand"><span class="mark"><svg class="icon sm"><use href="#i-plate"/></svg></span>OpenCalorieTracker</div>
+      <div class="t-title" style="margin:var(--space-6) 0 var(--space-4)">Вас пригласили в OpenCalorieTracker</div>
+      <div class="stack">
+        <div class="banner warning"><svg class="icon"><use href="#i-alert"/></svg><div><div class="b-title">Откройте ссылку в Safari</div>Во встроенном браузере мессенджера passkey может не работать. Пароль работает здесь.</div></div>
+        <button class="btn btn-tonal"><svg class="icon"><use href="#i-copy"/></svg>Скопировать ссылку</button>
+        <div class="field"><label>Email</label><div class="input locked"><span class="val">anna@example.com</span><svg class="icon sm"><use href="#i-lock"/></svg></div></div>
+        <div class="field"><label>Как вас зовут</label><div class="input"><span class="ph">Имя</span></div></div>
+        <div class="field"><label>Способ входа</label><div class="seg"><span>Passkey</span><span class="on">Пароль</span></div></div>
+      </div>
+    </div><div class="home-ind"></div></div>
+    <figcaption><b>2.3 Встроенный браузер</b> (Telegram, Instagram…). Сегмент сразу на «Пароль». Если пароль выключен — только баннер и «Скопировать ссылку».</figcaption>
+  </figure>
+
+  <figure class="frame"><div class="phone"><div class="island"></div><div class="status">9:41</div>
+    <div class="scroll pad" style="padding-top:var(--space-10)">
+      <div class="brand"><span class="mark"><svg class="icon sm"><use href="#i-plate"/></svg></span>OpenCalorieTracker</div>
+      <div class="grow" style="display:grid;place-items:center">
+        <div class="state"><div class="s-ic"><svg class="icon"><use href="#i-link"/></svg></div>
+          <div class="t-title">Срок приглашения истёк</div>
+          <p class="t-body muted">Попросите администратора прислать новое приглашение.</p></div>
+      </div>
+    </div>
+    <div class="bottom"><button class="btn btn-tonal">У меня уже есть аккаунт — войти</button></div>
+    <div class="home-ind"></div></div>
+    <figcaption><b>2.4 Недействительная ссылка.</b> Один макет, три заголовка: «Срок приглашения истёк», «Приглашение больше не действует» (отозвано или ссылка битая), «Приглашение уже использовано» + «Если это были вы — войдите». Для ссылки восстановления — те же тексты со словом «Ссылка».</figcaption>
+  </figure>
+
+  <figure class="frame"><div class="phone"><div class="island"></div><div class="status">9:41</div>
+    <div class="scroll pad" style="padding-top:var(--space-10)">
+      <div class="brand"><span class="mark"><svg class="icon sm"><use href="#i-plate"/></svg></span>OpenCalorieTracker</div>
+      <div class="grow" style="display:grid;place-items:center">
+        <div class="state"><div class="s-ic"><svg class="icon"><use href="#i-user"/></svg></div>
+          <div class="t-title">Вы уже вошли как Олег</div>
+          <p class="t-body muted">Чтобы зарегистрироваться по этому приглашению, сначала выйдите. Приглашение останется действующим.</p></div>
+      </div>
+    </div>
+    <div class="bottom"><button class="btn btn-primary">Выйти и продолжить</button><button class="btn btn-plain">Остаться как Олег</button></div>
+    <div class="home-ind"></div></div>
+    <figcaption><b>2.5 Ссылку открыл вошедший пользователь</b> (E-3.1, E-6.3). «Выйти и продолжить» — выход без доп. подтверждения и сразу экран приглашения.</figcaption>
+  </figure>
+
+  <figure class="frame"><div class="phone"><div class="island"></div><div class="status">9:41</div>
+    <div class="scroll pad" style="padding-top:var(--space-10)">
+      <div class="brand"><span class="mark"><svg class="icon sm"><use href="#i-plate"/></svg></span>OpenCalorieTracker</div>
+      <div class="t-title" style="margin:var(--space-6) 0 var(--space-2)">Восстановление доступа</div>
+      <p class="t-sub muted" style="margin-bottom:var(--space-6)">Для anna@example.com. Дневник и настройки сохранятся.</p>
+      <div class="stack">
+        <div class="field"><label>Способ входа</label><div class="seg"><span class="on">Новый passkey</span><span>Новый пароль</span></div>
+        <div class="msg">Старые passkey не удаляются — лишние уберите в настройках.</div></div>
+      </div>
+    </div>
+    <div class="bottom"><button class="btn btn-primary"><svg class="icon"><use href="#i-key"/></svg>Создать passkey</button></div>
+    <div class="home-ind"></div></div>
+    <figcaption><b>2.6 Восстановление по ссылке.</b> Как приглашение, без поля имени. Пароль — те же поля и правила, что в 2.2.</figcaption>
+  </figure>
+
+  <figure class="frame"><div class="phone"><div class="island"></div><div class="status">9:41</div>
+    <div class="navbar"><span class="back"><svg class="icon"><use href="#i-chev-l"/></svg>Вход</span><span class="title"></span></div>
+    <div class="scroll pad">
+      <div class="large-title" style="padding:0 0 var(--space-6)">Новый аккаунт</div>
+      <div class="stack">
+        <div class="field"><label>Email</label><div class="input"><span class="ph">name@example.com</span></div><div class="msg">Это ваш логин. Писем приложение не отправляет.</div></div>
+        <div class="field"><label>Как вас зовут</label><div class="input"><span class="ph">Имя</span></div></div>
+        <div class="field"><label>Способ входа</label><div class="seg"><span class="on">Passkey</span><span>Пароль</span></div></div>
+        <div class="banner danger"><svg class="icon"><use href="#i-alert"/></svg><div>Не удалось создать аккаунт с этим email</div></div>
+      </div>
+    </div>
+    <div class="bottom"><button class="btn btn-primary"><svg class="icon"><use href="#i-key"/></svg>Создать passkey</button></div>
+    <div class="home-ind"></div></div>
+    <figcaption><b>2.7 Открытая регистрация</b> (только при REGISTRATION=open). Ошибка про занятый email — нейтральная, без «такой уже есть».</figcaption>
+  </figure>
+</div>
+</section>
+
+<!-- ================= 5. SETTINGS ================= -->
+<section class="doc-section" id="settings">
+<h2 class="doc-h2">5. Настройки (экран 10): вход и администрирование</h2>
+<div class="row">
+
+  <figure class="frame"><div class="phone"><div class="island"></div><div class="status">9:41</div>
+    <div class="navbar"><span class="back"><svg class="icon"><use href="#i-chev-l"/></svg>Профиль</span></div>
+    <div class="scroll pad">
+      <div class="large-title" style="padding:0 0 var(--space-2)">Настройки</div>
+      <div class="group-h">Внешний вид</div>
+      <div class="group">
+        <div class="cell ic"><span class="lead-ic"><svg class="icon sm"><use href="#i-globe"/></svg></span><span class="main">Язык</span><span class="val">Русский</span><svg class="icon sm chev"><use href="#i-chev-r"/></svg></div>
+        <div class="cell ic"><span class="lead-ic"><svg class="icon sm"><use href="#i-moon"/></svg></span><span class="main">Тема</span><span class="val">Как в системе</span><svg class="icon sm chev"><use href="#i-chev-r"/></svg></div>
+      </div>
+      <div class="group-h">Вход · anna@example.com</div>
+      <div class="group">
+        <div class="cell ic"><span class="lead-ic"><svg class="icon sm"><use href="#i-key"/></svg></span><span class="main">Мои passkey</span><span class="val num">2</span><svg class="icon sm chev"><use href="#i-chev-r"/></svg></div>
+        <div class="cell ic"><span class="lead-ic"><svg class="icon sm"><use href="#i-lock"/></svg></span><span class="main">Сменить пароль</span><svg class="icon sm chev"><use href="#i-chev-r"/></svg></div>
+      </div>
+      <div class="group-h">Приложение</div>
+      <div class="group">
+        <div class="cell ic"><span class="lead-ic"><svg class="icon sm"><use href="#i-download"/></svg></span><span class="main">Установить на экран «Домой»</span><svg class="icon sm chev"><use href="#i-chev-r"/></svg></div>
+        <div class="cell ic"><span class="lead-ic"><svg class="icon sm"><use href="#i-spark"/></svg></span><span class="main">Распознавание фото<span class="sub">Google Gemini. Фото отправляются этому сервису</span></span></div>
+      </div>
+      <div class="group" style="margin-top:var(--space-6)"><div class="cell danger" style="justify-content:center">Выйти</div></div>
+      <div class="t-foot muted center num" style="margin-top:var(--space-4)">Версия 0.1.0</div>
+    </div><div class="home-ind"></div></div>
+    <figcaption><b>3.1 Настройки — пользователь.</b> Вход — из «Профиля» (иконка настроек в навбаре профиля). Строки «Установить…» нет в установленной PWA. Таб-бар скрыт.</figcaption>
+  </figure>
+
+  <figure class="frame"><div class="phone"><div class="island"></div><div class="status">9:41</div>
+    <div class="navbar"><span class="back"><svg class="icon"><use href="#i-chev-l"/></svg>Профиль</span></div>
+    <div class="scroll pad">
+      <div class="large-title" style="padding:0 0 var(--space-4)">Настройки</div>
+      <div class="banner accent"><svg class="icon"><use href="#i-key"/></svg><div><div class="b-title">Смените пароль, заданный при установке</div><span class="link">Сменить пароль</span></div><span class="close" aria-label="Скрыть"><svg class="icon sm"><use href="#i-x"/></svg></span></div>
+      <div class="group-h">Администрирование</div>
+      <div class="group">
+        <div class="cell ic"><span class="lead-ic"><svg class="icon sm"><use href="#i-user-plus"/></svg></span><span class="main">Приглашения</span><span class="val num">1 ожидает</span><svg class="icon sm chev"><use href="#i-chev-r"/></svg></div>
+        <div class="cell ic"><span class="lead-ic"><svg class="icon sm"><use href="#i-users"/></svg></span><span class="main">Пользователи</span><span class="val num">3</span><svg class="icon sm chev"><use href="#i-chev-r"/></svg></div>
+        <div class="cell ic"><span class="lead-ic danger"><svg class="icon sm"><use href="#i-shield"/></svg></span><span class="main">Блокировки</span><span class="badge err num">2</span><svg class="icon sm chev"><use href="#i-chev-r"/></svg></div>
+        <div class="cell ic"><span class="lead-ic"><svg class="icon sm"><use href="#i-spark"/></svg></span><span class="main">ИИ-провайдер</span><span class="badge ok">Работает</span><svg class="icon sm chev"><use href="#i-chev-r"/></svg></div>
+      </div>
+      <div class="group-h">Внешний вид</div>
+      <div class="group">
+        <div class="cell ic"><span class="lead-ic"><svg class="icon sm"><use href="#i-globe"/></svg></span><span class="main">Язык</span><span class="val">Русский</span><svg class="icon sm chev"><use href="#i-chev-r"/></svg></div>
+        <div class="cell ic"><span class="lead-ic"><svg class="icon sm"><use href="#i-moon"/></svg></span><span class="main">Тема</span><span class="val">Как в системе</span><svg class="icon sm chev"><use href="#i-chev-r"/></svg></div>
+      </div>
+      <div class="group-h">Вход · admin@example.com</div>
+      <div class="group"><div class="cell ic"><span class="lead-ic"><svg class="icon sm"><use href="#i-key"/></svg></span><span class="main">Мои passkey</span><span class="val">Нет</span><svg class="icon sm chev"><use href="#i-chev-r"/></svg></div></div>
+    </div><div class="home-ind"></div></div>
+    <figcaption><b>3.2 Настройки — администратор.</b> Раздел «Администрирование» первым: к нему админ приходит чаще. Бейдж блокировок красный, только если они есть. Подсказка смены пароля — до смены или закрытия крестиком.</figcaption>
+  </figure>
+
+  <figure class="frame"><div class="phone"><div class="island"></div><div class="status">9:41</div>
+    <div class="navbar"><span class="back"><svg class="icon"><use href="#i-chev-l"/></svg>Настройки</span><span class="title">Мои passkey</span></div>
+    <div class="scroll pad">
+      <div class="group" style="margin-top:var(--space-4)">
+        <div class="cell"><span class="main">iPhone · Safari<span class="sub num">Создан 13 нояб. · использован сегодня</span></span><span class="badge ok">это устройство</span></div>
+        <div class="cell"><span class="main">MacBook · Chrome<span class="sub num">Создан 2 окт. · использован 5 нояб.</span></span><svg class="icon sm chev"><use href="#i-chev-r"/></svg></div>
+      </div>
+      <div class="group-f">Нажмите на passkey, чтобы переименовать или удалить его.</div>
+      <div class="group" style="margin-top:var(--space-6)"><div class="cell accent"><svg class="icon sm"><use href="#i-plus"/></svg><span class="main">Добавить passkey на этом устройстве</span></div></div>
+    </div>
+    <div class="scrim"></div>
+    <div class="sheet" role="dialog">
+      <div class="grab"></div>
+      <div class="sheet-head"><div class="t-title">MacBook · Chrome</div><span class="x"><svg class="icon"><use href="#i-x"/></svg></span></div>
+      <div class="field"><label>Название</label><div class="input inset"><span class="val">MacBook · Chrome</span></div></div>
+      <button class="btn btn-tonal">Сохранить название</button>
+      <button class="btn btn-danger-plain">Удалить passkey</button>
+    </div>
+    <div class="home-ind"></div></div>
+    <figcaption><b>3.3 Мои passkey.</b> Если passkey последний и пароля нет — «Удалить» недоступна, под ней: «Это единственный способ войти». Удаление — с подтверждением «Удалить passkey «MacBook · Chrome»? Войти с ним больше не получится».</figcaption>
+  </figure>
+
+  <figure class="frame"><div class="phone"><div class="island"></div><div class="status">9:41</div>
+    <div class="navbar"><span class="back"><svg class="icon"><use href="#i-chev-l"/></svg>Настройки</span><span class="title">Пароль</span></div>
+    <div class="scroll pad">
+      <div class="stack" style="margin-top:var(--space-4)">
+        <div class="field"><label>Текущий пароль</label><div class="input"><span class="val">••••••••••</span><span class="trail"><svg class="icon"><use href="#i-eye"/></svg></span></div></div>
+        <div class="field"><label>Новый пароль</label><div class="input focus caret"><span class="val">••••</span><span class="trail"><svg class="icon"><use href="#i-eye"/></svg></span></div>
+          <ul class="rules"><li><svg class="icon sm"><use href="#i-circle"/></svg>От 8 символов</li><li class="ok"><svg class="icon sm"><use href="#i-check"/></svg>Буква и цифра</li><li><svg class="icon sm"><use href="#i-circle"/></svg>Символ, например ! - _ или пробел</li><li class="ok"><svg class="icon sm"><use href="#i-check"/></svg>Не совпадает с email</li></ul></div>
+        <div class="field"><label>Повторите новый пароль</label><div class="input"></div></div>
+        <p class="t-foot muted">Другие устройства останутся в аккаунте.</p>
+      </div>
+    </div>
+    <div class="bottom"><button class="btn" disabled>Сменить пароль</button></div>
+    <div class="home-ind"></div></div>
+    <figcaption><b>3.4 Смена пароля.</b> Кнопка активна, когда поля заполнены. Неверный текущий — ошибка под полем «Неверный пароль». Успех — возврат в настройки + тост «Пароль изменён». Нет пароля — экран «Задать пароль» без первого поля.</figcaption>
+  </figure>
+
+  <figure class="frame"><div class="phone"><div class="island"></div><div class="status">9:41</div>
+    <div class="navbar"><span class="back"><svg class="icon"><use href="#i-chev-l"/></svg>Настройки</span><span class="title">Приглашения</span><span class="act" aria-label="Пригласить"><svg class="icon"><use href="#i-plus"/></svg></span></div>
+    <div class="scroll pad">
+      <div class="group-h">Ожидают</div>
+      <div class="group">
+        <div class="cell"><span class="main">masha@example.com<span class="sub num">Действует до 20 нояб.</span></span><span class="btn btn-danger-plain btn-sm" style="padding:0">Отозвать</span></div>
+      </div>
+      <div class="group-f">Ссылку показываем один раз. Потеряли — создайте новое приглашение на тот же email: старое отзовётся само.</div>
+      <div class="group-h">Ранее · 30 дней</div>
+      <div class="group">
+        <div class="cell"><span class="main">oleg@example.com<span class="sub num">Использовано 10 нояб., 18:42</span></span><span class="badge ok">использовано</span></div>
+        <div class="cell"><span class="main">ivan@example.com<span class="sub num">Создано 1 нояб.</span></span><span class="badge">истекло</span></div>
+        <div class="cell"><span class="main">typo@exmaple.com<span class="sub num">Создано 1 нояб.</span></span><span class="badge err">отозвано</span></div>
+      </div>
+      <div class="group-f">Старше 30 дней — скрыты. <span class="link">Показать все</span></div>
+    </div>
+    <div class="bottom"><button class="btn btn-primary"><svg class="icon"><use href="#i-user-plus"/></svg>Пригласить</button></div>
+    <div class="home-ind"></div></div>
+    <figcaption><b>4.1 Приглашения.</b> «Отозвать» — текстом, а не свайпом (доступно для VoiceOver). Подтверждение: «Отозвать приглашение для masha@example.com? Ссылка перестанет работать» → «Отозвать» (красная) / «Отмена». Пусто: «Приглашений пока нет» + «Пригласить».</figcaption>
+  </figure>
+
+  <figure class="frame"><div class="phone"><div class="island"></div><div class="status">9:41</div>
+    <div class="navbar"><span class="back"><svg class="icon"><use href="#i-chev-l"/></svg>Настройки</span><span class="title">Приглашения</span></div>
+    <div class="scrim"></div>
+    <div class="sheet" role="dialog">
+      <div class="grab"></div>
+      <div class="sheet-head"><div class="t-title">Новое приглашение</div><span class="x"><svg class="icon"><use href="#i-x"/></svg></span></div>
+      <div class="field"><label>Email приглашаемого</label><div class="input focus caret inset"><span class="val">masha@example.com</span></div><div class="msg">Это будет логин. Изменить его при регистрации нельзя.</div></div>
+      <button class="btn btn-primary">Создать ссылку</button>
+    </div>
+    <div class="home-ind"></div></div>
+    <figcaption><b>4.2 Новое приглашение.</b> Email обязателен, <code>type="email"</code>. Ошибки под полем: «Введите email», «Пользователь с таким email уже есть». Если на email уже ждёт приглашение — под полем подсказка «Прежнее приглашение на этот email будет отозвано».</figcaption>
+  </figure>
+
+  <figure class="frame"><div class="phone"><div class="island"></div><div class="status">9:41</div>
+    <div class="navbar"><span class="back"><svg class="icon"><use href="#i-chev-l"/></svg>Настройки</span><span class="title">Приглашения</span></div>
+    <div class="scrim"></div>
+    <div class="sheet" role="dialog">
+      <div class="grab"></div>
+      <div class="sheet-head"><div class="t-title">Ссылка готова</div><span class="x"><svg class="icon"><use href="#i-x"/></svg></span></div>
+      <p class="t-sub muted">Для masha@example.com. Действует 7 дней, до 20 нояб. Сохраните её сейчас: потом посмотреть ссылку будет нельзя.</p>
+      <div class="input inset" style="font-size:var(--text-subhead-size);word-break:break-all;padding:var(--space-3) var(--space-4)">https://calories.example.com/invite/k7Qm2vXh9pL…R4tW</div>
+      <button class="btn btn-primary"><svg class="icon"><use href="#i-share"/></svg>Поделиться</button>
+      <button class="btn btn-tonal"><svg class="icon"><use href="#i-copy"/></svg>Скопировать</button>
+    </div>
+    <div class="toast" style="bottom:calc(34px + 400px)"><svg class="icon sm"><use href="#i-check"/></svg>Ссылка скопирована</div>
+    <div class="home-ind"></div></div>
+    <figcaption><b>4.3 Ссылка готова.</b> «Поделиться» — <code>navigator.share</code> (на десктопе без него кнопки нет, «Скопировать» становится главной). Закрытие листа без копирования — подтверждение «Закрыть? Ссылку больше не покажем».</figcaption>
+  </figure>
+
+  <figure class="frame"><div class="phone"><div class="island"></div><div class="status">9:41</div>
+    <div class="navbar"><span class="back"><svg class="icon"><use href="#i-chev-l"/></svg>Настройки</span><span class="title">Пользователи</span></div>
+    <div class="scroll pad">
+      <div class="group" style="margin-top:var(--space-4)">
+        <div class="cell"><span class="main">Олег<span class="sub">admin@example.com</span><span class="sub num">С 1 нояб. · вход сегодня</span></span><span class="badge ok">админ</span></div>
+        <div class="cell"><span class="main">Анна<span class="sub">anna@example.com</span><span class="sub num">С 10 нояб. · вход вчера</span></span><svg class="icon sm chev"><use href="#i-chev-r"/></svg></div>
+        <div class="cell"><span class="main">Иван<span class="sub">ivan@example.com</span><span class="sub num">С 3 нояб. · входов не было</span></span><svg class="icon sm chev"><use href="#i-chev-r"/></svg></div>
+      </div>
+    </div>
+    <div class="scrim"></div>
+    <div class="sheet" role="dialog">
+      <div class="grab"></div>
+      <div class="sheet-head"><div class="t-title">Анна</div><span class="x"><svg class="icon"><use href="#i-x"/></svg></span></div>
+      <p class="t-sub muted num">anna@example.com · с 10 нояб. · последний вход 12 нояб.</p>
+      <button class="btn btn-tonal"><svg class="icon"><use href="#i-link"/></svg>Ссылка для восстановления</button>
+      <button class="btn btn-danger-plain">Удалить пользователя</button>
+    </div>
+    <div class="home-ind"></div></div>
+    <figcaption><b>4.4 Пользователи.</b> Строка админа без перехода (себя удалить нельзя). Ссылка восстановления — тот же лист «Ссылка готова» с текстом «Ссылка для восстановления доступа: Анна».</figcaption>
+  </figure>
+
+  <figure class="frame"><div class="phone"><div class="island"></div><div class="status">9:41</div>
+    <div class="navbar"><span class="back"><svg class="icon"><use href="#i-chev-l"/></svg>Настройки</span><span class="title">Пользователи</span></div>
+    <div class="scroll pad" style="opacity:.6"><div class="group" style="margin-top:var(--space-4)"><div class="cell"><span class="main">Анна</span></div></div></div>
+    <div class="scrim"></div>
+    <div class="alert" role="alertdialog" aria-labelledby="del-t">
+      <div class="t-headline" id="del-t">Удалить пользователя Анна?</div>
+      <p class="t-sub">Будут удалены дневник, профиль и фото пользователя Анна. Отменить нельзя.</p>
+      <div class="btns"><button class="btn btn-tonal btn-sm" style="width:100%">Отмена</button><button class="btn btn-danger btn-sm" style="width:100%">Удалить</button></div>
+    </div>
+    <div class="home-ind"></div></div>
+    <figcaption><b>4.5 Подтверждение удаления.</b> Фокус по умолчанию — на «Отмена». После удаления — тост «Пользователь Анна удалён». Тот же шаблон диалога для «Отозвать» и «Выйти» («Выйти из аккаунта?» — «Выйти» / «Отмена»; при несохранённых правках добавляется «Несохранённые изменения пропадут»).</figcaption>
+  </figure>
+
+  <figure class="frame"><div class="phone"><div class="island"></div><div class="status">9:41</div>
+    <div class="navbar"><span class="back"><svg class="icon"><use href="#i-chev-l"/></svg>Настройки</span><span class="title">Блокировки</span></div>
+    <div class="scroll pad">
+      <div class="group" style="margin-top:var(--space-4)">
+        <div class="cell" style="flex-direction:column;align-items:stretch;gap:var(--space-2)"><span class="main"><span class="t-headline">Safari, iPhone</span><span class="sub num">IP 93.184.216.34 · с 12 нояб., 22:10</span><span class="sub num">15 неудачных попыток · последняя для anna@example.com</span></span><span class="btn btn-tonal btn-sm" style="align-self:flex-start">Разблокировать</span></div>
+        <div class="cell" style="flex-direction:column;align-items:stretch;gap:var(--space-2)"><span class="main"><span class="t-headline">Весь адрес</span><span class="sub num">IP 185.220.101.7 · с 13 нояб., 03:41</span><span class="sub num">60 неудачных попыток · последняя для admin@example.com</span></span><span class="btn btn-tonal btn-sm" style="align-self:flex-start">Разблокировать</span></div>
+      </div>
+      <div class="group-f">Блокировка не снимается сама. Узнали своё устройство — разблокируйте. Чужое оставьте: passkey и открытые сессии пользователей работают.</div>
+    </div>
+    <div class="home-ind"></div></div>
+    <figcaption><b>4.6 Блокировки.</b> Разблокировать — без подтверждения, строка исчезает, тост «Разблокировано». Пусто: иконка щита, «Блокировок нет». Подпись кнопки для VoiceOver: «Разблокировать Safari, iPhone, 93.184.216.34».</figcaption>
+  </figure>
+
+  <figure class="frame"><div class="phone"><div class="island"></div><div class="status">9:41</div>
+    <div class="navbar"><span class="back"><svg class="icon"><use href="#i-chev-l"/></svg>Профиль</span></div>
+    <div class="offline-bar" role="status"><svg class="icon sm"><use href="#i-wifi-off"/></svg>Офлайн · данные на 12:40</div>
+    <div class="scroll pad">
+      <div class="large-title" style="padding:var(--space-2) 0">Настройки</div>
+      <div class="group-h">Администрирование</div>
+      <div class="group">
+        <div class="cell ic dis"><span class="lead-ic" style="background:var(--color-surface-2);color:var(--color-text-disabled)"><svg class="icon sm"><use href="#i-user-plus"/></svg></span><span class="main">Приглашения</span></div>
+        <div class="cell ic dis"><span class="lead-ic" style="background:var(--color-surface-2);color:var(--color-text-disabled)"><svg class="icon sm"><use href="#i-users"/></svg></span><span class="main">Пользователи</span></div>
+        <div class="cell ic dis"><span class="lead-ic" style="background:var(--color-surface-2);color:var(--color-text-disabled)"><svg class="icon sm"><use href="#i-shield"/></svg></span><span class="main">Блокировки</span></div>
+      </div>
+      <div class="group-f">Администрирование доступно только при подключении к интернету.</div>
+      <div class="group-h">Внешний вид</div>
+      <div class="group">
+        <div class="cell ic"><span class="lead-ic"><svg class="icon sm"><use href="#i-globe"/></svg></span><span class="main">Язык</span><span class="val">Русский</span><svg class="icon sm chev"><use href="#i-chev-r"/></svg></div>
+        <div class="cell ic"><span class="lead-ic"><svg class="icon sm"><use href="#i-moon"/></svg></span><span class="main">Тема</span><span class="val">Тёмная</span><svg class="icon sm chev"><use href="#i-chev-r"/></svg></div>
+      </div>
+      <div class="group" style="margin-top:var(--space-6)"><div class="cell danger" style="justify-content:center">Выйти</div></div>
+    </div>
+    <div class="toast" style="bottom:calc(34px + var(--space-3))"><svg class="icon sm"><use href="#i-wifi-off"/></svg>Нужно подключение к интернету</div>
+    <div class="home-ind"></div></div>
+    <figcaption><b>3.5 Офлайн.</b> Полоса «Офлайн · данные на …» под навбаром на любом экране. Недоступные строки серые, нажатие — тост. Язык, тема и выход работают офлайн.</figcaption>
+  </figure>
+</div>
+</section>
+
+<!-- ================= 6. DESKTOP ================= -->
+<section class="doc-section" id="desktop">
+<h2 class="doc-h2">6. Десктоп: окно браузера ≥ 1024 px</h2>
+<div class="row">
+  <figure class="frame wide"><div class="desk"><div class="chrome"><i></i><i></i><i></i><span class="url">calories.example.com</span></div>
+    <div class="body">
+      <aside class="side" aria-label="Разделы">
+        <div class="brand"><span class="mark"><svg class="icon sm"><use href="#i-plate"/></svg></span>OpenCalorieTracker</div>
+        <button class="btn btn-primary"><svg class="icon"><use href="#i-camera"/></svg>Добавить еду</button>
+        <span class="nav-i on"><svg class="icon"><use href="#i-home"/></svg>Сегодня</span>
+        <span class="nav-i hover"><svg class="icon"><use href="#i-book"/></svg>Дневник</span>
+        <span class="nav-i"><svg class="icon"><use href="#i-chart"/></svg>Неделя</span>
+        <span class="nav-i"><svg class="icon"><use href="#i-user"/></svg>Профиль</span>
+        <div class="foot">
+          <span class="nav-i"><svg class="icon"><use href="#i-settings"/></svg>Настройки</span>
+          <span class="who">anna@example.com</span>
+        </div>
+      </aside>
+      <main class="main-area"><div class="inner">
+        <div class="large-title">Сегодня</div>
+        <div class="cols">
+          <div class="stack" style="opacity:.55">
+            <div class="skel" style="height:160px;border-radius:var(--radius-lg)"></div>
+            <div class="skel" style="height:64px;border-radius:var(--radius-md)"></div>
+            <div class="skel" style="height:64px;border-radius:var(--radius-md)"></div>
+            <div class="skel" style="height:64px;border-radius:var(--radius-md)"></div>
+          </div>
+          <div class="stack">
+            <div class="drop"><svg class="icon"><use href="#i-download"/></svg><b style="color:var(--color-text)">Перетащите фото еды сюда</b>или вставьте его: <span><span class="kbd">Ctrl</span> / <span class="kbd">⌘</span> + <span class="kbd">V</span></span></div>
+            <div class="t-foot muted">Содержимое «Сегодня» и вторая колонка — задачи OCT-19 и OCT-16. Здесь — только каркас.</div>
+          </div>
+        </div>
+      </div></main>
+    </div></div>
+    <figcaption><b>6.1 Основной экран.</b> Боковая панель шириной <code>--sidebar-width</code> вместо таб-бара. Главная кнопка «Добавить еду» открывает выбор файла; фото можно перетащить в окно или вставить из буфера. Контент шириной до <code>--content-max-width-wide</code>, на «Сегодня» и в «Дневнике» две колонки. У строк и пунктов меню при наведении фон <code>--color-hover</code> (здесь показан на «Дневнике»).</figcaption>
+  </figure>
+
+  <figure class="frame wide"><div class="desk"><div class="chrome"><i></i><i></i><i></i><span class="url">calories.example.com</span></div>
+    <div class="auth-desk"><div class="auth-card">
+      <div class="brand"><span class="mark"><svg class="icon sm"><use href="#i-plate"/></svg></span>OpenCalorieTracker</div>
+      <div class="large-title" style="padding:var(--space-6) 0">Вход</div>
+      <div class="stack">
+        <button class="btn btn-primary"><svg class="icon"><use href="#i-key"/></svg>Войти с passkey</button>
+        <div class="or">или по паролю</div>
+        <div class="field"><label>Email</label><div class="input"><span class="ph">name@example.com</span></div></div>
+        <div class="field"><label>Пароль</label><div class="input"><span class="val"></span><span class="trail"><svg class="icon"><use href="#i-eye"/></svg></span></div></div>
+        <button class="btn btn-tonal">Войти</button>
+        <button class="btn btn-plain">Забыли пароль?</button>
+      </div>
+    </div></div></div>
+    <figcaption><b>6.2 Вход и все экраны без меню</b> (приглашение, восстановление, недействительная ссылка): та же форма, что на телефоне, в карточке шириной <code>--content-max-width</code> по центру окна. <span class="kbd">Enter</span> отправляет форму. Passkey на компьютере — Touch ID, Windows Hello или телефон по QR, это делает браузер.</figcaption>
+  </figure>
+
+  <figure class="frame wide"><div class="desk"><div class="chrome"><i></i><i></i><i></i><span class="url">calories.example.com</span></div>
+    <div class="body">
+      <aside class="side" aria-label="Разделы">
+        <div class="brand"><span class="mark"><svg class="icon sm"><use href="#i-plate"/></svg></span>OpenCalorieTracker</div>
+        <button class="btn btn-primary"><svg class="icon"><use href="#i-camera"/></svg>Добавить еду</button>
+        <span class="nav-i"><svg class="icon"><use href="#i-home"/></svg>Сегодня</span>
+        <span class="nav-i hover"><svg class="icon"><use href="#i-book"/></svg>Дневник</span>
+        <span class="nav-i"><svg class="icon"><use href="#i-chart"/></svg>Неделя</span>
+        <span class="nav-i"><svg class="icon"><use href="#i-user"/></svg>Профиль</span>
+        <div class="foot">
+          <span class="nav-i on"><svg class="icon"><use href="#i-settings"/></svg>Настройки</span>
+          <span class="who">anna@example.com</span>
+        </div>
+      </aside>
+      <main class="main-area"><div class="inner" style="max-width:var(--content-max-width)">
+        <div class="large-title">Приглашения</div>
+        <div class="group">
+          <div class="cell"><span class="main">masha@example.com<span class="sub">Ждёт · действует до 20 ноября</span></span><span class="badge warn">Ждёт</span></div>
+          <div class="cell"><span class="main">oleg@example.com<span class="sub">Принято 10 ноября</span></span><span class="badge ok">Принято</span></div>
+        </div>
+      </div></main>
+    </div>
+    <div class="scrim"></div>
+    <div class="dialog" role="dialog" aria-label="Пригласить">
+      <div class="sheet-head"><span class="t-title">Пригласить</span><span class="x" aria-label="Закрыть"><svg class="icon"><use href="#i-x"/></svg></span></div>
+      <div class="field"><label>Email</label><div class="input"><span class="ph">name@example.com</span></div></div>
+      <button class="btn btn-primary">Создать ссылку</button>
+    </div>
+  </div>
+    <figcaption><b>6.3 Настройки и листы.</b> Настройки и вложенные экраны — колонка <code>--content-max-width</code> справа от меню, кнопка «Назад» остаётся. Любой нижний лист на десктопе — диалог по центру шириной до <code>--dialog-max-width</code>: закрывается по <span class="kbd">Esc</span>, кнопкой «Закрыть» и кликом по фону. Тосты — снизу по центру.</figcaption>
+  </figure>
+</div>
+</section>
+
+</body>
+</html>
