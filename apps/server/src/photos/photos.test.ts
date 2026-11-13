@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import sharp from 'sharp';
+import { MAX_JSON_BYTES } from '../app.js';
 import { ensureAdmin } from '../auth/admin.js';
 import { hashPassword } from '../auth/password.js';
 import { setCookie, testApp } from '../test/app.js';
@@ -72,6 +73,8 @@ describe('photos', () => {
   it('stores a resized JPEG and a WebP preview without metadata', async () => {
     const input = await camera();
     expect((await sharp(input).metadata()).exif).toBeDefined();
+    // Above the JSON body limit: photo upload must be exempt from it.
+    expect(input.length).toBeGreaterThan(MAX_JSON_BYTES);
 
     const { upload, get, cookie } = await setup();
     const res = await upload(cookie, input);

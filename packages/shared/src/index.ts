@@ -32,6 +32,7 @@ export type ErrorCode =
   | 'photo_invalid'
   | 'client_outdated'
   | 'photo_expired'
+  | 'payload_too_large'
   | 'photo_in_use'
   | 'internal';
 

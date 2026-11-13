@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { Hono } from 'hono';
+import { bodyLimit } from 'hono/body-limit';
 import { csrf } from 'hono/csrf';
 import { serveStatic } from '@hono/node-server/serve-static';
 import type { Database } from 'better-sqlite3';
@@ -26,6 +27,15 @@ const { version } = JSON.parse(
   version: string;
 };
 
+/** Cap for every /api/* body except photo upload; JSON bodies are read whole into memory. */
+export const MAX_JSON_BYTES = 64 * 1024;
+const jsonLimit = bodyLimit({
+  maxSize: MAX_JSON_BYTES,
+  onError: () => {
+    throw new ApiError(413, 'payload_too_large');
+  },
+});
+
 export interface AppDeps {
   config: Config;
   db: Database;
@@ -40,6 +50,12 @@ export function createApp(deps: AppDeps) {
   // Warm up now so the first unknown-email sign-in is not slower than the rest (AC-5.2).
   void dummyHash();
 
+  // First, so oversized anonymous bodies are cut before any DB work. Photo upload has its own limit.
+  app.use('/api/*', (c, next) =>
+    c.req.method === 'POST' && c.req.path === '/api/photos'
+      ? next()
+      : jsonLimit(c, next),
+  );
   // Without a valid PUBLIC_URL no origin is trusted: mutating form-like requests get 403.
   app.use(
     '/api/*',

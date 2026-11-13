@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { ApiError, onError } from './http/errors.js';
 import { validate } from './http/validate.js';
+import { MAX_JSON_BYTES } from './app.js';
 import { testApp } from './test/app.js';
 
 describe('GET /api/health', () => {
@@ -30,6 +31,40 @@ describe('GET /api/config', () => {
       registration: 'open',
       setupError: null,
     });
+  });
+});
+
+describe('JSON body limit', () => {
+  const big = JSON.stringify({
+    email: 'a'.repeat(MAX_JSON_BYTES),
+    password: 'x',
+  });
+  const login = (body: BodyInit) =>
+    testApp().app.request('/api/auth/login', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body,
+      duplex: 'half',
+    } as RequestInit);
+
+  it('rejects an oversized sign-in body with 413', async () => {
+    const res = await login(big);
+    expect(res.status).toBe(413);
+    expect(await res.json()).toEqual({ error: { code: 'payload_too_large' } });
+  });
+
+  it('rejects an oversized chunked body without Content-Length', async () => {
+    const bytes = new TextEncoder().encode(big);
+    const res = await login(
+      new ReadableStream({
+        start(c) {
+          c.enqueue(bytes);
+          c.close();
+        },
+      }),
+    );
+    expect(res.status).toBe(413);
+    expect(await res.json()).toEqual({ error: { code: 'payload_too_large' } });
   });
 });
 

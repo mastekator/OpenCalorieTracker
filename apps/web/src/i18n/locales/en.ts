@@ -48,6 +48,7 @@ export const en = {
     photo_invalid: 'This file isn’t a photo we can read',
     client_outdated: 'The app has been updated. Please save again',
     photo_expired: 'The full photo is no longer stored. Take a new one',
+    payload_too_large: 'The request is too large',
     photo_in_use: 'This photo is already attached to another meal',
     internal: 'Something went wrong. Try again',
   } satisfies Record<ErrorCode, string>,
