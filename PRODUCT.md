@@ -23,7 +23,7 @@ Logged at meal time: kitchen, canteen, restaurant, under any light. Photo of a p
 PWA (iOS home screen first), light and dark theme, RU and EN. Must work offline for viewing and degrade gracefully. All visual values live in one token file. Touch targets ≥ 44pt, safe areas, VoiceOver labels, WCAG AA contrast.
 
 ## Brand Commitments
-Name: OpenCalorieTracker. Owner feedback (2026-11-13): the first visual pass (system font, iOS-like neutral palette, green accent) reads as "very generic" — the product needs its own recognisable look.
+Name: OpenCalorieTracker. Owner decision (2026-11-13): keep the basic light look — warm-neutral airy palette, green accent, system font (docs/design/oct-13/tokens.css). Explorations of a more distinctive look (directions, moodboard) are parked; revisit after the main screens exist.
 
 ## Evidence on Hand
 No logo, illustrations or photography yet. Real content is the user's own meals and numbers; demo content in mockups is synthetic.
