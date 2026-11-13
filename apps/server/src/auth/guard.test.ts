@@ -226,6 +226,19 @@ describe('IP limit (AC-5.8a)', () => {
     expect((await browser('198.51.100.1').login()).res.status).toBe(200);
   });
 
+  it('counts a whole IPv6 /64 as one IP', async () => {
+    const { browser } = await setup();
+    for (let i = 1; i <= IP_FAILS; i++) {
+      await browser(`2001:db8:1:2::${i.toString(16)}`, false).fail();
+    }
+    expect(
+      (await browser('2001:db8:1:2:ffff::1', false).login()).res.status,
+    ).toBe(429);
+    expect((await browser('2001:db8:1:3::1', false).login()).res.status).toBe(
+      200,
+    );
+  });
+
   it('forgets failures older than an hour', async () => {
     const { browser } = await setup();
     const b = browser(IP, false);
@@ -288,13 +301,50 @@ it('prunes unblocked rows idle for a day on the next failure', async () => {
   ]);
 });
 
+describe('password change guard', () => {
+  it(`times the device out after ${DEVICE_FAILS} wrong current passwords and resets on success`, async () => {
+    const { browser, app, rows } = await setup();
+    const b = browser();
+    await b.request('GET', '/api/config');
+    const { session } = await b.login();
+    const change = (currentPassword: string) =>
+      app.request('/api/account/password', {
+        method: 'PUT',
+        headers: {
+          'content-type': 'application/json',
+          cookie: `${session}; ${b.cookie}`,
+          'x-forwarded-for': IP,
+        },
+        body: JSON.stringify({ currentPassword, newPassword: 'Pasta-2-go' }),
+      });
+
+    await change('Wrong-pass-1');
+    expect(rows()).toContainEqual(
+      expect.objectContaining({ kind: 'device', fail_count: 1 }),
+    );
+    expect((await change(PASSWORD)).status).toBe(204);
+    expect(rows()).not.toContainEqual(
+      expect.objectContaining({ kind: 'device' }),
+    );
+
+    for (let i = 0; i < DEVICE_FAILS; i++) {
+      expect((await change('Wrong-pass-1')).status).toBe(400);
+    }
+    const res = await change('Pasta-2-go');
+    expect(res.status).toBe(429);
+    expect(await res.json()).toMatchObject({
+      error: { code: 'too_many_attempts' },
+    });
+  });
+});
+
 describe('clientIp', () => {
-  const ipOf = async (hops: number, xff?: string) => {
+  const ipOf = async (hops: number, xff?: string, remote = '10.0.0.9') => {
     const app = new Hono().get('/', (c) => c.text(clientIp(c, hops)));
     const res = await app.request(
       '/',
       { headers: xff ? { 'x-forwarded-for': xff } : {} },
-      { incoming: { socket: { remoteAddress: '10.0.0.9' } } },
+      { incoming: { socket: { remoteAddress: remote } } },
     );
     return res.text();
   };
@@ -306,7 +356,20 @@ describe('clientIp', () => {
     [1, 'forged, 1.1.1.1', '1.1.1.1'],
     [2, 'forged, 1.1.1.1, 2.2.2.2', '1.1.1.1'],
     [2, '2.2.2.2', '10.0.0.9'],
+    [1, '::ffff:203.0.113.5', '203.0.113.5'],
+    [1, '::FFFF:cb00:7105', '203.0.113.5'],
+    [1, '2001:db8:1:2:3:4:5:6', '2001:db8:1:2::/64'],
+    [1, '2001:0DB8:0001:0002::9', '2001:db8:1:2::/64'],
+    [1, '2001:db8::1', '2001:db8:0:0::/64'],
+    [1, '::1', '0:0:0:0::/64'],
+    [1, '::1:2:3:4:5:1.2.3.4', '0:1:2:3::/64'],
+    [1, 'fe80::1%eth0', 'fe80:0:0:0::/64'],
+    [1, 'garbage', 'garbage'],
   ])('hops=%i, X-Forwarded-For %s → %s', async (hops, xff, ip) => {
     expect(await ipOf(hops, xff)).toBe(ip);
+  });
+
+  it('normalizes the socket address too', async () => {
+    expect(await ipOf(0, undefined, '::ffff:10.0.0.9')).toBe('10.0.0.9');
   });
 });

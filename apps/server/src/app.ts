@@ -13,6 +13,7 @@ import { authRoutes } from './auth/routes.js';
 import { device } from './auth/device.js';
 import { dummyHash } from './auth/password.js';
 import { session } from './auth/session.js';
+import { mealRoutes } from './meals/routes.js';
 import { photoRoutes } from './photos/routes.js';
 import { profileRoutes } from './profile/routes.js';
 import { setupErrors, type Config } from './config.js';
@@ -70,6 +71,7 @@ export function createApp(deps: AppDeps) {
   app.route('/api', accountRoutes(deps));
   app.route('/api', aiRoutes(deps));
   app.route('/api', photoRoutes(deps));
+  app.route('/api', mealRoutes(deps));
 
   app.get('/api/health', (c) => c.json({ ok: true, version }));
   app.get('/api/config', (c) =>
