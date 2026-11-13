@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM node:24-alpine AS build
+FROM node:24-alpine3.24 AS build
 WORKDIR /src
 RUN corepack enable
 COPY . .
@@ -16,8 +16,12 @@ RUN pnpm install --frozen-lockfile \
  && find /out/node_modules/.pnpm -maxdepth 1 -type d \( -name '@img+sharp-linux-*' -o -name '@img+sharp-libvips-linux-*' -o -name '@img+sharp-*wasm32*' \) -exec rm -rf {} + \
  && find /out/node_modules -type f \( -name '*.d.ts' -o -name '*.d.cts' -o -name '*.d.mts' -o -name '*.map' \) -delete
 
-# Alpine, not slim: node:24-slim is ~230 MB unpacked, over the 200 MB budget.
-FROM node:24-alpine
+# Plain Alpine plus the node binary: node:24-slim (~230 MB) and node:24-alpine with npm,
+# yarn and corepack leave no room for sharp under the 200 MB budget. Same Alpine as the build stage.
+FROM alpine:3.24
+COPY --from=build /usr/local/bin/node /usr/local/bin/node
+RUN apk add --no-cache libstdc++ \
+ && addgroup -g 1000 node && adduser -u 1000 -G node -s /bin/sh -D node
 ENV NODE_ENV=production \
     DATA_DIR=/data \
     WEB_DIST=/app/web \
