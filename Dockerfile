@@ -12,6 +12,8 @@ RUN pnpm install --frozen-lockfile \
  && for d in $(find /out/node_modules -type d -path '*/node_modules/better-sqlite3'); do \
       rm -rf "$d/deps" "$d/src" && find "$d/prebuilds" -type f ! -name 'linuxmusl-*' -delete; \
     done \
+ # pnpm does not filter optional deps by libc: drop sharp's glibc and wasm builds (Alpine uses linuxmusl-*).
+ && find /out/node_modules/.pnpm -maxdepth 1 -type d \( -name '@img+sharp-linux-*' -o -name '@img+sharp-libvips-linux-*' -o -name '@img+sharp-*wasm32*' \) -exec rm -rf {} + \
  && find /out/node_modules -type f \( -name '*.d.ts' -o -name '*.d.cts' -o -name '*.d.mts' -o -name '*.map' \) -delete
 
 # Alpine, not slim: node:24-slim is ~230 MB unpacked, over the 200 MB budget.
