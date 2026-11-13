@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
-import { api, ApiError } from './client';
+import { API_VERSION } from '@oct/shared';
+import { api, ApiError, setOutdatedHandler } from './client';
 
 const respond = (status: number, body: string | null) =>
   vi.stubGlobal(
@@ -34,6 +35,23 @@ describe('api', () => {
       credentials: 'same-origin',
       body: '{"a":1}',
     });
+  });
+
+  it('always sends the API version', async () => {
+    respond(200, '{"ok":true}');
+    await api('/api/x', schema);
+    const [, init] = vi.mocked(fetch).mock.calls[0]!;
+    expect(init?.headers).toMatchObject({
+      'X-Api-Version': String(API_VERSION),
+    });
+  });
+
+  it('hands client_outdated to the update handler and still throws', async () => {
+    const handler = vi.fn();
+    setOutdatedHandler(handler);
+    respond(409, '{"error":{"code":"client_outdated"}}');
+    expect((await failure(api('/api/x', schema))).code).toBe('client_outdated');
+    expect(handler).toHaveBeenCalledOnce();
   });
 
   it('maps an error body to ApiError(code)', async () => {

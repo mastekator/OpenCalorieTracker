@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { API_VERSION } from '@oct/shared';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { ApiError, onError } from './http/errors.js';
@@ -23,7 +24,7 @@ describe('GET /api/config', () => {
     );
     expect(await res.json()).toEqual({
       version: expect.any(String),
-      apiVersion: 1,
+      apiVersion: API_VERSION,
       publicUrl: 'http://localhost:3000',
       authMethods: ['password', 'passkey'],
       registration: 'open',

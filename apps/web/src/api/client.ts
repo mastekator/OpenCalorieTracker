@@ -1,4 +1,4 @@
-import type { ErrorCode } from '@oct/shared';
+import { API_VERSION, type ErrorCode } from '@oct/shared';
 import type { z } from 'zod';
 
 export class ApiError extends Error {
@@ -9,6 +9,12 @@ export class ApiError extends Error {
   ) {
     super(code);
   }
+}
+
+// Set by app/update.ts once the service worker is registered.
+let onOutdated = () => location.reload();
+export function setOutdatedHandler(handler: () => void) {
+  onOutdated = handler;
 }
 
 type Options = { method?: string; body?: unknown; signal?: AbortSignal };
@@ -28,10 +34,12 @@ export async function api<T>(
       method,
       signal,
       credentials: 'same-origin',
-      headers:
-        body === undefined
-          ? { Accept: 'application/json' }
-          : { Accept: 'application/json', 'Content-Type': 'application/json' },
+      headers: {
+        Accept: 'application/json',
+        // The server rejects writes from an outdated client (ADR-0012).
+        'X-Api-Version': String(API_VERSION),
+        ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
+      },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
   } catch (err) {
@@ -49,6 +57,7 @@ export async function api<T>(
   if (!res.ok) {
     const error = (data as { error?: { code?: unknown; details?: unknown } })
       ?.error;
+    if (error?.code === 'client_outdated') onOutdated();
     throw typeof error?.code === 'string'
       ? new ApiError(res.status, error.code as ErrorCode, error.details)
       : new ApiError(res.status, 'internal');

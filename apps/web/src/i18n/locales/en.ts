@@ -18,6 +18,9 @@ export const en = {
     recover: 'Recover access',
     register: 'Create account',
   },
+  update: {
+    stale: 'The app has been updated · please save again',
+  },
   errors: {
     validation_failed: 'Check the highlighted fields',
     unauthenticated: 'Please sign in',
@@ -43,6 +46,7 @@ export const en = {
     ai_invalid_response: 'The AI returned an unreadable answer. Try again',
     photo_too_large: 'The photo is too large',
     photo_invalid: 'This file isn’t a photo we can read',
+    client_outdated: 'The app has been updated. Please save again',
     photo_expired: 'The full photo is no longer stored. Take a new one',
     internal: 'Something went wrong. Try again',
   } satisfies Record<ErrorCode, string>,
