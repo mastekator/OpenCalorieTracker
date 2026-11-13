@@ -472,6 +472,9 @@ body{padding:var(--space-10) var(--space-8)}
 .override-line .btn{margin-right:calc(-1 * var(--space-4))}
 .disclaimer{display:flex;gap:var(--space-2);align-items:flex-start;font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);color:var(--color-text-secondary);padding:0 var(--space-1)}
 .disclaimer .icon{flex:none;color:var(--color-text-secondary)}
+.disclaimer>span{flex:1;padding-top:var(--space-1)}
+.disclaimer .dis-x{flex:none;width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;margin:calc(-1 * var(--space-3)) calc(-1 * var(--space-3)) 0 0;color:var(--color-text-secondary)}
+.disclaimer>.icon{margin-top:var(--space-1)}
 .paths{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3)}
 .path{display:flex;flex-direction:column;gap:var(--space-1);padding:var(--space-4);border-radius:var(--radius-md);background:var(--color-accent-soft);color:var(--color-text);min-height:var(--tap-min);font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh)}
 .path b{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-headline-size);color:var(--color-accent)}
@@ -679,7 +682,7 @@ function tabbar(on='Профиль'){
 const offBar = (t='Офлайн · данные на 12:40') => `<div class="offline-bar">${I('wifi-off','sm')}${t}</div>`;
 const toast = (txt, act='', ic='check') => `<div class="toast" role="status">${I(ic,'sm')}<span>${txt}</span>${act?`<span class="act">${act}</span>`:''}</div>`;
 const DISCL = 'Ориентировочный расчёт, не медицинский совет. При болезнях, беременности, кормлении грудью и для подростков посоветуйтесь с врачом.';
-const disclaimer = `<p class="disclaimer">${I('info','sm')}<span>${DISCL}</span></p>`;
+const disclaimer = `<div class="disclaimer">${I('info','sm')}<span>${DISCL}</span><span class="dis-x" role="button" aria-label="Скрыть предупреждение">${I('x','sm')}</span></div>`;
 
 /* ---------- norm card ---------- */
 function split(k, p, f, c){
@@ -717,12 +720,12 @@ function form({sex='Мужская', birth=inp('14 мар. 1996 · 30 лет'), 
   const g3 = `<div class="group-h">Своя норма</div><div class="group"><div class="cell"><span class="main"><span>Задать норму вручную</span></span><span class="switch ${manual?'on':''} ${ro?'dis':''}" role="switch" aria-checked="${manual}"></span></div>${manualBody}</div>${manual?'':`<p class="group-f">Если норму дал диетолог или тренер. Профиль можно не заполнять.</p>`}`;
   return `<div>${g1}${g2}${g3}</div>`;
 }
-function profile({card=normCard(), top='', paths='', agent=agentBtn(), f=form(), save='', extra='', ro=false, scrolled=false}={}){
+function profile({card=normCard(), top='', paths='', agent=agentBtn(), f=form(), save='', extra='', ro=false, scrolled=false, disc=true}={}){
   /* scrolled: large title collapsed into the inline navbar, list scrolled to «Цель» / «Своя норма» */
   if (scrolled) return `<div class="navbar"><div></div><div class="title">Профиль</div><span class="ic-btn" style="justify-self:end;margin-right:0" role="button" aria-label="Настройки">${I('settings')}</span></div>${top}
   <div class="content ${save?'has-save':''}"><div class="pad stack">${f.replace(/^<div><div class="group-h">Для расчёта<\/div>[\s\S]*?<div class="group-h">Цель/, '<div><div class="group-h" style="margin-top:0">Цель')}</div></div>${save}${tabbar()}${extra}`;
   return `<div class="title-row"><div class="large-title">Профиль</div><span class="ic-btn" role="button" aria-label="Настройки">${I('settings')}</span></div>${top}
-  <div class="content ${save?'has-save':''}"><div class="pad stack">${paths}${card}${disclaimer}${agent}${f}</div></div>${save}${tabbar()}${extra}`;
+  <div class="content ${save?'has-save':''}"><div class="pad stack">${paths}${card}${disc?disclaimer:''}${agent}${f}</div></div>${save}${tabbar()}${extra}`;
 }
 const saveBar = (k='1 810', lbl='Новая норма', dis=false) => `<div class="save-bar"><span class="pv"><small>${lbl}</small><b>${k}</b></span><button class="btn btn-primary ${dis?'disabled':''}">Сохранить</button></div>`;
 const paceFoot = (txt, cls='pace') => `<p class="group-f ${cls}">${txt}</p>`;
@@ -789,6 +792,7 @@ document.getElementById('profile-row').innerHTML = [
   frame('8.18','Загрузка','Обычно экран рисуется из кэша. Скелетоны появляются, только если ответа нет дольше 300 мс.', profile({card:skelCard, agent:'', f:skelForm})),
   frame('8.19','Американские единицы','Та же общая настройка единиц, что и для еды (AC-0.4). Рост — два поля, футы и дюймы, вес — в lb. БЖУ всегда в граммах. Норма та же: 2 760 ккал.', profile({f:form({h:inp('5′ 11″'), w:inp('176,4','lb')})})),
   frame('8.20','Как считается','Расчёт по шагам с числами пользователя (2.7). Лишние шаги не показываем: при цели «держать» нет шага «Цель», а «Безопасная граница» появляется, только если сработала. Внизу — источники со ссылками. Открывается и офлайн, ссылки без сети не работают.', howScreen()),
+  frame('8.21','Предупреждение скрыто','Предупреждение «не медицинский совет» закрывается крестиком один раз и больше не показывается этому пользователю — ни в профиле, ни в чате с агентом (флаг в аккаунте, без подтверждения). Текст остаётся в «Как считается». В первый раз предупреждение видно всегда — до первого сохранения нормы.', profile({disc:false})),
 ].join('');
 
 /* ---------- 9. Chat ---------- */
@@ -815,7 +819,7 @@ const applyAlert = `<div class="scrim"></div><div class="alert" role="alertdialo
 const unavailable = `<div class="composer-note"><div class="banner notice" role="alert">${I('spark')}<div><div class="b-title">ИИ сейчас недоступен</div>Всё, что уже рассказали, перенесём в форму.</div></div><button class="btn btn-primary">${I('list','sm')}Заполнить форму</button></div>`;
 
 document.getElementById('agent-row').innerHTML = [
-  frame('9.1','Начало','Чат открывается во весь экран поверх профиля, таб-бара нет. Сверху — дисклеймер (AC-0.3). У агента нет «пузыря», только значок — так длинный текст читается легче. Ответы пользователя — справа на мягком зелёном. Быстрые ответы — кнопки-капсулы под вопросом, но можно и просто написать.', chat(note + H_START)),
+  frame('9.1','Начало','Чат открывается во весь экран поверх профиля, таб-бара нет. Сверху — дисклеймер (AC-0.3), если пользователь не скрыл его в профиле (8.21). У агента нет «пузыря», только значок — так длинный текст читается легче. Ответы пользователя — справа на мягком зелёном. Быстрые ответы — кнопки-капсулы под вопросом, но можно и просто написать.', chat(note + H_START)),
   frame('9.2','Несколько данных сразу','Пользователь ответил одной строкой. Агент повторяет, что понял (AC-5.3), и спрашивает следующее. Пока модель думает — три точки, VoiceOver слышит «Агент печатает».', chat(note + H1 + H2 + U('сижу в офисе, но в зал хожу раза 4') + typing, composer())),
   frame('9.3','Опасный темп','Агент коротко предупреждает и предлагает безопасный срок (AC-5.1a). Решает пользователь: обе кнопки равны. Число нормы агент не называет (AC-0.2).', chat(H2 + H3 + H4)),
   frame('9.4','Сводка','Все поля собраны и проверены бэкендом — в чате появляется сводка (AC-5.7). Данные, норма с долями БЖУ, «Как считается», дисклеймер, «Применить норму» и «Исправить». Поле ввода прячется. «Исправить» возвращает его с вопросом «Что поправить?» (AC-5.8).', chat(U('к 5 февраля') + A(`<p>Готово, всё собрал.</p>`) + summary(), '')),
