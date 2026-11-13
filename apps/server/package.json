@@ -7,7 +7,8 @@
     "dev": "tsx watch --conditions=development src/index.ts",
     "build": "tsc && cp -r src/db/migrations dist/db/ && cp src/auth/common-passwords.txt dist/auth/",
     "start": "node dist/index.js",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "check-model": "tsx --conditions=development scripts/check-model.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.104",

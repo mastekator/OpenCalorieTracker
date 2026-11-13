@@ -16,6 +16,20 @@ _Russian version of this README: coming later._
 
 The main way to install will be Docker Compose: one container, one `/data` volume, configured with environment variables (AI provider, model, API key, public URL), behind any reverse proxy that terminates HTTPS. A ready `docker-compose.yml`, a reverse proxy example and a table of supported AI providers will land here before the first release.
 
+## Tested models
+
+Results of `check-model` on the [test photos](apps/server/test-photos/README.md): 9 CC0 / public domain photos with rough kcal ranges and expected confidence. To check your model, from a clone of this repository:
+
+```sh
+pnpm install
+AI_PROVIDER=google AI_MODEL=gemini-2.5-flash AI_API_KEY=... pnpm --filter @oct/server check-model
+```
+
+It prints a table per photo and `N/9 passed`. Send a pull request with your row:
+
+| Provider | Model | Passed | Date | Notes |
+| -------- | ----- | ------ | ---- | ----- |
+
 ## Privacy
 
 - Your diary and photo previews stay on your server.
