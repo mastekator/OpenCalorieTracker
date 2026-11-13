@@ -652,12 +652,7 @@ body{padding:var(--space-10) var(--space-8)}
 .status-table{display:grid;grid-template-columns:auto 1fr;gap:var(--space-3) var(--space-4);align-items:start;font-size:var(--text-subhead-size);line-height:var(--text-subhead-lh)}
 .status-table .status-line{white-space:nowrap}
 
-/* update pill */
-.toast .x{margin:calc(-1 * var(--space-3)) calc(-1 * var(--space-3)) calc(-1 * var(--space-3)) 0;width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;opacity:.7}
 .toast .act{margin-left:auto}
-.toast.over-bar{bottom:calc(34px + var(--control-height-lg) + var(--space-8))}
-.toast.no-tab{bottom:calc(34px + var(--space-3))}
-.bar-banner{display:flex;flex-direction:column;gap:var(--space-3)}
 
 /* desktop */
 .settings-col{max-width:var(--content-max-width);width:100%}
@@ -758,7 +753,7 @@ body{padding:var(--space-10) var(--space-8)}
 <section class="doc-section" id="offline"><h2 class="doc-h2">3. Офлайн</h2><div class="row" id="offline-row"></div></section>
 <section class="doc-section" id="settings"><h2 class="doc-h2">4. Настройки (экран 10)</h2><div class="row" id="settings-row"></div></section>
 <section class="doc-section" id="provider"><h2 class="doc-h2">5. ИИ-провайдер (администратор)</h2><div class="row" id="provider-row"></div></section>
-<section class="doc-section" id="update"><h2 class="doc-h2">6. Новая версия</h2><div class="row" id="update-row"></div></section>
+<section class="doc-section" id="update"><h2 class="doc-h2">6. Обновление версии</h2><div class="row" id="update-row"></div></section>
 <section class="doc-section" id="desktop"><h2 class="doc-h2">7. Десктоп ≥ 1024 px</h2><div class="row" id="desk-row"></div></section>
 
 <script>
@@ -996,12 +991,11 @@ valid API key.</div></div>${kv([['Модель','<span class="mono">gemini-2.5-f
 ].join('');
 
 /* ---------- 6. Update ---------- */
-const upd = (cls='') => `<div class="toast ${cls}" role="status">${I('refresh','sm')}<span>Доступна новая версия</span><span class="act" role="button">Обновить</span><span class="x" role="button" aria-label="Скрыть">${I('x','sm')}</span></div>`;
-const editLunch = (extra='', bar) => editScreen({dishes: dish(D.buck)+dish(D.chick,{w:200,k:331,p:61,f:8,c:0,conf:'edited'})+dish(D.egg), extra, bar});
+const updBar = `<div class="offline-bar" role="status">${I('refresh','sm')}Приложение обновилось · сохраните ещё раз</div>`;
+const editLunch = (top='') => editScreen({dishes: dish(D.buck)+dish(D.chick,{w:200,k:331,p:61,f:8,c:0,conf:'edited'})+dish(D.egg), top});
 document.getElementById('update-row').innerHTML = [
-  frame('6.1','Доступна новая версия','Найдена, пока PWA открыта (E-8.2). Плашка над таб-баром — стиль тоста, но не исчезает сама. «Обновить» — перезагрузка в новую версию на том же экране. × скрывает до следующего запуска — при холодном старте новая версия применится сама (E-8.1).', todayScreen({extra:upd()})),
-  frame('6.2','Обновить с правками','На экране с несохранёнными данными (правка блюд, профиль, агент) — то же правило, что при уходе (E-8.3, OCT-4 AC-0.7). Без правок — сразу. Очередь записей обновление не трогает.', editLunch(upd('over-bar') + alertBox('Обновить приложение?', 'На этом экране есть несохранённые изменения.', b('Сохранить и обновить','btn-primary')+b('Не сохранять','btn-danger-plain')+b('Остаться'), true))),
-  frame('6.3','Версия устарела','Сервер обновился и не принял сохранение старого клиента (E-8.4). Ничего не сохранено частично, введённое на месте. Баннер над кнопкой; «Сохранить» меняется на «Обновить». После перезагрузки экран открывается с теми же правками, и пользователь нажимает «Сохранить» ещё раз.', editLunch('', `<div class="bottom bar bar-banner"><div class="banner danger" role="alert">${I('refresh')}<div><div class="b-title">Приложение обновилось</div>Обновите и сохраните ещё раз — изменения останутся.</div></div><button class="btn btn-primary">${I('refresh','sm')}Обновить</button></div>`)),
+  frame('6.1','Обычное обновление — без интерфейса','Никаких плашек и кнопок. Новая версия скачивается в фоне и применяется при следующем запуске или когда приложение вернулось из фона без несохранённых правок (E-8.1, E-8.2). Очередь записей не трогается. Номер версии — внизу настроек (4.1b).', editLunch()),
+  frame('6.2','Сервер не принял старую версию','Единственный заметный случай, редкий (E-8.4): при сохранении сервер ответил, что клиент устарел. Ничего не сохранено частично. Приложение само перезагружается в новую версию, правки остаются на месте; сверху — та же полоса, что «Офлайн», <code>role="status"</code>. Пользователь нажимает «Сохранить» ещё раз. Полоса уходит после сохранения.', editLunch(updBar)),
 ].join('');
 
 /* ---------- 7. Desktop ---------- */
@@ -1011,7 +1005,7 @@ const cap = (id, t, n) => `<figcaption><b>${id} ${t}.</b> ${n}</figcaption></fig
 const deskSettings = settings({admin:true, installed:true}).replace(/^[\s\S]*?<div class="large-title">/,'<div class="large-title">').replace('<div class="content modal"><div class="pad">','<div class="cols" style="grid-template-columns:1fr 1fr;align-items:start"><div>').replace(/<\/div><\/div>$/,'</div>') + `<div>${settings({part:'bottom', installed:true}).replace(/^[\s\S]*?<div class="content modal"><div class="pad">/,'').replace(/<\/div><\/div>$/,'')}</div></div>`;
 const deskProv = `<div class="desk-title"><div class="large-title">ИИ-провайдер</div></div><div class="cols" style="align-items:start"><div class="stack">${head('spark','', 'Google Gemini', SL.ok)}<p class="t-foot muted">По последнему запросу · сегодня в 12:40</p>${kv([['Модель','<span class="mono">gemini-2.5-flash</span>'],['Ключ','задан']])}<div style="display:flex;gap:var(--space-3);align-items:center"><button class="btn btn-tonal btn-sm">${I('refresh','sm')}Проверить сейчас</button><span class="t-foot muted">Потратит немного квоты</span></div></div><div class="stack">${privacy().replace('<div class="group-h" style="margin-top:var(--space-2)">Куда уходят данные</div>','<div class="group-h" style="margin-top:0">Куда уходят данные</div>')}</div></div>`;
 document.getElementById('desk-row').innerHTML = [
-  desk('settings', deskSettings, `<div class="toast desk-toast" role="status">${I('refresh','sm')}<span>Доступна новая версия</span><span class="act" role="button" style="margin-left:var(--space-4)">Обновить</span><span class="x" role="button" aria-label="Скрыть">${I('x','sm')}</span></div>`) + cap('D.1','Настройки','Пункт «Настройки» внизу боковой панели (OCT-13). Группы в две колонки по ширине <code>--content-max-width-wide</code>. Строки «Установить» нет: в Chrome и Edge есть своя кнопка установки в адресной строке (AC-1.6). Плашка новой версии — по центру внизу, как тосты на десктопе.'),
+  desk('settings', deskSettings) + cap('D.1','Настройки','Пункт «Настройки» внизу боковой панели (OCT-13). Группы в две колонки по ширине <code>--content-max-width-wide</code>. Строки «Установить» нет: в Chrome и Edge есть своя кнопка установки в адресной строке (AC-1.6).'),
   desk('settings/ai', deskProv) + cap('D.2','ИИ-провайдер','Те же блоки, что 5.1, в две колонки: слева состояние и проверка, справа приватность. Адрес <code>/settings/ai</code>, «назад» — браузерный.'),
 ].join('');
 
