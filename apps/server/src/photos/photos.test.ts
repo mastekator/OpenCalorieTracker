@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import sharp from 'sharp';
 import { ensureAdmin } from '../auth/admin.js';
 import { hashPassword } from '../auth/password.js';
-import { testApp } from '../test/app.js';
+import { setCookie, testApp } from '../test/app.js';
 import { MAX_PHOTO_BYTES } from './routes.js';
 import { photoPath } from './store.js';
 
@@ -28,7 +28,7 @@ async function setup() {
       body: JSON.stringify({ email, password: PASSWORD }),
     });
     expect(res.status).toBe(200);
-    return res.headers.get('set-cookie')!.split(';')[0]!;
+    return setCookie(res, 'oct_session')!.split(';')[0]!;
   };
   const upload = (cookie: string, body: Uint8Array) =>
     t.app.request('/api/photos', {

@@ -43,6 +43,11 @@ export function startSession(
   { config, db }: AppDeps,
   userId: number,
 ) {
+  // A sign-in over an open session replaces it rather than orphaning its row.
+  const old = getCookie(c, COOKIE);
+  if (old) {
+    db.prepare('DELETE FROM sessions WHERE token_hash = ?').run(tokenHash(old));
+  }
   const token = randomBytes(32).toString('base64url');
   const now = Date.now();
   db.prepare(

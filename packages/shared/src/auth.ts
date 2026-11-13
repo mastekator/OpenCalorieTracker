@@ -63,3 +63,64 @@ export const meResponseSchema = z.object({
   methods: z.array(authMethodSchema),
 });
 export type MeResponse = z.infer<typeof meResponseSchema>;
+
+/** Secret of an invite or recovery link, from the `#` part of the URL (32 random bytes, base64url). */
+const tokenSchema = z.string().min(1).max(128);
+
+export const linkKindSchema = z.enum(['invite', 'recovery']);
+export type LinkKind = z.infer<typeof linkKindSchema>;
+
+/** A revoked link reads as one that never existed (E-4.4). */
+export const linkStatusSchema = z.enum(['valid', 'expired', 'used', 'invalid']);
+export type LinkStatus = z.infer<typeof linkStatusSchema>;
+
+export const inviteCheckRequestSchema = z.object({ token: tokenSchema });
+export type InviteCheckRequest = z.infer<typeof inviteCheckRequestSchema>;
+
+export const inviteCheckResponseSchema = z.object({
+  /** Null for an invalid token. */
+  kind: linkKindSchema.nullable(),
+  /** Whose link it is; only for a valid one. */
+  email: z.string().nullable(),
+  status: linkStatusSchema,
+});
+export type InviteCheckResponse = z.infer<typeof inviteCheckResponseSchema>;
+
+/** With a token the email comes from the invite; without one only under REGISTRATION=open. */
+export const registerRequestSchema = z.object({
+  token: tokenSchema.optional(),
+  email: emailSchema.optional(),
+  name: z.string().trim().max(100).optional(),
+  password: passwordInput,
+  /** The browser's language, so the new account starts in it (AC-3.7). */
+  locale: localeSchema.optional(),
+});
+export type RegisterRequest = z.infer<typeof registerRequestSchema>;
+
+export const recoverRequestSchema = z.object({
+  token: tokenSchema,
+  password: passwordInput,
+});
+export type RecoverRequest = z.infer<typeof recoverRequestSchema>;
+
+export const createInviteRequestSchema = z.object({ email: emailSchema });
+export type CreateInviteRequest = z.infer<typeof createInviteRequestSchema>;
+
+/** The only response that carries the full link; it cannot be shown again. */
+export const createdLinkResponseSchema = z.object({
+  id: z.number().int(),
+  url: z.string(),
+  expiresAt: z.number().int(),
+});
+export type CreatedLinkResponse = z.infer<typeof createdLinkResponseSchema>;
+
+export const inviteSchema = z.object({
+  id: z.number().int(),
+  email: z.string(),
+  createdAt: z.number().int(),
+  expiresAt: z.number().int(),
+  usedAt: z.number().int().nullable(),
+  revokedAt: z.number().int().nullable(),
+  status: z.enum(['pending', 'used', 'expired', 'revoked']),
+});
+export type Invite = z.infer<typeof inviteSchema>;

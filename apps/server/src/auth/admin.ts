@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import type { Database } from 'better-sqlite3';
 import { setupErrors, type Config } from '../config.js';
+import { ADMIN_SETUP_TTL, createLink } from './invites.js';
 import { hashPassword, verifyPassword } from './password.js';
 
 /**
@@ -8,6 +9,37 @@ import { hashPassword, verifyPassword } from './password.js';
  * otherwise only warns. No HTTP route can create an admin (AC-1.2). Never logs the values.
  */
 export async function ensureAdmin(config: Config, db: Database) {
+  await seedOrCheckAdmin(config, db);
+  adminSetupLink(config, db);
+}
+
+/**
+ * AC-1.5: with passkeys only, an admin without a passkey gets a 24-hour setup link in the log,
+ * and a new one on the next start once it expires. The one secret the log may hold (AC-0.7).
+ */
+function adminSetupLink(config: Config, db: Database) {
+  if (config.authMethods.includes('password') || !config.publicUrl) return;
+  const admin = db
+    .prepare(
+      `SELECT id FROM users u WHERE role = 'admin'
+       AND NOT EXISTS (SELECT 1 FROM passkeys WHERE user_id = u.id)
+       AND NOT EXISTS (SELECT 1 FROM invites WHERE kind = 'recovery' AND user_id = u.id
+         AND used_at IS NULL AND revoked_at IS NULL AND expires_at > ?)`,
+    )
+    .get(Date.now()) as { id: number } | undefined;
+  if (!admin) return;
+  const { url, expiresAt } = createLink(db, config.publicUrl, {
+    kind: 'recovery',
+    userId: admin.id,
+    ttl: ADMIN_SETUP_TTL,
+    createdBy: null,
+  });
+  console.log(
+    `[setup] Open this link to create the admin passkey (valid until ${new Date(expiresAt).toISOString()}): ${url}`,
+  );
+}
+
+async function seedOrCheckAdmin(config: Config, db: Database) {
   const hasUsers = db.prepare('SELECT 1 FROM users LIMIT 1').get();
   if (!hasUsers) {
     // Invalid admin env is reported via setupErrors by the caller and on the sign-in screen.
