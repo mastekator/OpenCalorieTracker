@@ -11,7 +11,7 @@ import {
   interviewSystemPrompt,
   toModelMessages,
 } from '../norm-agent/prompt.js';
-import { failureNote, isSchemaError, toApiError } from './common.js';
+import { callModel } from './common.js';
 import type { AiModel } from './model.js';
 
 export const INTERVIEW_TIMEOUT_MS = 30_000;
@@ -35,52 +35,30 @@ export async function normInterview(
   locale: string,
   signal?: AbortSignal,
 ): Promise<InterviewTurn> {
-  // A timer, not AbortSignal.timeout(): fake timers in tests must be able to fire it.
-  const timeout = new AbortController();
-  const timer = setTimeout(() => timeout.abort(), INTERVIEW_TIMEOUT_MS);
-  const abortSignal = signal
-    ? AbortSignal.any([signal, timeout.signal])
-    : timeout.signal;
-  const started = Date.now();
-  let result = 'ok';
-  let fields = '';
-  let failure = '';
-  try {
-    for (let attempt = 1; ; attempt++) {
-      try {
-        const { output } = await generateText({
-          model,
-          system: interviewSystemPrompt(locale, draft, today, units),
-          messages: toModelMessages(history),
-          output: Output.object({ schema: interviewTurnSchema }),
-          maxRetries: 0,
-          abortSignal,
-        });
-        // Field names only: values and texts are personal data.
-        fields = Object.entries(output.extracted)
+  return callModel(
+    model,
+    {
+      op: 'interview',
+      promptVersion: INTERVIEW_PROMPT_VERSION,
+      timeoutMs: INTERVIEW_TIMEOUT_MS,
+      signal,
+      // Field names only: values and texts are personal data.
+      logExtra: (turn) =>
+        `fields=${Object.entries(turn?.extracted ?? {})
           .filter(([, v]) => v != null)
           .map(([k]) => k)
-          .join(',');
-        return output;
-      } catch (err) {
-        if (attempt === 1 && isSchemaError(err) && !abortSignal.aborted)
-          continue;
-        throw err;
-      }
-    }
-  } catch (err) {
-    failure = failureNote(err);
-    if (signal?.aborted) {
-      result = 'aborted';
-      throw err;
-    }
-    const apiError = toApiError(err, timeout.signal.aborted);
-    result = apiError.code;
-    throw apiError;
-  } finally {
-    clearTimeout(timer);
-    console.log(
-      `ai.interview provider=${model.provider} model=${model.modelId} prompt=${INTERVIEW_PROMPT_VERSION} ms=${Date.now() - started} fields=${fields} result=${result}${failure}`,
-    );
-  }
+          .join(',')}`,
+    },
+    async (abortSignal) => {
+      const { output } = await generateText({
+        model,
+        system: interviewSystemPrompt(locale, draft, today, units),
+        messages: toModelMessages(history),
+        output: Output.object({ schema: interviewTurnSchema }),
+        maxRetries: 0,
+        abortSignal,
+      });
+      return output;
+    },
+  );
 }
