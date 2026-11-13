@@ -183,6 +183,36 @@ body{padding:var(--space-10) var(--space-8)}
 .navmap .nd.tab{background:var(--color-accent-soft);color:var(--color-accent);font-weight:600;align-items:flex-start;font-size:var(--text-footnote-size)}
 .navmap .nd.modal{outline:1px dashed var(--color-border-strong);background:transparent}
 .navmap .arrow{color:var(--color-text-secondary);text-align:center}
+
+/* ===== Desktop (≥ 1024px) — section 6 ===== */
+.frame.wide{width:1280px}
+.desk{position:relative;width:1280px;height:800px;border-radius:var(--radius-lg);overflow:hidden;background:var(--color-bg);outline:1px solid var(--color-separator);display:flex;flex-direction:column}
+.desk .chrome{height:36px;flex:none;display:flex;align-items:center;gap:var(--space-2);padding:0 var(--space-4);background:var(--color-surface-2);border-bottom:1px solid var(--color-separator);font-size:var(--text-caption-size);color:var(--color-text-secondary)}
+.desk .chrome i{width:12px;height:12px;border-radius:50%;background:var(--color-separator)}
+.desk .chrome .url{margin-left:var(--space-6);padding:var(--space-1) var(--space-3);border-radius:var(--radius-sm);background:var(--color-surface)}
+.desk .body{flex:1;display:flex;min-height:0}
+.side{width:var(--sidebar-width);flex:none;display:flex;flex-direction:column;gap:var(--space-1);padding:var(--space-6) var(--space-4);border-right:1px solid var(--color-separator)}
+.side .brand{padding:0 var(--space-3) var(--space-6)}
+.side .btn{margin-bottom:var(--space-4)}
+.nav-i{display:flex;align-items:center;gap:var(--space-3);min-height:var(--tap-min);padding:0 var(--space-3);border-radius:var(--radius-md);font-size:var(--text-body-size);color:var(--color-text)}
+.nav-i .icon{color:var(--color-text-secondary)}
+.nav-i.hover{background:var(--color-hover)}
+.nav-i.on{background:var(--color-accent-soft);color:var(--color-accent);font-weight:600}
+.nav-i.on .icon{color:var(--color-accent)}
+.side .foot{margin-top:auto;display:flex;flex-direction:column;gap:var(--space-1)}
+.side .who{padding:var(--space-2) var(--space-3);font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.main-area{flex:1;overflow:hidden;padding:var(--space-8) var(--desktop-gutter)}
+.main-area .inner{max-width:var(--content-max-width-wide);margin:0 auto;display:flex;flex-direction:column;gap:var(--space-6)}
+.main-area .large-title{padding:0}
+.cols{display:grid;grid-template-columns:3fr 2fr;gap:var(--space-6)}
+.drop{display:flex;flex-direction:column;align-items:center;gap:var(--space-2);padding:var(--space-8);border:2px dashed var(--color-border-strong);border-radius:var(--radius-lg);color:var(--color-text-secondary);text-align:center;font-size:var(--text-subhead-size)}
+.auth-desk{flex:1;display:grid;place-items:center}
+.auth-card{width:var(--content-max-width);background:var(--color-surface);border-radius:var(--radius-lg);padding:var(--space-10);box-shadow:var(--shadow-toast)}
+.dialog{position:absolute;left:50%;top:50%;translate:-50% -50%;width:var(--dialog-max-width);z-index:var(--z-sheet);background:var(--color-surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-toast);padding:var(--space-6);display:flex;flex-direction:column;gap:var(--space-4)}
+.dialog .sheet-head{display:flex;align-items:center;justify-content:space-between}
+.dialog .x{width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;margin-right:calc(-1 * var(--space-3));color:var(--color-text-secondary)}
+.kbd{font-size:var(--text-caption-size);padding:1px var(--space-1);border-radius:var(--radius-sm);outline:1px solid var(--color-separator);color:var(--color-text-secondary)}
+.toast.desk-toast{left:50%;right:auto;translate:-50% 0;bottom:var(--space-6);width:auto;max-width:var(--dialog-max-width)}
 </style>
 </head>
 <body>
@@ -846,6 +876,93 @@ body{padding:var(--space-10) var(--space-8)}
     <div class="toast" style="bottom:calc(34px + var(--space-3))"><svg class="icon sm"><use href="#i-wifi-off"/></svg>Нужно подключение к интернету</div>
     <div class="home-ind"></div></div>
     <figcaption><b>3.5 Офлайн.</b> Полоса «Офлайн · данные на …» под навбаром на любом экране. Недоступные строки серые, нажатие — тост. Язык, тема и выход работают офлайн.</figcaption>
+  </figure>
+</div>
+</section>
+
+<!-- ================= 6. DESKTOP ================= -->
+<section class="doc-section" id="desktop">
+<h2 class="doc-h2">6. Десктоп: окно браузера ≥ 1024 px</h2>
+<div class="row">
+  <figure class="frame wide"><div class="desk"><div class="chrome"><i></i><i></i><i></i><span class="url">calories.example.com</span></div>
+    <div class="body">
+      <aside class="side" aria-label="Разделы">
+        <div class="brand"><span class="mark"><svg class="icon sm"><use href="#i-plate"/></svg></span>OpenCalorieTracker</div>
+        <button class="btn btn-primary"><svg class="icon"><use href="#i-camera"/></svg>Добавить еду</button>
+        <span class="nav-i on"><svg class="icon"><use href="#i-home"/></svg>Сегодня</span>
+        <span class="nav-i hover"><svg class="icon"><use href="#i-book"/></svg>Дневник</span>
+        <span class="nav-i"><svg class="icon"><use href="#i-chart"/></svg>Неделя</span>
+        <span class="nav-i"><svg class="icon"><use href="#i-user"/></svg>Профиль</span>
+        <div class="foot">
+          <span class="nav-i"><svg class="icon"><use href="#i-settings"/></svg>Настройки</span>
+          <span class="who">anna@example.com</span>
+        </div>
+      </aside>
+      <main class="main-area"><div class="inner">
+        <div class="large-title">Сегодня</div>
+        <div class="cols">
+          <div class="stack" style="opacity:.55">
+            <div class="skel" style="height:160px;border-radius:var(--radius-lg)"></div>
+            <div class="skel" style="height:64px;border-radius:var(--radius-md)"></div>
+            <div class="skel" style="height:64px;border-radius:var(--radius-md)"></div>
+            <div class="skel" style="height:64px;border-radius:var(--radius-md)"></div>
+          </div>
+          <div class="stack">
+            <div class="drop"><svg class="icon"><use href="#i-download"/></svg><b style="color:var(--color-text)">Перетащите фото еды сюда</b>или вставьте его: <span><span class="kbd">Ctrl</span> / <span class="kbd">⌘</span> + <span class="kbd">V</span></span></div>
+            <div class="t-foot muted">Содержимое «Сегодня» и вторая колонка — задачи OCT-19 и OCT-16. Здесь — только каркас.</div>
+          </div>
+        </div>
+      </div></main>
+    </div></div>
+    <figcaption><b>6.1 Основной экран.</b> Боковая панель шириной <code>--sidebar-width</code> вместо таб-бара. Главная кнопка «Добавить еду» открывает выбор файла; фото можно перетащить в окно или вставить из буфера. Контент шириной до <code>--content-max-width-wide</code>, на «Сегодня» и в «Дневнике» две колонки. У строк и пунктов меню при наведении фон <code>--color-hover</code> (здесь показан на «Дневнике»).</figcaption>
+  </figure>
+
+  <figure class="frame wide"><div class="desk"><div class="chrome"><i></i><i></i><i></i><span class="url">calories.example.com</span></div>
+    <div class="auth-desk"><div class="auth-card">
+      <div class="brand"><span class="mark"><svg class="icon sm"><use href="#i-plate"/></svg></span>OpenCalorieTracker</div>
+      <div class="large-title" style="padding:var(--space-6) 0">Вход</div>
+      <div class="stack">
+        <button class="btn btn-primary"><svg class="icon"><use href="#i-key"/></svg>Войти с passkey</button>
+        <div class="or">или по паролю</div>
+        <div class="field"><label>Email</label><div class="input"><span class="ph">name@example.com</span></div></div>
+        <div class="field"><label>Пароль</label><div class="input"><span class="val"></span><span class="trail"><svg class="icon"><use href="#i-eye"/></svg></span></div></div>
+        <button class="btn btn-tonal">Войти</button>
+        <button class="btn btn-plain">Забыли пароль?</button>
+      </div>
+    </div></div></div>
+    <figcaption><b>6.2 Вход и все экраны без меню</b> (приглашение, восстановление, недействительная ссылка): та же форма, что на телефоне, в карточке шириной <code>--content-max-width</code> по центру окна. <span class="kbd">Enter</span> отправляет форму. Passkey на компьютере — Touch ID, Windows Hello или телефон по QR, это делает браузер.</figcaption>
+  </figure>
+
+  <figure class="frame wide"><div class="desk"><div class="chrome"><i></i><i></i><i></i><span class="url">calories.example.com</span></div>
+    <div class="body">
+      <aside class="side" aria-label="Разделы">
+        <div class="brand"><span class="mark"><svg class="icon sm"><use href="#i-plate"/></svg></span>OpenCalorieTracker</div>
+        <button class="btn btn-primary"><svg class="icon"><use href="#i-camera"/></svg>Добавить еду</button>
+        <span class="nav-i"><svg class="icon"><use href="#i-home"/></svg>Сегодня</span>
+        <span class="nav-i hover"><svg class="icon"><use href="#i-book"/></svg>Дневник</span>
+        <span class="nav-i"><svg class="icon"><use href="#i-chart"/></svg>Неделя</span>
+        <span class="nav-i"><svg class="icon"><use href="#i-user"/></svg>Профиль</span>
+        <div class="foot">
+          <span class="nav-i on"><svg class="icon"><use href="#i-settings"/></svg>Настройки</span>
+          <span class="who">anna@example.com</span>
+        </div>
+      </aside>
+      <main class="main-area"><div class="inner" style="max-width:var(--content-max-width)">
+        <div class="large-title">Приглашения</div>
+        <div class="group">
+          <div class="cell"><span class="main">masha@example.com<span class="sub">Ждёт · действует до 20 ноября</span></span><span class="badge warn">Ждёт</span></div>
+          <div class="cell"><span class="main">oleg@example.com<span class="sub">Принято 10 ноября</span></span><span class="badge ok">Принято</span></div>
+        </div>
+      </div></main>
+    </div>
+    <div class="scrim"></div>
+    <div class="dialog" role="dialog" aria-label="Пригласить">
+      <div class="sheet-head"><span class="t-title">Пригласить</span><span class="x" aria-label="Закрыть"><svg class="icon"><use href="#i-x"/></svg></span></div>
+      <div class="field"><label>Email</label><div class="input"><span class="ph">name@example.com</span></div></div>
+      <button class="btn btn-primary">Создать ссылку</button>
+    </div>
+  </div>
+    <figcaption><b>6.3 Настройки и листы.</b> Настройки и вложенные экраны — колонка <code>--content-max-width</code> справа от меню, кнопка «Назад» остаётся. Любой нижний лист на десктопе — диалог по центру шириной до <code>--dialog-max-width</code>: закрывается по <span class="kbd">Esc</span>, кнопкой «Закрыть» и кликом по фону. Тосты — снизу по центру.</figcaption>
   </figure>
 </div>
 </section>

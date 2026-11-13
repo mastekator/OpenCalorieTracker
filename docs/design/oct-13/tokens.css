@@ -38,7 +38,14 @@
   --tabbar-height: 49px;        /* + env(safe-area-inset-bottom) */
   --navbar-height: 44px;        /* + env(safe-area-inset-top) */
   --icon-size: 24px;  --icon-size-sm: 20px;  --icon-stroke: 1.75;
-  --content-max-width: 560px;   /* desktop: screens centred in a column */
+  --content-max-width: 560px;   /* phone-like column: auth, settings, tablet/narrow window */
+  /* Desktop (window ≥ 1024px; CSS vars can't be used in @media — keep 1024 in one place in code):
+     sidebar instead of tab bar, wider content, sheets become centred dialogs */
+  --sidebar-width: 248px;
+  --content-max-width-wide: 960px; /* desktop main area (Today, Diary, Week) */
+  --dialog-max-width: 480px;       /* desktop: sheets & alerts as centred dialogs */
+  --modal-flow-max-width: 720px;   /* desktop: camera → recognition → edit window */
+  --desktop-gutter: var(--space-10);
 
   /* ── Radii ── */
   --radius-sm: 8px;   /* chips, small badges */
@@ -90,6 +97,7 @@
   --shadow-camera: 0 4px 14px rgb(19 120 74 / 0.24);
   --tabbar-blur: saturate(180%) blur(20px);
   --tabbar-bg: rgb(248 250 249 / 0.88);
+  --color-hover: rgb(24 33 29 / 0.05); /* desktop: pointer hover on rows, nav, plain buttons */
 
   --theme-color: #F8FAF9; /* <meta name="theme-color">, status bar */
 }
@@ -125,6 +133,7 @@
     --shadow-toast: 0 8px 24px rgb(0 0 0 / 0.5);
     --shadow-camera: 0 6px 16px rgb(0 0 0 / 0.5);
     --tabbar-bg: rgb(14 17 16 / 0.86);
+    --color-hover: rgb(238 243 240 / 0.06);
     --theme-color: #0E1110;
   }
 }
@@ -157,6 +166,7 @@
   --shadow-toast: 0 8px 24px rgb(0 0 0 / 0.5);
   --shadow-camera: 0 6px 16px rgb(0 0 0 / 0.5);
   --tabbar-bg: rgb(14 17 16 / 0.86);
+  --color-hover: rgb(238 243 240 / 0.06);
   --theme-color: #0E1110;
   color-scheme: dark;
 }
