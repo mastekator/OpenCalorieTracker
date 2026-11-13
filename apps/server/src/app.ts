@@ -6,6 +6,7 @@ import type { Database } from 'better-sqlite3';
 import type { ConfigResponse } from '@oct/shared';
 import { accountRoutes } from './account/routes.js';
 import { authRoutes } from './auth/routes.js';
+import { device } from './auth/device.js';
 import { dummyHash } from './auth/password.js';
 import { session } from './auth/session.js';
 import { profileRoutes } from './profile/routes.js';
@@ -37,6 +38,7 @@ export function createApp(deps: AppDeps) {
     csrf({ origin: config.publicUrl ? [config.publicUrl] : [] }),
   );
 
+  app.use('/api/*', device(config));
   app.use('/api/*', session(deps));
   app.route('/api', authRoutes(deps));
   app.route('/api', profileRoutes(deps));

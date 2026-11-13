@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Profile } from '@oct/shared';
 import { ensureAdmin } from '../auth/admin.js';
 import { hashPassword } from '../auth/password.js';
-import { testApp } from '../test/app.js';
+import { setCookie, testApp } from '../test/app.js';
 import { getDailyNorm } from './norm.js';
 
 const PASSWORD = 'Correct-horse-battery-9';
@@ -47,7 +47,7 @@ async function setup() {
       body: JSON.stringify({ email, password: PASSWORD }),
     });
     expect(res.status).toBe(200);
-    return res.headers.get('set-cookie')!.split(';')[0]!;
+    return setCookie(res, 'oct_session')!.split(';')[0]!;
   };
   const addUser = async (email: string) => {
     const { lastInsertRowid } = t.db

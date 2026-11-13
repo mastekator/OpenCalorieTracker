@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ensureAdmin } from '../auth/admin.js';
-import { testApp } from '../test/app.js';
+import { setCookie, testApp } from '../test/app.js';
 
 async function setup() {
   const t = testApp();
@@ -13,7 +13,7 @@ async function setup() {
       password: 'Correct-horse-battery-9',
     }),
   });
-  const cookie = res.headers.get('set-cookie')!.split(';')[0]!;
+  const cookie = setCookie(res, 'oct_session')!.split(';')[0]!;
   const patch = (body: unknown, c = cookie) =>
     t.app.request('/api/account/settings', {
       method: 'PATCH',

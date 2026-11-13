@@ -24,12 +24,12 @@ export interface User {
   password_from_config: 0 | 1;
 }
 
-export type AuthEnv = { Variables: { user?: User } };
+export type AuthEnv = { Variables: { user?: User; deviceId?: string } };
 
 const tokenHash = (token: string) =>
   createHash('sha256').update(token).digest();
 
-const cookieOptions = (config: Config) => ({
+export const cookieOptions = (config: Config) => ({
   httpOnly: true,
   // PUBLIC_URL may be plain http only on localhost, where not every browser keeps Secure cookies.
   secure: !config.publicUrl?.startsWith('http://localhost'),

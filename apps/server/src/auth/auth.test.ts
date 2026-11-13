@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { testApp } from '../test/app.js';
+import { setCookie, testApp } from '../test/app.js';
 import { ensureAdmin } from './admin.js';
 import { hashPassword } from './password.js';
 import { RENEW_AFTER, SESSION_TTL } from './session.js';
@@ -22,7 +22,7 @@ async function setup(env: Record<string, string | undefined> = {}) {
   const signIn = async () => {
     const res = await login();
     expect(res.status).toBe(200);
-    return res.headers.get('set-cookie')!.split(';')[0]!;
+    return setCookie(res, 'oct_session')!.split(';')[0]!;
   };
   return { ...t, call, login, signIn };
 }
@@ -139,7 +139,7 @@ describe('sign-in', () => {
       passwordFromConfig: true,
       methods: ['password'],
     });
-    const cookie = res.headers.get('set-cookie')!;
+    const cookie = setCookie(res, 'oct_session')!;
     expect(cookie).toMatch(/^oct_session=[\w-]{43};/);
     expect(cookie).toContain(`Max-Age=${SESSION_TTL / 1000}`);
     expect(cookie).toMatch(/HttpOnly; Secure; SameSite=Strict/);
@@ -156,7 +156,7 @@ describe('sign-in', () => {
 
   it('drops Secure only for a localhost PUBLIC_URL', async () => {
     const res = await (await setup()).login();
-    expect(res.headers.get('set-cookie')).not.toContain('Secure');
+    expect(res.headers.getSetCookie().join()).not.toContain('Secure');
   });
 
   it('answers alike for unknown email, wrong password and passkey-only users (AC-5.2)', async () => {
@@ -171,14 +171,14 @@ describe('sign-in', () => {
         login('pk@example.com', PASSWORD),
       ].map(async (pending) => {
         const r = await pending;
-        return [r.status, await r.json(), r.headers.get('set-cookie')];
+        return [r.status, await r.json(), setCookie(r, 'oct_session')];
       }),
     );
     for (const answer of answers) {
       expect(answer).toEqual([
         401,
         { error: { code: 'invalid_credentials' } },
-        null,
+        undefined,
       ]);
     }
   });
@@ -224,7 +224,7 @@ describe('session', () => {
 
     const out = await call('POST', '/api/auth/logout', undefined, cookie);
     expect(out.status).toBe(204);
-    expect(out.headers.get('set-cookie')).toMatch(/^oct_session=;.*Max-Age=0/);
+    expect(setCookie(out, 'oct_session')).toMatch(/^oct_session=;.*Max-Age=0/);
     expect(db.prepare('SELECT 1 FROM sessions').get()).toBeUndefined();
     expect((await call('GET', '/api/auth/me', undefined, cookie)).status).toBe(
       401,
@@ -256,12 +256,12 @@ describe('session', () => {
     vi.setSystemTime(start + RENEW_AFTER - 1000);
     let res = await me();
     expect(res.status).toBe(200);
-    expect(res.headers.get('set-cookie')).toBeNull();
+    expect(setCookie(res, 'oct_session')).toBeUndefined();
     expect(expires()).toBe(start + SESSION_TTL);
 
     vi.setSystemTime(start + RENEW_AFTER);
     res = await me();
-    expect(res.headers.get('set-cookie')).toMatch(/^oct_session=/);
+    expect(setCookie(res, 'oct_session')).toBeDefined();
     expect(expires()).toBe(start + RENEW_AFTER + SESSION_TTL);
 
     vi.setSystemTime(start + RENEW_AFTER + SESSION_TTL);

@@ -15,3 +15,7 @@ export function testApp(env: Record<string, string | undefined> = {}) {
   migrate(db);
   return { app: createApp({ config, db }), config, db };
 }
+
+/** The Set-Cookie line for `name`, if the response sets it. */
+export const setCookie = (res: Response, name: string) =>
+  res.headers.getSetCookie().find((c) => c.startsWith(`${name}=`));
