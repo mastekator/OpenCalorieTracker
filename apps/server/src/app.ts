@@ -9,6 +9,7 @@ import { authRoutes } from './auth/routes.js';
 import { device } from './auth/device.js';
 import { dummyHash } from './auth/password.js';
 import { session } from './auth/session.js';
+import { photoRoutes } from './photos/routes.js';
 import { profileRoutes } from './profile/routes.js';
 import { setupErrors, type Config } from './config.js';
 import { ApiError, onError } from './http/errors.js';
@@ -43,6 +44,7 @@ export function createApp(deps: AppDeps) {
   app.route('/api', authRoutes(deps));
   app.route('/api', profileRoutes(deps));
   app.route('/api', accountRoutes(deps));
+  app.route('/api', photoRoutes(deps));
 
   app.get('/api/health', (c) => c.json({ ok: true, version }));
   app.get('/api/config', (c) =>

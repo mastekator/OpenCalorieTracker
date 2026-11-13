@@ -38,6 +38,8 @@ export const en = {
     ai_quota_exceeded: 'The AI provider’s limit is reached. Try later',
     ai_unavailable: 'The AI provider is unavailable. Try later',
     ai_invalid_response: 'The AI returned an unreadable answer. Try again',
+    photo_too_large: 'The photo is too large',
+    photo_invalid: 'This file isn’t a photo we can read',
     internal: 'Something went wrong. Try again',
   } satisfies Record<ErrorCode, string>,
 };
