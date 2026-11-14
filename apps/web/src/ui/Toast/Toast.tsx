@@ -94,7 +94,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext value={show}>
       {children}
-      {/* The empty live region stays in <body>, so screen readers announce what appears in it. */}
+      {/* The live region stays mounted empty in its host (<body> or the top open dialog), so screen readers announce what appears in it. */}
       {createPortal(
         <div className="toast" role="status">
           {toast && (
