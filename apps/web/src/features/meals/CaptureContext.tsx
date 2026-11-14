@@ -53,7 +53,8 @@ const hasFiles = (event: DragEvent) =>
 export function CaptureProvider({ children }: { children: ReactNode }) {
   const { t } = useT();
   const toast = useToast();
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
+  const inFlow = location === MEAL_NEW_PATH;
   const cameraInput = useRef<HTMLInputElement>(null);
   const pickInput = useRef<HTMLInputElement>(null);
   const busy = useRef(false);
@@ -78,7 +79,10 @@ export function CaptureProvider({ children }: { children: ReactNode }) {
         method: 'POST',
         body: blob,
       });
-      navigate(`${MEAL_NEW_PATH}?photo=${encodeURIComponent(photoId)}`);
+      // From the recognition screen (retake, drop, paste) the old photo leaves history.
+      navigate(`${MEAL_NEW_PATH}?photo=${encodeURIComponent(photoId)}`, {
+        replace: inFlow,
+      });
     } catch (err) {
       if (!(err instanceof ApiError)) throw err;
       if (err.code === 'photo_invalid' || err.code === 'photo_too_large')

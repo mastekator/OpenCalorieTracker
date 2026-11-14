@@ -10,6 +10,11 @@ import {
   MEAL_NEW_PATH,
   useCapture,
 } from '../features/meals/CaptureContext';
+import {
+  MEAL_EDIT_PATH,
+  RecognitionScreen,
+  type MealEditState,
+} from '../features/meals/RecognitionScreen';
 import { AppShell } from './AppShell';
 import { AuthGate } from './AuthGate';
 import { AuthLayout } from './AuthLayout';
@@ -54,8 +59,8 @@ function TodayStub() {
   );
 }
 
-// shortcut: the full-screen meal flow placeholder until the recognition screen (OCT-57).
-function MealFlowStub() {
+// shortcut: the edit screen placeholder until OCT-58.
+function MealEditStub() {
   const { t } = useT();
   return (
     <div className="screen">
@@ -125,23 +130,42 @@ function Login() {
   );
 }
 
+/** `?photo=` → recognition; no photo → manual entry on the edit screen. */
+function MealNew() {
+  const photoId = new URLSearchParams(useSearch()).get('photo');
+  if (!photoId)
+    return (
+      <Redirect
+        to={MEAL_EDIT_PATH}
+        replace
+        state={{ manual: 'user' } satisfies MealEditState}
+      />
+    );
+  // A new photo (retake, drop, paste) restarts the screen.
+  return <RecognitionScreen key={photoId} photoId={photoId} />;
+}
+
 function SignedIn() {
   const { user } = useSession();
   return (
     <AuthGate>
-      <Switch>
-        {/* A modal flow over the whole screen, without the tab bar (OCT-16 §1). */}
-        <Route path={MEAL_NEW_PATH}>
-          <MealFlowStub />
-        </Route>
-        <Route>
-          <CaptureProvider>
+      {/* Above the meal flow too: «Retake» opens the camera in the same tap (iOS). */}
+      <CaptureProvider>
+        <Switch>
+          {/* A modal flow over the whole screen, without the tab bar (OCT-16 §1). */}
+          <Route path={MEAL_NEW_PATH}>
+            <MealNew />
+          </Route>
+          <Route path={MEAL_EDIT_PATH}>
+            <MealEditStub />
+          </Route>
+          <Route>
             <AppShell email={user?.email}>
               <AppScreens />
             </AppShell>
-          </CaptureProvider>
-        </Route>
-      </Switch>
+          </Route>
+        </Switch>
+      </CaptureProvider>
     </AuthGate>
   );
 }
