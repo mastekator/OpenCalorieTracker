@@ -33,7 +33,7 @@ describe('MealRow', () => {
   it('shows the preview photo, local time, dishes and rounded kcal', async () => {
     show(meal());
     const row = await screen.findByRole('button');
-    expect(row.textContent).toBe('Lunch01:24 PMBuckwheat, Chicken717 kcal');
+    expect(row.textContent).toBe('Lunch1:24 PMBuckwheat, Chicken717 kcal');
     expect(row.querySelector('img')?.getAttribute('src')).toBe(
       '/api/photos/p1?size=preview',
     );

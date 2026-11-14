@@ -21,8 +21,7 @@ export function MealRow({ meal, onOpen, onDelete }: Props) {
   const [broken, setBroken] = useState(false);
   const type = t(`meal.type.${meal.mealType}`);
   const time = new Intl.DateTimeFormat(locale, {
-    hour: '2-digit',
-    minute: '2-digit',
+    timeStyle: 'short',
     timeZone: 'UTC',
   }).format(localClock(meal));
   return (

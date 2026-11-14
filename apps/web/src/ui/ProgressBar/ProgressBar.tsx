@@ -20,9 +20,11 @@ export function ProgressBar({
   label,
   valueText,
 }: Props) {
-  const over = value > max;
-  const scale = Math.max(value, max) || 1;
-  const fill = (Math.min(value, max) / scale) * 100;
+  // Rounded like the text, so 0.4 kcal over shows no tail next to «0 left».
+  const over = Math.round(value) > Math.round(max);
+  const fill = over
+    ? (max / value) * 100
+    : (Math.min(value, max) / (max || 1)) * 100;
   return (
     <div
       className={`progress progress--${tone}`}

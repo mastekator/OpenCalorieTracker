@@ -91,6 +91,7 @@ const ru: DeepPartial<typeof en> = {
     g: 'г',
     of: '/ {norm} г',
     row_of: 'из {norm}',
+    value_text: '{value} из {norm} г',
   },
   meal: {
     type: {

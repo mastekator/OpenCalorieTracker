@@ -94,6 +94,7 @@ export const en = {
     g: 'g',
     of: '/ {norm} g',
     row_of: 'of {norm}',
+    value_text: '{value} of {norm} g',
   },
   meal: {
     type: {

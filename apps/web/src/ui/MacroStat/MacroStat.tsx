@@ -49,7 +49,16 @@ export function MacroStat({
         </span>
       )}
       {norm !== null && (
-        <ProgressBar value={value} max={norm} tone={macro} label={name} />
+        <ProgressBar
+          value={value}
+          max={norm}
+          tone={macro}
+          label={name}
+          valueText={t('macro.value_text', {
+            value: num(value),
+            norm: num(norm),
+          })}
+        />
       )}
       {variant === 'column' &&
         norm !== null &&
