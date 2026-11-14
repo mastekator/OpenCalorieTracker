@@ -9,6 +9,7 @@ import {
 } from '@oct/shared';
 import { api } from '../../api/client';
 import { useSession } from '../../app/SessionContext';
+import { useRequireOnline } from '../../app/connection';
 import { useDb, useSettings } from '../../data/DataContext';
 import { patchSettings } from '../../data/outbox';
 import { useT } from '../../i18n';
@@ -33,6 +34,7 @@ export function ProfileScreen() {
   const [data, setData] = useState<Loaded | null>(null);
   const [failed, setFailed] = useState(false);
   const [chat, setChat] = useState(false);
+  const requireOnline = useRequireOnline();
 
   const load = useCallback(() => {
     setFailed(false);
@@ -79,7 +81,9 @@ export function ProfileScreen() {
         units={units}
         today={new Date().toLocaleDateString('sv')}
         onAgent={
-          data.interview === 'not_configured' ? undefined : () => setChat(true)
+          data.interview === 'not_configured'
+            ? undefined
+            : requireOnline('agent', () => setChat(true))
         }
         onSave={(body: ProfileRequest) =>
           api('/api/profile', profileResponse, { method: 'PUT', body })

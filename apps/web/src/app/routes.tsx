@@ -5,17 +5,17 @@ import { Redirect, Route, Switch, useLocation, useSearch } from 'wouter';
 import { api } from '../api/client';
 import type { Key } from '../i18n/translate';
 import { useT } from '../i18n';
-import { Button } from '../ui/Button/Button';
 import { NavBar } from '../ui/NavBar/NavBar';
-import { useOnline } from '../ui/OfflineBar/OfflineBar';
+import { OfflineBar } from '../ui/OfflineBar/OfflineBar';
+import { useBarVariant } from './connection';
 import { PasskeysScreen } from '../features/settings/PasskeysScreen';
 import { PasswordScreen } from '../features/settings/PasswordScreen';
 import { SettingsScreen } from '../features/settings/SettingsScreen';
 import {
   CaptureProvider,
   MEAL_NEW_PATH,
-  useCapture,
 } from '../features/meals/CaptureContext';
+import { TodayScreen } from '../features/diary/TodayScreen';
 import {
   MEAL_EDIT_PATH,
   RecognitionScreen,
@@ -45,27 +45,12 @@ function Screen({
   );
 }
 
-// shortcut: only the way into the photo flow; the Today screen itself is OCT-67.
-function TodayStub() {
-  const { t } = useT();
-  const capture = useCapture();
-  return (
-    <div className="today-stub">
-      <Button variant="tonal" onClick={capture.pick}>
-        {t('capture.gallery')}
-      </Button>
-      <Button variant="tonal" onClick={capture.manual}>
-        {t('capture.manual')}
-      </Button>
-    </div>
-  );
-}
-
 // shortcut: the edit screen placeholder until OCT-58.
 function MealEditStub() {
   const { t } = useT();
   return (
     <div className="screen">
+      <OfflineBar variant={useBarVariant()} />
       <NavBar
         title={t('nav.add_food')}
         back={{ href: '/', label: t('common.cancel') }}
@@ -86,8 +71,8 @@ const ADMIN_TITLES: Record<string, Key> = {
 export function AppScreens() {
   const { t } = useT();
   const { user, refresh } = useSession();
-  const online = useOnline();
   const [, navigate] = useLocation();
+  const how = new URLSearchParams(useSearch()).has('how');
   const toSettings = { href: '/settings', label: t('nav.settings') };
   // shortcut: signs out at once; the confirm with unsent changes and clearing local data are OCT-80.
   const logout = async () => {
@@ -101,7 +86,7 @@ export function AppScreens() {
     <Switch>
       <Route path="/">
         <Screen wide large title={t('nav.today')}>
-          <TodayStub />
+          <TodayScreen />
         </Screen>
       </Route>
       <Route path="/diary">
@@ -111,16 +96,24 @@ export function AppScreens() {
         <Screen wide large title={t('nav.week')} />
       </Route>
       <Route path="/profile">
+        {/* 8.20 is /profile?how: the same Screen, so ProfileScreen and its draft stay mounted. */}
         <Screen
-          wide
-          large
-          title={t('nav.profile')}
-          action={{
-            icon: Settings2,
-            label: t('nav.settings'),
-            href: '/settings',
-            mobileOnly: true,
-          }}
+          {...(how
+            ? {
+                title: t('norm.how'),
+                back: { href: '/profile', label: t('nav.profile') },
+              }
+            : {
+                wide: true,
+                large: true,
+                title: t('nav.profile'),
+                action: {
+                  icon: Settings2,
+                  label: t('nav.settings'),
+                  href: '/settings',
+                  mobileOnly: true,
+                },
+              })}
         >
           <ProfileScreen />
         </Screen>
@@ -130,11 +123,7 @@ export function AppScreens() {
           title={t('nav.settings')}
           back={{ href: '/profile', label: t('nav.profile'), mobileOnly: true }}
         >
-          <SettingsScreen
-            user={user}
-            online={online}
-            onLogout={() => void logout()}
-          />
+          <SettingsScreen user={user} onLogout={() => void logout()} />
         </Screen>
       </Route>
       <Route path="/settings/passkeys">
@@ -176,20 +165,36 @@ export function AppScreens() {
   );
 }
 
-/** Sign-in; a signed-in user goes on to `next` (AC-5.3). */
+/**
+ * Sign-in; a signed-in user goes on to `next` (AC-5.3) before the config is needed,
+ * so an offline start from the local copy never waits for /api/config.
+ */
 function Login() {
-  const config = useConfig();
   const { user, refresh } = useSession();
   const params = new URLSearchParams(useSearch());
   if (user) return <Redirect to={safeNext(params.get('next'))} replace />;
   return (
-    <AuthLayout>
-      <LoginScreen
-        config={config}
-        onSignedIn={refresh}
-        notice={params.has('expired') ? { kind: 'expired' } : undefined}
-      />
-    </AuthLayout>
+    <ConfigProvider>
+      <AuthLayout>
+        <LoginForm onSignedIn={refresh} expired={params.has('expired')} />
+      </AuthLayout>
+    </ConfigProvider>
+  );
+}
+
+function LoginForm({
+  onSignedIn,
+  expired,
+}: {
+  onSignedIn: () => Promise<void>;
+  expired: boolean;
+}) {
+  return (
+    <LoginScreen
+      config={useConfig()}
+      onSignedIn={onSignedIn}
+      notice={expired ? { kind: 'expired' } : undefined}
+    />
   );
 }
 
@@ -251,6 +256,10 @@ function SignedIn() {
           <Route path={MEAL_EDIT_PATH}>
             <MealEditStub />
           </Route>
+          {/* After the two above: «new» is not a clientId. */}
+          <Route path="/meal/:clientId">
+            <MealEditStub />
+          </Route>
           <Route>
             <AppShell email={user?.email}>
               <AppScreens />
@@ -267,9 +276,7 @@ export function Routes() {
     <Switch>
       <Route path="/login">
         {/* Only sign-in needs the config: the signed-in app must start offline (E-8.10). */}
-        <ConfigProvider>
-          <Login />
-        </ConfigProvider>
+        <Login />
       </Route>
       <Route path="/invite">
         <ConfigProvider>

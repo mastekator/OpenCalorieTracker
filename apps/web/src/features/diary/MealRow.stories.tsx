@@ -55,7 +55,13 @@ const MEALS = [
   }),
 ];
 
-function Meals({ desktop = false }: { desktop?: boolean }) {
+function Meals({
+  desktop = false,
+  highlight = false,
+}: {
+  desktop?: boolean;
+  highlight?: boolean;
+}) {
   const { t } = useT();
   return (
     <List title={t('today.meals')}>
@@ -65,6 +71,7 @@ function Meals({ desktop = false }: { desktop?: boolean }) {
           meal={m}
           onOpen={() => {}}
           onDelete={desktop ? () => {} : undefined}
+          highlight={highlight && m.id === 3}
         />
       ))}
     </List>
@@ -94,3 +101,5 @@ export const Desktop: Story = {
   args: { desktop: true },
   globals: { viewport: { value: 'desktop' } },
 };
+/** A just-saved meal flashes accent-soft (OCT-16 A.6). */
+export const JustSaved: Story = { args: { highlight: true } };

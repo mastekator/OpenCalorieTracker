@@ -11,6 +11,7 @@ const user = {
   id: 1,
   email: 'anna@example.com',
   units: 'metric',
+  methods: [] as MeResponse['methods'],
 } as MeResponse;
 
 /** The signed-in layout with placeholder screens; check it at 390 and at 1280 (desktop). */
@@ -53,3 +54,17 @@ export const SettingsDesktop: Story = {
   parameters: { path: '/settings' },
   globals: desktop,
 };
+
+/** Forces navigator.onLine off: the bar above the title (OCT-25 3.1, §7). */
+const offline = () => {
+  Object.defineProperty(navigator, 'onLine', {
+    configurable: true,
+    get: () => false,
+  });
+  return () => void delete (navigator as { onLine?: boolean }).onLine;
+};
+export const Offline: Story = {
+  parameters: { path: '/profile' },
+  beforeEach: offline,
+};
+export const OfflineDesktop: Story = { ...Offline, globals: desktop };

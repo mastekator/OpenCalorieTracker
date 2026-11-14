@@ -3,6 +3,18 @@
   align-items: center;
 }
 
+/* A just-saved meal is lit for about a second, then fades (OCT-16 A.6). */
+.meal-row--new {
+  animation: meal-row-new var(--duration-highlight) var(--ease-in-out);
+}
+
+@keyframes meal-row-new {
+  0%,
+  60% {
+    background: var(--color-accent-soft);
+  }
+}
+
 .meal-row__open {
   flex: 1;
   min-width: 0;

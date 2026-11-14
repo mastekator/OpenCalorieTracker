@@ -78,6 +78,7 @@
   --duration-spinner: 800ms; /* one turn of the button spinner; kept under reduced motion (it signals progress) */
   --duration-shimmer: 1400ms; /* one sweep of the skeleton shimmer; off under reduced motion */
   --duration-typing: 1200ms; /* one blink cycle of the «typing» dots; off under reduced motion */
+  --duration-highlight: 1200ms; /* a just-saved row holds accent-soft, then fades; kept under reduced motion (colour, not movement) */
 
   /* ── Layers ── */
   --z-tabbar: 10; --z-banner: 20; --z-sheet: 30; --z-alert: 40; --z-toast: 50;
