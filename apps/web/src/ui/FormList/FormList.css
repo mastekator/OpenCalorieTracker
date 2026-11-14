@@ -1,5 +1,18 @@
 .form-row {
+  flex-wrap: wrap;
   cursor: text;
+}
+
+/* The label stays on one line while the value fits next to it; otherwise the value moves under it. */
+.form-row .list-row__label {
+  flex: 1 0 auto;
+  max-width: 100%;
+  overflow-wrap: normal;
+}
+
+.form-row > .inline-field,
+.form-row > .inline-field__pair {
+  margin-inline-start: auto;
 }
 
 .form-row--stacked {
@@ -103,4 +116,10 @@
   outline: var(--focus-ring-width) solid var(--color-focus-ring);
   outline-offset: var(--focus-ring-offset);
   border-radius: var(--radius-sm);
+}
+
+/* A read-only empty date (deadline without a target): an inactive hint, not an accent prompt. */
+.inline-field--ro.inline-field--empty .inline-field__text {
+  color: var(--color-text-secondary);
+  font-weight: 400;
 }

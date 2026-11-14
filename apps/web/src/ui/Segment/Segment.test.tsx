@@ -62,4 +62,21 @@ describe('Segment', () => {
         .getAttribute('aria-checked'),
     ).toBe('true');
   });
+
+  it('keeps the first option in the tab order while nothing is chosen', () => {
+    render(
+      <Segment
+        label="Sex"
+        options={options}
+        value={'' as 'passkey'}
+        onChange={() => {}}
+      />,
+    );
+    const [passkey, password] = screen.getAllByRole('radio') as [
+      HTMLElement,
+      HTMLElement,
+    ];
+    expect(passkey.tabIndex).toBe(0);
+    expect(password.tabIndex).toBe(-1);
+  });
 });

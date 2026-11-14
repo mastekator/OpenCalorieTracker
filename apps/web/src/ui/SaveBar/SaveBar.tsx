@@ -24,7 +24,7 @@ export function SaveBar({ preview, onSave, disabled, loading }: Props) {
         {preview !== null && <b>{preview}</b>}
       </p>
       <Button onClick={onSave} disabled={disabled} loading={loading}>
-        {t('save.action')}
+        {t(loading ? 'save.saving' : 'save.action')}
       </Button>
     </div>
   );

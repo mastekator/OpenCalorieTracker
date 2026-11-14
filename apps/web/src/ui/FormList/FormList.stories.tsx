@@ -3,7 +3,13 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useT } from '../../i18n';
 import { List, ListRow } from '../List/List';
 import { Segment } from '../Segment/Segment';
-import { FormRow, HeightFtIn, InlineDate, InlineNumber } from './FormList';
+import {
+  FormRow,
+  HeightFtIn,
+  InlineDate,
+  InlineNumber,
+  PickValue,
+} from './FormList';
 
 type Props = {
   empty?: boolean;
@@ -126,7 +132,9 @@ function Form({
           />
         </FormRow>
         <ListRow
-          value={empty ? t('field.pick') : t('activity.moderate.name')}
+          value={
+            <PickValue value={empty ? null : t('activity.moderate.name')} />
+          }
           description={empty ? undefined : t('activity.moderate.desc')}
           onClick={readOnly ? undefined : () => {}}
           chevron={!readOnly}
