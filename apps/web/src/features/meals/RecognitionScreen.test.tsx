@@ -3,13 +3,13 @@ import {
   act,
   cleanup,
   fireEvent,
-  render,
   screen,
   waitFor,
 } from '@testing-library/react';
 import { Route, Router, Switch } from 'wouter';
 import { memoryLocation } from 'wouter/memory-location';
 import { I18nProvider, LOCALE_STORAGE_KEY } from '../../i18n';
+import { renderLoaded } from '../../test-utils';
 import { RecognitionScreen, SLOW_MS, TIMEOUT_MS } from './RecognitionScreen';
 
 const URL = '/api/photos/p1/recognize';
@@ -63,7 +63,7 @@ let online = true;
 
 async function setup() {
   const location = memoryLocation({ path: '/meal/new?photo=p1', record: true });
-  render(
+  await renderLoaded(
     <I18nProvider>
       <Router hook={location.hook} searchHook={location.searchHook}>
         <Switch>
@@ -77,7 +77,6 @@ async function setup() {
       </Router>
     </I18nProvider>,
   );
-  await screen.findByText('Recognizing…'); // the dictionary loads first
   return location;
 }
 
