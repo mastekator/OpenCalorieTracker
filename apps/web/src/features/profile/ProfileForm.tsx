@@ -263,7 +263,11 @@ export function ProfileForm({
     ]
       .filter(Boolean)
       .join(' ');
-    const safeDeadline = pace?.safeDeadline;
+    // A date past the 2-year limit would only turn into a field error.
+    const safeDeadline =
+      pace?.safeDeadline && !deadlineError(pace.safeDeadline, today)
+        ? pace.safeDeadline
+        : null;
     warnings = (
       <>
         {body && (
