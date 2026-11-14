@@ -1,25 +1,18 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import {
-  act,
-  cleanup,
-  render,
-  renderHook,
-  screen,
-} from '@testing-library/react';
+import { act, cleanup, renderHook, screen } from '@testing-library/react';
 import { I18nProvider, LOCALE_STORAGE_KEY } from '../../i18n';
+import { renderLoaded } from '../../test-utils';
 import { OfflineBar, type BarVariant, useOnline } from './OfflineBar';
 
 beforeEach(() => localStorage.setItem(LOCALE_STORAGE_KEY, 'en'));
 afterEach(cleanup);
 
 const renderBar = async (variant: BarVariant | null) => {
-  render(
+  await renderLoaded(
     <I18nProvider>
-      <p>ready</p>
       <OfflineBar variant={variant} />
     </I18nProvider>,
   );
-  await screen.findByText('ready'); // the dictionary has loaded
   return screen.getByRole('status').textContent;
 };
 
