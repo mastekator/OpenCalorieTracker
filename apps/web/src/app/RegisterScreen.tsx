@@ -100,7 +100,12 @@ function LinkGate(props: Props & { kind: 'invite' | 'recovery' }) {
   }, [token]);
   useEffect(load, [load]);
 
-  if (!check) return <div className="login" aria-busy="true" />;
+  if (!check)
+    return (
+      <div className="login" aria-busy="true">
+        <Brand />
+      </div>
+    );
   if (check instanceof ApiError)
     return (
       <div className="login">
@@ -359,13 +364,23 @@ function RegisterForm({
 
       {inApp && (
         <>
-          <Banner tone="warning" title={t('reg.inapp.title')}>
+          <Banner
+            tone="warning"
+            title={t(
+              /iPhone|iPad/.test(userAgent)
+                ? 'reg.inapp.title'
+                : 'reg.inapp.title_other',
+            )}
+          >
             {t('reg.inapp.body')}
           </Banner>
-          <Button variant="tonal" onClick={() => void copyLink()}>
-            {t(copy === 'done' ? 'link_ready.copied' : 'reg.inapp.copy')}
-          </Button>
-          {copy === 'failed' && <p className="register__link">{href}</p>}
+          {/* A live region, so VoiceOver reads the copy result: the new label or the link. */}
+          <div role="status" className="register__actions">
+            <Button variant="tonal" onClick={() => void copyLink()}>
+              {t(copy === 'done' ? 'link_ready.copied' : 'reg.inapp.copy')}
+            </Button>
+            {copy === 'failed' && <p className="register__link">{href}</p>}
+          </div>
         </>
       )}
 

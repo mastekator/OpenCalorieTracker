@@ -107,6 +107,7 @@ const ru: DeepPartial<typeof en> = {
     password_repeat: 'Повторите пароль',
     inapp: {
       title: 'Откройте ссылку в Safari',
+      title_other: 'Откройте ссылку в браузере',
       body: 'Во встроенном браузере мессенджера passkey может не работать. Пароль работает здесь.',
       copy: 'Скопировать ссылку',
     },

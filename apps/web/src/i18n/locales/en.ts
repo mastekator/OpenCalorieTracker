@@ -110,6 +110,7 @@ export const en = {
     password_repeat: 'Repeat password',
     inapp: {
       title: 'Open this link in Safari',
+      title_other: 'Open this link in your browser',
       body: 'Passkeys may not work in a messenger’s built-in browser. Password works here.',
       copy: 'Copy link',
     },

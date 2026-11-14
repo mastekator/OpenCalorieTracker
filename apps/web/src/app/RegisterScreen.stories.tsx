@@ -93,6 +93,10 @@ export const InAppBrowserDark: Story = {
   ...InAppBrowser,
   globals: { theme: 'dark' },
 };
+/** 2.3 on Android: no browser named in the title. */
+export const InAppBrowserAndroid: Story = {
+  args: { userAgent: 'Mozilla/5.0 (Linux; Android 14; wv) Telegram-Android' },
+};
 /** 2.3 with password sign-in off: only the banner and the copy button. */
 export const InAppBrowserPasskeyOnly: Story = {
   args: {

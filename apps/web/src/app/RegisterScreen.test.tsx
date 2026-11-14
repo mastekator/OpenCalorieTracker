@@ -319,9 +319,8 @@ describe('RegisterScreen: in-app browser (2.3)', () => {
         .getAttribute('aria-checked'),
     ).toBe('true');
     fireEvent.click(screen.getByRole('button', { name: 'Copy link' }));
-    expect(
-      await screen.findByText('https://food.example.com/invite#tok'),
-    ).toBeTruthy();
+    const link = await screen.findByText('https://food.example.com/invite#tok');
+    expect(link.closest('[role="status"]')).toBeTruthy();
   });
 
   it('without password sign-in shows only the banner and the copy button', async () => {
@@ -332,5 +331,16 @@ describe('RegisterScreen: in-app browser (2.3)', () => {
     });
     expect(await screen.findByText('Open this link in Safari')).toBeTruthy();
     expect(screen.queryByLabelText('Email')).toBeNull();
+  });
+
+  it('names no browser outside iOS', async () => {
+    serve({ '/api/auth/invites/check': valid });
+    renderScreen('invite', {
+      userAgent:
+        'Mozilla/5.0 (Linux; Android 14; Pixel 8; wv) Telegram-Android',
+    });
+    expect(
+      await screen.findByText('Open this link in your browser'),
+    ).toBeTruthy();
   });
 });

@@ -47,3 +47,9 @@
   overflow-wrap: anywhere;
   user-select: all;
 }
+
+/* 2.7: the navbar sits in the page or card, its title in line with the fields. */
+.login .navbar,
+.login .navbar__large-title {
+  padding-inline: 0;
+}
