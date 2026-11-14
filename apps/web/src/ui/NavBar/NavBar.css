@@ -1,8 +1,8 @@
 .navbar {
   position: sticky;
-  top: 0;
+  top: var(--offline-bar-height, 0px);
   z-index: var(--z-tabbar);
-  padding: env(safe-area-inset-top)
+  padding: var(--safe-top, env(safe-area-inset-top))
     max(var(--space-2), env(safe-area-inset-right)) 0
     max(var(--space-2), env(safe-area-inset-left));
   background: var(--color-bg);

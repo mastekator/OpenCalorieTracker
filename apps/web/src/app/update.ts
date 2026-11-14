@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { registerSW } from 'virtual:pwa-register';
-import { setOutdatedHandler } from '../api/client';
+import { setOutdatedHandler, setWriteOkHandler } from '../api/client';
+import { clearStale, markStale } from './connection';
 import { createUpdater } from './updater';
 
-const STALE_KEY = 'update.stale';
 const draftKey = () => `draft:${location.pathname}`;
 const drafts = new Map<string, () => unknown>();
 
@@ -27,13 +27,14 @@ export function startUpdates() {
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') updater.visible();
   });
+  setWriteOkHandler(clearStale);
   let reloading = false; // several in-flight writes can all get client_outdated
   setOutdatedHandler(() => {
     if (reloading) return;
     reloading = true;
     for (const [key, get] of drafts)
       sessionStorage.setItem(key, JSON.stringify(get()));
-    sessionStorage.setItem(STALE_KEY, '1');
+    markStale();
     void updater.outdated();
   });
 }
@@ -60,16 +61,4 @@ export function useDraft<T>(value: T, restore: (draft: T) => void) {
       drafts.delete(key);
     };
   }, []);
-}
-
-/** True after a reload caused by client_outdated, until dismissed (bar `update.stale`, OCT-78). */
-export function useUpdateStale() {
-  const [stale, setStale] = useState(
-    () => sessionStorage.getItem(STALE_KEY) !== null,
-  );
-  const dismiss = useCallback(() => {
-    sessionStorage.removeItem(STALE_KEY);
-    setStale(false);
-  }, []);
-  return [stale, dismiss] as const;
 }

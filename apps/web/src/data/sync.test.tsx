@@ -1,8 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, render, screen } from '@testing-library/react';
 import type { Meal, MeResponse, SyncResponse } from '@oct/shared';
+import type { ReactNode } from 'react';
+import { I18nProvider, LOCALE_STORAGE_KEY } from '../i18n';
+import { ToastProvider } from '../ui/Toast/Toast';
 import { DataProvider, useMeals } from './DataContext';
 import { openUserDb, type Db } from './db';
+import { patchSettings } from './outbox';
 import { pull } from './sync';
 import { clearLocal } from './user';
 
@@ -42,6 +46,15 @@ function serve(...pages: SyncResponse[]) {
   );
   return urls;
 }
+
+const withApp = (node: ReactNode) => {
+  localStorage.setItem(LOCALE_STORAGE_KEY, 'en');
+  return (
+    <I18nProvider>
+      <ToastProvider>{node}</ToastProvider>
+    </I18nProvider>
+  );
+};
 
 let db: Db;
 const open = async () => (db = await openUserDb(7));
@@ -138,9 +151,11 @@ describe('useMeals', () => {
       return <p>{meals ? `meals: ${meals.map((m) => m.clientId)}` : '…'}</p>;
     }
     render(
-      <DataProvider user={user}>
-        <Day />
-      </DataProvider>,
+      withApp(
+        <DataProvider user={user}>
+          <Day />
+        </DataProvider>,
+      ),
     );
     expect(await screen.findByText('meals: a')).toBeTruthy();
 
@@ -148,5 +163,33 @@ describe('useMeals', () => {
     serve(page({ rev: 2, meals: [meal('c')] }));
     await act(() => pull(db));
     expect(await screen.findByText('meals: a,c')).toBeTruthy();
+  });
+});
+
+describe('network back (OCT-19 2.9)', () => {
+  it('sends the queue and says how many entries went', async () => {
+    const user = { id: 7, email: 'a@example.com' } as MeResponse;
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('offline')));
+    render(
+      withApp(
+        <DataProvider user={user}>
+          <p>ready</p>
+        </DataProvider>,
+      ),
+    );
+    await screen.findByText('ready');
+    await open();
+    await patchSettings(db, { theme: 'dark' });
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) =>
+        url.startsWith('/api/sync')
+          ? Response.json(page({}))
+          : new Response(null, { status: 204 }),
+      ),
+    );
+    act(() => void window.dispatchEvent(new Event('online')));
+    expect(await screen.findByText('Synced 1 entry')).toBeTruthy();
   });
 });

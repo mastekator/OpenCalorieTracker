@@ -4,6 +4,7 @@ import { useT } from '../../i18n';
 import { Banner } from '../../ui/Banner/Banner';
 import { Button } from '../../ui/Button/Button';
 import { OfflineBar } from '../../ui/OfflineBar/OfflineBar';
+import { useBarVariant } from '../../app/connection';
 import { ScreenState } from '../../ui/ScreenState/ScreenState';
 import { Skeleton } from '../../ui/Skeleton/Skeleton';
 import './RecognitionState.css';
@@ -38,6 +39,8 @@ export function RecognitionState({
   onClose,
 }: Props) {
   const { t } = useT();
+  // The flow sits outside AppShell, so it shows the connection bar itself; an offline result shows it even if navigator.onLine lies.
+  const bar = useBarVariant();
   const waiting = state === 'loading' || state === 'slow';
   const titleRef = useRef<HTMLHeadingElement>(null);
   // A deleted or unreachable photo leaves the surface-2 placeholder, not a broken-image icon.
@@ -118,7 +121,7 @@ export function RecognitionState({
 
   return (
     <div className={`recog${waiting ? '' : ' recog--done'}`}>
-      {state === 'offline' && <OfflineBar />}
+      <OfflineBar variant={state === 'offline' ? 'offline' : bar} />
       <div className="recog__photo">
         {!photoBroken && (
           <img src={photoUrl} alt="" onError={() => setPhotoBroken(true)} />

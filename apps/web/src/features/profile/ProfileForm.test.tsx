@@ -5,6 +5,7 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from '@testing-library/react';
 import {
@@ -83,6 +84,7 @@ const kcal = (n: number) => new Intl.NumberFormat('en').format(n);
 beforeEach(() => {
   localStorage.clear();
   localStorage.setItem(LOCALE_STORAGE_KEY, 'en');
+  history.replaceState(null, '', '/profile');
 });
 afterEach(() => {
   cleanup();
@@ -103,6 +105,40 @@ describe('ProfileForm', () => {
     await screen.findByText(kcal(next.kcal));
     expect(screen.getByText('not saved')).toBeTruthy();
     expect((save() as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it('opens «How it’s calculated» over the kept draft and focuses back on return', async () => {
+    setup(base);
+    await type('Weight', '90');
+    const draft = calculateNorm({ ...base, weightKg: 90 }, today);
+    if (draft.status !== 'ok') throw new Error(draft.status);
+    const how = await screen.findByRole('button', {
+      name: /How it’s calculated/,
+    });
+    act(() => fireEvent.click(how));
+    expect(location.search).toBe('?how');
+    const title = await screen.findByRole('heading', {
+      name: 'How we calculated your goal',
+    });
+    expect(document.activeElement).toBe(title);
+    // The steps explain the draft the card shows (AC-2.4b); the form is out of the way.
+    expect(document.body.textContent).toContain(`${kcal(draft.kcal)} kcal`);
+    expect(screen.queryByRole('textbox', { name: 'Weight' })).toBeNull();
+
+    act(() => history.back());
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('heading', { name: 'How we calculated your goal' }),
+      ).toBeNull(),
+    );
+    expect((await field('Weight')).value).toBe('90.0');
+    expect(document.activeElement?.textContent).toMatch(/How it’s calculated/);
+  });
+
+  it('«How it’s calculated» with a missing field says what to fill in', async () => {
+    history.replaceState(null, '', '/profile?how');
+    setup({ ...base, heightCm: null });
+    await screen.findByText('Fill in height to see the calculation');
   });
 
   it('asks for the missing fields and saves a partial profile', async () => {

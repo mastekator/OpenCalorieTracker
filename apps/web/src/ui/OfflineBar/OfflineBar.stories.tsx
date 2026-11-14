@@ -1,36 +1,29 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { OfflineBar } from './OfflineBar';
 
-// Stories force navigator.onLine; the real bar follows the browser's online/offline events.
-const offline = (online: boolean) => () => {
-  const saved = Object.getOwnPropertyDescriptor(Navigator.prototype, 'onLine');
-  Object.defineProperty(navigator, 'onLine', {
-    configurable: true,
-    get: () => online,
-  });
-  return () => {
-    delete (navigator as { onLine?: boolean }).onLine;
-    if (saved) Object.defineProperty(Navigator.prototype, 'onLine', saved);
-  };
-};
-
 const meta = {
   title: 'UI/OfflineBar',
   component: OfflineBar,
-  beforeEach: offline(false),
+  args: { variant: 'offline' },
+  parameters: { layout: 'fullscreen' },
 } satisfies Meta<typeof OfflineBar>;
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const OfflineWithData: Story = { args: { dataTime: '12:40' } };
-export const NoNetwork: Story = {};
-export const ServerDown: Story = {
-  args: { serverDown: true },
-  beforeEach: offline(true),
-};
-/** Online and the server answers: the bar renders nothing. */
-export const Online: Story = { beforeEach: offline(true) };
+/** 3.1: no network. */
+export const Offline: Story = {};
+/** 3.2: the network is up, the server doesn't answer (E-2.4). */
+export const ServerDown: Story = { args: { variant: 'server' } };
+/** 6.2: the server rejected the old version; the app reloaded and asks to save again. */
+export const Updated: Story = { args: { variant: 'updated' } };
+/** Sign-in screens (OCT-13 1.9): nothing is saved there offline. */
+export const NoNetwork: Story = { args: { variant: 'no_network' } };
+/** All is well: an empty live region. */
+export const Hidden: Story = { args: { variant: null } };
 export const Desktop: Story = {
-  args: { dataTime: '12:40' },
   globals: { viewport: { value: 'desktop' } },
+};
+export const DarkServerDown: Story = {
+  args: { variant: 'server' },
+  globals: { theme: 'dark' },
 };

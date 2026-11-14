@@ -57,6 +57,7 @@
   --sheet-handle-width: 36px;  --sheet-handle-height: 5px;
   --modal-flow-max-width: 720px;   /* desktop: camera → recognition → edit window */
   --desktop-gutter: var(--space-10);
+  --chat-avatar-size: 28px;      /* agent icon circle in the norm chat (OCT-22 §3) */
 
   /* ── Radii ── */
   --radius-sm: 8px;   /* chips, small badges */
@@ -74,6 +75,7 @@
   --press-scale: 0.97;
   --duration-spinner: 800ms; /* one turn of the button spinner; kept under reduced motion (it signals progress) */
   --duration-shimmer: 1400ms; /* one sweep of the skeleton shimmer; off under reduced motion */
+  --duration-highlight: 1200ms; /* a just-saved row holds accent-soft, then fades; kept under reduced motion (colour, not movement) */
 
   /* ── Layers ── */
   --z-tabbar: 10; --z-banner: 20; --z-sheet: 30; --z-alert: 40; --z-toast: 50;

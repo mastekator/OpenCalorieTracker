@@ -1,8 +1,7 @@
 import { addDays } from '@oct/shared';
 import { z } from 'zod';
 
-/** Today on this device, `YYYY-MM-DD`. */
-export const localToday = () => new Date().toLocaleDateString('sv');
+export { localToday } from './useToday';
 
 const isoDate = z.iso.date();
 

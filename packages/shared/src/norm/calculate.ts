@@ -60,7 +60,7 @@ export type NormResult =
       warnings: NormWarning[];
     } & Macros);
 
-const KCAL_PER_KG = 7700;
+export const KCAL_PER_KG = 7700;
 const DEFAULT_PACE_PCT = { lose: 0.5, gain: 0.25 };
 const SAFE_LOSE_PCT = 1;
 // Thresholds compare with a tolerance so "exactly 1 %" does not flip on float error.

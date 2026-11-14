@@ -73,9 +73,17 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 const dark = { globals: { theme: 'dark' } };
 
-const settings = (u: MeResponse, online = true) => (
-  <SettingsScreen user={u} online={online} onLogout={() => {}} />
+const settings = (u: MeResponse) => (
+  <SettingsScreen user={u} onLogout={() => {}} />
 );
+/** Forces navigator.onLine off; the real screen follows the browser's online/offline events. */
+const offline = () => {
+  Object.defineProperty(navigator, 'onLine', {
+    configurable: true,
+    get: () => false,
+  });
+  return () => void delete (navigator as { onLine?: boolean }).onLine;
+};
 export const User: Story = { render: () => settings(user) };
 export const UserDark: Story = { ...User, ...dark };
 /** Admin with the AC-1.7 hint. */
@@ -84,10 +92,13 @@ export const Admin: Story = {
   render: () => settings(admin),
 };
 export const AdminDark: Story = { ...Admin, ...dark };
-/** 3.5 Offline: admin rows greyed out, a tap shows a toast. */
+/** 4.8 Offline: admin, passkey and password rows greyed out, a tap shows the reason (3.6). */
 export const AdminOffline: Story = {
-  beforeEach: () => localStorage.setItem(hintClosedKey(admin.id), '1'),
-  render: () => settings(admin, false),
+  beforeEach: () => {
+    localStorage.setItem(hintClosedKey(admin.id), '1');
+    return offline();
+  },
+  render: () => settings(admin),
 };
 export const AdminOfflineDark: Story = { ...AdminOffline, ...dark };
 /** Passkey-only server: no password row. */

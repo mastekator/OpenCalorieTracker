@@ -3,6 +3,18 @@
   align-items: center;
 }
 
+/* A just-saved meal is lit for about a second, then fades (OCT-16 A.6). */
+.meal-row--new {
+  animation: meal-row-new var(--duration-highlight) var(--ease-in-out);
+}
+
+@keyframes meal-row-new {
+  0%,
+  60% {
+    background: var(--color-accent-soft);
+  }
+}
+
 .meal-row__open {
   flex: 1;
   min-width: 0;
@@ -102,6 +114,11 @@
     background: var(--color-surface);
     transform: translateX(var(--swipe-offset, 0));
     transition: transform var(--duration-fast) var(--ease-out);
+  }
+
+  /* The opaque row covers the li, so the just-saved flash goes on the row itself. */
+  .meal-row.meal-row--new .meal-row__open {
+    animation: meal-row-new var(--duration-highlight) var(--ease-in-out);
   }
 
   .meal-row--dragging .meal-row__open {

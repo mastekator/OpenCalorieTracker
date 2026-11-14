@@ -4,7 +4,6 @@ import type { ClientErrorCode } from '../../api/client';
 // A plural is an object with an `other` key plus the categories the language uses.
 export const en = {
   common: {
-    need_online: 'Internet connection required',
     appName: 'OpenCalorieTracker',
     loading: 'Loading…',
     close: 'Close',
@@ -216,10 +215,18 @@ export const en = {
     },
   },
   offline: {
-    bar: 'Offline · data from {time}',
     no_network: 'No connection',
-    server_down: 'Server unavailable',
-    first_run: 'Sign-in needs a connection',
+    bar: 'Offline · everything is saved on this device',
+    server: 'Server unavailable · everything is saved on this device',
+    first: {
+      title: 'First sign-in needs a connection',
+      body: 'After that, the app works offline too. Connect to the internet — this screen will update on its own.',
+    },
+    blocked: {
+      agent: 'The goal assistant needs a connection',
+      auth: 'Passkeys and password can only be changed online',
+      admin: 'Admin settings need a connection',
+    },
   },
   nav: {
     main: 'Main menu',
@@ -360,6 +367,57 @@ export const en = {
     error: 'Couldn’t save',
     error_body: 'Check your connection.',
   },
+  how: {
+    title: 'How we calculated your goal',
+    kcal: '{n}\u00a0kcal',
+    convert: '{ftin} = {cm} cm, {lb} lb = {kg} kg.',
+    bmr: {
+      title: 'What your body burns at rest (basal metabolic rate)',
+      body: 'We use the Mifflin–St Jeor equation, the most accurate for adults, with your sex, age, height and weight:',
+    },
+    tdee: {
+      title: 'What you burn on a typical day',
+      body: 'We multiply by your activity factor, “{level}”:',
+      after: 'Eat this much and your weight stays the same.',
+    },
+    goal: {
+      title: 'Your goal',
+      deadline_lose:
+        'To lose {kg} by {date}, you need to lose about {rate} a week.',
+      deadline_gain:
+        'To gain {kg} by {date}, you need to gain about {rate} a week.',
+      default_lose:
+        'With no date set, we take a steady pace: {p}% of body weight a week, about {rate}.',
+      default_gain:
+        'With no date set, we take a steady pace: {p}% of body weight a week, about {rate}.',
+      energy_lose:
+        '1 kg of fat holds about {perKg} kcal, so that’s {d} kcal less a day:',
+      energy_gain:
+        '1 kg holds about {perKg} kcal, so that’s {d} kcal more a day:',
+      fast: 'That’s a fast pace — over 1% of body weight a week.',
+      danger:
+        'This pace may harm your health — over 1.5% of body weight a week.',
+      gain_fast: 'Gaining this fast adds mostly fat.',
+    },
+    floor: {
+      title: 'Safe minimum',
+      clamped:
+        'Your goal never goes below {female} kcal for women and {male} for men — below that it’s hard to get enough nutrients.',
+      tdee_below_floor:
+        'You burn less than the safe minimum ({female} kcal for women, {male} for men), so we don’t cut anything: add activity or talk to a doctor.',
+    },
+    macros: {
+      title: 'Protein, fat, carbs',
+      body: 'Protein is 1.6 g per kg of body weight to keep your muscle. Fat is 30% of calories, carbs are the rest:',
+      calc: 'Protein {p}\u00a0g · Fat {f}\u00a0g · Carbs {c}\u00a0g',
+    },
+    total: 'Total, rounded to 10',
+    note: 'This is an estimate: real energy use differs between people by about 10%. Update your weight every 1–2 weeks and your goal is recalculated. If your weight hasn’t changed as expected for 2–3 weeks, adjust the goal manually. This isn’t medical advice.',
+    sources: 'Sources',
+    manual:
+      'You’re using a goal you set manually: {n} kcal. Below is the calculation from your profile, for comparison.',
+    missing: 'Fill in {fields} to see the calculation',
+  },
   leave: {
     title: 'Save changes?',
     body: 'Otherwise your profile changes will be lost.',
@@ -390,6 +448,9 @@ export const en = {
         body: 'Allow access in Settings → Safari → Camera, or choose a photo from your library.',
       },
     },
+  },
+  sync: {
+    sent: { one: 'Synced {count} entry', other: 'Synced {count} entries' },
   },
   recog: {
     loading: 'Recognizing…',
@@ -432,6 +493,16 @@ export const en = {
     macro: { left: '{n}\u00a0g left', over: '{n}\u00a0g over' },
     week_left: '{n} kcal left this week',
     week_over: '{n} kcal over this week',
+    empty: {
+      title: 'Nothing logged yet',
+      body: 'Take a photo of your food — we’ll count calories and macros.',
+    },
+  },
+  load: {
+    err: {
+      title: 'Couldn’t load this day',
+      body: 'Check your connection and try again.',
+    },
   },
   macro: {
     protein: 'Protein',

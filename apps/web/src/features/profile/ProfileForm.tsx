@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { Flag, Sparkles } from 'lucide-react';
+import { useLocation, useSearch } from 'wouter';
 import {
   REQUIRED_FIELDS,
   ageYears,
@@ -32,6 +33,7 @@ import { ActivitySheet } from '../../ui/ActivitySheet/ActivitySheet';
 import { Banner } from '../../ui/Banner/Banner';
 import { Button } from '../../ui/Button/Button';
 import { Disclaimer } from '../../ui/Disclaimer/Disclaimer';
+import { HowCalculated } from '../../ui/HowCalculated/HowCalculated';
 import {
   FormRow,
   HeightFtIn,
@@ -124,8 +126,19 @@ export function ProfileForm({
   );
   const [disclaimerClosed, setDisclaimerClosed] = useState(false);
   const agentId = useId();
+  // 8.20 opens as /profile?how: the form stays mounted, so the draft survives the trip.
+  const how = new URLSearchParams(useSearch()).has('how');
+  const [, navigate] = useLocation();
+  const asideRef = useRef<HTMLDivElement>(null);
+  const wasHow = useRef(how);
 
   useEffect(() => setFtIn(null), [units]);
+  // Back from 8.20: focus returns to the row that opened it.
+  useEffect(() => {
+    if (wasHow.current && !how)
+      asideRef.current?.querySelector<HTMLElement>('.norm-card__how')?.focus();
+    wasHow.current = how;
+  }, [how]);
 
   const set = <K extends Field>(field: K, value: Profile[K]) => {
     setDraft((d) => ({ ...d, [field]: value }));
@@ -362,6 +375,19 @@ export function ProfileForm({
   }
 
   const minor = calc?.status === 'minor';
+  // Why there is no calculation: a field to fix, under 18, or what is missing.
+  const emptyMessage = (missingKey: 'norm.missing' | 'how.missing') =>
+    errorFields[0]
+      ? t('norm.fix', { field: fieldName(errorFields[0]) })
+      : minor
+        ? t('norm.minor')
+        : t(missingKey, {
+            fields: new Intl.ListFormat(locale, {
+              type: 'conjunction',
+            }).format(
+              calc?.status === 'incomplete' ? calc.missing.map(fieldName) : [],
+            ),
+          });
   let card: ReactNode;
   if (firstVisit)
     card = <NormCard state="first" onAgent={onAgent} onForm={startForm} />;
@@ -376,32 +402,14 @@ export function ProfileForm({
           carbs: norm.carbsG,
         }}
         badge={saved.manual ? 'manual' : dirty ? 'draft' : 'calc'}
-        // shortcut: «How it's calculated» is OCT-89; the row does nothing until then.
-        onHow={() => {}}
+        onHow={() => navigate('/profile?how')}
       >
         {warnings}
       </NormCard>
     );
   else
     card = (
-      <NormCard
-        state="empty"
-        message={
-          errorFields[0]
-            ? t('norm.fix', { field: fieldName(errorFields[0]) })
-            : minor
-              ? t('norm.minor')
-              : t('norm.missing', {
-                  fields: new Intl.ListFormat(locale, {
-                    type: 'conjunction',
-                  }).format(
-                    calc?.status === 'incomplete'
-                      ? calc.missing.map(fieldName)
-                      : [],
-                  ),
-                })
-        }
-      >
+      <NormCard state="empty" message={emptyMessage('norm.missing')}>
         {minor && <p>{t('norm.minor_body')}</p>}
       </NormCard>
     );
@@ -514,209 +522,222 @@ export function ProfileForm({
 
   const goal = profile.goal;
   return (
-    <div className={`profile${dirty ? ' profile--dirty' : ''}`}>
-      <div className="profile__aside">
-        {reached}
-        {card}
-        {showDisclaimer && (
-          <Disclaimer onHide={canHideDisclaimer ? hideDisclaimer : undefined} />
-        )}
-        {onAgent && !firstVisit && !minor && (
-          <Button id={agentId} variant="tonal" onClick={onAgent}>
-            <Sparkles aria-hidden="true" />
-            {t('agent.cta')}
-          </Button>
-        )}
-        {failed && (
-          <Banner tone="danger" title={t('save.error')}>
-            {t('save.error_body')}{' '}
-            <button
-              type="button"
-              className="profile__link"
-              onClick={() => save()}
-            >
-              {t('common.retry')}
-            </button>
-          </Banner>
-        )}
-        <div className={dirty ? undefined : 'profile__save--idle'}>
-          <SaveBar
-            preview={
-              norm
-                ? `${new Intl.NumberFormat(locale).format(norm.kcal)} ${t('today.kcal')}`
-                : null
-            }
-            onSave={() => save()}
-            disabled={!dirty || errorFields.length > 0}
-            loading={saving}
-          />
-        </div>
-      </div>
-
-      <div className="profile__form" ref={formRef}>
-        <List
-          title={t('profile.calc')}
-          footer={footerError(groupError(true)) ?? t('field.sex_hint')}
-        >
-          <FormRow label={t('field.sex')} stacked>
-            <Segment
-              label={t('field.sex')}
-              options={[
-                { value: 'male', label: t('field.male') },
-                { value: 'female', label: t('field.female') },
-              ]}
-              value={profile.sex ?? ('' as Sex)}
-              onChange={(v) => set('sex', v)}
+    <>
+      {how && (
+        <HowCalculated
+          units={units}
+          manualKcal={saved.manual?.kcal}
+          {...(calc?.status === 'ok'
+            ? { profile, norm: calc }
+            : { message: emptyMessage('how.missing') })}
+        />
+      )}
+      <div className={`profile${dirty ? ' profile--dirty' : ''}`} hidden={how}>
+        <div className="profile__aside" ref={asideRef}>
+          {reached}
+          {card}
+          {showDisclaimer && (
+            <Disclaimer
+              onHide={canHideDisclaimer ? hideDisclaimer : undefined}
             />
-          </FormRow>
-          <FormRow label={t('field.birth')}>
-            <InlineDate
-              label={t('field.birth')}
-              value={profile.birthDate}
-              onChange={(v) => set('birthDate', v)}
-              suffix={
-                profile.birthDate && profile.birthDate <= today
-                  ? t('field.age', {
-                      count: ageYears(profile.birthDate, today),
-                    })
-                  : undefined
-              }
-              max={today}
-              error={!!errors.birthDate}
-            />
-          </FormRow>
-          <FormRow label={t('field.height')}>
-            {units === 'us' ? (
-              <HeightFtIn
-                label={t('field.height')}
-                value={ftInShown}
-                onChange={(v) => {
-                  setFtIn(v);
-                  set(
-                    'heightCm',
-                    v.ft === null && v.in === null
-                      ? null
-                      : ftInToCm(v.ft ?? 0, v.in ?? 0),
-                  );
-                }}
-                error={!!errors.heightCm && !inchesError(ftInShown.in)}
-              />
-            ) : (
-              <InlineNumber
-                label={t('field.height')}
-                value={
-                  profile.heightCm === null
-                    ? null
-                    : Math.round(profile.heightCm)
-                }
-                onChange={(v) => set('heightCm', v)}
-                unit={t('unit.cm')}
-                error={!!errors.heightCm}
-              />
-            )}
-          </FormRow>
-          <FormRow label={t('field.weight')}>
-            <InlineNumber
-              label={t('field.weight')}
-              value={
-                profile.weightKg === null
-                  ? null
-                  : weightFromKg(profile.weightKg, units)
-              }
-              onChange={(v) =>
-                set('weightKg', v === null ? null : weightToKg(v, units))
-              }
-              unit={weightUnit}
-              decimals={1}
-              error={!!errors.weightKg}
-            />
-          </FormRow>
-          <ListRow
-            value={
-              <PickValue
-                value={
-                  profile.activity && t(`activity.${profile.activity}.name`)
-                }
-              />
-            }
-            description={
-              profile.activity && t(`activity.${profile.activity}.desc`)
-            }
-            onClick={() => setActivityOpen(true)}
-          >
-            {t('activity.title')}
-          </ListRow>
-        </List>
-
-        <List
-          title={t('goal.title')}
-          footer={footerError(groupError(false)) ?? paceText}
-        >
-          <li className="list__item">
-            <div className="list-row form-row--stacked">
-              <Segment
-                label={t('goal.title')}
-                options={goalSchema.options.map((g) => ({
-                  value: g,
-                  label: t(`goal.${g}`),
-                }))}
-                value={goal ?? ('' as Goal)}
-                onChange={(v) => set('goal', v)}
-              />
-            </div>
-          </li>
-          {isLoseGain(goal) && (
-            <>
-              <FormRow label={t('goal.target')}>
-                <InlineNumber
-                  label={t('goal.target')}
-                  value={
-                    profile.targetWeightKg === null
-                      ? null
-                      : weightFromKg(profile.targetWeightKg, units)
-                  }
-                  onChange={(v) =>
-                    set(
-                      'targetWeightKg',
-                      v === null ? null : weightToKg(v, units),
-                    )
-                  }
-                  unit={weightUnit}
-                  decimals={1}
-                  placeholder={t('field.optional')}
-                  error={!!errors.targetWeightKg}
-                />
-              </FormRow>
-              <FormRow label={t('goal.deadline')}>
-                <InlineDate
-                  label={t('goal.deadline')}
-                  value={profile.deadline}
-                  onChange={(v) => set('deadline', v)}
-                  placeholder={t(
-                    profile.targetWeightKg === null
-                      ? 'goal.deadline_needs_target'
-                      : 'field.optional',
-                  )}
-                  min={addDays(today, 14)}
-                  max={addYears(today, 2)}
-                  readOnly={profile.targetWeightKg === null}
-                  error={!!errors.deadline}
-                />
-              </FormRow>
-            </>
           )}
-        </List>
-      </div>
+          {onAgent && !firstVisit && !minor && (
+            <Button id={agentId} variant="tonal" onClick={onAgent}>
+              <Sparkles aria-hidden="true" />
+              {t('agent.cta')}
+            </Button>
+          )}
+          {failed && (
+            <Banner tone="danger" title={t('save.error')}>
+              {t('save.error_body')}{' '}
+              <button
+                type="button"
+                className="profile__link"
+                onClick={() => save()}
+              >
+                {t('common.retry')}
+              </button>
+            </Banner>
+          )}
+          <div className={dirty ? undefined : 'profile__save--idle'}>
+            <SaveBar
+              preview={
+                norm
+                  ? `${new Intl.NumberFormat(locale).format(norm.kcal)} ${t('today.kcal')}`
+                  : null
+              }
+              onSave={() => save()}
+              disabled={!dirty || errorFields.length > 0}
+              loading={saving}
+            />
+          </div>
+        </div>
 
-      <ActivitySheet
-        open={activityOpen}
-        value={profile.activity}
-        onSelect={(v) => {
-          set('activity', v);
-          setActivityOpen(false);
-        }}
-        onClose={() => setActivityOpen(false)}
-      />
-    </div>
+        <div className="profile__form" ref={formRef}>
+          <List
+            title={t('profile.calc')}
+            footer={footerError(groupError(true)) ?? t('field.sex_hint')}
+          >
+            <FormRow label={t('field.sex')} stacked>
+              <Segment
+                label={t('field.sex')}
+                options={[
+                  { value: 'male', label: t('field.male') },
+                  { value: 'female', label: t('field.female') },
+                ]}
+                value={profile.sex ?? ('' as Sex)}
+                onChange={(v) => set('sex', v)}
+              />
+            </FormRow>
+            <FormRow label={t('field.birth')}>
+              <InlineDate
+                label={t('field.birth')}
+                value={profile.birthDate}
+                onChange={(v) => set('birthDate', v)}
+                suffix={
+                  profile.birthDate && profile.birthDate <= today
+                    ? t('field.age', {
+                        count: ageYears(profile.birthDate, today),
+                      })
+                    : undefined
+                }
+                max={today}
+                error={!!errors.birthDate}
+              />
+            </FormRow>
+            <FormRow label={t('field.height')}>
+              {units === 'us' ? (
+                <HeightFtIn
+                  label={t('field.height')}
+                  value={ftInShown}
+                  onChange={(v) => {
+                    setFtIn(v);
+                    set(
+                      'heightCm',
+                      v.ft === null && v.in === null
+                        ? null
+                        : ftInToCm(v.ft ?? 0, v.in ?? 0),
+                    );
+                  }}
+                  error={!!errors.heightCm && !inchesError(ftInShown.in)}
+                />
+              ) : (
+                <InlineNumber
+                  label={t('field.height')}
+                  value={
+                    profile.heightCm === null
+                      ? null
+                      : Math.round(profile.heightCm)
+                  }
+                  onChange={(v) => set('heightCm', v)}
+                  unit={t('unit.cm')}
+                  error={!!errors.heightCm}
+                />
+              )}
+            </FormRow>
+            <FormRow label={t('field.weight')}>
+              <InlineNumber
+                label={t('field.weight')}
+                value={
+                  profile.weightKg === null
+                    ? null
+                    : weightFromKg(profile.weightKg, units)
+                }
+                onChange={(v) =>
+                  set('weightKg', v === null ? null : weightToKg(v, units))
+                }
+                unit={weightUnit}
+                decimals={1}
+                error={!!errors.weightKg}
+              />
+            </FormRow>
+            <ListRow
+              value={
+                <PickValue
+                  value={
+                    profile.activity && t(`activity.${profile.activity}.name`)
+                  }
+                />
+              }
+              description={
+                profile.activity && t(`activity.${profile.activity}.desc`)
+              }
+              onClick={() => setActivityOpen(true)}
+            >
+              {t('activity.title')}
+            </ListRow>
+          </List>
+
+          <List
+            title={t('goal.title')}
+            footer={footerError(groupError(false)) ?? paceText}
+          >
+            <li className="list__item">
+              <div className="list-row form-row--stacked">
+                <Segment
+                  label={t('goal.title')}
+                  options={goalSchema.options.map((g) => ({
+                    value: g,
+                    label: t(`goal.${g}`),
+                  }))}
+                  value={goal ?? ('' as Goal)}
+                  onChange={(v) => set('goal', v)}
+                />
+              </div>
+            </li>
+            {isLoseGain(goal) && (
+              <>
+                <FormRow label={t('goal.target')}>
+                  <InlineNumber
+                    label={t('goal.target')}
+                    value={
+                      profile.targetWeightKg === null
+                        ? null
+                        : weightFromKg(profile.targetWeightKg, units)
+                    }
+                    onChange={(v) =>
+                      set(
+                        'targetWeightKg',
+                        v === null ? null : weightToKg(v, units),
+                      )
+                    }
+                    unit={weightUnit}
+                    decimals={1}
+                    placeholder={t('field.optional')}
+                    error={!!errors.targetWeightKg}
+                  />
+                </FormRow>
+                <FormRow label={t('goal.deadline')}>
+                  <InlineDate
+                    label={t('goal.deadline')}
+                    value={profile.deadline}
+                    onChange={(v) => set('deadline', v)}
+                    placeholder={t(
+                      profile.targetWeightKg === null
+                        ? 'goal.deadline_needs_target'
+                        : 'field.optional',
+                    )}
+                    min={addDays(today, 14)}
+                    max={addYears(today, 2)}
+                    readOnly={profile.targetWeightKg === null}
+                    error={!!errors.deadline}
+                  />
+                </FormRow>
+              </>
+            )}
+          </List>
+        </div>
+
+        <ActivitySheet
+          open={activityOpen}
+          value={profile.activity}
+          onSelect={(v) => {
+            set('activity', v);
+            setActivityOpen(false);
+          }}
+          onClose={() => setActivityOpen(false)}
+        />
+      </div>
+    </>
   );
 }

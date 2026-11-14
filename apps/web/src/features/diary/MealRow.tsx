@@ -12,6 +12,8 @@ type Props = {
   onOpen: () => void;
   /** Phone: swipe left reveals «Delete», a full swipe deletes; desktop: a trash button (OCT-19 6.3, D.2). */
   onDelete?: () => void;
+  /** Just saved: the row flashes accent-soft once (OCT-16 A.6). */
+  highlight?: boolean;
 };
 
 /** Below this a move is still a tap. */
@@ -24,7 +26,7 @@ const MAX_SLOPE = 0.577;
 type Drag = { x: number; y: number; from: number; swiping?: boolean };
 
 /** A meal in a `List` on Today / Diary: thumbnail, type, time, dishes, kcal. */
-export function MealRow({ meal, onOpen, onDelete }: Props) {
+export function MealRow({ meal, onOpen, onDelete, highlight }: Props) {
   const { t, num, locale } = useT();
   // A preview that fails to load (offline, not cached) falls back to the icon.
   const [broken, setBroken] = useState(false);
@@ -74,7 +76,7 @@ export function MealRow({ meal, onOpen, onDelete }: Props) {
 
   return (
     <li
-      className={`list__item meal-row${dragging ? ' meal-row--dragging' : ''}${offset ? ' meal-row--shifted' : ''}`}
+      className={`list__item meal-row${highlight ? ' meal-row--new' : ''}${dragging ? ' meal-row--dragging' : ''}${offset ? ' meal-row--shifted' : ''}`}
       style={{ '--swipe-offset': `${offset}px` } as CSSProperties}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}

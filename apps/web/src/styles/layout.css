@@ -3,7 +3,7 @@
 .page {
   max-width: var(--content-max-width);
   margin-inline: auto;
-  padding: calc(var(--space-6) + env(safe-area-inset-top))
+  padding: calc(var(--space-6) + var(--safe-top, env(safe-area-inset-top)))
     max(var(--screen-gutter), env(safe-area-inset-right))
     calc(var(--space-6) + env(safe-area-inset-bottom))
     max(var(--screen-gutter), env(safe-area-inset-left));
@@ -123,12 +123,4 @@
   .auth-layout .navbar {
     background: var(--color-surface);
   }
-}
-
-/* «From library» / «Manually» on Today (OCT-16 §1); placed for real in OCT-67. */
-.today-stub {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-3);
-  max-width: var(--dialog-max-width);
 }

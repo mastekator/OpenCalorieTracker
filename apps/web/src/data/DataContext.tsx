@@ -2,10 +2,13 @@ import {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
 import type { AccountSettings, Meal, MeResponse } from '@oct/shared';
+import { useT } from '../i18n';
+import { useToast } from '../ui/Toast/Toast';
 import { onChange } from './changes';
 import { openUserDb, type Choices, type Db } from './db';
 import { flush, mealStatus, pendingCount } from './outbox';
@@ -25,6 +28,10 @@ export function DataProvider({
   children: ReactNode;
 }) {
   const [db, setDb] = useState<Db | null>(null);
+  const toast = useToast();
+  const { t } = useT();
+  const synced = useRef<(count: number) => void>(() => {});
+  synced.current = (count) => toast({ text: t('sync.sent', { count }) });
 
   useEffect(() => {
     let open: Db | undefined;
@@ -37,15 +44,12 @@ export function DataProvider({
       await d.put('kv', user, 'me');
       if (closed) return; // unmounted meanwhile: the cleanup closed it
       setDb(d);
-      // Send the queue when the network or the app comes back (ADR-0011 §4).
-      const send = () => void flush(d).catch(() => {});
-      const onVisible = () => document.visibilityState === 'visible' && send();
-      window.addEventListener('online', send);
+      // Send the queue when the app comes back (ADR-0011 §4); the network coming back is below.
+      const onVisible = () =>
+        document.visibilityState === 'visible' && void flush(d).catch(() => {});
       document.addEventListener('visibilitychange', onVisible);
-      unlisten = () => {
-        window.removeEventListener('online', send);
+      unlisten = () =>
         document.removeEventListener('visibilitychange', onVisible);
-      };
       try {
         await flush(d); // pulls at the end
         if (!closed) await prefetchThumbs(await d.getAll('meals'));
@@ -59,6 +63,27 @@ export function DataProvider({
       open?.close();
     };
   }, [user]);
+
+  // The network is back: send the queue, and say so once it is all sent (OCT-19 2.9).
+  useEffect(() => {
+    if (!db) return;
+    let live = true;
+    const onOnline = async () => {
+      try {
+        const before = await pendingCount(db);
+        await flush(db);
+        if (live && before > 0 && (await pendingCount(db)) === 0)
+          synced.current(before);
+      } catch {
+        // Still offline or closed by a user switch: flush() retries.
+      }
+    };
+    window.addEventListener('online', onOnline);
+    return () => {
+      live = false;
+      window.removeEventListener('online', onOnline);
+    };
+  }, [db]);
 
   if (!db) return null;
   return <DataContext value={db}>{children}</DataContext>;
