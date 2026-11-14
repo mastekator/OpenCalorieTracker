@@ -39,7 +39,14 @@ export function AgentMessage({ children }: { children: ReactNode }) {
   return (
     <div className="chat-msg chat-msg--agent">
       <Avatar />
-      <div className="chat-msg__text">{children}</div>
+      <div className="chat-msg__text">
+        {typeof children === 'string'
+          ? children
+              .split('\n')
+              .filter((line) => line.trim())
+              .map((line, i) => <p key={i}>{line}</p>)
+          : children}
+      </div>
     </div>
   );
 }
@@ -72,7 +79,7 @@ export function QuickReplies({
     <div className="chat-replies">
       {replies.map(({ text, primary, icon: Icon }, i) => (
         <button
-          key={text}
+          key={i}
           type="button"
           className={`chat-reply${primary ? ' chat-reply--primary' : ''}`}
           onClick={() => onPick(text, i)}

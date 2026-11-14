@@ -37,7 +37,6 @@
 /* Model text keeps its line breaks; numbers line up. */
 .chat-msg__text {
   min-width: 0;
-  white-space: pre-line;
   overflow-wrap: anywhere;
   font-variant-numeric: tabular-nums;
 }
@@ -266,6 +265,8 @@
 }
 
 .chat-summary__rows dt {
+  flex: none;
+  white-space: nowrap;
   color: var(--color-text-secondary);
 }
 

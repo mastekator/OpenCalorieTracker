@@ -107,6 +107,7 @@
   height: 100dvh;
   max-height: 100dvh;
   border-radius: 0;
+  background: var(--color-bg);
 }
 
 .sheet--full .sheet__grab {

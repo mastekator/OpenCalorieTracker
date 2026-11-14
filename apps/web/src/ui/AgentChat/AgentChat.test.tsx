@@ -52,6 +52,18 @@ describe('AgentChat', () => {
     expect(container.textContent).toBe(text);
   });
 
+  it('splits model text into paragraphs by line breaks, still as text', () => {
+    const { container } = render(
+      <AgentMessage>{'First <b>x</b>\n\nSecond'}</AgentMessage>,
+    );
+    const ps = container.querySelectorAll('.chat-msg__text > p');
+    expect([...ps].map((p) => p.textContent)).toEqual([
+      'First <b>x</b>',
+      'Second',
+    ]);
+    expect(container.querySelector('b')).toBeNull();
+  });
+
   it('Enter sends the trimmed text; an empty field sends nothing', async () => {
     const onSend = vi.fn();
     render(<TestComposer onSend={onSend} />, { wrapper: I18nProvider });
