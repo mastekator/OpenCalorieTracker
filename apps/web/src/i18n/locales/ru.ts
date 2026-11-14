@@ -17,7 +17,6 @@ const ru: DeepPartial<typeof en> = {
     },
   },
   screens: {
-    home: 'Сегодня',
     login: 'Вход',
     invite: 'Принять приглашение',
     recover: 'Восстановление доступа',

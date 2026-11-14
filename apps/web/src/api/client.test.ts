@@ -1,7 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import { API_VERSION } from '@oct/shared';
-import { api, ApiError, setOutdatedHandler } from './client';
+import {
+  api,
+  ApiError,
+  ME_PATH,
+  setOutdatedHandler,
+  setUnauthenticatedHandler,
+} from './client';
 
 const respond = (status: number, body: string | null) =>
   vi.stubGlobal(
@@ -52,6 +58,25 @@ describe('api', () => {
     respond(409, '{"error":{"code":"client_outdated"}}');
     expect((await failure(api('/api/x', schema))).code).toBe('client_outdated');
     expect(handler).toHaveBeenCalledOnce();
+  });
+
+  it('hands unauthenticated to the session handler, except for the session probe', async () => {
+    const handler = vi.fn();
+    setUnauthenticatedHandler(handler);
+    respond(401, '{"error":{"code":"unauthenticated"}}');
+    await failure(api(ME_PATH, schema));
+    expect(handler).not.toHaveBeenCalled();
+    respond(401, '{"error":{"code":"unauthenticated"}}');
+    expect((await failure(api('/api/x', schema))).code).toBe('unauthenticated');
+    expect(handler).toHaveBeenCalledOnce();
+  });
+
+  it('does not treat a wrong password as an expired session', async () => {
+    const handler = vi.fn();
+    setUnauthenticatedHandler(handler);
+    respond(401, '{"error":{"code":"invalid_credentials"}}');
+    await failure(api('/api/auth/login', schema, { method: 'POST' }));
+    expect(handler).not.toHaveBeenCalled();
   });
 
   it('maps an error body to ApiError(code)', async () => {

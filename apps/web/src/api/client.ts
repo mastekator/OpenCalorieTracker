@@ -17,6 +17,15 @@ export function setOutdatedHandler(handler: () => void) {
   onOutdated = handler;
 }
 
+// Set by app/SessionContext.tsx: a 401 means the session expired mid-use.
+let onUnauthenticated = () => {};
+export function setUnauthenticatedHandler(handler: () => void) {
+  onUnauthenticated = handler;
+}
+
+/** The session probe: its 401 means "not signed in", not "session expired". */
+export const ME_PATH = '/api/auth/me';
+
 type Options = { method?: string; body?: unknown; signal?: AbortSignal };
 
 /**
@@ -58,6 +67,8 @@ export async function api<T>(
     const error = (data as { error?: { code?: unknown; details?: unknown } })
       ?.error;
     if (error?.code === 'client_outdated') onOutdated();
+    if (error?.code === 'unauthenticated' && path !== ME_PATH)
+      onUnauthenticated();
     throw typeof error?.code === 'string'
       ? new ApiError(res.status, error.code as ErrorCode, error.details)
       : new ApiError(res.status, 'internal');
