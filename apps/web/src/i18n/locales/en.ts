@@ -72,6 +72,58 @@ export const en = {
     add_food: 'Add food',
     take_photo: 'Take a photo of food',
   },
+  norm: {
+    title: 'Daily goal',
+    unit: 'kcal a day',
+    badge: {
+      calc: 'calculated',
+      manual: 'set manually',
+      draft: 'not saved',
+    },
+    how: 'How it’s calculated',
+    first: {
+      title: 'Let’s work out your daily goal',
+      body: 'Answer a few questions or fill in the fields below — we’ll calculate it right away.',
+      body_no_ai: 'Fill in the fields below — your goal appears as you type.',
+    },
+    path: {
+      agent: 'With the assistant',
+      agent_sub: 'Answer in your own words',
+      form: 'Form',
+      form_sub: '6 fields, a couple of minutes',
+    },
+  },
+  macro: { protein: 'Protein', fat: 'Fat', carbs: 'Carbs' },
+  field: {
+    empty: 'Add',
+    pick: 'Choose',
+    feet: 'feet',
+    inches: 'inches',
+  },
+  activity: {
+    title: 'Activity',
+    hint: 'What’s a typical day like? If unsure, pick the lower level — most people overestimate their activity.',
+    minimal: { name: 'Minimal', desc: 'desk job, almost no exercise' },
+    light: { name: 'Light', desc: 'light workouts or walks 1–3 times a week' },
+    moderate: { name: 'Moderate', desc: 'workouts 3–5 times a week' },
+    high: { name: 'High', desc: 'hard workouts 6–7 times a week' },
+    very_high: {
+      name: 'Very high',
+      desc: 'physical labour or 2 workouts a day',
+    },
+  },
+  save: {
+    action: 'Save',
+    preview: 'New goal',
+    none: 'No goal yet',
+  },
+  leave: {
+    title: 'Save changes?',
+    body: 'Otherwise your profile changes will be lost.',
+    save: 'Save and leave',
+    discard: 'Don’t save',
+    stay: 'Stay',
+  },
   update: {
     stale: 'The app has been updated · please save again',
   },

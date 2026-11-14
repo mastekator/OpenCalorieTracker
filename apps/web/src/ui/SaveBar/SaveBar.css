@@ -1,0 +1,60 @@
+.save-bar {
+  position: fixed;
+  inset-inline: 0;
+  bottom: calc(var(--tabbar-height) + env(safe-area-inset-bottom));
+  z-index: var(--z-tabbar);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) max(var(--screen-gutter), env(safe-area-inset-right))
+    var(--space-3) max(var(--screen-gutter), env(safe-area-inset-left));
+  border-top: 1px solid var(--color-separator);
+  background: var(--tabbar-bg);
+  -webkit-backdrop-filter: var(--tabbar-blur);
+  backdrop-filter: var(--tabbar-blur);
+}
+
+.save-bar__preview {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.save-bar__preview small {
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+  color: var(--color-text-secondary);
+}
+
+.save-bar__preview b {
+  font-size: var(--text-headline-size);
+  line-height: var(--text-headline-lh);
+}
+
+.save-bar .button {
+  width: auto;
+  min-width: calc(var(--space-12) * 3); /* 144 */
+}
+
+/* Desktop: the preview is in the norm card next to it, so only the button stays. */
+@media (min-width: 1024px) {
+  .save-bar {
+    position: static;
+    padding: 0;
+    border: none;
+    background: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  .save-bar__preview {
+    display: none;
+  }
+
+  .save-bar .button {
+    width: 100%;
+  }
+}

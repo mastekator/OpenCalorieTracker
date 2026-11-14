@@ -89,4 +89,34 @@ describe('ConfirmDialog', () => {
     fireEvent.keyDown(document.activeElement!, { key: 'Escape' });
     expect(outer).not.toHaveBeenCalled();
   });
+
+  it('three buttons: focus on Cancel, each calls its handler', async () => {
+    const onConfirm = vi.fn();
+    const onSecondary = vi.fn();
+    const onCancel = vi.fn();
+    render(
+      <ConfirmDialog
+        open
+        tone="primary"
+        title="Save changes?"
+        confirmLabel="Save and leave"
+        secondaryLabel="Don't save"
+        cancelLabel="Stay"
+        onConfirm={onConfirm}
+        onSecondary={onSecondary}
+        onCancel={onCancel}
+      />,
+      { wrapper: I18nProvider },
+    );
+    const stay = await screen.findByRole('button', { name: 'Stay' });
+    expect(document.activeElement).toBe(stay);
+    fireEvent.click(screen.getByRole('button', { name: "Don't save" }));
+    expect(onSecondary).toHaveBeenCalledOnce();
+    fireEvent.click(screen.getByRole('button', { name: 'Save and leave' }));
+    expect(onConfirm).toHaveBeenCalledOnce();
+    fireEvent.click(stay);
+    fireEvent.keyDown(stay, { key: 'Escape' });
+    expect(onCancel).toHaveBeenCalledTimes(2);
+    expect(onSecondary).toHaveBeenCalledOnce();
+  });
 });

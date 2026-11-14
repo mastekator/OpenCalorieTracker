@@ -1,0 +1,147 @@
+.norm-card {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.norm-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.norm-card__label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin: 0;
+  font-size: var(--text-subhead-size);
+  line-height: var(--text-subhead-lh);
+  font-weight: 400;
+  color: var(--color-text-secondary);
+}
+
+.norm-card__label .lucide {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+}
+
+.norm-card__kcal {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--text-subhead-size);
+  color: var(--color-text-secondary);
+}
+
+.norm-card__number {
+  font-size: var(--text-large-title-size);
+  line-height: var(--text-large-title-lh);
+  font-weight: var(--text-large-title-weight);
+  letter-spacing: var(--tracking-tight);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+}
+
+.norm-card__empty {
+  margin: 0;
+  font-size: var(--text-headline-size);
+  line-height: var(--text-headline-lh);
+  font-weight: var(--text-headline-weight);
+}
+
+/* «How it's calculated ›»: full-width bottom row of the card. */
+.norm-card__how {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-height: var(--tap-min);
+  margin: 0 calc(-1 * var(--space-5)) calc(-1 * var(--space-5));
+  padding: 0 var(--space-3) 0 var(--space-5);
+  border: none;
+  border-top: 1px solid var(--color-separator);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  background: transparent;
+  color: var(--color-accent);
+  font-size: var(--text-subhead-size);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.norm-card__how .lucide {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.norm-card__how:focus-visible {
+  outline-offset: calc(var(--focus-ring-width) * -1);
+}
+
+.norm-card__first-title {
+  margin: 0;
+  font-size: var(--text-title-size);
+  line-height: var(--text-title-lh);
+  font-weight: var(--text-title-weight);
+}
+
+.norm-card__first-body {
+  margin: 0;
+  font-size: var(--text-subhead-size);
+  line-height: var(--text-subhead-lh);
+  color: var(--color-text-secondary);
+}
+
+.norm-card__paths {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.norm-card__path {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+  min-height: var(--tap-min);
+  padding: var(--space-4);
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--color-accent-soft);
+  color: var(--color-text-secondary);
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+  text-align: start;
+  cursor: pointer;
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.norm-card__path:active {
+  transform: scale(var(--press-scale));
+}
+
+.norm-card__path b {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-headline-size);
+  line-height: var(--text-headline-lh);
+  color: var(--color-accent);
+}
+
+.norm-card__path .lucide {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+}
+
+@media (hover: hover) {
+  .norm-card__how:hover {
+    background: var(--color-hover);
+  }
+}
