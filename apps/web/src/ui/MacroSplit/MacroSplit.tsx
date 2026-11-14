@@ -8,7 +8,8 @@ export function macroShares({ protein, fat, carbs }: Props) {
   const total = protein * 4 + fat * 9 + carbs * 4;
   if (total <= 0) return { protein: 0, fat: 0, carbs: 0 };
   const p = Math.round((protein * 400) / total);
-  const f = Math.round((fat * 900) / total);
+  // Capped so two .5 round-ups (carbs 0) can't push carbs to -1.
+  const f = Math.min(Math.round((fat * 900) / total), 100 - p);
   return { protein: p, fat: f, carbs: 100 - p - f };
 }
 
