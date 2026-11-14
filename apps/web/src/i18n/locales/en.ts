@@ -1,4 +1,4 @@
-import type { ErrorCode } from '@oct/shared';
+import type { ClientErrorCode } from '../../api/client';
 
 // Source and fallback dictionary: keys and their types come from here (ADR-0004).
 // A plural is an object with an `other` key plus the categories the language uses.
@@ -221,5 +221,6 @@ export const en = {
     agent_closed: 'This dialog is closed. Use the form or start over',
     cannot_delete_self: 'You cannot delete your own account here',
     internal: 'Something went wrong. Try again',
-  } satisfies Record<ErrorCode, string>,
+    network: 'Can’t reach the server. Check your connection',
+  } satisfies Record<ClientErrorCode, string>,
 };

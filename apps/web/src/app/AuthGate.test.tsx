@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, cleanup, render, screen } from '@testing-library/react';
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from '@testing-library/react';
 import { z } from 'zod';
 import { Router } from 'wouter';
 import { memoryLocation } from 'wouter/memory-location';
@@ -132,12 +138,18 @@ describe('AuthGate', () => {
     expect(await screen.findByRole('heading', { name: 'Week' })).toBeTruthy();
   });
 
-  it('shows the no-connection screen offline when nobody has signed in here', async () => {
+  it('shows the no-connection screen offline when nobody has signed in here, with a retry', async () => {
     serve(null, true);
     renderAt('/week');
     expect(
-      await screen.findByRole('heading', { name: 'No connection' }),
+      await screen.findByRole('heading', {
+        name: 'Can’t reach the server. Check your connection',
+      }),
     ).toBeTruthy();
     expect(screen.getByText('Sign-in needs a connection')).toBeTruthy();
+
+    serve(me);
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(await screen.findByRole('heading', { name: 'Week' })).toBeTruthy();
   });
 });
