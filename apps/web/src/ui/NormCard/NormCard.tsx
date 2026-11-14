@@ -1,5 +1,5 @@
 import { useId, type ReactNode } from 'react';
-import { ChevronRight, List, Sparkles, Target } from 'lucide-react';
+import { ChevronRight, List, Pencil, Sparkles, Target } from 'lucide-react';
 import { useT } from '../../i18n';
 import { Badge } from '../Badge/Badge';
 import { MacroSplit } from '../MacroSplit/MacroSplit';
@@ -88,7 +88,12 @@ export function NormCard(props: Props) {
   const { norm, badge } = props;
   return (
     <section className="norm-card">
-      {head(<Badge tone={BADGE_TONE[badge]}>{t(`norm.badge.${badge}`)}</Badge>)}
+      {head(
+        <Badge tone={BADGE_TONE[badge]}>
+          {badge === 'manual' && <Pencil aria-hidden="true" />}
+          {t(`norm.badge.${badge}`)}
+        </Badge>,
+      )}
       <p className="norm-card__kcal">
         <span className="norm-card__number">
           {new Intl.NumberFormat(locale).format(norm.kcal)}

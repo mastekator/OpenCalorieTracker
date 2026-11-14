@@ -10,6 +10,7 @@ import {
   MEAL_NEW_PATH,
   useCapture,
 } from '../features/meals/CaptureContext';
+import { ProfileScreen } from '../features/profile/ProfileScreen';
 import { AppShell } from './AppShell';
 import { AuthGate } from './AuthGate';
 import { AuthLayout } from './AuthLayout';
@@ -82,6 +83,7 @@ export function AppScreens() {
       </Route>
       <Route path="/profile">
         <Screen
+          wide
           large
           title={t('nav.profile')}
           action={{
@@ -90,7 +92,9 @@ export function AppScreens() {
             href: '/settings',
             mobileOnly: true,
           }}
-        />
+        >
+          <ProfileScreen />
+        </Screen>
       </Route>
       <Route path="/settings">
         <Screen

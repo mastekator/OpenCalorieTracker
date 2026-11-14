@@ -139,6 +139,16 @@ type DateProps = {
   readOnly?: boolean;
 };
 
+/** «14 Mar 1996»; without the trailing « г.» Russian adds after the year. */
+export function formatDate(date: string, locale: string) {
+  const parts = new Intl.DateTimeFormat(locale, {
+    dateStyle: 'medium',
+    timeZone: 'UTC',
+  }).formatToParts(new Date(date));
+  while (parts.at(-1)?.type === 'literal') parts.pop();
+  return parts.map((p) => p.value).join('');
+}
+
 /**
  * The formatted date is shown; the native date input lies over it, invisible,
  * so a tap opens the system date picker.
@@ -156,17 +166,14 @@ export function InlineDate({
 }: DateProps) {
   const { t, locale } = useT();
   const text = value
-    ? new Intl.DateTimeFormat(locale, {
-        dateStyle: 'medium',
-        timeZone: 'UTC',
-      }).format(new Date(value)) + (suffix ? ` · ${suffix}` : '')
+    ? formatDate(value, locale) + (suffix ? ` · ${suffix}` : '')
     : null;
   return (
     <span
       className={`inline-field inline-field--date${error ? ' inline-field--error' : ''}${readOnly ? ' inline-field--ro' : ''}${text ? '' : ' inline-field--empty'}`}
     >
       <span className="inline-field__text" aria-hidden="true">
-        {text ?? placeholder ?? t('field.pick')}
+        {text ?? placeholder ?? t('field.empty')}
       </span>
       <input
         className="inline-field__date"
@@ -187,6 +194,16 @@ export function InlineDate({
         }}
         onChange={(event) => onChange(event.target.value || null)}
       />
+    </span>
+  );
+}
+
+/** Value of a row that opens a picker (Activity): styled like the fields, accent «Choose» while empty. */
+export function PickValue({ value }: { value: string | null }) {
+  const { t } = useT();
+  return (
+    <span className={`inline-field${value ? '' : ' inline-field--empty'}`}>
+      <span className="inline-field__text">{value ?? t('field.pick')}</span>
     </span>
   );
 }
