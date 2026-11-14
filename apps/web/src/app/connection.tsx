@@ -61,7 +61,7 @@ export function useRequireOnline() {
         : toast({
             text: t(`offline.blocked.${reason}`),
             icon: <WifiOff />,
-            duration: BLOCKED_TOAST_MS,
+            ms: BLOCKED_TOAST_MS,
           }),
     [online, toast, t],
   );

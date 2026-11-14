@@ -27,7 +27,7 @@
   color: var(--color-warning);
 }
 
-.profile__retry {
+.profile__link {
   padding: 0;
   border: none;
   background: none;

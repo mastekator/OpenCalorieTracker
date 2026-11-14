@@ -27,6 +27,7 @@ const meta = {
     today,
     onAgent: () => {},
     onSave: async (req: ProfileRequest) => ({ ...req, rev: 2 }),
+    onHideDisclaimer: () => {},
   },
   decorators: [
     (Story) => (
@@ -85,6 +86,58 @@ export const Overdue: Story = {
     },
   },
 };
+const withProfile = (p: Partial<Profile>) => ({
+  initial: { profile: { ...filled, ...p }, manual: null, rev: 1 },
+});
+/** 8.5b: over 1 % a week, «Move the date». */
+export const FastPace: Story = {
+  args: withProfile({
+    weightKg: 90,
+    targetWeightKg: 80,
+    deadline: '2027-01-23',
+  }),
+};
+/** 8.6: over 1.5 % a week and capped at the floor, with the real date. */
+export const DangerFloor: Story = {
+  args: withProfile({
+    sex: 'female',
+    heightCm: 165,
+    weightKg: 60,
+    activity: 'minimal',
+    targetWeightKg: 55,
+    deadline: '2026-12-05',
+  }),
+};
+/** 8.6, AC-2.1b: burns less than the floor. */
+export const BelowFloor: Story = {
+  args: withProfile({
+    sex: 'female',
+    birthDate: '1966-01-01',
+    heightCm: 150,
+    weightKg: 45,
+    activity: 'minimal',
+    targetWeightKg: null,
+    deadline: null,
+  }),
+};
+/** 8.11: implausible BMI. */
+export const BmiCheck: Story = {
+  args: withProfile({ weightKg: 40, goal: 'maintain' }),
+};
+/** 8.12: under 18, the disclaimer has no close button. */
+export const Minor: Story = { args: withProfile({ birthDate: '2010-05-01' }) };
+/** 8.13: target reached. */
+export const GoalReached: Story = {
+  args: withProfile({ weightKg: 74.5 }),
+};
+/** 8.21: the disclaimer was closed. */
+export const DisclaimerHidden: Story = { args: { disclaimerHidden: true } };
+export const FastPaceDark: Story = { ...FastPace, globals: { theme: 'dark' } };
+export const GoalReachedDark: Story = {
+  ...GoalReached,
+  globals: { theme: 'dark' },
+};
+export const MinorDark: Story = { ...Minor, globals: { theme: 'dark' } };
 /** 8.19: feet and inches, pounds. */
 export const UsUnits: Story = { args: { units: 'us' } };
 export const Dark: Story = { globals: { theme: 'dark' } };

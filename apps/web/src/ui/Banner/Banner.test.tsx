@@ -31,4 +31,14 @@ describe('Banner', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(onClose).toHaveBeenCalledOnce();
   });
+
+  it('renders actions under the text', async () => {
+    render(
+      <I18nProvider>
+        <Banner actions={<button type="button">Go</button>}>note</Banner>
+      </I18nProvider>,
+    );
+    expect((await screen.findByRole('status')).textContent).toBe('noteGo');
+    expect(screen.getByRole('button', { name: 'Go' })).toBeTruthy();
+  });
 });
