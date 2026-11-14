@@ -6,6 +6,8 @@ export const en = {
   common: {
     appName: 'OpenCalorieTracker',
     loading: 'Loading…',
+    close: 'Close',
+    retry: 'Try again',
     tryAgainIn: {
       one: 'Try again in {count} minute',
       other: 'Try again in {count} minutes',
@@ -42,6 +44,11 @@ export const en = {
       not_email: 'Not the same as your email',
     },
   },
+  offline: {
+    bar: 'Offline · data from {time}',
+    no_network: 'No connection',
+    server_down: 'Server unavailable',
+  },
   update: {
     stale: 'The app has been updated · please save again',
   },
@@ -77,6 +84,9 @@ export const en = {
     photo_expired: 'The full photo is no longer stored. Take a new one',
     payload_too_large: 'The request is too large',
     photo_in_use: 'This photo is already attached to another meal',
+    agent_not_ready: 'Finish the dialog up to the summary first',
+    agent_closed: 'This dialog is closed. Use the form or start over',
+    cannot_delete_self: 'You cannot delete your own account here',
     internal: 'Something went wrong. Try again',
   } satisfies Record<ErrorCode, string>,
 };

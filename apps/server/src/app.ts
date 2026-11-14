@@ -16,6 +16,7 @@ import { dummyHash } from './auth/password.js';
 import { session } from './auth/session.js';
 import { diaryRoutes } from './diary/routes.js';
 import { mealRoutes } from './meals/routes.js';
+import { normAgentRoutes } from './norm-agent/routes.js';
 import { photoRoutes } from './photos/routes.js';
 import { profileRoutes } from './profile/routes.js';
 import { setupErrors, type Config } from './config.js';
@@ -76,6 +77,7 @@ export function createApp(deps: AppDeps) {
   app.route('/api', photoRoutes(deps));
   app.route('/api', mealRoutes(deps));
   app.route('/api', diaryRoutes(deps));
+  app.route('/api', normAgentRoutes(deps));
 
   app.get('/api/health', (c) => c.json({ ok: true, version }));
   app.get('/api/config', (c) =>

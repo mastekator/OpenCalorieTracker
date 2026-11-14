@@ -5,6 +5,8 @@ const ru: DeepPartial<typeof en> = {
   common: {
     appName: 'OpenCalorieTracker',
     loading: 'Загрузка…',
+    close: 'Закрыть',
+    retry: 'Повторить',
     tryAgainIn: {
       one: 'Повторите через {count} минуту',
       few: 'Повторите через {count} минуты',
@@ -38,6 +40,11 @@ const ru: DeepPartial<typeof en> = {
       symbol: 'Символ, например ! - _ или пробел',
       not_email: 'Не совпадает с email',
     },
+  },
+  offline: {
+    bar: 'Офлайн · данные на {time}',
+    no_network: 'Нет сети',
+    server_down: 'Сервер недоступен',
   },
   update: {
     stale: 'Приложение обновилось · сохраните ещё раз',
@@ -74,6 +81,9 @@ const ru: DeepPartial<typeof en> = {
     photo_expired: 'Полное фото уже удалено. Сделайте новое',
     payload_too_large: 'Запрос слишком большой',
     photo_in_use: 'Это фото уже прикреплено к другой записи',
+    agent_not_ready: 'Сначала дойдите до сводки',
+    agent_closed: 'Этот диалог закрыт. Заполните форму или начните заново',
+    cannot_delete_self: 'Нельзя удалить собственную учётную запись',
     internal: 'Что-то пошло не так. Попробуйте ещё раз',
   },
 };

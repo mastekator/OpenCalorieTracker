@@ -8,6 +8,7 @@ import { ensureAdmin } from './auth/admin.js';
 import { loadConfig, setupErrorMessages, setupErrors } from './config.js';
 import { migrate } from './db/migrate.js';
 import { openDb } from './db/open.js';
+import { SWEEP_INTERVAL_MS, sweepPhotos } from './photos/sweep.js';
 
 const config = loadConfig(process.env);
 mkdirSync(config.dataDir, { recursive: true });
@@ -29,6 +30,14 @@ try {
     `[setup] AI model could not be created (${(err as Error).name}); AI is off.`,
   );
 }
+
+// A failed sweep is retried next hour; it must not take the server down.
+const sweep = () =>
+  sweepPhotos(db, config.dataDir, Date.now()).catch((err) =>
+    console.error(`[photos] sweep failed: ${(err as Error).message}`),
+  );
+void sweep();
+setInterval(sweep, SWEEP_INTERVAL_MS).unref();
 
 serve(
   {
