@@ -22,10 +22,19 @@ const me = {
   methods: ['password'],
 };
 
+const config = {
+  version: '0.1.0',
+  apiVersion: 1,
+  publicUrl: null,
+  authMethods: ['password'],
+  registration: 'invite',
+  setupError: null,
+};
+
 const emptySync = { rev: 0, more: false, meals: [], deletedMealClientIds: [] };
 
 /**
- * /api/auth/me answers with `session` (null → 401), /api/sync with nothing new;
+ * /api/config answers with `config`, /api/auth/me with `session` (null → 401), /api/sync with nothing new;
  * every other path answers 401. `offline` makes every request fail like a lost network.
  */
 function serve(session: object | null, offline = false) {
@@ -33,6 +42,7 @@ function serve(session: object | null, offline = false) {
     'fetch',
     vi.fn(async (path: string) => {
       if (offline) throw new TypeError('Failed to fetch');
+      if (path === '/api/config') return Response.json(config);
       if (session && path === ME_PATH) return Response.json(session);
       if (session && path.startsWith('/api/sync'))
         return Response.json(emptySync);
@@ -103,6 +113,13 @@ describe('AuthGate', () => {
     await screen.findByRole('heading', { name: 'Sign in' });
     await unauthorizedCall();
     expect(location.history).toEqual(['/login']);
+  });
+
+  it('sends a signed-in user from sign-in on to next', async () => {
+    serve(me);
+    const location = renderAt('/login?next=%2Fweek');
+    await screen.findByRole('heading', { name: 'Week' });
+    expect(location.history.at(-1)).toBe('/week');
   });
 
   it('starts offline from the last user’s local copy without checking the session (E-8.10)', async () => {
