@@ -352,6 +352,19 @@ describe('meals', () => {
     ).toBeNull();
   });
 
+  it('saves a meal without expiry after retention is set to forever', async () => {
+    const t = await setup();
+    await t.call(t.cookie, 'PUT', '/account/photo-retention', { days: null });
+    const photoId = await t.upload(t.cookie);
+    const meal = (await (
+      await t.call(t.cookie, 'POST', '/meals', input({ photoId }))
+    ).json()) as Meal;
+    expect(meal.photo).toEqual({ id: photoId, full: true });
+    expect(
+      t.db.prepare('SELECT photo_expires_at FROM meals').pluck().get(),
+    ).toBeNull();
+  });
+
   it('deletes the meal with its photo files, idempotently (AC-10.5)', async () => {
     const t = await setup();
     const photoId = await t.upload(t.cookie);
