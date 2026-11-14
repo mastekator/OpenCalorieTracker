@@ -6,7 +6,6 @@ import {
   mealInputSchema,
   mealPatchSchema,
   nameKey,
-  type Meal,
   type MealItemInput,
 } from '@oct/shared';
 import type { AppDeps } from '../app.js';
@@ -16,22 +15,10 @@ import { ApiError } from '../http/errors.js';
 import { validate } from '../http/validate.js';
 import { photoPath, type PhotoSize } from '../photos/store.js';
 import { bumpRev } from '../sync/rev.js';
+import { readMeal, type MealRow } from './read.js';
 
 const DAY_MS = 86_400_000;
 const FUTURE_SLACK_MS = 5 * 60_000;
-
-interface MealRow {
-  id: number;
-  client_id: string;
-  eaten_at: number;
-  tz_offset_min: number;
-  local_date: string;
-  meal_type: Meal['mealType'];
-  photo_id: string | null;
-  photo_full: number;
-  photo_expires_at: number | null;
-  recalc_offer: number;
-}
 
 /**
  * `eatenAt` as Unix ms, after checking it is not in the future and that `localDate` is the
@@ -68,36 +55,6 @@ export function mealRoutes({ config, db }: AppDeps) {
           .prepare('SELECT * FROM meals WHERE id = ? AND user_id = ?')
           .get(Number(id), userId) as MealRow | undefined)
       : undefined;
-
-  const readMeal = (id: number): Meal => {
-    const m = db.prepare('SELECT * FROM meals WHERE id = ?').get(id) as MealRow;
-    const items = (
-      db
-        .prepare(
-          `SELECT name, grams, kcal, protein_g AS proteinG, fat_g AS fatG, carbs_g AS carbsG,
-             source, ai_provider AS aiProvider, ai_model AS aiModel, confidence
-           FROM meal_items WHERE meal_id = ? ORDER BY position`,
-        )
-        .all(id) as Omit<Meal['items'][number], 'illustration'>[]
-    ).map((i) => ({ ...i, illustration: null }));
-    const sum = (k: 'kcal' | 'proteinG' | 'fatG' | 'carbsG') =>
-      items.reduce((s, i) => s + i[k], 0);
-    return {
-      id: m.id,
-      clientId: m.client_id,
-      eatenAt: new Date(m.eaten_at).toISOString(),
-      tzOffsetMin: m.tz_offset_min,
-      localDate: m.local_date,
-      mealType: m.meal_type,
-      photo: m.photo_id ? { id: m.photo_id, full: !!m.photo_full } : null,
-      recalcOffer: !!m.recalc_offer,
-      items,
-      kcal: sum('kcal'),
-      proteinG: sum('proteinG'),
-      fatG: sum('fatG'),
-      carbsG: sum('carbsG'),
-    };
-  };
 
   const insertItems = (
     mealId: number,
@@ -225,13 +182,13 @@ export function mealRoutes({ config, db }: AppDeps) {
         })();
         if (result.dropFull)
           await removePhoto(userId, input.photoId!, ['full']);
-        return c.json(readMeal(result.id), result.created ? 201 : 200);
+        return c.json(readMeal(db, result.id), result.created ? 201 : 200);
       },
     )
     .get('/meals/:id', requireUser, (c) => {
       const meal = findMeal(c.var.user.id, c.req.param('id'));
       if (!meal) throw new ApiError(404, 'not_found');
-      return c.json(readMeal(meal.id));
+      return c.json(readMeal(db, meal.id));
     })
     .patch(
       '/meals/:id',
@@ -284,7 +241,7 @@ export function mealRoutes({ config, db }: AppDeps) {
             insertItems(meal.id, patch.items, recognizedBy);
           }
         })();
-        return c.json(readMeal(meal.id));
+        return c.json(readMeal(db, meal.id));
       },
     )
     .delete('/meals/:id', requireUser, async (c) => {
