@@ -6,8 +6,6 @@ Self-hosted calorie tracker that works from a photo: snap your plate, an AI visi
 - **Pluggable AI provider.** Gemini, OpenAI, Anthropic, OpenRouter, Ollama or any OpenAI-compatible endpoint. No AI configured — enter food manually.
 - **PWA.** Install it on your phone's home screen.
 
-_Russian version of this README: coming later._
-
 ## Status
 
 🚧 **In development.** Nothing to install yet.
