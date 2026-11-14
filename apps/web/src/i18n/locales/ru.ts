@@ -19,6 +19,16 @@ const ru: DeepPartial<typeof en> = {
     recover: 'Восстановление доступа',
     register: 'Регистрация',
   },
+  nav: {
+    main: 'Главное меню',
+    today: 'Сегодня',
+    diary: 'Дневник',
+    week: 'Неделя',
+    profile: 'Профиль',
+    settings: 'Настройки',
+    add_food: 'Добавить еду',
+    take_photo: 'Сфотографировать еду',
+  },
   update: {
     stale: 'Приложение обновилось · сохраните ещё раз',
   },

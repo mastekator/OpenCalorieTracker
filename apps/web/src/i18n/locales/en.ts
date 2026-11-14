@@ -18,6 +18,16 @@ export const en = {
     recover: 'Recover access',
     register: 'Create account',
   },
+  nav: {
+    main: 'Main menu',
+    today: 'Today',
+    diary: 'Diary',
+    week: 'Week',
+    profile: 'Profile',
+    settings: 'Settings',
+    add_food: 'Add food',
+    take_photo: 'Take a photo of food',
+  },
   update: {
     stale: 'The app has been updated · please save again',
   },

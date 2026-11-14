@@ -1,0 +1,99 @@
+/* Shown below 1024px; which of TabBar / Sidebar is visible is decided in styles/layout.css. */
+.tabbar {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: var(--z-tabbar);
+  padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom)
+    env(safe-area-inset-left);
+  border-top: 1px solid var(--color-separator);
+  background: var(--tabbar-bg);
+  -webkit-backdrop-filter: var(--tabbar-blur);
+  backdrop-filter: var(--tabbar-blur);
+}
+
+.tabbar ul {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  height: var(--tabbar-height);
+  max-width: var(--content-max-width);
+  margin-inline: auto;
+  padding: 0;
+  list-style: none;
+}
+
+.tabbar li {
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+}
+
+.tabbar__tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  width: 100%;
+  min-width: var(--tap-min);
+  color: var(--color-text-secondary);
+  font-size: var(--text-tab-size);
+  font-weight: var(--text-tab-weight);
+  line-height: 1;
+  text-align: center;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.tabbar__tab .lucide {
+  width: var(--icon-size);
+  height: var(--icon-size);
+}
+
+.tabbar__tab[aria-current='page'] {
+  color: var(--color-accent);
+}
+
+.tabbar__camera {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: var(--camera-button-size);
+  height: var(--camera-button-size);
+  /* Rises above the bar's top edge (OCT-13 §3). */
+  margin-top: calc(var(--camera-button-lift) * -1);
+  border: none;
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  box-shadow: var(--shadow-camera);
+  cursor: pointer;
+  transition:
+    transform var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
+}
+
+.tabbar__camera .lucide {
+  width: var(--icon-size);
+  height: var(--icon-size);
+}
+
+.tabbar__camera:active {
+  transform: scale(var(--press-scale));
+  background: var(--color-accent-pressed);
+}
+
+@media (hover: hover) {
+  .tabbar__tab:hover {
+    color: var(--color-text);
+  }
+
+  .tabbar__tab[aria-current='page']:hover {
+    color: var(--color-accent);
+  }
+
+  .tabbar__camera:hover {
+    background: var(--color-accent-pressed);
+  }
+}
