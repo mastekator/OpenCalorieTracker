@@ -11,6 +11,7 @@ export const en = {
     cancel: 'Cancel',
     got_it: 'Got it',
     retry: 'Try again',
+    undo: 'Undo',
     retake: 'Retake',
     manual_full: 'Enter manually',
     tryAgainIn: {
@@ -255,8 +256,11 @@ export const en = {
     missing: 'Add your {fields} to see your goal',
     fix: 'Fix {field} to see your goal',
     minor: 'This calculation is for adults',
+    minor_body:
+      'For teenagers, it’s best to set a goal with a doctor. You can enter one manually.',
     disclaimer:
       'This is an estimate, not medical advice. If you have a medical condition, are pregnant or breastfeeding, or are under 18, talk to a doctor.',
+    disclaimer_hide: 'Hide this notice',
   },
   agent: { cta: 'Set up with the assistant' },
   chat: {
@@ -319,6 +323,34 @@ export const en = {
     eta: '≈ {x} a week · around {date}',
     rate: '≈ {x} a week ({p}% of body weight)',
     overdue: 'This date has passed — set a new one',
+  },
+  pace: {
+    fast: {
+      title: 'Fast pace',
+      body: 'You’ll lose muscle along with fat, and it’s hard to keep up.',
+    },
+    danger: {
+      title: 'This pace may harm your health',
+      body: 'Talk to a doctor.',
+    },
+    gain_fast: 'Gaining this fast adds mostly fat.',
+    postpone: 'Move the date',
+  },
+  floor: {
+    clamped:
+      'Your goal is capped at a safe minimum: you won’t make it by {date}, more likely by {eta}.',
+    capped: 'Your goal is capped at a safe minimum.',
+    tdee: 'You can’t safely lose weight through diet alone — add activity or talk to a doctor.',
+  },
+  bmi: {
+    check: 'Check your height and weight',
+    risk: 'This goal may be bad for your health — talk to a doctor',
+  },
+  reached: {
+    title: 'You’ve reached {weight}',
+    body: 'Switch to “Maintain”? Your goal will be {n} kcal.',
+    go: 'Switch',
+    later: 'Not now',
   },
   range: {
     error: '{field}: {min} to {max} {unit}',
