@@ -3,7 +3,6 @@ import {
   act,
   cleanup,
   fireEvent,
-  render,
   screen,
   waitFor,
 } from '@testing-library/react';
@@ -13,6 +12,7 @@ import { I18nProvider, LOCALE_STORAGE_KEY } from '../i18n';
 import { ProfileForm } from '../features/profile/ProfileForm';
 import { useDirty } from './dirty';
 import { LeaveGuard } from './LeaveGuard';
+import { renderLoaded } from '../test-utils';
 
 function Page({
   dirty,
@@ -32,14 +32,13 @@ function Page({
 }
 
 async function setup(dirty: boolean, save?: () => Promise<boolean>) {
-  render(
+  await renderLoaded(
     <I18nProvider>
       <LeaveGuard>
         <Page dirty={dirty} save={save} />
       </LeaveGuard>
     </I18nProvider>,
   );
-  await screen.findByText('Diary');
 }
 
 const path = () => screen.getByTestId('path').textContent;
@@ -131,7 +130,7 @@ describe('LeaveGuard', () => {
       ...req,
       rev: 2,
     }));
-    render(
+    await renderLoaded(
       <I18nProvider>
         <LeaveGuard>
           <ProfileForm

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { act, cleanup, render, screen } from '@testing-library/react';
+import { act, cleanup, screen } from '@testing-library/react';
 import { I18nProvider, LOCALE_STORAGE_KEY } from '../../i18n';
+import { renderLoaded } from '../../test-utils';
 import { OfflineBar } from './OfflineBar';
 
 let online = true;
@@ -19,15 +20,12 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 
-const renderBar = async (props: Parameters<typeof OfflineBar>[0] = {}) => {
-  render(
+const renderBar = (props: Parameters<typeof OfflineBar>[0] = {}) =>
+  renderLoaded(
     <I18nProvider>
-      <p>ready</p>
       <OfflineBar {...props} />
     </I18nProvider>,
   );
-  await screen.findByText('ready'); // the dictionary has loaded
-};
 
 describe('OfflineBar', () => {
   it('appears on offline and disappears on online', async () => {
