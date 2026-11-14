@@ -124,7 +124,6 @@ export function ProfileForm({ initial, units, today, onAgent, onSave }: Props) {
   };
   const changed = (f: Field) => profile[f] !== saved.profile[f];
   const dirty = FIELDS.some(changed);
-  useDirty(dirty);
 
   // Errors in form order; range errors in the user's units (AC-1.4).
   const ranges = unitRanges(units);
@@ -195,6 +194,8 @@ export function ProfileForm({ initial, units, today, onAgent, onSave }: Props) {
       codeError(field, serverErrors[field]);
   }
   const errorFields = Object.keys(errors) as Field[];
+  // «Save and leave» (8.19) can't save a draft with errors: it stays to show them.
+  useDirty(dirty, () => (errorFields.length ? Promise.resolve(false) : save()));
   const groupError = (calc: boolean) =>
     errorFields.find((f) => CALC_GROUP.has(f) === calc);
 
@@ -316,6 +317,7 @@ export function ProfileForm({ initial, units, today, onAgent, onSave }: Props) {
       setDraft(res.profile);
       setFtIn(null);
       toast({ text: t('save.done') });
+      return true;
     } catch (err) {
       // A field the server rejected is shown at the field (8.17); anything else is a banner.
       const fields: Partial<Record<Field, string>> = {};
@@ -327,6 +329,7 @@ export function ProfileForm({ initial, units, today, onAgent, onSave }: Props) {
         }
       if (Object.keys(fields).length) setServerErrors(fields);
       else setFailed(true);
+      return false;
     } finally {
       setSaving(false);
     }
