@@ -156,6 +156,7 @@ describe('meals', () => {
       grams: 283.5,
       kcal: 412.3,
       illustration: 'grains',
+      illustrationManual: false,
     });
     expect(
       t.db
@@ -547,6 +548,11 @@ describe('illustrations', () => {
       'soup-borscht',
       'pizza',
       'plate',
+    ]);
+    expect(meal.items.map((i) => i.illustrationManual)).toEqual([
+      false,
+      true,
+      false,
     ]);
 
     // A choice for the name changes old meals too, but not a dish with its own choice.

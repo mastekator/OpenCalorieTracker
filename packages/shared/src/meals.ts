@@ -88,6 +88,8 @@ export interface MealItem {
   confidence: number | null;
   /** Resolved: choice on this dish → choice for its name → matched by name (ADR-0009). */
   illustration: IllustrationId;
+  /** True when `illustration` was picked on this dish: send it back in `PATCH` only then, or it freezes. */
+  illustrationManual: boolean;
 }
 
 /** A saved meal with server-computed totals (sum of its dishes, unrounded). */

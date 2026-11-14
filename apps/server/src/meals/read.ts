@@ -21,23 +21,25 @@ function selectMeals(db: Database, where: string, ...params: unknown[]) {
     .prepare(`SELECT * FROM meals m WHERE ${where} ORDER BY eaten_at, id`)
     .all(...params) as MealRow[];
   const items = new Map<number, MealItem[]>();
-  for (const { mealId, ...i } of db
+  for (const { mealId, manual, ...i } of db
     .prepare(
       `SELECT i.meal_id AS mealId, i.name, i.grams, i.kcal, i.protein_g AS proteinG,
          i.fat_g AS fatG, i.carbs_g AS carbsG, i.source, i.ai_provider AS aiProvider,
-         i.ai_model AS aiModel, i.confidence,
+         i.ai_model AS aiModel, i.confidence, i.illustration IS NOT NULL AS manual,
          COALESCE(i.illustration, c.illustration) AS illustration
        FROM meal_items i JOIN meals m ON m.id = i.meal_id ${CHOICE_JOIN}
        WHERE ${where} ORDER BY i.meal_id, i.position`,
     )
     .all(...params) as (Omit<MealItem, 'illustration'> & {
     mealId: number;
+    manual: number;
     illustration: string | null;
   })[]) {
     const list = items.get(mealId) ?? [];
     list.push({
       ...i,
       illustration: resolveIllustration(i.illustration, i.name),
+      illustrationManual: !!manual,
     });
     items.set(mealId, list);
   }
