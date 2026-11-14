@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setCookie, testApp } from '../test/app.js';
-import { ensureAdmin } from './admin.js';
+import type { Database } from 'better-sqlite3';
+import { ensureAdmin, resetAdminAccess } from './admin.js';
 import { ADMIN_SETUP_TTL, LINK_TTL } from './invites.js';
 
 const ADMIN = 'admin@example.com';
@@ -412,5 +413,60 @@ describe('admin passkey setup link (AC-1.5)', () => {
   it('logs nothing when passwords are enabled', async () => {
     await setup();
     expect(setupLinks()).toHaveLength(0);
+  });
+});
+
+describe('reset-admin-access (E-6.2)', () => {
+  const block = (db: Database) =>
+    db
+      .prepare(
+        `INSERT INTO login_guards (kind, ip, device_id, blocked_at, timeout_until)
+         VALUES ('ip', '203.0.113.7', '', 1, NULL), ('device', '203.0.113.7', 'd1', NULL, ?)`,
+      )
+      .run(Date.now() + 60_000);
+
+  it('lifts every block and prints a working 24-hour link that revokes the previous one', async () => {
+    const { config, db, call, admin, token } = await setup();
+    block(db);
+    const old = await call(
+      'POST',
+      '/api/admin/users/1/recovery-link',
+      undefined,
+      admin,
+    );
+    const { cleared, url, expiresAt } = resetAdminAccess(config, db);
+    expect(cleared).toBe(2);
+    expect(db.prepare('SELECT COUNT(*) AS n FROM login_guards').get()).toEqual({
+      n: 0,
+    });
+    expect(expiresAt - Date.now()).toBeGreaterThan(ADMIN_SETUP_TTL - 60_000);
+    expect(
+      (
+        await call('POST', '/api/auth/recover', {
+          token: token((old.body as { url: string }).url),
+          password: NEW_PASSWORD,
+        })
+      ).status,
+    ).toBe(400);
+    const res = await call('POST', '/api/auth/recover', {
+      token: token(url),
+      password: NEW_PASSWORD,
+    });
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ email: ADMIN });
+  });
+
+  it('still lifts blocks when the link cannot be made', async () => {
+    const { config, db } = await setup();
+    block(db);
+    expect(() => resetAdminAccess({ ...config, publicUrl: null }, db)).toThrow(
+      /PUBLIC_URL/,
+    );
+    db.prepare('DELETE FROM users').run();
+    block(db);
+    expect(() => resetAdminAccess(config, db)).toThrow(/no admin/);
+    expect(db.prepare('SELECT COUNT(*) AS n FROM login_guards').get()).toEqual({
+      n: 0,
+    });
   });
 });
