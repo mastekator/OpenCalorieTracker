@@ -71,6 +71,7 @@ export * from './units.js';
 export * from './recognition.js';
 export * from './ai-providers.js';
 export * from './meals.js';
+export * from './nutrition.js';
 export * from './norm/schemas.js';
 export * from './norm/calculate.js';
 export * from './norm/interview.js';

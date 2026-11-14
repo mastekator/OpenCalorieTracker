@@ -3,10 +3,14 @@ import { rm } from 'node:fs/promises';
 import { Hono } from 'hono';
 import {
   addDays,
+  isSimilarDensity,
   mealInputSchema,
   mealPatchSchema,
   nameKey,
+  previousDishesSchema,
   type MealItemInput,
+  type PreviousDish,
+  type PreviousDishesResponse,
 } from '@oct/shared';
 import type { AppDeps } from '../app.js';
 import { getAiSettings } from '../ai/settings.js';
@@ -19,6 +23,7 @@ import { readMeal, type MealRow } from './read.js';
 
 const DAY_MS = 86_400_000;
 const FUTURE_SLACK_MS = 5 * 60_000;
+const HISTORY_DAYS = 90;
 
 /**
  * `eatenAt` as Unix ms, after checking it is not in the future and that `localDate` is the
@@ -242,6 +247,47 @@ export function mealRoutes({ config, db }: AppDeps) {
           }
         })();
         return c.json(readMeal(db, meal.id));
+      },
+    )
+    .post(
+      '/dishes/previous',
+      requireUser,
+      validate('json', previousDishesSchema),
+      (c) => {
+        // Newest first; a daily dish gives ~90 rows, so density is filtered in JS (ADR-0009).
+        const candidates = db.prepare(
+          `SELECT m.id AS mealId, m.eaten_at AS eatenAt, i.grams, i.kcal, i.protein_g AS proteinG,
+             i.fat_g AS fatG, i.carbs_g AS carbsG
+           FROM meal_items i JOIN meals m ON m.id = i.meal_id
+           WHERE m.user_id = ? AND i.name_key = ? AND m.eaten_at >= ?
+           ORDER BY m.eaten_at DESC, m.id DESC, i.position`,
+        );
+        const since = Date.now() - HISTORY_DAYS * DAY_MS;
+        const result: PreviousDishesResponse = c.req
+          .valid('json')
+          .dishes.map(({ name, kcalPer100 }) => {
+            const rows = candidates.all(
+              c.var.user.id,
+              nameKey(name),
+              since,
+            ) as (Omit<PreviousDish, 'eatenAt' | 'illustration'> & {
+              eatenAt: number;
+            })[];
+            const hit = rows.find(
+              (r) =>
+                kcalPer100 === undefined ||
+                isSimilarDensity((r.kcal / r.grams) * 100, kcalPer100),
+            );
+            // Illustration stays null until OCT-63, as in readMeal.
+            return hit
+              ? {
+                  ...hit,
+                  eatenAt: new Date(hit.eatenAt).toISOString(),
+                  illustration: null,
+                }
+              : null;
+          });
+        return c.json(result);
       },
     )
     .delete('/meals/:id', requireUser, async (c) => {

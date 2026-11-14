@@ -100,3 +100,32 @@ export interface Meal {
   fatG: number;
   carbsG: number;
 }
+
+/** `POST /api/dishes/previous`: the dishes on the edit screen, to look up in the user's history. */
+export const previousDishesSchema = z.object({
+  dishes: z
+    .array(
+      z.object({
+        name: z.string().trim().min(1).max(80),
+        kcalPer100: z.number().min(0).max(10000).optional(),
+      }),
+    )
+    .min(1)
+    .max(20),
+});
+export type PreviousDishesInput = z.infer<typeof previousDishesSchema>;
+
+/** The latest similar dish eaten in the last 90 days (ADR-0009 "Похожие блюда"). */
+export interface PreviousDish {
+  mealId: number;
+  eatenAt: string;
+  grams: number;
+  kcal: number;
+  proteinG: number;
+  fatG: number;
+  carbsG: number;
+  illustration: string | null;
+}
+
+/** One entry per requested dish, in request order; null when nothing was found. */
+export type PreviousDishesResponse = (PreviousDish | null)[];
