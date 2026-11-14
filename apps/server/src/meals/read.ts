@@ -13,12 +13,18 @@ export interface MealRow {
   photo_full: number;
   photo_expires_at: number | null;
   recalc_offer: number;
+  edited_at: number | null;
 }
 
-/** Meals matching `where` (over `meals m`) by `eaten_at`: one query for meals, one for their dishes. */
-function selectMeals(db: Database, where: string, ...params: unknown[]) {
+/** Meals matching `where` (over `meals m`) in `order`: one query for meals, one for their dishes. */
+function selectMeals(
+  db: Database,
+  where: string,
+  order: string,
+  ...params: unknown[]
+) {
   const rows = db
-    .prepare(`SELECT * FROM meals m WHERE ${where} ORDER BY eaten_at, id`)
+    .prepare(`SELECT * FROM meals m WHERE ${where} ORDER BY ${order}`)
     .all(...params) as MealRow[];
   const items = new Map<number, MealItem[]>();
   for (const { mealId, manual, ...i } of db
@@ -66,7 +72,7 @@ function selectMeals(db: Database, where: string, ...params: unknown[]) {
 }
 
 export const readMeal = (db: Database, id: number) =>
-  selectMeals(db, 'm.id = ?', id)[0]!;
+  selectMeals(db, 'm.id = ?', 'm.id', id)[0]!;
 
 /** The user's meals with `local_date` in `from..to` inclusive, by `eaten_at`. */
 export const readMeals = (
@@ -78,7 +84,24 @@ export const readMeals = (
   selectMeals(
     db,
     'm.user_id = ? AND m.local_date BETWEEN ? AND ?',
+    'm.eaten_at, m.id',
     userId,
     from,
     to,
+  );
+
+/** The user's meals with `rev` in `(since, upTo]`, by `rev` (ADR-0011 §3). */
+export const readMealsByRev = (
+  db: Database,
+  userId: number,
+  since: number,
+  upTo: number,
+) =>
+  selectMeals(
+    db,
+    'm.user_id = ? AND m.rev > ? AND m.rev <= ?',
+    'm.rev',
+    userId,
+    since,
+    upTo,
   );

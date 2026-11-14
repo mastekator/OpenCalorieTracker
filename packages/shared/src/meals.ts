@@ -59,19 +59,18 @@ export const mealInputSchema = z.object({
 });
 export type MealInput = z.infer<typeof mealInputSchema>;
 
+const patch = {
+  mealType: mealTypeSchema.optional(),
+  recalcOffer: z.boolean().optional(),
+  items: items.optional(),
+  /** Unix ms of the edit on the device; an older one than the stored edit is ignored (last edit wins). */
+  editedAt: z.number().int().nonnegative().optional(),
+};
+
 /** Date and time change together or not at all. */
 export const mealPatchSchema = z.union([
-  z.object({
-    ...when,
-    mealType: mealTypeSchema.optional(),
-    recalcOffer: z.boolean().optional(),
-    items: items.optional(),
-  }),
-  z.strictObject({
-    mealType: mealTypeSchema.optional(),
-    recalcOffer: z.boolean().optional(),
-    items: items.optional(),
-  }),
+  z.object({ ...when, ...patch }),
+  z.strictObject(patch),
 ]);
 export type MealPatch = z.infer<typeof mealPatchSchema>;
 

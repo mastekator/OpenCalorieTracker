@@ -34,7 +34,7 @@ export function illustrationRoutes({ db }: AppDeps) {
       c.json(
         db
           .prepare(
-            'SELECT name_key AS nameKey, illustration FROM illustration_choices WHERE user_id = ? ORDER BY name_key',
+            'SELECT name_key AS nameKey, illustration FROM illustration_choices WHERE user_id = ? AND illustration IS NOT NULL ORDER BY name_key',
           )
           .all(c.var.user.id) as IllustrationChoice[],
       ),
@@ -51,18 +51,15 @@ export function illustrationRoutes({ db }: AppDeps) {
           throw new ApiError(400, 'validation_failed', [
             { path: ['name'], code: 'custom' },
           ]);
-        db.transaction(() => {
-          if (illustration === null)
-            // shortcut: no tombstone yet, OCT-75 adds it with /api/sync.
-            db.prepare(
-              'DELETE FROM illustration_choices WHERE user_id = ? AND name_key = ?',
-            ).run(userId, key);
-          else
-            db.prepare(
+        // "Back to automatic" keeps the row with NULL so other devices get it on sync (ADR-0011 §3).
+        db.transaction(() =>
+          db
+            .prepare(
               `INSERT INTO illustration_choices (user_id, name_key, illustration, rev) VALUES (?, ?, ?, ?)
                ON CONFLICT (user_id, name_key) DO UPDATE SET illustration = excluded.illustration, rev = excluded.rev`,
-            ).run(userId, key, illustration, bumpRev(db, userId));
-        })();
+            )
+            .run(userId, key, illustration, bumpRev(db, userId)),
+        )();
         return c.body(null, 204);
       },
     );

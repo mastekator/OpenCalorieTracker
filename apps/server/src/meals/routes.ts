@@ -181,6 +181,10 @@ export function mealRoutes({ config, db }: AppDeps) {
               now,
             ) as number;
           insertItems(id, input.items);
+          // Re-created after a delete: the newer rev of the meal must not sit next to a tombstone.
+          db.prepare(
+            'DELETE FROM meal_tombstones WHERE user_id = ? AND client_id = ?',
+          ).run(userId, input.clientId);
           return {
             id,
             created: true,
@@ -207,6 +211,11 @@ export function mealRoutes({ config, db }: AppDeps) {
         const meal = findMeal(userId, c.req.param('id'));
         if (!meal) throw new ApiError(404, 'not_found');
         db.transaction(() => {
+          // Same rule as account settings: clamp to server time, an older offline edit loses.
+          const now = Date.now();
+          const at = Math.min(patch.editedAt ?? now, now);
+          const stored = meal.edited_at;
+          if (stored !== null && stored <= now && at < stored) return;
           let eatenAt = meal.eaten_at;
           let expiresAt = meal.photo_expires_at;
           if ('eatenAt' in patch) {
@@ -221,7 +230,8 @@ export function mealRoutes({ config, db }: AppDeps) {
           }
           db.prepare(
             `UPDATE meals SET eaten_at = ?, tz_offset_min = ?, local_date = ?, meal_type = ?,
-             photo_expires_at = ?, recalc_offer = ?, rev = ?, updated_at = ? WHERE id = ?`,
+             photo_expires_at = ?, recalc_offer = ?, rev = ?, edited_at = ?, updated_at = ?
+             WHERE id = ?`,
           ).run(
             eatenAt,
             'eatenAt' in patch ? patch.tzOffsetMin : meal.tz_offset_min,
@@ -232,7 +242,8 @@ export function mealRoutes({ config, db }: AppDeps) {
               ? meal.recalc_offer
               : Number(patch.recalcOffer),
             bumpRev(db, userId),
-            Date.now(),
+            at,
+            now,
             meal.id,
           );
           if (patch.items) {
@@ -297,10 +308,15 @@ export function mealRoutes({ config, db }: AppDeps) {
     .delete('/meals/:id', requireUser, async (c) => {
       const userId = c.var.user.id;
       // Idempotent for the offline queue: missing, already deleted or another user's → 204, no change.
-      // shortcut: no tombstone yet, OCT-75 adds it with /api/sync.
       const meal = findMeal(userId, c.req.param('id'));
       if (meal) {
-        db.prepare('DELETE FROM meals WHERE id = ?').run(meal.id);
+        db.transaction(() => {
+          db.prepare('DELETE FROM meals WHERE id = ?').run(meal.id);
+          db.prepare(
+            `INSERT INTO meal_tombstones (user_id, client_id, rev) VALUES (?, ?, ?)
+             ON CONFLICT (user_id, client_id) DO UPDATE SET rev = excluded.rev`,
+          ).run(userId, meal.client_id, bumpRev(db, userId));
+        })();
         // After the commit: a crash in between leaves orphan files for the cleanup job (OCT-52).
         if (meal.photo_id) await removePhoto(userId, meal.photo_id);
       }
