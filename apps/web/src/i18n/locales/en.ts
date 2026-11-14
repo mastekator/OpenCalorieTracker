@@ -53,6 +53,8 @@ export const en = {
     photo_expired: 'The full photo is no longer stored. Take a new one',
     payload_too_large: 'The request is too large',
     photo_in_use: 'This photo is already attached to another meal',
+    agent_not_ready: 'Finish the dialog up to the summary first',
+    agent_closed: 'This dialog is closed. Use the form or start over',
     internal: 'Something went wrong. Try again',
   } satisfies Record<ErrorCode, string>,
 };

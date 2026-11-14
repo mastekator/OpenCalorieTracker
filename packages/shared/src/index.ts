@@ -37,6 +37,8 @@ export type ErrorCode =
   | 'photo_expired'
   | 'payload_too_large'
   | 'photo_in_use'
+  | 'agent_not_ready'
+  | 'agent_closed'
   | 'internal';
 
 export interface ErrorBody {

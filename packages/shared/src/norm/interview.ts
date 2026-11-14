@@ -93,3 +93,18 @@ export type AssistantMessage =
 export type ChatMessage =
   | { role: 'user'; kind: 'text'; text: string }
   | ({ role: 'assistant' } & AssistantMessage);
+
+/** POST /api/norm-agent/messages: a new user message, or a retry of the last one after an error. */
+export const agentMessageRequestSchema = z.union([
+  z.object({ text: z.string().trim().min(1).max(500) }).strict(),
+  z.object({ retry: z.literal(true) }).strict(),
+]);
+export type AgentMessageRequest = z.infer<typeof agentMessageRequestSchema>;
+
+/** Norm agent responses (ADR-0015 §5): the whole dialog on GET, the turn's new messages otherwise. */
+export interface AgentResponse {
+  messages: ChatMessage[];
+  draft: InterviewDraft;
+  state: InterviewState;
+  userTurns: number;
+}
