@@ -1,0 +1,62 @@
+.drop-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-alert);
+  display: grid;
+  place-items: center;
+  padding: var(--space-6);
+  background: var(--color-scrim);
+  pointer-events: none;
+}
+
+/* The dashed accent frame inset from the window edge. */
+.drop-overlay::before {
+  content: '';
+  position: absolute;
+  inset: var(--space-6);
+  border: 2px dashed var(--color-accent);
+  border-radius: var(--radius-lg);
+}
+
+.drop-overlay__card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-8) var(--space-10);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-toast);
+  text-align: center;
+}
+
+.drop-overlay__icon {
+  display: grid;
+  place-items: center;
+  width: calc(var(--space-12) + var(--space-2)); /* 56, as ScreenState */
+  height: calc(var(--space-12) + var(--space-2));
+  margin-bottom: var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+
+.drop-overlay__icon .lucide {
+  width: var(--icon-size);
+  height: var(--icon-size);
+}
+
+.drop-overlay__title {
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--text-headline-size);
+  font-weight: var(--text-headline-weight);
+  line-height: var(--text-headline-lh);
+}
+
+.drop-overlay__formats {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+}

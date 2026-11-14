@@ -114,3 +114,11 @@
     box-shadow: var(--shadow-toast);
   }
 }
+
+/* «From library» / «Manually» on Today (OCT-16 §1); placed for real in OCT-67. */
+.today-stub {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+  max-width: var(--dialog-max-width);
+}
