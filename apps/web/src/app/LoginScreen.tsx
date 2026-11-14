@@ -18,10 +18,9 @@ import {
 import {
   meResponseSchema,
   type ConfigResponse,
-  type ErrorCode,
   type SetupError,
 } from '@oct/shared';
-import { api, ApiError } from '../api/client';
+import { api, ApiError, type ClientErrorCode } from '../api/client';
 import { useT } from '../i18n';
 import { Banner } from '../ui/Banner/Banner';
 import { Button } from '../ui/Button/Button';
@@ -58,13 +57,13 @@ export function loginLayout(
 /** The banner: password ones (`password`, timeout, blocked) sit above the fields, the rest on top. */
 export type Notice =
   | { kind: 'expired' }
-  | { kind: 'error'; code: ErrorCode; password?: true }
+  | { kind: 'error'; code: ClientErrorCode; password?: true }
   | { kind: 'timeout'; until: number }
   | { kind: 'blocked' }
   | { kind: 'no_passkey' }
   | { kind: 'revoked' };
 
-function noticeOf(err: unknown, fallback: ErrorCode): Notice {
+function noticeOf(err: unknown, fallback: ClientErrorCode): Notice {
   if (!(err instanceof ApiError)) return { kind: 'error', code: fallback };
   switch (err.code) {
     case 'too_many_attempts': {
