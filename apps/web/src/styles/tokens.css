@@ -57,6 +57,9 @@
   --modal-flow-max-width: 720px;   /* desktop: camera → recognition → edit window */
   --desktop-gutter: var(--space-10);
   --chat-avatar-size: 28px;      /* agent icon circle in the norm chat (OCT-22 §3) */
+  --chat-bubble-max-width: 80%;  /* user message bubble */
+  --chat-dot-size: 6px;          /* «typing» dots */
+  --chat-sheet-height: 88dvh;    /* desktop: chat dialog height (D.2) */
 
   /* ── Radii ── */
   --radius-sm: 8px;   /* chips, small badges */
@@ -74,6 +77,7 @@
   --press-scale: 0.97;
   --duration-spinner: 800ms; /* one turn of the button spinner; kept under reduced motion (it signals progress) */
   --duration-shimmer: 1400ms; /* one sweep of the skeleton shimmer; off under reduced motion */
+  --duration-typing: 1200ms; /* one blink cycle of the «typing» dots; off under reduced motion */
   --duration-highlight: 1200ms; /* a just-saved row holds accent-soft, then fades; kept under reduced motion (colour, not movement) */
 
   /* ── Layers ── */
