@@ -6,7 +6,6 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { TriangleAlert, WifiOff } from 'lucide-react';
 import { useLocation, useSearch } from 'wouter';
 import { meResponseSchema, type MeResponse } from '@oct/shared';
 import {
@@ -22,8 +21,7 @@ import {
   setLastUser,
 } from '../data/user';
 import { useT } from '../i18n';
-import { Button } from '../ui/Button/Button';
-import { ScreenState } from '../ui/ScreenState/ScreenState';
+import { BootState } from './BootState';
 import { isPublicPath, loginHref } from './next';
 
 type Session = {
@@ -54,15 +52,13 @@ const offlineUser = () => readOfflineUser().catch(() => null);
  * Without a network the last user starts from the local copy, unchecked.
  */
 export function SessionProvider({ children }: { children: ReactNode }) {
-  const { t } = useT();
   const [user, setUser] = useState<MeResponse | null | undefined>();
   const [error, setError] = useState<ApiError | null>(null);
-  const [noCopy, setNoCopy] = useState(false);
   const [path, navigate] = useLocation();
   const search = useSearch();
+  const { t } = useT();
 
   const refresh = useCallback(async () => {
-    setNoCopy(false);
     try {
       const me = await api(ME_PATH, meResponseSchema);
       await rememberUser(me);
@@ -82,7 +78,6 @@ export function SessionProvider({ children }: { children: ReactNode }) {
           setError(null);
           return;
         }
-        setNoCopy(err.status === 0);
       }
       setError(err instanceof ApiError ? err : new ApiError(0, 'internal'));
     }
@@ -104,31 +99,18 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     return () => setUnauthenticatedHandler(() => {});
   }, [path, search, navigate]);
 
-  // shortcut: plain offline screen; its final look comes with the offline UI task.
-  if (error && user === undefined)
-    return (
-      <main className="page">
-        <ScreenState
-          icon={noCopy ? <WifiOff /> : <TriangleAlert />}
-          tone={noCopy ? 'neutral' : 'danger'}
-          title={noCopy ? t('offline.no_network') : t(`errors.${error.code}`)}
-          children={noCopy && t('offline.first_run')}
-          action={
-            <Button
-              variant="tonal"
-              onClick={() => {
-                setError(null);
-                void refresh();
-              }}
-            >
-              {t('common.retry')}
-            </Button>
-          }
-        />
-      </main>
-    );
   if (user === undefined)
-    return <main className="page">{t('common.loading')}</main>;
+    return (
+      <BootState
+        error={error}
+        // No network and no local copy: sign-in itself needs a connection.
+        hint={error?.code === 'network' ? t('offline.first_run') : undefined}
+        onRetry={() => {
+          setError(null);
+          void refresh();
+        }}
+      />
+    );
   return <SessionContext value={{ user, refresh }}>{children}</SessionContext>;
 }
 

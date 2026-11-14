@@ -105,8 +105,19 @@ describe('api', () => {
     expect((await failure(api('/api/x', schema))).code).toBe('internal');
   });
 
-  it('maps a network failure to internal', async () => {
+  it('maps a network failure to network', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('offline')));
-    expect((await failure(api('/api/x', schema))).code).toBe('internal');
+    const err = await failure(api('/api/x', schema));
+    expect([err.status, err.code]).toEqual([0, 'network']);
+  });
+
+  it('rethrows the abort error of a cancelled request, not network', async () => {
+    const abort = new DOMException('aborted', 'AbortError');
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(abort));
+    const controller = new AbortController();
+    controller.abort();
+    await expect(
+      api('/api/x', schema, { signal: controller.signal }),
+    ).rejects.toBe(abort);
   });
 });

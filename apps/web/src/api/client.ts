@@ -1,10 +1,13 @@
 import { API_VERSION, type ErrorCode } from '@oct/shared';
 import type { z } from 'zod';
 
+/** Server codes plus `network`: the request never reached the server (client only). */
+export type ClientErrorCode = ErrorCode | 'network';
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
-    readonly code: ErrorCode,
+    readonly code: ClientErrorCode,
     readonly details?: unknown,
   ) {
     super(code);
@@ -62,7 +65,7 @@ export async function api<T>(
     });
   } catch (err) {
     if (signal?.aborted) throw err;
-    throw new ApiError(0, 'internal');
+    throw new ApiError(0, 'network');
   }
 
   let data: unknown;
