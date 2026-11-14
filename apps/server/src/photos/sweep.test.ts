@@ -152,6 +152,9 @@ describe('photo retention API', () => {
     expect(await t.impact('7')).toBe(1);
     expect(await t.impact('0')).toBe(2);
     expect(await t.impact('')).toBe(0);
+    const before = (await (await t.call('GET', '/settings')).json()) as {
+      settingsRev: number;
+    };
     const res = await t.call('PUT', '/photo-retention', { days: 7 });
     expect(await res.json()).toEqual({ days: 7 });
     expect([t.full(old), t.full(recent)]).toEqual([0, 1]);
@@ -159,6 +162,13 @@ describe('photo retention API', () => {
     expect(await (await t.call('GET', '/settings')).json()).toMatchObject({
       photoRetentionDays: 7,
     });
+    expect(
+      (
+        (await (await t.call('GET', '/settings')).json()) as {
+          settingsRev: number;
+        }
+      ).settingsRev,
+    ).toBeGreaterThan(before.settingsRev);
 
     // Growing back does not bring deleted photos back.
     await t.call('PUT', '/photo-retention', { days: 90 });
