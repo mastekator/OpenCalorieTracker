@@ -63,7 +63,14 @@ export function PasskeysScreen({ user, onChanged }: Props) {
   }, [load]);
 
   const date = (ms: number) =>
-    new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(ms);
+    new Intl.DateTimeFormat(locale, {
+      day: 'numeric',
+      month: 'short',
+      // The year only when it is not the current one.
+      ...(new Date(ms).getFullYear() !== new Date().getFullYear() && {
+        year: 'numeric',
+      }),
+    }).format(ms);
 
   async function add() {
     setError(null);
@@ -194,7 +201,7 @@ export function PasskeySheet({ passkey, last, onClose, onDone }: SheetProps) {
 
   const save = (event: FormEvent) => {
     event.preventDefault();
-    if (name.trim()) void run('save');
+    if (name.trim() && name !== passkey.name) void run('save');
   };
 
   return (
@@ -210,8 +217,11 @@ export function PasskeySheet({ passkey, last, onClose, onDone }: SheetProps) {
           />
           <Button
             type="submit"
+            variant="tonal"
             loading={busy === 'save'}
-            disabled={!name.trim() || busy === 'delete'}
+            disabled={
+              !name.trim() || name === passkey.name || busy === 'delete'
+            }
           >
             {t('passkeys.save_name')}
           </Button>

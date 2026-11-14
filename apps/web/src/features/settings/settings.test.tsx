@@ -80,11 +80,11 @@ describe('SettingsScreen', () => {
     const invites = screen.getByRole('button', { name: 'Invites' });
     expect(invites.getAttribute('aria-disabled')).toBe('true');
     fireEvent.click(invites);
-    // Group caption, then the toast.
+    expect(
+      screen.getByText('Admin tools need an internet connection.'),
+    ).toBeTruthy();
     await waitFor(() =>
-      expect(
-        screen.getAllByText('Admin tools need an internet connection.'),
-      ).toHaveLength(2),
+      expect(screen.getByText('Internet connection required')).toBeTruthy(),
     );
   });
 

@@ -42,7 +42,7 @@ export function SettingsScreen({ user, online, onLogout }: Props) {
   const adminRow = (href: string) =>
     online
       ? go(href)
-      : () => toast({ text: t('admin.offline'), icon: <WifiOff /> });
+      : () => toast({ text: t('common.need_online'), icon: <WifiOff /> });
   const isAdmin = user.role === 'admin';
 
   return (
@@ -53,6 +53,7 @@ export function SettingsScreen({ user, online, onLogout }: Props) {
         !hintClosed && (
           <Banner
             tone="accent"
+            icon={<KeyRound aria-hidden="true" />}
             title={t('admin.hint.change_pw')}
             onClose={() => {
               localStorage.setItem(hintClosedKey(user.id), '1');
@@ -127,11 +128,13 @@ export function SettingsScreen({ user, online, onLogout }: Props) {
         </List>
       )}
 
-      <List>
-        <ListRow danger chevron={false} onClick={onLogout}>
-          {t('settings.logout')}
-        </ListRow>
-      </List>
+      <div className="settings__logout">
+        <List>
+          <ListRow danger chevron={false} onClick={onLogout}>
+            {t('settings.logout')}
+          </ListRow>
+        </List>
+      </div>
 
       <p className="settings__version">
         {t('settings.version', { v: __APP_VERSION__ })}

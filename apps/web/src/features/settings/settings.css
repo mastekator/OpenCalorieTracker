@@ -10,6 +10,14 @@
   color: var(--color-text-secondary);
 }
 
+.settings__logout .list-row {
+  justify-content: center;
+}
+
+.settings__logout .list-row__label {
+  flex: none;
+}
+
 .passkey-sheet {
   display: grid;
   gap: var(--space-4);
