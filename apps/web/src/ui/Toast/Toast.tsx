@@ -15,6 +15,8 @@ export type ToastOptions = {
   /** 20px icon (Lucide), decorative. */
   icon?: ReactNode;
   action?: { label: string; onClick: () => void };
+  /** Default TOAST_MS; longer for a reason to read (OCT-25 3.6: 4 s). */
+  duration?: number;
 };
 
 export const TOAST_MS = 3000;
@@ -87,7 +89,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!toast) return;
-    const timer = setTimeout(hide, TOAST_MS);
+    const timer = setTimeout(hide, toast.duration ?? TOAST_MS);
     return () => clearTimeout(timer);
   }, [toast, hide]);
 

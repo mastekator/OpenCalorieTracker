@@ -29,10 +29,10 @@ function Example({ kind }: { kind: Kind }) {
       return (
         <ScreenState
           icon={<WifiOff />}
-          title={t('offline.no_network')}
+          title={t('offline.first.title')}
           action={<Button variant="tonal">{t('common.retry')}</Button>}
         >
-          {t('offline.server_down')}
+          {t('offline.first.body')}
         </ScreenState>
       );
     case 'invalidLink':

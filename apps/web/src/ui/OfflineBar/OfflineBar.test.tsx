@@ -1,54 +1,56 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { act, cleanup, render, screen } from '@testing-library/react';
+import {
+  act,
+  cleanup,
+  render,
+  renderHook,
+  screen,
+} from '@testing-library/react';
 import { I18nProvider, LOCALE_STORAGE_KEY } from '../../i18n';
-import { OfflineBar } from './OfflineBar';
+import { OfflineBar, type BarVariant, useOnline } from './OfflineBar';
 
-let online = true;
-const setOnline = (value: boolean) => {
-  online = value;
-  window.dispatchEvent(new Event(value ? 'online' : 'offline'));
-};
-
-beforeEach(() => {
-  localStorage.setItem(LOCALE_STORAGE_KEY, 'en');
-  online = true;
-  Object.defineProperty(navigator, 'onLine', {
-    configurable: true,
-    get: () => online,
-  });
-});
+beforeEach(() => localStorage.setItem(LOCALE_STORAGE_KEY, 'en'));
 afterEach(cleanup);
 
-const renderBar = async (props: Parameters<typeof OfflineBar>[0] = {}) => {
+const renderBar = async (variant: BarVariant | null) => {
   render(
     <I18nProvider>
       <p>ready</p>
-      <OfflineBar {...props} />
+      <OfflineBar variant={variant} />
     </I18nProvider>,
   );
   await screen.findByText('ready'); // the dictionary has loaded
+  return screen.getByRole('status').textContent;
 };
 
 describe('OfflineBar', () => {
-  it('appears on offline and disappears on online', async () => {
-    await renderBar();
-    expect(screen.getByRole('status').textContent).toBe('');
-    act(() => setOnline(false));
-    expect(screen.getByRole('status').textContent).toBe('No connection');
-    act(() => setOnline(true));
-    expect(screen.getByRole('status').textContent).toBe('');
+  it.each([
+    ['offline', 'Offline · everything is saved on this phone'],
+    ['server', 'Server unavailable · everything is saved on this phone'],
+    ['updated', 'The app has been updated · please save again'],
+    ['no_network', 'No connection'],
+  ] as const)('shows the %s text', async (variant, text) => {
+    expect(await renderBar(variant)).toBe(text);
   });
 
-  it('shows the cached data time offline', async () => {
-    online = false;
-    await renderBar({ dataTime: '12:40' });
-    expect(screen.getByRole('status').textContent).toBe(
-      'Offline · data from 12:40',
-    );
+  it('keeps an empty live region when all is well', async () => {
+    expect(await renderBar(null)).toBe('');
   });
+});
 
-  it('reports a server that does not answer while online', async () => {
-    await renderBar({ serverDown: true });
-    expect(screen.getByRole('status').textContent).toBe('Server unavailable');
+describe('useOnline', () => {
+  it('follows the online and offline events', () => {
+    let online = true;
+    Object.defineProperty(navigator, 'onLine', {
+      configurable: true,
+      get: () => online,
+    });
+    const { result } = renderHook(useOnline);
+    expect(result.current).toBe(true);
+    act(() => {
+      online = false;
+      window.dispatchEvent(new Event('offline'));
+    });
+    expect(result.current).toBe(false);
   });
 });

@@ -4,6 +4,7 @@ import { API_VERSION } from '@oct/shared';
 import {
   api,
   ApiError,
+  isServerDown,
   ME_PATH,
   setOutdatedHandler,
   setUnauthenticatedHandler,
@@ -119,5 +120,37 @@ describe('api', () => {
     await expect(
       api('/api/x', schema, { signal: controller.signal }),
     ).rejects.toBe(abort);
+  });
+});
+
+describe('server down (E-2.4)', () => {
+  const setOnline = (online: boolean) =>
+    vi.stubGlobal('navigator', { ...navigator, onLine: online });
+  const settle = (p: Promise<unknown>) => p.catch(() => {});
+
+  it('goes down on a network failure while online and up on any answer', async () => {
+    setOnline(true);
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('x')));
+    await settle(api('/api/x', schema));
+    expect(isServerDown()).toBe(true);
+    respond(401, '{"error":{"code":"unauthenticated"}}');
+    await settle(api(ME_PATH, schema));
+    expect(isServerDown()).toBe(false);
+  });
+
+  it('goes down on 502/503/504 but not on other errors', async () => {
+    respond(503, 'Service Unavailable');
+    await settle(api('/api/x', schema));
+    expect(isServerDown()).toBe(true);
+    respond(500, '{"error":{"code":"internal"}}');
+    await settle(api('/api/x', schema));
+    expect(isServerDown()).toBe(false);
+  });
+
+  it('stays up when the device itself is offline', async () => {
+    setOnline(false);
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('x')));
+    await settle(api('/api/x', schema));
+    expect(isServerDown()).toBe(false);
   });
 });

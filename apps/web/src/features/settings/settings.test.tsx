@@ -65,7 +65,7 @@ afterEach(() => {
 
 describe('SettingsScreen', () => {
   it('hides the admin group from a regular user', async () => {
-    await wrap(<SettingsScreen user={user} online onLogout={() => {}} />);
+    await wrap(<SettingsScreen user={user} onLogout={() => {}} />);
     expect(screen.queryByRole('heading', { name: 'Admin' })).toBeNull();
     expect(screen.queryByText('Invites')).toBeNull();
     expect(screen.getByText('Sign-in · anna@example.com')).toBeTruthy();
@@ -73,9 +73,8 @@ describe('SettingsScreen', () => {
   });
 
   it('shows the admin group to an admin, disabled offline with a toast', async () => {
-    await wrap(
-      <SettingsScreen user={admin} online={false} onLogout={() => {}} />,
-    );
+    vi.stubGlobal('navigator', { ...navigator, onLine: false });
+    await wrap(<SettingsScreen user={admin} onLogout={() => {}} />);
     expect(screen.getByRole('heading', { name: 'Admin' })).toBeTruthy();
     const invites = screen.getByRole('button', { name: 'Invites' });
     expect(invites.getAttribute('aria-disabled')).toBe('true');
@@ -84,7 +83,17 @@ describe('SettingsScreen', () => {
       screen.getByText('Admin tools need an internet connection.'),
     ).toBeTruthy();
     await waitFor(() =>
-      expect(screen.getByText('Internet connection required')).toBeTruthy(),
+      expect(screen.getByText('Admin settings need a connection')).toBeTruthy(),
+    );
+    const password = screen
+      .getByText('Change password', { selector: '.list-row__label' })
+      .closest('button')!;
+    expect(password.getAttribute('aria-disabled')).toBe('true');
+    fireEvent.click(password);
+    await waitFor(() =>
+      expect(
+        screen.getByText('Passkeys and password can only be changed online'),
+      ).toBeTruthy(),
     );
   });
 
@@ -92,7 +101,6 @@ describe('SettingsScreen', () => {
     await wrap(
       <SettingsScreen
         user={{ ...user, enabledMethods: ['passkey'] }}
-        online
         onLogout={() => {}}
       />,
     );
@@ -101,7 +109,7 @@ describe('SettingsScreen', () => {
   });
 
   it('shows the admin a closable hint while the config password is in use (AC-1.7)', async () => {
-    await wrap(<SettingsScreen user={admin} online onLogout={() => {}} />);
+    await wrap(<SettingsScreen user={admin} onLogout={() => {}} />);
     expect(
       screen.getByText('Change the password set during installation'),
     ).toBeTruthy();
@@ -114,7 +122,7 @@ describe('SettingsScreen', () => {
 
   it('signs out', async () => {
     const onLogout = vi.fn();
-    await wrap(<SettingsScreen user={user} online onLogout={onLogout} />);
+    await wrap(<SettingsScreen user={user} onLogout={onLogout} />);
     fireEvent.click(screen.getByRole('button', { name: 'Sign out' }));
     expect(onLogout).toHaveBeenCalled();
   });

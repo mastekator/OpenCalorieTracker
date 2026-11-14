@@ -8,15 +8,15 @@ import {
   Sparkle,
   UserPlus,
   Users,
-  WifiOff,
 } from 'lucide-react';
 import { useLocation } from 'wouter';
 import type { MeResponse } from '@oct/shared';
+import { useRequireOnline } from '../../app/connection';
 import { useT } from '../../i18n';
 import { Banner } from '../../ui/Banner/Banner';
 import { Button } from '../../ui/Button/Button';
 import { List, ListRow } from '../../ui/List/List';
-import { useToast } from '../../ui/Toast/Toast';
+import { useOnline } from '../../ui/OfflineBar/OfflineBar';
 import { enabledMethods } from './methods';
 import './settings.css';
 
@@ -25,24 +25,23 @@ export const hintClosedKey = (userId: number) => `oct.adminPwHint.${userId}`;
 
 type Props = {
   user: MeResponse;
-  online: boolean;
   onLogout: () => void;
 };
 
 /** Screen 10 (OCT-13 §7): groups in the design's order; admin rows need a network (3.5). */
-export function SettingsScreen({ user, online, onLogout }: Props) {
+export function SettingsScreen({ user, onLogout }: Props) {
   const { t } = useT();
-  const toast = useToast();
+  const online = useOnline();
+  const requireOnline = useRequireOnline();
   const [, navigate] = useLocation();
   const [hintClosed, setHintClosed] = useState(
     () => localStorage.getItem(hintClosedKey(user.id)) === '1',
   );
   const enabled = enabledMethods(user);
   const go = (href: string) => () => navigate(href);
-  const adminRow = (href: string) =>
-    online
-      ? go(href)
-      : () => toast({ text: t('common.need_online'), icon: <WifiOff /> });
+  // Offline these rows look inactive but still answer a tap with the reason (OCT-25 3.6, 4.8).
+  const adminRow = (href: string) => requireOnline('admin', go(href));
+  const authRow = (href: string) => requireOnline('auth', go(href));
   const isAdmin = user.role === 'admin';
 
   return (
@@ -112,12 +111,20 @@ export function SettingsScreen({ user, online, onLogout }: Props) {
       {enabled.length > 0 && (
         <List title={t('settings.group.signin', { email: user.email })}>
           {enabled.includes('passkey') && (
-            <ListRow icon={<KeyRound />} onClick={go('/settings/passkeys')}>
+            <ListRow
+              icon={<KeyRound />}
+              disabled={!online}
+              onClick={authRow('/settings/passkeys')}
+            >
               {t('passkeys.title')}
             </ListRow>
           )}
           {enabled.includes('password') && (
-            <ListRow icon={<Lock />} onClick={go('/settings/password')}>
+            <ListRow
+              icon={<Lock />}
+              disabled={!online}
+              onClick={authRow('/settings/password')}
+            >
               {t(
                 user.methods.includes('password')
                   ? 'password.change'

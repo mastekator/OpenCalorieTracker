@@ -156,18 +156,42 @@ describe('AuthGate', () => {
     expect(await screen.findByRole('heading', { name: 'Week' })).toBeTruthy();
   });
 
-  it('shows the no-connection screen offline when nobody has signed in here, with a retry', async () => {
+  it('shows 3.4 offline when nobody has signed in here, with a retry', async () => {
     serve(null, true);
     renderAt('/week');
     expect(
       await screen.findByRole('heading', {
-        name: 'Can’t reach the server. Check your connection',
+        name: 'First sign-in needs a connection',
       }),
     ).toBeTruthy();
-    expect(screen.getByText('Sign-in needs a connection')).toBeTruthy();
 
     serve(me);
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
     expect(await screen.findByRole('heading', { name: 'Week' })).toBeTruthy();
+  });
+
+  it('3.4 updates by itself when the network comes back', async () => {
+    serve(null, true);
+    renderAt('/login');
+    await screen.findByRole('heading', {
+      name: 'First sign-in needs a connection',
+    });
+    serve(null);
+    act(() => void window.dispatchEvent(new Event('online')));
+    expect(
+      await screen.findByRole('heading', { name: 'Sign in' }),
+    ).toBeTruthy();
+  });
+
+  it('opens /login offline from the local copy without the config', async () => {
+    serve(me);
+    renderAt('/week');
+    await screen.findByRole('heading', { name: 'Week' });
+    cleanup();
+
+    serve(null, true);
+    const location = renderAt('/login?next=%2Fdiary');
+    expect(await screen.findByRole('heading', { name: 'Diary' })).toBeTruthy();
+    expect(location.history.at(-1)).toBe('/diary');
   });
 });

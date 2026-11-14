@@ -41,7 +41,7 @@ afterEach(() => {
 });
 
 describe('ConfigProvider', () => {
-  it('shows the network error with a retry that loads the config again', async () => {
+  it('offline shows 3.4 with a retry that loads the config again', async () => {
     const fetch = vi
       .fn()
       .mockRejectedValueOnce(new TypeError('offline'))
@@ -50,7 +50,7 @@ describe('ConfigProvider', () => {
     renderProvider();
 
     expect(
-      await screen.findByText('Can’t reach the server. Check your connection'),
+      await screen.findByText('First sign-in needs a connection'),
     ).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
     expect(await screen.findByText('version 1.0.0')).toBeTruthy();
