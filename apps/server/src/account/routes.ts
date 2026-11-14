@@ -1,3 +1,4 @@
+import type { Database } from 'better-sqlite3';
 import { Hono } from 'hono';
 import {
   accountSettingsPatchSchema,
@@ -13,16 +14,18 @@ import { bumpRev } from '../sync/rev.js';
 
 const DAY_MS = 86_400_000;
 
+export const readSettings = (db: Database, userId: number) =>
+  db
+    .prepare(
+      `SELECT locale, theme, units, settings_rev AS settingsRev,
+       photo_retention_days AS photoRetentionDays
+       FROM users WHERE id = ?`,
+    )
+    .get(userId) as AccountSettings;
+
 /** Language, theme, units and photo retention of one's own account (ADR-0011 §3, AC-0.3, ADR-0008). */
 export function accountRoutes({ db, config }: AppDeps) {
-  const read = (userId: number) =>
-    db
-      .prepare(
-        `SELECT locale, theme, units, settings_rev AS settingsRev,
-         photo_retention_days AS photoRetentionDays
-         FROM users WHERE id = ?`,
-      )
-      .get(userId) as AccountSettings;
+  const read = (userId: number) => readSettings(db, userId);
 
   // Same expiry as a new meal gets (eaten_at + days) and the same `< now` as the sweep,
   // so the impact count matches what PUT deletes. days = 0 expires at eaten_at.
