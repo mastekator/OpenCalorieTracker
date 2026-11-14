@@ -137,8 +137,6 @@ describe('AuthGate', () => {
     expect(
       await screen.findByRole('heading', { name: 'No connection' }),
     ).toBeTruthy();
-    expect(
-      screen.getByText('Sign-in needs a connection'),
-    ).toBeTruthy();
+    expect(screen.getByText('Sign-in needs a connection')).toBeTruthy();
   });
 });
