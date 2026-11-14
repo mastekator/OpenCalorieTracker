@@ -49,15 +49,15 @@ describe('Toast', () => {
     expect(screen.getByRole('status').textContent).toBe('');
   });
 
-  it('stays for durationMs when given', () => {
+  it('stays for `ms` when given', () => {
     render(
       <ToastProvider>
         <Grab />
       </ToastProvider>,
     );
-    toast({ text: 'Deleted', durationMs: 5000 });
+    toast({ text: 'Undo me', ms: 5000 });
     act(() => vi.advanceTimersByTime(4999));
-    expect(screen.getByRole('status').textContent).toBe('Deleted');
+    expect(screen.getByRole('status').textContent).toBe('Undo me');
     act(() => vi.advanceTimersByTime(1));
     expect(screen.getByRole('status').textContent).toBe('');
   });

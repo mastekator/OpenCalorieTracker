@@ -60,7 +60,7 @@ function Diary({ date, today }: { date: string; today: string }) {
     setHidden((s) => new Set(s).add(clientId));
     toast({
       text: t('diary.deleted', { meal: t(`meal.type.${meal.mealType}`) }),
-      durationMs: UNDO_MS,
+      ms: UNDO_MS,
       action: {
         label: t('diary.undo'),
         onClick: () => {

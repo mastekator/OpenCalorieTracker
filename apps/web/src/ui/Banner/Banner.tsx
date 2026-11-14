@@ -18,6 +18,8 @@ type Props = {
   children?: ReactNode;
   /** Replaces the tone's default icon. */
   icon?: ReactNode;
+  /** Buttons in a row under the text; the first one is the main action. */
+  actions?: ReactNode;
   /** Shows a 44×44 close button. */
   onClose?: () => void;
 };
@@ -27,6 +29,7 @@ export function Banner({
   title,
   children,
   icon,
+  actions,
   onClose,
 }: Props) {
   const { t } = useT();
@@ -43,6 +46,7 @@ export function Banner({
         <div className="banner__text">
           {title && <p className="banner__title">{title}</p>}
           {children && <p>{children}</p>}
+          {actions && <div className="banner__actions">{actions}</div>}
         </div>
         {onClose && (
           <button

@@ -16,6 +16,7 @@ import {
 } from '@oct/shared';
 import { ApiError } from '../../api/client';
 import { I18nProvider, LOCALE_STORAGE_KEY } from '../../i18n';
+import { ToastProvider } from '../../ui/Toast/Toast';
 import { ProfileForm } from './ProfileForm';
 
 const today = '2026-01-01';
@@ -37,14 +38,31 @@ const response = (profile: Profile): ProfileResponse => ({
 });
 const echo = vi.fn(async (req: ProfileRequest) => ({ ...req, rev: 2 }));
 
+type Extra = Partial<Parameters<typeof ProfileForm>[0]>;
+const wrapper = ({ children }: { children: React.ReactNode }) => (
+  <I18nProvider>
+    <ToastProvider>{children}</ToastProvider>
+  </I18nProvider>
+);
+
 function setup(
   profile: Profile,
-  { units = 'metric' as Units, onSave = echo } = {},
+  {
+    units = 'metric' as Units,
+    onSave = echo,
+    rev = 1,
+    ...extra
+  }: Extra & {
+    rev?: number;
+  } = {},
 ) {
-  const props = { initial: response(profile), today, onSave };
-  const view = render(<ProfileForm {...props} units={units} />, {
-    wrapper: I18nProvider,
-  });
+  const props = {
+    initial: { ...response(profile), rev },
+    today,
+    onSave,
+    ...extra,
+  };
+  const view = render(<ProfileForm {...props} units={units} />, { wrapper });
   return {
     setUnits: (u: Units) => view.rerender(<ProfileForm {...props} units={u} />),
   };
@@ -62,7 +80,10 @@ const save = () => screen.getByRole('button', { name: 'Save' });
 /** The big number in the norm card. */
 const kcal = (n: number) => new Intl.NumberFormat('en').format(n);
 
-beforeEach(() => localStorage.setItem(LOCALE_STORAGE_KEY, 'en'));
+beforeEach(() => {
+  localStorage.clear();
+  localStorage.setItem(LOCALE_STORAGE_KEY, 'en');
+});
 afterEach(() => {
   cleanup();
   echo.mockClear();
@@ -203,6 +224,148 @@ describe('ProfileForm', () => {
     );
     expect(
       screen.queryByRole('button', { name: /With the assistant/ }),
+    ).toBeNull();
+  });
+
+  it('reference 3: «Fast pace», «Move the date» sets the date for 1 % a week', async () => {
+    const p3 = {
+      ...base,
+      weightKg: 90,
+      goal: 'lose' as const,
+      targetWeightKg: 80,
+      deadline: '2026-03-12',
+    };
+    setup(p3);
+    await screen.findByText('Fast pace');
+    fireEvent.click(screen.getByRole('button', { name: 'Move the date' }));
+    expect(screen.queryByText('Fast pace')).toBeNull();
+    await act(async () => fireEvent.click(save()));
+    const sent = echo.mock.calls[0]![0].profile;
+    expect(sent.deadline).toBe('2026-03-20');
+    const next = calculateNorm(sent, today);
+    if (next.status !== 'ok') throw new Error(next.status);
+    expect(next.pace!.pctPerWeek).toBeLessThanOrEqual(1);
+  });
+
+  it('reference 5: dangerous pace, capped at the floor with the real date', async () => {
+    setup({
+      ...base,
+      sex: 'female',
+      heightCm: 165,
+      weightKg: 60,
+      activity: 'minimal',
+      goal: 'lose',
+      targetWeightKg: 55,
+      deadline: '2026-01-22',
+    });
+    await screen.findByText('This pace may harm your health');
+    screen.getByText(/you won’t make it by Jan 22, more likely by Apr 12\./);
+  });
+
+  it('reference 4: TDEE below the floor (AC-2.1b)', async () => {
+    setup({
+      ...base,
+      sex: 'female',
+      birthDate: '1966-01-01',
+      heightCm: 150,
+      weightKg: 45,
+      activity: 'minimal',
+      goal: 'lose',
+    });
+    await screen.findByText(/can’t safely lose weight through diet alone/);
+  });
+
+  it('warns about an implausible BMI without blocking saving', async () => {
+    setup({ ...base, weightKg: 40 });
+    await screen.findByText('Check your height and weight');
+    await type('Weight', '41');
+    expect((save() as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it('under 18: 8.12, the disclaimer stays without a close button', async () => {
+    setup(
+      { ...base, birthDate: '2010-01-01' },
+      { onAgent: vi.fn(), onHideDisclaimer: vi.fn(), disclaimerHidden: true },
+    );
+    await screen.findByText('This calculation is for adults');
+    screen.getByText(/For teenagers, it’s best to set a goal with a doctor/);
+    screen.getByText(/This is an estimate, not medical advice/);
+    expect(
+      screen.queryByRole('button', { name: 'Hide this notice' }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: /Set up with the assistant/ }),
+    ).toBeNull();
+  });
+
+  it('goal reached: «Switch» saves, «Undo» reverts', async () => {
+    const reached = {
+      ...base,
+      weightKg: 79.5,
+      goal: 'lose' as const,
+      targetWeightKg: 80,
+      deadline: '2026-03-12',
+    };
+    setup(reached);
+    await screen.findByText('You’ve reached 80 kg');
+    const keep = calculateNorm({ ...base, weightKg: 79.5 }, today);
+    if (keep.status !== 'ok') throw new Error(keep.status);
+    screen.getByText(new RegExp(`Your goal will be ${kcal(keep.kcal)} kcal`));
+    await act(async () =>
+      fireEvent.click(screen.getByRole('button', { name: 'Switch' })),
+    );
+    expect(echo.mock.calls[0]![0].profile).toMatchObject({
+      goal: 'maintain',
+      targetWeightKg: null,
+      deadline: null,
+    });
+    const undo = await screen.findByRole('button', { name: 'Undo' });
+    await act(async () => fireEvent.click(undo));
+    expect(echo.mock.calls[1]![0].profile).toEqual(reached);
+  });
+
+  it('goal reached: «Not now» holds for the same profile rev', async () => {
+    const reached = {
+      ...base,
+      weightKg: 79.5,
+      goal: 'lose' as const,
+      targetWeightKg: 80,
+    };
+    setup(reached, { rev: 7 });
+    fireEvent.click(await screen.findByRole('button', { name: 'Not now' }));
+    expect(screen.queryByText('You’ve reached 80 kg')).toBeNull();
+    cleanup();
+    setup(reached, { rev: 7 });
+    await screen.findByText('Daily goal');
+    expect(screen.queryByText('You’ve reached 80 kg')).toBeNull();
+    cleanup();
+    setup(reached, { rev: 8 });
+    await screen.findByText('You’ve reached 80 kg');
+  });
+
+  it('hides the disclaimer for good and moves focus to the assistant', async () => {
+    const onHideDisclaimer = vi.fn();
+    setup(base, { onAgent: vi.fn(), onHideDisclaimer });
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Hide this notice' }),
+    );
+    expect(onHideDisclaimer).toHaveBeenCalledOnce();
+    expect(screen.queryByText(/not medical advice/)).toBeNull();
+    expect(document.activeElement).toBe(
+      screen.getByRole('button', { name: /Set up with the assistant/ }),
+    );
+    // After a reload the account flag keeps it hidden.
+    cleanup();
+    setup(base, { onHideDisclaimer, disclaimerHidden: true });
+    await screen.findByText(kcal(2760));
+    expect(screen.queryByText(/not medical advice/)).toBeNull();
+  });
+
+  it('no close button on the disclaimer before a norm was ever saved', async () => {
+    setup({ ...base, activity: null }, { onHideDisclaimer: vi.fn() });
+    await screen.findByText(/not medical advice/);
+    expect(
+      screen.queryByRole('button', { name: 'Hide this notice' }),
     ).toBeNull();
   });
 });

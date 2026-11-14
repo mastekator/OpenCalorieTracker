@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { Sparkles } from 'lucide-react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { Flag, Sparkles } from 'lucide-react';
 import {
   REQUIRED_FIELDS,
   ageYears,
@@ -31,6 +31,7 @@ import type { Key } from '../../i18n/translate';
 import { ActivitySheet } from '../../ui/ActivitySheet/ActivitySheet';
 import { Banner } from '../../ui/Banner/Banner';
 import { Button } from '../../ui/Button/Button';
+import { Disclaimer } from '../../ui/Disclaimer/Disclaimer';
 import {
   FormRow,
   HeightFtIn,
@@ -72,6 +73,10 @@ const LABEL: Record<Field, Key> = {
   deadline: 'goal.deadline',
 };
 
+// «Not now» on «Goal reached» (8.13) lasts until the profile changes.
+const REACHED_LATER_KEY = 'oct.goalReached.laterRev';
+const UNDO_MS = 5000;
+
 const isLoseGain = (goal: Goal | null) => goal === 'lose' || goal === 'gain';
 
 type Props = {
@@ -83,10 +88,22 @@ type Props = {
   onAgent?: () => void;
   /** PUT /api/profile; throws ApiError. */
   onSave: (request: ProfileRequest) => Promise<ProfileResponse>;
+  /** The account flag: the user closed the disclaimer once, for good (OCT-22 §1). */
+  disclaimerHidden?: boolean;
+  /** Sets that flag; works offline through the settings queue. */
+  onHideDisclaimer?: () => void;
 };
 
 /** Profile screen body (OCT-22 §2, D.1): the form in rows, live norm, Save. */
-export function ProfileForm({ initial, units, today, onAgent, onSave }: Props) {
+export function ProfileForm({
+  initial,
+  units,
+  today,
+  onAgent,
+  onSave,
+  disclaimerHidden = false,
+  onHideDisclaimer,
+}: Props) {
   const { t, locale } = useT();
   const toast = useToast();
   const formRef = useRef<HTMLDivElement>(null);
@@ -102,6 +119,11 @@ export function ProfileForm({ initial, units, today, onAgent, onSave }: Props) {
   const [failed, setFailed] = useState(false);
   const [started, setStarted] = useState(false);
   const [activityOpen, setActivityOpen] = useState(false);
+  const [laterRev, setLaterRev] = useState(() =>
+    localStorage.getItem(REACHED_LATER_KEY),
+  );
+  const [disclaimerClosed, setDisclaimerClosed] = useState(false);
+  const agentId = useId();
 
   useEffect(() => setFtIn(null), [units]);
 
@@ -213,6 +235,133 @@ export function ProfileForm({ initial, units, today, onAgent, onSave }: Props) {
     saved.manual === null &&
     FIELDS.every((f) => saved.profile[f] === null);
 
+  const shortDate = (date: string) =>
+    new Intl.DateTimeFormat(locale, {
+      day: 'numeric',
+      month: 'short',
+      timeZone: 'UTC',
+    }).format(new Date(date));
+
+  // Warnings of the calculated norm (8.5b, 8.6, 8.11); they never block saving.
+  const ok = calc?.status === 'ok' && !saved.manual ? calc : null;
+  let warnings: ReactNode = null;
+  if (ok) {
+    const { pace, steps } = ok;
+    const level = pace?.level ?? 'ok';
+    const body = [
+      level === 'gain_fast'
+        ? t('pace.gain_fast')
+        : level !== 'ok' && t(`pace.${level}.body`),
+      steps.floor === 'tdee_below_floor' && t('floor.tdee'),
+      steps.floor === 'clamped' &&
+        (pace?.source === 'deadline' && profile.deadline && pace.etaDate
+          ? t('floor.clamped', {
+              date: shortDate(profile.deadline),
+              eta: shortDate(pace.etaDate),
+            })
+          : t('floor.capped')),
+    ]
+      .filter(Boolean)
+      .join(' ');
+    // A date past the 2-year limit would only turn into a field error.
+    const safeDeadline =
+      pace?.safeDeadline && !deadlineError(pace.safeDeadline, today)
+        ? pace.safeDeadline
+        : null;
+    warnings = (
+      <>
+        {body && (
+          <Banner
+            tone="warning"
+            title={
+              level === 'danger'
+                ? t('pace.danger.title')
+                : level !== 'ok' && t('pace.fast.title')
+            }
+            actions={
+              safeDeadline && (
+                <button
+                  type="button"
+                  onClick={() => set('deadline', safeDeadline)}
+                >
+                  {t('pace.postpone')}
+                </button>
+              )
+            }
+          >
+            {body}
+          </Banner>
+        )}
+        {ok.warnings.map(
+          (w) =>
+            w !== 'goal_reached' && (
+              <Banner
+                key={w}
+                tone="warning"
+                title={t(w === 'bmi_check' ? 'bmi.check' : 'bmi.risk')}
+              />
+            ),
+        )}
+      </>
+    );
+  }
+
+  // 8.13: offer «Maintain» once the target is reached, until «Not now» for this profile rev.
+  let reached: ReactNode = null;
+  if (
+    ok?.warnings.includes('goal_reached') &&
+    profile.targetWeightKg !== null &&
+    laterRev !== String(saved.rev)
+  ) {
+    const maintain: Profile = {
+      ...profile,
+      goal: 'maintain',
+      targetWeightKg: null,
+      deadline: null,
+    };
+    const next = calculateNorm(maintain, today);
+    const before = saved;
+    reached = (
+      <Banner
+        tone="accent"
+        title={t('reached.title', {
+          weight: `${num1.format(weightFromKg(profile.targetWeightKg, units))} ${weightUnit}`,
+        })}
+        icon={<Flag aria-hidden="true" />}
+        actions={
+          <>
+            <button
+              type="button"
+              disabled={saving}
+              onClick={() =>
+                save({ profile: maintain, manual: saved.manual }, () =>
+                  save({ profile: before.profile, manual: before.manual }),
+                )
+              }
+            >
+              {t('reached.go')}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                localStorage.setItem(REACHED_LATER_KEY, String(saved.rev));
+                setLaterRev(String(saved.rev));
+              }}
+            >
+              {t('reached.later')}
+            </button>
+          </>
+        }
+      >
+        {next.status === 'ok' &&
+          t('reached.body', {
+            n: new Intl.NumberFormat(locale).format(next.kcal),
+          })}
+      </Banner>
+    );
+  }
+
+  const minor = calc?.status === 'minor';
   let card: ReactNode;
   if (firstVisit)
     card = <NormCard state="first" onAgent={onAgent} onForm={startForm} />;
@@ -229,7 +378,9 @@ export function ProfileForm({ initial, units, today, onAgent, onSave }: Props) {
         badge={saved.manual ? 'manual' : dirty ? 'draft' : 'calc'}
         // shortcut: «How it's calculated» is OCT-89; the row does nothing until then.
         onHow={() => {}}
-      />
+      >
+        {warnings}
+      </NormCard>
     );
   else
     card = (
@@ -238,7 +389,7 @@ export function ProfileForm({ initial, units, today, onAgent, onSave }: Props) {
         message={
           errorFields[0]
             ? t('norm.fix', { field: fieldName(errorFields[0]) })
-            : calc?.status === 'minor'
+            : minor
               ? t('norm.minor')
               : t('norm.missing', {
                   fields: new Intl.ListFormat(locale, {
@@ -250,17 +401,31 @@ export function ProfileForm({ initial, units, today, onAgent, onSave }: Props) {
                   ),
                 })
         }
-      />
+      >
+        {minor && <p>{t('norm.minor_body')}</p>}
+      </NormCard>
     );
+
+  // The disclaimer can be closed once a norm was saved, never for under-18s (OCT-22 §1).
+  const showDisclaimer = minor || !(disclaimerHidden || disclaimerClosed);
+  const canHideDisclaimer =
+    !minor &&
+    !!onHideDisclaimer &&
+    effectiveNorm(saved.profile, saved.manual, today) !== null;
+  const hideDisclaimer = () => {
+    setDisclaimerClosed(true);
+    onHideDisclaimer?.();
+    // 8.21: focus moves to «Set up with the assistant», or to the form without it.
+    (
+      document.getElementById(agentId) ??
+      formRef.current?.querySelector<HTMLElement>(
+        '[tabindex="0"], input, button',
+      )
+    )?.focus();
+  };
 
   // Pace under the goal group (OCT-22 §2).
   const pace = calc?.status === 'ok' ? calc.pace : null;
-  const shortDate = (date: string) =>
-    new Intl.DateTimeFormat(locale, {
-      day: 'numeric',
-      month: 'short',
-      timeZone: 'UTC',
-    }).format(new Date(date));
   // The « · by Mar 1» tail stays on one line.
   const keepTail = (text: string) => {
     const i = text.lastIndexOf(' · ');
@@ -308,15 +473,27 @@ export function ProfileForm({ initial, units, today, onAgent, onSave }: Props) {
     el?.focus();
   }
 
-  async function save() {
+  /** PUT the draft, or `request`; `undo` adds «Undo» to the toast (8.13). */
+  async function save(
+    request: ProfileRequest = { profile, manual: saved.manual },
+    undo?: () => void,
+  ) {
     setSaving(true);
     setFailed(false);
     try {
-      const res = await onSave({ profile, manual: saved.manual });
+      const res = await onSave(request);
       setSaved(res);
       setDraft(res.profile);
       setFtIn(null);
-      toast({ text: t('save.done') });
+      toast(
+        undo
+          ? {
+              text: t('save.done'),
+              action: { label: t('common.undo'), onClick: undo },
+              ms: UNDO_MS,
+            }
+          : { text: t('save.done') },
+      );
       return true;
     } catch (err) {
       // A field the server rejected is shown at the field (8.17); anything else is a banner.
@@ -339,9 +516,13 @@ export function ProfileForm({ initial, units, today, onAgent, onSave }: Props) {
   return (
     <div className={`profile${dirty ? ' profile--dirty' : ''}`}>
       <div className="profile__aside">
+        {reached}
         {card}
-        {onAgent && !firstVisit && (
-          <Button variant="tonal" onClick={onAgent}>
+        {showDisclaimer && (
+          <Disclaimer onHide={canHideDisclaimer ? hideDisclaimer : undefined} />
+        )}
+        {onAgent && !firstVisit && !minor && (
+          <Button id={agentId} variant="tonal" onClick={onAgent}>
             <Sparkles aria-hidden="true" />
             {t('agent.cta')}
           </Button>
@@ -349,7 +530,11 @@ export function ProfileForm({ initial, units, today, onAgent, onSave }: Props) {
         {failed && (
           <Banner tone="danger" title={t('save.error')}>
             {t('save.error_body')}{' '}
-            <button type="button" className="profile__retry" onClick={save}>
+            <button
+              type="button"
+              className="profile__link"
+              onClick={() => save()}
+            >
               {t('common.retry')}
             </button>
           </Banner>
@@ -361,7 +546,7 @@ export function ProfileForm({ initial, units, today, onAgent, onSave }: Props) {
                 ? `${new Intl.NumberFormat(locale).format(norm.kcal)} ${t('today.kcal')}`
                 : null
             }
-            onSave={save}
+            onSave={() => save()}
             disabled={!dirty || errorFields.length > 0}
             loading={saving}
           />

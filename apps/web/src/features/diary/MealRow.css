@@ -122,6 +122,13 @@
     color: var(--color-on-danger);
     font-size: var(--text-footnote-size);
     font-weight: var(--text-headline-weight);
+    /* Hidden by opacity, not visibility: the red layer would fringe the rounded corners, and VoiceOver must still reach it. */
+    opacity: 0;
+  }
+
+  .meal-row--shifted .meal-row__delete,
+  .meal-row__delete:focus-visible {
+    opacity: 1;
   }
 }
 

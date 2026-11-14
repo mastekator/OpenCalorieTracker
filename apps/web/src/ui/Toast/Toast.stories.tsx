@@ -8,7 +8,7 @@ type Props = {
   icon?: boolean;
   action?: boolean;
   long?: boolean;
-  durationMs?: number;
+  ms?: number;
 };
 
 // Lucide `check`.
@@ -26,12 +26,7 @@ const check = (
 );
 
 // Shows on load; the button shows it again (it hides after 3 s).
-function Demo({
-  icon = false,
-  action = false,
-  long = false,
-  durationMs,
-}: Props) {
+function Demo({ icon = false, action = false, long = false, ms }: Props) {
   const { t } = useT();
   const show = useToast();
   const toast = () =>
@@ -41,7 +36,7 @@ function Demo({
       action: action
         ? { label: t('link_ready.share'), onClick: () => {} }
         : undefined,
-      durationMs,
+      ms,
     });
   useEffect(toast, []);
   return (
@@ -69,7 +64,7 @@ export const Text: Story = {};
 export const WithIcon: Story = { args: { icon: true } };
 export const WithAction: Story = { args: { icon: true, action: true } };
 /** An undo stays 5 s (Diary 6.3). */
-export const Undo: Story = { args: { action: true, durationMs: 5000 } };
+export const Undo: Story = { args: { action: true, ms: 5000 } };
 /** Wraps on narrow screens (iPhone SE). */
 export const LongText: Story = {
   args: { long: true, action: true },

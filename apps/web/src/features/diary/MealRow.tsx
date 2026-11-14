@@ -74,7 +74,7 @@ export function MealRow({ meal, onOpen, onDelete }: Props) {
 
   return (
     <li
-      className={`list__item meal-row${dragging ? ' meal-row--dragging' : ''}`}
+      className={`list__item meal-row${dragging ? ' meal-row--dragging' : ''}${offset ? ' meal-row--shifted' : ''}`}
       style={{ '--swipe-offset': `${offset}px` } as CSSProperties}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
