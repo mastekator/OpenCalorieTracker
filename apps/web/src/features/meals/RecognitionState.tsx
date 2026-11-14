@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CircleAlert, CloudOff, Gauge, SearchX, WifiOff } from 'lucide-react';
 import { useT } from '../../i18n';
 import { Banner } from '../../ui/Banner/Banner';
@@ -40,12 +40,14 @@ export function RecognitionState({
   const { t } = useT();
   const waiting = state === 'loading' || state === 'slow';
   const titleRef = useRef<HTMLHeadingElement>(null);
+  // A deleted or unreachable photo leaves the surface-2 placeholder, not a broken-image icon.
+  const [photoBroken, setPhotoBroken] = useState(false);
   useEffect(() => {
     if (waiting) titleRef.current?.focus();
   }, [waiting]);
 
-  const retry = (
-    <Button key="retry" onClick={onRetry}>
+  const retry = (variant: 'primary' | 'tonal') => (
+    <Button key="retry" variant={variant} onClick={onRetry}>
       {t('common.retry')}
     </Button>
   );
@@ -68,7 +70,7 @@ export function RecognitionState({
       tone: 'danger',
       title: t('recog.err.unavailable.title'),
       body: t('recog.err.unavailable.body'),
-      actions: [retry, manual('tonal')],
+      actions: [retry('primary'), manual('tonal')],
     },
     quota: {
       icon: <Gauge />,
@@ -87,7 +89,7 @@ export function RecognitionState({
       tone: 'danger',
       title: t('recog.err.failed.title'),
       body: t('recog.err.failed.body'),
-      actions: [retry, retake('tonal'), manual('tonal')],
+      actions: [retry('primary'), retake('tonal'), manual('tonal')],
     },
     gone: {
       icon: <CircleAlert />,
@@ -108,8 +110,8 @@ export function RecognitionState({
       tone: 'neutral',
       title: t('recog.offline.title'),
       body: t('recog.offline.body'),
-      // shortcut: «Save without recognizing» waits for the offline queue (epic OCT-6).
-      actions: [manual('primary')],
+      // shortcut: «Save without recognizing» and its copy wait for the offline queue (epic OCT-6).
+      actions: [manual('primary'), retry('tonal')],
     },
   } as const;
   const shown = error[state];
@@ -118,7 +120,9 @@ export function RecognitionState({
     <div className={`recog${waiting ? '' : ' recog--done'}`}>
       {state === 'offline' && <OfflineBar />}
       <div className="recog__photo">
-        <img src={photoUrl} alt="" />
+        {!photoBroken && (
+          <img src={photoUrl} alt="" onError={() => setPhotoBroken(true)} />
+        )}
         {waiting && <span className="recog__glint" aria-hidden="true" />}
       </div>
       {shown ? (
@@ -140,7 +144,10 @@ export function RecognitionState({
               <span className="recog__spinner" aria-hidden="true" />
               {t('recog.loading')}
             </h2>
-            <p className="recog__hint">{t('recog.usual')}</p>
+            {/* In 3.2 the «taking longer» banner replaces this hint. */}
+            {state === 'loading' && (
+              <p className="recog__hint">{t('recog.usual')}</p>
+            )}
           </div>
           {state === 'loading' ? (
             <>

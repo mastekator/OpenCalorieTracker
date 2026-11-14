@@ -280,7 +280,7 @@ export const en = {
     },
     offline: {
       title: 'No connection',
-      body: 'We’ll keep the photo on this phone and recognize it once you’re back online.',
+      body: 'Your photo is kept. Reconnect and try again, or enter the dishes manually.',
     },
   },
   update: {
