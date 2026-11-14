@@ -9,6 +9,8 @@ type Props = {
   title: string;
   body?: string;
   confirmLabel: string;
+  /** Defaults to «Cancel»; e.g. «Close» when there is nothing to cancel (3.8). */
+  cancelLabel?: string;
   tone?: 'danger' | 'primary';
   onConfirm: () => void;
   /** Cancel button and Esc; a tap on the scrim does nothing. */
@@ -20,6 +22,7 @@ export function ConfirmDialog({
   title,
   body,
   confirmLabel,
+  cancelLabel,
   tone = 'danger',
   onConfirm,
   onCancel,
@@ -55,7 +58,7 @@ export function ConfirmDialog({
           )}
           <div className="confirm__actions">
             <Button variant="tonal" onClick={onCancel}>
-              {t('common.cancel')}
+              {cancelLabel ?? t('common.cancel')}
             </Button>
             <Button variant={tone} onClick={onConfirm}>
               {confirmLabel}

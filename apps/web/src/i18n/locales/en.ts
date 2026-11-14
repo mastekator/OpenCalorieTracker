@@ -72,6 +72,30 @@ export const en = {
     add_food: 'Add food',
     take_photo: 'Take a photo of food',
   },
+  capture: {
+    gallery: 'From library',
+    manual: 'Manually',
+    menu: {
+      photo: 'Take photo',
+      gallery: 'Choose from library',
+      manual: 'Enter manually',
+    },
+    drop: 'Drop to recognize',
+    drop_hint: 'Drag a food photo here or paste: ⌘/Ctrl + V',
+    formats: 'JPEG, PNG, HEIC, WebP',
+    upload_failed: 'Couldn’t upload the photo',
+    err: {
+      open: {
+        title: 'Couldn’t open the photo',
+        body: 'Try another photo. JPEG, PNG, HEIC and WebP work.',
+        cta: 'Choose another',
+      },
+      camera: {
+        title: 'No camera access',
+        body: 'Allow access in Settings → Safari → Camera, or choose a photo from your library.',
+      },
+    },
+  },
   update: {
     stale: 'The app has been updated · please save again',
   },
