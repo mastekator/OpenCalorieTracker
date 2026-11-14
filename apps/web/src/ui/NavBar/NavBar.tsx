@@ -2,7 +2,8 @@ import { ChevronLeft, type LucideIcon } from 'lucide-react';
 import { Link } from 'wouter';
 import './NavBar.css';
 
-type Action = { icon: LucideIcon; label: string } & (
+/** mobileOnly: hidden inside the app shell from 1024px, where the sidebar already offers it. */
+type Action = { icon: LucideIcon; label: string; mobileOnly?: boolean } & (
   { href: string; onClick?: never } | { onClick: () => void; href?: never }
 );
 
@@ -11,7 +12,7 @@ type Props = {
   /** Root screens: a 34 pt title under the bar instead of a centred one. */
   large?: boolean;
   /** Nested screens: chevron + the previous screen's name. */
-  back?: { href: string; label: string };
+  back?: { href: string; label: string; mobileOnly?: boolean };
   /** One 44×44 icon on the right; the label is read by screen readers. */
   action?: Action;
 };
@@ -19,16 +20,17 @@ type Props = {
 export function NavBar({ title, large = false, back, action }: Props) {
   let right = null;
   if (action) {
-    const { icon: Icon, label, href, onClick } = action;
+    const { icon: Icon, label, href, onClick, mobileOnly } = action;
+    const className = `navbar__action${mobileOnly ? ' navbar--mobile-only' : ''}`;
     right =
       href !== undefined ? (
-        <Link href={href} className="navbar__action" aria-label={label}>
+        <Link href={href} className={className} aria-label={label}>
           <Icon aria-hidden="true" />
         </Link>
       ) : (
         <button
           type="button"
-          className="navbar__action"
+          className={className}
           aria-label={label}
           onClick={onClick}
         >
@@ -43,7 +45,7 @@ export function NavBar({ title, large = false, back, action }: Props) {
           {back && (
             <Link
               href={back.href}
-              className="navbar__back"
+              className={`navbar__back${back.mobileOnly ? ' navbar--mobile-only' : ''}`}
               aria-label={back.label}
             >
               <ChevronLeft aria-hidden="true" />

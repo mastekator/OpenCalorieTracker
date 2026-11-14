@@ -51,13 +51,14 @@ export function AppScreens() {
             icon: Settings2,
             label: t('nav.settings'),
             href: '/settings',
+            mobileOnly: true,
           }}
         />
       </Route>
       <Route path="/settings">
         <Screen
           title={t('nav.settings')}
-          back={{ href: '/profile', label: t('nav.profile') }}
+          back={{ href: '/profile', label: t('nav.profile'), mobileOnly: true }}
         />
       </Route>
       <Route>
