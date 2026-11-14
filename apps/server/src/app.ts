@@ -11,6 +11,7 @@ import { aiRoutes } from './ai/routes.js';
 import type { AiModel } from './ai/model.js';
 import { authRoutes } from './auth/routes.js';
 import { device } from './auth/device.js';
+import { passkeyRoutes } from './auth/passkeys.js';
 import { dummyHash } from './auth/password.js';
 import { session } from './auth/session.js';
 import { mealRoutes } from './meals/routes.js';
@@ -66,6 +67,7 @@ export function createApp(deps: AppDeps) {
   app.use('/api/*', device(config));
   app.use('/api/*', session(deps));
   app.route('/api', authRoutes(deps));
+  app.route('/api', passkeyRoutes(deps));
   app.route('/api', adminRoutes(deps));
   app.route('/api', profileRoutes(deps));
   app.route('/api', accountRoutes(deps));

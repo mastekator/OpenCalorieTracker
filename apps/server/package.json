@@ -17,6 +17,7 @@
     "@ai-sdk/openai-compatible": "^3.0.92",
     "@hono/node-server": "^2.1.8",
     "@oct/shared": "workspace:*",
+    "@simplewebauthn/server": "^14.1.0",
     "ai": "^7.0.172",
     "better-sqlite3": "^13.1.1",
     "hono": "^4.13.18",
