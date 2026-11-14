@@ -6,6 +6,9 @@ export const en = {
   common: {
     appName: 'OpenCalorieTracker',
     loading: 'Loading…',
+    close: 'Close',
+    cancel: 'Cancel',
+    got_it: 'Got it',
     tryAgainIn: {
       one: 'Try again in {count} minute',
       other: 'Try again in {count} minutes',
@@ -18,6 +21,20 @@ export const en = {
     recover: 'Recover access',
     register: 'Create account',
   },
+  auth: {
+    forgot_sheet: {
+      title: 'Forgot your password?',
+      body: 'This app doesn’t send emails. Ask the admin of this installation for a recovery link — you can use it to set a new password or create a passkey. Your diary stays intact.',
+    },
+  },
+  settings: { logout: 'Sign out' },
+  logout: {
+    confirm: {
+      title: 'Sign out?',
+      body_unsaved: 'Unsaved changes will be lost.',
+    },
+  },
+  link_ready: { share: 'Share', copied: 'Link copied' },
   update: {
     stale: 'The app has been updated · please save again',
   },

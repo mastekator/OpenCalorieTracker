@@ -1,0 +1,62 @@
+/* Phone: above the tab bar. Desktop (≥ 1024px): bottom centre, in styles/layout.css. */
+.toast {
+  position: fixed;
+  z-index: var(--z-toast);
+  left: 50%;
+  bottom: calc(
+    var(--tabbar-height) + env(safe-area-inset-bottom) + var(--space-2)
+  );
+  width: max-content;
+  max-width: min(
+    calc(100vw - 2 * var(--screen-gutter)),
+    calc(var(--content-max-width) - 2 * var(--screen-gutter))
+  );
+  transform: translateX(-50%);
+}
+
+.toast:empty {
+  display: none;
+}
+
+.toast__inner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--control-height);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-text);
+  color: var(--color-bg);
+  box-shadow: var(--shadow-toast);
+  font-size: var(--text-subhead-size);
+  line-height: var(--text-subhead-lh);
+}
+
+.toast__icon {
+  flex: none;
+  display: grid;
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+}
+
+.toast__text {
+  flex: 1;
+}
+
+.toast__action {
+  flex: none;
+  min-height: var(--tap-min);
+  margin-block: calc(-1 * var(--space-2));
+  margin-right: calc(-1 * var(--space-2));
+  padding: 0 var(--space-2);
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: var(--text-headline-weight);
+  cursor: pointer;
+}
+
+.toast__action:focus-visible {
+  outline-color: var(--color-bg);
+}

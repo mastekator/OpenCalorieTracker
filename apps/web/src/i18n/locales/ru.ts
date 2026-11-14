@@ -5,6 +5,9 @@ const ru: DeepPartial<typeof en> = {
   common: {
     appName: 'OpenCalorieTracker',
     loading: 'Загрузка…',
+    close: 'Закрыть',
+    cancel: 'Отмена',
+    got_it: 'Понятно',
     tryAgainIn: {
       one: 'Повторите через {count} минуту',
       few: 'Повторите через {count} минуты',
@@ -19,6 +22,20 @@ const ru: DeepPartial<typeof en> = {
     recover: 'Восстановление доступа',
     register: 'Регистрация',
   },
+  auth: {
+    forgot_sheet: {
+      title: 'Забыли пароль?',
+      body: 'Приложение не отправляет письма. Попросите администратора этой установки прислать вам ссылку для восстановления — по ней можно задать новый пароль или создать passkey. Дневник сохранится.',
+    },
+  },
+  settings: { logout: 'Выйти' },
+  logout: {
+    confirm: {
+      title: 'Выйти из аккаунта?',
+      body_unsaved: 'Несохранённые изменения пропадут.',
+    },
+  },
+  link_ready: { share: 'Поделиться', copied: 'Ссылка скопирована' },
   update: {
     stale: 'Приложение обновилось · сохраните ещё раз',
   },
