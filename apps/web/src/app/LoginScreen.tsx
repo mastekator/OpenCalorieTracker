@@ -92,7 +92,7 @@ const optionsSchema = z.object({
 });
 
 /** The user closed the system dialog, or another ceremony replaced this one: no message (E-5.1). */
-const isCancel = (err: unknown) =>
+export const isCancel = (err: unknown) =>
   err instanceof Error &&
   (err.name === 'NotAllowedError' || err.name === 'AbortError');
 

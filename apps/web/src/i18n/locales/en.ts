@@ -84,16 +84,75 @@ export const en = {
     },
   },
   link_ready: { share: 'Share', copied: 'Link copied' },
+  invite: {
+    title: 'You’re invited to OpenCalorieTracker',
+    lead: 'Snap your food → calories and macros. Data stays on this installation’s server.',
+    email_locked_hint: 'Set by the admin in the invite',
+  },
+  recovery: {
+    title: 'Restore access',
+    lead: 'For {email}. Your diary and settings stay intact.',
+    hint: 'Old passkeys aren’t removed — delete unused ones in Settings.',
+    method: { passkey: 'New passkey', password: 'New password' },
+  },
   reg: {
     name: 'Your name',
+    name_ph: 'Name',
     method: {
       title: 'Sign-in method',
       passkey: 'Passkey',
       password: 'Password',
     },
+    passkey_hint:
+      'Sign in with Face ID or Touch ID, no password. You can add a password or passkey later in Settings.',
+    create_passkey: 'Create passkey',
+    create_account: 'Create account',
+    password_repeat: 'Repeat password',
+    inapp: {
+      title: 'Open this link in Safari',
+      body: 'Passkeys may not work in a messenger’s built-in browser. Password works here.',
+      copy: 'Copy link',
+    },
+    open: {
+      title: 'New account',
+      email_hint: 'This is your login. The app never sends emails.',
+      failed: 'Couldn’t create an account with this email',
+    },
   },
-  form: { err: { email: 'Enter an email, like name@example.com' } },
+  link: {
+    expired: 'This invite has expired',
+    invalid: 'This invite is no longer valid',
+    used: 'This invite has already been used',
+    used_body: 'If that was you, sign in.',
+    ask_admin: 'Ask your admin to send a new invite.',
+    have_account: 'I already have an account — sign in',
+    recovery: {
+      expired: 'This link has expired',
+      invalid: 'This link is no longer valid',
+      used: 'This link has already been used',
+      ask_admin: 'Ask your admin to send a new link.',
+    },
+  },
+  signed_in: {
+    title: 'You’re signed in as {name}',
+    body: 'To use this invite, sign out first. The invite will stay valid.',
+    body_recovery:
+      'To restore access to another account, sign out first. The link will stay valid.',
+    logout: 'Sign out and continue',
+    stay: 'Stay as {name}',
+  },
+  form: {
+    err: {
+      email: 'Enter an email, like name@example.com',
+      required_name: 'Enter your name',
+    },
+  },
   pw: {
+    err: {
+      mismatch: 'Passwords don’t match',
+      common: 'This password is too common. Choose another one.',
+      too_long: '128 characters max',
+    },
     rule: {
       length: 'At least {min} characters',
       letter_digit: 'A letter and a number',
