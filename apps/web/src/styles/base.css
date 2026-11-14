@@ -52,3 +52,9 @@ select {
   font-family: var(--font-numeric);
   font-variant-numeric: tabular-nums;
 }
+
+/* Lucide icons: one stroke for the whole app (OCT-13 §3). */
+.lucide {
+  flex: none;
+  stroke-width: var(--icon-stroke);
+}

@@ -6,6 +6,8 @@ export const en = {
   common: {
     appName: 'OpenCalorieTracker',
     loading: 'Loading…',
+    close: 'Close',
+    retry: 'Try again',
     tryAgainIn: {
       one: 'Try again in {count} minute',
       other: 'Try again in {count} minutes',
@@ -17,6 +19,11 @@ export const en = {
     invite: 'Accept invitation',
     recover: 'Recover access',
     register: 'Create account',
+  },
+  offline: {
+    bar: 'Offline · data from {time}',
+    no_network: 'No connection',
+    server_down: 'Server unavailable',
   },
   update: {
     stale: 'The app has been updated · please save again',
