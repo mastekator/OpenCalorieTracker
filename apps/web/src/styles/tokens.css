@@ -100,6 +100,8 @@
   --shadow-sheet: 0 -4px 24px rgb(24 33 29 / 0.06);
   --shadow-toast: 0 6px 20px rgb(24 33 29 / 0.10);
   --shadow-camera: 0 4px 14px rgb(19 120 74 / 0.24);
+  --shadow-segment: 0 1px 3px rgb(24 33 29 / 0.12); /* selected segment on its surface-2 track */
+  --color-segment-selected: var(--color-surface); /* raised above the surface-2 track */
   --tabbar-blur: saturate(180%) blur(20px);
   --tabbar-bg: rgb(248 250 249 / 0.88);
   --color-hover: rgb(24 33 29 / 0.05); /* desktop: pointer hover on rows, nav, plain buttons */
@@ -137,6 +139,8 @@
     --shadow-sheet: 0 -8px 32px rgb(0 0 0 / 0.5);
     --shadow-toast: 0 8px 24px rgb(0 0 0 / 0.5);
     --shadow-camera: 0 6px 16px rgb(0 0 0 / 0.5);
+    --shadow-segment: 0 1px 3px rgb(0 0 0 / 0.5);
+    --color-segment-selected: #353C39;
     --tabbar-bg: rgb(14 17 16 / 0.86);
     --color-hover: rgb(238 243 240 / 0.06);
     --theme-color: #0E1110;
@@ -170,6 +174,8 @@
   --shadow-sheet: 0 -8px 32px rgb(0 0 0 / 0.5);
   --shadow-toast: 0 8px 24px rgb(0 0 0 / 0.5);
   --shadow-camera: 0 6px 16px rgb(0 0 0 / 0.5);
+  --shadow-segment: 0 1px 3px rgb(0 0 0 / 0.5);
+  --color-segment-selected: #353C39;
   --tabbar-bg: rgb(14 17 16 / 0.86);
   --color-hover: rgb(238 243 240 / 0.06);
   --theme-color: #0E1110;
