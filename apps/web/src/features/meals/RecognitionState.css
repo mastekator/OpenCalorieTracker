@@ -1,0 +1,93 @@
+.recog {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.recog__photo {
+  position: relative;
+  overflow: hidden;
+  height: var(--photo-preview-height);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-2);
+  transition: height var(--duration-base) var(--ease-out);
+}
+
+/* In an error the photo shrinks but stays: it is not lost (OCT-16 §2). */
+.recog--done .recog__photo {
+  height: calc(var(--photo-preview-height) * 0.6);
+}
+
+.recog__photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* The flow's only animation: a light sweep over the photo. */
+.recog__glint {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+      100deg,
+      transparent 30%,
+      var(--color-surface) 50%,
+      transparent 70%
+    )
+    no-repeat;
+  background-size: 50% 100%;
+  opacity: 0.5;
+  animation: recog-glint var(--duration-shimmer) var(--ease-in-out) infinite;
+}
+
+@keyframes recog-glint {
+  from {
+    background-position: -100% 0;
+  }
+  to {
+    background-position: 200% 0;
+  }
+}
+
+.recog__wait {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.recog__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-headline-size);
+  line-height: var(--text-headline-lh);
+  font-weight: var(--text-headline-weight);
+}
+
+.recog__hint {
+  color: var(--color-text-secondary);
+  font-size: var(--text-subhead-size);
+  line-height: var(--text-subhead-lh);
+}
+
+.recog__spinner {
+  flex: none;
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+  border: calc(var(--icon-stroke) * 1px) solid currentColor;
+  border-right-color: transparent;
+  border-radius: var(--radius-full);
+  animation: recog-spin var(--duration-spinner) linear infinite;
+}
+
+@keyframes recog-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+/* The spinner keeps turning: it signals progress (tokens.css). */
+@media (prefers-reduced-motion: reduce) {
+  .recog__glint {
+    display: none;
+  }
+}

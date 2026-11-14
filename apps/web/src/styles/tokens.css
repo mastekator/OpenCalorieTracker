@@ -40,6 +40,7 @@
   --camera-button-lift: 14px;   /* how far the camera circle rises above the tab bar */
   --camera-icon-size: 30px;     /* icon inside the camera circle */
   --meal-thumb-size: 44px;      /* meal photo in Today / Diary lists */
+  --photo-preview-height: 280px; /* photo on the recognition screen (OCT-16 §2) */
   --progress-height: 8px;       /* kcal & macro bars on Today / Diary / Week */
   --hatch-size: 6px;            /* stripe period of the "over the norm" pattern (not colour-only) */
   --tabbar-height: 49px;        /* + env(safe-area-inset-bottom) */
