@@ -11,12 +11,21 @@ type Props = {
   children: ReactNode;
   /** Actions pinned under the content. */
   footer?: ReactNode;
+  /** Full screen on the phone, 88 % high and wider on desktop (chat, D.2). */
+  full?: boolean;
 };
 
 const SWIPE_CLOSE_PX = 80;
 
 /** Bottom sheet on the phone, centred dialog from 1024px (styles/layout.css). */
-export function Sheet({ open, onClose, title, children, footer }: Props) {
+export function Sheet({
+  open,
+  onClose,
+  title,
+  children,
+  footer,
+  full = false,
+}: Props) {
   const { t } = useT();
   const titleId = useId();
   const { ref, onKeyDown, onCancel } = useModalDialog(open, onClose);
@@ -39,7 +48,7 @@ export function Sheet({ open, onClose, title, children, footer }: Props) {
   return (
     <dialog
       ref={ref}
-      className="sheet"
+      className={full ? 'sheet sheet--full' : 'sheet'}
       aria-labelledby={titleId}
       onKeyDown={onKeyDown}
       onCancel={onCancel}

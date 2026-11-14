@@ -270,7 +270,26 @@ export const en = {
     disclaimer_hide: 'Hide this notice',
   },
   agent: { cta: 'Set up with the assistant' },
-  chat: { title: 'Goal assistant' },
+  chat: {
+    title: 'Goal assistant',
+    placeholder: 'Answer in your own words',
+    send: 'Send',
+    typing: 'Assistant is typing',
+    greeting:
+      'I’ll help you work out your daily goal. I’ll ask a few questions, one at a time. Answer however you like — even all at once: “male, 34, 182 and 85”.',
+    minor_disabled: 'Calculation is available from age 18',
+    summary: {
+      title: 'Check that everything’s right',
+      formula: 'Formula',
+      age: 'Age',
+      body: 'Height and weight',
+      goal_to: '{goal} to {weight}',
+    },
+    apply: 'Apply goal',
+    fix: 'Edit',
+    apply_error: 'Couldn’t apply the goal',
+    apply_error_body: 'Check your connection and try again.',
+  },
   field: {
     empty: 'Add',
     pick: 'Choose',

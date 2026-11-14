@@ -11,6 +11,7 @@ type Props = {
   long?: boolean;
   unsaved?: boolean;
   toast?: boolean;
+  full?: boolean;
 };
 
 // Opens on load; «Open» reopens it, so focus return is visible after closing.
@@ -19,6 +20,7 @@ function Demo({
   long = false,
   unsaved = false,
   toast = false,
+  full = false,
 }: Props) {
   const { t } = useT();
   const showToast = useToast();
@@ -32,6 +34,7 @@ function Demo({
       </Button>
       <Sheet
         open={open}
+        full={full}
         title={t('auth.forgot_sheet.title')}
         onClose={() => (unsaved ? setConfirm(true) : setOpen(false))}
         footer={
@@ -95,5 +98,11 @@ export const Russian: Story = { globals: { locale: 'ru' } };
 export const Desktop: Story = { globals: { viewport: { value: 'desktop' } } };
 export const DesktopLongDark: Story = {
   args: { long: true },
+  globals: { viewport: { value: 'desktop' }, theme: 'dark' },
+};
+/** Full screen on the phone, 88 % high on desktop (chat, OCT-22 §3, D.2). */
+export const Full: Story = { args: { full: true } };
+export const FullDesktopDark: Story = {
+  args: { full: true, long: true },
   globals: { viewport: { value: 'desktop' }, theme: 'dark' },
 };
