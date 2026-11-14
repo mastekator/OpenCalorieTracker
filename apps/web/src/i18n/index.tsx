@@ -28,7 +28,12 @@ function initialLocale(): Locale {
   return pickLocale(navigator.languages);
 }
 
-type I18n = { locale: Locale; t: (key: Key, params?: Params) => string };
+type I18n = {
+  locale: Locale;
+  t: (key: Key, params?: Params) => string;
+  /** Whole number for display (AC-0.3): values stay unrounded until shown. */
+  num: (value: number) => string;
+};
 const I18nContext = createContext<I18n | null>(null);
 
 export function I18nProvider({ children }: { children: ReactNode }) {
@@ -43,7 +48,12 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
   if (!dict) return null;
   const t = (key: Key, params?: Params) => translate(locale, dict, key, params);
-  return <I18nContext value={{ locale, t }}>{children}</I18nContext>;
+  // 'negative' keeps a rounded -0.3 from showing as "-0".
+  const num = new Intl.NumberFormat(locale, {
+    maximumFractionDigits: 0,
+    signDisplay: 'negative',
+  }).format;
+  return <I18nContext value={{ locale, t, num }}>{children}</I18nContext>;
 }
 
 export function useT() {
