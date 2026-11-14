@@ -16,7 +16,7 @@ import {
   MEAL_NEW_PATH,
   useCapture,
 } from '../features/meals/CaptureContext';
-import { localToday } from '../features/diary/day';
+import { diaryDay, localToday } from '../features/diary/day';
 import { DiaryScreen } from '../features/diary/DiaryScreen';
 import {
   MEAL_EDIT_PATH,
@@ -111,7 +111,20 @@ export function AppScreens() {
       </Route>
       <Route path="/diary/:date">
         {({ date }) => (
-          <Screen wide large title={t('nav.diary')}>
+          <Screen
+            wide
+            large
+            title={t('nav.diary')}
+            action={
+              diaryDay(date, localToday()) === localToday()
+                ? undefined
+                : {
+                    label: t('diary.today_btn'),
+                    onClick: () =>
+                      navigate(`/diary/${localToday()}`, { replace: true }),
+                  }
+            }
+          >
             <DiaryScreen date={date} />
           </Screen>
         )}

@@ -103,18 +103,10 @@ export function DiaryDay({
     onPointerCancel: () => (start.current = null),
   };
 
-  const isToday = date === today;
-  const add = t(isToday ? 'diary.add' : 'diary.add_here');
+  const add = t(date === today ? 'diary.add' : 'diary.add_here');
   return (
     <div className="diary" {...swipe}>
-      <div className="diary__bar">
-        <DayPager date={date} today={today} onChange={onDate} />
-        {!isToday && (
-          <Button variant="plain" small onClick={() => onDate(today)}>
-            {t('diary.today_btn')}
-          </Button>
-        )}
-      </div>
+      <DayPager date={date} today={today} onChange={onDate} />
       {meals === undefined ? (
         <Delayed>
           <div className="diary__body">

@@ -78,7 +78,7 @@ type Story = StoryObj<typeof meta>;
 
 /** 6.1 */
 export const PastDay: Story = {};
-/** 6.2: «›» disabled, no «Today», «Add entry». */
+/** 6.2: «›» disabled, the full date under «Today», «Add entry». */
 export const Today: Story = {
   args: { date: TODAY, meals: MEALS.map((m) => ({ ...m, localDate: TODAY })) },
 };
@@ -109,6 +109,10 @@ export const EmptyDark: Story = {
 };
 export const Russian: Story = { globals: { locale: 'ru' } };
 export const Narrow: Story = { globals: { viewport: { value: 'iphoneSE' } } };
+/** 320 px, Russian: the macros' «осталось …» wraps instead of running together. */
+export const NarrowRussian: Story = {
+  globals: { viewport: { value: 'iphoneSE' }, locale: 'ru' },
+};
 /** D.2: list left, total and «Add» right, trash buttons. */
 export const Desktop: Story = { globals: { viewport: { value: 'desktop' } } };
 export const DesktopDark: Story = {

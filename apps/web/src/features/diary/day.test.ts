@@ -14,21 +14,26 @@ describe('diaryDay', () => {
 });
 
 describe('dayLabel', () => {
-  it('names today and yesterday, formats other days, adds the year only for other years', () => {
+  it('puts the full date under today and yesterday, the year under other days only for other years', () => {
     expect(dayLabel('2026-11-14', '2026-11-14', 'en', t)).toEqual({
       label: 'Today',
-      year: null,
+      sub: 'Saturday, November 14',
     });
-    expect(dayLabel('2026-11-13', '2026-11-14', 'en', t).label).toBe(
-      'Yesterday',
-    );
+    expect(dayLabel('2026-11-12', '2026-11-13', 'ru', t)).toEqual({
+      label: 'Yesterday',
+      sub: 'четверг, 12 ноября',
+    });
     expect(dayLabel('2026-11-04', '2026-11-14', 'ru', t)).toEqual({
       label: 'ср, 4 ноября',
-      year: null,
+      sub: null,
+    });
+    expect(dayLabel('2025-11-04', '2026-11-14', 'en', t)).toEqual({
+      label: 'Tue, November 4',
+      sub: '2025',
     });
     expect(dayLabel('2025-12-31', '2026-01-01', 'en', t)).toEqual({
       label: 'Yesterday',
-      year: '2025',
+      sub: 'Wednesday, December 31, 2025',
     });
   });
 });

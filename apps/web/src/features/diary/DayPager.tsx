@@ -15,7 +15,7 @@ type Props = {
 /** ‹ day › with the system date picker on the label (OCT-19 §3). Week / month: OCT-71. */
 export function DayPager({ date, today, onChange }: Props) {
   const { t, locale } = useT();
-  const { label, year } = dayLabel(date, today, locale, t);
+  const { label, sub } = dayLabel(date, today, locale, t);
   return (
     <div className="day-pager">
       <button
@@ -31,15 +31,17 @@ export function DayPager({ date, today, onChange }: Props) {
           {label}
           <ChevronDown />
         </span>
-        {year && (
-          <span className="day-pager__year" aria-hidden="true">
-            {year}
+        {sub && (
+          <span className="day-pager__sub" aria-hidden="true">
+            {sub}
           </span>
         )}
         <input
           type="date"
           className="day-pager__input"
-          aria-label={t('diary.pick')}
+          aria-label={t('diary.pick', {
+            day: sub ? `${label}, ${sub}` : label,
+          })}
           value={date}
           max={today}
           onClick={(event) => {

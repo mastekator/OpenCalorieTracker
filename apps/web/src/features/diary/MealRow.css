@@ -95,7 +95,8 @@
     touch-action: pan-y;
   }
 
-  .meal-row__open {
+  /* Two classes: must beat .list-row { background: transparent } whatever the CSS order. */
+  .meal-row .meal-row__open {
     position: relative;
     z-index: 1;
     background: var(--color-surface);
@@ -120,7 +121,7 @@
     background: var(--color-danger);
     color: var(--color-on-danger);
     font-size: var(--text-footnote-size);
-    font-weight: 600;
+    font-weight: var(--text-headline-weight);
   }
 }
 
@@ -138,6 +139,13 @@
 
   .meal-row__delete-text {
     display: none;
+  }
+
+  /* The trash shows on the hovered or focused row; always on touch screens. */
+  @media (hover: hover) {
+    .meal-row:not(:hover, :focus-within) .meal-row__delete {
+      opacity: 0;
+    }
   }
 }
 

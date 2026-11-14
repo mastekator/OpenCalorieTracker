@@ -87,6 +87,12 @@
   justify-content: center;
 }
 
+.navbar__action--text {
+  padding-inline: var(--space-2);
+  font: inherit;
+  white-space: nowrap;
+}
+
 .navbar__back .lucide,
 .navbar__action .lucide {
   width: var(--icon-size);

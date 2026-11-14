@@ -423,7 +423,7 @@ export const en = {
     today_btn: 'Today',
     prev: 'Previous day',
     next: 'Next day',
-    pick: 'Choose date',
+    pick: '{day} — choose a date',
     count: { one: '{count} meal', other: '{count} meals' },
     left: '{n} left',
     over: '{n} over',

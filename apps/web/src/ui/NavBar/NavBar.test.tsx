@@ -39,4 +39,13 @@ describe('NavBar', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Invite' }));
     expect(onClick).toHaveBeenCalledOnce();
   });
+
+  it('renders an action without an icon as its text', () => {
+    const onClick = vi.fn();
+    render(<NavBar title="Diary" large action={{ label: 'Today', onClick }} />);
+    const button = screen.getByRole('button', { name: 'Today' });
+    expect(button.textContent).toBe('Today');
+    fireEvent.click(button);
+    expect(onClick).toHaveBeenCalledOnce();
+  });
 });

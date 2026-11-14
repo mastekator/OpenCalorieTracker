@@ -52,7 +52,8 @@
   display: flex;
   align-items: center;
   gap: 2px;
-  white-space: nowrap;
+  /* Wraps in a narrow column (320 px) instead of running into the next macro. */
+  overflow-wrap: anywhere;
   font-size: var(--text-footnote-size);
   line-height: var(--text-footnote-lh);
   color: var(--color-text-secondary);

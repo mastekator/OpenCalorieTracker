@@ -107,14 +107,13 @@ afterEach(async () => {
 });
 
 describe('DiaryScreen', () => {
-  it('on today «›» is disabled and there is no «Today» button', async () => {
+  it('on today «›» is disabled', async () => {
     setup(`/diary/${today}`);
     expect(
       (await screen.findByRole('button', { name: 'Next day' })).hasAttribute(
         'disabled',
       ),
     ).toBe(true);
-    expect(screen.queryByRole('button', { name: 'Today' })).toBeNull();
     expect(await screen.findByText('No entries')).toBeTruthy();
   });
 

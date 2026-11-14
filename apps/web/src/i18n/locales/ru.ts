@@ -432,7 +432,7 @@ const ru: DeepPartial<typeof en> = {
     today_btn: 'Сегодня',
     prev: 'Предыдущий день',
     next: 'Следующий день',
-    pick: 'Выбрать дату',
+    pick: '{day} — выбрать дату',
     count: {
       one: '{count} приём пищи',
       few: '{count} приёма пищи',
