@@ -72,6 +72,41 @@ const ru: DeepPartial<typeof en> = {
   update: {
     stale: 'Приложение обновилось · сохраните ещё раз',
   },
+  today: {
+    summary: 'Итог дня',
+    meals: 'Приёмы пищи',
+    left: 'Осталось',
+    over: 'Перебор',
+    kcal: 'ккал',
+    eaten_of: '{eaten} из {norm} ккал',
+    eaten_today: 'Съедено сегодня',
+    macro: { left: 'осталось {n} г', over: 'перебор {n} г' },
+    week_left: 'На неделю осталось {n} ккал',
+    week_over: 'Перебор за неделю {n} ккал',
+  },
+  macro: {
+    protein: 'Белки',
+    fat: 'Жиры',
+    carbs: 'Углеводы',
+    g: 'г',
+    of: '/ {norm} г',
+    row_of: 'из {norm}',
+  },
+  meal: {
+    type: {
+      breakfast: 'Завтрак',
+      lunch: 'Обед',
+      dinner: 'Ужин',
+      snack: 'Перекус',
+    },
+    kcal: '{n} ккал',
+    status: { late: 'поздний' },
+    delete: 'Удалить: {meal}',
+  },
+  norm: {
+    invite: 'Задайте норму — покажем, сколько осталось',
+    cta: 'Задать',
+  },
   errors: {
     validation_failed: 'Проверьте отмеченные поля',
     unauthenticated: 'Войдите в аккаунт',

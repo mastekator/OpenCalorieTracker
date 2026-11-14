@@ -75,6 +75,41 @@ export const en = {
   update: {
     stale: 'The app has been updated · please save again',
   },
+  today: {
+    summary: 'Day total',
+    meals: 'Meals',
+    left: 'Left',
+    over: 'Over',
+    kcal: 'kcal',
+    eaten_of: '{eaten} of {norm} kcal',
+    eaten_today: 'Eaten today',
+    macro: { left: '{n} g left', over: '{n} g over' },
+    week_left: '{n} kcal left this week',
+    week_over: '{n} kcal over this week',
+  },
+  macro: {
+    protein: 'Protein',
+    fat: 'Fat',
+    carbs: 'Carbs',
+    g: 'g',
+    of: '/ {norm} g',
+    row_of: 'of {norm}',
+  },
+  meal: {
+    type: {
+      breakfast: 'Breakfast',
+      lunch: 'Lunch',
+      dinner: 'Dinner',
+      snack: 'Snack',
+    },
+    kcal: '{n} kcal',
+    status: { late: 'late' },
+    delete: 'Delete {meal}',
+  },
+  norm: {
+    invite: 'Set a daily goal to see what’s left',
+    cta: 'Set goal',
+  },
   errors: {
     validation_failed: 'Check the highlighted fields',
     unauthenticated: 'Please sign in',

@@ -1,0 +1,33 @@
+.progress {
+  display: flex;
+  height: var(--progress-height);
+  border-radius: var(--radius-full);
+  background: var(--color-surface-2);
+  overflow: hidden;
+}
+
+.progress__fill {
+  background: var(--progress-color);
+}
+
+.progress--accent {
+  --progress-color: var(--color-accent);
+}
+.progress--protein {
+  --progress-color: var(--color-protein);
+}
+.progress--fat {
+  --progress-color: var(--color-fat);
+}
+.progress--carbs {
+  --progress-color: var(--color-carbs);
+}
+
+/* Over the norm: a pattern, not only a colour (AC-1.4). */
+.progress__over {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    var(--color-warning) 0 calc(var(--hatch-size) / 2),
+    transparent 0 var(--hatch-size)
+  );
+}
