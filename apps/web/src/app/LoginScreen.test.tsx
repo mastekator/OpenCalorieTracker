@@ -219,6 +219,37 @@ describe('LoginScreen', () => {
     ).toBe(false);
   });
 
+  it('puts the password error under «or with password», above the fields (1.2)', async () => {
+    serve({
+      '/api/auth/login': { code: 'invalid_credentials', status: 401 },
+    });
+    renderLogin();
+    await submitPassword();
+    const banner = await screen.findByRole('alert');
+    const follows = (a: Node, b: Node) =>
+      !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(follows(screen.getByText('or with password'), banner)).toBe(true);
+    expect(follows(banner, screen.getByLabelText('Email'))).toBe(true);
+  });
+
+  it('drops «Passkey still works» when passkey is off (1.3, 1.4)', async () => {
+    const passwordOnly = { ...config, authMethods: ['password' as const] };
+    renderLogin({
+      config: passwordOnly,
+      notice: { kind: 'timeout', until: Date.now() + 150_000 },
+    });
+    expect(
+      await screen.findByText(
+        'Password sign-in on this device reopens in 3 min.',
+      ),
+    ).toBeTruthy();
+    cleanup();
+    renderLogin({ config: passwordOnly, notice: { kind: 'blocked' } });
+    expect(
+      await screen.findByText('Ask your admin to unblock it.'),
+    ).toBeTruthy();
+  });
+
   it.each(['device_blocked', 'ip_blocked'])(
     'on %s hides the password form, passkey stays (1.4)',
     async (code) => {

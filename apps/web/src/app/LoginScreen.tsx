@@ -1,5 +1,11 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { Link2Off, TriangleAlert } from 'lucide-react';
+import {
+  Clock,
+  KeyRound,
+  Link2Off,
+  ShieldAlert,
+  TriangleAlert,
+} from 'lucide-react';
 import { Link } from 'wouter';
 import { z } from 'zod';
 import {
@@ -49,10 +55,10 @@ export function loginLayout(
   };
 }
 
-/** The banner above the form. */
+/** The banner: password ones (`password`, timeout, blocked) sit above the fields, the rest on top. */
 export type Notice =
   | { kind: 'expired' }
-  | { kind: 'error'; code: ErrorCode }
+  | { kind: 'error'; code: ErrorCode; password?: true }
   | { kind: 'timeout'; until: number }
   | { kind: 'blocked' }
   | { kind: 'no_passkey' }
@@ -201,7 +207,7 @@ export function LoginScreen({
       await onSignedIn();
     } catch (err) {
       const next = noticeOf(err, 'internal');
-      show(next);
+      show(next.kind === 'error' ? { ...next, password: true } : next);
       if (next.kind === 'error' && next.code === 'invalid_credentials') {
         setPassword('');
         passwordRef.current?.focus();
@@ -211,62 +217,75 @@ export function LoginScreen({
     }
   }
 
+  const brand = (
+    <>
+      <img className="login__mark" src="/icon.svg" alt="" />
+      <p className="login__app">{t('common.appName')}</p>
+    </>
+  );
+
   if (layout.kind === 'setup_error')
     return (
-      <ScreenState
-        icon={<TriangleAlert />}
-        tone="danger"
-        title={t('setup.not_configured.title')}
-      >
-        {t(
-          layout.error === 'public_url_invalid'
-            ? 'setup.not_configured.url'
-            : 'setup.not_configured.admin',
-        )}
-      </ScreenState>
+      <div className="login">
+        <header className="login__header">{brand}</header>
+        <ScreenState
+          icon={<TriangleAlert />}
+          tone="danger"
+          title={t('setup.not_configured.title')}
+        >
+          {t(
+            layout.error === 'public_url_invalid'
+              ? 'setup.not_configured.url'
+              : 'setup.not_configured.admin',
+          )}
+        </ScreenState>
+      </div>
     );
 
   if (layout.kind === 'wrong_origin')
     return (
-      <ScreenState
-        icon={<Link2Off />}
-        tone="warning"
-        title={t('setup.wrong_origin.title')}
-        action={
-          <a className="button button--primary" href={layout.publicUrl}>
-            {t('setup.wrong_origin.cta', {
-              host: new URL(layout.publicUrl).host,
-            })}
-          </a>
-        }
-      >
-        {t('setup.wrong_origin.body')}
-      </ScreenState>
+      <div className="login">
+        <header className="login__header">{brand}</header>
+        <ScreenState
+          icon={<Link2Off />}
+          tone="warning"
+          title={t('setup.wrong_origin.title')}
+          action={
+            <a className="button button--primary" href={layout.publicUrl}>
+              {t('setup.wrong_origin.cta', {
+                host: new URL(layout.publicUrl).host,
+              })}
+            </a>
+          }
+        >
+          {t('setup.wrong_origin.body')}
+        </ScreenState>
+      </div>
     );
 
   const { passkey: withPasskey, register } = layout;
   const showForm = withForm && !blocked;
+  const atFields =
+    withForm &&
+    (timedOut || blocked || (shown?.kind === 'error' && !!shown.password));
+  const banner = online && shown && (
+    <NoticeBanner
+      notice={shown}
+      minutes={Math.ceil(timeoutLeft / 60_000)}
+      withPassword={withForm}
+      withPasskey={withPasskey}
+    />
+  );
 
   return (
     <div className="login">
       <OfflineBar />
       <header className="login__header">
-        <img className="login__mark" src="/icon.svg" alt="" />
-        <p className="login__app">{t('common.appName')}</p>
+        {brand}
         <h1 className="login__title">{t('screens.login')}</h1>
       </header>
 
-      {!online ? (
-        <Banner tone="notice">{t('auth.offline')}</Banner>
-      ) : (
-        shown && (
-          <NoticeBanner
-            notice={shown}
-            minutes={Math.ceil(timeoutLeft / 60_000)}
-            withPassword={withForm}
-          />
-        )
-      )}
+      {!atFields && banner}
 
       <div className={`login__body${withForm ? '' : ' login__body--end'}`}>
         {withPasskey && (
@@ -276,12 +295,14 @@ export function LoginScreen({
             disabled={!online || busy === 'password'}
             onClick={() => void passkey(false)}
           >
+            <KeyRound aria-hidden="true" />
             {t('auth.passkey')}
           </Button>
         )}
-        {withPasskey && showForm && (
+        {withPasskey && withForm && (
           <p className="login__divider">{t('auth.or_password')}</p>
         )}
+        {atFields && banner}
         {showForm && (
           <form className="login__form" onSubmit={signIn}>
             <Field
@@ -314,6 +335,7 @@ export function LoginScreen({
             </Button>
           </form>
         )}
+        {!online && <p className="login__divider">{t('auth.offline')}</p>}
         {showForm ? (
           <Button variant="plain" onClick={() => setSheet('forgot')}>
             {t('auth.forgot')}
@@ -323,13 +345,13 @@ export function LoginScreen({
             {t('auth.lost_access')}
           </Button>
         )}
-        {register && (
-          <p className="login__register">
-            {t('auth.no_account')}{' '}
-            <Link href="/register">{t('auth.create')}</Link>
-          </p>
-        )}
       </div>
+      {register && (
+        <p className="login__register">
+          {t('auth.no_account')}
+          <Link href="/register">{t('auth.create')}</Link>
+        </p>
+      )}
 
       <Sheet
         open={sheet !== null}
@@ -353,11 +375,15 @@ function NoticeBanner({
   notice,
   minutes,
   withPassword,
+  withPasskey,
 }: {
   notice: Notice;
   minutes: number;
   withPassword: boolean;
+  withPasskey: boolean;
 }) {
+  // «Passkey still works» only when there is a passkey button (mockup 1.4).
+  const body = withPasskey ? 'body' : 'body_password_only';
   const { t } = useT();
   switch (notice.kind) {
     case 'expired':
@@ -366,14 +392,22 @@ function NoticeBanner({
       return <Banner tone="danger">{t(`errors.${notice.code}`)}</Banner>;
     case 'timeout':
       return (
-        <Banner tone="warning" title={t('auth.err.timeout.title')}>
-          {t('auth.err.timeout.body', { n: minutes })}
+        <Banner
+          tone="warning"
+          icon={<Clock aria-hidden="true" />}
+          title={t('auth.err.timeout.title')}
+        >
+          {t(`auth.err.timeout.${body}`, { n: minutes })}
         </Banner>
       );
     case 'blocked':
       return (
-        <Banner tone="danger" title={t('auth.err.blocked.title')}>
-          {t('auth.err.blocked.body')}
+        <Banner
+          tone="danger"
+          icon={<ShieldAlert aria-hidden="true" />}
+          title={t('auth.err.blocked.title')}
+        >
+          {t(`auth.err.blocked.${body}`)}
         </Banner>
       );
     case 'no_passkey':

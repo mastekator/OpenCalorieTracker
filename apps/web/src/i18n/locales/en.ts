@@ -41,10 +41,13 @@ export const en = {
       timeout: {
         title: 'Too many attempts',
         body: 'Password sign-in on this device reopens in {n} min. Passkey still works.',
+        body_password_only:
+          'Password sign-in on this device reopens in {n} min.',
       },
       blocked: {
         title: 'Password sign-in is blocked on this device',
         body: 'Ask your admin to unblock it. Passkey still works.',
+        body_password_only: 'Ask your admin to unblock it.',
       },
       no_passkey: {
         title: 'No passkey on this device',

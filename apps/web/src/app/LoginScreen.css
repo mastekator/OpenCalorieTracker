@@ -52,7 +52,18 @@
   text-align: center;
 }
 
+/* 1.6: bottom row, subhead, a 44 pt hit area for the link. */
+.login__register {
+  margin-top: auto;
+  font-size: var(--text-subhead-size);
+  line-height: var(--text-subhead-lh);
+}
+
 .login__register a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap-min);
+  padding-inline: var(--space-2);
   color: var(--color-accent);
   font-weight: 600;
 }

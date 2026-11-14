@@ -53,7 +53,9 @@ export const OpenRegistration: Story = {
 export const SessionExpired: Story = { args: { notice: { kind: 'expired' } } };
 /** 1.2 Wrong email or password. */
 export const WrongPassword: Story = {
-  args: { notice: { kind: 'error', code: 'invalid_credentials' } },
+  args: {
+    notice: { kind: 'error', code: 'invalid_credentials', password: true },
+  },
 };
 /** 1.3 Too many attempts: fields locked, passkey still works. */
 export const Timeout: Story = {
@@ -61,6 +63,19 @@ export const Timeout: Story = {
 };
 /** 1.4 Device or network blocked: password form hidden. */
 export const Blocked: Story = { args: { notice: { kind: 'blocked' } } };
+/** 1.3 and 1.4 with passkey off: no «Passkey still works». */
+export const TimeoutPasswordOnly: Story = {
+  args: {
+    ...withConfig({ authMethods: ['password'] }),
+    notice: { kind: 'timeout', until: Date.now() + 14 * 60_000 },
+  },
+};
+export const BlockedPasswordOnly: Story = {
+  args: {
+    ...withConfig({ authMethods: ['password'] }),
+    notice: { kind: 'blocked' },
+  },
+};
 /** 1.5 The browser has no WebAuthn. */
 export const NoPasskey: Story = { args: { notice: { kind: 'no_passkey' } } };
 export const NoPasskeyPasskeyOnly: Story = {
@@ -83,7 +98,7 @@ export const WrongOriginDark: Story = {
 export const SetupError: Story = {
   args: withConfig({ setupError: 'admin_missing' }),
 };
-/** 1.9 Offline: bar on top, buttons disabled, fields usable. */
+/** 1.9 Offline: bar on top, buttons disabled, fields usable, a footnote under «Sign in». */
 export const Offline: Story = {
   beforeEach: () => {
     Object.defineProperty(navigator, 'onLine', {
