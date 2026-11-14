@@ -125,6 +125,28 @@ export const inviteSchema = z.object({
 });
 export type Invite = z.infer<typeof inviteSchema>;
 
+export const adminUserSchema = z.object({
+  id: z.number().int(),
+  email: z.string(),
+  name: z.string().nullable(),
+  role: z.enum(['admin', 'user']),
+  createdAt: z.number().int(),
+  lastLoginAt: z.number().int().nullable(),
+});
+export type AdminUser = z.infer<typeof adminUserSchema>;
+
+/** A blocked device or whole IP (timeouts are not listed); `device` is named from its User-Agent. */
+export const adminBlockSchema = z.object({
+  id: z.number().int(),
+  kind: z.enum(['device', 'ip']),
+  ip: z.string(),
+  device: z.string().nullable(),
+  blockedAt: z.number().int(),
+  failCount: z.number().int(),
+  lastEmail: z.string().nullable(),
+});
+export type AdminBlock = z.infer<typeof adminBlockSchema>;
+
 /** Starts the passkey path of registration; the fields mean what they do in `registerRequestSchema`. */
 export const passkeyRegisterOptionsRequestSchema = registerRequestSchema.omit({
   password: true,

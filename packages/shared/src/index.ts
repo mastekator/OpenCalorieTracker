@@ -39,6 +39,7 @@ export type ErrorCode =
   | 'photo_in_use'
   | 'agent_not_ready'
   | 'agent_closed'
+  | 'cannot_delete_self'
   | 'internal';
 
 export interface ErrorBody {

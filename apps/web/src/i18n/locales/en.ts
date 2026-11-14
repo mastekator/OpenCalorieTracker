@@ -55,6 +55,7 @@ export const en = {
     photo_in_use: 'This photo is already attached to another meal',
     agent_not_ready: 'Finish the dialog up to the summary first',
     agent_closed: 'This dialog is closed. Use the form or start over',
+    cannot_delete_self: 'You cannot delete your own account here',
     internal: 'Something went wrong. Try again',
   } satisfies Record<ErrorCode, string>,
 };
