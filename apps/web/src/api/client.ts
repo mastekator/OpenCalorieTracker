@@ -26,6 +26,26 @@ export function setUnauthenticatedHandler(handler: () => void) {
   onUnauthenticated = handler;
 }
 
+// Set by app/update.ts: a write went through, so the «save again» bar can go (OCT-25 6.2).
+let onWriteOk = () => {};
+export function setWriteOkHandler(handler: () => void) {
+  onWriteOk = handler;
+}
+
+// The network is up but the server doesn't answer (E-2.4). Only real requests change it, no pings.
+let serverDown = false;
+const serverListeners = new Set<() => void>();
+function setServerDown(down: boolean) {
+  if (down === serverDown) return;
+  serverDown = down;
+  serverListeners.forEach((l) => l());
+}
+export const isServerDown = () => serverDown;
+export function subscribeServerDown(listener: () => void) {
+  serverListeners.add(listener);
+  return () => void serverListeners.delete(listener);
+}
+
 /** The session probe: its 401 means "not signed in", not "session expired". */
 export const ME_PATH = '/api/auth/me';
 
@@ -65,8 +85,11 @@ export async function api<T>(
     });
   } catch (err) {
     if (signal?.aborted) throw err;
+    if (navigator.onLine) setServerDown(true);
     throw new ApiError(0, 'network');
   }
+  // A proxy answers for the app when it is down; any other answer is the server's own.
+  setServerDown([502, 503, 504].includes(res.status));
 
   let data: unknown;
   try {
@@ -88,5 +111,6 @@ export async function api<T>(
 
   const parsed = schema.safeParse(data);
   if (!parsed.success) throw new ApiError(res.status, 'internal');
+  if (method !== 'GET') onWriteOk();
   return parsed.data;
 }

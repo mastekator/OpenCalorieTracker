@@ -7,7 +7,8 @@ import type { Key } from '../i18n/translate';
 import { useT } from '../i18n';
 import { Button } from '../ui/Button/Button';
 import { NavBar } from '../ui/NavBar/NavBar';
-import { useOnline } from '../ui/OfflineBar/OfflineBar';
+import { OfflineBar } from '../ui/OfflineBar/OfflineBar';
+import { useBarVariant } from './connection';
 import { PasskeysScreen } from '../features/settings/PasskeysScreen';
 import { PasswordScreen } from '../features/settings/PasswordScreen';
 import { SettingsScreen } from '../features/settings/SettingsScreen';
@@ -66,6 +67,7 @@ function MealEditStub() {
   const { t } = useT();
   return (
     <div className="screen">
+      <OfflineBar variant={useBarVariant()} />
       <NavBar
         title={t('nav.add_food')}
         back={{ href: '/', label: t('common.cancel') }}
@@ -86,7 +88,6 @@ const ADMIN_TITLES: Record<string, Key> = {
 export function AppScreens() {
   const { t } = useT();
   const { user, refresh } = useSession();
-  const online = useOnline();
   const [, navigate] = useLocation();
   const toSettings = { href: '/settings', label: t('nav.settings') };
   // shortcut: signs out at once; the confirm with unsent changes and clearing local data are OCT-80.
@@ -130,11 +131,7 @@ export function AppScreens() {
           title={t('nav.settings')}
           back={{ href: '/profile', label: t('nav.profile'), mobileOnly: true }}
         >
-          <SettingsScreen
-            user={user}
-            online={online}
-            onLogout={() => void logout()}
-          />
+          <SettingsScreen user={user} onLogout={() => void logout()} />
         </Screen>
       </Route>
       <Route path="/settings/passkeys">
@@ -176,20 +173,36 @@ export function AppScreens() {
   );
 }
 
-/** Sign-in; a signed-in user goes on to `next` (AC-5.3). */
+/**
+ * Sign-in; a signed-in user goes on to `next` (AC-5.3) before the config is needed,
+ * so an offline start from the local copy never waits for /api/config.
+ */
 function Login() {
-  const config = useConfig();
   const { user, refresh } = useSession();
   const params = new URLSearchParams(useSearch());
   if (user) return <Redirect to={safeNext(params.get('next'))} replace />;
   return (
-    <AuthLayout>
-      <LoginScreen
-        config={config}
-        onSignedIn={refresh}
-        notice={params.has('expired') ? { kind: 'expired' } : undefined}
-      />
-    </AuthLayout>
+    <ConfigProvider>
+      <AuthLayout>
+        <LoginForm onSignedIn={refresh} expired={params.has('expired')} />
+      </AuthLayout>
+    </ConfigProvider>
+  );
+}
+
+function LoginForm({
+  onSignedIn,
+  expired,
+}: {
+  onSignedIn: () => Promise<void>;
+  expired: boolean;
+}) {
+  return (
+    <LoginScreen
+      config={useConfig()}
+      onSignedIn={onSignedIn}
+      notice={expired ? { kind: 'expired' } : undefined}
+    />
   );
 }
 
@@ -267,9 +280,7 @@ export function Routes() {
     <Switch>
       <Route path="/login">
         {/* Only sign-in needs the config: the signed-in app must start offline (E-8.10). */}
-        <ConfigProvider>
-          <Login />
-        </ConfigProvider>
+        <Login />
       </Route>
       <Route path="/invite">
         <ConfigProvider>

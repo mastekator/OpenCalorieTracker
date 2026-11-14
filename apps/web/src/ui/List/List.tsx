@@ -67,7 +67,7 @@ export function ListRow({
         )}
       </span>
       {value !== undefined && <span className="list-row__value">{value}</span>}
-      {(chevron ?? (interactive && !accent)) && (
+      {(chevron ?? (interactive && !accent && !disabled)) && (
         <ChevronRight className="list-row__chevron" aria-hidden="true" />
       )}
     </>

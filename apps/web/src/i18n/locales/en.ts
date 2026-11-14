@@ -4,7 +4,6 @@ import type { ClientErrorCode } from '../../api/client';
 // A plural is an object with an `other` key plus the categories the language uses.
 export const en = {
   common: {
-    need_online: 'Internet connection required',
     appName: 'OpenCalorieTracker',
     loading: 'Loading…',
     close: 'Close',
@@ -216,10 +215,18 @@ export const en = {
     },
   },
   offline: {
-    bar: 'Offline · data from {time}',
     no_network: 'No connection',
-    server_down: 'Server unavailable',
-    first_run: 'Sign-in needs a connection',
+    bar: 'Offline · everything is saved on this device',
+    server: 'Server unavailable · everything is saved on this device',
+    first: {
+      title: 'First sign-in needs a connection',
+      body: 'After that, the app works offline too. Connect to the internet — this screen will update on its own.',
+    },
+    blocked: {
+      agent: 'The goal assistant needs a connection',
+      auth: 'Passkeys and password can only be changed online',
+      admin: 'Admin settings need a connection',
+    },
   },
   nav: {
     main: 'Main menu',
@@ -390,6 +397,9 @@ export const en = {
         body: 'Allow access in Settings → Safari → Camera, or choose a photo from your library.',
       },
     },
+  },
+  sync: {
+    sent: { one: 'Synced {count} entry', other: 'Synced {count} entries' },
   },
   recog: {
     loading: 'Recognizing…',

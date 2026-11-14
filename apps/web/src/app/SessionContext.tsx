@@ -20,7 +20,6 @@ import {
   readOfflineUser,
   setLastUser,
 } from '../data/user';
-import { useT } from '../i18n';
 import { BootState } from './BootState';
 import { isPublicPath, loginHref } from './next';
 
@@ -56,7 +55,6 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<ApiError | null>(null);
   const [path, navigate] = useLocation();
   const search = useSearch();
-  const { t } = useT();
 
   const refresh = useCallback(async () => {
     try {
@@ -87,6 +85,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     void refresh();
   }, [refresh]);
 
+  const retry = useCallback(() => {
+    setError(null);
+    void refresh();
+  }, [refresh]);
+
   // Session expired mid-use: back to sign-in, then return here (AC-5.3).
   useEffect(() => {
     setUnauthenticatedHandler(() => {
@@ -99,18 +102,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     return () => setUnauthenticatedHandler(() => {});
   }, [path, search, navigate]);
 
-  if (user === undefined)
-    return (
-      <BootState
-        error={error}
-        // No network and no local copy: sign-in itself needs a connection.
-        hint={error?.code === 'network' ? t('offline.first_run') : undefined}
-        onRetry={() => {
-          setError(null);
-          void refresh();
-        }}
-      />
-    );
+  if (user === undefined) return <BootState error={error} onRetry={retry} />;
   return <SessionContext value={{ user, refresh }}>{children}</SessionContext>;
 }
 

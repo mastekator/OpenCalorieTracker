@@ -2,7 +2,9 @@ import type { ReactNode } from 'react';
 import { BookOpen, ChartColumn, House, Settings2, User } from 'lucide-react';
 import { useCapture } from '../features/meals/CaptureContext';
 import { useT } from '../i18n';
+import { useBarVariant } from './connection';
 import type { NavItem } from '../ui/nav';
+import { OfflineBar } from '../ui/OfflineBar/OfflineBar';
 import { Sidebar } from '../ui/Sidebar/Sidebar';
 import { TabBar } from '../ui/TabBar/TabBar';
 
@@ -35,7 +37,11 @@ export function AppShell({
         // Desktop: the file picker, as there is usually no camera (E-1.4).
         onAdd={capture.pick}
       />
-      <div className="app-shell__content">{children}</div>
+      <div className="app-shell__content">
+        {/* Desktop: full width of the main area, above the title (OCT-25 §7). */}
+        <OfflineBar variant={useBarVariant()} />
+        {children}
+      </div>
       <TabBar items={tabs} onAdd={capture.camera} onLongPress={capture.menu} />
     </div>
   );
