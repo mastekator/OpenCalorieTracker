@@ -158,7 +158,9 @@ describe('ProfileForm', () => {
     expect(within(goal).getByRole('radio', { name: 'Lose' }).ariaChecked).toBe(
       'true',
     );
-    await screen.findByText(/≈ 0\.4 kg a week · around/);
+    await screen.findByText(/≈ 0\.4 kg a week/);
+    // The date tail is one unbreakable piece.
+    expect(screen.getByText(/^· around/).className).toBe('profile__nowrap');
     expect(screen.getByLabelText('By date')).toBeTruthy();
   });
 

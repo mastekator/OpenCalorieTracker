@@ -2,12 +2,21 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { atPath } from '../ui/navStory';
 import { AppShell } from './AppShell';
 import { AppScreens } from './routes';
+import { SessionContext } from './SessionContext';
 
 /** The signed-in layout with placeholder screens; check it at 390 and at 1280 (desktop). */
 const meta = {
   title: 'App/AppShell',
   component: AppShell,
-  decorators: [atPath],
+  decorators: [
+    atPath,
+    // No server in Storybook: the profile screen shows its load error inside the shell.
+    (Story) => (
+      <SessionContext value={{ user: null, refresh: async () => {} }}>
+        <Story />
+      </SessionContext>
+    ),
+  ],
   render: (args) => (
     <AppShell {...args}>
       <AppScreens />

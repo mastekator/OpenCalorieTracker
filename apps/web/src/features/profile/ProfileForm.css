@@ -19,6 +19,10 @@
   color: var(--color-danger);
 }
 
+.profile__nowrap {
+  white-space: nowrap;
+}
+
 .profile__warn {
   color: var(--color-warning);
 }

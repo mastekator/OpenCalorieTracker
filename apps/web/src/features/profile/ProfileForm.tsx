@@ -260,6 +260,17 @@ export function ProfileForm({ initial, units, today, onAgent, onSave }: Props) {
       month: 'short',
       timeZone: 'UTC',
     }).format(new Date(date));
+  // The « · by Mar 1» tail stays on one line.
+  const keepTail = (text: string) => {
+    const i = text.lastIndexOf(' · ');
+    if (i < 0) return text;
+    return (
+      <>
+        {text.slice(0, i)}{' '}
+        <span className="profile__nowrap">{text.slice(i + 1)}</span>
+      </>
+    );
+  };
   let paceText: ReactNode = null;
   if (pace && hasTarget) {
     const params = {
@@ -269,12 +280,13 @@ export function ProfileForm({ initial, units, today, onAgent, onSave }: Props) {
     if (pace.deadlineOverdue)
       paceText = <span className="profile__warn">{t('goal.overdue')}</span>;
     else if (pace.source === 'deadline' && profile.deadline)
-      paceText = t('goal.pace', {
-        ...params,
-        date: shortDate(profile.deadline),
-      });
+      paceText = keepTail(
+        t('goal.pace', { ...params, date: shortDate(profile.deadline) }),
+      );
     else if (pace.etaDate)
-      paceText = t('goal.eta', { ...params, date: shortDate(pace.etaDate) });
+      paceText = keepTail(
+        t('goal.eta', { ...params, date: shortDate(pace.etaDate) }),
+      );
     else paceText = t('goal.rate', params);
   }
   const footerError = (f: Field | undefined) =>

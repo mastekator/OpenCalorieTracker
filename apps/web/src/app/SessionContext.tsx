@@ -33,7 +33,8 @@ type Session = {
   refresh: () => Promise<void>;
 };
 
-const SessionContext = createContext<Session | null>(null);
+/** Exported for stories that render signed-in screens without a server. */
+export const SessionContext = createContext<Session | null>(null);
 
 /** Another user signed in on this device: the previous one's local data goes first (AC-2.7). */
 async function rememberUser(me: MeResponse) {

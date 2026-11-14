@@ -58,6 +58,20 @@ describe('InlineNumber', () => {
     const input = await screen.findByRole('textbox', { name: 'Weight' });
     expect((input as HTMLInputElement).value).toBe('80.0');
   });
+
+  it('is as wide as the placeholder when empty', async () => {
+    render(
+      <InlineNumber
+        label="Height"
+        value={null}
+        onChange={() => {}}
+        placeholder="Указать"
+      />,
+      { wrapper: I18nProvider },
+    );
+    const input = await screen.findByRole('textbox', { name: 'Height' });
+    expect((input as HTMLInputElement).size).toBe('Указать'.length);
+  });
 });
 
 describe('HeightFtIn', () => {

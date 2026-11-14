@@ -90,6 +90,7 @@ export function InlineNumber({
           maximumFractionDigits: decimals,
           useGrouping: false,
         }).format(value));
+  const empty = placeholder ?? t('field.empty');
   const allowed = decimals ? /^\d*[.,]?\d*$/ : /^\d*$/;
   return (
     <span
@@ -103,8 +104,9 @@ export function InlineNumber({
         aria-label={label}
         aria-describedby={unit ? unitId : undefined}
         aria-invalid={error || undefined}
-        placeholder={placeholder ?? t('field.empty')}
-        size={Math.max(shown.length, 2)}
+        placeholder={empty}
+        // Empty: as wide as the placeholder, or «Указать» is cut to «Ука».
+        size={Math.max((shown || empty).length, 2)}
         value={shown}
         readOnly={readOnly}
         onFocus={() => setTyping(shown)}
