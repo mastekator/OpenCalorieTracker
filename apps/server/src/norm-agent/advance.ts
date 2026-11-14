@@ -2,12 +2,12 @@ import {
   addDays,
   addYears,
   ageYears,
+  nextField,
   birthDateError,
   calculateNorm,
   CM_PER_INCH,
   deadlineError,
   profileSchema,
-  REQUIRED_FIELDS,
   round1,
   targetWeightError,
   unitRanges,
@@ -230,18 +230,4 @@ export function advanceInterview(
     state: 'summary',
     messages: [reply(), { kind: 'summary', draft: p, norm }],
   };
-}
-
-/** First missing field in question order; target and deadline only for lose/gain, "unknown" counts as answered. */
-export function nextField({
-  profile: p,
-  unknown,
-}: InterviewDraft): InterviewField | null {
-  const required = REQUIRED_FIELDS.find((k) => p[k] === null);
-  if (required) return required;
-  if (p.goal === 'maintain') return null;
-  if (p.targetWeightKg === null)
-    return unknown.includes('targetWeightKg') ? null : 'targetWeightKg';
-  if (p.deadline === null && !unknown.includes('deadline')) return 'deadline';
-  return null;
 }
