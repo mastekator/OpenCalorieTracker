@@ -5,7 +5,6 @@ import { Redirect, Route, Switch, useLocation, useSearch } from 'wouter';
 import { api } from '../api/client';
 import type { Key } from '../i18n/translate';
 import { useT } from '../i18n';
-import { Button } from '../ui/Button/Button';
 import { NavBar } from '../ui/NavBar/NavBar';
 import { OfflineBar } from '../ui/OfflineBar/OfflineBar';
 import { useBarVariant } from './connection';
@@ -15,8 +14,8 @@ import { SettingsScreen } from '../features/settings/SettingsScreen';
 import {
   CaptureProvider,
   MEAL_NEW_PATH,
-  useCapture,
 } from '../features/meals/CaptureContext';
+import { TodayScreen } from '../features/diary/TodayScreen';
 import {
   MEAL_EDIT_PATH,
   RecognitionScreen,
@@ -42,22 +41,6 @@ function Screen({
     <div className={`screen${wide ? ' screen--wide' : ''}`}>
       <NavBar {...nav} />
       <main className="screen__body">{children}</main>
-    </div>
-  );
-}
-
-// shortcut: only the way into the photo flow; the Today screen itself is OCT-67.
-function TodayStub() {
-  const { t } = useT();
-  const capture = useCapture();
-  return (
-    <div className="today-stub">
-      <Button variant="tonal" onClick={capture.pick}>
-        {t('capture.gallery')}
-      </Button>
-      <Button variant="tonal" onClick={capture.manual}>
-        {t('capture.manual')}
-      </Button>
     </div>
   );
 }
@@ -102,7 +85,7 @@ export function AppScreens() {
     <Switch>
       <Route path="/">
         <Screen wide large title={t('nav.today')}>
-          <TodayStub />
+          <TodayScreen />
         </Screen>
       </Route>
       <Route path="/diary">
@@ -262,6 +245,10 @@ function SignedIn() {
             <MealNew />
           </Route>
           <Route path={MEAL_EDIT_PATH}>
+            <MealEditStub />
+          </Route>
+          {/* After the two above: «new» is not a clientId. */}
+          <Route path="/meal/:clientId">
             <MealEditStub />
           </Route>
           <Route>

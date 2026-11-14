@@ -156,6 +156,19 @@ describe('AuthGate', () => {
     expect(await screen.findByRole('heading', { name: 'Week' })).toBeTruthy();
   });
 
+  it('keeps /meal/new on the new-meal flow, other ids open the meal', async () => {
+    serve(me);
+    let location = renderAt('/meal/new');
+    // No photo: manual entry on the edit screen, not a meal with clientId «new».
+    await screen.findByRole('heading', { name: 'Add food' });
+    expect(location.history.at(-1)).toBe('/meal/new/edit');
+    cleanup();
+
+    location = renderAt('/meal/abc');
+    await screen.findByRole('heading', { name: 'Add food' });
+    expect(location.history).toEqual(['/meal/abc']);
+  });
+
   it('shows 3.4 offline when nobody has signed in here, with a retry', async () => {
     serve(null, true);
     renderAt('/week');

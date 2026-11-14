@@ -442,6 +442,16 @@ export const en = {
     macro: { left: '{n} g left', over: '{n} g over' },
     week_left: '{n} kcal left this week',
     week_over: '{n} kcal over this week',
+    empty: {
+      title: 'Nothing logged yet',
+      body: 'Take a photo of your food — we’ll count calories and macros.',
+    },
+  },
+  load: {
+    err: {
+      title: 'Couldn’t load this day',
+      body: 'Check your connection and try again.',
+    },
   },
   macro: {
     protein: 'Protein',

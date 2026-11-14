@@ -3,6 +3,17 @@
   align-items: center;
 }
 
+/* A just-saved meal fades from accent-soft (OCT-16 A.6). */
+.meal-row--new {
+  animation: meal-row-new var(--duration-slow) var(--ease-out);
+}
+
+@keyframes meal-row-new {
+  from {
+    background: var(--color-accent-soft);
+  }
+}
+
 .meal-row__open {
   flex: 1;
   min-width: 0;
