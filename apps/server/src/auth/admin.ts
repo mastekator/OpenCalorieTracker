@@ -105,3 +105,24 @@ async function seedOrCheckAdmin(config: Config, db: Database) {
     );
   }
 }
+
+/**
+ * E-6.2, `cli.js reset-admin-access`: lifts every sign-in block and timeout, then issues a fresh
+ * 24-hour admin recovery link. Blocks are lifted even when the link cannot be made.
+ */
+export function resetAdminAccess(config: Config, db: Database) {
+  const cleared = db.prepare('DELETE FROM login_guards').run().changes;
+  const admin = db
+    .prepare("SELECT id FROM users WHERE role = 'admin'")
+    .get() as { id: number } | undefined;
+  if (!admin) throw new Error('The database has no admin.');
+  if (!config.publicUrl)
+    throw new Error('PUBLIC_URL is missing or invalid; cannot build the link.');
+  const { url, expiresAt } = createLink(db, config.publicUrl, {
+    kind: 'recovery',
+    userId: admin.id,
+    ttl: ADMIN_SETUP_TTL,
+    createdBy: null,
+  });
+  return { cleared, url, expiresAt };
+}
