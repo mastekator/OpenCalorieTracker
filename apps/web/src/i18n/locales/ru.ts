@@ -5,6 +5,8 @@ const ru: DeepPartial<typeof en> = {
   common: {
     appName: 'OpenCalorieTracker',
     loading: 'Загрузка…',
+    close: 'Закрыть',
+    retry: 'Повторить',
     tryAgainIn: {
       one: 'Повторите через {count} минуту',
       few: 'Повторите через {count} минуты',
@@ -18,6 +20,11 @@ const ru: DeepPartial<typeof en> = {
     invite: 'Принять приглашение',
     recover: 'Восстановление доступа',
     register: 'Регистрация',
+  },
+  offline: {
+    bar: 'Офлайн · данные на {time}',
+    no_network: 'Нет сети',
+    server_down: 'Сервер недоступен',
   },
   update: {
     stale: 'Приложение обновилось · сохраните ещё раз',
