@@ -1,4 +1,5 @@
 .confirm {
+  margin: auto; /* base.css resets the <dialog> default */
   width: calc(100% - 2 * var(--screen-gutter));
   max-width: var(--alert-width);
   padding: var(--space-5) var(--space-4) var(--space-4);
@@ -16,6 +17,7 @@
 
 .confirm__title {
   margin: 0;
+  outline: none; /* focused on open for screen readers, not a control */
   font-size: var(--text-headline-size);
   line-height: var(--text-headline-lh);
   font-weight: var(--text-headline-weight);

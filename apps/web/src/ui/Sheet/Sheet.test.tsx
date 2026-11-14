@@ -34,13 +34,18 @@ const open = async () => {
 };
 
 describe('Sheet', () => {
-  it('moves focus inside and traps Tab at both ends', async () => {
+  it('focuses the title and traps Tab at both ends', async () => {
     render(<Harness />, { wrapper: I18nProvider });
     await open();
+    const title = screen.getByRole('heading', {
+      name: 'Forgot your password?',
+    });
     const close = screen.getByRole('button', { name: 'Close' });
     const done = screen.getByRole('button', { name: 'Done' });
-    expect(document.activeElement).toBe(close);
+    expect(document.activeElement).toBe(title);
 
+    fireEvent.keyDown(title, { key: 'Tab' });
+    expect(document.activeElement).toBe(close);
     fireEvent.keyDown(close, { key: 'Tab', shiftKey: true });
     expect(document.activeElement).toBe(done);
     fireEvent.keyDown(done, { key: 'Tab' });

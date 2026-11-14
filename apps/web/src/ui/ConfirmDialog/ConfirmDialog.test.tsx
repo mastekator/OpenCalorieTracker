@@ -40,12 +40,15 @@ const open = async () => {
 };
 
 describe('ConfirmDialog', () => {
-  it('is an alertdialog with focus on Cancel and Tab trapped', async () => {
+  it('is an alertdialog with focus on the title and Tab trapped', async () => {
     render(<Harness />, { wrapper: I18nProvider });
     await open();
     const dialog = screen.getByRole('alertdialog', { name: 'Delete passkey?' });
     expect(dialog.getAttribute('aria-describedby')).toBeTruthy();
+    const title = screen.getByRole('heading', { name: 'Delete passkey?' });
+    expect(document.activeElement).toBe(title);
     const cancel = screen.getByRole('button', { name: 'Cancel' });
+    fireEvent.keyDown(title, { key: 'Tab' });
     expect(document.activeElement).toBe(cancel);
     const confirm = within(dialog).getByRole('button', { name: 'Delete' });
     confirm.focus();

@@ -65,7 +65,12 @@ export function Sheet({ open, onClose, title, children, footer }: Props) {
           >
             <div className="sheet__handle" aria-hidden="true" />
             <div className="sheet__header">
-              <h2 id={titleId} className="sheet__title">
+              <h2
+                id={titleId}
+                className="sheet__title"
+                tabIndex={-1}
+                data-autofocus
+              >
                 {title}
               </h2>
               <button

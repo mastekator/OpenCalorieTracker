@@ -60,3 +60,9 @@
 .toast__action:focus-visible {
   outline-color: var(--color-bg);
 }
+
+/* Over an open sheet or dialog there is no tab bar: sit on the scrim at the top, covering nothing. */
+:root dialog[open] .toast {
+  top: calc(env(safe-area-inset-top) + var(--space-2));
+  bottom: auto;
+}

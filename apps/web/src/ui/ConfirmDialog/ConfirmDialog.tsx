@@ -40,7 +40,12 @@ export function ConfirmDialog({
     >
       {open && (
         <>
-          <h2 id={`${id}-title`} className="confirm__title">
+          <h2
+            id={`${id}-title`}
+            className="confirm__title"
+            tabIndex={-1}
+            data-autofocus
+          >
             {title}
           </h2>
           {body && (
@@ -49,7 +54,7 @@ export function ConfirmDialog({
             </p>
           )}
           <div className="confirm__actions">
-            <Button variant="tonal" onClick={onCancel} data-autofocus>
+            <Button variant="tonal" onClick={onCancel}>
               {t('common.cancel')}
             </Button>
             <Button variant={tone} onClick={onConfirm}>

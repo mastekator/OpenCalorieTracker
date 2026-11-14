@@ -25,7 +25,7 @@ if (typeof document !== 'undefined')
 
 /**
  * Native modal <dialog> driven by `open`: focus goes inside (an element with
- * data-autofocus, else the first focusable), Tab cycles inside, Esc asks
+ * data-autofocus, e.g. the title so a tap doesn't light a focus ring, else the first focusable), Tab cycles inside, Esc asks
  * onClose, and on close focus returns to the element that opened it.
  * The dialog never closes itself: the screen decides (e.g. confirm unsaved).
  */
