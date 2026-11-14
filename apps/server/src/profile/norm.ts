@@ -1,5 +1,11 @@
 import type { Database } from 'better-sqlite3';
-import { effectiveNorm, type ProfileResponse } from '@oct/shared';
+import {
+  effectiveNorm,
+  type ManualNorm,
+  type Profile,
+  type ProfileResponse,
+} from '@oct/shared';
+import { bumpRev } from '../sync/rev.js';
 
 interface ProfileRow {
   sex: 'male' | 'female' | null;
@@ -51,4 +57,41 @@ export function readProfile(db: Database, userId: number): ProfileResponse {
 export function getDailyNorm(db: Database, userId: number, today: string) {
   const { profile, manual } = readProfile(db, userId);
   return effectiveNorm(profile, manual, today);
+}
+
+/** Saves the profile and manual norm (null clears it) with a new rev; call inside a transaction. */
+export function writeProfile(
+  db: Database,
+  userId: number,
+  p: Profile,
+  m: ManualNorm | null,
+) {
+  db.prepare(
+    `INSERT INTO profiles (user_id, sex, birth_date, height_cm, weight_kg, activity, goal,
+       target_weight_kg, deadline, kcal_override, protein_pct, fat_pct, carbs_pct, updated_at, rev)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT (user_id) DO UPDATE SET
+       sex = excluded.sex, birth_date = excluded.birth_date, height_cm = excluded.height_cm,
+       weight_kg = excluded.weight_kg, activity = excluded.activity, goal = excluded.goal,
+       target_weight_kg = excluded.target_weight_kg, deadline = excluded.deadline,
+       kcal_override = excluded.kcal_override, protein_pct = excluded.protein_pct,
+       fat_pct = excluded.fat_pct, carbs_pct = excluded.carbs_pct,
+       updated_at = excluded.updated_at, rev = excluded.rev`,
+  ).run(
+    userId,
+    p.sex,
+    p.birthDate,
+    p.heightCm,
+    p.weightKg,
+    p.activity,
+    p.goal,
+    p.targetWeightKg,
+    p.deadline,
+    m?.kcal ?? null,
+    m?.proteinPct ?? null,
+    m?.fatPct ?? null,
+    m?.carbsPct ?? null,
+    Date.now(),
+    bumpRev(db, userId),
+  );
 }

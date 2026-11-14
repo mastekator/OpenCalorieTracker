@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import sharp from 'sharp';
-import type { Meal, MealInput } from '@oct/shared';
+import type { Meal, MealInput, PreviousDishesResponse } from '@oct/shared';
 import { ensureAdmin } from '../auth/admin.js';
 import { hashPassword } from '../auth/password.js';
 import { photoPath } from '../photos/store.js';
@@ -352,6 +352,19 @@ describe('meals', () => {
     ).toBeNull();
   });
 
+  it('saves a meal without expiry after retention is set to forever', async () => {
+    const t = await setup();
+    await t.call(t.cookie, 'PUT', '/account/photo-retention', { days: null });
+    const photoId = await t.upload(t.cookie);
+    const meal = (await (
+      await t.call(t.cookie, 'POST', '/meals', input({ photoId }))
+    ).json()) as Meal;
+    expect(meal.photo).toEqual({ id: photoId, full: true });
+    expect(
+      t.db.prepare('SELECT photo_expires_at FROM meals').pluck().get(),
+    ).toBeNull();
+  });
+
   it('deletes the meal with its photo files, idempotently (AC-10.5)', async () => {
     const t = await setup();
     const photoId = await t.upload(t.cookie);
@@ -391,6 +404,109 @@ describe('meals', () => {
     const t = await setup();
     expect((await t.call('', 'POST', '/meals', input())).status).toBe(401);
     expect((await t.call('', 'GET', '/meals/1')).status).toBe(401);
+  });
+});
+
+describe('previous dishes', () => {
+  const DAY = 86_400_000;
+  /** Saves a meal with one dish eaten `daysAgo` days ago; returns its id. */
+  const eat = async (
+    t: Awaited<ReturnType<typeof setup>>,
+    cookie: string,
+    name: string,
+    kcal: number,
+    daysAgo: number,
+  ) => {
+    const res = await t.call(cookie, 'POST', '/meals', {
+      ...input(),
+      items: [
+        {
+          name,
+          grams: 200,
+          kcal,
+          proteinG: 5,
+          fatG: 3,
+          carbsG: 20,
+          source: 'manual',
+        },
+      ],
+    });
+    const { id } = (await res.json()) as Meal;
+    t.db
+      .prepare('UPDATE meals SET eaten_at = ? WHERE id = ?')
+      .run(Date.now() - daysAgo * DAY, id);
+    return id;
+  };
+  const ask = async (
+    t: Awaited<ReturnType<typeof setup>>,
+    cookie: string,
+    dishes: unknown[],
+  ) => {
+    const res = await t.call(cookie, 'POST', '/dishes/previous', { dishes });
+    return {
+      status: res.status,
+      body: (await res.json()) as PreviousDishesResponse,
+    };
+  };
+
+  it('matches by name ignoring case and extra spaces (AC-11.1)', async () => {
+    const t = await setup();
+    const id = await eat(t, t.cookie, 'Гречка с курицей', 300, 1);
+    const { status, body } = await ask(t, t.cookie, [
+      { name: '  гречка   С курицей ', kcalPer100: 150 },
+      { name: 'Борщ' },
+    ]);
+    expect(status).toBe(200);
+    expect(body).toEqual([
+      {
+        mealId: id,
+        eatenAt: expect.any(String),
+        grams: 200,
+        kcal: 300,
+        proteinG: 5,
+        fatG: 3,
+        carbsG: 20,
+        illustration: null,
+      },
+      null,
+    ]);
+  });
+
+  it('skips a newer dish with a different density for an older similar one', async () => {
+    const t = await setup();
+    const old = await eat(t, t.cookie, 'Салат', 100, 10); // 50 kcal/100 g
+    await eat(t, t.cookie, 'Салат', 600, 2); // 300 kcal/100 g
+    const { body } = await ask(t, t.cookie, [
+      { name: 'Салат', kcalPer100: 55 },
+      { name: 'Салат', kcalPer100: 1000 },
+    ]);
+    expect(body[0]?.mealId).toBe(old);
+    expect(body[1]).toBeNull();
+  });
+
+  it('without kcalPer100 returns the latest dish by name', async () => {
+    const t = await setup();
+    await eat(t, t.cookie, 'Чай', 4, 5);
+    const latest = await eat(t, t.cookie, 'Чай', 300, 1);
+    const { body } = await ask(t, t.cookie, [{ name: 'чай' }]);
+    expect(body[0]?.mealId).toBe(latest);
+  });
+
+  it('ignores dishes older than 90 days and other users (AC-11.6)', async () => {
+    const t = await setup();
+    const other = await t.addUser('other@example.com');
+    await eat(t, t.cookie, 'Омлет', 300, 91);
+    await eat(t, other, 'Омлет', 300, 1);
+    const { body } = await ask(t, t.cookie, [{ name: 'Омлет' }]);
+    expect(body).toEqual([null]);
+  });
+
+  it('accepts 1..20 dishes', async () => {
+    const t = await setup();
+    expect((await ask(t, t.cookie, [])).status).toBe(400);
+    const many = Array.from({ length: 21 }, () => ({ name: 'Чай' }));
+    expect((await ask(t, t.cookie, many)).status).toBe(400);
+    expect((await ask(t, t.cookie, many.slice(1))).status).toBe(200);
   });
 });
 

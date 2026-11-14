@@ -37,6 +37,9 @@ export type ErrorCode =
   | 'photo_expired'
   | 'payload_too_large'
   | 'photo_in_use'
+  | 'agent_not_ready'
+  | 'agent_closed'
+  | 'cannot_delete_self'
   | 'internal';
 
 export interface ErrorBody {
@@ -69,7 +72,9 @@ export type ConfigResponse = z.infer<typeof configResponseSchema>;
 export * from './auth.js';
 export * from './units.js';
 export * from './recognition.js';
+export * from './ai-providers.js';
 export * from './meals.js';
+export * from './nutrition.js';
 export * from './norm/schemas.js';
 export * from './norm/calculate.js';
 export * from './norm/interview.js';

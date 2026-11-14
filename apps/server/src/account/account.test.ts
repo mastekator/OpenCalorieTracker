@@ -34,6 +34,7 @@ describe('PATCH /api/account/settings', () => {
       theme: 'system',
       units: 'metric',
       settingsRev: 1,
+      photoRetentionDays: 30,
     });
     expect(await (await patch({ theme: 'dark' })).json()).toMatchObject({
       theme: 'dark',
@@ -44,6 +45,7 @@ describe('PATCH /api/account/settings', () => {
       theme: 'dark',
       units: 'us',
       settingsRev: 3,
+      photoRetentionDays: 30,
     });
     expect(syncRev()).toBe(3);
   });

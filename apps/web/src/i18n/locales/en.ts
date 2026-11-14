@@ -9,6 +9,7 @@ export const en = {
     close: 'Close',
     cancel: 'Cancel',
     got_it: 'Got it',
+    retry: 'Try again',
     tryAgainIn: {
       one: 'Try again in {count} minute',
       other: 'Try again in {count} minutes',
@@ -22,6 +23,11 @@ export const en = {
     register: 'Create account',
   },
   auth: {
+    email: 'Email',
+    email_ph: 'name@example.com',
+    password: 'Password',
+    show_password: 'Show password',
+    hide_password: 'Hide password',
     forgot_sheet: {
       title: 'Forgot your password?',
       body: 'This app doesn’t send emails. Ask the admin of this installation for a recovery link — you can use it to set a new password or create a passkey. Your diary stays intact.',
@@ -35,6 +41,28 @@ export const en = {
     },
   },
   link_ready: { share: 'Share', copied: 'Link copied' },
+  reg: {
+    name: 'Your name',
+    method: {
+      title: 'Sign-in method',
+      passkey: 'Passkey',
+      password: 'Password',
+    },
+  },
+  form: { err: { email: 'Enter an email, like name@example.com' } },
+  pw: {
+    rule: {
+      length: 'At least {min} characters',
+      letter_digit: 'A letter and a number',
+      symbol: 'A symbol, like ! - _ or a space',
+      not_email: 'Not the same as your email',
+    },
+  },
+  offline: {
+    bar: 'Offline · data from {time}',
+    no_network: 'No connection',
+    server_down: 'Server unavailable',
+  },
   update: {
     stale: 'The app has been updated · please save again',
   },
@@ -70,6 +98,9 @@ export const en = {
     photo_expired: 'The full photo is no longer stored. Take a new one',
     payload_too_large: 'The request is too large',
     photo_in_use: 'This photo is already attached to another meal',
+    agent_not_ready: 'Finish the dialog up to the summary first',
+    agent_closed: 'This dialog is closed. Use the form or start over',
+    cannot_delete_self: 'You cannot delete your own account here',
     internal: 'Something went wrong. Try again',
   } satisfies Record<ErrorCode, string>,
 };

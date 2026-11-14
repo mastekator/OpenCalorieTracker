@@ -1,0 +1,112 @@
+/* Appears by height (OCT-13 §3, motion): the grid row grows from 0fr to 1fr. */
+.banner {
+  display: grid;
+  grid-template-rows: 1fr;
+  border-radius: var(--radius-lg);
+  font-size: var(--text-subhead-size);
+  line-height: var(--text-subhead-lh);
+  animation: banner-in var(--duration-base) var(--ease-out);
+}
+
+@keyframes banner-in {
+  from {
+    grid-template-rows: 0fr;
+    opacity: 0;
+  }
+}
+
+.banner__body {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  min-height: 0;
+  overflow: hidden;
+  padding: var(--space-3) var(--space-4);
+}
+
+.banner__icon {
+  display: flex;
+}
+
+.banner__icon .lucide {
+  width: var(--icon-size);
+  height: var(--icon-size);
+}
+
+.banner__text {
+  flex: 1;
+  min-width: 0;
+  align-self: center;
+  overflow-wrap: anywhere;
+}
+
+.banner__title {
+  font-weight: 600;
+}
+
+.banner__close {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: var(--tap-min);
+  height: var(--tap-min);
+  /* The 44×44 hit area overlaps the padding so the icon lines up with the text. */
+  margin: calc(var(--space-3) * -1) calc(var(--space-4) * -1)
+    calc(var(--space-3) * -1) 0;
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.banner__close .lucide {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+}
+
+.banner__close:focus-visible {
+  outline-offset: calc(var(--focus-ring-width) * -1);
+}
+
+@media (hover: hover) {
+  .banner__close:hover {
+    background: var(--color-hover);
+  }
+}
+
+.banner--notice {
+  background: var(--color-notice);
+  color: var(--color-text);
+}
+
+.banner--notice .banner__icon {
+  color: var(--color-text-secondary);
+}
+
+.banner--warning {
+  background: var(--color-warning-soft);
+  color: var(--color-text);
+}
+
+.banner--warning .banner__icon {
+  color: var(--color-warning);
+}
+
+.banner--danger {
+  background: var(--color-danger-soft);
+  color: var(--color-text);
+}
+
+.banner--danger .banner__icon {
+  color: var(--color-danger);
+}
+
+.banner--accent {
+  background: var(--color-accent-soft);
+  color: var(--color-text);
+}
+
+.banner--accent .banner__icon {
+  color: var(--color-accent);
+}

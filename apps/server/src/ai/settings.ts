@@ -37,3 +37,8 @@ export function getAiSettings(config: Config): AiSettings | null {
   }
   return { provider, model, apiKey, baseUrl, source: 'env' };
 }
+
+/** host:port of the base URL only: no path, query or user:pass@ (ADR-0013). */
+export function baseUrlHost(settings: AiSettings | null) {
+  return settings?.baseUrl ? (URL.parse(settings.baseUrl)?.host ?? null) : null;
+}

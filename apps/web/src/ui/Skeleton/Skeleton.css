@@ -1,0 +1,29 @@
+.skeleton {
+  display: block;
+  max-width: 100%;
+  background: linear-gradient(
+      90deg,
+      transparent 0%,
+      var(--color-hover) 50%,
+      transparent 100%
+    )
+    var(--color-surface-2) no-repeat;
+  background-size: 50% 100%;
+  animation: skeleton-shimmer var(--duration-shimmer) var(--ease-in-out)
+    infinite;
+}
+
+@keyframes skeleton-shimmer {
+  from {
+    background-position: -100% 0;
+  }
+  to {
+    background-position: 200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}
