@@ -30,6 +30,17 @@
     animation: none;
   }
 
+  :root .sheet.sheet--full {
+    max-width: var(--modal-flow-max-width);
+    height: var(--chat-sheet-height);
+    max-height: var(--chat-sheet-height);
+    border-radius: var(--radius-lg);
+  }
+
+  :root .sheet--full .sheet__grab {
+    padding-top: var(--space-2);
+  }
+
   :root .sheet__handle {
     display: none;
   }

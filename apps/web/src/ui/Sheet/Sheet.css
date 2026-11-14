@@ -102,6 +102,17 @@
   padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom));
 }
 
+/* Full screen on the phone (chat with the assistant, OCT-22 §3); desktop size in styles/layout.css. */
+.sheet.sheet--full {
+  height: 100dvh;
+  max-height: 100dvh;
+  border-radius: 0;
+}
+
+.sheet--full .sheet__grab {
+  padding-top: calc(var(--space-2) + env(safe-area-inset-top));
+}
+
 @media (hover: hover) {
   .sheet__close:hover {
     background: var(--color-hover);

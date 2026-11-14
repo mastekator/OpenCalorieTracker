@@ -253,9 +253,30 @@ export const en = {
     missing: 'Add your {fields} to see your goal',
     fix: 'Fix {field} to see your goal',
     minor: 'This calculation is for adults',
+    disclaimer:
+      'This is an estimate, not medical advice. If you have a medical condition, are pregnant or breastfeeding, or are under 18, talk to a doctor.',
   },
   agent: { cta: 'Set up with the assistant' },
-  chat: { title: 'Goal assistant' },
+  chat: {
+    title: 'Goal assistant',
+    placeholder: 'Answer in your own words',
+    send: 'Send',
+    typing: 'Assistant is typing',
+    greeting:
+      'I’ll help you work out your daily goal. I’ll ask a few questions, one at a time. Answer however you like — even all at once: “male, 34, 182 and 85”.',
+    minor_disabled: 'Calculation is available from age 18',
+    summary: {
+      title: 'Check that everything’s right',
+      formula: 'Formula',
+      age: 'Age',
+      body: 'Height and weight',
+      goal_to: '{goal} to {weight}',
+    },
+    apply: 'Apply goal',
+    fix: 'Edit',
+    apply_error: 'Couldn’t apply the goal',
+    apply_error_body: 'Check your connection and try again.',
+  },
   field: {
     empty: 'Add',
     pick: 'Choose',
@@ -273,6 +294,17 @@ export const en = {
     weight: 'Weight',
   },
   unit: { cm: 'cm', kg: 'kg', lb: 'lb' },
+  pace: {
+    fast: {
+      title: 'Fast pace',
+      body: 'You’ll lose muscle along with fat, and it’s hard to keep up.',
+    },
+    danger: {
+      title: 'This pace may harm your health',
+      body: 'Talk to a doctor.',
+    },
+    gain_fast: 'Gaining this fast adds mostly fat.',
+  },
   goal: {
     title: 'Goal',
     lose: 'Lose',
