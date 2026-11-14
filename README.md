@@ -43,8 +43,11 @@ Configuration problems (bad `PUBLIC_URL`, missing admin settings) do not stop th
 
 Passkeys are bound to the domain in `PUBLIC_URL`, and invite and recovery links are built from it. Pick the final address before users sign up. If you change it later:
 
-- every passkey stops working — users sign in with a password, or need a recovery link if passwords are off;
+- every passkey stops working — users sign in with a password, or with a recovery link from the admin if passwords are off; the admin uses [`reset-admin-access`](#locked-out-reset-admin-access);
+- after signing in, users remove the old passkeys in settings and add new ones;
 - invite and recovery links issued before the change point to the old address — issue new ones.
+
+Accounts and all data stay.
 
 ### `TRUST_PROXY_HOPS`: the real client IP
 
