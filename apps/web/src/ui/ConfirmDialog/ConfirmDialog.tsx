@@ -9,10 +9,18 @@ type Props = {
   title: string;
   body?: string;
   confirmLabel: string;
+  /** Defaults to «Cancel»; e.g. «Close» (3.8) or «Stay» (leave with edits). */
+  cancelLabel?: string;
   tone?: 'danger' | 'primary';
   onConfirm: () => void;
   /** Cancel button and Esc; a tap on the scrim does nothing. */
   onCancel: () => void;
+  /**
+   * Optional third action (danger-plain), e.g. «Don't save». With it the
+   * buttons stack and focus starts on Cancel, the safe action (OCT-22 8.16).
+   */
+  secondaryLabel?: string;
+  onSecondary?: () => void;
 };
 
 export function ConfirmDialog({
@@ -20,13 +28,26 @@ export function ConfirmDialog({
   title,
   body,
   confirmLabel,
+  cancelLabel,
   tone = 'danger',
   onConfirm,
   onCancel,
+  secondaryLabel,
+  onSecondary,
 }: Props) {
   const { t } = useT();
   const id = useId();
   const dialog = useModalDialog(open, onCancel);
+  const three = secondaryLabel !== undefined;
+  const cancel = (
+    <Button
+      variant={three ? 'plain' : 'tonal'}
+      onClick={onCancel}
+      data-autofocus={three || undefined}
+    >
+      {cancelLabel ?? t('common.cancel')}
+    </Button>
+  );
 
   return (
     <dialog
@@ -44,7 +65,7 @@ export function ConfirmDialog({
             id={`${id}-title`}
             className="confirm__title"
             tabIndex={-1}
-            data-autofocus
+            data-autofocus={!three || undefined}
           >
             {title}
           </h2>
@@ -53,14 +74,24 @@ export function ConfirmDialog({
               {body}
             </p>
           )}
-          <div className="confirm__actions">
-            <Button variant="tonal" onClick={onCancel}>
-              {t('common.cancel')}
-            </Button>
-            <Button variant={tone} onClick={onConfirm}>
-              {confirmLabel}
-            </Button>
-          </div>
+          {three ? (
+            <div className="confirm__actions confirm__actions--stack">
+              <Button variant={tone} onClick={onConfirm}>
+                {confirmLabel}
+              </Button>
+              <Button variant="danger-plain" onClick={onSecondary}>
+                {secondaryLabel}
+              </Button>
+              {cancel}
+            </div>
+          ) : (
+            <div className="confirm__actions">
+              {cancel}
+              <Button variant={tone} onClick={onConfirm}>
+                {confirmLabel}
+              </Button>
+            </div>
+          )}
         </>
       )}
     </dialog>

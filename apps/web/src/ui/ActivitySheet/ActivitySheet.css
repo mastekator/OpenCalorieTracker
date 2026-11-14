@@ -1,0 +1,21 @@
+.activity-sheet__hint {
+  margin: 0 0 var(--space-4);
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+  color: var(--color-text-secondary);
+}
+
+.activity-sheet__factor {
+  font-variant-numeric: tabular-nums;
+}
+
+.activity-sheet__check {
+  flex: none;
+  width: var(--icon-size);
+  color: var(--color-accent);
+}
+
+.activity-sheet__check .lucide {
+  width: var(--icon-size);
+  height: var(--icon-size);
+}

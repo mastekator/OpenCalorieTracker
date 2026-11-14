@@ -1,0 +1,97 @@
+.meal-row {
+  display: flex;
+  align-items: center;
+}
+
+.meal-row__open {
+  flex: 1;
+  min-width: 0;
+}
+
+.meal-row__thumb {
+  flex: none;
+  width: var(--meal-thumb-size);
+  height: var(--meal-thumb-size);
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  background: var(--color-surface-2);
+}
+
+.meal-row__thumb--icon {
+  display: grid;
+  place-items: center;
+  color: var(--color-text-secondary);
+}
+
+.meal-row__thumb--icon .lucide {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+}
+
+.meal-row__main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.meal-row__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 600;
+}
+
+.meal-row__time {
+  font-weight: 400;
+  font-size: var(--text-subhead-size);
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.meal-row__dishes {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+  color: var(--color-text-secondary);
+}
+
+.meal-row__badges {
+  display: flex;
+  gap: var(--space-1);
+  margin-block-start: 2px;
+}
+
+.meal-row__kcal {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.meal-row__trash {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: var(--tap-min);
+  height: var(--tap-min);
+  margin-inline-end: var(--space-3);
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--color-hover);
+  color: var(--color-danger);
+  cursor: pointer;
+}
+
+.meal-row__trash .lucide {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+}
+
+@media (hover: hover) {
+  .meal-row:has(.meal-row__trash):hover {
+    background: var(--color-hover);
+  }
+}

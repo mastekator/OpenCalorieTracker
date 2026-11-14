@@ -43,7 +43,7 @@ export function authHelpers(deps: AppDeps) {
   const userById = (id: number | bigint) =>
     db
       .prepare(
-        `SELECT id, email, name, role, locale, theme, units, password_from_config
+        `SELECT id, email, name, role, locale, theme, units, password_from_config, norm_disclaimer_hidden
          FROM users WHERE id = ?`,
       )
       .get(id) as User;
@@ -84,6 +84,7 @@ export function authHelpers(deps: AppDeps) {
       locale: user.locale,
       theme: user.theme,
       units: user.units,
+      normDisclaimerHidden: user.norm_disclaimer_hidden === 1,
       passwordFromConfig: user.password_from_config === 1,
       methods,
     };
@@ -123,7 +124,7 @@ export function authRoutes(deps: AppDeps) {
         attempts.check();
         const user = db
           .prepare(
-            `SELECT id, email, name, role, locale, theme, units, password_from_config
+            `SELECT id, email, name, role, locale, theme, units, password_from_config, norm_disclaimer_hidden
              FROM users WHERE email = ?`,
           )
           .get(email) as User | undefined;

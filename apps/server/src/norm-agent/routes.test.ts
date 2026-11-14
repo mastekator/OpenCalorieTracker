@@ -58,6 +58,7 @@ async function setup(model: MockLanguageModelV4 | null) {
     (await (await call('GET', '/profile')).json()) as {
       profile: Profile;
       manual: unknown;
+      rev: number;
     };
   const count = (table: string) =>
     t.db.prepare(`SELECT COUNT(*) FROM ${table}`).pluck().get();
@@ -216,6 +217,7 @@ describe('summary, edit, apply', () => {
   it('applies the draft and clears the manual norm (E-3.1)', async () => {
     const t = await setup(scriptedModel(ALL).model);
     await t.call('PUT', '/profile', { profile: EMPTY, manual: MANUAL });
+    const saved = await t.profile();
     await t.call('GET', '/norm-agent');
 
     const early = await t.call('POST', '/norm-agent/apply');
@@ -230,9 +232,15 @@ describe('summary, edit, apply', () => {
 
     const res = await t.call('POST', '/norm-agent/apply');
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { profile: Profile; manual: unknown };
+    const body = (await res.json()) as {
+      profile: Profile;
+      manual: unknown;
+      rev: number;
+    };
     expect(body).toEqual(await t.profile());
     expect(body.manual).toBeNull();
+    // A new rev, so other devices get the profile on sync (ADR-0011 §3).
+    expect(body.rev).toBeGreaterThan(saved.rev);
     expect(body.profile).toMatchObject({
       sex: 'female',
       heightCm: 165,

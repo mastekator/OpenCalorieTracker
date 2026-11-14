@@ -41,6 +41,8 @@ export const accountSettingsSchema = z.object({
   settingsRev: z.number().int(),
   /** Read-only here; changed through PUT /account/photo-retention. */
   photoRetentionDays: photoRetentionDaysSchema,
+  /** The norm disclaimer was dismissed; it never comes back (design 8.21). */
+  normDisclaimerHidden: z.boolean(),
 });
 export type AccountSettings = z.infer<typeof accountSettingsSchema>;
 
@@ -49,6 +51,8 @@ export const accountSettingsPatchSchema = z.object({
   locale: localeSchema.optional(),
   theme: themeSchema.optional(),
   units: unitsSchema.optional(),
+  /** Only `true`: a hidden disclaimer cannot be shown again. Not subject to `editedAt`. */
+  normDisclaimerHidden: z.literal(true).optional(),
   editedAt: z.number().int().nonnegative().optional(),
 });
 export type AccountSettingsPatch = z.infer<typeof accountSettingsPatchSchema>;

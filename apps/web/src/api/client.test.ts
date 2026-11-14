@@ -43,6 +43,15 @@ describe('api', () => {
     });
   });
 
+  it('sends a Blob as raw bytes with its own type', async () => {
+    respond(204, null);
+    const blob = new Blob(['x'], { type: 'image/jpeg' });
+    await api('/api/x', z.undefined(), { method: 'POST', body: blob });
+    const [, init] = vi.mocked(fetch).mock.calls[0]!;
+    expect(init?.body).toBe(blob);
+    expect(init?.headers).toMatchObject({ 'Content-Type': 'image/jpeg' });
+  });
+
   it('always sends the API version', async () => {
     respond(200, '{"ok":true}');
     await api('/api/x', schema);

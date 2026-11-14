@@ -47,9 +47,18 @@ export async function api<T>(
         Accept: 'application/json',
         // The server rejects writes from an outdated client (ADR-0012).
         'X-Api-Version': String(API_VERSION),
-        ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
+        // A Blob (photo upload, ADR-0008) goes as raw bytes with its own type.
+        ...(body === undefined
+          ? {}
+          : {
+              'Content-Type':
+                body instanceof Blob ? body.type : 'application/json',
+            }),
       },
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body:
+        body === undefined || body instanceof Blob
+          ? body
+          : JSON.stringify(body),
     });
   } catch (err) {
     if (signal?.aborted) throw err;

@@ -1,0 +1,69 @@
+.macro-split {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.macro-split__bar {
+  display: flex;
+  gap: 2px;
+  height: var(--space-2);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  background: var(--color-surface-2);
+}
+
+.macro-split__seg {
+  flex-basis: 0;
+}
+
+.macro-split__seg--protein,
+.macro-split__name--protein::before {
+  background: var(--color-protein);
+}
+
+.macro-split__seg--fat,
+.macro-split__name--fat::before {
+  background: var(--color-fat);
+}
+
+.macro-split__seg--carbs,
+.macro-split__name--carbs::before {
+  background: var(--color-carbs);
+}
+
+.macro-split__legend {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.macro-split__name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+  color: var(--color-text-secondary);
+}
+
+.macro-split__name::before {
+  content: '';
+  width: var(--space-2);
+  height: var(--space-2);
+  border-radius: var(--radius-full);
+}
+
+.macro-split__value {
+  margin: 0;
+  font-size: var(--text-headline-size);
+  line-height: var(--text-headline-lh);
+  font-weight: var(--text-headline-weight);
+  font-variant-numeric: tabular-nums;
+}
+
+.macro-split__value small {
+  font-size: var(--text-footnote-size);
+  font-weight: 400;
+  color: var(--color-text-secondary);
+}

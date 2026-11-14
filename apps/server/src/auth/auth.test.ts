@@ -136,6 +136,7 @@ describe('sign-in', () => {
       locale: 'en',
       theme: 'system',
       units: 'metric',
+      normDisclaimerHidden: false,
       passwordFromConfig: true,
       methods: ['password'],
     });

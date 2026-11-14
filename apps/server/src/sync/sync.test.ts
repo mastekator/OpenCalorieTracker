@@ -71,6 +71,17 @@ async function setup() {
   return { ...t, cookie, call, sync, addMeal, addUser };
 }
 
+const PROFILE = {
+  sex: 'female',
+  birthDate: '1990-05-01',
+  heightCm: 165,
+  weightKg: 70,
+  activity: 'moderate',
+  goal: 'maintain',
+  targetWeightKg: null,
+  deadline: null,
+};
+
 const input = (patch: Partial<MealInput> = {}): MealInput => ({
   clientId: randomUUID(),
   eatenAt: '2026-01-10T12:00:00.000Z',
@@ -209,12 +220,38 @@ describe('GET /api/sync', () => {
       illustration: 'soup',
     });
     await t.call(other, 'PATCH', '/account/settings', { theme: 'dark' });
+    await t.call(other, 'PUT', '/profile', { profile: PROFILE, manual: null });
     expect(await t.sync(0)).toEqual({
       rev: 0,
       more: false,
       meals: [],
       deletedMealClientIds: [],
       settings: expect.objectContaining({ theme: 'system', settingsRev: 0 }),
+    });
+  });
+
+  it('sends the profile after a save, not when unchanged or never saved', async () => {
+    const t = await setup();
+    expect((await t.sync(0)).profile).toBeUndefined();
+    const before = (await t.sync(0)).rev;
+    const saved = await t.call(t.cookie, 'PUT', '/profile', {
+      profile: PROFILE,
+      manual: null,
+    });
+    const next = await t.sync(before);
+    expect(next.profile).toEqual(saved.body);
+    expect(next.rev).toBe(saved.body.rev);
+    expect((await t.sync(next.rev)).profile).toBeUndefined();
+  });
+
+  it('sends normDisclaimerHidden in settings', async () => {
+    const t = await setup();
+    const rev = (await t.sync(0)).rev;
+    await t.call(t.cookie, 'PATCH', '/account/settings', {
+      normDisclaimerHidden: true,
+    });
+    expect((await t.sync(rev)).settings).toMatchObject({
+      normDisclaimerHidden: true,
     });
   });
 

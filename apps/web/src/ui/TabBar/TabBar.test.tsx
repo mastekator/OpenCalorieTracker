@@ -4,7 +4,7 @@ import { BookOpen, ChartColumn, House, User } from 'lucide-react';
 import { Router } from 'wouter';
 import { memoryLocation } from 'wouter/memory-location';
 import { I18nProvider, LOCALE_STORAGE_KEY } from '../../i18n';
-import { TabBar } from './TabBar';
+import { LONG_PRESS_MS, TabBar } from './TabBar';
 
 const items = [
   { href: '/', icon: House, label: 'Today' },
@@ -13,11 +13,11 @@ const items = [
   { href: '/profile', icon: User, label: 'Profile' },
 ];
 
-function renderAt(path: string, onAdd = () => {}) {
+function renderAt(path: string, onAdd = () => {}, onLongPress?: () => void) {
   render(
     <I18nProvider>
       <Router hook={memoryLocation({ path }).hook}>
-        <TabBar items={items} onAdd={onAdd} />
+        <TabBar items={items} onAdd={onAdd} onLongPress={onLongPress} />
       </Router>
     </I18nProvider>,
   );
@@ -62,5 +62,48 @@ describe('TabBar', () => {
     expect(slots.indexOf(camera.parentElement!)).toBe(2);
     fireEvent.click(camera);
     expect(onAdd).toHaveBeenCalledOnce();
+  });
+
+  it('long press opens the menu and swallows the click that ends it', async () => {
+    const onAdd = vi.fn();
+    const onLongPress = vi.fn();
+    renderAt('/', onAdd, onLongPress);
+    const camera = await screen.findByRole('button', {
+      name: 'Take a photo of food',
+    });
+    vi.useFakeTimers();
+    try {
+      fireEvent.pointerDown(camera, { clientX: 0, clientY: 0 });
+      vi.advanceTimersByTime(LONG_PRESS_MS);
+      expect(onLongPress).toHaveBeenCalledOnce();
+      fireEvent.pointerUp(camera);
+      fireEvent.click(camera);
+      expect(onAdd).not.toHaveBeenCalled();
+      // The next tap opens the camera again.
+      fireEvent.click(camera);
+      expect(onAdd).toHaveBeenCalledOnce();
+      expect(fireEvent.contextMenu(camera)).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('a short tap or a moved press is not a long press', async () => {
+    const onLongPress = vi.fn();
+    renderAt('/', () => {}, onLongPress);
+    const camera = await screen.findByRole('button', {
+      name: 'Take a photo of food',
+    });
+    vi.useFakeTimers();
+    try {
+      fireEvent.pointerDown(camera, { clientX: 0, clientY: 0 });
+      fireEvent.pointerUp(camera);
+      fireEvent.pointerDown(camera, { clientX: 0, clientY: 0 });
+      fireEvent.pointerMove(camera, { clientX: 0, clientY: 30 });
+      vi.advanceTimersByTime(LONG_PRESS_MS * 2);
+      expect(onLongPress).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

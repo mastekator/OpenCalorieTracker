@@ -38,6 +38,7 @@ const me = {
   locale: 'en',
   theme: 'system',
   units: 'metric',
+  normDisclaimerHidden: false,
   passwordFromConfig: false,
   methods: ['password'],
 };
