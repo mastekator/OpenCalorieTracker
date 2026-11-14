@@ -6,6 +6,7 @@ import { ConfirmDialog } from '../ui/ConfirmDialog/ConfirmDialog';
 import { isDirty, saveDirty } from './dirty';
 
 const url = () => location.pathname + location.search + location.hash;
+const pathOf = (to: string) => to.split(/[?#]/)[0];
 
 // The page the user is on: «back» has already changed the URL by the time we hear of it.
 let here = url();
@@ -16,7 +17,8 @@ for (const type of ['pushState', 'replaceState'])
   });
 // Added at import, before wouter subscribes, so it can stop wouter from rendering the new page.
 addEventListener('popstate', (e) => {
-  if (!ask || !isDirty()) {
+  // Same screen, another view of it (/profile ↔ /profile?how): nothing is left.
+  if (!ask || !isDirty() || location.pathname === pathOf(here)) {
     here = url();
     return;
   }
@@ -31,6 +33,7 @@ addEventListener('popstate', (e) => {
 /**
  * Asks before leaving a screen with unsaved edits (OCT-22 8.19, OCT-19 6.8):
  * links, tabs and navigate() through wouter, back/forward, closing the tab (in dirty.ts).
+ * Moving within the same path (only the query changes) stays on the screen and passes.
  * A screen opts in with useDirty(flag, save).
  */
 export function LeaveGuard({ children }: { children: ReactNode }) {
@@ -46,11 +49,7 @@ export function LeaveGuard({ children }: { children: ReactNode }) {
 
   // Redirects (replace) pass: they are the app's own, not the user leaving.
   const aroundNav = useCallback<AroundNavHandler>((nav, to, opts) => {
-    if (
-      !isDirty() ||
-      opts?.replace ||
-      to === location.pathname + location.search
-    )
+    if (!isDirty() || opts?.replace || pathOf(to) === location.pathname)
       return nav(to, opts);
     setGo(() => () => nav(to, opts));
   }, []);

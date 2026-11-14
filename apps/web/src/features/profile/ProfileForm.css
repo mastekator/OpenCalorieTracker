@@ -10,6 +10,11 @@
   gap: var(--space-4);
 }
 
+/* Kept mounted behind 8.20 so the draft survives. */
+.profile[hidden] {
+  display: none;
+}
+
 /* Phone: room under the last group for the save bar fixed above the tab bar. */
 .profile--dirty {
   padding-bottom: calc(var(--control-height) + 2 * var(--space-3));

@@ -56,6 +56,7 @@
   --sheet-handle-width: 36px;  --sheet-handle-height: 5px;
   --modal-flow-max-width: 720px;   /* desktop: camera → recognition → edit window */
   --desktop-gutter: var(--space-10);
+  --chat-avatar-size: 28px;      /* agent icon circle in the norm chat (OCT-22 §3) */
 
   /* ── Radii ── */
   --radius-sm: 8px;   /* chips, small badges */

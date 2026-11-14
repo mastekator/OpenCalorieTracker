@@ -27,6 +27,7 @@ function Page({
     <>
       <p data-testid="path">{path}</p>
       <Link href="/diary">Diary</Link>
+      <Link href="/profile?how">How</Link>
     </>
   );
 }
@@ -101,6 +102,17 @@ describe('LeaveGuard', () => {
     expect(path()).toBe('/profile');
     fireEvent.click(button('Don’t save'));
     expect(path()).toBe('/');
+  });
+
+  it('passes when only the query changes (/profile ↔ /profile?how), both ways', async () => {
+    await setup(true);
+    fireEvent.click(screen.getByText('How'));
+    expect(dialog()).toBeNull();
+    expect(location.search).toBe('?how');
+    act(() => history.back());
+    await waitFor(() => expect(location.search).toBe(''));
+    expect(dialog()).toBeNull();
+    expect(location.pathname).toBe('/profile');
   });
 
   it('asks on closing the tab only while there are edits', async () => {
