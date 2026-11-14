@@ -61,6 +61,7 @@ export const en = {
     bar: 'Offline · data from {time}',
     no_network: 'No connection',
     server_down: 'Server unavailable',
+    first_run: 'Sign-in needs a connection',
   },
   nav: {
     main: 'Main menu',
