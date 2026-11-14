@@ -139,6 +139,7 @@ describe('sign-in', () => {
       normDisclaimerHidden: false,
       passwordFromConfig: true,
       methods: ['password'],
+      enabledMethods: ['password', 'passkey'],
     });
     const cookie = setCookie(res, 'oct_session')!;
     expect(cookie).toMatch(/^oct_session=[\w-]{43};/);
