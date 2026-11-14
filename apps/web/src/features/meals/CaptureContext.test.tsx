@@ -12,7 +12,7 @@ import { Router } from 'wouter';
 import { memoryLocation } from 'wouter/memory-location';
 import { I18nProvider, LOCALE_STORAGE_KEY } from '../../i18n';
 import { ToastProvider } from '../../ui/Toast/Toast';
-import { CaptureProvider } from './CaptureContext';
+import { CaptureProvider, useCapture } from './CaptureContext';
 import { ImageDecodeError, prepareImage } from './prepareImage';
 
 vi.mock('./prepareImage', async (importOriginal) => ({
@@ -23,6 +23,16 @@ vi.mock('./prepareImage', async (importOriginal) => ({
 const jpeg = new Blob(['jpeg'], { type: 'image/jpeg' });
 const photo = new File(['raw'], 'food.heic', { type: 'image/heic' });
 
+function Probe() {
+  const capture = useCapture();
+  return (
+    <>
+      <button onClick={() => capture.addTo('2026-11-10')}>Add to day</button>
+      <button onClick={capture.manual}>Direct manual</button>
+    </>
+  );
+}
+
 async function setup() {
   const location = memoryLocation({ path: '/', record: true });
   render(
@@ -31,6 +41,7 @@ async function setup() {
         <Router hook={location.hook}>
           <CaptureProvider>
             <p>Today</p>
+            <Probe />
           </CaptureProvider>
         </Router>
       </ToastProvider>
@@ -84,6 +95,16 @@ describe('CaptureProvider', () => {
     const [path, init] = fetch.mock.calls[0]!;
     expect(path).toBe('/api/photos');
     expect(init).toMatchObject({ method: 'POST', body: jpeg });
+  });
+
+  it('«Add an entry for this day» carries the date; other ways in do not (AC-2.11)', async () => {
+    respond();
+    const location = await setup();
+    fireEvent.click(screen.getByText('Add to day'));
+    fireEvent.click(await screen.findByText('Enter manually'));
+    expect(location.history.at(-1)).toBe('/meal/new?date=2026-11-10');
+    fireEvent.click(screen.getByText('Direct manual'));
+    expect(location.history.at(-1)).toBe('/meal/new');
   });
 
   it('shows dialog 3.8 and uploads nothing when the photo cannot be decoded (E-1.1)', async () => {

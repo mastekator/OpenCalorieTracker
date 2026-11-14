@@ -17,7 +17,7 @@ import { useToast } from '../../ui/Toast/Toast';
 import { CaptureMenu } from './CaptureMenu';
 import { ImageDecodeError, prepareImage } from './prepareImage';
 
-/** The meal flow; the recognition screen (OCT-57) reads `?photo=`. */
+/** The meal flow; the recognition screen (OCT-57) reads `?photo=` and `?date=`. */
 export const MEAL_NEW_PATH = '/meal/new';
 
 type Capture = {
@@ -29,6 +29,8 @@ type Capture = {
   manual: () => void;
   /** Menu 5.5 (long press on the camera). */
   menu: () => void;
+  /** Menu 5.5 for a past day (`YYYY-MM-DD`; null: today): the flow opens with `?date=` (AC-2.11). */
+  addTo: (date: string | null) => void;
 };
 
 const noop = () => {};
@@ -37,6 +39,7 @@ const CaptureContext = createContext<Capture>({
   pick: noop,
   manual: noop,
   menu: noop,
+  addTo: noop,
 });
 
 export const useCapture = () => useContext(CaptureContext);
@@ -57,6 +60,8 @@ export function CaptureProvider({ children }: { children: ReactNode }) {
   const cameraInput = useRef<HTMLInputElement>(null);
   const pickInput = useRef<HTMLInputElement>(null);
   const busy = useRef(false);
+  // The day «Add an entry for this day» was opened for; null from every other way in.
+  const date = useRef<string | null>(null);
   const [dialog, setDialog] = useState<'open' | 'camera' | null>(null);
   const [menu, setMenu] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -78,7 +83,7 @@ export function CaptureProvider({ children }: { children: ReactNode }) {
         method: 'POST',
         body: blob,
       });
-      navigate(`${MEAL_NEW_PATH}?photo=${encodeURIComponent(photoId)}`);
+      navigate(flowPath(photoId));
     } catch (err) {
       if (!(err instanceof ApiError)) throw err;
       if (err.code === 'photo_invalid' || err.code === 'photo_too_large')
@@ -111,6 +116,14 @@ export function CaptureProvider({ children }: { children: ReactNode }) {
   const startRef = useRef(start);
   startRef.current = start;
 
+  const flowPath = (photoId?: string) => {
+    const query = new URLSearchParams();
+    if (photoId) query.set('photo', photoId);
+    if (date.current) query.set('date', date.current);
+    const q = query.toString();
+    return q ? `${MEAL_NEW_PATH}?${q}` : MEAL_NEW_PATH;
+  };
+
   const pick = () => pickInput.current?.click();
   const camera = () => {
     // shortcut: <input capture> reports no permission denial; only a thrown error shows E-1.3.
@@ -120,7 +133,7 @@ export function CaptureProvider({ children }: { children: ReactNode }) {
       setDialog('camera');
     }
   };
-  const manual = () => navigate(MEAL_NEW_PATH);
+  const manual = () => navigate(flowPath());
 
   const onPicked = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -176,6 +189,10 @@ export function CaptureProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  const today = (action: () => void) => () => {
+    date.current = null;
+    action();
+  };
   const closeMenuThen = (action: () => void) => () => {
     setMenu(false);
     action();
@@ -186,7 +203,18 @@ export function CaptureProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <CaptureContext value={{ camera, pick, manual, menu: () => setMenu(true) }}>
+    <CaptureContext
+      value={{
+        camera: today(camera),
+        pick: today(pick),
+        manual: today(manual),
+        menu: today(() => setMenu(true)),
+        addTo: (day) => {
+          date.current = day;
+          setMenu(true);
+        },
+      }}
+    >
       {children}
       <input
         ref={cameraInput}

@@ -4,7 +4,12 @@ import { useT } from '../../i18n';
 import { Button } from '../Button/Button';
 import { ToastProvider, useToast } from './Toast';
 
-type Props = { icon?: boolean; action?: boolean; long?: boolean };
+type Props = {
+  icon?: boolean;
+  action?: boolean;
+  long?: boolean;
+  durationMs?: number;
+};
 
 // Lucide `check`.
 const check = (
@@ -21,7 +26,12 @@ const check = (
 );
 
 // Shows on load; the button shows it again (it hides after 3 s).
-function Demo({ icon = false, action = false, long = false }: Props) {
+function Demo({
+  icon = false,
+  action = false,
+  long = false,
+  durationMs,
+}: Props) {
   const { t } = useT();
   const show = useToast();
   const toast = () =>
@@ -31,6 +41,7 @@ function Demo({ icon = false, action = false, long = false }: Props) {
       action: action
         ? { label: t('link_ready.share'), onClick: () => {} }
         : undefined,
+      durationMs,
     });
   useEffect(toast, []);
   return (
@@ -57,6 +68,8 @@ type Story = StoryObj<typeof meta>;
 export const Text: Story = {};
 export const WithIcon: Story = { args: { icon: true } };
 export const WithAction: Story = { args: { icon: true, action: true } };
+/** An undo stays 5 s (Diary 6.3). */
+export const Undo: Story = { args: { action: true, durationMs: 5000 } };
 /** Wraps on narrow screens (iPhone SE). */
 export const LongText: Story = {
   args: { long: true, action: true },

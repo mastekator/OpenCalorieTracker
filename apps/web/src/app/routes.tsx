@@ -16,6 +16,8 @@ import {
   MEAL_NEW_PATH,
   useCapture,
 } from '../features/meals/CaptureContext';
+import { localToday } from '../features/diary/day';
+import { DiaryScreen } from '../features/diary/DiaryScreen';
 import { ProfileScreen } from '../features/profile/ProfileScreen';
 import { AppShell } from './AppShell';
 import { AuthGate } from './AuthGate';
@@ -100,7 +102,14 @@ export function AppScreens() {
         </Screen>
       </Route>
       <Route path="/diary">
-        <Screen wide large title={t('nav.diary')} />
+        <Redirect to={`/diary/${localToday()}`} replace />
+      </Route>
+      <Route path="/diary/:date">
+        {({ date }) => (
+          <Screen wide large title={t('nav.diary')}>
+            <DiaryScreen date={date} />
+          </Screen>
+        )}
       </Route>
       <Route path="/week">
         <Screen wide large title={t('nav.week')} />
