@@ -1,5 +1,6 @@
 import type { Database } from 'better-sqlite3';
 import type { Meal, MealItem } from '@oct/shared';
+import { CHOICE_JOIN, resolveIllustration } from '../illustrations/routes.js';
 
 export interface MealRow {
   id: number;
@@ -20,18 +21,26 @@ function selectMeals(db: Database, where: string, ...params: unknown[]) {
     .prepare(`SELECT * FROM meals m WHERE ${where} ORDER BY eaten_at, id`)
     .all(...params) as MealRow[];
   const items = new Map<number, MealItem[]>();
-  for (const { mealId, ...i } of db
+  for (const { mealId, manual, ...i } of db
     .prepare(
-      `SELECT meal_id AS mealId, name, grams, kcal, protein_g AS proteinG, fat_g AS fatG,
-         carbs_g AS carbsG, source, ai_provider AS aiProvider, ai_model AS aiModel, confidence
-       FROM meal_items WHERE meal_id IN (SELECT id FROM meals m WHERE ${where})
-       ORDER BY meal_id, position`,
+      `SELECT i.meal_id AS mealId, i.name, i.grams, i.kcal, i.protein_g AS proteinG,
+         i.fat_g AS fatG, i.carbs_g AS carbsG, i.source, i.ai_provider AS aiProvider,
+         i.ai_model AS aiModel, i.confidence, i.illustration IS NOT NULL AS manual,
+         COALESCE(i.illustration, c.illustration) AS illustration
+       FROM meal_items i JOIN meals m ON m.id = i.meal_id ${CHOICE_JOIN}
+       WHERE ${where} ORDER BY i.meal_id, i.position`,
     )
     .all(...params) as (Omit<MealItem, 'illustration'> & {
     mealId: number;
+    manual: number;
+    illustration: string | null;
   })[]) {
     const list = items.get(mealId) ?? [];
-    list.push({ ...i, illustration: null });
+    list.push({
+      ...i,
+      illustration: resolveIllustration(i.illustration, i.name),
+      illustrationManual: !!manual,
+    });
     items.set(mealId, list);
   }
   return rows.map((m): Meal => {
