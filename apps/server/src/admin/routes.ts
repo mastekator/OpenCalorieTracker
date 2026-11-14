@@ -4,6 +4,8 @@ import {
   AI_PROVIDERS,
   createInviteRequestSchema,
   type AdminAiStatus,
+  type AdminBlock,
+  type AdminUser,
   type CreatedLinkResponse,
   type Invite,
 } from '@oct/shared';
@@ -11,10 +13,13 @@ import { callModel, noVisionError } from '../ai/common.js';
 import { baseUrlHost, getAiSettings } from '../ai/settings.js';
 import { providerState, redactSecrets } from '../ai/status.js';
 import type { AppDeps } from '../app.js';
+import { DEVICE_FAILS, IP_FAILS } from '../auth/guard.js';
 import { createLink, LINK_TTL } from '../auth/invites.js';
+import { passkeyName } from '../auth/passkeys.js';
 import { requireAdmin, type AuthEnv, type User } from '../auth/session.js';
 import { ApiError } from '../http/errors.js';
 import { validate } from '../http/validate.js';
+import { deleteUserPhotos } from '../photos/store.js';
 
 const CHECK_INTERVAL_MS = 10_000;
 const CHECK_TIMEOUT_MS = 20_000;
@@ -23,6 +28,12 @@ const CHECK_MAX_TOKENS = 16;
 // 1×1 transparent PNG.
 const PIXEL_PNG =
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+
+// passkeyName falls back to "Passkey", which says nothing about a blocked device.
+const deviceName = (ua: string | null) => {
+  const name = ua ? passkeyName(ua) : 'Passkey';
+  return name === 'Passkey' ? ua : name;
+};
 
 /** Admin-only API (ADR-0003); everything under /api/admin answers 403 to other users (AC-2.8). */
 export function adminRoutes({ config, db, model = null }: AppDeps) {
@@ -170,6 +181,90 @@ export function adminRoutes({ config, db, model = null }: AppDeps) {
           throw new ApiError(409, 'invite_used');
         }
         throw new ApiError(404, 'not_found');
+      })
+      .get('/admin/users', (c) => {
+        const rows = db
+          .prepare(
+            `SELECT id, email, name, role, created_at, last_login_at FROM users
+           ORDER BY created_at, id`,
+          )
+          .all() as {
+          id: number;
+          email: string;
+          name: string | null;
+          role: AdminUser['role'];
+          created_at: number;
+          last_login_at: number | null;
+        }[];
+        return c.json(
+          rows.map((r): AdminUser => ({
+            id: r.id,
+            email: r.email,
+            name: r.name,
+            role: r.role,
+            createdAt: r.created_at,
+            lastLoginAt: r.last_login_at,
+          })),
+        );
+      })
+      // Every user row cascades (sessions, passkeys, meals…), so the user's sessions die at once (AC-8.3).
+      .delete('/admin/users/:id', async (c) => {
+        const userId = id(c.req.param('id'));
+        if (userId === c.var.user.id) {
+          throw new ApiError(409, 'cannot_delete_self');
+        }
+        const { changes } = db
+          .prepare('DELETE FROM users WHERE id = ?')
+          .run(userId);
+        if (!changes) throw new ApiError(404, 'not_found');
+        try {
+          await deleteUserPhotos(config.dataDir, userId);
+        } catch (err) {
+          // The rows are gone already; leftover files are only disk space.
+          console.error(`[error] photos of deleted user ${userId}:`, err);
+        }
+        return c.body(null, 204);
+      })
+      .get('/admin/blocks', (c) => {
+        const rows = db
+          .prepare(
+            `SELECT id, kind, ip, blocked_at, fail_count, timeout_count, last_email, user_agent
+           FROM login_guards WHERE blocked_at IS NOT NULL ORDER BY blocked_at DESC, id DESC`,
+          )
+          .all() as {
+          id: number;
+          kind: AdminBlock['kind'];
+          ip: string;
+          blocked_at: number;
+          fail_count: number;
+          timeout_count: number;
+          last_email: string | null;
+          user_agent: string | null;
+        }[];
+        return c.json(
+          rows.map((r): AdminBlock => ({
+            id: r.id,
+            kind: r.kind,
+            ip: r.ip,
+            device: r.kind === 'device' ? deviceName(r.user_agent) : null,
+            blockedAt: r.blocked_at,
+            // Only the current window is counted per row; each timeout took a full threshold.
+            failCount:
+              r.timeout_count * (r.kind === 'ip' ? IP_FAILS : DEVICE_FAILS) +
+              r.fail_count,
+            lastEmail: r.last_email,
+          })),
+        );
+      })
+      // Deleting the row lifts the block and resets its counters (AC-8.2).
+      .delete('/admin/blocks/:id', (c) => {
+        const { changes } = db
+          .prepare(
+            'DELETE FROM login_guards WHERE id = ? AND blocked_at IS NOT NULL',
+          )
+          .run(id(c.req.param('id')));
+        if (!changes) throw new ApiError(404, 'not_found');
+        return c.body(null, 204);
       })
       .post('/admin/users/:id/recovery-link', (c) => {
         const userId = id(c.req.param('id'));

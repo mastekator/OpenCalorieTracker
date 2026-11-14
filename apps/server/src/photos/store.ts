@@ -18,6 +18,10 @@ const MAX_INPUT_PIXELS = 100_000_000;
 const userDir = (dataDir: string, userId: number) =>
   join(dataDir, 'photos', String(userId));
 
+/** Removes all of a user's photo files; used when the user is deleted. */
+export const deleteUserPhotos = (dataDir: string, userId: number) =>
+  rm(userDir(dataDir, userId), { recursive: true, force: true });
+
 /** The path of a user's photo file, or null when the id is malformed (checked before any fs access). */
 export function photoPath(
   dataDir: string,
