@@ -11,6 +11,8 @@ export const en = {
     cancel: 'Cancel',
     got_it: 'Got it',
     retry: 'Try again',
+    retake: 'Retake',
+    manual_full: 'Enter manually',
     tryAgainIn: {
       one: 'Try again in {count} minute',
       other: 'Try again in {count} minutes',
@@ -353,6 +355,33 @@ export const en = {
         title: 'No camera access',
         body: 'Allow access in Settings → Safari → Camera, or choose a photo from your library.',
       },
+    },
+  },
+  recog: {
+    loading: 'Recognizing…',
+    usual: 'Usually under 10 seconds',
+    slow: 'Taking longer than usual. You can wait or enter the dishes manually — the photo stays, so you can recalculate from it later.',
+    err: {
+      unavailable: {
+        title: 'AI is unavailable right now',
+        body: 'Your photo is kept. Try again later or enter the dishes manually — once AI is back, you can recalculate from the photo.',
+      },
+      quota: {
+        title: 'AI request limit reached',
+        body: 'Enter the dishes manually for now. The photo is saved with the entry — once the limit resets, you can recalculate from it.',
+      },
+      failed: {
+        title: 'Couldn’t recognize the photo',
+        body: 'Try again or take a closer shot of the plate.',
+      },
+    },
+    empty: {
+      title: 'No food found in the photo',
+      body: 'Shoot the plate from above and closer, or enter the dishes manually.',
+    },
+    offline: {
+      title: 'No connection',
+      body: 'Your photo is kept. Reconnect and try again, or enter the dishes manually.',
     },
   },
   update: {

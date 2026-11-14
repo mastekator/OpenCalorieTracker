@@ -49,6 +49,8 @@
 }
 
 .screen-state__action {
+  display: grid;
+  gap: var(--space-3);
   align-self: stretch;
   margin-top: var(--space-4);
 }

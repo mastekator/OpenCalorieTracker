@@ -7,7 +7,7 @@ import {
   type ChangeEvent,
   type ReactNode,
 } from 'react';
-import { useLocation } from 'wouter';
+import { useLocation, useSearch } from 'wouter';
 import { z } from 'zod';
 import { api, ApiError } from '../../api/client';
 import { useT } from '../../i18n';
@@ -17,7 +17,7 @@ import { useToast } from '../../ui/Toast/Toast';
 import { CaptureMenu } from './CaptureMenu';
 import { ImageDecodeError, prepareImage } from './prepareImage';
 
-/** The meal flow; the recognition screen (OCT-57) reads `?photo=` and `?date=`. */
+/** The meal flow; the recognition screen (OCT-57) reads `?photo=` and passes `?date=` on to the edit screen. */
 export const MEAL_NEW_PATH = '/meal/new';
 
 type Capture = {
@@ -56,12 +56,17 @@ const hasFiles = (event: DragEvent) =>
 export function CaptureProvider({ children }: { children: ReactNode }) {
   const { t } = useT();
   const toast = useToast();
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
+  const inFlow = location === MEAL_NEW_PATH;
   const cameraInput = useRef<HTMLInputElement>(null);
   const pickInput = useRef<HTMLInputElement>(null);
   const busy = useRef(false);
-  // The day «Add an entry for this day» was opened for; null from every other way in.
+  // The day «Add an entry for this day» was opened for; other ways in take the current flow's day (none: today).
   const date = useRef<string | null>(null);
+  const search = useRef('');
+  search.current = useSearch();
+  /** Outside menu 5.5 for a past day the day is the current flow's (a retake keeps it), else today. */
+  const flowDate = () => new URLSearchParams(search.current).get('date');
   const [dialog, setDialog] = useState<'open' | 'camera' | null>(null);
   const [menu, setMenu] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -83,7 +88,8 @@ export function CaptureProvider({ children }: { children: ReactNode }) {
         method: 'POST',
         body: blob,
       });
-      navigate(flowPath(photoId));
+      // From the recognition screen (retake, drop, paste) the old photo leaves history.
+      navigate(flowPath(photoId), { replace: inFlow });
     } catch (err) {
       if (!(err instanceof ApiError)) throw err;
       if (err.code === 'photo_invalid' || err.code === 'photo_too_large')
@@ -165,7 +171,9 @@ export function CaptureProvider({ children }: { children: ReactNode }) {
       setDragging(false);
       // Not an image → prepareImage fails → dialog 3.8.
       const file = event.dataTransfer?.files[0];
-      if (file) void startRef.current(file);
+      if (!file) return;
+      date.current = flowDate();
+      void startRef.current(file);
     };
     const paste = (event: ClipboardEvent) => {
       const file = Array.from(event.clipboardData?.files ?? []).find((f) =>
@@ -173,6 +181,7 @@ export function CaptureProvider({ children }: { children: ReactNode }) {
       );
       if (!file) return; // text paste into fields stays as is
       event.preventDefault();
+      date.current = flowDate();
       void startRef.current(file);
     };
     window.addEventListener('dragenter', enter);
@@ -190,7 +199,7 @@ export function CaptureProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const today = (action: () => void) => () => {
-    date.current = null;
+    date.current = flowDate();
     action();
   };
   const closeMenuThen = (action: () => void) => () => {

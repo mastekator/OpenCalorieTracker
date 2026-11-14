@@ -41,6 +41,7 @@
   --camera-icon-size: 30px;     /* icon inside the camera circle */
   --meal-thumb-size: 44px;      /* meal photo in Today / Diary lists */
   --swipe-action-width: 96px;   /* «Delete» revealed by swiping a meal row (OCT-19 6.3) */
+  --photo-preview-height: 280px; /* photo on the recognition screen (OCT-16 §2) */
   --progress-height: 8px;       /* kcal & macro bars on Today / Diary / Week */
   --hatch-size: 6px;            /* stripe period of the "over the norm" pattern (not colour-only) */
   --tabbar-height: 49px;        /* + env(safe-area-inset-bottom) */

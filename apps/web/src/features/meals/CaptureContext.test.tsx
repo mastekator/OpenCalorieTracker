@@ -33,12 +33,12 @@ function Probe() {
   );
 }
 
-async function setup() {
-  const location = memoryLocation({ path: '/', record: true });
+async function setup(path = '/') {
+  const location = memoryLocation({ path, record: true });
   render(
     <I18nProvider>
       <ToastProvider>
-        <Router hook={location.hook}>
+        <Router hook={location.hook} searchHook={location.searchHook}>
           <CaptureProvider>
             <p>Today</p>
             <Probe />
@@ -103,8 +103,37 @@ describe('CaptureProvider', () => {
     fireEvent.click(screen.getByText('Add to day'));
     fireEvent.click(await screen.findByText('Enter manually'));
     expect(location.history.at(-1)).toBe('/meal/new?date=2026-11-10');
+    act(() => location.navigate('/'));
     fireEvent.click(screen.getByText('Direct manual'));
     expect(location.history.at(-1)).toBe('/meal/new');
+  });
+
+  it('a paste after «Add an entry for this day» was closed goes to today', async () => {
+    respond(created);
+    const location = await setup();
+    fireEvent.click(screen.getByText('Add to day'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Close' }));
+    fireEvent(
+      window,
+      createEvent.paste(window, { clipboardData: { files: [photo] } }),
+    );
+    await waitFor(() =>
+      expect(location.history.at(-1)).toBe('/meal/new?photo=abc'),
+    );
+  });
+
+  it("a retake by paste inside a past day's flow keeps the day", async () => {
+    respond(created);
+    const location = await setup('/meal/new?photo=old&date=2026-11-10');
+    fireEvent(
+      window,
+      createEvent.paste(window, { clipboardData: { files: [photo] } }),
+    );
+    await waitFor(() =>
+      expect(location.history.at(-1)).toBe(
+        '/meal/new?photo=abc&date=2026-11-10',
+      ),
+    );
   });
 
   it('shows dialog 3.8 and uploads nothing when the photo cannot be decoded (E-1.1)', async () => {
