@@ -215,8 +215,8 @@ export const en = {
   },
   offline: {
     no_network: 'No connection',
-    bar: 'Offline · everything is saved on this phone',
-    server: 'Server unavailable · everything is saved on this phone',
+    bar: 'Offline · everything is saved on this device',
+    server: 'Server unavailable · everything is saved on this device',
     first: {
       title: 'First sign-in needs a connection',
       body: 'After that, the app works offline too. Connect to the internet — this screen will update on its own.',

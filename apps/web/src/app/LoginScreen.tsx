@@ -278,7 +278,7 @@ export function LoginScreen({
 
   return (
     <div className="login">
-      {/* Nothing is saved here, so not «everything is saved on this phone» (OCT-13 1.9). */}
+      {/* Nothing is saved here, so not «everything is saved on this device» (OCT-13 1.9). */}
       <OfflineBar variant={online ? null : 'no_network'} />
       <header className="login__header">
         {brand}

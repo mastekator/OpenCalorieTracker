@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from 'react';
+import { useEffect, useRef, useSyncExternalStore } from 'react';
 import { RefreshCw, ServerOff, WifiOff } from 'lucide-react';
 import { useT } from '../../i18n';
 import './OfflineBar.css';
@@ -34,9 +34,24 @@ const BARS = {
 export function OfflineBar({ variant }: { variant: BarVariant | null }) {
   const { t } = useT();
   const bar = variant && BARS[variant];
+  const ref = useRef<HTMLDivElement>(null);
+  // Sticky headers below stop under the bar; its height changes with wrapping text.
+  useEffect(() => {
+    const el = ref.current;
+    const root = document.documentElement.style;
+    if (!bar || !el || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() =>
+      root.setProperty('--offline-bar-height', `${el.offsetHeight}px`),
+    );
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      root.removeProperty('--offline-bar-height');
+    };
+  }, [bar]);
   // The live region stays mounted: screen readers skip regions inserted together with their text.
   return (
-    <div className={bar ? 'offline-bar' : undefined} role="status">
+    <div ref={ref} className={bar ? 'offline-bar' : undefined} role="status">
       {bar && (
         <>
           <bar.icon aria-hidden="true" />
