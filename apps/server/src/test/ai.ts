@@ -49,9 +49,12 @@ export const mockModel = (...results: unknown[]) =>
   });
 
 /** An app on a temp data dir with a signed-in admin, a second user and photo helpers. */
-export async function aiSetup(model: AiModel | null) {
+export async function aiSetup(
+  model: AiModel | null,
+  env: Record<string, string> = {},
+) {
   const dataDir = await mkdtemp(join(tmpdir(), 'oct-ai-'));
-  const t = testApp({ DATA_DIR: dataDir }, model);
+  const t = testApp({ DATA_DIR: dataDir, ...env }, model);
   await ensureAdmin(t.config, t.db);
   t.db
     .prepare(
