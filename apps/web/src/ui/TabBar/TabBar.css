@@ -75,8 +75,8 @@
 }
 
 .tabbar__camera .lucide {
-  width: var(--icon-size);
-  height: var(--icon-size);
+  width: var(--camera-icon-size);
+  height: var(--camera-icon-size);
 }
 
 .tabbar__camera:active {

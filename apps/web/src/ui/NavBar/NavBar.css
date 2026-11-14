@@ -8,16 +8,25 @@
   background: var(--color-bg);
 }
 
-/* Back | title | action: the outer columns share the rest so the title stays centred. */
+/* Back | title | action: equal outer columns keep the title centred; a long title
+   takes the room down to --tap-min per side and ends with an ellipsis, so «Back»
+   shrinks to its chevron. */
 .navbar__bar {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, auto) minmax(0, 1fr);
+  grid-template-columns:
+    minmax(var(--tap-min), 1fr) minmax(0, max-content)
+    minmax(var(--tap-min), 1fr);
   align-items: center;
   gap: var(--space-2);
   min-height: var(--navbar-height);
 }
 
+.navbar__start {
+  container-type: inline-size;
+}
+
 .navbar__end {
+  grid-column: 3; /* large titles leave the middle column empty */
   display: flex;
   justify-content: flex-end;
 }
@@ -65,6 +74,13 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Too narrow for a readable label: chevron only (container queries cannot read tokens). */
+@container (max-width: 80px) {
+  .navbar__back span {
+    display: none;
+  }
 }
 
 .navbar__action {

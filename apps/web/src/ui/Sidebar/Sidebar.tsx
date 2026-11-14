@@ -1,4 +1,4 @@
-import { Plus } from 'lucide-react';
+import { Camera } from 'lucide-react';
 import { Link } from 'wouter';
 import { useT } from '../../i18n';
 import { Button } from '../Button/Button';
@@ -38,7 +38,7 @@ export function Sidebar({ items, settings, email, onAdd }: Props) {
         {t('common.appName')}
       </div>
       <Button onClick={onAdd}>
-        <Plus aria-hidden="true" />
+        <Camera aria-hidden="true" />
         {t('nav.add_food')}
       </Button>
       <ul>

@@ -41,7 +41,11 @@ export function NavBar({ title, large = false, back, action }: Props) {
       <div className="navbar__bar">
         <div className="navbar__start">
           {back && (
-            <Link href={back.href} className="navbar__back">
+            <Link
+              href={back.href}
+              className="navbar__back"
+              aria-label={back.label}
+            >
               <ChevronLeft aria-hidden="true" />
               <span>{back.label}</span>
             </Link>
