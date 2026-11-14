@@ -1,6 +1,7 @@
 import { APICallError, NoObjectGeneratedError, TypeValidationError } from 'ai';
 import { ApiError } from '../http/errors.js';
 import type { AiModel } from './model.js';
+import { isNoVision, markNoVision, recordAiResult } from './status.js';
 
 /** English name of the user's language for prompts. */
 export function languageName(locale: string) {
@@ -27,6 +28,13 @@ export function toApiError(err: unknown, timedOut: boolean): ApiError {
   return new ApiError(503, 'ai_unavailable');
 }
 
+/** mapError for calls that send an image: the model refused it (ADR-0007). */
+export function noVisionError(err: unknown, timedOut: boolean) {
+  if (timedOut || !isNoVision(err)) return undefined;
+  markNoVision();
+  return new ApiError(409, 'ai_no_vision');
+}
+
 /** Error class and provider status for the log line, never the error text (AC-6.2). */
 export function failureNote(err: unknown) {
   let note = ` error=${(err as Error)?.name ?? 'unknown'}`;
@@ -50,7 +58,7 @@ interface CallOptions<T> {
 /**
  * One model call (ADR-0007): a timeout for the whole operation, one silent retry on a
  * schema mismatch, provider failures become ApiError, aborting `signal` rethrows the
- * abort error as is. Logs one line per call.
+ * abort error as is. Logs one line per call and records the provider state (ADR-0013).
  */
 export async function callModel<T>(
   model: AiModel,
@@ -71,6 +79,7 @@ export async function callModel<T>(
     for (let attempt = 1; ; attempt++) {
       try {
         output = await call(abortSignal);
+        recordAiResult();
         return output;
       } catch (err) {
         if (attempt === 1 && isSchemaError(err) && !abortSignal.aborted)
@@ -84,6 +93,8 @@ export async function callModel<T>(
       result = 'aborted';
       throw err;
     }
+    // A schema mismatch means the provider answered: not a provider failure.
+    if (!isSchemaError(err)) recordAiResult(err);
     const timedOut = timeout.signal.aborted;
     const apiError = mapError?.(err, timedOut) ?? toApiError(err, timedOut);
     result = apiError.code;

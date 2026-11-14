@@ -59,9 +59,10 @@ export function accountRoutes({ db, config }: AppDeps) {
         const userId = c.var.user.id;
         const { days } = c.req.valid('json');
         db.transaction(() => {
+          // settings_rev moves so other devices pick up the new period on sync (ADR-0011 §3).
           db.prepare(
-            'UPDATE users SET photo_retention_days = ? WHERE id = ?',
-          ).run(days, userId);
+            'UPDATE users SET photo_retention_days = ?, settings_rev = ? WHERE id = ?',
+          ).run(days, bumpRev(db, userId), userId);
           // Clients never see photo_expires_at, so rev is bumped only when the sweep drops a photo.
           db.prepare(
             `UPDATE meals SET photo_expires_at = ${expiry}
@@ -90,8 +91,9 @@ export function accountRoutes({ db, config }: AppDeps) {
           // Clamp to server time: a device with its clock ahead must not freeze settings.
           const now = Date.now();
           const at = Math.min(editedAt ?? now, now);
-          // An offline edit made before the stored one loses (last edit wins).
-          if (stored !== null && at < Math.min(stored, now)) return;
+          // An offline edit made before the stored one loses (last edit wins); a future stored
+          // time, written before clamping existed, blocks nothing.
+          if (stored !== null && stored <= now && at < stored) return;
           // Keys come from the zod schema, never from the client, so interpolating them is safe.
           const set = changes.map(([k]) => `${k} = ?`).join(', ');
           db.prepare(

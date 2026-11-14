@@ -11,8 +11,10 @@ import { aiRoutes } from './ai/routes.js';
 import type { AiModel } from './ai/model.js';
 import { authRoutes } from './auth/routes.js';
 import { device } from './auth/device.js';
+import { passkeyRoutes } from './auth/passkeys.js';
 import { dummyHash } from './auth/password.js';
 import { session } from './auth/session.js';
+import { diaryRoutes } from './diary/routes.js';
 import { mealRoutes } from './meals/routes.js';
 import { photoRoutes } from './photos/routes.js';
 import { profileRoutes } from './profile/routes.js';
@@ -66,12 +68,14 @@ export function createApp(deps: AppDeps) {
   app.use('/api/*', device(config));
   app.use('/api/*', session(deps));
   app.route('/api', authRoutes(deps));
+  app.route('/api', passkeyRoutes(deps));
   app.route('/api', adminRoutes(deps));
   app.route('/api', profileRoutes(deps));
   app.route('/api', accountRoutes(deps));
   app.route('/api', aiRoutes(deps));
   app.route('/api', photoRoutes(deps));
   app.route('/api', mealRoutes(deps));
+  app.route('/api', diaryRoutes(deps));
 
   app.get('/api/health', (c) => c.json({ ok: true, version }));
   app.get('/api/config', (c) =>

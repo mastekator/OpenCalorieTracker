@@ -1,19 +1,12 @@
-import {
-  APICallError,
-  generateText,
-  Output,
-  UnsupportedFunctionalityError,
-} from 'ai';
+import { generateText, Output } from 'ai';
 import {
   recognitionSchema,
   round1,
   type Recognition,
   type RecognizedDish,
 } from '@oct/shared';
-import { ApiError } from '../http/errors.js';
-import { callModel, languageName } from './common.js';
+import { callModel, languageName, noVisionError } from './common.js';
 import type { AiModel } from './model.js';
-import { markNoVision } from './status.js';
 
 /** Bump on every prompt change; it is logged with each call. */
 export const RECOGNIZE_PROMPT_VERSION = 1;
@@ -49,10 +42,7 @@ export async function recognizeMeal(
       promptVersion: RECOGNIZE_PROMPT_VERSION,
       timeoutMs: RECOGNIZE_TIMEOUT_MS,
       signal,
-      mapError: (err, timedOut) =>
-        !timedOut && isNoVision(err)
-          ? (markNoVision(), new ApiError(409, 'ai_no_vision'))
-          : undefined,
+      mapError: noVisionError,
       logExtra: (r) => `dishes=${r?.dishes.length ?? 0}`,
     },
     async (abortSignal) => {
@@ -71,16 +61,6 @@ export async function recognizeMeal(
       });
       return { dishes: output.dishes.map(sanitizeDish) };
     },
-  );
-}
-
-// shortcut: detected by the provider's 400 error text; add env AI_VISION=true|false if this misfires.
-function isNoVision(err: unknown) {
-  if (UnsupportedFunctionalityError.isInstance(err)) return true;
-  return (
-    APICallError.isInstance(err) &&
-    err.statusCode === 400 &&
-    /image|vision|multimodal/i.test(`${err.message} ${err.responseBody ?? ''}`)
   );
 }
 
