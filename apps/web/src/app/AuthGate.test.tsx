@@ -5,6 +5,7 @@ import { Router } from 'wouter';
 import { memoryLocation } from 'wouter/memory-location';
 import { api, ME_PATH } from '../api/client';
 import { I18nProvider, LOCALE_STORAGE_KEY } from '../i18n';
+import { ConfigProvider } from './ConfigContext';
 import { Routes } from './routes';
 import { SessionProvider } from './SessionContext';
 
@@ -20,17 +21,28 @@ const me = {
   methods: ['password'],
 };
 
-/** /api/auth/me answers with `session` (null → 401); every other path answers 401. */
+const config = {
+  version: '0.1.0',
+  apiVersion: 1,
+  publicUrl: null,
+  authMethods: ['password'],
+  registration: 'invite',
+  setupError: null,
+};
+
+/** /api/auth/me answers with `session` (null → 401); every other path but /api/config answers 401. */
 function serve(session: object | null) {
   vi.stubGlobal(
     'fetch',
     vi.fn(async (path: string) =>
-      path === ME_PATH && session
-        ? Response.json(session)
-        : Response.json(
-            { error: { code: 'unauthenticated' } },
-            { status: 401 },
-          ),
+      path === '/api/config'
+        ? Response.json(config)
+        : path === ME_PATH && session
+          ? Response.json(session)
+          : Response.json(
+              { error: { code: 'unauthenticated' } },
+              { status: 401 },
+            ),
     ),
   );
 }
@@ -41,9 +53,11 @@ function renderAt(url: string) {
   render(
     <I18nProvider>
       <Router hook={location.hook} searchHook={location.searchHook}>
-        <SessionProvider>
-          <Routes />
-        </SessionProvider>
+        <ConfigProvider>
+          <SessionProvider>
+            <Routes />
+          </SessionProvider>
+        </ConfigProvider>
       </Router>
     </I18nProvider>,
   );
@@ -93,5 +107,12 @@ describe('AuthGate', () => {
     await screen.findByRole('heading', { name: 'Sign in' });
     await unauthorizedCall();
     expect(location.history).toEqual(['/login']);
+  });
+
+  it('sends a signed-in user from sign-in on to next', async () => {
+    serve(me);
+    const location = renderAt('/login?next=%2Fweek');
+    await screen.findByRole('heading', { name: 'Week' });
+    expect(location.history.at(-1)).toBe('/week');
   });
 });

@@ -1,15 +1,18 @@
 import type { ReactNode } from 'react';
 import { Settings2 } from 'lucide-react';
-import { Redirect, Route, Switch } from 'wouter';
+import { Redirect, Route, Switch, useSearch } from 'wouter';
 import type { Key } from '../i18n/translate';
 import { useT } from '../i18n';
 import { NavBar } from '../ui/NavBar/NavBar';
 import { AppShell } from './AppShell';
 import { AuthGate } from './AuthGate';
 import { AuthLayout } from './AuthLayout';
+import { useConfig } from './ConfigContext';
+import { LoginScreen } from './LoginScreen';
+import { safeNext } from './next';
 import { useSession } from './SessionContext';
 
-// shortcut: placeholder screens; each is replaced by its own task (sign-in OCT-2, Today OCT-19, …).
+// shortcut: placeholder screens; each is replaced by its own task (invite/recovery OCT-44, Today OCT-19, …).
 function AuthStub({ title }: { title: Key }) {
   const { t } = useT();
   return <h1>{t(title)}</h1>;
@@ -68,6 +71,23 @@ export function AppScreens() {
   );
 }
 
+/** Sign-in; a signed-in user goes on to `next` (AC-5.3). */
+function Login() {
+  const config = useConfig();
+  const { user, refresh } = useSession();
+  const params = new URLSearchParams(useSearch());
+  if (user) return <Redirect to={safeNext(params.get('next'))} replace />;
+  return (
+    <AuthLayout>
+      <LoginScreen
+        config={config}
+        onSignedIn={refresh}
+        notice={params.has('expired') ? { kind: 'expired' } : undefined}
+      />
+    </AuthLayout>
+  );
+}
+
 function SignedIn() {
   const { user } = useSession();
   return (
@@ -83,9 +103,7 @@ export function Routes() {
   return (
     <Switch>
       <Route path="/login">
-        <AuthLayout>
-          <AuthStub title="screens.login" />
-        </AuthLayout>
+        <Login />
       </Route>
       <Route path="/invite">
         <AuthLayout>

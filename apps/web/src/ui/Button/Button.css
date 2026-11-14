@@ -12,6 +12,7 @@
   line-height: var(--text-headline-lh);
   font-weight: var(--text-headline-weight);
   text-align: center;
+  text-decoration: none; /* also styles a link that looks like a button */
   cursor: pointer;
   user-select: none;
   transition:

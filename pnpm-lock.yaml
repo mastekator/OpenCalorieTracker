@@ -81,6 +81,9 @@ importers:
       '@oct/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@simplewebauthn/browser':
+        specifier: ^14.0.0
+        version: 14.0.0
       lucide-react:
         specifier: ^1.72.0
         version: 1.72.0(@types/react@19.3.0)(react@19.3.1)
@@ -1773,6 +1776,9 @@ packages:
     resolution: {integrity: sha512-ADb1Uz2MNM0sxVpAlMNdQG16Hw4sgW1aqVL7NeqBMpcZeiHb192d7W6shZdMQs33D+w9ihDYBBPsYqqc4MlD8w==}
     cpu: [x64]
     os: [win32]
+
+  '@simplewebauthn/browser@14.0.0':
+    resolution: {integrity: sha512-1odWVqeEBTl7lJ9zMKLEsmTlnyrDO5iRcTvfMKKk1WThUnp/i8JJdffdj2icP+tty159s4PgwE3BiMoEW9NFow==}
 
   '@simplewebauthn/server@14.1.0':
     resolution: {integrity: sha512-HPRRBR4Vzr45+RVvbmf6JuCfGdYYcSs4Pnnnp9YSY2IABa4JKnG+wxybczoB7rmdLCOMS/mbBa2ZL/Bcz58UlA==}
@@ -5305,6 +5311,8 @@ snapshots:
 
   '@rollup/rollup-win32-x64-msvc@4.68.3':
     optional: true
+
+  '@simplewebauthn/browser@14.0.0': {}
 
   '@simplewebauthn/server@14.1.0':
     dependencies:

@@ -4,7 +4,7 @@ import { Button } from '../ui/Button/Button';
 import { Field } from '../ui/Field/Field';
 import { AuthLayout } from './AuthLayout';
 
-// A sign-in-like form to show the card; the real screen comes in OCT-43.
+// A sign-in-like form to show the card; the real screen is App/LoginScreen.
 function Form() {
   const { t } = useT();
   return (

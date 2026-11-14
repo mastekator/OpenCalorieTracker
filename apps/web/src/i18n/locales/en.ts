@@ -27,9 +27,50 @@ export const en = {
     password: 'Password',
     show_password: 'Show password',
     hide_password: 'Hide password',
+    passkey: 'Sign in with passkey',
+    or_password: 'or with password',
+    submit: 'Sign in',
+    loading: 'Signing in…',
+    forgot: 'Forgot password?',
+    lost_access: 'Lost access?',
+    no_account: 'No account?',
+    create: 'Create account',
+    session_expired: 'Your session expired. Please sign in again',
+    offline: 'You need an internet connection to sign in',
+    err: {
+      timeout: {
+        title: 'Too many attempts',
+        body: 'Password sign-in on this device reopens in {n} min. Passkey still works.',
+      },
+      blocked: {
+        title: 'Password sign-in is blocked on this device',
+        body: 'Ask your admin to unblock it. Passkey still works.',
+      },
+      no_passkey: {
+        title: 'No passkey on this device',
+        body_password:
+          'Sign in with your password or from a device that has your passkey.',
+        body_passkey_only:
+          'Sign in from a device that has it, or ask your admin for a recovery link.',
+      },
+      passkey_revoked: 'This passkey no longer works. Sign in another way.',
+    },
     forgot_sheet: {
       title: 'Forgot your password?',
       body: 'This app doesn’t send emails. Ask the admin of this installation for a recovery link — you can use it to set a new password or create a passkey. Your diary stays intact.',
+    },
+  },
+  setup: {
+    wrong_origin: {
+      title: 'Open the app at its address',
+      body: 'Passkey sign-in only works at the address set during installation.',
+      cta: 'Open {host}',
+    },
+    not_configured: {
+      title: 'Installation isn’t set up',
+      admin:
+        'Set the admin account in the container configuration. See the README.',
+      url: 'Set PUBLIC_URL in the container configuration. See the README.',
     },
   },
   settings: { logout: 'Sign out' },
@@ -78,7 +119,7 @@ export const en = {
   errors: {
     validation_failed: 'Check the highlighted fields',
     unauthenticated: 'Please sign in',
-    invalid_credentials: 'Wrong email or password',
+    invalid_credentials: 'Incorrect email or password',
     method_disabled: 'This sign-in method is turned off on this server',
     passkey_unknown: 'This passkey isn’t registered on this server',
     passkey_failed: 'Couldn’t verify the passkey. Try again',

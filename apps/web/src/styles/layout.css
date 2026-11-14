@@ -113,4 +113,9 @@
     background: var(--color-surface);
     box-shadow: var(--shadow-toast);
   }
+
+  /* The card has no full-height page to push the passkey-only button against. */
+  .auth-layout .login {
+    min-height: 0;
+  }
 }
