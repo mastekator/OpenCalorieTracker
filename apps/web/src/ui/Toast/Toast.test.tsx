@@ -6,7 +6,13 @@ import {
   render,
   screen,
 } from '@testing-library/react';
-import { TOAST_MS, ToastProvider, useToast, type ToastOptions } from './Toast';
+import {
+  ANNOUNCE_DELAY_MS,
+  TOAST_MS,
+  ToastProvider,
+  useToast,
+  type ToastOptions,
+} from './Toast';
 
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => {
@@ -71,7 +77,41 @@ describe('Toast', () => {
     expect(screen.getByRole('status').textContent).toBe('');
   });
 
-  it('shows inside the open modal dialog, which keeps the rest inert', () => {
+  it('moves an empty live region into the open dialog before filling it', () => {
+    render(
+      <ToastProvider>
+        <Grab />
+        <dialog open data-testid="sheet" />
+      </ToastProvider>,
+    );
+    const sheet = screen.getByTestId('sheet');
+    toast({ text: 'Copied' });
+    // The region is already in the dialog, still empty, when the text arrives.
+    const region = sheet.querySelector('[role="status"]');
+    expect(region).not.toBeNull();
+    expect(region!.textContent).toBe('');
+    act(() => vi.advanceTimersByTime(ANNOUNCE_DELAY_MS));
+    expect(sheet.querySelector('[role="status"]')).toBe(region);
+    expect(region!.textContent).toBe('Copied');
+    // A second toast in the same dialog reuses the region right away.
+    toast({ text: 'Again' });
+    expect(region!.textContent).toBe('Again');
+  });
+
+  it('a newer toast cancels the pending text of the previous one', () => {
+    render(
+      <ToastProvider>
+        <Grab />
+        <dialog open data-testid="sheet" />
+      </ToastProvider>,
+    );
+    toast({ text: 'First' });
+    toast({ text: 'Second' });
+    act(() => vi.advanceTimersByTime(ANNOUNCE_DELAY_MS));
+    expect(screen.getByTestId('sheet').textContent).toBe('Second');
+  });
+
+  it('returns the region to <body> after hiding', () => {
     render(
       <ToastProvider>
         <Grab />
@@ -79,6 +119,22 @@ describe('Toast', () => {
       </ToastProvider>,
     );
     toast({ text: 'Copied' });
-    expect(screen.getByTestId('sheet').textContent).toBe('Copied');
+    act(() => vi.advanceTimersByTime(ANNOUNCE_DELAY_MS));
+    act(() => vi.advanceTimersByTime(TOAST_MS));
+    const sheet = screen.getByTestId('sheet');
+    expect(sheet.querySelector('[role="status"]')).toBeNull();
+    expect(screen.getByRole('status').parentElement).toBe(document.body);
+  });
+
+  it('clears pending timers on unmount', () => {
+    const { unmount } = render(
+      <ToastProvider>
+        <Grab />
+        <dialog open />
+      </ToastProvider>,
+    );
+    toast({ text: 'Copied' });
+    unmount();
+    expect(vi.getTimerCount()).toBe(0);
   });
 });
