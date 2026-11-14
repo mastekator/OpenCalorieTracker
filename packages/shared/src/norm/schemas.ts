@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { HEIGHT_CM, WEIGHT_KG } from '../units.js';
-import { addDays, addYears, ageYears } from './dates.js';
+import { addDays, addYears, ageYears } from '../dates.js';
 
 export const sexSchema = z.enum(['male', 'female']);
 export type Sex = z.infer<typeof sexSchema>;

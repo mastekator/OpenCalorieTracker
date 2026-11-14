@@ -31,8 +31,9 @@ export function accountRoutes({ db }: AppDeps) {
         // Clamp to server time: a device with its clock ahead must not freeze settings.
         const now = Date.now();
         const at = Math.min(editedAt ?? now, now);
-        // An offline edit made before the stored one loses (last edit wins).
-        if (stored !== null && at < Math.min(stored, now)) return;
+        // An offline edit made before the stored one loses (last edit wins); a future stored
+        // time, written before clamping existed, blocks nothing.
+        if (stored !== null && stored <= now && at < stored) return;
         // Keys come from the zod schema, never from the client, so interpolating them is safe.
         const set = changes.map(([k]) => `${k} = ?`).join(', ');
         db.prepare(

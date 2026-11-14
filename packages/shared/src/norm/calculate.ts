@@ -1,12 +1,10 @@
-import { addDays, ageYears, daysBetween } from './dates.js';
+import { addDays, ageYears, daysBetween } from '../dates.js';
 import {
   ACTIVITY_FACTORS,
   KCAL_FLOOR,
   type ManualNorm,
   type Profile,
 } from './schemas.js';
-
-export { ageYears };
 
 /** Fields the formula needs, in form order (AC-1.3). */
 export const REQUIRED_FIELDS = [

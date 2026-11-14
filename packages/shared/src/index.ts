@@ -73,6 +73,7 @@ export * from './meals.js';
 export * from './norm/schemas.js';
 export * from './norm/calculate.js';
 export * from './norm/interview.js';
-export { addDays, addYears } from './norm/dates.js';
+export * from './dates.js';
+export * from './diary/summarize.js';
 export * from './locales.js';
 export * from './settings.js';
