@@ -49,6 +49,19 @@ describe('Toast', () => {
     expect(screen.getByRole('status').textContent).toBe('');
   });
 
+  it('stays for `ms` when given', () => {
+    render(
+      <ToastProvider>
+        <Grab />
+      </ToastProvider>,
+    );
+    toast({ text: 'Undo me', ms: 5000 });
+    act(() => vi.advanceTimersByTime(4999));
+    expect(screen.getByRole('status').textContent).toBe('Undo me');
+    act(() => vi.advanceTimersByTime(1));
+    expect(screen.getByRole('status').textContent).toBe('');
+  });
+
   it('a new toast replaces the old one and restarts the timer', () => {
     render(
       <ToastProvider>

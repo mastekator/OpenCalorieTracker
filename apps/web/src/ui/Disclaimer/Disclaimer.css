@@ -1,0 +1,46 @@
+.disclaimer {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  color: var(--color-text-secondary);
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+}
+
+.disclaimer > .lucide {
+  flex: none;
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+  margin-top: calc((var(--text-footnote-lh) * 1em - var(--icon-size-sm)) / 2);
+}
+
+.disclaimer p {
+  flex: 1;
+  min-width: 0;
+}
+
+.disclaimer__hide {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: var(--tap-min);
+  height: var(--tap-min);
+  /* The 44×44 hit area overlaps the text's line so the icon lines up with the first line. */
+  margin: calc(var(--space-3) * -1) calc(var(--space-3) * -1) 0 0;
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.disclaimer__hide .lucide {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+}
+
+@media (hover: hover) {
+  .disclaimer__hide:hover {
+    background: var(--color-hover);
+  }
+}
