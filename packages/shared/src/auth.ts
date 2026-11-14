@@ -62,6 +62,8 @@ export const meResponseSchema = z.object({
   passwordFromConfig: z.boolean(),
   /** Sign-in methods the user has set up, whether or not they are enabled. */
   methods: z.array(authMethodSchema),
+  /** AUTH_METHODS of the server, kept with the user so settings work offline. */
+  enabledMethods: z.array(authMethodSchema),
 });
 export type MeResponse = z.infer<typeof meResponseSchema>;
 
@@ -189,5 +191,7 @@ export const passkeySchema = z.object({
   name: z.string(),
   createdAt: z.number().int(),
   lastUsedAt: z.number().int().nullable(),
+  /** The passkey this session was signed in or last added with. */
+  thisDevice: z.boolean(),
 });
 export type Passkey = z.infer<typeof passkeySchema>;
