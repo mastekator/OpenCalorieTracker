@@ -300,17 +300,6 @@ export const en = {
     weight: 'Weight',
   },
   unit: { cm: 'cm', kg: 'kg', lb: 'lb' },
-  pace: {
-    fast: {
-      title: 'Fast pace',
-      body: 'You’ll lose muscle along with fat, and it’s hard to keep up.',
-    },
-    danger: {
-      title: 'This pace may harm your health',
-      body: 'Talk to a doctor.',
-    },
-    gain_fast: 'Gaining this fast adds mostly fat.',
-  },
   goal: {
     title: 'Goal',
     lose: 'Lose',
