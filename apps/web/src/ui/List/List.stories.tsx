@@ -1,44 +1,86 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { Globe, LogOut, Moon, Shield, Users } from 'lucide-react';
+import { Globe, KeyRound, LogOut, Mail, Moon, Plus, Users } from 'lucide-react';
 import { useT } from '../../i18n';
 import { Badge } from '../Badge/Badge';
 import { List, ListRow } from './List';
 
 const noop = () => {};
 
-// Labels come from the dictionary so the locale toolbar switches RU / EN.
+// Sample screen copy (OCT-13 §6–7); not in the dictionary because only stories use it.
+const copy = {
+  ru: {
+    general: 'Общие',
+    language: 'Язык',
+    theme: 'Тема',
+    system: 'Как в системе',
+    passkeys: 'Passkeys',
+    passkey: 'iPhone',
+    created: 'Создан 13 нояб. · использован сегодня',
+    addPasskey: 'Добавить passkey на этом устройстве',
+    admin: 'Администрирование',
+    users: 'Пользователи',
+    invites: 'Приглашения',
+    adminOffline: 'Администрирование недоступно без сети',
+    logout: 'Выйти',
+  },
+  en: {
+    general: 'General',
+    language: 'Language',
+    theme: 'Theme',
+    system: 'System',
+    passkeys: 'Passkeys',
+    passkey: 'iPhone',
+    created: 'Created Nov 13 · used today',
+    addPasskey: 'Add a passkey on this device',
+    admin: 'Administration',
+    users: 'Users',
+    invites: 'Invitations',
+    adminOffline: 'Administration is unavailable offline',
+    logout: 'Sign out',
+  },
+};
+
 function Settings({ disabled = false }: { disabled?: boolean }) {
-  const { t } = useT();
+  const { locale } = useT();
+  const c = copy[locale === 'ru' ? 'ru' : 'en'];
   return (
     <div style={{ display: 'grid', gap: 'var(--section-gap)' }}>
-      <List title={t('common.appName')}>
-        <ListRow icon={<Globe />} value="English" onClick={noop}>
-          {t('screens.home')}
+      <List title={c.general}>
+        <ListRow
+          icon={<Globe />}
+          value={locale === 'ru' ? 'Русский' : 'English'}
+          onClick={noop}
+        >
+          {c.language}
         </ListRow>
-        <ListRow icon={<Moon />} value={t('common.loading')} onClick={noop}>
-          {t('screens.login')}
+        <ListRow icon={<Moon />} value={c.system} onClick={noop}>
+          {c.theme}
         </ListRow>
-        <ListRow>{t('common.appName')}</ListRow>
       </List>
-      <List
-        title={t('screens.invite')}
-        footer={disabled ? t('offline.no_network') : undefined}
-      >
-        <ListRow icon={<Users />} disabled={disabled} href="#invites">
-          {t('screens.invite')}
+      <List title={c.passkeys}>
+        <ListRow icon={<KeyRound />} description={c.created} onClick={noop}>
+          {c.passkey}
+        </ListRow>
+        <ListRow icon={<Plus />} accent onClick={noop}>
+          {c.addPasskey}
+        </ListRow>
+      </List>
+      <List title={c.admin} footer={disabled ? c.adminOffline : undefined}>
+        <ListRow icon={<Users />} value="3" disabled={disabled} href="#users">
+          {c.users}
         </ListRow>
         <ListRow
-          icon={<Shield />}
-          value={<Badge tone="err">2</Badge>}
+          icon={<Mail />}
+          value={<Badge tone="warn">2</Badge>}
           disabled={disabled}
           onClick={noop}
         >
-          {t('errors.device_blocked')}
+          {c.invites}
         </ListRow>
       </List>
       <List>
         <ListRow icon={<LogOut />} danger onClick={noop} chevron={false}>
-          {t('common.close')}
+          {c.logout}
         </ListRow>
       </List>
     </div>

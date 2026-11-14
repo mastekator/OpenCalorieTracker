@@ -21,11 +21,22 @@
 }
 
 /* Separator inset to the text, as in iOS grouped lists. */
-.list__item + .list__item .list-row {
-  box-shadow: inset 0 1px 0 var(--color-separator);
+.list__item + .list__item .list-row::before {
+  content: '';
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: var(--space-4) 0;
+  border-block-start: 1px solid var(--color-separator);
+}
+
+.list__item + .list__item .list-row--icon::before {
+  inset-inline-start: calc(
+    var(--space-4) + var(--icon-size) * 1.25 + var(--space-3)
+  );
 }
 
 .list-row {
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--space-3);
@@ -54,6 +65,10 @@
 
 .list-row--danger {
   color: var(--color-danger);
+}
+
+.list-row--accent {
+  color: var(--color-accent);
 }
 
 .list-row[aria-disabled] {
@@ -91,6 +106,19 @@
   flex: 1;
   min-width: 0;
   overflow-wrap: anywhere;
+}
+
+.list-row__description {
+  display: block;
+  margin-block-start: 2px;
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+  color: var(--color-text-secondary);
+}
+
+.list-row[aria-disabled] .list-row__description,
+.list-row[aria-disabled] .list-row__chevron {
+  color: var(--color-text-disabled);
 }
 
 .list-row__value {

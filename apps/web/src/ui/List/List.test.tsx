@@ -37,4 +37,17 @@ describe('ListRow', () => {
     expect(event.defaultPrevented).toBe(true);
     expect(onClick).toHaveBeenCalledOnce(); // the screen can explain why (toast)
   });
+
+  it('accent action row has no chevron; description renders under the label', () => {
+    const { container } = render(
+      <List>
+        <ListRow onClick={() => {}} accent>
+          Add
+        </ListRow>
+        <ListRow description="Created today">iPhone</ListRow>
+      </List>,
+    );
+    expect(container.querySelector('.list-row__chevron')).toBeNull();
+    expect(screen.getByText('Created today')).toBeTruthy();
+  });
 });

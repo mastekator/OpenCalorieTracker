@@ -1,7 +1,7 @@
 .badge {
   display: inline-flex;
   align-items: center;
-  padding: var(--space-1) var(--space-2);
+  padding: 2px var(--space-2); /* 20px tall, OCT-13 §3 */
   border-radius: var(--radius-sm);
   font-size: var(--text-caption-size);
   line-height: var(--text-caption-lh);
