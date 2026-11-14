@@ -83,27 +83,98 @@
   white-space: nowrap;
 }
 
-.meal-row__trash {
-  display: grid;
-  place-items: center;
-  flex: none;
-  width: var(--tap-min);
-  height: var(--tap-min);
-  margin-inline-end: var(--space-3);
+.meal-row__delete {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
   border: none;
-  border-radius: var(--radius-md);
-  background: var(--color-hover);
-  color: var(--color-danger);
+  font: inherit;
   cursor: pointer;
 }
 
-.meal-row__trash .lucide {
+.meal-row__delete .lucide {
   width: var(--icon-size-sm);
   height: var(--icon-size-sm);
 }
 
+/* Phone: the row slides left over a 96 «Delete» behind it (OCT-19 6.3). */
+@media (max-width: 1023.98px) {
+  .meal-row {
+    position: relative;
+    overflow: hidden;
+    touch-action: pan-y;
+  }
+
+  /* Two classes: must beat .list-row { background: transparent } whatever the CSS order. */
+  .meal-row .meal-row__open {
+    position: relative;
+    z-index: 1;
+    background: var(--color-surface);
+    transform: translateX(var(--swipe-offset, 0));
+    transition: transform var(--duration-fast) var(--ease-out);
+  }
+
+  /* The opaque row covers the li, so the just-saved flash goes on the row itself. */
+  .meal-row.meal-row--new .meal-row__open {
+    animation: meal-row-new var(--duration-highlight) var(--ease-in-out);
+  }
+
+  .meal-row--dragging .meal-row__open {
+    transition: none;
+  }
+
+  /* Keyboard focus on «Delete» shows it. */
+  .meal-row:has(.meal-row__delete:focus-visible) .meal-row__open {
+    transform: translateX(calc(-1 * var(--swipe-action-width)));
+  }
+
+  .meal-row__delete {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-end: 0;
+    width: var(--swipe-action-width);
+    background: var(--color-danger);
+    color: var(--color-on-danger);
+    font-size: var(--text-footnote-size);
+    font-weight: var(--text-headline-weight);
+    /* Hidden by opacity, not visibility: the red layer would fringe the rounded corners, and VoiceOver must still reach it. */
+    opacity: 0;
+  }
+
+  .meal-row--shifted .meal-row__delete,
+  .meal-row__delete:focus-visible {
+    opacity: 1;
+  }
+}
+
+/* Desktop D.2: a trash button in the row, no swipe. */
+@media (min-width: 1024px) {
+  .meal-row__delete {
+    flex: none;
+    width: var(--tap-min);
+    height: var(--tap-min);
+    margin-inline-end: var(--space-3);
+    border-radius: var(--radius-md);
+    background: var(--color-hover);
+    color: var(--color-danger);
+  }
+
+  .meal-row__delete-text {
+    display: none;
+  }
+
+  /* The trash shows on the hovered or focused row; always on touch screens. */
+  @media (hover: hover) {
+    .meal-row:not(:hover, :focus-within) .meal-row__delete {
+      opacity: 0;
+    }
+  }
+}
+
 @media (hover: hover) {
-  .meal-row:has(.meal-row__trash):hover {
+  .meal-row:has(.meal-row__delete):hover {
     background: var(--color-hover);
   }
 }

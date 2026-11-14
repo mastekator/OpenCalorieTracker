@@ -61,8 +61,8 @@ const alertText = async () => (await screen.findByRole('alert')).textContent;
 let visibility: DocumentVisibilityState = 'visible';
 let online = true;
 
-async function setup() {
-  const location = memoryLocation({ path: '/meal/new?photo=p1', record: true });
+async function setup(path = '/meal/new?photo=p1') {
+  const location = memoryLocation({ path, record: true });
   await renderLoaded(
     <I18nProvider>
       <Router hook={location.hook} searchHook={location.searchHook}>
@@ -143,6 +143,14 @@ describe('RecognitionScreen', () => {
     respond(fail(409, 'ai_not_configured'));
     const location = await setup();
     await waitFor(() => expect(location.history.at(-1)).toBe(EDIT));
+  });
+
+  it('passes the day of «Add an entry for this day» on to the edit screen (AC-2.11)', async () => {
+    respond(ok);
+    const location = await setup('/meal/new?photo=p1&date=2026-11-10');
+    await waitFor(() =>
+      expect(location.history.at(-1)).toBe(`${EDIT}&date=2026-11-10`),
+    );
   });
 
   it('after 10 s shows «taking longer» and manual entry (E-7.5)', async () => {

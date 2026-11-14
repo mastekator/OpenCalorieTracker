@@ -43,6 +43,27 @@ export const Root: Story = {
   ),
 };
 
+/** Root screen with a text action (Diary → «Today», OCT-19 6.1). */
+export const TextAction: Story = {
+  render: () => (
+    <Localised
+      make={(t) => ({
+        title: t('nav.diary'),
+        large: true,
+        action: { label: t('diary.today_btn'), onClick: () => {} },
+      })}
+    />
+  ),
+};
+export const TextActionDark: Story = {
+  ...TextAction,
+  globals: { theme: 'dark' },
+};
+export const TextActionDesktop: Story = {
+  ...TextAction,
+  globals: { viewport: { value: 'desktop' } },
+};
+
 /** Nested screen: back to the previous screen, centred title. */
 export const Nested: Story = {
   render: () => (

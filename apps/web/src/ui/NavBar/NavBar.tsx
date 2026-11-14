@@ -2,8 +2,11 @@ import { ChevronLeft, type LucideIcon } from 'lucide-react';
 import { Link } from 'wouter';
 import './NavBar.css';
 
-/** mobileOnly: hidden inside the app shell from 1024px, where the sidebar already offers it. */
-type Action = { icon: LucideIcon; label: string; mobileOnly?: boolean } & (
+/**
+ * With an icon: a 44×44 icon button, the label read by screen readers; without one: the label as text.
+ * mobileOnly: hidden inside the app shell from 1024px, where the sidebar already offers it.
+ */
+type Action = { icon?: LucideIcon; label: string; mobileOnly?: boolean } & (
   { href: string; onClick?: never } | { onClick: () => void; href?: never }
 );
 
@@ -13,7 +16,7 @@ type Props = {
   large?: boolean;
   /** Nested screens: chevron + the previous screen's name. */
   back?: { href: string; label: string; mobileOnly?: boolean };
-  /** One 44×44 icon on the right; the label is read by screen readers. */
+  /** One action on the right. */
   action?: Action;
 };
 
@@ -21,20 +24,22 @@ export function NavBar({ title, large = false, back, action }: Props) {
   let right = null;
   if (action) {
     const { icon: Icon, label, href, onClick, mobileOnly } = action;
-    const className = `navbar__action${mobileOnly ? ' navbar--mobile-only' : ''}`;
+    const className = `navbar__action${Icon ? '' : ' navbar__action--text'}${mobileOnly ? ' navbar--mobile-only' : ''}`;
+    const content = Icon ? <Icon aria-hidden="true" /> : label;
+    const ariaLabel = Icon ? label : undefined;
     right =
       href !== undefined ? (
-        <Link href={href} className={className} aria-label={label}>
-          <Icon aria-hidden="true" />
+        <Link href={href} className={className} aria-label={ariaLabel}>
+          {content}
         </Link>
       ) : (
         <button
           type="button"
           className={className}
-          aria-label={label}
+          aria-label={ariaLabel}
           onClick={onClick}
         >
-          <Icon aria-hidden="true" />
+          {content}
         </button>
       );
   }

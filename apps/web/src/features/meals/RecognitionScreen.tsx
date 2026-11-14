@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useLocation } from 'wouter';
+import { useLocation, useSearch } from 'wouter';
 import { recognitionSchema, type RecognizedDish } from '@oct/shared';
 import { api, ApiError } from '../../api/client';
 import { useT } from '../../i18n';
@@ -53,7 +53,8 @@ export function RecognitionScreen({ photoId }: { photoId: string }) {
   const capture = useCapture();
   const [state, setState] = useState<RecognitionStateKind>('loading');
   const [attempt, setAttempt] = useState(0); // «Try again»: same photoId (AC-6.4)
-  const query = `?photo=${encodeURIComponent(photoId)}`;
+  // `?photo=` and the day of «Add an entry for this day» (`?date=`, AC-2.11) go on to the edit screen.
+  const query = `?${useSearch()}`;
 
   // Replace: «Back» from the edit screen goes to Today, not into a new recognition.
   const toEdit = (editState: MealEditState) =>

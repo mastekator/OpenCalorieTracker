@@ -15,6 +15,8 @@ import {
   CaptureProvider,
   MEAL_NEW_PATH,
 } from '../features/meals/CaptureContext';
+import { diaryDay, localToday } from '../features/diary/day';
+import { DiaryScreen } from '../features/diary/DiaryScreen';
 import { TodayScreen } from '../features/diary/TodayScreen';
 import {
   MEAL_EDIT_PATH,
@@ -90,7 +92,27 @@ export function AppScreens() {
         </Screen>
       </Route>
       <Route path="/diary">
-        <Screen wide large title={t('nav.diary')} />
+        <Redirect to={`/diary/${localToday()}`} replace />
+      </Route>
+      <Route path="/diary/:date">
+        {({ date }) => (
+          <Screen
+            wide
+            large
+            title={t('nav.diary')}
+            action={
+              diaryDay(date, localToday()) === localToday()
+                ? undefined
+                : {
+                    label: t('diary.today_btn'),
+                    onClick: () =>
+                      navigate(`/diary/${localToday()}`, { replace: true }),
+                  }
+            }
+          >
+            <DiaryScreen date={date} />
+          </Screen>
+        )}
       </Route>
       <Route path="/week">
         <Screen wide large title={t('nav.week')} />
@@ -199,12 +221,13 @@ function LoginForm({
 }
 
 /** `?photo=` → recognition; no photo → manual entry on the edit screen. */
-function MealNew() {
-  const photoId = new URLSearchParams(useSearch()).get('photo');
+export function MealNew() {
+  const search = useSearch();
+  const photoId = new URLSearchParams(search).get('photo');
   if (!photoId)
     return (
       <Redirect
-        to={MEAL_EDIT_PATH}
+        to={search ? `${MEAL_EDIT_PATH}?${search}` : MEAL_EDIT_PATH}
         replace
         state={{ manual: 'user' } satisfies MealEditState}
       />

@@ -101,5 +101,17 @@ export const Desktop: Story = {
   args: { desktop: true },
   globals: { viewport: { value: 'desktop' } },
 };
+/** 6.3 on the phone: «Delete» shown (by swipe, or here by keyboard focus). */
+export const SwipeOpen: Story = {
+  args: { desktop: true },
+  parameters: {
+    pseudo: { focusVisible: ['.meal-row:first-child .meal-row__delete'] },
+  },
+};
+export const SwipeOpenDark: Story = {
+  ...SwipeOpen,
+  globals: { theme: 'dark' },
+};
+export const Dark: Story = { globals: { theme: 'dark' } };
 /** A just-saved meal flashes accent-soft (OCT-16 A.6). */
 export const JustSaved: Story = { args: { highlight: true } };

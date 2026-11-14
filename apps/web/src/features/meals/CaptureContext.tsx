@@ -7,7 +7,7 @@ import {
   type ChangeEvent,
   type ReactNode,
 } from 'react';
-import { useLocation } from 'wouter';
+import { useLocation, useSearch } from 'wouter';
 import { z } from 'zod';
 import { api, ApiError } from '../../api/client';
 import { useT } from '../../i18n';
@@ -17,7 +17,7 @@ import { useToast } from '../../ui/Toast/Toast';
 import { CaptureMenu } from './CaptureMenu';
 import { ImageDecodeError, prepareImage } from './prepareImage';
 
-/** The meal flow; the recognition screen (OCT-57) reads `?photo=`. */
+/** The meal flow; the recognition screen (OCT-57) reads `?photo=` and passes `?date=` on to the edit screen. */
 export const MEAL_NEW_PATH = '/meal/new';
 
 type Capture = {
@@ -29,6 +29,8 @@ type Capture = {
   manual: () => void;
   /** Menu 5.5 (long press on the camera). */
   menu: () => void;
+  /** Menu 5.5 for a past day (`YYYY-MM-DD`; null: today): the flow opens with `?date=` (AC-2.11). */
+  addTo: (date: string | null) => void;
 };
 
 const noop = () => {};
@@ -37,6 +39,7 @@ const CaptureContext = createContext<Capture>({
   pick: noop,
   manual: noop,
   menu: noop,
+  addTo: noop,
 });
 
 export const useCapture = () => useContext(CaptureContext);
@@ -58,6 +61,12 @@ export function CaptureProvider({ children }: { children: ReactNode }) {
   const cameraInput = useRef<HTMLInputElement>(null);
   const pickInput = useRef<HTMLInputElement>(null);
   const busy = useRef(false);
+  // The day «Add an entry for this day» was opened for; other ways in take the current flow's day (none: today).
+  const date = useRef<string | null>(null);
+  const search = useRef('');
+  search.current = useSearch();
+  /** Outside menu 5.5 for a past day the day is the current flow's (a retake keeps it), else today. */
+  const flowDate = () => new URLSearchParams(search.current).get('date');
   const [dialog, setDialog] = useState<'open' | 'camera' | null>(null);
   const [menu, setMenu] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -80,9 +89,7 @@ export function CaptureProvider({ children }: { children: ReactNode }) {
         body: blob,
       });
       // From the recognition screen (retake, drop, paste) the old photo leaves history.
-      navigate(`${MEAL_NEW_PATH}?photo=${encodeURIComponent(photoId)}`, {
-        replace: inFlow,
-      });
+      navigate(flowPath(photoId), { replace: inFlow });
     } catch (err) {
       if (!(err instanceof ApiError)) throw err;
       if (err.code === 'photo_invalid' || err.code === 'photo_too_large')
@@ -115,6 +122,14 @@ export function CaptureProvider({ children }: { children: ReactNode }) {
   const startRef = useRef(start);
   startRef.current = start;
 
+  const flowPath = (photoId?: string) => {
+    const query = new URLSearchParams();
+    if (photoId) query.set('photo', photoId);
+    if (date.current) query.set('date', date.current);
+    const q = query.toString();
+    return q ? `${MEAL_NEW_PATH}?${q}` : MEAL_NEW_PATH;
+  };
+
   const pick = () => pickInput.current?.click();
   const camera = () => {
     // shortcut: <input capture> reports no permission denial; only a thrown error shows E-1.3.
@@ -124,7 +139,7 @@ export function CaptureProvider({ children }: { children: ReactNode }) {
       setDialog('camera');
     }
   };
-  const manual = () => navigate(MEAL_NEW_PATH);
+  const manual = () => navigate(flowPath());
 
   const onPicked = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -156,7 +171,9 @@ export function CaptureProvider({ children }: { children: ReactNode }) {
       setDragging(false);
       // Not an image → prepareImage fails → dialog 3.8.
       const file = event.dataTransfer?.files[0];
-      if (file) void startRef.current(file);
+      if (!file) return;
+      date.current = flowDate();
+      void startRef.current(file);
     };
     const paste = (event: ClipboardEvent) => {
       const file = Array.from(event.clipboardData?.files ?? []).find((f) =>
@@ -164,6 +181,7 @@ export function CaptureProvider({ children }: { children: ReactNode }) {
       );
       if (!file) return; // text paste into fields stays as is
       event.preventDefault();
+      date.current = flowDate();
       void startRef.current(file);
     };
     window.addEventListener('dragenter', enter);
@@ -180,6 +198,10 @@ export function CaptureProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  const today = (action: () => void) => () => {
+    date.current = flowDate();
+    action();
+  };
   const closeMenuThen = (action: () => void) => () => {
     setMenu(false);
     action();
@@ -190,7 +212,18 @@ export function CaptureProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <CaptureContext value={{ camera, pick, manual, menu: () => setMenu(true) }}>
+    <CaptureContext
+      value={{
+        camera: today(camera),
+        pick: today(pick),
+        manual: today(manual),
+        menu: today(() => setMenu(true)),
+        addTo: (day) => {
+          date.current = day;
+          setMenu(true);
+        },
+      }}
+    >
       {children}
       <input
         ref={cameraInput}

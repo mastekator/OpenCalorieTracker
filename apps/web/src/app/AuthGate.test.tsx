@@ -205,6 +205,6 @@ describe('AuthGate', () => {
     serve(null, true);
     const location = renderAt('/login?next=%2Fdiary');
     expect(await screen.findByRole('heading', { name: 'Diary' })).toBeTruthy();
-    expect(location.history.at(-1)).toBe('/diary');
+    expect(location.history.at(-1)).toMatch(/^\/diary\/\d{4}-\d{2}-\d{2}$/);
   });
 });

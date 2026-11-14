@@ -12,7 +12,7 @@ import { memoryLocation } from 'wouter/memory-location';
 import { I18nProvider, LOCALE_STORAGE_KEY } from '../../i18n';
 import { ToastProvider } from '../../ui/Toast/Toast';
 import { renderLoaded } from '../../test-utils';
-import { CaptureProvider } from './CaptureContext';
+import { CaptureProvider, useCapture } from './CaptureContext';
 import { ImageDecodeError, prepareImage } from './prepareImage';
 
 vi.mock('./prepareImage', async (importOriginal) => ({
@@ -23,14 +23,25 @@ vi.mock('./prepareImage', async (importOriginal) => ({
 const jpeg = new Blob(['jpeg'], { type: 'image/jpeg' });
 const photo = new File(['raw'], 'food.heic', { type: 'image/heic' });
 
-async function setup() {
-  const location = memoryLocation({ path: '/', record: true });
+function Probe() {
+  const capture = useCapture();
+  return (
+    <>
+      <button onClick={() => capture.addTo('2026-11-10')}>Add to day</button>
+      <button onClick={capture.manual}>Direct manual</button>
+    </>
+  );
+}
+
+async function setup(path = '/') {
+  const location = memoryLocation({ path, record: true });
   await renderLoaded(
     <I18nProvider>
       <ToastProvider>
-        <Router hook={location.hook}>
+        <Router hook={location.hook} searchHook={location.searchHook}>
           <CaptureProvider>
             <p>Today</p>
+            <Probe />
           </CaptureProvider>
         </Router>
       </ToastProvider>
@@ -83,6 +94,45 @@ describe('CaptureProvider', () => {
     const [path, init] = fetch.mock.calls[0]!;
     expect(path).toBe('/api/photos');
     expect(init).toMatchObject({ method: 'POST', body: jpeg });
+  });
+
+  it('«Add an entry for this day» carries the date; other ways in do not (AC-2.11)', async () => {
+    respond();
+    const location = await setup();
+    fireEvent.click(screen.getByText('Add to day'));
+    fireEvent.click(await screen.findByText('Enter manually'));
+    expect(location.history.at(-1)).toBe('/meal/new?date=2026-11-10');
+    act(() => location.navigate('/'));
+    fireEvent.click(screen.getByText('Direct manual'));
+    expect(location.history.at(-1)).toBe('/meal/new');
+  });
+
+  it('a paste after «Add an entry for this day» was closed goes to today', async () => {
+    respond(created);
+    const location = await setup();
+    fireEvent.click(screen.getByText('Add to day'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Close' }));
+    fireEvent(
+      window,
+      createEvent.paste(window, { clipboardData: { files: [photo] } }),
+    );
+    await waitFor(() =>
+      expect(location.history.at(-1)).toBe('/meal/new?photo=abc'),
+    );
+  });
+
+  it("a retake by paste inside a past day's flow keeps the day", async () => {
+    respond(created);
+    const location = await setup('/meal/new?photo=old&date=2026-11-10');
+    fireEvent(
+      window,
+      createEvent.paste(window, { clipboardData: { files: [photo] } }),
+    );
+    await waitFor(() =>
+      expect(location.history.at(-1)).toBe(
+        '/meal/new?photo=abc&date=2026-11-10',
+      ),
+    );
   });
 
   it('shows dialog 3.8 and uploads nothing when the photo cannot be decoded (E-1.1)', async () => {

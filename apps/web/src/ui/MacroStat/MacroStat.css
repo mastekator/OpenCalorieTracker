@@ -52,7 +52,6 @@
   display: flex;
   align-items: center;
   gap: 2px;
-  white-space: nowrap;
   font-size: var(--text-footnote-size);
   line-height: var(--text-footnote-lh);
   color: var(--color-text-secondary);

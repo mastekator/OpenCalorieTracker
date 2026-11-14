@@ -36,8 +36,8 @@ describe('RemainingCard', () => {
     expect(text).toContain('Over140kcal');
     expect(document.querySelector('.remaining__label svg')).not.toBeNull();
     // Each macro on its own: fat over, protein left (AC-1.5).
-    expect(text).toContain('12 g over');
-    expect(text).toContain('52 g left');
+    expect(text).toContain('12\u00a0g over');
+    expect(text).toContain('52\u00a0g left');
   });
 
   it('shows «0 kcal left» at exactly the norm (E-1.1)', async () => {
