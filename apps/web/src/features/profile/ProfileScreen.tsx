@@ -9,7 +9,8 @@ import {
 } from '@oct/shared';
 import { api } from '../../api/client';
 import { useSession } from '../../app/SessionContext';
-import { useSettings } from '../../data/DataContext';
+import { useDb, useSettings } from '../../data/DataContext';
+import { patchSettings } from '../../data/outbox';
 import { useT } from '../../i18n';
 import { Button } from '../../ui/Button/Button';
 import { ScreenState } from '../../ui/ScreenState/ScreenState';
@@ -26,7 +27,9 @@ type Loaded = { profile: ProfileResponse; interview: AiStatus['interview'] };
 export function ProfileScreen() {
   const { t } = useT();
   const { user } = useSession();
-  const units = useSettings()?.units ?? user?.units ?? 'metric';
+  const db = useDb();
+  const settings = useSettings();
+  const units = settings?.units ?? user?.units ?? 'metric';
   const [data, setData] = useState<Loaded | null>(null);
   const [failed, setFailed] = useState(false);
   const [chat, setChat] = useState(false);
@@ -80,6 +83,12 @@ export function ProfileScreen() {
         }
         onSave={(body: ProfileRequest) =>
           api('/api/profile', profileResponse, { method: 'PUT', body })
+        }
+        disclaimerHidden={
+          settings?.normDisclaimerHidden ?? user?.normDisclaimerHidden
+        }
+        onHideDisclaimer={() =>
+          void patchSettings(db, { normDisclaimerHidden: true })
         }
       />
       {/* shortcut: an empty sheet until the assistant chat (OCT-90). */}
