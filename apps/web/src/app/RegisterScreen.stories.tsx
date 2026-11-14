@@ -34,6 +34,7 @@ const oleg: MeResponse = {
   normDisclaimerHidden: false,
   passwordFromConfig: false,
   methods: ['password'],
+  enabledMethods: ['password'],
 };
 
 type Args = Parameters<typeof RegisterScreen>[0] & {
