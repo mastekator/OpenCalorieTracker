@@ -1,10 +1,16 @@
 import type { ReactNode } from 'react';
 import { Settings2 } from 'lucide-react';
-import { Redirect, Route, Switch, useSearch } from 'wouter';
+import { z } from 'zod';
+import { Redirect, Route, Switch, useLocation, useSearch } from 'wouter';
+import { api } from '../api/client';
 import type { Key } from '../i18n/translate';
 import { useT } from '../i18n';
 import { Button } from '../ui/Button/Button';
 import { NavBar } from '../ui/NavBar/NavBar';
+import { useOnline } from '../ui/OfflineBar/OfflineBar';
+import { PasskeysScreen } from '../features/settings/PasskeysScreen';
+import { PasswordScreen } from '../features/settings/PasswordScreen';
+import { SettingsScreen } from '../features/settings/SettingsScreen';
 import {
   CaptureProvider,
   MEAL_NEW_PATH,
@@ -67,9 +73,29 @@ function MealFlowStub() {
   );
 }
 
+// shortcut: admin screens are stubs until OCT-46 (invites, users, blocks) and OCT-81 (AI provider).
+const ADMIN_TITLES: Record<string, Key> = {
+  invites: 'invites.title',
+  users: 'users.title',
+  blocks: 'blocks.title',
+  ai: 'settings.ai_provider',
+};
+
 /** Signed-in screens, rendered inside AppShell. */
 export function AppScreens() {
   const { t } = useT();
+  const { user, refresh } = useSession();
+  const online = useOnline();
+  const [, navigate] = useLocation();
+  const toSettings = { href: '/settings', label: t('nav.settings') };
+  // shortcut: signs out at once; the confirm with unsent changes and clearing local data are OCT-80.
+  const logout = async () => {
+    await api('/api/auth/logout', z.undefined(), { method: 'POST' }).catch(
+      () => {},
+    );
+    await refresh();
+  };
+  if (!user) return null;
   return (
     <Switch>
       <Route path="/">
@@ -99,7 +125,45 @@ export function AppScreens() {
         <Screen
           title={t('nav.settings')}
           back={{ href: '/profile', label: t('nav.profile'), mobileOnly: true }}
-        />
+        >
+          <SettingsScreen
+            user={user}
+            online={online}
+            onLogout={() => void logout()}
+          />
+        </Screen>
+      </Route>
+      <Route path="/settings/passkeys">
+        <Screen title={t('passkeys.title')} back={toSettings}>
+          <PasskeysScreen user={user} onChanged={refresh} />
+        </Screen>
+      </Route>
+      <Route path="/settings/password">
+        <Screen
+          title={t(
+            user.methods.includes('password')
+              ? 'password.change'
+              : 'password.set',
+          )}
+          back={toSettings}
+        >
+          <PasswordScreen
+            user={user}
+            onDone={async () => {
+              await refresh();
+              navigate('/settings');
+            }}
+          />
+        </Screen>
+      </Route>
+      <Route path="/settings/admin/:page">
+        {({ page }) =>
+          ADMIN_TITLES[page] ? (
+            <Screen title={t(ADMIN_TITLES[page])} back={toSettings} />
+          ) : (
+            <Redirect to="/settings" replace />
+          )
+        }
       </Route>
       <Route>
         <Redirect to="/" replace />
