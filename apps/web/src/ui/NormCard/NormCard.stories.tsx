@@ -18,7 +18,7 @@ function Empty() {
   );
 }
 
-const meta = {
+const meta: Meta<typeof NormCard> = {
   title: 'UI/NormCard',
   component: NormCard,
   args: { state: 'norm', norm, badge: 'calc', onHow: noop },
@@ -29,9 +29,9 @@ const meta = {
       </div>
     ),
   ],
-} satisfies Meta<typeof NormCard>;
+};
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<typeof NormCard>;
 
 /** 8.4 */
 export const Calculated: Story = {};
