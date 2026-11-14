@@ -50,11 +50,15 @@ describe('GET /api/ai/status', () => {
     expect(await (await setup(null)).status()).toEqual({
       recognition: 'not_configured',
       interview: 'not_configured',
+      providerName: null,
+      baseUrlHost: null,
     });
     await cleanup!();
     expect(await (await setup(mockModel())).status()).toEqual({
       recognition: 'ready',
       interview: 'ready',
+      providerName: null,
+      baseUrlHost: null,
     });
   });
 

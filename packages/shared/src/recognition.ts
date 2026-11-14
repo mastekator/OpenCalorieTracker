@@ -22,10 +22,13 @@ export const recognitionSchema = z.object({
 });
 export type Recognition = z.infer<typeof recognitionSchema>;
 
-/** GET /api/ai/status: whether photo recognition and the norm agent can be used; never reveals provider, model or key. */
+/** GET /api/ai/status for every user: what AI features can be used and where data goes; never the model, state or key. */
 export const aiStatusSchema = z.object({
   recognition: z.enum(['ready', 'not_configured', 'no_vision']),
   interview: z.enum(['ready', 'not_configured', 'unavailable']),
+  providerName: z.string().nullable(),
+  /** Set for an OpenAI-compatible server only (ADR-0013). */
+  baseUrlHost: z.string().nullable(),
 });
 export type AiStatus = z.infer<typeof aiStatusSchema>;
 export type RecognitionStatus = AiStatus['recognition'];

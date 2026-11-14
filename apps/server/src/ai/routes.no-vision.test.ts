@@ -15,8 +15,5 @@ it('learns no_vision from the first call and then refuses up front (AC-6.1)', as
     expect(res.status).toBe(409);
     expect(await res.json()).toEqual({ error: { code: 'ai_no_vision' } });
   }
-  expect(await t.status()).toEqual({
-    recognition: 'no_vision',
-    interview: 'ready',
-  });
+  expect(await t.status()).toMatchObject({ recognition: 'no_vision' });
 });

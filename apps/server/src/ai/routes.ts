@@ -1,12 +1,13 @@
 import { access, readFile } from 'node:fs/promises';
 import { Hono } from 'hono';
-import type { AiStatus, Recognition } from '@oct/shared';
+import { AI_PROVIDERS, type AiStatus, type Recognition } from '@oct/shared';
 import type { AppDeps } from '../app.js';
 import { requireUser, type AuthEnv } from '../auth/session.js';
 import { ApiError } from '../http/errors.js';
 import { photoPath } from '../photos/store.js';
 import { recognizeMeal } from './recognize.js';
-import { recognitionStatus } from './status.js';
+import { baseUrlHost, getAiSettings } from './settings.js';
+import { interviewStatus, recognitionStatus } from './status.js';
 
 const RESULT_TTL_MS = 10 * 60_000;
 
@@ -16,13 +17,19 @@ export function aiRoutes({ config, model = null }: AppDeps) {
   const results = new Map<string, Promise<Recognition>>();
   // The photo each user is recognizing now: one call per user at a time.
   const running = new Set<number>();
+  const settings = model ? getAiSettings(config) : null;
+  const provider = settings && AI_PROVIDERS[settings.provider];
 
   return new Hono<AuthEnv>()
     .get('/ai/status', requireUser, (c) =>
       c.json({
         recognition: recognitionStatus(model),
-        // 'unavailable' comes with the last AI result (OCT-73).
-        interview: model ? 'ready' : 'not_configured',
+        interview: interviewStatus(model),
+        providerName: provider?.name ?? null,
+        baseUrlHost:
+          settings?.provider === 'openai-compatible'
+            ? baseUrlHost(settings)
+            : null,
       } satisfies AiStatus),
     )
     .post('/photos/:id/recognize', requireUser, async (c) => {
