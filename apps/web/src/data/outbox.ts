@@ -132,8 +132,9 @@ export function patchMeal(
     const ops = await queued(db, tx, clientId);
     const create = ops.find((o) => o.kind === 'createMeal');
     const last = ops.at(-1);
-    if (create?.kind === 'createMeal' && !create.error)
-      await outbox.put({ ...create, body: { ...create.body, ...patch } });
+    // Merge into the last op only: an older op after it would overwrite this edit.
+    if (last?.kind === 'createMeal' && !last.error)
+      await outbox.put({ ...last, body: { ...last.body, ...patch } });
     else if (last?.kind === 'patchMeal' && !last.error)
       await outbox.put({
         ...last,

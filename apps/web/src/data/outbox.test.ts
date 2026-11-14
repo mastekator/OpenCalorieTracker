@@ -246,6 +246,26 @@ describe('flush', () => {
     expect(await db.get('meals', A)).toBeUndefined();
   });
 
+  it('an edit after a failed in-flight createMeal stays after the earlier edit', async () => {
+    let fail!: () => void;
+    serve({
+      'POST /api/meals': () =>
+        new Promise((_, no) => (fail = () => no(new TypeError('offline')))),
+    });
+    await createMeal(db, input(A));
+    await vi.waitFor(() => expect(fail).toBeDefined());
+    await patchMeal(db, A, { mealType: 'dinner' });
+    serve({}); // the retry stays offline
+    fail();
+    await settle();
+    await patchMeal(db, A, { mealType: 'snack' });
+    await settle();
+    expect(await ops()).toMatchObject([
+      { kind: 'createMeal', body: { mealType: 'lunch' } },
+      { kind: 'patchMeal', body: { mealType: 'snack' } },
+    ]);
+  });
+
   it('drops an edit or delete answered 404', async () => {
     await db.put('meals', { ...(await localMeal(A)), id: 5 });
     await db.put('meals', { ...(await localMeal(B)), id: 6 });
