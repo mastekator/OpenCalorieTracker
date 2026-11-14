@@ -1,0 +1,18 @@
+.offline-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-2) var(--screen-gutter);
+  background: var(--color-notice);
+  color: var(--color-text-secondary);
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+  text-align: center;
+}
+
+.offline-bar .lucide {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+}

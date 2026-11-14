@@ -5,6 +5,10 @@ const ru: DeepPartial<typeof en> = {
   common: {
     appName: 'OpenCalorieTracker',
     loading: 'Загрузка…',
+    close: 'Закрыть',
+    cancel: 'Отмена',
+    got_it: 'Понятно',
+    retry: 'Повторить',
     tryAgainIn: {
       one: 'Повторите через {count} минуту',
       few: 'Повторите через {count} минуты',
@@ -18,6 +22,43 @@ const ru: DeepPartial<typeof en> = {
     invite: 'Принять приглашение',
     recover: 'Восстановление доступа',
     register: 'Регистрация',
+  },
+  auth: {
+    email: 'Email',
+    email_ph: 'name@example.com',
+    password: 'Пароль',
+    show_password: 'Показать пароль',
+    hide_password: 'Скрыть пароль',
+    forgot_sheet: {
+      title: 'Забыли пароль?',
+      body: 'Приложение не отправляет письма. Попросите администратора этой установки прислать вам ссылку для восстановления — по ней можно задать новый пароль или создать passkey. Дневник сохранится.',
+    },
+  },
+  settings: { logout: 'Выйти' },
+  logout: {
+    confirm: {
+      title: 'Выйти из аккаунта?',
+      body_unsaved: 'Несохранённые изменения пропадут.',
+    },
+  },
+  link_ready: { share: 'Поделиться', copied: 'Ссылка скопирована' },
+  reg: {
+    name: 'Как вас зовут',
+    method: { title: 'Способ входа', passkey: 'Passkey', password: 'Пароль' },
+  },
+  form: { err: { email: 'Введите email, например name@example.com' } },
+  pw: {
+    rule: {
+      length: 'От {min} символов',
+      letter_digit: 'Буква и цифра',
+      symbol: 'Символ, например ! - _ или пробел',
+      not_email: 'Не совпадает с email',
+    },
+  },
+  offline: {
+    bar: 'Офлайн · данные на {time}',
+    no_network: 'Нет сети',
+    server_down: 'Сервер недоступен',
   },
   nav: {
     main: 'Главное меню',
@@ -66,6 +107,7 @@ const ru: DeepPartial<typeof en> = {
     photo_in_use: 'Это фото уже прикреплено к другой записи',
     agent_not_ready: 'Сначала дойдите до сводки',
     agent_closed: 'Этот диалог закрыт. Заполните форму или начните заново',
+    cannot_delete_self: 'Нельзя удалить собственную учётную запись',
     internal: 'Что-то пошло не так. Попробуйте ещё раз',
   },
 };

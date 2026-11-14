@@ -65,6 +65,7 @@ export default defineConfig({
   test: {
     name: 'web',
     environment: 'jsdom',
+    setupFiles: ['src/test-setup.ts'],
     // Lets tests import tokens.css?raw (Vitest blanks CSS by default).
     css: { include: [/tokens\.css/] },
   },
