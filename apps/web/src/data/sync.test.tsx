@@ -110,7 +110,7 @@ describe('pull', () => {
     await open();
     const local = { ...meal('a'), kcal: 1 };
     await db.put('meals', local);
-    await db.add('outbox', { clientId: 'a' });
+    await db.add('outbox', { clientId: 'a', kind: 'deleteMeal', id: 1 });
     serve(
       page({ rev: 1, meals: [meal('a')] }),
       page({ rev: 2, deletedMealClientIds: ['a'] }),

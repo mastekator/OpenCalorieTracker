@@ -1,8 +1,12 @@
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 import type {
   AccountSettings,
+  AccountSettingsPatch,
+  IllustrationChoiceInput,
   IllustrationId,
   Meal,
+  MealInput,
+  MealPatch,
   MeResponse,
 } from '@oct/shared';
 
@@ -12,11 +16,7 @@ export const DB_VERSION = 1;
 export interface OctDb extends DBSchema {
   meals: { key: string; value: Meal; indexes: { localDate: string } };
   /** Unsent changes, in order (OCT-77). */
-  outbox: {
-    key: number;
-    value: { seq?: number; clientId: string; [k: string]: unknown };
-    indexes: { clientId: string };
-  };
+  outbox: { key: number; value: Op; indexes: { clientId: string } };
   kv: {
     key: 'rev' | 'me' | 'settings' | 'choices';
     value: number | MeResponse | AccountSettings | Choices;
@@ -24,6 +24,21 @@ export interface OctDb extends DBSchema {
   /** Photos taken offline, by meal clientId (OCT-77). */
   photos: { key: string; value: Blob };
 }
+
+/**
+ * One queued change (ADR-0011 §4). `clientId` groups the ops of one meal;
+ * settings use `settings`, an illustration choice `choice:<nameKey>`.
+ * `id` is the meal's server id, 0 until its createMeal is answered.
+ * `error` is the code of a refused op: it stays for the badge and is not resent.
+ */
+export type Op = { seq?: number; clientId: string; error?: string } & (
+  | { kind: 'uploadPhoto' }
+  | { kind: 'createMeal'; body: MealInput }
+  | { kind: 'patchMeal'; id: number; body: MealPatch }
+  | { kind: 'deleteMeal'; id: number }
+  | { kind: 'patchSettings'; body: AccountSettingsPatch }
+  | { kind: 'putIllustrationChoice'; body: IllustrationChoiceInput }
+);
 
 /** Remembered illustration per dish nameKey. */
 export type Choices = Record<string, IllustrationId>;
