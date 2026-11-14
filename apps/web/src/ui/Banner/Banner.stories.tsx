@@ -30,6 +30,26 @@ export const Warning: Story = { args: { tone: 'warning' } };
 export const Danger: Story = { args: { tone: 'danger' } };
 export const Accent: Story = { args: { tone: 'accent' } };
 export const Closable: Story = { args: { tone: 'accent', onClose: () => {} } };
+export const WithActions: Story = {
+  render: (args) => {
+    const { t } = useT();
+    return (
+      <Banner
+        {...args}
+        title={t('errors.ai_unavailable')}
+        actions={
+          <>
+            <button type="button">{t('common.retry')}</button>
+            <button type="button">{t('common.close')}</button>
+          </>
+        }
+      >
+        {t('errors.ai_not_configured')}
+      </Banner>
+    );
+  },
+  args: { tone: 'warning' },
+};
 export const CloseFocusVisible: Story = {
   ...Closable,
   parameters: { pseudo: { focusVisible: true } },

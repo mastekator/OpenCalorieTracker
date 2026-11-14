@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
-import { Sparkles } from 'lucide-react';
+import { Flag, Sparkles } from 'lucide-react';
 import {
   REQUIRED_FIELDS,
   ageYears,
@@ -278,20 +278,18 @@ export function ProfileForm({
                 ? t('pace.danger.title')
                 : level !== 'ok' && t('pace.fast.title')
             }
-          >
-            {body}
-            {safeDeadline && (
-              <>
-                {' '}
+            actions={
+              safeDeadline && (
                 <button
                   type="button"
-                  className="profile__link"
                   onClick={() => set('deadline', safeDeadline)}
                 >
                   {t('pace.postpone')}
                 </button>
-              </>
-            )}
+              )
+            }
+          >
+            {body}
           </Banner>
         )}
         {ok.warnings.map(
@@ -329,33 +327,36 @@ export function ProfileForm({
         title={t('reached.title', {
           weight: `${num1.format(weightFromKg(profile.targetWeightKg, units))} ${weightUnit}`,
         })}
+        icon={<Flag aria-hidden="true" />}
+        actions={
+          <>
+            <button
+              type="button"
+              disabled={saving}
+              onClick={() =>
+                save({ profile: maintain, manual: saved.manual }, () =>
+                  save({ profile: before.profile, manual: before.manual }),
+                )
+              }
+            >
+              {t('reached.go')}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                localStorage.setItem(REACHED_LATER_KEY, String(saved.rev));
+                setLaterRev(String(saved.rev));
+              }}
+            >
+              {t('reached.later')}
+            </button>
+          </>
+        }
       >
         {next.status === 'ok' &&
           t('reached.body', {
             n: new Intl.NumberFormat(locale).format(next.kcal),
-          })}{' '}
-        <button
-          type="button"
-          className="profile__link"
-          disabled={saving}
-          onClick={() =>
-            save({ profile: maintain, manual: saved.manual }, () =>
-              save({ profile: before.profile, manual: before.manual }),
-            )
-          }
-        >
-          {t('reached.go')}
-        </button>{' '}
-        <button
-          type="button"
-          className="profile__link"
-          onClick={() => {
-            localStorage.setItem(REACHED_LATER_KEY, String(saved.rev));
-            setLaterRev(String(saved.rev));
-          }}
-        >
-          {t('reached.later')}
-        </button>
+          })}
       </Banner>
     );
   }

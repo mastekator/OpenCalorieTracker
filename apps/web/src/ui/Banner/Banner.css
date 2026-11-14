@@ -44,6 +44,34 @@
   font-weight: 600;
 }
 
+.banner__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin-top: var(--space-1);
+}
+
+.banner__actions button {
+  min-height: var(--tap-min);
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-text-secondary);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.banner__actions button:first-child {
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.banner__actions button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 .banner__close {
   display: grid;
   place-items: center;
