@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
-import { CircleAlert, Utensils } from 'lucide-react';
+import {
+  CircleAlert,
+  ImagePlus,
+  Pencil,
+  RefreshCw,
+  Utensils,
+} from 'lucide-react';
 import { useLocation } from 'wouter';
 import { z } from 'zod';
 import {
@@ -75,18 +81,15 @@ export function TodayView({
   const loading = meals === undefined || norm === undefined;
   const failed = norm === 'error';
 
+  // 2.6: the card above the capture buttons, rows below them, so the buttons don't move.
   let summary;
   if (loading)
     summary = (
       <Delayed>
-        <div className="today__skeleton">
-          <Skeleton
-            height="calc(var(--space-12) * 5)"
-            radius="var(--radius-lg)"
-          />
-          <Skeleton height="calc(var(--space-12) + var(--space-4))" />
-          <Skeleton height="calc(var(--space-12) + var(--space-4))" />
-        </div>
+        <Skeleton
+          height="calc(var(--space-12) * 5)"
+          radius="var(--radius-lg)"
+        />
       </Delayed>
     );
   else if (failed)
@@ -98,7 +101,8 @@ export function TodayView({
         role="alert"
         title={t('load.err.title')}
         action={
-          <Button variant="tonal" onClick={onRetry}>
+          <Button onClick={onRetry}>
+            <RefreshCw aria-hidden="true" />
             {t('common.retry')}
           </Button>
         }
@@ -122,7 +126,16 @@ export function TodayView({
   }
 
   let list = null;
-  if (meals?.length)
+  if (loading)
+    list = (
+      <Delayed>
+        <div className="today__skeleton">
+          <Skeleton height="calc(var(--space-12) + var(--space-4))" />
+          <Skeleton height="calc(var(--space-12) + var(--space-4))" />
+        </div>
+      </Delayed>
+    );
+  else if (meals?.length)
     list = (
       <List title={t('today.meals')}>
         {[...meals].sort(newestFirst).map((meal) => (
@@ -137,9 +150,11 @@ export function TodayView({
     );
   else if (!loading && !failed)
     list = (
-      <ScreenState icon={<Utensils />} title={t('today.empty.title')}>
-        {t('today.empty.body')}
-      </ScreenState>
+      <div className="today__empty">
+        <ScreenState icon={<Utensils />} title={t('today.empty.title')}>
+          {t('today.empty.body')}
+        </ScreenState>
+      </div>
     );
 
   return (
@@ -149,9 +164,11 @@ export function TodayView({
         {summary}
         <div className="today__capture">
           <Button variant="tonal" onClick={capture.pick}>
+            <ImagePlus aria-hidden="true" />
             {t('capture.gallery')}
           </Button>
           <Button variant="tonal" onClick={capture.manual}>
+            <Pencil aria-hidden="true" />
             {t('capture.manual')}
           </Button>
         </div>

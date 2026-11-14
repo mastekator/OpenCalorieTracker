@@ -1,4 +1,4 @@
-import { Upload } from 'lucide-react';
+import { Pencil, Upload } from 'lucide-react';
 import { useT } from '../../i18n';
 import { Button } from '../../ui/Button/Button';
 import { useCapture } from './CaptureContext';
@@ -21,6 +21,7 @@ export function DropZone() {
           {t('nav.add_food')}
         </Button>
         <Button variant="plain" onClick={capture.manual}>
+          <Pencil aria-hidden="true" />
           {t('common.manual_full')}
         </Button>
       </div>
