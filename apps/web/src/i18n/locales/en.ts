@@ -4,6 +4,7 @@ import type { ClientErrorCode } from '../../api/client';
 // A plural is an object with an `other` key plus the categories the language uses.
 export const en = {
   common: {
+    need_online: 'Internet connection required',
     appName: 'OpenCalorieTracker',
     loading: 'Loading…',
     close: 'Close',
@@ -76,7 +77,57 @@ export const en = {
       url: 'Set PUBLIC_URL in the container configuration. See the README.',
     },
   },
-  settings: { logout: 'Sign out' },
+  settings: {
+    title: 'Settings',
+    group: {
+      admin: 'Admin',
+      appearance: 'Appearance',
+      app: 'App',
+      signin: 'Sign-in · {email}',
+    },
+    language: 'Language',
+    theme: 'Theme',
+    ai_provider: 'AI provider',
+    version: 'Version {v}',
+    logout: 'Sign out',
+  },
+  admin: {
+    hint: {
+      change_pw: 'Change the password set during installation',
+      cta: 'Change password',
+    },
+    offline: 'Admin tools need an internet connection.',
+  },
+  invites: { title: 'Invites' },
+  users: { title: 'Users' },
+  blocks: { title: 'Blocks' },
+  passkeys: {
+    title: 'My passkeys',
+    meta: 'Created {date} · used {when}',
+    meta_unused: 'Created {date} · not used yet',
+    this_device: 'this device',
+    hint: 'Tap a passkey to rename or delete it.',
+    add: 'Add a passkey on this device',
+    name: 'Name',
+    save_name: 'Save name',
+    delete: 'Delete passkey',
+    only_method: 'This is your only way to sign in',
+    delete_confirm:
+      'Delete passkey “{name}”? You won’t be able to sign in with it anymore.',
+    added: 'Passkey added',
+    deleted: 'Passkey deleted',
+  },
+  password: {
+    change: 'Change password',
+    set: 'Set password',
+    current: 'Current password',
+    new: 'New password',
+    repeat: 'Repeat new password',
+    err: { current: 'Incorrect password', mismatch: 'Passwords don’t match' },
+    other_devices: 'You’ll stay signed in on other devices.',
+    changed: 'Password changed',
+    set_done: 'Password set',
+  },
   logout: {
     confirm: {
       title: 'Sign out?',

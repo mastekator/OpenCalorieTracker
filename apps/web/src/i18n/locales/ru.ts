@@ -3,6 +3,7 @@ import type { en } from './en';
 
 const ru: DeepPartial<typeof en> = {
   common: {
+    need_online: 'Нужно подключение к интернету',
     appName: 'OpenCalorieTracker',
     loading: 'Загрузка…',
     close: 'Закрыть',
@@ -77,7 +78,57 @@ const ru: DeepPartial<typeof en> = {
       url: 'Задайте PUBLIC_URL в конфигурации контейнера. Подробности — в README.',
     },
   },
-  settings: { logout: 'Выйти' },
+  settings: {
+    title: 'Настройки',
+    group: {
+      admin: 'Администрирование',
+      appearance: 'Внешний вид',
+      app: 'Приложение',
+      signin: 'Вход · {email}',
+    },
+    language: 'Язык',
+    theme: 'Тема',
+    ai_provider: 'ИИ-провайдер',
+    version: 'Версия {v}',
+    logout: 'Выйти',
+  },
+  admin: {
+    hint: {
+      change_pw: 'Смените пароль, заданный при установке',
+      cta: 'Сменить пароль',
+    },
+    offline: 'Администрирование доступно только при подключении к интернету.',
+  },
+  invites: { title: 'Приглашения' },
+  users: { title: 'Пользователи' },
+  blocks: { title: 'Блокировки' },
+  passkeys: {
+    title: 'Мои passkey',
+    meta: 'Создан {date} · использован {when}',
+    meta_unused: 'Создан {date} · ещё не использовался',
+    this_device: 'это устройство',
+    hint: 'Нажмите на passkey, чтобы переименовать или удалить его.',
+    add: 'Добавить passkey на этом устройстве',
+    name: 'Название',
+    save_name: 'Сохранить название',
+    delete: 'Удалить passkey',
+    only_method: 'Это единственный способ войти',
+    delete_confirm:
+      'Удалить passkey «{name}»? Войти с ним больше не получится.',
+    added: 'Passkey добавлен',
+    deleted: 'Passkey удалён',
+  },
+  password: {
+    change: 'Сменить пароль',
+    set: 'Задать пароль',
+    current: 'Текущий пароль',
+    new: 'Новый пароль',
+    repeat: 'Повторите новый пароль',
+    err: { current: 'Неверный пароль', mismatch: 'Пароли не совпадают' },
+    other_devices: 'Другие устройства останутся в аккаунте.',
+    changed: 'Пароль изменён',
+    set_done: 'Пароль задан',
+  },
   logout: {
     confirm: {
       title: 'Выйти из аккаунта?',

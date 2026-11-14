@@ -2,11 +2,14 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
+import server from '../server/package.json' with { type: 'json' };
 
 // Light --theme-color in src/styles/tokens.css (design OCT-25 §1).
 const THEME_COLOR = '#F8FAF9';
 
 export default defineConfig({
+  // One version for the app, the same one /api/health reports.
+  define: { __APP_VERSION__: JSON.stringify(server.version) },
   plugins: [
     react(),
     // ADR-0012: precache the whole shell, API stays network-only except photo thumbnails.
