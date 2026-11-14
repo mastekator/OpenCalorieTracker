@@ -49,9 +49,13 @@ export function authHelpers(deps: AppDeps) {
       .get(id) as User;
 
   /** What a successful sign-in, registration or recovery does (AC-5.9). */
-  const signedIn = (c: Context<AuthEnv>, user: User) => {
+  const signedIn = (
+    c: Context<AuthEnv>,
+    user: User,
+    passkeyId?: number | bigint,
+  ) => {
     renewDevice(c, config);
-    startSession(c, deps, user.id);
+    startSession(c, deps, user.id, passkeyId);
     return c.json(me(user));
   };
 
@@ -87,6 +91,7 @@ export function authHelpers(deps: AppDeps) {
       normDisclaimerHidden: user.norm_disclaimer_hidden === 1,
       passwordFromConfig: user.password_from_config === 1,
       methods,
+      enabledMethods: config.authMethods,
     };
   };
 

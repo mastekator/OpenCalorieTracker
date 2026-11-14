@@ -1,7 +1,8 @@
-import type { ReactNode } from 'react';
 import { Settings2 } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
 import { Redirect, Route, Switch, useSearch } from 'wouter';
-import type { Key } from '../i18n/translate';
+import { z } from 'zod';
+import { api } from '../api/client';
 import { useT } from '../i18n';
 import { Button } from '../ui/Button/Button';
 import { NavBar } from '../ui/NavBar/NavBar';
@@ -21,13 +22,8 @@ import { AuthLayout } from './AuthLayout';
 import { ConfigProvider, useConfig } from './ConfigContext';
 import { LoginScreen } from './LoginScreen';
 import { safeNext } from './next';
+import { RegisterScreen, type RegisterKind } from './RegisterScreen';
 import { useSession } from './SessionContext';
-
-// shortcut: placeholder screens; each is replaced by its own task (invite/recovery OCT-44, Today OCT-19, …).
-function AuthStub({ title }: { title: Key }) {
-  const { t } = useT();
-  return <h1>{t(title)}</h1>;
-}
 
 /** A screen inside the app: navbar and a content column (wide on Today, Diary, Week). */
 function Screen({
@@ -145,6 +141,35 @@ function MealNew() {
   return <RecognitionScreen key={photoId} photoId={photoId} />;
 }
 
+/** Invite, recovery link or open registration; on success straight to Today (OCT-13 §6). */
+function Register({ kind }: { kind: RegisterKind }) {
+  const config = useConfig();
+  const { user, refresh } = useSession();
+  // Set before the session refresh, so the new user goes to Today instead of seeing 2.5.
+  const [done, setDone] = useState(false);
+  if (user && (done || kind === 'open')) return <Redirect to="/" replace />;
+  if (kind === 'open' && config.registration !== 'open')
+    return <Redirect to="/login" replace />;
+  return (
+    <AuthLayout>
+      <RegisterScreen
+        kind={kind}
+        config={config}
+        token={location.hash.slice(1)}
+        user={user}
+        onSignedIn={async () => {
+          setDone(true);
+          await refresh();
+        }}
+        onSignOut={async () => {
+          await api('/api/auth/logout', z.unknown(), { method: 'POST' });
+          await refresh();
+        }}
+      />
+    </AuthLayout>
+  );
+}
+
 function SignedIn() {
   const { user } = useSession();
   return (
@@ -180,19 +205,19 @@ export function Routes() {
         </ConfigProvider>
       </Route>
       <Route path="/invite">
-        <AuthLayout>
-          <AuthStub title="screens.invite" />
-        </AuthLayout>
+        <ConfigProvider>
+          <Register kind="invite" />
+        </ConfigProvider>
       </Route>
       <Route path="/recover">
-        <AuthLayout>
-          <AuthStub title="screens.recover" />
-        </AuthLayout>
+        <ConfigProvider>
+          <Register kind="recovery" />
+        </ConfigProvider>
       </Route>
       <Route path="/register">
-        <AuthLayout>
-          <AuthStub title="screens.register" />
-        </AuthLayout>
+        <ConfigProvider>
+          <Register kind="open" />
+        </ConfigProvider>
       </Route>
       <Route>
         <SignedIn />

@@ -26,6 +26,7 @@ const me = {
   normDisclaimerHidden: false,
   passwordFromConfig: false,
   methods: ['password'],
+  enabledMethods: ['password', 'passkey'],
 };
 
 const config = {

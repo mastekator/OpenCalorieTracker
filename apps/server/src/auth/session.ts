@@ -25,7 +25,9 @@ export interface User {
   norm_disclaimer_hidden: 0 | 1;
 }
 
-export type AuthEnv = { Variables: { user?: User; deviceId?: string } };
+export type AuthEnv = {
+  Variables: { user?: User; deviceId?: string; sessionId?: number };
+};
 
 const tokenHash = (token: string) =>
   createHash('sha256').update(token).digest();
@@ -43,6 +45,7 @@ export function startSession(
   c: Context,
   { config, db }: AppDeps,
   userId: number,
+  passkeyId: number | bigint | null = null,
 ) {
   // A sign-in over an open session replaces it rather than orphaning its row.
   const old = getCookie(c, COOKIE);
@@ -52,8 +55,8 @@ export function startSession(
   const token = randomBytes(32).toString('base64url');
   const now = Date.now();
   db.prepare(
-    `INSERT INTO sessions (user_id, token_hash, created_at, last_seen_at, expires_at, user_agent)
-     VALUES (?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO sessions (user_id, token_hash, created_at, last_seen_at, expires_at, user_agent, passkey_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     userId,
     tokenHash(token),
@@ -61,6 +64,7 @@ export function startSession(
     now,
     now + SESSION_TTL,
     c.req.header('user-agent') ?? null,
+    passkeyId,
   );
   setCookie(c, COOKIE, token, cookieOptions(config));
 }
@@ -100,6 +104,7 @@ export const session = ({ config, db }: AppDeps) =>
           setCookie(c, COOKIE, token, cookieOptions(config));
         }
         c.set('user', user);
+        c.set('sessionId', session_id);
       }
     }
     await next();

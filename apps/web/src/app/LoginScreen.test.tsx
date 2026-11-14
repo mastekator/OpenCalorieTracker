@@ -41,6 +41,7 @@ const me = {
   normDisclaimerHidden: false,
   passwordFromConfig: false,
   methods: ['password'],
+  enabledMethods: ['password', 'passkey'],
 };
 
 /** Each API path answers with a JSON body, or an error code with its status. */

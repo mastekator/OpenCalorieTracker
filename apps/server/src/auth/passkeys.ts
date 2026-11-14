@@ -25,7 +25,12 @@ import { challengeStore } from './challenges.js';
 import { guard } from './guard.js';
 import { consumeLink } from './invites.js';
 import { authHelpers } from './routes.js';
-import { methodEnabled, requireUser, type AuthEnv } from './session.js';
+import {
+  methodEnabled,
+  requireUser,
+  type AuthEnv,
+  type User,
+} from './session.js';
 
 type Pending =
   | { purpose: 'login'; challenge: string }
@@ -175,14 +180,25 @@ export function passkeyRoutes(deps: AppDeps) {
     }
   };
 
-  const passkeyById = (id: number, userId: number) =>
-    db
-      .prepare(
-        `SELECT id, COALESCE(name, 'Passkey') AS name, created_at AS createdAt,
-                last_used_at AS lastUsedAt
-         FROM passkeys WHERE id = ? AND user_id = ?`,
-      )
-      .get(id, userId) as Passkey | undefined;
+  /** "This device" is the passkey the current session was opened or last extended with. */
+  type Signed = { var: { user: User; sessionId?: number } };
+  const listPasskeys = (c: Signed, id: number | null = null) =>
+    (
+      db
+        .prepare(
+          `SELECT p.id, COALESCE(p.name, 'Passkey') AS name, p.created_at AS createdAt,
+                  p.last_used_at AS lastUsedAt, p.id IS s.passkey_id AS thisDevice
+           FROM passkeys p LEFT JOIN sessions s ON s.id = @sessionId
+           WHERE p.user_id = @userId AND (@id IS NULL OR p.id = @id)
+           ORDER BY p.created_at, p.id`,
+        )
+        .all({
+          sessionId: c.var.sessionId,
+          userId: c.var.user.id,
+          id,
+        }) as (Omit<Passkey, 'thisDevice'> & { thisDevice: 0 | 1 })[]
+    ).map((p): Passkey => ({ ...p, thisDevice: p.thisDevice === 1 }));
+  const passkeyById = (c: Signed, id: number) => listPasskeys(c, id)[0];
 
   const passkeyId = (c: Context) => {
     const id = Number(c.req.param('id'));
@@ -263,7 +279,7 @@ export function passkeyRoutes(deps: AppDeps) {
             row.user_id,
           );
         })();
-        return signedIn(c, userById(row.user_id));
+        return signedIn(c, userById(row.user_id), row.id);
       },
     )
     .post(
@@ -316,9 +332,9 @@ export function passkeyRoutes(deps: AppDeps) {
         const attempts = guard(c, deps);
         const now = Date.now();
         const taken = new ApiError(409, 'registration_failed');
-        let userId: number | bigint;
+        let ids: { userId: number | bigint; passkeyId: number };
         try {
-          userId = db.transaction(() => {
+          ids = db.transaction(() => {
             if (p.token) consumeLink(db, p.token, 'invite');
             else if (emailTaken(p.email)) throw taken;
             const { lastInsertRowid } = db
@@ -334,8 +350,10 @@ export function passkeyRoutes(deps: AppDeps) {
                 now,
                 now,
               );
-            insertPasskey(c, lastInsertRowid, credential);
-            return lastInsertRowid;
+            return {
+              userId: lastInsertRowid,
+              passkeyId: insertPasskey(c, lastInsertRowid, credential),
+            };
           })();
         } catch (err) {
           if (
@@ -348,7 +366,7 @@ export function passkeyRoutes(deps: AppDeps) {
           throw err;
         }
         attempts.succeed();
-        return signedIn(c, userById(userId));
+        return signedIn(c, userById(ids.userId), ids.passkeyId);
       },
     )
     .post(
@@ -386,28 +404,20 @@ export function passkeyRoutes(deps: AppDeps) {
         const p = take(challengeId, 'recover');
         const credential = await verifyRegistration(response, p.challenge);
         // Other passkeys, the password and other sessions stay as they are (AC-6.4).
-        db.transaction(() => {
+        const passkeyId = db.transaction(() => {
           consumeLink(db, p.token, 'recovery');
-          insertPasskey(c, p.userId, credential);
           db.prepare('UPDATE users SET last_login_at = ? WHERE id = ?').run(
             Date.now(),
             p.userId,
           );
+          return insertPasskey(c, p.userId, credential);
         })();
         guard(c, deps).succeed();
-        return signedIn(c, userById(p.userId));
+        return signedIn(c, userById(p.userId), passkeyId);
       },
     )
     .get('/account/passkeys', passkeyOn, requireUser, (c) =>
-      c.json(
-        db
-          .prepare(
-            `SELECT id, COALESCE(name, 'Passkey') AS name, created_at AS createdAt,
-                    last_used_at AS lastUsedAt
-             FROM passkeys WHERE user_id = ? ORDER BY created_at, id`,
-          )
-          .all(c.var.user.id) as Passkey[],
-      ),
+      c.json(listPasskeys(c)),
     )
     .post('/account/passkeys/options', passkeyOn, requireUser, async (c) => {
       const user = c.var.user;
@@ -431,8 +441,16 @@ export function passkeyRoutes(deps: AppDeps) {
         const p = take(challengeId, 'add');
         if (p.userId !== c.var.user.id) throw failed();
         const credential = await verifyRegistration(response, p.challenge);
-        const id = insertPasskey(c, p.userId, credential);
-        return c.json(passkeyById(id, p.userId)!, 201);
+        const id = db.transaction(() => {
+          const id = insertPasskey(c, p.userId, credential);
+          // The new passkey is on this device now.
+          db.prepare('UPDATE sessions SET passkey_id = ? WHERE id = ?').run(
+            id,
+            c.var.sessionId,
+          );
+          return id;
+        })();
+        return c.json(passkeyById(c, id)!, 201);
       },
     )
     .patch(
@@ -446,14 +464,14 @@ export function passkeyRoutes(deps: AppDeps) {
           .prepare('UPDATE passkeys SET name = ? WHERE id = ? AND user_id = ?')
           .run(c.req.valid('json').name, id, c.var.user.id);
         if (!changes) throw new ApiError(404, 'not_found');
-        return c.json(passkeyById(id, c.var.user.id)!);
+        return c.json(passkeyById(c, id)!);
       },
     )
     .delete('/account/passkeys/:id', passkeyOn, requireUser, (c) => {
       const id = passkeyId(c);
       const userId = c.var.user.id;
       db.transaction(() => {
-        if (!passkeyById(id, userId)) throw new ApiError(404, 'not_found');
+        if (!passkeyById(c, id)) throw new ApiError(404, 'not_found');
         const { others } = db
           .prepare(
             'SELECT COUNT(*) AS others FROM passkeys WHERE user_id = ? AND id != ?',

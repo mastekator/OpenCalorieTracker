@@ -118,6 +118,11 @@
   .auth-layout .login {
     min-height: 0;
   }
+
+  /* A navbar in the card (2.7) takes the card's surface, not the page background. */
+  .auth-layout .navbar {
+    background: var(--color-surface);
+  }
 }
 
 /* «From library» / «Manually» on Today (OCT-16 §1); placed for real in OCT-67. */
