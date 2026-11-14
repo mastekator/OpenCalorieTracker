@@ -171,6 +171,20 @@ describe('passkey sign-in', () => {
       methods: ['password', 'passkey'],
     });
     expect(res.session).toBeTruthy();
+    // "This device" follows the session's passkey, not the user's.
+    expect(
+      (await t.call('GET', '/api/account/passkeys', undefined, res.session))
+        .body,
+    ).toMatchObject([{ thisDevice: true }]);
+    const other = (
+      await t.call('POST', '/api/auth/login', {
+        email: ADMIN,
+        password: PASSWORD,
+      })
+    ).session!;
+    expect(
+      (await t.call('GET', '/api/account/passkeys', undefined, other)).body,
+    ).toMatchObject([{ thisDevice: false }]);
     expect(verifyAuth.mock.calls[0]![0]).toMatchObject({
       expectedOrigin: 'http://localhost:3000',
       expectedRPID: 'localhost',
@@ -471,8 +485,9 @@ describe('my passkeys', () => {
     expect(renamed.body.name).toBe('Work phone');
     const list = await t.call('GET', '/api/account/passkeys', undefined, admin);
     expect(list.body).toMatchObject([
-      { id: added.id, name: 'Work phone', lastUsedAt: null },
+      { id: added.id, name: 'Work phone', lastUsedAt: null, thisDevice: true },
     ]);
+    const second = await t.addPasskey(admin, 'cred0002');
     const del = await t.call(
       'DELETE',
       `/api/account/passkeys/${added.id}`,
@@ -480,7 +495,20 @@ describe('my passkeys', () => {
       admin,
     );
     expect(del.status).toBe(204);
+    // The badge moved to the passkey added last; deleting it keeps the session (AC-6.3).
+    expect(
+      (await t.call('GET', '/api/account/passkeys', undefined, admin)).body,
+    ).toMatchObject([{ id: second.id, thisDevice: true }]);
+    await t.call(
+      'DELETE',
+      `/api/account/passkeys/${second.id}`,
+      undefined,
+      admin,
+    );
     expect(t.count('passkeys')).toBe(0);
+    expect(
+      t.db.prepare('SELECT passkey_id FROM sessions').pluck().all(),
+    ).toEqual([null]);
     expect((await t.call('GET', '/api/auth/me', undefined, admin)).status).toBe(
       200,
     );
@@ -499,7 +527,8 @@ describe('my passkeys', () => {
     ).session!;
     const [only] = (
       await t.call('GET', '/api/account/passkeys', undefined, user)
-    ).body as { id: number }[];
+    ).body as { id: number; thisDevice: boolean }[];
+    expect(only!.thisDevice).toBe(true);
     const res = await t.call(
       'DELETE',
       `/api/account/passkeys/${only!.id}`,
