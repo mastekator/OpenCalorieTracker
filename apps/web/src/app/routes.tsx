@@ -72,6 +72,7 @@ export function AppScreens() {
   const { t } = useT();
   const { user, refresh } = useSession();
   const [, navigate] = useLocation();
+  const how = new URLSearchParams(useSearch()).has('how');
   const toSettings = { href: '/settings', label: t('nav.settings') };
   // shortcut: signs out at once; the confirm with unsent changes and clearing local data are OCT-80.
   const logout = async () => {
@@ -95,16 +96,24 @@ export function AppScreens() {
         <Screen wide large title={t('nav.week')} />
       </Route>
       <Route path="/profile">
+        {/* 8.20 is /profile?how: the same Screen, so ProfileScreen and its draft stay mounted. */}
         <Screen
-          wide
-          large
-          title={t('nav.profile')}
-          action={{
-            icon: Settings2,
-            label: t('nav.settings'),
-            href: '/settings',
-            mobileOnly: true,
-          }}
+          {...(how
+            ? {
+                title: t('norm.how'),
+                back: { href: '/profile', label: t('nav.profile') },
+              }
+            : {
+                wide: true,
+                large: true,
+                title: t('nav.profile'),
+                action: {
+                  icon: Settings2,
+                  label: t('nav.settings'),
+                  href: '/settings',
+                  mobileOnly: true,
+                },
+              })}
         >
           <ProfileScreen />
         </Screen>

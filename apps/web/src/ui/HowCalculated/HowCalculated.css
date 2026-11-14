@@ -1,0 +1,125 @@
+.how {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  color: var(--color-text);
+}
+
+.how__title {
+  margin: 0;
+  font-size: var(--text-title-size);
+  line-height: var(--text-title-lh);
+  font-weight: var(--text-title-weight);
+}
+
+.how__title:focus {
+  outline: none;
+}
+
+.how__message {
+  margin: 0;
+  color: var(--color-text-secondary);
+}
+
+.how__steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: how-step;
+}
+
+.how__step {
+  display: grid;
+  grid-template-columns: var(--chat-avatar-size) 1fr;
+  gap: var(--space-1) var(--space-3);
+  font-size: var(--text-subhead-size);
+  line-height: var(--text-subhead-lh);
+}
+
+.how__step::before {
+  counter-increment: how-step;
+  content: counter(how-step);
+  grid-row: span 2;
+  display: grid;
+  place-items: center;
+  width: var(--chat-avatar-size);
+  height: var(--chat-avatar-size);
+  border-radius: var(--radius-full);
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  font-size: var(--text-footnote-size);
+  font-weight: 600;
+}
+
+.how__step b {
+  font-weight: 600;
+}
+
+.how__calc {
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.how__calc strong {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.how__convert {
+  display: block;
+}
+
+.how__warn {
+  color: var(--color-warning);
+  font-weight: 600;
+}
+
+.how__total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-accent-soft);
+  font-size: var(--text-subhead-size);
+  font-variant-numeric: tabular-nums;
+}
+
+.how__total b {
+  font-size: var(--text-title-size);
+  color: var(--color-accent);
+  white-space: nowrap;
+}
+
+.how__note,
+.how__sources {
+  margin: 0;
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+  color: var(--color-text-secondary);
+}
+
+.how__sources h3 {
+  margin: 0 0 var(--space-1);
+  font-size: var(--text-subhead-size);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.how__sources ul {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.how__sources a {
+  color: var(--color-accent);
+}
