@@ -69,6 +69,9 @@
   color: var(--color-on-accent);
   box-shadow: var(--shadow-camera);
   cursor: pointer;
+  /* Long press opens menu 5.5, not the iOS callout or text selection. */
+  -webkit-touch-callout: none;
+  user-select: none;
   transition:
     transform var(--duration-fast) var(--ease-out),
     background-color var(--duration-fast) var(--ease-out);

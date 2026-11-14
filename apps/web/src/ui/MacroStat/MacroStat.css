@@ -1,0 +1,95 @@
+.macro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.macro__name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+  color: var(--color-text-secondary);
+}
+
+.macro__dot {
+  flex: none;
+  width: var(--space-2);
+  height: var(--space-2);
+  border-radius: var(--radius-full);
+}
+.macro__dot--protein {
+  background: var(--color-protein);
+}
+.macro__dot--fat {
+  background: var(--color-fat);
+}
+.macro__dot--carbs {
+  background: var(--color-carbs);
+}
+
+.macro__value {
+  font-size: var(--text-headline-size);
+  line-height: var(--text-headline-lh);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.macro__value small {
+  font-size: var(--text-footnote-size);
+  font-weight: 400;
+  color: var(--color-text-secondary);
+}
+
+.macro--column .progress {
+  margin-block: var(--space-1);
+}
+
+.macro__rest {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  white-space: nowrap;
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+  color: var(--color-text-secondary);
+}
+
+.macro__rest--over {
+  color: var(--color-warning);
+  font-weight: 600;
+}
+
+.macro__rest .lucide {
+  flex: none;
+  width: 1.2em;
+  height: 1.2em;
+}
+
+.macro--row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+}
+
+.macro--row .macro__name,
+.macro--row .macro__value {
+  font-size: var(--text-subhead-size);
+  line-height: var(--text-subhead-lh);
+}
+
+.macro--row .macro__name {
+  color: var(--color-text);
+}
+
+.macro--row .macro__value {
+  justify-self: end;
+}
+
+.macro--row .progress {
+  grid-column: 1 / -1;
+}

@@ -58,6 +58,7 @@ const ru: DeepPartial<typeof en> = {
     bar: 'Офлайн · данные на {time}',
     no_network: 'Нет сети',
     server_down: 'Сервер недоступен',
+    first_run: 'Для первого входа нужна сеть',
   },
   nav: {
     main: 'Главное меню',
@@ -70,6 +71,8 @@ const ru: DeepPartial<typeof en> = {
     take_photo: 'Сфотографировать еду',
   },
   norm: {
+    invite: 'Задайте норму — покажем, сколько осталось',
+    cta: 'Задать',
     title: 'Норма на день',
     unit: 'ккал в день',
     badge: {
@@ -91,7 +94,6 @@ const ru: DeepPartial<typeof en> = {
       form_sub: '6 полей, пара минут',
     },
   },
-  macro: { protein: 'Белки', fat: 'Жиры', carbs: 'Углеводы' },
   field: {
     empty: 'Указать',
     pick: 'Выбрать',
@@ -128,8 +130,64 @@ const ru: DeepPartial<typeof en> = {
     discard: 'Не сохранять',
     stay: 'Остаться',
   },
+  capture: {
+    gallery: 'Из галереи',
+    manual: 'Вручную',
+    menu: {
+      photo: 'Сфотографировать',
+      gallery: 'Выбрать из галереи',
+      manual: 'Ввести вручную',
+    },
+    drop: 'Отпустите, чтобы распознать',
+    drop_hint: 'Перетащите фото еды сюда или вставьте: ⌘/Ctrl + V',
+    formats: 'JPEG, PNG, HEIC, WebP',
+    upload_failed: 'Не удалось загрузить фото',
+    err: {
+      open: {
+        title: 'Не получилось открыть фото',
+        body: 'Попробуйте другое фото. Подходят JPEG, PNG, HEIC и WebP.',
+        cta: 'Выбрать другое',
+      },
+      camera: {
+        title: 'Нет доступа к камере',
+        body: 'Разрешите доступ: Настройки → Safari → Камера. Или выберите фото из галереи.',
+      },
+    },
+  },
   update: {
     stale: 'Приложение обновилось · сохраните ещё раз',
+  },
+  today: {
+    summary: 'Итог дня',
+    meals: 'Приёмы пищи',
+    left: 'Осталось',
+    over: 'Перебор',
+    kcal: 'ккал',
+    eaten_of: '{eaten} из {norm} ккал',
+    eaten_today: 'Съедено сегодня',
+    macro: { left: 'осталось {n} г', over: 'перебор {n} г' },
+    week_left: 'На неделю осталось {n} ккал',
+    week_over: 'Перебор за неделю {n} ккал',
+  },
+  macro: {
+    protein: 'Белки',
+    fat: 'Жиры',
+    carbs: 'Углеводы',
+    g: 'г',
+    of: '/ {norm} г',
+    row_of: 'из {norm}',
+    value_text: '{value} из {norm} г',
+  },
+  meal: {
+    type: {
+      breakfast: 'Завтрак',
+      lunch: 'Обед',
+      dinner: 'Ужин',
+      snack: 'Перекус',
+    },
+    kcal: '{n} ккал',
+    status: { late: 'поздний' },
+    delete: 'Удалить: {meal}',
   },
   errors: {
     validation_failed: 'Проверьте отмеченные поля',

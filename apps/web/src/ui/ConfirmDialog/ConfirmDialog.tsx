@@ -9,12 +9,12 @@ type Props = {
   title: string;
   body?: string;
   confirmLabel: string;
+  /** Defaults to «Cancel»; e.g. «Close» (3.8) or «Stay» (leave with edits). */
+  cancelLabel?: string;
   tone?: 'danger' | 'primary';
   onConfirm: () => void;
   /** Cancel button and Esc; a tap on the scrim does nothing. */
   onCancel: () => void;
-  /** Defaults to «Cancel»; e.g. «Stay» in the leave-with-edits dialog. */
-  cancelLabel?: string;
   /**
    * Optional third action (danger-plain), e.g. «Don't save». With it the
    * buttons stack and focus starts on Cancel, the safe action (OCT-22 8.16).
@@ -28,10 +28,10 @@ export function ConfirmDialog({
   title,
   body,
   confirmLabel,
+  cancelLabel,
   tone = 'danger',
   onConfirm,
   onCancel,
-  cancelLabel,
   secondaryLabel,
   onSecondary,
 }: Props) {

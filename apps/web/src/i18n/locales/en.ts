@@ -61,6 +61,7 @@ export const en = {
     bar: 'Offline · data from {time}',
     no_network: 'No connection',
     server_down: 'Server unavailable',
+    first_run: 'Sign-in needs a connection',
   },
   nav: {
     main: 'Main menu',
@@ -73,6 +74,8 @@ export const en = {
     take_photo: 'Take a photo of food',
   },
   norm: {
+    invite: 'Set a daily goal to see what’s left',
+    cta: 'Set goal',
     title: 'Daily goal',
     unit: 'kcal a day',
     badge: {
@@ -93,7 +96,6 @@ export const en = {
       form_sub: '6 fields, a couple of minutes',
     },
   },
-  macro: { protein: 'Protein', fat: 'Fat', carbs: 'Carbs' },
   field: {
     empty: 'Add',
     pick: 'Choose',
@@ -124,8 +126,64 @@ export const en = {
     discard: 'Don’t save',
     stay: 'Stay',
   },
+  capture: {
+    gallery: 'From library',
+    manual: 'Manually',
+    menu: {
+      photo: 'Take photo',
+      gallery: 'Choose from library',
+      manual: 'Enter manually',
+    },
+    drop: 'Drop to recognize',
+    drop_hint: 'Drag a food photo here or paste: ⌘/Ctrl + V',
+    formats: 'JPEG, PNG, HEIC, WebP',
+    upload_failed: 'Couldn’t upload the photo',
+    err: {
+      open: {
+        title: 'Couldn’t open the photo',
+        body: 'Try another photo. JPEG, PNG, HEIC and WebP work.',
+        cta: 'Choose another',
+      },
+      camera: {
+        title: 'No camera access',
+        body: 'Allow access in Settings → Safari → Camera, or choose a photo from your library.',
+      },
+    },
+  },
   update: {
     stale: 'The app has been updated · please save again',
+  },
+  today: {
+    summary: 'Day total',
+    meals: 'Meals',
+    left: 'Left',
+    over: 'Over',
+    kcal: 'kcal',
+    eaten_of: '{eaten} of {norm} kcal',
+    eaten_today: 'Eaten today',
+    macro: { left: '{n} g left', over: '{n} g over' },
+    week_left: '{n} kcal left this week',
+    week_over: '{n} kcal over this week',
+  },
+  macro: {
+    protein: 'Protein',
+    fat: 'Fat',
+    carbs: 'Carbs',
+    g: 'g',
+    of: '/ {norm} g',
+    row_of: 'of {norm}',
+    value_text: '{value} of {norm} g',
+  },
+  meal: {
+    type: {
+      breakfast: 'Breakfast',
+      lunch: 'Lunch',
+      dinner: 'Dinner',
+      snack: 'Snack',
+    },
+    kcal: '{n} kcal',
+    status: { late: 'late' },
+    delete: 'Delete {meal}',
   },
   errors: {
     validation_failed: 'Check the highlighted fields',
