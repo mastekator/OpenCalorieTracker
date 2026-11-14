@@ -11,7 +11,7 @@ export const AI_PROVIDERS = {
   },
   openai: {
     name: 'OpenAI',
-    privacyUrl: 'https://openai.com/enterprise-privacy/',
+    privacyUrl: 'https://platform.openai.com/docs/guides/your-data',
   },
   anthropic: {
     name: 'Anthropic',
