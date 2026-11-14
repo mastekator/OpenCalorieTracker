@@ -48,6 +48,11 @@ select {
   outline-offset: var(--focus-ring-offset);
 }
 
+/* Programmatic focus targets (headings moved to for screen readers) are not controls. */
+[tabindex='-1']:focus-visible {
+  outline: none;
+}
+
 .tabular-nums {
   font-family: var(--font-numeric);
   font-variant-numeric: tabular-nums;
