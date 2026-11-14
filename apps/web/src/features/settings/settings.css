@@ -1,0 +1,23 @@
+.settings {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.settings__version {
+  text-align: center;
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+  color: var(--color-text-secondary);
+}
+
+.passkey-sheet {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.passkey-sheet__note {
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+  color: var(--color-text-secondary);
+  text-align: center;
+}
