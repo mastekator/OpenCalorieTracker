@@ -117,6 +117,20 @@ describe('AuthGate', () => {
     expect(screen.getByText('anna@example.com')).toBeTruthy();
   });
 
+  it('starts from the local copy when the server behind a proxy is down', async () => {
+    serve(me);
+    renderAt('/week');
+    await screen.findByRole('heading', { name: 'Week' });
+    cleanup();
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('Bad Gateway', { status: 502 })),
+    );
+    renderAt('/week');
+    expect(await screen.findByRole('heading', { name: 'Week' })).toBeTruthy();
+  });
+
   it('shows the no-connection screen offline when nobody has signed in here', async () => {
     serve(null, true);
     renderAt('/week');

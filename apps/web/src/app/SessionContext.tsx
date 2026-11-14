@@ -73,14 +73,15 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         setError(null);
         return;
       }
-      if (err instanceof ApiError && err.status === 0) {
+      // No network, or the server behind a proxy is down (502/503): the local copy still opens.
+      if (err instanceof ApiError && (err.status === 0 || err.status >= 500)) {
         const local = await offlineUser();
         if (local) {
           setUser(local);
           setError(null);
           return;
         }
-        setNoCopy(true);
+        setNoCopy(err.status === 0);
       }
       setError(err instanceof ApiError ? err : new ApiError(0, 'internal'));
     }
