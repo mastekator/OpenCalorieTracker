@@ -19,7 +19,11 @@ export function aiRoutes({ config, model = null }: AppDeps) {
 
   return new Hono<AuthEnv>()
     .get('/ai/status', requireUser, (c) =>
-      c.json({ recognition: recognitionStatus(model) } satisfies AiStatus),
+      c.json({
+        recognition: recognitionStatus(model),
+        // 'unavailable' comes with the last AI result (OCT-73).
+        interview: model ? 'ready' : 'not_configured',
+      } satisfies AiStatus),
     )
     .post('/photos/:id/recognize', requireUser, async (c) => {
       const status = recognitionStatus(model);

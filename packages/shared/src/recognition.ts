@@ -22,9 +22,10 @@ export const recognitionSchema = z.object({
 });
 export type Recognition = z.infer<typeof recognitionSchema>;
 
-/** GET /api/ai/status: whether photo recognition can be used; never reveals provider, model or key. */
+/** GET /api/ai/status: whether photo recognition and the norm agent can be used; never reveals provider, model or key. */
 export const aiStatusSchema = z.object({
   recognition: z.enum(['ready', 'not_configured', 'no_vision']),
+  interview: z.enum(['ready', 'not_configured', 'unavailable']),
 });
 export type AiStatus = z.infer<typeof aiStatusSchema>;
 export type RecognitionStatus = AiStatus['recognition'];

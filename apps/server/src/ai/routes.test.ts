@@ -49,10 +49,12 @@ describe('GET /api/ai/status', () => {
   it('is not_configured without a model and ready with one', async () => {
     expect(await (await setup(null)).status()).toEqual({
       recognition: 'not_configured',
+      interview: 'not_configured',
     });
     await cleanup!();
     expect(await (await setup(mockModel())).status()).toEqual({
       recognition: 'ready',
+      interview: 'ready',
     });
   });
 
