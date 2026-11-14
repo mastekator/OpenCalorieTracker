@@ -18,6 +18,30 @@ export const en = {
     recover: 'Recover access',
     register: 'Create account',
   },
+  auth: {
+    email: 'Email',
+    email_ph: 'name@example.com',
+    password: 'Password',
+    show_password: 'Show password',
+    hide_password: 'Hide password',
+  },
+  reg: {
+    name: 'Your name',
+    method: {
+      title: 'Sign-in method',
+      passkey: 'Passkey',
+      password: 'Password',
+    },
+  },
+  form: { err: { email: 'Enter an email, like name@example.com' } },
+  pw: {
+    rule: {
+      length: 'At least {min} characters',
+      letter_digit: 'A letter and a number',
+      symbol: 'A symbol, like ! - _ or a space',
+      not_email: 'Not the same as your email',
+    },
+  },
   update: {
     stale: 'The app has been updated · please save again',
   },

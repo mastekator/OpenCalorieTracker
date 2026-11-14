@@ -24,7 +24,8 @@
 
 .tokens__row {
   display: grid;
-  grid-template-columns: var(--space-12) minmax(0, 1fr);
+  /* The display-size «Aa» is wider than 48px: the sample column grows instead of overlapping the name. */
+  grid-template-columns: minmax(var(--space-12), max-content) minmax(0, 1fr);
   align-items: center;
   gap: var(--space-4);
 }

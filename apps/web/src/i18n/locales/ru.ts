@@ -19,6 +19,26 @@ const ru: DeepPartial<typeof en> = {
     recover: 'Восстановление доступа',
     register: 'Регистрация',
   },
+  auth: {
+    email: 'Email',
+    email_ph: 'name@example.com',
+    password: 'Пароль',
+    show_password: 'Показать пароль',
+    hide_password: 'Скрыть пароль',
+  },
+  reg: {
+    name: 'Как вас зовут',
+    method: { title: 'Способ входа', passkey: 'Passkey', password: 'Пароль' },
+  },
+  form: { err: { email: 'Введите email, например name@example.com' } },
+  pw: {
+    rule: {
+      length: 'От {min} символов',
+      letter_digit: 'Буква и цифра',
+      symbol: 'Символ, например ! - _ или пробел',
+      not_email: 'Не совпадает с email',
+    },
+  },
   update: {
     stale: 'Приложение обновилось · сохраните ещё раз',
   },
