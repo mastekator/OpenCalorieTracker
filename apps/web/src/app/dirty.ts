@@ -11,7 +11,10 @@ export const isDirty = () => count > 0;
 export const saveDirty = () => saver?.() ?? Promise.resolve(false);
 
 // Closing the tab asks only while there are edits: the listener alone can keep a page out of bfcache.
-const onUnload = (e: BeforeUnloadEvent) => e.preventDefault();
+const onUnload = (e: BeforeUnloadEvent) => {
+  e.preventDefault();
+  e.returnValue = ''; // Safari and Chrome before 119 ignore preventDefault here
+};
 
 /** Marks unsaved edits; returns the release function. */
 export function markDirty(save?: () => Promise<boolean>) {
