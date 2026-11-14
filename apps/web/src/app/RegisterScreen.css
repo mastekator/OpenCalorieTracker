@@ -1,0 +1,55 @@
+/* Invite, recovery and new account (OCT-13 §6); the brand header comes from LoginScreen.css. */
+.register__title {
+  margin-top: var(--space-4);
+  font-size: var(--text-title-size);
+  line-height: var(--text-title-lh);
+  font-weight: var(--text-title-weight);
+}
+
+.register__lead {
+  color: var(--color-text-secondary);
+  font-size: var(--text-subhead-size);
+  line-height: var(--text-subhead-lh);
+}
+
+.register__form {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* The main button sits at the bottom, within thumb reach (2.1). */
+.register__submit {
+  display: grid;
+  margin-top: auto;
+}
+
+/* 2.4 / 2.5: the state in the middle, the actions at the bottom. */
+.register__state {
+  display: grid;
+  flex: 1;
+  place-items: center;
+}
+
+.register__actions {
+  display: grid;
+  gap: var(--space-2);
+}
+
+/* 2.3 when the clipboard is unavailable: the link to select and copy by hand. */
+.register__link {
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+/* 2.7: the navbar sits in the page or card, its title in line with the fields. */
+.login .navbar,
+.login .navbar__large-title {
+  padding-inline: 0;
+}
