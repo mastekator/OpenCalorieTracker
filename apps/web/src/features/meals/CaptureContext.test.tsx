@@ -4,7 +4,6 @@ import {
   cleanup,
   createEvent,
   fireEvent,
-  render,
   screen,
   waitFor,
 } from '@testing-library/react';
@@ -12,6 +11,7 @@ import { Router } from 'wouter';
 import { memoryLocation } from 'wouter/memory-location';
 import { I18nProvider, LOCALE_STORAGE_KEY } from '../../i18n';
 import { ToastProvider } from '../../ui/Toast/Toast';
+import { renderLoaded } from '../../test-utils';
 import { CaptureProvider } from './CaptureContext';
 import { ImageDecodeError, prepareImage } from './prepareImage';
 
@@ -25,7 +25,7 @@ const photo = new File(['raw'], 'food.heic', { type: 'image/heic' });
 
 async function setup() {
   const location = memoryLocation({ path: '/', record: true });
-  render(
+  await renderLoaded(
     <I18nProvider>
       <ToastProvider>
         <Router hook={location.hook}>
@@ -36,7 +36,6 @@ async function setup() {
       </ToastProvider>
     </I18nProvider>,
   );
-  await screen.findByText('Today'); // the dictionary loads first
   return location;
 }
 
