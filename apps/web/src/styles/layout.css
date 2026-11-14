@@ -43,3 +43,74 @@
     bottom: var(--space-8);
   }
 }
+
+/* App shell (app/AppShell): tab bar below 1024px, sidebar from 1024px. */
+.app-shell .sidebar {
+  display: none;
+}
+
+.app-shell__content {
+  min-width: 0;
+  /* Room for the fixed tab bar and the camera button rising above it. */
+  padding-bottom: calc(
+    var(--tabbar-height) + var(--camera-button-lift) +
+      env(safe-area-inset-bottom)
+  );
+}
+
+/* An app screen: navbar + content column. */
+.screen {
+  max-width: var(--content-max-width);
+  margin-inline: auto;
+}
+
+.screen__body {
+  padding: var(--space-4) max(var(--screen-gutter), env(safe-area-inset-right))
+    var(--space-6) max(var(--screen-gutter), env(safe-area-inset-left));
+}
+
+@media (min-width: 1024px) {
+  .app-shell {
+    display: flex;
+  }
+
+  .app-shell .sidebar {
+    display: flex;
+  }
+
+  .app-shell .tabbar,
+  .app-shell .navbar--mobile-only {
+    display: none;
+  }
+
+  .app-shell__content {
+    flex: 1;
+    padding-bottom: 0;
+  }
+
+  /* Desktop gutter around both the navbar and the content. */
+  .screen {
+    padding-inline: calc(var(--desktop-gutter) - var(--screen-gutter));
+  }
+
+  .screen--wide {
+    max-width: var(--content-max-width-wide);
+  }
+}
+
+/* Screens outside the app (app/AuthLayout): plain page on the phone, centred card on the desktop. */
+@media (min-width: 1024px) {
+  .auth-layout {
+    display: grid;
+    place-items: center;
+    min-height: 100dvh;
+    padding: var(--desktop-gutter);
+  }
+
+  .auth-layout__card {
+    width: 100%;
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-toast);
+  }
+}

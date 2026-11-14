@@ -16,7 +16,6 @@ export const en = {
     },
   },
   screens: {
-    home: 'Today',
     login: 'Sign in',
     invite: 'Accept invitation',
     recover: 'Recover access',
