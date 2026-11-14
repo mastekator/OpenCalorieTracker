@@ -60,7 +60,8 @@ export function syncRoutes({ db }: AppDeps) {
           ...(meals.all(userId, since) as Change[]),
           ...(tombstones.all(userId, since) as Change[]),
           ...(choices.all(userId, since) as Change[]),
-          ...(settingsRev > since
+          // since = 0 is the first load: never-changed settings (settings_rev 0) come too.
+          ...(settingsRev > since || since === 0
             ? [{ rev: settingsRev, kind: 'settings' } as Change]
             : []),
         ].sort((a, b) => a.rev - b.rev);

@@ -92,6 +92,14 @@ const input = (patch: Partial<MealInput> = {}): MealInput => ({
 });
 
 describe('GET /api/sync', () => {
+  it('sends never-changed settings on the first load', async () => {
+    const t = await setup();
+    const first = await t.sync(0);
+    expect(first).toMatchObject({ rev: 0, settings: { settingsRev: 0 } });
+    await t.addMeal();
+    expect((await t.sync(1)).settings).toBeUndefined();
+  });
+
   it('sends everything at since=0, then only what changed', async () => {
     const t = await setup();
     const a = await t.addMeal();
@@ -206,6 +214,7 @@ describe('GET /api/sync', () => {
       more: false,
       meals: [],
       deletedMealClientIds: [],
+      settings: expect.objectContaining({ theme: 'system', settingsRev: 0 }),
     });
   });
 
