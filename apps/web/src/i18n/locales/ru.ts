@@ -58,6 +58,7 @@ const ru: DeepPartial<typeof en> = {
     bar: 'Офлайн · данные на {time}',
     no_network: 'Нет сети',
     server_down: 'Сервер недоступен',
+    first_run: 'Для первого входа нужна сеть',
   },
   nav: {
     main: 'Главное меню',

@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { Router } from 'wouter';
 import { memoryLocation } from 'wouter/memory-location';
 import { api, ME_PATH } from '../api/client';
+import { clearLocal, getLastUser } from '../data/user';
 import { I18nProvider, LOCALE_STORAGE_KEY } from '../i18n';
 import { Routes } from './routes';
 import { SessionProvider } from './SessionContext';
@@ -20,18 +21,25 @@ const me = {
   methods: ['password'],
 };
 
-/** /api/auth/me answers with `session` (null → 401); every other path answers 401. */
-function serve(session: object | null) {
+const emptySync = { rev: 0, more: false, meals: [], deletedMealClientIds: [] };
+
+/**
+ * /api/auth/me answers with `session` (null → 401), /api/sync with nothing new;
+ * every other path answers 401. `offline` makes every request fail like a lost network.
+ */
+function serve(session: object | null, offline = false) {
   vi.stubGlobal(
     'fetch',
-    vi.fn(async (path: string) =>
-      path === ME_PATH && session
-        ? Response.json(session)
-        : Response.json(
-            { error: { code: 'unauthenticated' } },
-            { status: 401 },
-          ),
-    ),
+    vi.fn(async (path: string) => {
+      if (offline) throw new TypeError('Failed to fetch');
+      if (session && path === ME_PATH) return Response.json(session);
+      if (session && path.startsWith('/api/sync'))
+        return Response.json(emptySync);
+      return Response.json(
+        { error: { code: 'unauthenticated' } },
+        { status: 401 },
+      );
+    }),
   );
 }
 
@@ -54,9 +62,10 @@ const unauthorizedCall = () =>
   act(() => api('/api/diary', z.unknown()).catch(() => {}));
 
 beforeEach(() => localStorage.setItem(LOCALE_STORAGE_KEY, 'en'));
-afterEach(() => {
+afterEach(async () => {
   cleanup();
   vi.unstubAllGlobals();
+  await clearLocal(me.id);
 });
 
 describe('AuthGate', () => {
@@ -93,5 +102,29 @@ describe('AuthGate', () => {
     await screen.findByRole('heading', { name: 'Sign in' });
     await unauthorizedCall();
     expect(location.history).toEqual(['/login']);
+  });
+
+  it('starts offline from the last user’s local copy without checking the session (E-8.10)', async () => {
+    serve(me);
+    renderAt('/week');
+    await screen.findByRole('heading', { name: 'Week' });
+    expect(getLastUser()).toEqual({ id: me.id, email: me.email });
+    cleanup();
+
+    serve(null, true);
+    renderAt('/week');
+    expect(await screen.findByRole('heading', { name: 'Week' })).toBeTruthy();
+    expect(screen.getByText('anna@example.com')).toBeTruthy();
+  });
+
+  it('shows the no-connection screen offline when nobody has signed in here', async () => {
+    serve(null, true);
+    renderAt('/week');
+    expect(
+      await screen.findByRole('heading', { name: 'No connection' }),
+    ).toBeTruthy();
+    expect(
+      screen.getByText('The first sign-in needs a connection'),
+    ).toBeTruthy();
   });
 });
