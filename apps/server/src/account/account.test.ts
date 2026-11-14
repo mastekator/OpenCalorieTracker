@@ -35,6 +35,7 @@ describe('PATCH /api/account/settings', () => {
       units: 'metric',
       settingsRev: 1,
       photoRetentionDays: 30,
+      normDisclaimerHidden: false,
     });
     expect(await (await patch({ theme: 'dark' })).json()).toMatchObject({
       theme: 'dark',
@@ -46,6 +47,7 @@ describe('PATCH /api/account/settings', () => {
       units: 'us',
       settingsRev: 3,
       photoRetentionDays: 30,
+      normDisclaimerHidden: false,
     });
     expect(syncRev()).toBe(3);
   });
@@ -106,6 +108,30 @@ describe('PATCH /api/account/settings', () => {
   it('is 401 without a session', async () => {
     const { patch } = await setup();
     expect((await patch({ theme: 'dark' }, '')).status).toBe(401);
+  });
+
+  it('hides the norm disclaimer for good, whatever editedAt says', async () => {
+    const { app, cookie, patch } = await setup();
+    expect(
+      await (await patch({ theme: 'dark', editedAt: 2000 })).json(),
+    ).toMatchObject({ normDisclaimerHidden: false });
+    // The older theme loses, the flag still sets.
+    const res = await patch({
+      theme: 'light',
+      normDisclaimerHidden: true,
+      editedAt: 1000,
+    });
+    expect(await res.json()).toMatchObject({
+      theme: 'dark',
+      normDisclaimerHidden: true,
+    });
+    expect((await patch({ normDisclaimerHidden: false })).status).toBe(400);
+    const me = await app.request('/api/auth/me', { headers: { cookie } });
+    expect(await me.json()).toMatchObject({ normDisclaimerHidden: true });
+    const get = await app.request('/api/account/settings', {
+      headers: { cookie },
+    });
+    expect(await get.json()).toMatchObject({ normDisclaimerHidden: true });
   });
 
   it('shows units in /auth/me', async () => {

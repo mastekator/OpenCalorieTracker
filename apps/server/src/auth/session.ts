@@ -22,6 +22,7 @@ export interface User {
   theme: Theme;
   units: Units;
   password_from_config: 0 | 1;
+  norm_disclaimer_hidden: 0 | 1;
 }
 
 export type AuthEnv = { Variables: { user?: User; deviceId?: string } };
@@ -84,7 +85,7 @@ export const session = ({ config, db }: AppDeps) =>
       const row = db
         .prepare(
           `SELECT s.id AS session_id, s.last_seen_at, u.id, u.email, u.name, u.role,
-                  u.locale, u.theme, u.units, u.password_from_config
+                  u.locale, u.theme, u.units, u.password_from_config, u.norm_disclaimer_hidden
            FROM sessions s JOIN users u ON u.id = s.user_id
            WHERE s.token_hash = ? AND s.expires_at > ?`,
         )
