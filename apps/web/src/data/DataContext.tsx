@@ -8,7 +8,7 @@ import {
 import type { AccountSettings, Meal, MeResponse } from '@oct/shared';
 import { onChange } from './changes';
 import { openUserDb, type Choices, type Db } from './db';
-import { pull } from './sync';
+import { flush, mealStatus, pendingCount } from './outbox';
 import { prefetchThumbs } from './thumbs';
 
 const DataContext = createContext<Db | null>(null);
@@ -29,21 +29,33 @@ export function DataProvider({
   useEffect(() => {
     let open: Db | undefined;
     let closed = false;
+    let unlisten = () => {};
     void (async () => {
       const d = await openUserDb(user.id);
       if (closed) return d.close();
       open = d;
       await d.put('kv', user, 'me');
+      if (closed) return; // unmounted meanwhile: the cleanup closed it
       setDb(d);
+      // Send the queue when the network or the app comes back (ADR-0011 §4).
+      const send = () => void flush(d).catch(() => {});
+      const onVisible = () => document.visibilityState === 'visible' && send();
+      window.addEventListener('online', send);
+      document.addEventListener('visibilitychange', onVisible);
+      unlisten = () => {
+        window.removeEventListener('online', send);
+        document.removeEventListener('visibilitychange', onVisible);
+      };
       try {
-        await pull(d);
+        await flush(d); // pulls at the end
         if (!closed) await prefetchThumbs(await d.getAll('meals'));
       } catch {
-        // Offline or server down: the local copy stays as it is (OCT-77 retries).
+        // Offline or server down: the local copy stays, flush() retries.
       }
     })();
     return () => {
       closed = true;
+      unlisten();
       open?.close();
     };
   }, [user]);
@@ -52,10 +64,16 @@ export function DataProvider({
   return <DataContext value={db}>{children}</DataContext>;
 }
 
-/** Reads from the local database and re-reads after every change; undefined while loading. */
-function useLocal<T>(read: (db: Db) => Promise<T>, deps: unknown[]) {
+/** The user's database, for the actions in outbox.ts. */
+export function useDb() {
   const db = useContext(DataContext);
   if (!db) throw new Error('data hook outside DataProvider');
+  return db;
+}
+
+/** Reads from the local database and re-reads after every change; undefined while loading. */
+function useLocal<T>(read: (db: Db) => Promise<T>, deps: unknown[]) {
+  const db = useDb();
   const [value, setValue] = useState<T>();
   useEffect(() => {
     let live = true;
@@ -112,3 +130,10 @@ export const useIllustrationChoices = () =>
       ((await db.get('kv', 'choices')) as Choices | undefined) ?? {},
     [],
   );
+
+/** Badge of one meal: `pending | error | synced`. */
+export const useMealStatus = (clientId: string) =>
+  useLocal((db) => mealStatus(db, clientId), [clientId]);
+
+/** Unsent changes, for sign-out and account switch. */
+export const usePendingCount = () => useLocal(pendingCount, []);
