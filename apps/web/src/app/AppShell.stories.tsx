@@ -2,7 +2,16 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { atPath } from '../ui/navStory';
 import { AppShell } from './AppShell';
 import { AppScreens } from './routes';
+import type { MeResponse } from '@oct/shared';
+import { DataProvider } from '../data/DataContext';
 import { SessionContext } from './SessionContext';
+
+// shortcut: partial user, enough for the shell and a local IndexedDB; a full fixture when stories read more of it.
+const user = {
+  id: 1,
+  email: 'anna@example.com',
+  units: 'metric',
+} as MeResponse;
 
 /** The signed-in layout with placeholder screens; check it at 390 and at 1280 (desktop). */
 const meta = {
@@ -12,8 +21,10 @@ const meta = {
     atPath,
     // No server in Storybook: the profile screen shows its load error inside the shell.
     (Story) => (
-      <SessionContext value={{ user: null, refresh: async () => {} }}>
-        <Story />
+      <SessionContext value={{ user, refresh: async () => {} }}>
+        <DataProvider user={user}>
+          <Story />
+        </DataProvider>
       </SessionContext>
     ),
   ],
