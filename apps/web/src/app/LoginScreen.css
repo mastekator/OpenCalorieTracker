@@ -59,6 +59,11 @@
   line-height: var(--text-subhead-lh);
 }
 
+/* The passkey-only block already takes the free space; keep the button down under the thumb. */
+.login__body--end + .login__register {
+  margin-top: 0;
+}
+
 .login__register a {
   display: inline-flex;
   align-items: center;
