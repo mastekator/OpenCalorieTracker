@@ -14,14 +14,18 @@ import { bumpRev } from '../sync/rev.js';
 
 const DAY_MS = 86_400_000;
 
-export const readSettings = (db: Database, userId: number) =>
-  db
+export const readSettings = (db: Database, userId: number): AccountSettings => {
+  const row = db
     .prepare(
       `SELECT locale, theme, units, settings_rev AS settingsRev,
-       photo_retention_days AS photoRetentionDays
+       photo_retention_days AS photoRetentionDays, norm_disclaimer_hidden AS normDisclaimerHidden
        FROM users WHERE id = ?`,
     )
-    .get(userId) as AccountSettings;
+    .get(userId) as Omit<AccountSettings, 'normDisclaimerHidden'> & {
+    normDisclaimerHidden: 0 | 1;
+  };
+  return { ...row, normDisclaimerHidden: row.normDisclaimerHidden === 1 };
+};
 
 /** Language, theme, units and photo retention of one's own account (ADR-0011 §3, AC-0.3, ADR-0008). */
 export function accountRoutes({ db, config }: AppDeps) {
@@ -82,11 +86,17 @@ export function accountRoutes({ db, config }: AppDeps) {
       validate('json', accountSettingsPatchSchema),
       (c) => {
         const userId = c.var.user.id;
-        const { editedAt, ...fields } = c.req.valid('json');
+        const { editedAt, normDisclaimerHidden, ...fields } =
+          c.req.valid('json');
         const changes = Object.entries(fields).filter(
           ([, v]) => v !== undefined,
         );
         db.transaction(() => {
+          // Only ever set, so it cannot conflict and an old offline edit must not lose it.
+          if (normDisclaimerHidden)
+            db.prepare(
+              'UPDATE users SET norm_disclaimer_hidden = 1, settings_rev = ? WHERE id = ? AND norm_disclaimer_hidden = 0',
+            ).run(bumpRev(db, userId), userId);
           if (!changes.length) return;
           const { settings_edited_at: stored } = db
             .prepare('SELECT settings_edited_at FROM users WHERE id = ?')

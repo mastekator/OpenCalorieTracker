@@ -57,6 +57,7 @@ export const meResponseSchema = z.object({
   locale: localeSchema,
   theme: themeSchema,
   units: unitsSchema,
+  normDisclaimerHidden: z.boolean(),
   /** The admin still signs in with ADMIN_PASSWORD from the compose file (AC-1.7). */
   passwordFromConfig: z.boolean(),
   /** Sign-in methods the user has set up, whether or not they are enabled. */

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { IllustrationId } from './illustrations/dictionary.js';
 import type { Meal } from './meals.js';
+import type { ProfileResponse } from './norm/schemas.js';
 import type { AccountSettings } from './settings.js';
 
 /** At most this many changes per `GET /api/sync` page. */
@@ -13,7 +14,7 @@ export const syncQuerySchema = z.object({
 
 /**
  * Changes with `rev > since` (ADR-0011 §3). Ask again with `since = rev` while `more` is true.
- * `settings` and `illustrationChoices` are omitted when unchanged.
+ * `settings`, `illustrationChoices` and `profile` are omitted when unchanged.
  */
 export interface SyncResponse {
   rev: number;
@@ -22,6 +23,8 @@ export interface SyncResponse {
   meals: Meal[];
   deletedMealClientIds: string[];
   settings?: AccountSettings;
+  /** A profile that was never saved is not sent. */
+  profile?: ProfileResponse;
   /** `illustration: null` = back to automatic. */
   illustrationChoices?: {
     nameKey: string;

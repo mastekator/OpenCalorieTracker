@@ -10,6 +10,7 @@ import { readSettings } from '../account/routes.js';
 import { requireUser, type AuthEnv } from '../auth/session.js';
 import { validate } from '../http/validate.js';
 import { readMealsByRev } from '../meals/read.js';
+import { readProfile } from '../profile/norm.js';
 
 type Change =
   | { rev: number; kind: 'meal' }
@@ -20,7 +21,8 @@ type Change =
       nameKey: string;
       illustration: IllustrationId | null;
     }
-  | { rev: number; kind: 'settings' };
+  | { rev: number; kind: 'settings' }
+  | { rev: number; kind: 'profile' };
 
 /**
  * Everything of the user changed after `since`, by rev (ADR-0011 §3). Each change has its own
@@ -39,6 +41,9 @@ export function syncRoutes({ db }: AppDeps) {
   const choices = db.prepare(
     `SELECT rev, 'choice' AS kind, name_key AS nameKey, illustration FROM illustration_choices
      WHERE user_id = ? AND rev > ? ORDER BY rev LIMIT ${limit}`,
+  );
+  const profile = db.prepare(
+    `SELECT rev, 'profile' AS kind FROM profiles WHERE user_id = ? AND rev > ?`,
   );
   const user = db.prepare(
     'SELECT settings_rev AS settingsRev, sync_rev AS syncRev FROM users WHERE id = ?',
@@ -60,6 +65,7 @@ export function syncRoutes({ db }: AppDeps) {
           ...(meals.all(userId, since) as Change[]),
           ...(tombstones.all(userId, since) as Change[]),
           ...(choices.all(userId, since) as Change[]),
+          ...(profile.all(userId, since) as Change[]),
           // since = 0 is the first load: never-changed settings (settings_rev 0) come too.
           ...(settingsRev > since || since === 0
             ? [{ rev: settingsRev, kind: 'settings' } as Change]
@@ -85,6 +91,7 @@ export function syncRoutes({ db }: AppDeps) {
             });
           else if (x.kind === 'settings')
             out.settings = readSettings(db, userId);
+          else if (x.kind === 'profile') out.profile = readProfile(db, userId);
         return out;
       })();
       return c.json(res);
