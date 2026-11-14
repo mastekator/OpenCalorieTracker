@@ -10,7 +10,8 @@ import { z } from 'zod';
 import { Router } from 'wouter';
 import { memoryLocation } from 'wouter/memory-location';
 import { api, ME_PATH } from '../api/client';
-import { clearLocal, getLastUser } from '../data/user';
+import { openUserDb } from '../data/db';
+import { clearLocal, getLastUser, pendingOf, setLastUser } from '../data/user';
 import { I18nProvider, LOCALE_STORAGE_KEY } from '../i18n';
 import { Routes } from './routes';
 import { SessionProvider } from './SessionContext';
@@ -84,6 +85,87 @@ afterEach(async () => {
   cleanup();
   vi.unstubAllGlobals();
   await clearLocal(me.id);
+  await clearLocal(bob.id);
+});
+
+const bob = { id: 2, email: 'bob@example.com' };
+
+/** `user` was the last one here and left `count` unsent changes. */
+async function queuedFor(user: { id: number; email: string }, count: number) {
+  setLastUser(user);
+  const db = await openUserDb(user.id);
+  for (let i = 0; i < count; i++)
+    await db.add('outbox', { kind: 'deleteMeal', clientId: `c${i}`, id: i } as never);
+  db.close();
+}
+
+const dbNames = async () =>
+  (await indexedDB.databases()).map((d) => d.name);
+
+describe('another account on this device (3.8)', () => {
+  it('asks first and keeps the previous user’s base until then', async () => {
+    await queuedFor(bob, 2);
+    serve(me);
+    renderAt('/login');
+    const dialog = await screen.findByRole('alertdialog', {
+      name: 'Sign in with another account?',
+    });
+    expect(dialog.textContent).toContain(
+      "2 entries from bob@example.com haven't been sent yet.",
+    );
+    expect(getLastUser()).toEqual(bob);
+    expect(await dbNames()).not.toContain(`oct-${me.id}`);
+    expect(await pendingOf(bob.id)).toBe(2);
+  });
+
+  it('«Sign in» removes the previous user’s base and opens the app', async () => {
+    await queuedFor(bob, 1);
+    serve(me);
+    renderAt('/login?next=%2Fweek');
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Sign in' }),
+    );
+    expect(await screen.findByRole('heading', { name: 'Week' })).toBeTruthy();
+    expect(await dbNames()).not.toContain(`oct-${bob.id}`);
+    expect(getLastUser()).toEqual({ id: me.id, email: me.email });
+  });
+
+  it('«Cancel» signs out and keeps the previous user’s base', async () => {
+    await queuedFor(bob, 1);
+    serve(me);
+    renderAt('/login');
+    await screen.findByRole('alertdialog');
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await vi.waitFor(() =>
+      expect(fetch).toHaveBeenCalledWith('/api/auth/logout', expect.anything()),
+    );
+    expect(screen.getByRole('heading', { name: 'Sign in' })).toBeTruthy();
+    expect(getLastUser()).toEqual(bob);
+    expect(await pendingOf(bob.id)).toBe(1);
+  });
+
+  it('removes the previous user’s base without asking when nothing is queued', async () => {
+    await queuedFor(bob, 0);
+    serve(me);
+    renderAt('/week');
+    await screen.findByRole('heading', { name: 'Week' });
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    expect(await dbNames()).not.toContain(`oct-${bob.id}`);
+  });
+});
+
+describe('session expired with a queue (3.7)', () => {
+  it('names the unsent changes of the last user under the banner', async () => {
+    await queuedFor({ id: me.id, email: me.email }, 3);
+    serve(null);
+    renderAt('/login?next=%2Fweek&expired=1');
+    expect(
+      await screen.findByText(
+        "3 offline entries are saved — we'll send them after you sign in.",
+      ),
+    ).toBeTruthy();
+    expect(screen.getByText('Your session expired. Please sign in again')).toBeTruthy();
+  });
 });
 
 describe('AuthGate', () => {

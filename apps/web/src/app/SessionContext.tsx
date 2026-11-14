@@ -14,12 +14,16 @@ import {
   ME_PATH,
   setUnauthenticatedHandler,
 } from '../api/client';
+import { z } from 'zod';
 import {
   clearLocal,
   getLastUser,
+  pendingOf,
   readOfflineUser,
   setLastUser,
 } from '../data/user';
+import { useT } from '../i18n';
+import { ConfirmDialog } from '../ui/ConfirmDialog/ConfirmDialog';
 import { BootState } from './BootState';
 import { isPublicPath, loginHref } from './next';
 
@@ -33,15 +37,13 @@ type Session = {
 /** Exported for stories that render signed-in screens without a server. */
 export const SessionContext = createContext<Session | null>(null);
 
-/** Another user signed in on this device: the previous one's local data goes first (AC-2.7). */
-async function rememberUser(me: MeResponse) {
-  const last = getLastUser();
-  if (last?.id === me.id) return;
-  // shortcut: drops the previous user's unsent changes silently; OCT-77 adds alert 3.8 first.
-  if (last) await clearLocal(last.id);
+function rememberUser(me: MeResponse) {
   setLastUser(me);
   void navigator.storage?.persist?.().catch(() => {});
 }
+
+/** Another account signed in while the previous one still has unsent changes (3.8). */
+type Switch = { me: MeResponse; last: { id: number; email: string }; count: number };
 
 /** The last user's local copy, when there is one to start from without a network (E-8.10). */
 const offlineUser = () => readOfflineUser().catch(() => null);
@@ -53,13 +55,28 @@ const offlineUser = () => readOfflineUser().catch(() => null);
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<MeResponse | null | undefined>();
   const [error, setError] = useState<ApiError | null>(null);
+  const [switching, setSwitching] = useState<Switch | null>(null);
+  const { t } = useT();
   const [path, navigate] = useLocation();
   const search = useSearch();
 
   const refresh = useCallback(async () => {
     try {
       const me = await api(ME_PATH, meResponseSchema);
-      await rememberUser(me);
+      const last = getLastUser();
+      // Another user on this device: the previous one's local data goes first (AC-2.7).
+      if (last && last.id !== me.id) {
+        const count = await pendingOf(last.id).catch(() => 0);
+        if (count > 0) {
+          // Nothing of the new user is written locally until the user decides.
+          setSwitching({ me, last, count });
+          setUser(null);
+          setError(null);
+          return;
+        }
+        await clearLocal(last.id);
+      }
+      if (last?.id !== me.id) rememberUser(me);
       setUser(me);
       setError(null);
     } catch (err) {
@@ -102,8 +119,41 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     return () => setUnauthenticatedHandler(() => {});
   }, [path, search, navigate]);
 
+  async function confirmSwitch({ me, last }: Switch) {
+    await clearLocal(last.id);
+    rememberUser(me);
+    setSwitching(null);
+    setUser(me);
+  }
+
+  async function cancelSwitch() {
+    await api('/api/auth/logout', z.unknown(), { method: 'POST' }).catch(
+      () => {},
+    );
+    setSwitching(null);
+  }
+
   if (user === undefined) return <BootState error={error} onRetry={retry} />;
-  return <SessionContext value={{ user, refresh }}>{children}</SessionContext>;
+  return (
+    <SessionContext value={{ user, refresh }}>
+      {children}
+      <ConfirmDialog
+        open={!!switching}
+        title={t('switch_user.title')}
+        body={
+          switching
+            ? t('switch_user.body', {
+                count: switching.count,
+                email: switching.last.email,
+              })
+            : undefined
+        }
+        confirmLabel={t('switch_user.ok')}
+        onConfirm={() => switching && void confirmSwitch(switching)}
+        onCancel={() => void cancelSwitch()}
+      />
+    </SessionContext>
+  );
 }
 
 export function useSession() {

@@ -1,8 +1,9 @@
 import { Settings2 } from 'lucide-react';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { z } from 'zod';
 import { Redirect, Route, Switch, useLocation, useSearch } from 'wouter';
 import { api } from '../api/client';
+import { getLastUser, pendingOf } from '../data/user';
 import type { Key } from '../i18n/translate';
 import { useT } from '../i18n';
 import { NavBar } from '../ui/NavBar/NavBar';
@@ -211,11 +212,19 @@ function LoginForm({
   onSignedIn: () => Promise<void>;
   expired: boolean;
 }) {
+  const [queued, setQueued] = useState(0);
+  // The expired user's queue waits on this device and goes out after sign-in (3.7).
+  useEffect(() => {
+    const last = getLastUser();
+    if (expired && last)
+      void pendingOf(last.id).then(setQueued, () => {});
+  }, [expired]);
   return (
     <LoginScreen
       config={useConfig()}
       onSignedIn={onSignedIn}
       notice={expired ? { kind: 'expired' } : undefined}
+      queued={queued}
     />
   );
 }
