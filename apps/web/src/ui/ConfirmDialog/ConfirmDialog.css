@@ -1,0 +1,38 @@
+.confirm {
+  margin: auto; /* base.css resets the <dialog> default */
+  width: calc(100% - 2 * var(--screen-gutter));
+  max-width: var(--alert-width);
+  padding: var(--space-5) var(--space-4) var(--space-4);
+  border: none;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-toast);
+  text-align: center;
+}
+
+.confirm::backdrop {
+  background: var(--color-scrim);
+}
+
+.confirm__title {
+  margin: 0;
+  outline: none; /* focused on open for screen readers, not a control */
+  font-size: var(--text-headline-size);
+  line-height: var(--text-headline-lh);
+  font-weight: var(--text-headline-weight);
+}
+
+.confirm__body {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-subhead-size);
+  line-height: var(--text-subhead-lh);
+  color: var(--color-text-secondary);
+}
+
+.confirm__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+  margin-top: var(--space-5);
+}

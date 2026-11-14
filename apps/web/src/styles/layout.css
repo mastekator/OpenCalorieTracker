@@ -14,3 +14,32 @@
     padding-inline: var(--desktop-gutter);
   }
 }
+
+/* Sheets become centred dialogs (ui/Sheet). :root wins over the component CSS, which loads later. */
+@media (min-width: 1024px) {
+  :root .sheet {
+    margin: auto;
+    width: calc(100% - 2 * var(--desktop-gutter));
+    max-width: var(--dialog-max-width);
+    max-height: 90dvh;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-toast);
+  }
+
+  :root .sheet[open] {
+    animation: none;
+  }
+
+  :root .sheet__handle {
+    display: none;
+  }
+
+  :root .sheet__grab {
+    padding-top: var(--space-2);
+    touch-action: auto;
+  }
+
+  :root .toast {
+    bottom: var(--space-8);
+  }
+}

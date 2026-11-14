@@ -46,6 +46,8 @@
   --sidebar-width: 248px;
   --content-max-width-wide: 960px; /* desktop main area (Today, Diary, Week) */
   --dialog-max-width: 480px;       /* desktop: sheets & alerts as centred dialogs */
+  --alert-width: 300px;            /* confirm dialog, every width */
+  --sheet-handle-width: 36px;  --sheet-handle-height: 5px;
   --modal-flow-max-width: 720px;   /* desktop: camera → recognition → edit window */
   --desktop-gutter: var(--space-10);
 
