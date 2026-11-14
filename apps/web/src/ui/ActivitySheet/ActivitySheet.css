@@ -7,6 +7,7 @@
 
 .activity-sheet__factor {
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .activity-sheet__check {

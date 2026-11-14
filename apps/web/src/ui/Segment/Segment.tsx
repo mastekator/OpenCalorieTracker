@@ -40,15 +40,18 @@ export function Segment<T extends string>({
       aria-label={label}
       onKeyDown={onKeyDown}
     >
-      {options.map((option) => {
+      {options.map((option, i) => {
         const checked = option.value === value;
+        // Nothing chosen yet (sex on first visit): the first option takes Tab.
+        const focusable =
+          checked || (i === 0 && !options.some((o) => o.value === value));
         return (
           <button
             key={option.value}
             type="button"
             role="radio"
             aria-checked={checked}
-            tabIndex={checked ? 0 : -1}
+            tabIndex={focusable ? 0 : -1}
             className="segment__option"
             onClick={() => onChange(option.value)}
           >
