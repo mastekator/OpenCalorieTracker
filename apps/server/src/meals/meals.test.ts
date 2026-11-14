@@ -155,7 +155,7 @@ describe('meals', () => {
       name: 'Гречка  с курицей',
       grams: 283.5,
       kcal: 412.3,
-      illustration: null,
+      illustration: 'grains',
     });
     expect(
       t.db
@@ -466,7 +466,7 @@ describe('previous dishes', () => {
         proteinG: 5,
         fatG: 3,
         carbsG: 20,
-        illustration: null,
+        illustration: 'grains',
       },
       null,
     ]);
@@ -507,6 +507,120 @@ describe('previous dishes', () => {
     const many = Array.from({ length: 21 }, () => ({ name: 'Чай' }));
     expect((await ask(t, t.cookie, many)).status).toBe(400);
     expect((await ask(t, t.cookie, many.slice(1))).status).toBe(200);
+  });
+});
+
+describe('illustrations', () => {
+  const dish = (name: string, illustration?: string) => ({
+    name,
+    grams: 100,
+    kcal: 100,
+    proteinG: 1,
+    fatG: 1,
+    carbsG: 1,
+    source: 'manual',
+    ...(illustration && { illustration }),
+  });
+  const save = async (t: Awaited<ReturnType<typeof setup>>, items: unknown[]) =>
+    (await (
+      await t.call(t.cookie, 'POST', '/meals', { ...input(), items })
+    ).json()) as Meal;
+  const read = async (t: Awaited<ReturnType<typeof setup>>, id: number) =>
+    (
+      (await (await t.call(t.cookie, 'GET', `/meals/${id}`)).json()) as Meal
+    ).items.map((i) => i.illustration);
+  const choose = (
+    t: Awaited<ReturnType<typeof setup>>,
+    name: string,
+    illustration: string | null,
+    cookie = t.cookie,
+  ) => t.call(cookie, 'PUT', '/illustrations/choices', { name, illustration });
+
+  it('resolves: dish choice → name choice → match (AC-4.4, 4.7)', async () => {
+    const t = await setup();
+    const meal = await save(t, [
+      dish('Борщ'),
+      dish('Борщ', 'pizza'),
+      dish('Xyzzy'),
+    ]);
+    expect(meal.items.map((i) => i.illustration)).toEqual([
+      'soup-borscht',
+      'pizza',
+      'plate',
+    ]);
+
+    // A choice for the name changes old meals too, but not a dish with its own choice.
+    expect((await choose(t, '  БОРЩ ', 'soup')).status).toBe(204);
+    expect(await read(t, meal.id)).toEqual(['soup', 'pizza', 'plate']);
+    expect(
+      (await (
+        await t.call(t.cookie, 'GET', '/illustrations/choices')
+      ).json()) as unknown,
+    ).toEqual([{ nameKey: 'борщ', illustration: 'soup' }]);
+
+    // null brings back the automatic one.
+    expect((await choose(t, 'борщ', null)).status).toBe(204);
+    expect(await read(t, meal.id)).toEqual(['soup-borscht', 'pizza', 'plate']);
+    expect(
+      await (await t.call(t.cookie, 'GET', '/illustrations/choices')).json(),
+    ).toEqual([]);
+  });
+
+  it('renaming a dish without its own choice matches again (AC-4.5)', async () => {
+    const t = await setup();
+    const meal = await save(t, [dish('Борщ')]);
+    await t.call(t.cookie, 'PATCH', `/meals/${meal.id}`, {
+      items: [dish('Капучино')],
+    });
+    expect(await read(t, meal.id)).toEqual(['coffee']);
+  });
+
+  it('falls back to the match for an id no longer in the set', async () => {
+    const t = await setup();
+    const meal = await save(t, [dish('Борщ')]);
+    t.db.prepare("UPDATE meal_items SET illustration = 'gone'").run();
+    expect(await read(t, meal.id)).toEqual(['soup-borscht']);
+  });
+
+  it('returns the resolved illustration for previous dishes (E-6.6)', async () => {
+    const t = await setup();
+    await save(t, [dish('Салат')]);
+    t.db.prepare('UPDATE meals SET eaten_at = ?').run(Date.now());
+    await choose(t, 'Салат', 'salad-tomato');
+    const res = await t.call(t.cookie, 'POST', '/dishes/previous', {
+      dishes: [{ name: 'салат' }],
+    });
+    expect(
+      ((await res.json()) as PreviousDishesResponse)[0]?.illustration,
+    ).toBe('salad-tomato');
+  });
+
+  it('validates input and keeps choices per user', async () => {
+    const t = await setup();
+    const other = await t.addUser('other@example.com');
+    expect((await save(t, [dish('Борщ')])).id).toBeDefined();
+    expect(
+      (
+        await t.call(t.cookie, 'POST', '/meals', {
+          ...input(),
+          items: [dish('Борщ', 'nope')],
+        })
+      ).status,
+    ).toBe(400);
+    expect((await choose(t, 'Борщ', 'nope')).status).toBe(400);
+    expect((await choose(t, ' ', 'soup')).status).toBe(400);
+    expect((await choose(t, 'x'.repeat(81), 'soup')).status).toBe(400);
+    expect((await choose(t, 'Борщ', 'soup', '')).status).toBe(401);
+
+    await choose(t, 'Борщ', 'soup');
+    expect(
+      await (await t.call(other, 'GET', '/illustrations/choices')).json(),
+    ).toEqual([]);
+    const rev = t.db
+      .prepare('SELECT rev FROM illustration_choices')
+      .pluck()
+      .get();
+    expect(rev).toBeGreaterThan(0);
   });
 });
 

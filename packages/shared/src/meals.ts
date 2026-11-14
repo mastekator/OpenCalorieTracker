@@ -1,4 +1,8 @@
 import { z } from 'zod';
+import {
+  illustrationIdSchema,
+  type IllustrationId,
+} from './illustrations/dictionary.js';
 
 /** Key for matching dishes by name (ADR-0009): history lookups and remembered illustrations. */
 export const nameKey = (name: string) =>
@@ -28,6 +32,8 @@ export const mealItemInputSchema = z
     carbsG: macro,
     source: dishSourceSchema,
     confidence: z.number().min(0).max(1).optional(),
+    /** Manual choice on this dish; omitted = automatic. */
+    illustration: illustrationIdSchema.optional(),
   })
   .refine((i) => i.confidence === undefined || i.source === 'ai', {
     path: ['confidence'],
@@ -80,8 +86,8 @@ export interface MealItem {
   aiProvider: string | null;
   aiModel: string | null;
   confidence: number | null;
-  /** Resolved illustration id; null until dish illustrations land (OCT-63). */
-  illustration: string | null;
+  /** Resolved: choice on this dish → choice for its name → matched by name (ADR-0009). */
+  illustration: IllustrationId;
 }
 
 /** A saved meal with server-computed totals (sum of its dishes, unrounded). */
@@ -124,8 +130,23 @@ export interface PreviousDish {
   proteinG: number;
   fatG: number;
   carbsG: number;
-  illustration: string | null;
+  illustration: IllustrationId;
 }
 
 /** One entry per requested dish, in request order; null when nothing was found. */
 export type PreviousDishesResponse = (PreviousDish | null)[];
+
+/** `PUT /api/illustrations/choices`: remember an illustration for a dish name, or null to forget it. */
+export const illustrationChoiceInputSchema = z.object({
+  name: z.string().trim().min(1).max(80),
+  illustration: illustrationIdSchema.nullable(),
+});
+export type IllustrationChoiceInput = z.infer<
+  typeof illustrationChoiceInputSchema
+>;
+
+/** `GET /api/illustrations/choices`: all the user's remembered illustrations. */
+export type IllustrationChoice = {
+  nameKey: string;
+  illustration: IllustrationId;
+};

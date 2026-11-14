@@ -82,3 +82,4 @@ export * from './dates.js';
 export * from './diary/summarize.js';
 export * from './locales.js';
 export * from './settings.js';
+export * from './illustrations/dictionary.js';

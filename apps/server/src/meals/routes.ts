@@ -19,6 +19,7 @@ import { ApiError } from '../http/errors.js';
 import { validate } from '../http/validate.js';
 import { photoPath, type PhotoSize } from '../photos/store.js';
 import { bumpRev } from '../sync/rev.js';
+import { CHOICE_JOIN, resolveIllustration } from '../illustrations/routes.js';
 import { readMeal, type MealRow } from './read.js';
 
 const DAY_MS = 86_400_000;
@@ -72,8 +73,8 @@ export function mealRoutes({ config, db }: AppDeps) {
   ) => {
     const insert = db.prepare(
       `INSERT INTO meal_items (meal_id, position, name, name_key, grams, kcal, protein_g, fat_g,
-         carbs_g, source, ai_provider, ai_model, confidence)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         carbs_g, source, ai_provider, ai_model, confidence, illustration)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     );
     items.forEach((i, pos) => {
       const isAi = i.source === 'ai';
@@ -91,6 +92,7 @@ export function mealRoutes({ config, db }: AppDeps) {
         isAi ? (ai?.provider ?? null) : null,
         isAi ? (ai?.model ?? null) : null,
         i.confidence ?? null,
+        i.illustration ?? null,
       );
     });
   };
@@ -257,8 +259,9 @@ export function mealRoutes({ config, db }: AppDeps) {
         // Newest first; a daily dish gives ~90 rows, so density is filtered in JS (ADR-0009).
         const candidates = db.prepare(
           `SELECT m.id AS mealId, m.eaten_at AS eatenAt, i.grams, i.kcal, i.protein_g AS proteinG,
-             i.fat_g AS fatG, i.carbs_g AS carbsG
-           FROM meal_items i JOIN meals m ON m.id = i.meal_id
+             i.fat_g AS fatG, i.carbs_g AS carbsG, i.name,
+             COALESCE(i.illustration, c.illustration) AS illustration
+           FROM meal_items i JOIN meals m ON m.id = i.meal_id ${CHOICE_JOIN}
            WHERE m.user_id = ? AND i.name_key = ? AND m.eaten_at >= ?
            ORDER BY m.eaten_at DESC, m.id DESC, i.position`,
         );
@@ -272,20 +275,21 @@ export function mealRoutes({ config, db }: AppDeps) {
               since,
             ) as (Omit<PreviousDish, 'eatenAt' | 'illustration'> & {
               eatenAt: number;
+              name: string;
+              illustration: string | null;
             })[];
             const hit = rows.find(
               (r) =>
                 kcalPer100 === undefined ||
                 isSimilarDensity((r.kcal / r.grams) * 100, kcalPer100),
             );
-            // Illustration stays null until OCT-63, as in readMeal.
-            return hit
-              ? {
-                  ...hit,
-                  eatenAt: new Date(hit.eatenAt).toISOString(),
-                  illustration: null,
-                }
-              : null;
+            if (!hit) return null;
+            const { name: dishName, ...dish } = hit;
+            return {
+              ...dish,
+              eatenAt: new Date(hit.eatenAt).toISOString(),
+              illustration: resolveIllustration(hit.illustration, dishName),
+            };
           });
         return c.json(result);
       },
