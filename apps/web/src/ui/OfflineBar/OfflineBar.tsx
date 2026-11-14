@@ -24,20 +24,26 @@ type Props = {
   serverDown?: boolean;
 };
 
-/** Full-width status strip; the app shell decides where it sits. Renders nothing when all is well. */
+/** Full-width status strip; the app shell decides where it sits. Empty when all is well. */
 export function OfflineBar({ dataTime, serverDown = false }: Props) {
   const online = useOnline();
   const { t } = useT();
-  if (online && !serverDown) return null;
   const text = !online
     ? dataTime
       ? t('offline.bar', { time: dataTime })
       : t('offline.no_network')
-    : t('offline.server_down');
+    : serverDown
+      ? t('offline.server_down')
+      : null;
+  // The live region stays mounted: screen readers skip regions inserted together with their text.
   return (
-    <div className="offline-bar" role="status">
-      <WifiOff aria-hidden="true" />
-      <span>{text}</span>
+    <div className={text ? 'offline-bar' : undefined} role="status">
+      {text && (
+        <>
+          <WifiOff aria-hidden="true" />
+          <span>{text}</span>
+        </>
+      )}
     </div>
   );
 }

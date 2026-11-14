@@ -32,11 +32,11 @@ const renderBar = async (props: Parameters<typeof OfflineBar>[0] = {}) => {
 describe('OfflineBar', () => {
   it('appears on offline and disappears on online', async () => {
     await renderBar();
-    expect(screen.queryByRole('status')).toBeNull();
+    expect(screen.getByRole('status').textContent).toBe('');
     act(() => setOnline(false));
     expect(screen.getByRole('status').textContent).toBe('No connection');
     act(() => setOnline(true));
-    expect(screen.queryByRole('status')).toBeNull();
+    expect(screen.getByRole('status').textContent).toBe('');
   });
 
   it('shows the cached data time offline', async () => {
