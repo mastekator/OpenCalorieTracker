@@ -203,7 +203,9 @@ describe('AgentChat (container)', () => {
     await setup({ disclaimerHidden: true });
 
     expect(
-      await screen.findByText(/^I have: male formula, 34 years, 182 cm, 85 kg, activity — [a-z]/),
+      await screen.findByText(
+        /^I have: male formula, 34 years, 182 cm, 85 kg, activity — [a-z]/,
+      ),
     ).toBeTruthy();
     expect(screen.queryByText(/This is an estimate/)).toBeNull();
     expect(screen.getByRole('button', { name: 'All correct' })).toBeTruthy();

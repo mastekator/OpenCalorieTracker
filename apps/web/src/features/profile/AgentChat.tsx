@@ -195,24 +195,24 @@ export function AgentChat({
   const lower = (s: string) => s.toLocaleLowerCase(locale);
   const known = (p: Profile) =>
     [
-        p.sex && t(`chat.known_sex.${p.sex}`),
-        p.birthDate && t('field.age', { count: ageYears(p.birthDate, today) }),
-        p.heightCm !== null && height(p.heightCm),
-        p.weightKg !== null && weight(p.weightKg),
-        p.activity &&
-          t('chat.known_activity', {
-            name: lower(t(`activity.${p.activity}.name`)),
-          }),
-        p.goal &&
-          t('chat.known_goal', {
-            name:
-              p.targetWeightKg === null
-                ? lower(t(`goal.${p.goal}`))
-                : t('chat.summary.goal_to', {
-                    goal: lower(t(`goal.${p.goal}`)),
-                    weight: weight(p.targetWeightKg),
-                  }),
-          }),
+      p.sex && t(`chat.known_sex.${p.sex}`),
+      p.birthDate && t('field.age', { count: ageYears(p.birthDate, today) }),
+      p.heightCm !== null && height(p.heightCm),
+      p.weightKg !== null && weight(p.weightKg),
+      p.activity &&
+        t('chat.known_activity', {
+          name: lower(t(`activity.${p.activity}.name`)),
+        }),
+      p.goal &&
+        t('chat.known_goal', {
+          name:
+            p.targetWeightKg === null
+              ? lower(t(`goal.${p.goal}`))
+              : t('chat.summary.goal_to', {
+                  goal: lower(t(`goal.${p.goal}`)),
+                  weight: weight(p.targetWeightKg),
+                }),
+        }),
     ]
       .filter((s): s is string => !!s)
       .join(', ');
