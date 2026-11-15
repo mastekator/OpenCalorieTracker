@@ -46,12 +46,12 @@ export function IllustrationPicker({
   // Desktop: one «Choose file» instead of camera and library (D.1).
   const desktop = window.matchMedia?.(DESKTOP_MEDIA).matches === true;
 
-  // Opens scrolled to the current tile (4.1).
+  // Opens with the current tile centred, its neighbours in view (4.1).
   useEffect(() => {
     if (open)
       grid.current
         ?.querySelector('[aria-checked="true"]')
-        ?.scrollIntoView?.({ block: 'nearest' });
+        ?.scrollIntoView?.({ block: 'center' });
   }, [open]);
 
   // Arrows move within the radiogroup; Enter or Space applies (D.1).

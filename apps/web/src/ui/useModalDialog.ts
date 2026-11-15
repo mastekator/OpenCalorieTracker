@@ -65,7 +65,10 @@ export function useModalDialog(open: boolean, onClose: () => void) {
     // Cycle ourselves: Safari skips buttons on Tab by default and would leave the dialog.
     event.preventDefault();
     event.stopPropagation();
-    const items = [...dialog.querySelectorAll<HTMLElement>(FOCUSABLE)];
+    // tabIndex -1 drops roving-tabindex items (a radiogroup is one Tab stop).
+    const items = [...dialog.querySelectorAll<HTMLElement>(FOCUSABLE)].filter(
+      (el) => el.tabIndex >= 0,
+    );
     const at = items.indexOf(document.activeElement as HTMLElement);
     const step = event.shiftKey ? -1 : 1;
     // From outside the list (-1), Shift+Tab lands on the last item.
