@@ -10,6 +10,7 @@ import {
 import { api, ApiError } from '../../api/client';
 import { I18nProvider, LOCALE_STORAGE_KEY } from '../../i18n';
 import { renderLoaded } from '../../test-utils';
+import { ToastProvider } from '../../ui/Toast/Toast';
 import { AgentChat } from './AgentChat';
 
 vi.mock('../../api/client', async (importOriginal) => ({
@@ -390,7 +391,9 @@ describe('AgentChat errors and exits (OCT-91)', () => {
     serve([user('again'), { role: 'assistant', kind: 'limit' }]);
     const { onForm } = await setup();
 
-    expect(await screen.findByText(/The form may be quicker/)).toBeTruthy();
+    expect(
+      await screen.findByText(/This is taking a while in chat/),
+    ).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Go to the form' }));
     expect(onForm).toHaveBeenCalledWith(full);
     fireEvent.click(screen.getByRole('button', { name: 'Continue here' }));
@@ -427,5 +430,40 @@ describe('AgentChat errors and exits (OCT-91)', () => {
     expect(apiMock.mock.calls.map(([path]) => path)).not.toContain(
       '/api/profile',
     );
+  });
+
+  it('a failed «Start over» keeps the dialog and shows a toast (9.13)', async () => {
+    apiMock.mockImplementation(async (_path, _schema, options) => {
+      if (!options?.method)
+        return reply([
+          user('male'),
+          { role: 'assistant', kind: 'text', text: 'Noted' },
+        ]);
+      throw new ApiError(0, 'network');
+    });
+    await renderLoaded(
+      <I18nProvider>
+        <ToastProvider>
+          <AgentChat
+            open
+            onClose={vi.fn()}
+            units="metric"
+            today={today}
+            manualKcal={null}
+            disclaimerHidden={false}
+            onApplied={vi.fn()}
+            onManual={vi.fn()}
+            onForm={vi.fn()}
+          />
+        </ToastProvider>
+      </I18nProvider>,
+    );
+    expect(await screen.findByText('Noted')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'More' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Start over' }));
+    expect(
+      await screen.findByText('Something went wrong, please try again'),
+    ).toBeTruthy();
+    expect(screen.getByText('Noted')).toBeTruthy();
   });
 });

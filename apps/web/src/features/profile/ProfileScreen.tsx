@@ -35,7 +35,7 @@ export function ProfileScreen() {
   const [chat, setChat] = useState(false);
   const [manualAt, setManualAt] = useState(0);
   const [agentDraft, setAgentDraft] = useState<{
-    profile: Profile;
+    profile: Profile | null;
     at: number;
   }>();
   const [agentDown, setAgentDown] = useState(false);
@@ -113,7 +113,7 @@ export function ProfileScreen() {
         }}
         onForm={(draft) => {
           setChat(false);
-          if (draft) setAgentDraft({ profile: draft, at: Date.now() });
+          setAgentDraft({ profile: draft, at: Date.now() });
         }}
       />
     </>

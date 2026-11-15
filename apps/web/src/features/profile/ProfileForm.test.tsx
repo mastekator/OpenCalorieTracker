@@ -480,6 +480,26 @@ describe('ProfileForm', () => {
     expect(echo).not.toHaveBeenCalled();
   });
 
+  it('«Go to the form» with an empty draft still starts the form (OCT-91)', async () => {
+    const props = {
+      initial: response({ ...base, weightKg: null }),
+      units: 'metric' as Units,
+      today,
+      onSave: echo,
+    };
+    const view = render(<ProfileForm {...props} />, { wrapper });
+    await field('Height');
+    view.rerender(
+      <ProfileForm {...props} agentDraft={{ profile: null, at: 1 }} />,
+    );
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        screen.getByRole('textbox', { name: /^Weight/ }),
+      ),
+    );
+    expect(echo).not.toHaveBeenCalled();
+  });
+
   it('8.14: the AI-unavailable banner', async () => {
     setup(base, { onAgent: vi.fn(), agentUnavailable: true });
     expect(

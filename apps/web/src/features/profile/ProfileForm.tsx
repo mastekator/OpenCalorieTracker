@@ -122,7 +122,7 @@ type Props = {
   /** Bump to turn the manual goal on and scroll to it («Set my own goal» in the chat, 9.8). */
   manualAt?: number;
   /** «Go to the form» from the chat: its filled fields become unsaved edits; a new `at` applies them. */
-  agentDraft?: { profile: Profile; at: number };
+  agentDraft?: { profile: Profile | null; at: number };
   /** 8.14: the assistant was asked for but the AI doesn't answer. */
   agentUnavailable?: boolean;
   /** Offline (8.15): values only, no saving, the assistant greyed out; «How it’s calculated» still works. */
@@ -330,7 +330,7 @@ export function ProfileForm({
     if (!agentDraft) return;
     // Only filled fields: an empty one in the chat must not wipe what the form has.
     const filled = Object.fromEntries(
-      Object.entries(agentDraft.profile).filter(([, v]) => v !== null),
+      Object.entries(agentDraft.profile ?? {}).filter(([, v]) => v !== null),
     );
     const next = { ...draft, ...filled };
     setDraft(next);

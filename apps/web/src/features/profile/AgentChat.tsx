@@ -43,6 +43,7 @@ import { ConfirmDialog } from '../../ui/ConfirmDialog/ConfirmDialog';
 import { HowCalculated } from '../../ui/HowCalculated/HowCalculated';
 import { OfflineBar, useOnline } from '../../ui/OfflineBar/OfflineBar';
 import { Sheet } from '../../ui/Sheet/Sheet';
+import { useToast } from '../../ui/Toast/Toast';
 
 // Our own server: trust the shape, as data/sync.ts does.
 const agentResponse = z.custom<AgentResponse>();
@@ -111,6 +112,7 @@ export function AgentChat({
   // The last text sent, until the server has answered it.
   const pending = useRef<string | null>(null);
   const online = useOnline();
+  const toast = useToast();
   const endRef = useRef<HTMLDivElement>(null);
 
   const take = (r: AgentResponse) => {
@@ -196,7 +198,8 @@ export function AgentChat({
     try {
       await api('/api/norm-agent', noContent, { method: 'DELETE' });
     } catch {
-      return; // shortcut: a failed reset keeps the dialog as it was, without a message.
+      // The dialog stays as it was.
+      return toast({ text: t('chat.retry_error') });
     }
     setMessages([]);
     setFailure(null);
@@ -465,14 +468,10 @@ export function AgentChat({
   if (how || state === 'summary') footer = null;
   else if (failure === 'ai_down')
     footer = (
-      <Banner
-        title={t('chat.ai_down')}
-        actions={
-          <Button onClick={() => onForm(draft)}>{t('chat.fill_form')}</Button>
-        }
-      >
-        {t('chat.ai_down_body')}
-      </Banner>
+      <>
+        <Banner title={t('chat.ai_down')}>{t('chat.ai_down_body')}</Banner>
+        <Button onClick={() => onForm(draft)}>{t('chat.fill_form')}</Button>
+      </>
     );
   else if (failure === 'closed')
     footer = (
@@ -572,7 +571,7 @@ export function AgentChat({
             >
               {t('chat.to_form')}
             </Button>
-            <Button variant="danger" onClick={() => void restart()}>
+            <Button variant="danger-plain" onClick={() => void restart()}>
               {t('chat.restart')}
             </Button>
             <Button variant="plain" onClick={() => setMenu(false)}>

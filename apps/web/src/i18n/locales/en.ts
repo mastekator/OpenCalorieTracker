@@ -419,7 +419,8 @@ export const en = {
     restart_note:
       'The chat will be cleared. Your profile and goal stay the same.',
     more: 'More',
-    limit: 'The form may be quicker — we’ll move what you’ve told me there.',
+    limit:
+      'This is taking a while in chat. I’ll move what I know into the form — the rest is quicker to fill in there.',
   },
   field: {
     empty: 'Add',
