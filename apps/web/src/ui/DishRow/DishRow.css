@@ -73,3 +73,96 @@
     background: var(--color-hover);
   }
 }
+
+.dish-row-swipe {
+  display: flex;
+  align-items: flex-end;
+  background: var(--color-surface);
+}
+
+.dish-row-swipe .dish-row {
+  flex: 1;
+  min-width: 0;
+}
+
+.dish-row__delete {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  padding: 0;
+  border: none;
+  font: inherit;
+  cursor: pointer;
+}
+
+.dish-row__delete svg {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+  stroke-width: var(--icon-stroke);
+}
+
+/* Phone: the row slides left over a 96 «Delete» behind it (OCT-16 4.5). */
+@media (max-width: 1023.98px) {
+  .dish-row-swipe {
+    position: relative;
+    overflow: hidden;
+    touch-action: pan-y;
+  }
+
+  .dish-row-swipe .dish-row {
+    position: relative;
+    z-index: 1;
+    transform: translateX(var(--swipe-offset, 0));
+    transition: transform var(--duration-fast) var(--ease-out);
+  }
+
+  .dish-row-swipe--dragging .dish-row {
+    transition: none;
+  }
+
+  /* Keyboard focus on «Delete» shows it. */
+  .dish-row-swipe:has(.dish-row__delete:focus-visible) .dish-row {
+    transform: translateX(calc(-1 * var(--swipe-action-width)));
+  }
+
+  .dish-row__delete {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-end: 0;
+    width: var(--swipe-action-width);
+    background: var(--color-danger);
+    color: var(--color-on-danger);
+    font-size: var(--text-footnote-size);
+    font-weight: var(--text-headline-weight);
+    /* Opacity, not visibility: VoiceOver must still reach it. */
+    opacity: 0;
+  }
+
+  .dish-row-swipe--shifted .dish-row__delete,
+  .dish-row__delete:focus-visible {
+    opacity: 1;
+  }
+}
+
+/* Desktop §5: a trash button next to the pencil, no swipe. */
+@media (min-width: 1024px) {
+  .dish-row-swipe .dish-row {
+    padding-inline-end: 0;
+  }
+
+  .dish-row__delete {
+    flex: none;
+    width: var(--tap-min);
+    height: var(--tap-min);
+    margin: 0 var(--space-4) var(--space-3) var(--space-1);
+    border-radius: var(--radius-md);
+    background: var(--color-hover);
+    color: var(--color-danger);
+  }
+
+  .dish-row__delete-text {
+    display: none;
+  }
+}

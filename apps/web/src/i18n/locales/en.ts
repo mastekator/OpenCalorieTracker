@@ -845,6 +845,26 @@ export const en = {
     title: '{day}, {time}',
     estimate:
       'AI estimate from the photo — check the weight. Calories and macros update automatically.',
+    delete: 'Delete',
+    delete_dish: 'Delete {dish}',
+    deleted: '{dish} deleted',
+    dish: {
+      title: 'Dish',
+      name: 'Name',
+      name_hint: 'Changing the name doesn’t change calories or macros.',
+      name_err: 'Enter a name',
+      done: 'Done',
+      delete: 'Delete dish',
+    },
+    empty: {
+      title: 'No dishes in the list',
+      body: 'Add a dish manually or retake the photo.',
+    },
+    leave: {
+      title: 'Save this meal?',
+      body: 'Otherwise the recognized dishes will be lost.',
+      body_manual: 'Otherwise the dishes you entered will be lost.',
+    },
     empty_manual: 'No dishes yet',
     save: 'Save',
     saving: 'Saving…',

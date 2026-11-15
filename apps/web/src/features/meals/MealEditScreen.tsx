@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Redirect, useLocation, useSearch } from 'wouter';
-import { Sparkle, X } from 'lucide-react';
+import { Sparkle, UtensilsCrossed, X } from 'lucide-react';
 import {
   DISH_GRAMS,
   mealTypeAt,
@@ -18,19 +18,25 @@ import { createMeal } from '../../data/outbox';
 import { useT } from '../../i18n';
 import { useBarVariant } from '../../app/connection';
 import { useSession } from '../../app/SessionContext';
+import { useDirty } from '../../app/dirty';
 import { Banner } from '../../ui/Banner/Banner';
 import { Button } from '../../ui/Button/Button';
 import { DishRow } from '../../ui/DishRow/DishRow';
+import { DishSheet } from '../../ui/DishSheet/DishSheet';
 import { MealTypeSegment } from '../../ui/MealTypeSegment/MealTypeSegment';
 import { NavBar } from '../../ui/NavBar/NavBar';
 import { OfflineBar, useOnline } from '../../ui/OfflineBar/OfflineBar';
+import { ScreenState } from '../../ui/ScreenState/ScreenState';
+import { useToast } from '../../ui/Toast/Toast';
 import type { TodayState } from '../diary/TodayScreen';
-import { MEAL_NEW_PATH } from './CaptureContext';
+import { MEAL_NEW_PATH, useCapture } from './CaptureContext';
 import type { MealEditState } from './RecognitionScreen';
 import './MealEditScreen.css';
 
 type Row = {
-  /** As recognized: every recalculation starts from here (AC-3.2). */
+  /** Stable key: rows are deleted and put back in place (4.5). */
+  id: string;
+  /** As recognized, with the current name: every recalculation starts from here (AC-3.2). */
   original: RecognizedDish;
   /** Null while the weight field is invalid (AC-3.4). */
   grams: number | null;
@@ -46,6 +52,7 @@ function toRow(original: RecognizedDish): Row {
   // AI grams may carry any decimals; the API takes one (mealItemInputSchema).
   const g = round1(original.grams);
   return {
+    id: uuid(),
     original,
     grams: inRange(g) ? g : null,
     shown: g,
@@ -101,7 +108,10 @@ export function MealEditScreen({
     mealTypeAt(opened.getHours()),
   );
   const [status, setStatus] = useState<'idle' | 'saving' | 'error'>('idle');
+  const [editing, setEditing] = useState<string | null>(null);
   const saving = useRef(false);
+  const toast = useToast();
+  const capture = useCapture();
 
   const items = rows.map(itemOf);
   const total = (k: 'kcal' | 'proteinG' | 'fatG' | 'carbsG') =>
@@ -117,8 +127,43 @@ export function MealEditScreen({
       ),
     );
 
+  // Removed and put back in place by «Undo» (4.5); after leaving the screen «Undo» does nothing.
+  const remove = (id: string) => {
+    const index = rows.findIndex((r) => r.id === id);
+    const row = rows[index];
+    if (!row) return;
+    setRows((rs) => rs.filter((r) => r.id !== id));
+    toast({
+      text: t('edit.deleted', { dish: row.original.name }),
+      ms: 5000,
+      action: {
+        label: t('common.undo'),
+        onClick: () =>
+          setRows((rs) => [...rs.slice(0, index), row, ...rs.slice(index)]),
+      },
+    });
+  };
+
+  const applySheet = (id: string, name: string, grams: number) => {
+    setEditing(null);
+    setRows((rs) =>
+      rs.map((r) =>
+        r.id === id
+          ? {
+              ...r,
+              original: { ...r.original, name },
+              grams,
+              shown: grams,
+              edited: r.edited || name !== r.original.name || grams !== r.grams,
+            }
+          : r,
+      ),
+    );
+  };
+
+  /** Resolves true once saved; false when invalid, already saving or failed (the screen shows why). */
   async function save() {
-    if (saving.current || !valid) return; // a second tap sends nothing (E-4.2)
+    if (saving.current || !valid) return false; // a second tap sends nothing (E-4.2)
     saving.current = true;
     setStatus('saving');
     try {
@@ -131,11 +176,19 @@ export function MealEditScreen({
         ...(photoId && { photoId }),
         items,
       });
+      return true;
     } catch {
       saving.current = false;
       setStatus('error');
+      return false;
     }
   }
+
+  // Leaving always asks while there are dishes, edited or not (4.7, AC-3.12).
+  useDirty(rows.length > 0, save, {
+    title: t('edit.leave.title'),
+    body: t(dishes.length ? 'edit.leave.body' : 'edit.leave.body_manual'),
+  });
 
   const keys = useRef({ save, onClose });
   keys.current = { save, onClose };
@@ -145,8 +198,7 @@ export function MealEditScreen({
         e.preventDefault();
         void keys.current.save();
       } else if (e.key === 'Escape' && !e.defaultPrevented) {
-        // shortcut: closes at once; the «Save this meal?» confirm (4.7) is OCT-59.
-        keys.current.onClose();
+        keys.current.onClose(); // the leave guard asks (4.7)
       }
     };
     document.addEventListener('keydown', onKey);
@@ -158,6 +210,7 @@ export function MealEditScreen({
     minute: '2-digit',
   }).format(opened);
   const busy = status === 'saving';
+  const editingRow = rows.find((r) => r.id === editing);
 
   return (
     <div className="meal-edit">
@@ -222,7 +275,7 @@ export function MealEditScreen({
                 {rows.map((row, i) => {
                   const item = items[i]!;
                   return (
-                    <li key={i}>
+                    <li key={row.id}>
                       <DishRow
                         dish={{
                           ...item,
@@ -231,13 +284,27 @@ export function MealEditScreen({
                         }}
                         units={units}
                         onGramsChange={(g) => setGrams(i, g)}
-                        // shortcut: the «Dish» sheet (4.4) comes with OCT-59.
-                        onEdit={() => {}}
+                        onEdit={() => setEditing(row.id)}
+                        onDelete={() => remove(row.id)}
                       />
                     </li>
                   );
                 })}
               </ul>
+            ) : dishes.length > 0 ? (
+              // 4.6: every recognized dish deleted.
+              // shortcut: «Add manually» (tonal) is hidden until manual entry lands in OCT-60.
+              <ScreenState
+                icon={<UtensilsCrossed />}
+                title={t('edit.empty.title')}
+                action={
+                  <Button variant="plain" onClick={capture.camera}>
+                    {t('common.retake')}
+                  </Button>
+                }
+              >
+                {t('edit.empty.body')}
+              </ScreenState>
             ) : (
               <p className="meal-edit__empty">{t('edit.empty_manual')}</p>
             )}
@@ -269,6 +336,19 @@ export function MealEditScreen({
           </div>
         </footer>
       </div>
+      {editingRow && (
+        <DishSheet
+          original={editingRow.original}
+          grams={editingRow.grams ?? editingRow.shown}
+          units={units}
+          onDone={(name, grams) => applySheet(editingRow.id, name, grams)}
+          onDelete={() => {
+            setEditing(null);
+            remove(editingRow.id);
+          }}
+          onClose={() => setEditing(null)}
+        />
+      )}
     </div>
   );
 }
