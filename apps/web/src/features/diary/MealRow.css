@@ -29,17 +29,6 @@
   background: var(--color-surface-2);
 }
 
-.meal-row__thumb--icon {
-  display: grid;
-  place-items: center;
-  color: var(--color-text-secondary);
-}
-
-.meal-row__thumb--icon .lucide {
-  width: var(--icon-size-sm);
-  height: var(--icon-size-sm);
-}
-
 .meal-row__main {
   display: flex;
   flex-direction: column;

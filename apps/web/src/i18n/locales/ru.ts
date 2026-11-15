@@ -885,6 +885,12 @@ const ru: DeepPartial<typeof en> = {
       more: 'Больше на {step}',
       err: 'Вес от 1 до 5000 г (в oz: от 0,1 до 176,4 oz)',
     },
+    history: {
+      hint: 'Похоже на запись {date}: {weight} · {kcal}\u00a0ккал',
+      apply: 'Как в прошлый раз',
+      keep: 'Оставить оценку',
+      applied: 'Подставили прошлую запись',
+    },
     edit: 'Изменить: {dish}',
     title: '{day}, {time}',
     estimate:
@@ -918,6 +924,13 @@ const ru: DeepPartial<typeof en> = {
       title: 'Не удалось сохранить',
       body: 'Правки на месте. Проверьте сеть и повторите.',
     },
+    late: {
+      label: 'День',
+      yesterday: 'Вчера',
+      today: 'Сегодня',
+      hint: 'Сейчас {time} — поздний перекус запишем во вчерашний день, {date}.',
+    },
+    time: 'Время',
     offline_note:
       'Сохраним на этом устройстве и отправим, когда появится сеть.',
   },

@@ -4,17 +4,28 @@ import { Camera, Plus, Sparkle, UtensilsCrossed, X } from 'lucide-react';
 import { z } from 'zod';
 import {
   DISH_GRAMS,
+  entryDay,
+  illustrationIdSchema,
+  matchIllustration,
   mealTypeAt,
+  nameKey,
   round1,
   scaleItem,
   type MealInput,
   type MealItemInput,
+  type DayChoice,
+  type IllustrationId,
   type MealType,
   type Units,
   uuid,
 } from '@oct/shared';
 import { api, ApiError } from '../../api/client';
-import { useDb, useSettings } from '../../data/DataContext';
+import {
+  useDb,
+  useIllustrationChoices,
+  useSettings,
+} from '../../data/DataContext';
+import type { Choices } from '../../data/db';
 import { createMeal } from '../../data/outbox';
 import { useT } from '../../i18n';
 import { useBarVariant } from '../../app/connection';
@@ -22,8 +33,10 @@ import { useSession } from '../../app/SessionContext';
 import { useDirty } from '../../app/dirty';
 import { Banner } from '../../ui/Banner/Banner';
 import { Button } from '../../ui/Button/Button';
+import { Field } from '../../ui/Field/Field';
 import { DishRow } from '../../ui/DishRow/DishRow';
 import { DishSheet } from '../../ui/DishSheet/DishSheet';
+import { HistoryHint } from '../../ui/HistoryHint/HistoryHint';
 import {
   ManualDishSheet,
   type ManualDish,
@@ -32,14 +45,20 @@ import { MealTypeSegment } from '../../ui/MealTypeSegment/MealTypeSegment';
 import { NavBar } from '../../ui/NavBar/NavBar';
 import { OfflineBar, useOnline } from '../../ui/OfflineBar/OfflineBar';
 import { ScreenState } from '../../ui/ScreenState/ScreenState';
+import { Segment } from '../../ui/Segment/Segment';
 import { useToast } from '../../ui/Toast/Toast';
+import { diaryDay, localToday } from '../diary/day';
 import type { TodayState } from '../diary/TodayScreen';
 import { MEAL_NEW_PATH, useCapture } from './CaptureContext';
 import type { MealEditState } from './RecognitionScreen';
 import { ImageDecodeError, prepareImage } from './prepareImage';
 import './MealEditScreen.css';
 
-type Dish = ManualDish & { confidence?: number };
+/**
+ * `illustration`: picked by hand on this dish — a loaded meal passes it only with
+ * `illustrationManual`, or the automatic one would freeze and stop following the name.
+ */
+type Dish = ManualDish & { confidence?: number; illustration?: IllustrationId };
 /** Why the manual sheet opened (MealEditState); set: no AI dishes came. */
 type ManualReason = Extract<MealEditState, { manual: unknown }>['manual'];
 
@@ -48,16 +67,56 @@ type Row = {
   id: string;
   /** As recognized or entered, with the current name: every recalculation starts from here (AC-3.2). */
   original: Dish;
-  source: 'ai' | 'manual';
+  source: 'ai' | 'manual' | 'history';
   /** Null while the weight field is invalid (AC-3.4). */
   grams: number | null;
   /** Last valid weight: the numbers stay on it while the field is invalid. */
   shown: number;
   /** Weight or name edited: the confidence badge goes (AC-2.9). */
   edited: boolean;
+  /** A similar dish from the history: the hint under the row (4.3). */
+  previous?: Previous;
 };
 
 const photoSchema = z.object({ photoId: z.string() });
+const previousSchema = z.array(
+  z
+    .object({
+      mealId: z.number(),
+      eatenAt: z.string(),
+      grams: z.number(),
+      kcal: z.number(),
+      proteinG: z.number(),
+      fatG: z.number(),
+      carbsG: z.number(),
+      illustration: illustrationIdSchema,
+    })
+    .nullable(),
+);
+/** The fields of `PreviousDish` the hint uses. */
+type Previous = NonNullable<z.infer<typeof previousSchema>[number]>;
+/** Delay after a name typed by hand before looking it up (AC-11.6). */
+export const LOOKUP_DELAY_MS = 300;
+
+type Lookup = { id: string; name: string; kcalPer100?: number };
+const lookupOf = (row: Row): Lookup => ({
+  id: row.id,
+  name: row.original.name,
+  ...(row.original.grams > 0 && {
+    kcalPer100: (row.original.kcal / row.original.grams) * 100,
+  }),
+});
+
+/** Default time of a meal added to a past day (AC-2.12). */
+const MEAL_TIME: Record<MealType, string> = {
+  breakfast: '08:00',
+  lunch: '13:00',
+  dinner: '19:00',
+  snack: '16:00',
+};
+
+/** East-positive offset of the device at `at`, as the API takes it. */
+const offsetAt = (at: Date) => -at.getTimezoneOffset();
 
 const inRange = (g: number) => g >= DISH_GRAMS.min && g <= DISH_GRAMS.max;
 
@@ -89,6 +148,10 @@ const itemOf = (row: Row): MealItemInput => {
     source: row.source,
     // A manual dish has no confidence (AC-3.9).
     ...(row.source === 'ai' && !row.edited && { confidence }),
+    // Only a hand-picked one is sent; the server matches the rest (ADR-0009).
+    ...(row.original.illustration && {
+      illustration: row.original.illustration,
+    }),
   };
 };
 
@@ -105,8 +168,14 @@ type Props = {
    */
   onSave: (input: MealInput, photo?: Blob) => Promise<void>;
   onClose: () => void;
-  /** When the screen opened; also the time eaten. */
-  now?: Date;
+  /** A past day (`YYYY-MM-DD`) from «Add an entry for this day» (AC-2.11); none: now. */
+  date?: string;
+  /** The clock: read on open and again on Save, the time eaten (E-1.4). */
+  now?: () => Date;
+  /** Editing a saved meal: its own dishes are not «last time» (OCT-53 grooming). */
+  mealId?: number;
+  /** Remembered illustration per dish nameKey (useIllustrationChoices). */
+  choices?: Choices;
 };
 
 /** Screen 4 (design OCT-16 §3, E.2): dishes, weights with live totals, meal type, save. */
@@ -117,17 +186,33 @@ export function MealEditScreen({
   units,
   onSave,
   onClose,
-  now,
+  date,
+  now = () => new Date(),
+  mealId,
+  choices,
 }: Props) {
   const { t, num, locale } = useT();
   const online = useOnline();
-  const [opened] = useState(() => now ?? new Date());
+  const [opened] = useState(now);
+  // 00:00-03:59: the two choices give different days, a late snack goes to yesterday (AC-0.1a).
+  const late =
+    !date &&
+    entryDay(opened, offsetAt(opened), 'yesterday') !==
+      entryDay(opened, offsetAt(opened), 'today');
+  const [day, setDay] = useState<DayChoice>('yesterday');
   // The idempotency key lives as long as the screen: «Try again» resends the same meal (4.8).
   const [clientId] = useState(uuid);
   const [rows, setRows] = useState(() => dishes.map((d) => toRow(d)));
   const [mealType, setMealType] = useState<MealType>(() =>
-    mealTypeAt(opened.getHours()),
+    date ? 'lunch' : mealTypeAt(opened.getHours()),
   );
+  // A past day: the time follows the meal type until edited by hand (AC-2.12).
+  const [time, setTime] = useState<string | null>(null);
+  const eatenTime = time ?? MEAL_TIME[mealType];
+  const [hh, mm] = eatenTime.split(':').map(Number);
+  const [y, m, d] = (date ?? '').split('-').map(Number);
+  /** The time eaten on a past day, local. */
+  const pastAt = () => new Date(y!, m! - 1, d, hh, mm);
   const [status, setStatus] = useState<'idle' | 'saving' | 'error'>('idle');
   const [editing, setEditing] = useState<string | null>(null);
   const [adding, setAdding] = useState(manual !== undefined); // AC-5.5, 5.3
@@ -149,8 +234,52 @@ export function MealEditScreen({
   const focusRow = useRef<string | null>(null);
   const toast = useToast();
   const capture = useCapture();
+  // Pending history lookups by key; a new one with the same key cancels the old (AC-11.6).
+  const lookups = useRef(new Map<string, AbortController>());
+
+  /** The hint is optional (AC-11.3): errors and offline show nothing. */
+  function findPrevious(key: string, wanted: Lookup[], ms = 0) {
+    lookups.current.get(key)?.abort();
+    const ctl = new AbortController();
+    lookups.current.set(key, ctl);
+    const timer = setTimeout(() => {
+      api('/api/dishes/previous', previousSchema, {
+        method: 'POST',
+        body: {
+          dishes: wanted.map(({ name, kcalPer100 }) => ({ name, kcalPer100 })),
+        },
+        signal: ctl.signal,
+      }).then(
+        (found) =>
+          setRows((rs) =>
+            rs.map((r) => {
+              const i = wanted.findIndex((w) => w.id === r.id);
+              const prev = found[i];
+              // A renamed row waits for its own answer.
+              return prev &&
+                prev.mealId !== mealId &&
+                r.original.name === wanted[i]!.name
+                ? { ...r, previous: prev }
+                : r;
+            }),
+          ),
+        () => {},
+      );
+    }, ms);
+    ctl.signal.addEventListener('abort', () => clearTimeout(timer));
+  }
+
+  // One request for all recognized dishes, by the AI's kcal per 100 g.
+  useEffect(() => {
+    const pending = lookups.current;
+    if (rows.length) findPrevious('ai', rows.slice(0, 20).map(lookupOf));
+    return () => pending.forEach((c) => c.abort());
+  }, []);
 
   const items = rows.map(itemOf);
+  // Follows the name live (AC-3.6, AC-4.5): hand-picked, then remembered for the name, then matched.
+  const illustrationOf = ({ original: { name, illustration } }: Row) =>
+    illustration ?? choices?.[nameKey(name)] ?? matchIllustration(name);
   const total = (k: 'kcal' | 'proteinG' | 'fatG' | 'carbsG') =>
     items.reduce((s, i) => s + i[k], 0);
   const valid = rows.length > 0 && rows.every((r) => r.grams !== null);
@@ -187,6 +316,8 @@ export function MealEditScreen({
 
   const applySheet = (id: string, name: string, grams: number) => {
     setEditing(null);
+    const row = rows.find((r) => r.id === id);
+    const renamed = !!row && name !== row.original.name;
     setRows((rs) =>
       rs.map((r) =>
         r.id === id
@@ -195,11 +326,18 @@ export function MealEditScreen({
               original: { ...r.original, name },
               grams,
               shown: grams,
-              edited: r.edited || name !== r.original.name || grams !== r.grams,
+              edited: r.edited || renamed || grams !== r.grams,
+              previous: renamed ? undefined : r.previous,
             }
           : r,
       ),
     );
+    if (row && renamed)
+      findPrevious(
+        id,
+        [lookupOf({ ...row, original: { ...row.original, name } })],
+        LOOKUP_DELAY_MS,
+      );
   };
 
   const addManual = (dish: ManualDish) => {
@@ -207,6 +345,52 @@ export function MealEditScreen({
     const row = toRow(dish, 'manual');
     focusRow.current = row.id;
     setRows((rs) => [...rs, row]);
+    findPrevious(row.id, [lookupOf(row)], LOOKUP_DELAY_MS);
+  };
+
+  // The hint unmounts with the focused button, so focus goes back to the dish row.
+  const keepEstimate = (id: string) => {
+    focusRow.current = id;
+    setRows((rs) =>
+      rs.map((r) => (r.id === id ? { ...r, previous: undefined } : r)),
+    );
+  };
+
+  // «Same as last time»: weight recalculation now starts from the previous values (AC-11.5).
+  const applyPrevious = (row: Row, prev: Previous) => {
+    const { grams, kcal, proteinG, fatG, carbsG } = prev;
+    focusRow.current = row.id;
+    setRows((rs) =>
+      rs.map((r) =>
+        r.id === row.id
+          ? {
+              ...r,
+              original: {
+                name: r.original.name,
+                grams,
+                kcal,
+                proteinG,
+                fatG,
+                carbsG,
+              },
+              source: 'history',
+              grams,
+              shown: grams,
+              edited: false,
+              previous: undefined,
+            }
+          : r,
+      ),
+    );
+    toast({
+      text: t('edit.history.applied'),
+      ms: 5000,
+      action: {
+        label: t('common.undo'),
+        onClick: () =>
+          setRows((rs) => rs.map((r) => (r.id === row.id ? row : r))),
+      },
+    });
   };
 
   // The slot photo never goes to the AI (AC-5.7).
@@ -256,13 +440,14 @@ export function MealEditScreen({
     if (saving.current || !valid) return false; // a second tap sends nothing (E-4.2)
     saving.current = true;
     setStatus('saving');
+    const at = date ? pastAt() : now();
     try {
       await onSave(
         {
           clientId,
-          eatenAt: opened.toISOString(),
-          tzOffsetMin: -opened.getTimezoneOffset(),
-          localDate: opened.toLocaleDateString('sv'),
+          eatenAt: at.toISOString(),
+          tzOffsetMin: offsetAt(at),
+          localDate: date ?? entryDay(at, offsetAt(at), day),
           mealType,
           ...(photo && 'id' in photo && { photoId: photo.id }),
           // Entered by hand because of the AI, with a photo: recalculable later (5.6).
@@ -310,10 +495,25 @@ export function MealEditScreen({
     return () => document.removeEventListener('keydown', onKey);
   }, []);
 
-  const time = new Intl.DateTimeFormat(locale, {
-    hour: 'numeric',
-    minute: '2-digit',
-  }).format(opened);
+  const timeOf = (at: Date) =>
+    new Intl.DateTimeFormat(locale, {
+      hour: 'numeric',
+      minute: '2-digit',
+    }).format(at);
+  const dateOf = (iso: string, options: Intl.DateTimeFormatOptions) =>
+    new Intl.DateTimeFormat(locale, { ...options, timeZone: 'UTC' }).format(
+      new Date(`${iso}T00:00:00Z`),
+    );
+  const yesterday = entryDay(opened, offsetAt(opened), 'yesterday');
+  const title = date
+    ? t('edit.title', {
+        day: dateOf(date, { weekday: 'short', day: 'numeric', month: 'short' }),
+        time: timeOf(pastAt()),
+      })
+    : t('edit.title', {
+        day: t(late && day === 'yesterday' ? 'day.yesterday' : 'day.today'),
+        time: timeOf(opened),
+      });
   const busy = status === 'saving';
   const editingRow = rows.find((r) => r.id === editing);
 
@@ -322,7 +522,7 @@ export function MealEditScreen({
       <OfflineBar variant={useBarVariant()} />
       <div className="meal-edit__window">
         <NavBar
-          title={t('edit.title', { day: t('day.today'), time })}
+          title={title}
           action={{ icon: X, label: t('common.close'), onClick: onClose }}
         />
         {manual && manual !== 'user' && (
@@ -391,6 +591,40 @@ export function MealEditScreen({
           </aside>
           <div className="meal-edit__main">
             <MealTypeSegment value={mealType} onChange={setMealType} />
+            {late && (
+              <div className="meal-edit__day">
+                <Segment
+                  label={t('edit.late.label')}
+                  options={(['yesterday', 'today'] as const).map((v) => ({
+                    value: v,
+                    label: t(`edit.late.${v}`),
+                  }))}
+                  value={day}
+                  onChange={setDay}
+                />
+                {day === 'yesterday' && (
+                  <p className="meal-edit__note">
+                    {t('edit.late.hint', {
+                      time: timeOf(opened),
+                      // Keep "14 November" on one line.
+                      date: dateOf(yesterday, {
+                        day: 'numeric',
+                        month: 'long',
+                      }).replace(' ', '\u00a0'),
+                    })}
+                  </p>
+                )}
+              </div>
+            )}
+            {date && (
+              <Field
+                label={t('edit.time')}
+                type="time"
+                required
+                value={eatenTime}
+                onChange={(e) => setTime(e.target.value || null)}
+              />
+            )}
             {rows.length > 0 ? (
               <ul className="meal-edit__list">
                 {rows.map((row, i) => {
@@ -402,12 +636,24 @@ export function MealEditScreen({
                           ...item,
                           grams: row.grams,
                           confidence: item.confidence,
+                          illustration: illustrationOf(row),
                         }}
                         units={units}
                         onGramsChange={(g) => setGrams(i, g)}
                         onEdit={() => setEditing(row.id)}
                         onDelete={() => remove(row.id)}
                       />
+                      {row.previous && (
+                        <HistoryHint
+                          eatenAt={row.previous.eatenAt}
+                          grams={row.previous.grams}
+                          kcal={row.previous.kcal}
+                          illustration={row.previous.illustration}
+                          units={units}
+                          onApply={() => applyPrevious(row, row.previous!)}
+                          onKeep={() => keepEstimate(row.id)}
+                        />
+                      )}
                     </li>
                   );
                 })}
@@ -507,10 +753,16 @@ export function MealEditScreen({
 export function MealEditRoute() {
   const db = useDb();
   const settings = useSettings();
+  const choices = useIllustrationChoices();
   const { user } = useSession();
   const [, navigate] = useLocation();
   const search = useSearch();
-  const photoId = new URLSearchParams(search).get('photo') ?? undefined;
+  const params = new URLSearchParams(search);
+  const photoId = params.get('photo') ?? undefined;
+  // Checked like the diary's address: a real past day, else today (AC-2.3).
+  const today = localToday();
+  const day = diaryDay(params.get('date') ?? today, today);
+  const date = day === today ? undefined : day;
   const [state] = useState(() => history.state as MealEditState | null);
   if (!state && photoId)
     return <Redirect to={`${MEAL_NEW_PATH}?${search}`} replace />;
@@ -519,9 +771,12 @@ export function MealEditRoute() {
       dishes={state && 'dishes' in state ? state.dishes : []}
       manual={state && 'manual' in state ? state.manual : undefined}
       photoId={photoId}
+      date={date}
       units={settings?.units ?? user?.units ?? 'metric'}
+      choices={choices}
       onSave={async (input, photo) => {
         await createMeal(db, input, photo);
+        if (date) return navigate(`/diary/${date}`, { replace: true });
         navigate('/', {
           replace: true,
           state: { saved: input.clientId } satisfies TodayState,

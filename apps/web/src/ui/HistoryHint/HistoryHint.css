@@ -1,0 +1,33 @@
+.history-hint {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-4) var(--space-1);
+  background: var(--color-accent-soft);
+}
+
+.history-hint__text {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+}
+
+.history-hint__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  /* Offsets the buttons' own padding: first label aligns under the text, RU fits one line at 375 px. */
+  margin-inline: calc(var(--space-2) * -1);
+}
+
+/* Both actions fit one line in RU at 375 px; height stays 44. */
+.history-hint .button {
+  padding-inline: var(--space-2);
+}
+
+/* «Keep estimate» is the secondary action (OCT-16 4.3). */
+.history-hint__keep .button {
+  color: var(--color-text-secondary);
+}

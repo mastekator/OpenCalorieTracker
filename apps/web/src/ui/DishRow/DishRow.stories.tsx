@@ -114,3 +114,21 @@ export const Desktop: Story = { globals: { viewport: { value: 'desktop' } } };
 export const DesktopDark: Story = {
   globals: { viewport: { value: 'desktop' }, theme: 'dark' },
 };
+/** OCT-33: the illustration matched from the name, left of name and macros. */
+export const Illustration: Story = {
+  args: {
+    dish: { ...rice, source: 'ai', confidence: 0.6, illustration: 'grains' },
+  },
+};
+export const IllustrationDark: Story = {
+  ...Illustration,
+  globals: { theme: 'dark' },
+};
+export const IllustrationLongName: Story = {
+  args: { dish: { ...LongName.args!.dish!, illustration: 'poultry-breast' } },
+  globals: { viewport: { value: 'iphoneSE' } },
+};
+export const IllustrationDesktop: Story = {
+  ...Illustration,
+  globals: { viewport: { value: 'desktop' } },
+};

@@ -8,7 +8,12 @@ import {
   within,
 } from '@testing-library/react';
 import { useLocation } from 'wouter';
-import type { MealInput, RecognizedDish } from '@oct/shared';
+import type {
+  MealInput,
+  PreviousDishesInput,
+  PreviousDishesResponse,
+  RecognizedDish,
+} from '@oct/shared';
 import { I18nProvider, LOCALE_STORAGE_KEY } from '../../i18n';
 import { renderLoaded } from '../../test-utils';
 import { LeaveGuard } from '../../app/LeaveGuard';
@@ -22,8 +27,30 @@ vi.mock('./prepareImage', async (original) => ({
   prepareImage: async (file: Blob) => file,
 }));
 
-beforeEach(() => localStorage.setItem(LOCALE_STORAGE_KEY, 'en'));
-afterEach(cleanup);
+type Previous = PreviousDishesResponse[number];
+/** `POST /api/dishes/previous`: answers from `found` by dish name, null otherwise. */
+const historyApi = (found: Record<string, Previous> = {}) =>
+  vi.fn(async (_path: string, init?: RequestInit) =>
+    Response.json(
+      (JSON.parse(String(init?.body)) as PreviousDishesInput).dishes.map(
+        (d) => found[d.name] ?? null,
+      ),
+    ),
+  );
+const lookups = (fetch: ReturnType<typeof historyApi>) =>
+  fetch.mock.calls
+    .filter(([path]) => path === '/api/dishes/previous')
+    .map(([, init]) => JSON.parse(String(init?.body)) as PreviousDishesInput);
+
+beforeEach(() => {
+  localStorage.setItem(LOCALE_STORAGE_KEY, 'en');
+  vi.stubGlobal('fetch', historyApi());
+});
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+  vi.unstubAllGlobals();
+});
 
 const buckwheat: RecognizedDish = {
   name: 'Buckwheat',
@@ -48,6 +75,7 @@ const rice: RecognizedDish = {
 async function setup(
   onSave = vi.fn(async (input: MealInput) => void input),
   dishes = [buckwheat],
+  mealId?: number,
 ) {
   await renderLoaded(
     <I18nProvider>
@@ -58,7 +86,8 @@ async function setup(
           units="metric"
           onSave={onSave}
           onClose={() => {}}
-          now={new Date(2026, 10, 15, 13, 24)}
+          now={() => new Date(2026, 10, 15, 13, 24)}
+          mealId={mealId}
         />
       </ToastProvider>
     </I18nProvider>,
@@ -159,6 +188,51 @@ describe('MealEditScreen', () => {
         kcal: 300,
         proteinG: 12,
       });
+    });
+
+    it('a rename changes the illustration, except one picked by hand (AC-4.5)', async () => {
+      const onSave = vi.fn(async (input: MealInput) => void input);
+      await renderLoaded(
+        <I18nProvider>
+          <ToastProvider>
+            <MealEditScreen
+              // A loaded meal: rice was picked by hand (illustrationManual), buckwheat is automatic.
+              dishes={[buckwheat, { ...rice, illustration: 'pizza' }]}
+              units="metric"
+              onSave={onSave}
+              onClose={() => {}}
+              choices={{ coffee: 'coffee-tea' }}
+            />
+          </ToastProvider>
+        </I18nProvider>,
+      );
+      const illos = () =>
+        [...document.querySelectorAll('.dish-row .dish-illo')].map((e) =>
+          e.getAttribute('data-illo'),
+        );
+      expect(illos()).toEqual(['grains', 'pizza']);
+      const rename = (dish: string, to: string) => {
+        fireEvent.click(screen.getByRole('button', { name: `Edit ${dish}` }));
+        fireEvent.change(
+          within(sheet()).getByRole('textbox', { name: 'Name' }),
+          {
+            target: { value: to },
+          },
+        );
+        fireEvent.click(within(sheet()).getByRole('button', { name: 'Done' }));
+      };
+      rename('Buckwheat', 'Borscht');
+      rename('Rice', 'Pasta');
+      expect(illos()).toEqual(['soup-borscht', 'pizza']);
+      // A choice remembered for the name beats the dictionary.
+      rename('Borscht', 'Coffee');
+      expect(illos()[0]).toBe('coffee-tea');
+      await act(async () =>
+        fireEvent.click(screen.getByRole('button', { name: 'Save' })),
+      );
+      const [auto, manual] = onSave.mock.calls[0]![0].items;
+      expect(auto).not.toHaveProperty('illustration');
+      expect(manual).toMatchObject({ illustration: 'pizza' });
     });
 
     it('an empty name is not accepted', async () => {
@@ -370,7 +444,7 @@ describe('MealEditScreen: manual entry (OCT-60)', () => {
             units="metric"
             onSave={onSave}
             onClose={() => {}}
-            now={new Date(2026, 10, 15, 13, 24)}
+            now={() => new Date(2026, 10, 15, 13, 24)}
           />
         </ToastProvider>
       </I18nProvider>,
@@ -471,9 +545,11 @@ describe('MealEditScreen: manual entry (OCT-60)', () => {
     await waitFor(() =>
       expect(document.querySelector('img.meal-edit__thumb')).toBeTruthy(),
     );
-    expect(fetch.mock.calls.map((c) => (c as unknown[])[0])).toEqual([
-      '/api/photos',
-    ]);
+    expect(
+      fetch.mock.calls
+        .map((c) => (c as unknown[])[0])
+        .filter((p) => p !== '/api/dishes/previous'),
+    ).toEqual(['/api/photos']);
     await save();
     expect(onSave.mock.calls[0]![0]).toMatchObject({ photoId: 'p9' });
     expect(onSave.mock.calls[0]![0]).not.toHaveProperty('recalcOffer');
@@ -500,5 +576,225 @@ describe('MealEditScreen: manual entry (OCT-60)', () => {
     await save();
     expect(onSave.mock.calls[0]![0]).not.toHaveProperty('photoId');
     expect(onSave.mock.calls[0]![1]).toBe(file);
+  });
+});
+
+describe('MealEditScreen entry day (OCT-19 3.2, AC-2.11, AC-2.12)', () => {
+  async function open(props: { now: () => Date; date?: string }) {
+    const onSave = vi.fn(async (input: MealInput) => void input);
+    await renderLoaded(
+      <I18nProvider>
+        <ToastProvider>
+          <MealEditScreen
+            dishes={[buckwheat]}
+            units="metric"
+            onSave={onSave}
+            onClose={() => {}}
+            {...props}
+          />
+        </ToastProvider>
+      </I18nProvider>,
+    );
+    const save = async () => {
+      await act(async () =>
+        fireEvent.click(screen.getByRole('button', { name: 'Save' })),
+      );
+      return onSave.mock.calls[0]![0];
+    };
+    return { save };
+  }
+  const dayGroup = () => screen.queryByRole('radiogroup', { name: 'Day' });
+
+  it('from 00:00 to 03:59 offers «Yesterday | Today», «Yesterday» and a snack by default', async () => {
+    const { save } = await open({ now: () => new Date(2026, 10, 15, 0, 35) });
+    const group = dayGroup()!;
+    expect(
+      within(group)
+        .getByRole('radio', { name: 'Yesterday' })
+        .getAttribute('aria-checked'),
+    ).toBe('true');
+    expect(
+      screen.getByText(/late snack toward yesterday, November 14/),
+    ).toBeTruthy();
+    expect(await save()).toMatchObject({
+      mealType: 'snack',
+      localDate: '2026-11-14',
+    });
+  });
+
+  it('«Today» in the window keeps today', async () => {
+    const { save } = await open({ now: () => new Date(2026, 10, 15, 3, 59) });
+    fireEvent.click(screen.getByRole('radio', { name: 'Today' }));
+    expect(await save()).toMatchObject({ localDate: '2026-11-15' });
+  });
+
+  it('has no day choice outside the window', async () => {
+    await open({ now: () => new Date(2026, 10, 15, 4, 0) });
+    expect(dayGroup()).toBeNull();
+  });
+
+  it('takes the day and time at Save: opened 23:59, saved 00:01 is a late snack (E-1.4)', async () => {
+    let clock = new Date(2026, 10, 14, 23, 59);
+    const { save } = await open({ now: () => clock });
+    expect(dayGroup()).toBeNull();
+    clock = new Date(2026, 10, 15, 0, 1);
+    expect(await save()).toMatchObject({
+      localDate: '2026-11-14',
+      eatenAt: clock.toISOString(),
+    });
+  });
+
+  it('a past day gets its date, lunch at 13:00, the time following the type until edited', async () => {
+    const { save } = await open({
+      now: () => new Date(2026, 10, 15, 0, 35),
+      date: '2026-11-10',
+    });
+    expect(dayGroup()).toBeNull();
+    const time = screen.getByLabelText('Time') as HTMLInputElement;
+    expect(time.value).toBe('13:00');
+    fireEvent.click(screen.getByRole('radio', { name: 'Dinner' }));
+    expect(time.value).toBe('19:00');
+    fireEvent.change(time, { target: { value: '20:15' } });
+    fireEvent.click(screen.getByRole('radio', { name: 'Breakfast' }));
+    expect(time.value).toBe('20:15');
+    expect(await save()).toMatchObject({
+      mealType: 'breakfast',
+      localDate: '2026-11-10',
+      eatenAt: new Date(2026, 10, 10, 20, 15).toISOString(),
+    });
+  });
+
+  it('a past day starts at lunch, 13:00', async () => {
+    const { save } = await open({
+      now: () => new Date(2026, 10, 15, 9, 0),
+      date: '2026-11-10',
+    });
+    expect(await save()).toMatchObject({
+      mealType: 'lunch',
+      localDate: '2026-11-10',
+      eatenAt: new Date(2026, 10, 10, 13, 0).toISOString(),
+    });
+  });
+});
+
+describe('MealEditScreen: same as last time (4.3, OCT-61)', () => {
+  const last: NonNullable<Previous> = {
+    mealId: 7,
+    eatenAt: '2026-11-12T12:30:00.000Z',
+    grams: 200,
+    kcal: 380,
+    proteinG: 14,
+    fatG: 5,
+    carbsG: 70,
+    illustration: 'grains',
+  };
+  const hint = () => screen.queryByText(/^Looks like your entry from/);
+
+  async function withHistory(mealId?: number) {
+    const fetch = historyApi({ Buckwheat: last });
+    vi.stubGlobal('fetch', fetch);
+    const ctx = await setup(undefined, [buckwheat, rice], mealId);
+    await waitFor(() => expect(fetch).toHaveBeenCalled());
+    // Let the answer land.
+    await act(() => new Promise((r) => setTimeout(r, 10)));
+    return { ...ctx, fetch };
+  }
+
+  it('one request with the AI kcal per 100 g; the hint only under the match', async () => {
+    const { fetch } = await withHistory();
+    expect(lookups(fetch)).toEqual([
+      {
+        dishes: [
+          { name: 'Buckwheat', kcalPer100: 200 },
+          { name: 'Rice', kcalPer100: 130 },
+        ],
+      },
+    ]);
+    expect(screen.getAllByText(/^Looks like your entry from/)).toHaveLength(1);
+    expect(hint()!.textContent).toBe(
+      'Looks like your entry from Nov 12: 200\u00a0g · 380\u00a0kcal',
+    );
+    // The previous entry's illustration (OCT-33).
+    expect(
+      document
+        .querySelector('.history-hint .dish-illo')!
+        .getAttribute('data-illo'),
+    ).toBe('grains');
+  });
+
+  it('a match from the meal being edited is not shown', async () => {
+    await withHistory(7);
+    expect(hint()).toBeNull();
+  });
+
+  it('without a tap the AI estimate is saved', async () => {
+    const { onSave, save } = await withHistory();
+    await act(async () => fireEvent.click(save()));
+    expect(onSave.mock.calls[0]![0].items[0]).toEqual({
+      ...buckwheat,
+      source: 'ai',
+    });
+  });
+
+  it('«Keep estimate» hides the hint', async () => {
+    await withHistory();
+    fireEvent.click(screen.getByRole('button', { name: 'Keep estimate' }));
+    expect(hint()).toBeNull();
+    expect(document.activeElement!.classList).toContain('dish-row__edit');
+  });
+
+  it('«Same as last time» saves the previous values from history; weight recalculates from them', async () => {
+    const { onSave, save, input } = await withHistory();
+    fireEvent.click(screen.getByRole('button', { name: 'Same as last time' }));
+    expect(hint()).toBeNull();
+    expect(document.activeElement!.classList).toContain('dish-row__edit');
+    expect(screen.getByText('as last time')).toBeTruthy();
+    expect(await screen.findByText('Used your previous entry')).toBeTruthy();
+    fireEvent.change(input, { target: { value: '100' } });
+    await act(async () => fireEvent.click(save()));
+    expect(onSave.mock.calls[0]![0].items[0]).toEqual({
+      name: 'Buckwheat',
+      grams: 100,
+      kcal: 190,
+      proteinG: 7,
+      fatG: 2.5,
+      carbsG: 35,
+      source: 'history',
+    });
+  });
+
+  it('«Undo» brings the AI estimate back', async () => {
+    const { onSave, save } = await withHistory();
+    fireEvent.click(screen.getByRole('button', { name: 'Same as last time' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Undo' }));
+    expect(screen.queryByText('as last time')).toBeNull();
+    await act(async () => fireEvent.click(save()));
+    expect(onSave.mock.calls[0]![0].items[0]).toEqual({
+      ...buckwheat,
+      source: 'ai',
+    });
+  });
+
+  it('a rename looks up after 300 ms, only the last name (AC-11.6)', async () => {
+    const { fetch } = await withHistory();
+    const rename = (from: string, value: string) => {
+      fireEvent.click(screen.getByRole('button', { name: `Edit ${from}` }));
+      const sheet = screen.getByRole('dialog');
+      fireEvent.change(within(sheet).getByRole('textbox', { name: 'Name' }), {
+        target: { value },
+      });
+      fireEvent.click(within(sheet).getByRole('button', { name: 'Done' }));
+    };
+    vi.useFakeTimers();
+    rename('Buckwheat', 'Kasha');
+    expect(hint()).toBeNull(); // the old name's hint goes
+    await act(async () => vi.advanceTimersByTime(200));
+    rename('Kasha', 'Grechka');
+    await act(async () => vi.advanceTimersByTime(299));
+    expect(lookups(fetch)).toHaveLength(1);
+    await act(async () => vi.advanceTimersByTime(1));
+    expect(lookups(fetch).slice(1)).toEqual([
+      { dishes: [{ name: 'Grechka', kcalPer100: 200 }] },
+    ]);
   });
 });
