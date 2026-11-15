@@ -654,7 +654,37 @@ export const en = {
     },
     ok: 'Sign in',
   },
+  manual_dish: {
+    title: 'Add dish manually',
+    name: 'Name',
+    name_ph: 'e.g. Greek yogurt 2%',
+    weight: 'Weight',
+    required: 'required',
+    basis: 'Calories and macros are',
+    per100: 'Per 100 g',
+    perPortion: 'Per serving',
+    kcal: 'Calories',
+    protein: 'Protein',
+    fat: 'Fat',
+    carbs: 'Carbs',
+    total: 'Total for {weight}: {kcal} kcal',
+    err: {
+      number: 'Enter a number, like 12.5',
+      too_big: 'Too much for one dish — check the number',
+    },
+    warn: {
+      mismatch:
+        'Macros add up to about {n} kcal. Check the numbers — you can still add it.',
+    },
+    add: 'Add',
+    ai_down:
+      'AI is unavailable — enter the dishes manually. Once it’s back, you can recalculate from the photo.',
+  },
   recog: {
+    not_configured:
+      'Photo recognition isn’t set up — enter the dishes manually. The photo is saved with the entry, so you can recalculate once AI is connected.',
+    no_vision:
+      'The current model can’t read photos — enter the dishes manually. The photo is saved with the entry.',
     loading: 'Recognizing…',
     usual: 'Usually under 10 seconds',
     slow: 'Taking longer than usual. You can wait or enter the dishes manually — the photo stays, so you can recalculate from it later.',
@@ -865,6 +895,8 @@ export const en = {
       body: 'Otherwise the recognized dishes will be lost.',
       body_manual: 'Otherwise the dishes you entered will be lost.',
     },
+    add_manual: 'Add a dish manually',
+    photo: { add: 'Photo' },
     empty_manual: 'No dishes yet',
     save: 'Save',
     saving: 'Saving…',

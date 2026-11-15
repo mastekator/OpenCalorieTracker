@@ -33,7 +33,20 @@ const dropped = () => {
   throw new TypeError('Failed to fetch');
 };
 
-/** Answers fetch calls in order; a missing answer hangs until the request is aborted. */
+const STATUS = '/api/ai/status';
+let aiStatus: () => Response;
+const statusOf = (recognition: string) =>
+  json(200, {
+    recognition,
+    interview: 'ready',
+    providerName: null,
+    baseUrlHost: null,
+  });
+
+/**
+ * Answers fetch calls in order; a missing answer hangs until the request is aborted.
+ * GET /api/ai/status is answered by `aiStatus` and not counted.
+ */
 function respond(...answers: (() => Response)[]) {
   const fetch = vi.fn(
     (_url: string, init: RequestInit) =>
@@ -52,7 +65,9 @@ function respond(...answers: (() => Response)[]) {
         );
       }),
   );
-  vi.stubGlobal('fetch', fetch);
+  vi.stubGlobal('fetch', (url: string, init: RequestInit) =>
+    url === STATUS ? Promise.resolve(aiStatus()) : fetch(url, init),
+  );
   return fetch;
 }
 
@@ -82,6 +97,7 @@ async function setup(path = '/meal/new?photo=p1') {
 
 beforeEach(() => {
   localStorage.setItem(LOCALE_STORAGE_KEY, 'en');
+  aiStatus = statusOf('ready');
   visibility = 'visible';
   online = true;
   vi.spyOn(document, 'visibilityState', 'get').mockImplementation(
@@ -143,6 +159,25 @@ describe('RecognitionScreen', () => {
     respond(fail(409, 'ai_not_configured'));
     const location = await setup();
     await waitFor(() => expect(location.history.at(-1)).toBe(EDIT));
+  });
+
+  it.each(['not_configured', 'no_vision'])(
+    'AI %s → the edit screen without a recognize request (AC-5.6, AC-6.6)',
+    async (recognition) => {
+      aiStatus = statusOf(recognition);
+      const fetch = respond(ok);
+      const location = await setup();
+      await waitFor(() => expect(location.history.at(-1)).toBe(EDIT));
+      expect(fetch).not.toHaveBeenCalled();
+    },
+  );
+
+  it('recognizes anyway when the AI status is unknown', async () => {
+    aiStatus = fail(500, 'internal');
+    const fetch = respond(ok);
+    const location = await setup();
+    await waitFor(() => expect(location.history.at(-1)).toBe(EDIT));
+    expect(fetch).toHaveBeenCalledOnce();
   });
 
   it('passes the day of «Add an entry for this day» on to the edit screen (AC-2.11)', async () => {

@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useSearch } from 'wouter';
-import { recognitionSchema, type RecognizedDish } from '@oct/shared';
+import {
+  aiStatusSchema,
+  recognitionSchema,
+  type RecognizedDish,
+} from '@oct/shared';
 import { api, ApiError } from '../../api/client';
 import { useT } from '../../i18n';
 import { NavBar } from '../../ui/NavBar/NavBar';
@@ -119,7 +123,16 @@ export function RecognitionScreen({ photoId }: { photoId: string }) {
         }
       }
     };
-    void run();
+    // AI not ready: no recognize call, straight to manual entry with the photo (AC-5.6, AC-6.6).
+    // Status unknown (network, server): recognize anyway, its 409 still leads here.
+    void api('/api/ai/status', aiStatusSchema, { signal: ctrl.signal })
+      .catch(() => null)
+      .then((status) => {
+        if (ctrl.signal.aborted) return;
+        if (status && status.recognition !== 'ready')
+          return toEdit({ manual: status.recognition });
+        return run();
+      });
     return () => {
       ctrl.abort();
       clearTimeout(slow);

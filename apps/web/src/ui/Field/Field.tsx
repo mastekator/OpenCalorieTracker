@@ -14,6 +14,8 @@ type Props = Omit<
   error?: string;
   /** Value set by the server (email from an invite): read-only, lock icon. */
   locked?: boolean;
+  /** Unit after the value: «g», «oz». */
+  suffix?: string;
   ref?: Ref<HTMLInputElement>;
 };
 
@@ -22,6 +24,7 @@ export function Field({
   hint,
   error,
   locked = false,
+  suffix,
   type = 'text',
   ...rest
 }: Props) {
@@ -46,6 +49,11 @@ export function Field({
           aria-invalid={error ? true : undefined}
           aria-describedby={note ? `${id}-note` : undefined}
         />
+        {suffix && (
+          <span className="field__suffix" aria-hidden="true">
+            {suffix}
+          </span>
+        )}
         {locked && <Lock className="field__icon" aria-hidden="true" />}
         {isPassword && !locked && (
           <button

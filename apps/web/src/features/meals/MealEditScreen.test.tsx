@@ -14,7 +14,13 @@ import { renderLoaded } from '../../test-utils';
 import { LeaveGuard } from '../../app/LeaveGuard';
 import { ToastProvider } from '../../ui/Toast/Toast';
 import { MealEditScreen } from './MealEditScreen';
-import { MEAL_EDIT_PATH } from './RecognitionScreen';
+import { MEAL_EDIT_PATH, type MealEditState } from './RecognitionScreen';
+
+// jsdom has no canvas: the photo slot takes the file as is.
+vi.mock('./prepareImage', async (original) => ({
+  ...(await original<typeof import('./prepareImage')>()),
+  prepareImage: async (file: Blob) => file,
+}));
 
 beforeEach(() => localStorage.setItem(LOCALE_STORAGE_KEY, 'en'));
 afterEach(cleanup);
@@ -335,5 +341,164 @@ describe('leaving the edit screen (4.7)', () => {
     expect(
       screen.getByText('Weight from 1 to 5000 g (0.1 to 176.4 oz)'),
     ).toBeTruthy();
+  });
+});
+
+type Manual = Extract<MealEditState, { manual: unknown }>['manual'];
+
+describe('MealEditScreen: manual entry (OCT-60)', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  async function open(
+    manual: Manual | undefined,
+    {
+      photoId,
+      dishes = [],
+    }: { photoId?: string; dishes?: RecognizedDish[] } = {},
+  ) {
+    const onSave = vi.fn(async (input: MealInput, photo?: Blob) => {
+      void input;
+      void photo;
+    });
+    await renderLoaded(
+      <I18nProvider>
+        <ToastProvider>
+          <MealEditScreen
+            dishes={dishes}
+            manual={manual}
+            photoId={photoId}
+            units="metric"
+            onSave={onSave}
+            onClose={() => {}}
+            now={new Date(2026, 10, 15, 13, 24)}
+          />
+        </ToastProvider>
+      </I18nProvider>,
+    );
+    return onSave;
+  }
+
+  const enter = (name = 'Cottage cheese') => {
+    const type = (label: RegExp, value: string) =>
+      fireEvent.change(screen.getByLabelText(label), { target: { value } });
+    type(/^Name/, name);
+    type(/^Weight ·/, '200');
+    type(/^Calories ·/, '150');
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+  };
+  const save = async () => {
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await act(async () => {});
+  };
+
+  it('from Today: the sheet opens at once, the dish gets the «manual» badge (AC-5.5, AC-3.9)', async () => {
+    const onSave = await open('user');
+    expect(
+      screen.getByRole('dialog', { name: 'Add dish manually' }),
+    ).toBeTruthy();
+    enter();
+    expect(
+      screen.queryByRole('dialog', { name: 'Add dish manually' }),
+    ).toBeNull();
+    expect(screen.getByText('manual')).toBeTruthy();
+    expect(screen.queryByText(/AI estimate/)).toBeNull();
+    expect(document.body.textContent).not.toContain('set up');
+    await save();
+    const input = onSave.mock.calls[0]![0];
+    expect(input.items).toEqual([
+      {
+        name: 'Cottage cheese',
+        grams: 200,
+        kcal: 300,
+        proteinG: 0,
+        fatG: 0,
+        carbsG: 0,
+        source: 'manual',
+      },
+    ]);
+    expect(input).not.toHaveProperty('photoId');
+    expect(input).not.toHaveProperty('recalcOffer');
+  });
+
+  it.each([
+    ['not_configured', 'Photo recognition isn’t set up'],
+    ['no_vision', 'The current model can’t read photos'],
+    ['ai_down', 'AI is unavailable'],
+  ] as const)(
+    'AI %s with a photo: banner, open sheet, saved with recalcOffer (5.3, 5.6)',
+    async (manual, text) => {
+      const onSave = await open(manual, { photoId: 'p1' });
+      expect(document.body.textContent).toContain(text);
+      enter();
+      await save();
+      expect(onSave.mock.calls[0]![0]).toMatchObject({
+        photoId: 'p1',
+        recalcOffer: true,
+      });
+    },
+  );
+
+  it('«Add a dish manually» next to AI dishes keeps their confidence (AC-3.8)', async () => {
+    const onSave = await open(undefined, {
+      photoId: 'p1',
+      dishes: [buckwheat],
+    });
+    expect(screen.queryByRole('dialog')).toBeNull();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Add a dish manually' }),
+    );
+    enter('Tea');
+    await save();
+    const input = onSave.mock.calls[0]![0];
+    expect(input.items.map((i) => [i.source, i.confidence])).toEqual([
+      ['ai', 0.6],
+      ['manual', undefined],
+    ]);
+    expect(input).not.toHaveProperty('recalcOffer');
+  });
+
+  it('the photo slot uploads a photo without recognizing it (AC-5.7)', async () => {
+    const fetch = vi.fn(async () =>
+      Response.json({ photoId: 'p9' }, { status: 201 }),
+    );
+    vi.stubGlobal('fetch', fetch);
+    const onSave = await open('user');
+    enter();
+    const file = new File(['jpeg'], 'a.jpg', { type: 'image/jpeg' });
+    fireEvent.change(screen.getByTestId('edit-photo'), {
+      target: { files: [file] },
+    });
+    await waitFor(() =>
+      expect(document.querySelector('img.meal-edit__thumb')).toBeTruthy(),
+    );
+    expect(fetch.mock.calls.map((c) => (c as unknown[])[0])).toEqual([
+      '/api/photos',
+    ]);
+    await save();
+    expect(onSave.mock.calls[0]![0]).toMatchObject({ photoId: 'p9' });
+    expect(onSave.mock.calls[0]![0]).not.toHaveProperty('recalcOffer');
+    expect(onSave.mock.calls[0]![1]).toBeUndefined();
+  });
+
+  it('a slot photo that failed to upload is queued with the meal', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => Promise.reject(new TypeError('offline'))),
+    );
+    // jsdom has no object URLs.
+    URL.createObjectURL = () => 'blob:photo';
+    URL.revokeObjectURL = () => {};
+    const onSave = await open('user');
+    enter();
+    const file = new File(['jpeg'], 'a.jpg', { type: 'image/jpeg' });
+    fireEvent.change(screen.getByTestId('edit-photo'), {
+      target: { files: [file] },
+    });
+    await waitFor(() =>
+      expect(document.querySelector('img.meal-edit__thumb')).toBeTruthy(),
+    );
+    await save();
+    expect(onSave.mock.calls[0]![0]).not.toHaveProperty('photoId');
+    expect(onSave.mock.calls[0]![1]).toBe(file);
   });
 });
