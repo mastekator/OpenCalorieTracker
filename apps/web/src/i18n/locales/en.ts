@@ -966,7 +966,7 @@ export const en = {
       body_manual: 'Otherwise the dishes you entered will be lost.',
     },
     add_manual: 'Add a dish manually',
-    photo: { add: 'Photo' },
+    photo: { add: 'Photo', add_label: 'Add photo' },
     illo: {
       title: 'Dish picture',
       change: 'Illustration: {name}, change',

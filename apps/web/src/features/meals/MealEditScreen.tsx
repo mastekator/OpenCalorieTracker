@@ -778,9 +778,15 @@ export function MealEditScreen({
                 className="meal-edit__thumb meal-edit__photo-add"
                 disabled={uploading}
                 aria-busy={uploading || undefined}
+                aria-label={t('edit.photo.add_label')}
                 onClick={() => photoInput.current?.click()}
               >
-                <Camera aria-hidden="true" />
+                {uploading ? (
+                  // Button's spinner, the same on every waiting action.
+                  <span className="button__spinner" aria-hidden="true" />
+                ) : (
+                  <Camera aria-hidden="true" />
+                )}
                 {t('edit.photo.add')}
               </button>
             )}
