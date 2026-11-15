@@ -33,6 +33,7 @@ function Demo({
       />
       <ConfirmDialog
         open={confirm}
+        stack
         title={t('settings.photos.shorten.title', { days: 7 })}
         body={t('settings.photos.shorten.body', { count: 23, days: 7 })}
         confirmLabel={t('settings.photos.shorten.ok')}
