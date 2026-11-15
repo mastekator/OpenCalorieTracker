@@ -218,3 +218,44 @@
     display: contents;
   }
 }
+
+/* Photo slot without a photo (OCT-16 §4): camera, library or file. */
+.meal-edit__photo-add {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: var(--space-1);
+  padding: 0;
+  border: none;
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  font: inherit;
+  font-size: var(--text-caption-size);
+  line-height: var(--text-caption-lh);
+  font-weight: var(--text-caption-weight);
+  cursor: pointer;
+}
+
+.meal-edit__photo-add svg,
+.meal-edit__add-icon {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+  stroke-width: var(--icon-stroke);
+}
+
+.meal-edit__add-icon {
+  margin-inline-end: var(--space-1);
+  vertical-align: middle;
+}
+
+.meal-edit__photo-add:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+@media (min-width: 1024px) {
+  .meal-edit__photo-add {
+    aspect-ratio: auto;
+    height: var(--thumb-size);
+  }
+}

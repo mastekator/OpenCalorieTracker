@@ -47,6 +47,9 @@ export const Disabled: Story = {
 export const Locked: Story = {
   args: { locked: true, defaultValue: 'me@example.com' },
 };
+export const Suffix: Story = {
+  args: { suffix: 'g', inputMode: 'numeric', defaultValue: '250' },
+};
 export const Password: Story = {
   args: { type: 'password', defaultValue: 'Pasta-2-go' },
 };

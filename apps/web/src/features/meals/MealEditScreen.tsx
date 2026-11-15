@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { Redirect, useLocation, useSearch } from 'wouter';
-import { Sparkle, UtensilsCrossed, X } from 'lucide-react';
+import { Camera, Plus, Sparkle, UtensilsCrossed, X } from 'lucide-react';
+import { z } from 'zod';
 import {
   DISH_GRAMS,
   mealTypeAt,
@@ -9,10 +10,10 @@ import {
   type MealInput,
   type MealItemInput,
   type MealType,
-  type RecognizedDish,
   type Units,
   uuid,
 } from '@oct/shared';
+import { api, ApiError } from '../../api/client';
 import { useDb, useSettings } from '../../data/DataContext';
 import { createMeal } from '../../data/outbox';
 import { useT } from '../../i18n';
@@ -23,6 +24,10 @@ import { Banner } from '../../ui/Banner/Banner';
 import { Button } from '../../ui/Button/Button';
 import { DishRow } from '../../ui/DishRow/DishRow';
 import { DishSheet } from '../../ui/DishSheet/DishSheet';
+import {
+  ManualDishSheet,
+  type ManualDish,
+} from '../../ui/ManualDishSheet/ManualDishSheet';
 import { MealTypeSegment } from '../../ui/MealTypeSegment/MealTypeSegment';
 import { NavBar } from '../../ui/NavBar/NavBar';
 import { OfflineBar, useOnline } from '../../ui/OfflineBar/OfflineBar';
@@ -31,13 +36,19 @@ import { useToast } from '../../ui/Toast/Toast';
 import type { TodayState } from '../diary/TodayScreen';
 import { MEAL_NEW_PATH, useCapture } from './CaptureContext';
 import type { MealEditState } from './RecognitionScreen';
+import { ImageDecodeError, prepareImage } from './prepareImage';
 import './MealEditScreen.css';
+
+type Dish = ManualDish & { confidence?: number };
+/** Why the manual sheet opened (MealEditState); set: no AI dishes came. */
+type ManualReason = Extract<MealEditState, { manual: unknown }>['manual'];
 
 type Row = {
   /** Stable key: rows are deleted and put back in place (4.5). */
   id: string;
-  /** As recognized, with the current name: every recalculation starts from here (AC-3.2). */
-  original: RecognizedDish;
+  /** As recognized or entered, with the current name: every recalculation starts from here (AC-3.2). */
+  original: Dish;
+  source: 'ai' | 'manual';
   /** Null while the weight field is invalid (AC-3.4). */
   grams: number | null;
   /** Last valid weight: the numbers stay on it while the field is invalid. */
@@ -46,14 +57,17 @@ type Row = {
   edited: boolean;
 };
 
+const photoSchema = z.object({ photoId: z.string() });
+
 const inRange = (g: number) => g >= DISH_GRAMS.min && g <= DISH_GRAMS.max;
 
-function toRow(original: RecognizedDish): Row {
+function toRow(original: Dish, source: Row['source'] = 'ai'): Row {
   // AI grams may carry any decimals; the API takes one (mealItemInputSchema).
   const g = round1(original.grams);
   return {
     id: uuid(),
     original,
+    source,
     grams: inRange(g) ? g : null,
     shown: g,
     edited: false,
@@ -72,18 +86,24 @@ const itemOf = (row: Row): MealItemInput => {
     proteinG,
     fatG,
     carbsG,
-    source: 'ai',
-    ...(!row.edited && { confidence }),
+    source: row.source,
+    // A manual dish has no confidence (AC-3.9).
+    ...(row.source === 'ai' && !row.edited && { confidence }),
   };
 };
 
 type Props = {
-  /** Recognized dishes; empty for manual entry (OCT-60). */
-  dishes: RecognizedDish[];
+  /** Recognized dishes; empty for manual entry. */
+  dishes: Dish[];
+  /** Set: the manual sheet opens at once; other than 'user', a banner says why (5.3). */
+  manual?: ManualReason;
   photoId?: string;
   units: Units;
-  /** Writes the meal; a rejection keeps the edits and offers «Try again» (E-4.3). */
-  onSave: (input: MealInput) => Promise<void>;
+  /**
+   * Writes the meal; a rejection keeps the edits and offers «Try again» (E-4.3).
+   * `photo`: added from the photo slot while its upload failed, queued with the meal.
+   */
+  onSave: (input: MealInput, photo?: Blob) => Promise<void>;
   onClose: () => void;
   /** When the screen opened; also the time eaten. */
   now?: Date;
@@ -92,6 +112,7 @@ type Props = {
 /** Screen 4 (design OCT-16 §3, E.2): dishes, weights with live totals, meal type, save. */
 export function MealEditScreen({
   dishes,
+  manual,
   photoId,
   units,
   onSave,
@@ -103,12 +124,26 @@ export function MealEditScreen({
   const [opened] = useState(() => now ?? new Date());
   // The idempotency key lives as long as the screen: «Try again» resends the same meal (4.8).
   const [clientId] = useState(uuid);
-  const [rows, setRows] = useState(() => dishes.map(toRow));
+  const [rows, setRows] = useState(() => dishes.map((d) => toRow(d)));
   const [mealType, setMealType] = useState<MealType>(() =>
     mealTypeAt(opened.getHours()),
   );
   const [status, setStatus] = useState<'idle' | 'saving' | 'error'>('idle');
   const [editing, setEditing] = useState<string | null>(null);
+  const [adding, setAdding] = useState(manual !== undefined); // AC-5.5, 5.3
+  // Recognized, uploaded from the slot, or kept on the device when the upload failed.
+  const [photo, setPhoto] = useState<
+    { id: string; url: string } | { blob: Blob; url: string } | null
+  >(() =>
+    photoId
+      ? {
+          id: photoId,
+          url: `/api/photos/${encodeURIComponent(photoId)}?size=preview`,
+        }
+      : null,
+  );
+  const [uploading, setUploading] = useState(false);
+  const photoInput = useRef<HTMLInputElement>(null);
   const saving = useRef(false);
   // Row whose pencil gets focus after a delete or «Undo», so it never drops to <body> (WCAG 2.4.3).
   const focusRow = useRef<string | null>(null);
@@ -167,21 +202,75 @@ export function MealEditScreen({
     );
   };
 
+  const addManual = (dish: ManualDish) => {
+    setAdding(false);
+    const row = toRow(dish, 'manual');
+    focusRow.current = row.id;
+    setRows((rs) => [...rs, row]);
+  };
+
+  // The slot photo never goes to the AI (AC-5.7).
+  const onPhoto = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    setUploading(true);
+    let blob: Blob | undefined;
+    try {
+      blob = await prepareImage(file);
+      const { photoId: id } = await api('/api/photos', photoSchema, {
+        method: 'POST',
+        body: blob,
+      });
+      setPhoto({
+        id,
+        url: `/api/photos/${encodeURIComponent(id)}?size=preview`,
+      });
+    } catch (err) {
+      if (blob && err instanceof ApiError && err.status === 0)
+        // No network: the outbox uploads it with the meal (ADR-0008).
+        setPhoto({ blob, url: URL.createObjectURL(blob) });
+      else if (
+        err instanceof ImageDecodeError ||
+        (err instanceof ApiError &&
+          (err.code === 'photo_invalid' || err.code === 'photo_too_large'))
+      )
+        toast({ text: t('capture.err.open.title') });
+      else if (err instanceof ApiError)
+        toast({ text: t('capture.upload_failed') });
+      else throw err;
+    } finally {
+      setUploading(false);
+    }
+  };
+  const photoUrl = photo?.url;
+  useEffect(
+    () => () => {
+      if (photoUrl?.startsWith('blob:')) URL.revokeObjectURL(photoUrl);
+    },
+    [photoUrl],
+  );
+
   /** Resolves true once saved; false when invalid, already saving or failed (the screen shows why). */
   async function save() {
     if (saving.current || !valid) return false; // a second tap sends nothing (E-4.2)
     saving.current = true;
     setStatus('saving');
     try {
-      await onSave({
-        clientId,
-        eatenAt: opened.toISOString(),
-        tzOffsetMin: -opened.getTimezoneOffset(),
-        localDate: opened.toLocaleDateString('sv'),
-        mealType,
-        ...(photoId && { photoId }),
-        items,
-      });
+      await onSave(
+        {
+          clientId,
+          eatenAt: opened.toISOString(),
+          tzOffsetMin: -opened.getTimezoneOffset(),
+          localDate: opened.toLocaleDateString('sv'),
+          mealType,
+          ...(photo && 'id' in photo && { photoId: photo.id }),
+          // Entered by hand because of the AI, with a photo: recalculable later (5.6).
+          ...(manual && manual !== 'user' && photo && { recalcOffer: true }),
+          items,
+        },
+        photo && 'blob' in photo ? photo.blob : undefined,
+      );
       return true;
     } catch {
       saving.current = false;
@@ -236,6 +325,17 @@ export function MealEditScreen({
           title={t('edit.title', { day: t('day.today'), time })}
           action={{ icon: X, label: t('common.close'), onClick: onClose }}
         />
+        {manual && manual !== 'user' && (
+          <div className="meal-edit__error">
+            <Banner tone="notice">
+              {t(
+                manual === 'ai_down'
+                  ? 'manual_dish.ai_down'
+                  : `recog.${manual}`,
+              )}
+            </Banner>
+          </div>
+        )}
         {status === 'error' && (
           <div className="meal-edit__error">
             <Banner tone="danger" title={t('edit.save_err.title')}>
@@ -244,15 +344,20 @@ export function MealEditScreen({
           </div>
         )}
         <div className="meal-edit__body">
-          <aside
-            className={`meal-edit__summary${photoId ? ' meal-edit__summary--photo' : ''}`}
-          >
-            {photoId && (
-              <img
-                className="meal-edit__thumb"
-                src={`/api/photos/${encodeURIComponent(photoId)}?size=preview`}
-                alt=""
-              />
+          <aside className="meal-edit__summary meal-edit__summary--photo">
+            {photo ? (
+              <img className="meal-edit__thumb" src={photo.url} alt="" />
+            ) : (
+              <button
+                type="button"
+                className="meal-edit__thumb meal-edit__photo-add"
+                disabled={uploading}
+                aria-busy={uploading || undefined}
+                onClick={() => photoInput.current?.click()}
+              >
+                <Camera aria-hidden="true" />
+                {t('edit.photo.add')}
+              </button>
             )}
             <div className="meal-edit__total tabular-nums">
               <p className="meal-edit__kcal">
@@ -277,7 +382,7 @@ export function MealEditScreen({
                 ))}
               </p>
             </div>
-            {rows.length > 0 && (
+            {rows.some((r) => r.source === 'ai') && (
               <p className="meal-edit__estimate">
                 <Sparkle aria-hidden="true" />
                 {t('edit.estimate')}
@@ -309,21 +414,31 @@ export function MealEditScreen({
               </ul>
             ) : dishes.length > 0 ? (
               // 4.6: every recognized dish deleted.
-              // shortcut: «Add manually» (tonal) is hidden until manual entry lands in OCT-60.
               <ScreenState
                 icon={<UtensilsCrossed />}
                 title={t('edit.empty.title')}
                 focusTitle
                 action={
-                  <Button variant="plain" onClick={capture.camera}>
-                    {t('common.retake')}
-                  </Button>
+                  <>
+                    <Button variant="tonal" onClick={() => setAdding(true)}>
+                      {t('edit.add_manual')}
+                    </Button>
+                    <Button variant="plain" onClick={capture.camera}>
+                      {t('common.retake')}
+                    </Button>
+                  </>
                 }
               >
                 {t('edit.empty.body')}
               </ScreenState>
             ) : (
               <p className="meal-edit__empty">{t('edit.empty_manual')}</p>
+            )}
+            {(rows.length > 0 || dishes.length === 0) && (
+              <Button variant="plain" onClick={() => setAdding(true)}>
+                <Plus aria-hidden="true" className="meal-edit__add-icon" />
+                {t('edit.add_manual')}
+              </Button>
             )}
           </div>
         </div>
@@ -353,6 +468,21 @@ export function MealEditScreen({
           </div>
         </footer>
       </div>
+      <input
+        ref={photoInput}
+        type="file"
+        accept="image/*"
+        hidden
+        data-testid="edit-photo"
+        onChange={(e) => void onPhoto(e)}
+      />
+      {adding && (
+        <ManualDishSheet
+          units={units}
+          onAdd={addManual}
+          onClose={() => setAdding(false)}
+        />
+      )}
       {editingRow && (
         <DishSheet
           original={editingRow.original}
@@ -387,10 +517,11 @@ export function MealEditRoute() {
   return (
     <MealEditScreen
       dishes={state && 'dishes' in state ? state.dishes : []}
+      manual={state && 'manual' in state ? state.manual : undefined}
       photoId={photoId}
       units={settings?.units ?? user?.units ?? 'metric'}
-      onSave={async (input) => {
-        await createMeal(db, input);
+      onSave={async (input, photo) => {
+        await createMeal(db, input, photo);
         navigate('/', {
           replace: true,
           state: { saved: input.clientId } satisfies TodayState,
