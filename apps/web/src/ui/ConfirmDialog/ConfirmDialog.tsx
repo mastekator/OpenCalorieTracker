@@ -23,7 +23,8 @@ type Props = {
   onSecondary?: () => void;
   /**
    * Two buttons stacked full width, confirm on top and Cancel plain below,
-   * focus on confirm: for long labels (OCT-22 8.8a).
+   * for long labels (OCT-22 8.8a). Focus stays on the title, so Enter never
+   * confirms a danger action by accident (OCT-124).
    */
   stack?: boolean;
 };
@@ -72,7 +73,7 @@ export function ConfirmDialog({
             id={`${id}-title`}
             className="confirm__title"
             tabIndex={-1}
-            data-autofocus={!stacked || undefined}
+            data-autofocus={!three || undefined}
           >
             {title}
           </h2>
@@ -83,11 +84,7 @@ export function ConfirmDialog({
           )}
           {stacked ? (
             <div className="confirm__actions confirm__actions--stack">
-              <Button
-                variant={tone}
-                onClick={onConfirm}
-                data-autofocus={!three || undefined}
-              >
+              <Button variant={tone} onClick={onConfirm}>
                 {confirmLabel}
               </Button>
               {three && (
