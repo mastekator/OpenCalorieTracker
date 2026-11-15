@@ -9,6 +9,7 @@ import type {
   MealInput,
   MealPatch,
   MeResponse,
+  PhotoRetention,
   ProfileResponse,
 } from '@oct/shared';
 
@@ -36,7 +37,7 @@ export interface OctDb extends DBSchema {
 
 /**
  * One queued change (ADR-0011 §4). `clientId` groups the ops of one meal;
- * settings use `settings`, an illustration choice `choice:<nameKey>`.
+ * settings use `settings`, the photo period `photoRetention`, an illustration choice `choice:<nameKey>`.
  * `id` is the meal's server id, 0 until its createMeal is answered.
  * `error` is the code of a refused op: it stays for the badge and is not resent.
  */
@@ -47,6 +48,7 @@ export type Op = { seq?: number; clientId: string; error?: string } & (
   | { kind: 'deleteMeal'; id: number }
   | { kind: 'patchSettings'; body: AccountSettingsPatch }
   | { kind: 'putIllustrationChoice'; body: IllustrationChoiceInput }
+  | { kind: 'putPhotoRetention'; body: PhotoRetention }
 );
 
 /** Remembered illustration per dish nameKey. */

@@ -23,7 +23,14 @@ const meta = {
     atPath,
     // No server in Storybook: the profile screen shows its load error inside the shell.
     (Story) => (
-      <SessionContext value={{ user, refresh: async () => {} }}>
+      <SessionContext
+        value={{
+          user,
+          refresh: async () => {},
+          signedIn: async () => {},
+          logout: async () => {},
+        }}
+      >
         <DataProvider user={user}>
           <UndoDeleteProvider>
             <Story />

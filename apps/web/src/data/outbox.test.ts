@@ -4,12 +4,14 @@ import { openUserDb, type Db } from './db';
 import {
   createMeal,
   deleteMeal,
+  expiringPhotos,
   flush,
   mealStatus,
   patchMeal,
   patchSettings,
   pendingCount,
   putIllustrationChoice,
+  putPhotoRetention,
 } from './outbox';
 import { clearLocal } from './user';
 
@@ -176,6 +178,52 @@ describe('local write and merge', () => {
       },
     ]);
     expect(await db.get('kv', 'choices')).toEqual({});
+  });
+});
+
+describe('photo retention', () => {
+  it('one op, the last choice wins, sent as PUT', async () => {
+    await db.put('kv', { photoRetentionDays: 30 } as never, 'settings');
+    await putPhotoRetention(db, 7);
+    await settle();
+    await putPhotoRetention(db, null);
+    await settle();
+    expect(await ops()).toMatchObject([
+      { kind: 'putPhotoRetention', body: { days: null } },
+    ]);
+    expect(await db.get('kv', 'settings')).toEqual({
+      photoRetentionDays: null,
+    });
+    serve({ 'PUT /api/account/photo-retention': () => Response.json({}) });
+    await flush(db);
+    expect(calls[0]).toEqual([
+      'PUT /api/account/photo-retention',
+      { days: null },
+    ]);
+    expect(await ops()).toEqual([]);
+  });
+
+  it('counts full photos older than the period by meal time', async () => {
+    const now = Date.parse('2026-11-14T12:00:00.000Z');
+    const day = 86_400_000;
+    const meal = (clientId: string, ago: number, full = true) =>
+      ({
+        clientId,
+        eatenAt: new Date(now - ago * day).toISOString(),
+        photo: { id: clientId, full },
+      }) as Meal;
+    for (const m of [
+      meal('a', 1),
+      meal('b', 10),
+      meal('c', 40),
+      meal('d', 40, false),
+    ])
+      await db.put('meals', m);
+    expect(await expiringPhotos(db, 0, now)).toBe(3);
+    expect(await expiringPhotos(db, 7, now)).toBe(2);
+    expect(await expiringPhotos(db, 30, now)).toBe(1);
+    expect(await expiringPhotos(db, 90, now)).toBe(0);
+    expect(await expiringPhotos(db, null, now)).toBe(0);
   });
 });
 

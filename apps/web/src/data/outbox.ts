@@ -9,6 +9,7 @@ import {
   type Meal,
   type MealInput,
   type MealPatch,
+  type PhotoRetentionDays,
 } from '@oct/shared';
 import { api, ApiError } from '../api/client';
 import { emitChange } from './changes';
@@ -216,6 +217,36 @@ export function putIllustrationChoice(
   });
 }
 
+/** Keeps full photos `days` days from the meal time; one op, the last choice wins. */
+export function putPhotoRetention(db: Db, days: PhotoRetentionDays) {
+  return local(db, async (tx) => {
+    const kv = tx.objectStore('kv');
+    const settings = (await kv.get('settings')) as AccountSettings | undefined;
+    if (settings)
+      await kv.put({ ...settings, photoRetentionDays: days }, 'settings');
+    const clientId = 'photoRetention';
+    const last = (await queued(db, tx, clientId)).at(-1);
+    const op: Op = { kind: 'putPhotoRetention', clientId, body: { days } };
+    const outbox = tx.objectStore('outbox');
+    if (last && !last.error) await outbox.put({ ...op, seq: last.seq });
+    else await outbox.add(op);
+  });
+}
+
+const DAY_MS = 86_400_000;
+
+/** Full photos a shorter period deletes now, by the local copy (OCT-25 §4); as the server's expiry. */
+export async function expiringPhotos(
+  db: Db,
+  days: PhotoRetentionDays,
+  now = Date.now(),
+) {
+  if (days === null) return 0;
+  return (await db.getAll('meals')).filter(
+    (m) => m.photo?.full && Date.parse(m.eatenAt) + days * DAY_MS < now,
+  ).length;
+}
+
 /**
  * Sends the queue one op at a time, in order, then pulls (ADR-0011 §4).
  * One run per database; a call during a run makes it go round once more.
@@ -303,6 +334,12 @@ async function deliver(db: Db, op: Op) {
       break;
     case 'putIllustrationChoice':
       await api('/api/illustrations/choices', z.unknown(), {
+        method: 'PUT',
+        body: op.body,
+      });
+      break;
+    case 'putPhotoRetention':
+      await api('/api/account/photo-retention', z.unknown(), {
         method: 'PUT',
         body: op.body,
       });

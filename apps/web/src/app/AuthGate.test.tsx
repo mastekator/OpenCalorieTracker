@@ -14,7 +14,7 @@ import { openUserDb } from '../data/db';
 import { clearLocal, getLastUser, pendingOf, setLastUser } from '../data/user';
 import { I18nProvider, LOCALE_STORAGE_KEY } from '../i18n';
 import { Routes } from './routes';
-import { SessionProvider } from './SessionContext';
+import { SessionProvider, SIGNED_OUT_KEY, useSession } from './SessionContext';
 
 const me = {
   id: 1,
@@ -299,5 +299,119 @@ describe('AuthGate', () => {
     const location = renderAt('/login?next=%2Fdiary');
     expect(await screen.findByRole('heading', { name: 'Diary' })).toBeTruthy();
     expect(location.history.at(-1)).toMatch(/^\/diary\/\d{4}-\d{2}-\d{2}$/);
+  });
+});
+
+describe('sign-out (4.6) and the offline flag', () => {
+  /** /api/auth/logout answers 204 unless offline; `me` until it is called. */
+  function serveLogout(offline = () => false) {
+    let session = true;
+    const calls: string[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (path: string, init?: RequestInit) => {
+        calls.push(`${init?.method ?? 'GET'} ${path}`);
+        if (offline()) throw new TypeError('Failed to fetch');
+        if (path === '/api/config') return Response.json(config);
+        if (path === '/api/auth/logout') {
+          session = false;
+          return new Response(null, { status: 204 });
+        }
+        if (session && path === ME_PATH) return Response.json(me);
+        if (session && path.startsWith('/api/sync'))
+          return Response.json(emptySync);
+        return Response.json(
+          { error: { code: 'unauthenticated' } },
+          { status: 401 },
+        );
+      }),
+    );
+    return calls;
+  }
+
+  function SignOut() {
+    const { logout, signedIn } = useSession();
+    return (
+      <>
+        <button onClick={() => void logout()}>out</button>
+        <button onClick={() => void signedIn()}>in</button>
+      </>
+    );
+  }
+
+  function renderSignOut() {
+    const location = memoryLocation({ path: '/settings', record: true });
+    render(
+      <I18nProvider>
+        <Router hook={location.hook}>
+          <SessionProvider>
+            <SignOut />
+          </SessionProvider>
+        </Router>
+      </I18nProvider>,
+    );
+    return location;
+  }
+
+  afterEach(() => localStorage.removeItem(SIGNED_OUT_KEY));
+
+  it('ends the session, deletes the local base and goes to sign-in', async () => {
+    const calls = serveLogout();
+    setLastUser(me);
+    (await openUserDb(me.id)).close();
+    const location = renderSignOut();
+    fireEvent.click(await screen.findByRole('button', { name: 'out' }));
+    await vi.waitFor(() => expect(location.history.at(-1)).toBe('/login'));
+    expect(calls).toContain('POST /api/auth/logout');
+    expect(await dbNames()).not.toContain(`oct-${me.id}`);
+    expect(getLastUser()).toBeNull();
+    expect(localStorage.getItem(SIGNED_OUT_KEY)).toBeNull();
+  });
+
+  it('offline: signs out here and ends the session on the next start', async () => {
+    let offline = false;
+    const calls = serveLogout(() => offline);
+    setLastUser(me);
+    const location = renderSignOut();
+    const out = await screen.findByRole('button', { name: 'out' });
+    offline = true;
+    fireEvent.click(out);
+    await vi.waitFor(() => expect(location.history.at(-1)).toBe('/login'));
+    expect(localStorage.getItem(SIGNED_OUT_KEY)).toBe('1');
+    expect(await dbNames()).not.toContain(`oct-${me.id}`);
+    cleanup();
+
+    // Still offline: no local copy opens, the flag stays.
+    renderAt('/');
+    expect(
+      await screen.findByRole('heading', {
+        name: 'First sign-in needs a connection',
+      }),
+    ).toBeTruthy();
+    expect(localStorage.getItem(SIGNED_OUT_KEY)).toBe('1');
+    cleanup();
+
+    offline = false;
+    calls.length = 0;
+    renderAt('/');
+    await vi.waitFor(() =>
+      expect(localStorage.getItem(SIGNED_OUT_KEY)).toBeNull(),
+    );
+    expect(calls.slice(0, 2)).toEqual([
+      'POST /api/auth/logout',
+      `GET ${ME_PATH}`,
+    ]);
+  });
+
+  it('a sign-in drops the flag, so the new session is not ended', async () => {
+    const calls = serveLogout();
+    renderSignOut();
+    const signIn = await screen.findByRole('button', { name: 'in' });
+    localStorage.setItem(SIGNED_OUT_KEY, '1');
+    calls.length = 0;
+    fireEvent.click(signIn);
+    await vi.waitFor(() => expect(calls).toContain(`GET ${ME_PATH}`));
+    expect(calls).not.toContain('POST /api/auth/logout');
+    expect(localStorage.getItem(SIGNED_OUT_KEY)).toBeNull();
   });
 });
