@@ -983,6 +983,15 @@ const ru: DeepPartial<typeof en> = {
       today: 'Сегодня',
       hint: 'Сейчас {time} — поздний перекус запишем во вчерашний день, {date}.',
     },
+    title_existing: '{meal}, {date}',
+    when: 'Дата и время',
+    delete_entry: 'Удалить запись',
+    moved: 'Перенесено на {date}',
+    open: 'Открыть',
+    leave_existing: {
+      title: 'Сохранить изменения?',
+      body: 'Иначе правки в этой записи пропадут.',
+    },
     time: 'Время',
     offline_note:
       'Сохраним на этом устройстве и отправим, когда появится сеть.',

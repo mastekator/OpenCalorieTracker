@@ -1,5 +1,6 @@
 import { useEffect, type ComponentProps } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import type { Meal } from '@oct/shared';
 import { fn } from 'storybook/test';
 import { Router, useLocation } from 'wouter';
 import { memoryLocation } from 'wouter/memory-location';
@@ -26,8 +27,13 @@ function Screen({
       document
         .querySelectorAll<HTMLButtonElement>('.dish-row__delete')
         .forEach((b) => b.click());
-    if (leave) navigate('/');
-  }, [leave, deleteAll, navigate]);
+    if (!leave) return;
+    if (!props.meal) return navigate('/');
+    // A saved meal asks only after an edit (6.8): pick another meal type, leave once it is marked.
+    document.querySelectorAll<HTMLButtonElement>('[role="radio"]')[1]?.click();
+    const timer = setTimeout(() => navigate('/'));
+    return () => clearTimeout(timer);
+  }, [leave, deleteAll, navigate, props.meal]);
   return <MealEditScreen {...props} onClose={close} />;
 }
 
@@ -177,3 +183,63 @@ const lastTime: Story = {
 };
 export const LastTime: Story = lastTime;
 export const LastTimeDark: Story = { ...lastTime, globals: dark };
+
+/** OCT-19 §3.1: a saved meal — «Dinner, Nov 12», «Date and time», «Delete entry» under Save. */
+const savedMeal: Meal = {
+  id: 1,
+  clientId: 'saved',
+  eatenAt: new Date(2026, 10, 12, 19, 55).toISOString(),
+  tzOffsetMin: -new Date(2026, 10, 12, 19, 55).getTimezoneOffset(),
+  localDate: '2026-11-12',
+  mealType: 'dinner',
+  photo: null,
+  recalcOffer: false,
+  items: dishes.slice(0, 2).map((d) => ({
+    ...d,
+    source: 'ai',
+    aiProvider: null,
+    aiModel: null,
+    illustration: 'grains',
+    illustrationManual: false,
+  })),
+  kcal: 425,
+  proteinG: 28,
+  fatG: 17.5,
+  carbsG: 41,
+};
+const existing = {
+  meal: savedMeal,
+  dishes: [],
+  onPatch: fn(async () => {}),
+  onDelete: fn(),
+} satisfies Partial<Props>;
+export const Existing: Story = { args: existing };
+export const ExistingDark: Story = { args: existing, globals: dark };
+export const ExistingDesktop: Story = {
+  args: existing,
+  globals: { viewport: { value: 'desktop' } },
+};
+export const ExistingDesktopDark: Story = {
+  args: existing,
+  globals: { viewport: { value: 'desktop' }, theme: 'dark' },
+};
+/** E-2.3: every dish deleted, «Delete entry» replaces Save. */
+export const ExistingAllDeleted: Story = {
+  args: existing,
+  parameters: { deleteAll: true },
+};
+export const ExistingAllDeletedDark: Story = {
+  args: existing,
+  parameters: { deleteAll: true },
+  globals: dark,
+};
+/** 6.8: after an edit, «Save changes?»; without one, leaving asks nothing. */
+export const ExistingLeave: Story = {
+  args: existing,
+  parameters: { leave: true },
+};
+export const ExistingLeaveDark: Story = {
+  args: existing,
+  parameters: { leave: true },
+  globals: dark,
+};

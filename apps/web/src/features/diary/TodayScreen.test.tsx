@@ -10,6 +10,7 @@ import { openUserDb } from '../../data/db';
 import { clearLocal } from '../../data/user';
 import { I18nProvider, LOCALE_STORAGE_KEY } from '../../i18n';
 import { TodayScreen } from './TodayScreen';
+import { UndoDeleteProvider } from './undoDelete';
 import { useToday } from './useToday';
 
 const USER = { id: 7 } as MeResponse;
@@ -76,7 +77,9 @@ function renderToday() {
     <I18nProvider>
       <Router hook={location.hook}>
         <DataProvider user={USER}>
-          <TodayScreen />
+          <UndoDeleteProvider>
+            <TodayScreen />
+          </UndoDeleteProvider>
         </DataProvider>
       </Router>
     </I18nProvider>,

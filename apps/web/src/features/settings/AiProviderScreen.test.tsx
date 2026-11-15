@@ -13,6 +13,7 @@ import type { AdminAiStatus, MeResponse } from '@oct/shared';
 import { AppScreens } from '../../app/routes';
 import { SessionContext } from '../../app/SessionContext';
 import { DataProvider } from '../../data/DataContext';
+import { UndoDeleteProvider } from '../diary/undoDelete';
 import { clearLocal } from '../../data/user';
 import { I18nProvider, LOCALE_STORAGE_KEY } from '../../i18n';
 import { ProviderStatus } from '../../ui/ProviderStatus/ProviderStatus';
@@ -61,7 +62,9 @@ async function wrap(node: ReactNode, data = false) {
       <ToastProvider>
         {data ? (
           <DataProvider user={user}>
-            <div data-testid="ready">{node}</div>
+            <UndoDeleteProvider>
+              <div data-testid="ready">{node}</div>
+            </UndoDeleteProvider>
           </DataProvider>
         ) : (
           <div data-testid="ready">{node}</div>

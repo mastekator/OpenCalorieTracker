@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { Redirect, useLocation, useSearch } from 'wouter';
-import { Camera, Plus, Sparkle, UtensilsCrossed, X } from 'lucide-react';
+import {
+  Calendar,
+  Camera,
+  Plus,
+  Sparkle,
+  UtensilsCrossed,
+  X,
+} from 'lucide-react';
 import { z } from 'zod';
 import {
   DISH_GRAMS,
@@ -11,8 +18,10 @@ import {
   nameKey,
   round1,
   scaleItem,
+  type Meal,
   type MealInput,
   type MealItemInput,
+  type MealPatch,
   type DayChoice,
   type IllustrationId,
   type MealType,
@@ -23,10 +32,11 @@ import { api, ApiError } from '../../api/client';
 import {
   useDb,
   useIllustrationChoices,
+  useMeal,
   useSettings,
 } from '../../data/DataContext';
 import type { Choices } from '../../data/db';
-import { createMeal } from '../../data/outbox';
+import { createMeal, patchMeal } from '../../data/outbox';
 import { useT } from '../../i18n';
 import { useBarVariant } from '../../app/connection';
 import { useSession } from '../../app/SessionContext';
@@ -49,6 +59,7 @@ import { Segment } from '../../ui/Segment/Segment';
 import { useToast } from '../../ui/Toast/Toast';
 import { diaryDay, localToday } from '../diary/day';
 import type { TodayState } from '../diary/TodayScreen';
+import { UNDO_MS, useUndoDelete } from '../diary/undoDelete';
 import { MEAL_NEW_PATH, useCapture } from './CaptureContext';
 import type { MealEditState } from './RecognitionScreen';
 import { ImageDecodeError, prepareImage } from './prepareImage';
@@ -118,6 +129,28 @@ const MEAL_TIME: Record<MealType, string> = {
 /** East-positive offset of the device at `at`, as the API takes it. */
 const offsetAt = (at: Date) => -at.getTimezoneOffset();
 
+/** `YYYY-MM-DDTHH:mm` of `at` on the device clock, as `<input type="datetime-local">` takes it. */
+const localInput = (at: Date) =>
+  new Date(at.getTime() - at.getTimezoneOffset() * 60_000)
+    .toISOString()
+    .slice(0, 16);
+
+/** A saved dish as the screen edits it: its stored values are the base for recalculation (AC-2.8). */
+const savedRow = (item: Meal['items'][number]): Row =>
+  toRow(
+    {
+      name: item.name,
+      grams: item.grams,
+      kcal: item.kcal,
+      proteinG: item.proteinG,
+      fatG: item.fatG,
+      carbsG: item.carbsG,
+      confidence: item.confidence ?? undefined,
+      ...(item.illustrationManual && { illustration: item.illustration }),
+    },
+    item.source,
+  );
+
 const inRange = (g: number) => g >= DISH_GRAMS.min && g <= DISH_GRAMS.max;
 
 function toRow(original: Dish, source: Row['source'] = 'ai'): Row {
@@ -176,6 +209,13 @@ type Props = {
   mealId?: number;
   /** Remembered illustration per dish nameKey (useIllustrationChoices). */
   choices?: Choices;
+  /**
+   * A saved meal (OCT-19 §3.1): its dishes, type and time; `onSave` is not used.
+   * `onPatch` gets only what changed, null when nothing did; `onDelete` deletes it.
+   */
+  meal?: Meal;
+  onPatch?: (patch: Omit<MealPatch, 'editedAt'> | null) => Promise<void>;
+  onDelete?: () => void;
 };
 
 /** Screen 4 (design OCT-16 §3, E.2): dishes, weights with live totals, meal type, save. */
@@ -188,8 +228,11 @@ export function MealEditScreen({
   onClose,
   date,
   now = () => new Date(),
-  mealId,
+  meal,
+  mealId = meal?.id,
   choices,
+  onPatch,
+  onDelete,
 }: Props) {
   const { t, num, locale } = useT();
   const online = useOnline();
@@ -197,14 +240,22 @@ export function MealEditScreen({
   // 00:00-03:59: the two choices give different days, a late snack goes to yesterday (AC-0.1a).
   const late =
     !date &&
+    !meal &&
     entryDay(opened, offsetAt(opened), 'yesterday') !==
       entryDay(opened, offsetAt(opened), 'today');
   const [day, setDay] = useState<DayChoice>('yesterday');
   // The idempotency key lives as long as the screen: «Try again» resends the same meal (4.8).
   const [clientId] = useState(uuid);
-  const [rows, setRows] = useState(() => dishes.map((d) => toRow(d)));
-  const [mealType, setMealType] = useState<MealType>(() =>
-    date ? 'lunch' : mealTypeAt(opened.getHours()),
+  const [rows, setRows] = useState(() =>
+    meal ? meal.items.map(savedRow) : dishes.map((d) => toRow(d)),
+  );
+  const [mealType, setMealType] = useState<MealType>(
+    () => meal?.mealType ?? (date ? 'lunch' : mealTypeAt(opened.getHours())),
+  );
+  // A saved meal: date and time on the device clock, never in the future (AC-2.9).
+  const maxWhen = localInput(opened);
+  const [when, setWhen] = useState(() =>
+    meal ? localInput(new Date(meal.eatenAt)) : '',
   );
   // A past day: the time follows the meal type until edited by hand (AC-2.12).
   const [time, setTime] = useState<string | null>(null);
@@ -220,12 +271,17 @@ export function MealEditScreen({
   const [photo, setPhoto] = useState<
     { id: string; url: string } | { blob: Blob; url: string } | null
   >(() =>
-    photoId
+    meal?.photo
       ? {
-          id: photoId,
-          url: `/api/photos/${encodeURIComponent(photoId)}?size=preview`,
+          id: meal.photo.id,
+          url: `/api/photos/${encodeURIComponent(meal.photo.id)}?size=preview`,
         }
-      : null,
+      : photoId
+        ? {
+            id: photoId,
+            url: `/api/photos/${encodeURIComponent(photoId)}?size=preview`,
+          }
+        : null,
   );
   const [uploading, setUploading] = useState(false);
   const photoInput = useRef<HTMLInputElement>(null);
@@ -282,7 +338,18 @@ export function MealEditScreen({
     illustration ?? choices?.[nameKey(name)] ?? matchIllustration(name);
   const total = (k: 'kcal' | 'proteinG' | 'fatG' | 'carbsG') =>
     items.reduce((s, i) => s + i[k], 0);
-  const valid = rows.length > 0 && rows.every((r) => r.grams !== null);
+  const valid =
+    rows.length > 0 && rows.every((r) => r.grams !== null) && (!meal || !!when);
+  // What a saved meal compares against: the screen is dirty once any of it differs (AC-2.10).
+  const itemsKey = JSON.stringify(items);
+  const [initial] = useState(() => ({ itemsKey, mealType, when }));
+  const changed = {
+    // An invalid weight is an edit too: leaving must not drop it silently (E-0.4).
+    items: itemsKey !== initial.itemsKey || !valid,
+    mealType: mealType !== initial.mealType,
+    when: when !== initial.when,
+  };
+  const dirty = changed.items || changed.mealType || changed.when;
 
   const setGrams = (index: number, grams: number | null) =>
     setRows((rs) =>
@@ -435,6 +502,22 @@ export function MealEditScreen({
     [photoUrl],
   );
 
+  /** Only what changed; nothing changed: null, and nothing is queued. */
+  function patchOf(): Omit<MealPatch, 'editedAt'> | null {
+    if (!dirty) return null;
+    // Parsed as local time; the offset is the one at that moment, not now (DST).
+    const at = new Date(when);
+    return {
+      ...(changed.mealType && { mealType }),
+      ...(changed.items && { items }),
+      ...(changed.when && {
+        eatenAt: at.toISOString(),
+        tzOffsetMin: offsetAt(at),
+        localDate: entryDay(at, offsetAt(at), 'today'),
+      }),
+    };
+  }
+
   /** Resolves true once saved; false when invalid, already saving or failed (the screen shows why). */
   async function save() {
     if (saving.current || !valid) return false; // a second tap sends nothing (E-4.2)
@@ -442,6 +525,10 @@ export function MealEditScreen({
     setStatus('saving');
     const at = date ? pastAt() : now();
     try {
+      if (meal) {
+        await onPatch?.(patchOf());
+        return true;
+      }
       await onSave(
         {
           clientId,
@@ -464,11 +551,20 @@ export function MealEditScreen({
     }
   }
 
-  // Leaving always asks while there are dishes, edited or not (4.7, AC-3.12).
-  useDirty(rows.length > 0, save, {
-    title: t('edit.leave.title'),
-    body: t(dishes.length ? 'edit.leave.body' : 'edit.leave.body_manual'),
-  });
+  // A new meal asks while there are dishes, edited or not (4.7, AC-3.12); a saved one only after edits (6.8).
+  useDirty(
+    meal ? dirty : rows.length > 0,
+    save,
+    meal
+      ? {
+          title: t('edit.leave_existing.title'),
+          body: t('edit.leave_existing.body'),
+        }
+      : {
+          title: t('edit.leave.title'),
+          body: t(dishes.length ? 'edit.leave.body' : 'edit.leave.body_manual'),
+        },
+  );
 
   // Runs after the sheet's cleanup, which returns focus to its (possibly deleted) opener.
   useEffect(() => {
@@ -505,15 +601,27 @@ export function MealEditScreen({
       new Date(`${iso}T00:00:00Z`),
     );
   const yesterday = entryDay(opened, offsetAt(opened), 'yesterday');
-  const title = date
-    ? t('edit.title', {
-        day: dateOf(date, { weekday: 'short', day: 'numeric', month: 'short' }),
-        time: timeOf(pastAt()),
+  const title = meal
+    ? t('edit.title_existing', {
+        meal: t(`meal.type.${mealType}`),
+        date: dateOf((when || initial.when).slice(0, 10), {
+          day: 'numeric',
+          month: 'short',
+        }),
       })
-    : t('edit.title', {
-        day: t(late && day === 'yesterday' ? 'day.yesterday' : 'day.today'),
-        time: timeOf(opened),
-      });
+    : date
+      ? t('edit.title', {
+          day: dateOf(date, {
+            weekday: 'short',
+            day: 'numeric',
+            month: 'short',
+          }),
+          time: timeOf(pastAt()),
+        })
+      : t('edit.title', {
+          day: t(late && day === 'yesterday' ? 'day.yesterday' : 'day.today'),
+          time: timeOf(opened),
+        });
   const busy = status === 'saving';
   const editingRow = rows.find((r) => r.id === editing);
 
@@ -544,10 +652,12 @@ export function MealEditScreen({
           </div>
         )}
         <div className="meal-edit__body">
-          <aside className="meal-edit__summary meal-edit__summary--photo">
+          <aside
+            className={`meal-edit__summary${!meal || photo ? ' meal-edit__summary--photo' : ''}`}
+          >
             {photo ? (
               <img className="meal-edit__thumb" src={photo.url} alt="" />
-            ) : (
+            ) : meal ? null : (
               <button
                 type="button"
                 className="meal-edit__thumb meal-edit__photo-add"
@@ -616,6 +726,42 @@ export function MealEditScreen({
                 )}
               </div>
             )}
+            {meal && (
+              // OCT-19 §3.1: the value in the app's language; the native picker covers it transparently.
+              <label className="meal-edit__when">
+                <Calendar aria-hidden="true" />
+                <span aria-hidden="true">
+                  {new Intl.DateTimeFormat(locale, {
+                    weekday: 'short',
+                    day: 'numeric',
+                    month: 'short',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                  })
+                    .format(new Date(when))
+                    .replace(/ /g, '\u00a0')}
+                </span>
+                <input
+                  type="datetime-local"
+                  aria-label={t('edit.when')}
+                  required
+                  value={when}
+                  max={maxWhen}
+                  onClick={(event) => {
+                    try {
+                      event.currentTarget.showPicker(); // desktop Chrome: a click alone only focuses
+                    } catch {
+                      // No showPicker, or no user activation: the native behaviour stays.
+                    }
+                  }}
+                  // A typed future time is pulled back to now (AC-2.9); a cleared field keeps the value.
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v) setWhen(v > maxWhen ? maxWhen : v);
+                  }}
+                />
+              </label>
+            )}
             {date && (
               <Field
                 label={t('edit.time')}
@@ -658,7 +804,7 @@ export function MealEditScreen({
                   );
                 })}
               </ul>
-            ) : dishes.length > 0 ? (
+            ) : dishes.length > 0 && !meal ? (
               // 4.6: every recognized dish deleted.
               <ScreenState
                 icon={<UtensilsCrossed />}
@@ -698,19 +844,33 @@ export function MealEditScreen({
                 {t('common.cancel')}
               </Button>
             </span>
-            <Button
-              onClick={() => void save()}
-              disabled={!valid}
-              loading={busy}
-            >
-              {t(
-                busy
-                  ? 'edit.saving'
-                  : status === 'error'
-                    ? 'common.retry'
-                    : 'edit.save',
-              )}
-            </Button>
+            {meal && rows.length === 0 ? (
+              // Every dish deleted: the entry itself goes (E-2.3).
+              <Button variant="danger" onClick={onDelete}>
+                {t('edit.delete_entry')}
+              </Button>
+            ) : (
+              <Button
+                onClick={() => void save()}
+                disabled={!valid}
+                loading={busy}
+              >
+                {t(
+                  busy
+                    ? 'edit.saving'
+                    : status === 'error'
+                      ? 'common.retry'
+                      : 'edit.save',
+                )}
+              </Button>
+            )}
+            {meal && rows.length > 0 && (
+              <span className="meal-edit__delete">
+                <Button variant="danger-plain" onClick={onDelete}>
+                  {t('edit.delete_entry')}
+                </Button>
+              </span>
+            )}
           </div>
         </footer>
       </div>
@@ -783,6 +943,61 @@ export function MealEditRoute() {
         });
       }}
       onClose={() => navigate('/')}
+    />
+  );
+}
+
+/**
+ * /meal/:clientId — a saved meal from the local copy (ADR-0011); the edit and the delete
+ * go through the queue. Back to the meal's own day; a move says where it went (6.7).
+ */
+export function MealEditExisting({ clientId }: { clientId: string }) {
+  const { t, locale } = useT();
+  const db = useDb();
+  const settings = useSettings();
+  const choices = useIllustrationChoices();
+  const { user } = useSession();
+  const meal = useMeal(clientId);
+  const undo = useUndoDelete();
+  const toast = useToast();
+  const [, navigate] = useLocation();
+  if (meal === undefined) return null; // the local copy answers within a frame
+  if (!meal || undo.hidden.has(clientId)) return <Redirect to="/" replace />;
+  const from = meal.localDate;
+  const back = from === localToday() ? '/' : `/diary/${from}`;
+  return (
+    <MealEditScreen
+      key={meal.clientId}
+      meal={meal}
+      dishes={[]}
+      units={settings?.units ?? user?.units ?? 'metric'}
+      choices={choices}
+      onSave={async () => {}}
+      onPatch={async (patch) => {
+        if (patch) await patchMeal(db, clientId, patch);
+        navigate(back, { replace: true });
+        const to = patch && 'localDate' in patch ? patch.localDate : undefined;
+        if (to && to !== from)
+          toast({
+            text: t('edit.moved', {
+              date: new Intl.DateTimeFormat(locale, {
+                day: 'numeric',
+                month: 'short',
+                timeZone: 'UTC',
+              }).format(new Date(`${to}T00:00:00Z`)),
+            }),
+            ms: UNDO_MS,
+            action: {
+              label: t('edit.open'),
+              onClick: () => navigate(`/diary/${to}`),
+            },
+          });
+      }}
+      onDelete={() => {
+        navigate(back, { replace: true });
+        undo.remove(meal);
+      }}
+      onClose={() => navigate(back)}
     />
   );
 }

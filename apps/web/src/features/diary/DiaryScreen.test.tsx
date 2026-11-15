@@ -16,7 +16,8 @@ import { I18nProvider, LOCALE_STORAGE_KEY } from '../../i18n';
 import { ToastProvider } from '../../ui/Toast/Toast';
 import { CaptureProvider } from '../meals/CaptureContext';
 import { localToday } from './day';
-import { DiaryScreen, UNDO_MS } from './DiaryScreen';
+import { DiaryScreen } from './DiaryScreen';
+import { UNDO_MS, UndoDeleteProvider } from './undoDelete';
 
 const today = localToday();
 const yesterday = addDays(today, -1);
@@ -70,11 +71,13 @@ function setup(path: string, meals: Meal[] = []) {
       <ToastProvider>
         <Router hook={location.hook}>
           <DataProvider user={{ id: 7, email: 'a@example.com' } as MeResponse}>
-            <CaptureProvider>
-              <Route path="/diary/:date">
-                {({ date }) => <DiaryScreen date={date} />}
-              </Route>
-            </CaptureProvider>
+            <UndoDeleteProvider>
+              <CaptureProvider>
+                <Route path="/diary/:date">
+                  {({ date }) => <DiaryScreen date={date} />}
+                </Route>
+              </CaptureProvider>
+            </UndoDeleteProvider>
           </DataProvider>
         </Router>
       </ToastProvider>
@@ -186,10 +189,15 @@ describe('DiaryScreen', () => {
     expect(deletes).toHaveLength(1);
   });
 
-  it('leaving the screen sends it before the 5 s are up, once', async () => {
+  it('leaving the screen keeps the undo window: one DELETE after 5 s', async () => {
     const { location } = setup(`/diary/${yesterday}`, [meal(1, 'lunch', 12)]);
-    fireEvent.click(await deleteButton('Lunch'));
+    const button = await deleteButton('Lunch');
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    fireEvent.click(button);
     act(() => location.navigate('/'));
+    expect(deletes).toEqual([]);
+    act(() => vi.advanceTimersByTime(UNDO_MS));
+    vi.useRealTimers();
     await waitFor(() => expect(deletes).toEqual(['/api/meals/1']));
     hide();
     await settle();

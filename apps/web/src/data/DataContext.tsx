@@ -173,6 +173,10 @@ export const usePeriod = (from: string, to: string) =>
     [from, to],
   );
 
+/** One meal by clientId; null when it is not in the local copy. */
+export const useMeal = (clientId: string) =>
+  useLocal(async (db) => (await db.get('meals', clientId)) ?? null, [clientId]);
+
 export const useSettings = () =>
   useLocal(
     async (db) =>

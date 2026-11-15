@@ -249,7 +249,7 @@ describe('AuthGate', () => {
     expect(await screen.findByRole('heading', { name: 'Week' })).toBeTruthy();
   });
 
-  it('keeps /meal/new on the new-meal flow, other ids open the meal', async () => {
+  it('keeps /meal/new on the new-meal flow, other ids look up the meal', async () => {
     serve(me);
     let location = renderAt('/meal/new');
     // No photo: manual entry on the edit screen, not a meal with clientId «new».
@@ -257,9 +257,9 @@ describe('AuthGate', () => {
     expect(location.history.at(-1)).toBe('/meal/new/edit');
     cleanup();
 
+    // Not in the local copy: Today.
     location = renderAt('/meal/abc');
-    await screen.findByRole('heading', { name: 'Add food' });
-    expect(location.history).toEqual(['/meal/abc']);
+    await vi.waitFor(() => expect(location.history).toEqual(['/']));
   });
 
   it('shows 3.4 offline when nobody has signed in here, with a retry', async () => {

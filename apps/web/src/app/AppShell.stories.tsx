@@ -4,6 +4,7 @@ import { AppShell } from './AppShell';
 import { AppScreens } from './routes';
 import type { MeResponse } from '@oct/shared';
 import { DataProvider } from '../data/DataContext';
+import { UndoDeleteProvider } from '../features/diary/undoDelete';
 import { SessionContext } from './SessionContext';
 
 // shortcut: partial user, enough for the shell and a local IndexedDB; a full fixture when stories read more of it.
@@ -31,7 +32,9 @@ const meta = {
         }}
       >
         <DataProvider user={user}>
-          <Story />
+          <UndoDeleteProvider>
+            <Story />
+          </UndoDeleteProvider>
         </DataProvider>
       </SessionContext>
     ),

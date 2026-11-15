@@ -23,6 +23,7 @@ import { InstallHint } from './InstallHint';
 import { NormInvite } from './NormInvite';
 import { RemainingCard } from './RemainingCard';
 import { useToday } from './useToday';
+import { useUndoDelete } from './undoDelete';
 import './TodayScreen.css';
 
 /** Where a meal opens for editing (screen 4). */
@@ -156,7 +157,11 @@ export function TodayView({
 export function TodayScreen() {
   const today = useToday();
   const week = weekOf(today);
-  const weekMeals = usePeriod(week.from, week.to);
+  // A meal deleted from the edit screen is gone at once, «Undo» brings it back.
+  const { hidden } = useUndoDelete();
+  const weekMeals = usePeriod(week.from, week.to)?.filter(
+    (m) => !hidden.has(m.clientId),
+  );
   // The week is counted against today's norm (summarize takes one).
   const norm = useNorm(today);
   const [, navigate] = useLocation();
