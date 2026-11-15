@@ -9,6 +9,7 @@ import { NavBar } from '../ui/NavBar/NavBar';
 import { OfflineBar } from '../ui/OfflineBar/OfflineBar';
 import { useBarVariant } from './connection';
 import { PasskeysScreen } from '../features/settings/PasskeysScreen';
+import { AiProviderScreen } from '../features/settings/AiProviderScreen';
 import { PasswordScreen } from '../features/settings/PasswordScreen';
 import { SettingsScreen } from '../features/settings/SettingsScreen';
 import {
@@ -61,12 +62,11 @@ function MealEditStub() {
   );
 }
 
-// shortcut: admin screens are stubs until OCT-46 (invites, users, blocks) and OCT-81 (AI provider).
+// shortcut: admin screens are stubs until OCT-46 (invites, users, blocks).
 const ADMIN_TITLES: Record<string, Key> = {
   invites: 'invites.title',
   users: 'users.title',
   blocks: 'blocks.title',
-  ai: 'settings.ai_provider',
 };
 
 /** Signed-in screens, rendered inside AppShell. */
@@ -169,6 +169,16 @@ export function AppScreens() {
               navigate('/settings');
             }}
           />
+        </Screen>
+      </Route>
+      {user.role !== 'admin' && (
+        <Route path="/settings/admin/*">
+          <Redirect to="/settings" replace />
+        </Route>
+      )}
+      <Route path="/settings/admin/ai">
+        <Screen wide title={t('settings.ai_provider')} back={toSettings}>
+          <AiProviderScreen />
         </Screen>
       </Route>
       <Route path="/settings/admin/:page">
