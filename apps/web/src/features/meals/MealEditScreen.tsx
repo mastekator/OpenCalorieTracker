@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Redirect, useLocation, useSearch } from 'wouter';
-import { Sparkle } from 'lucide-react';
+import { Sparkle, X } from 'lucide-react';
 import {
   DISH_GRAMS,
   mealTypeAt,
@@ -11,6 +11,7 @@ import {
   type MealType,
   type RecognizedDish,
   type Units,
+  uuid,
 } from '@oct/shared';
 import { useDb, useSettings } from '../../data/DataContext';
 import { createMeal } from '../../data/outbox';
@@ -94,7 +95,7 @@ export function MealEditScreen({
   const online = useOnline();
   const [opened] = useState(() => now ?? new Date());
   // The idempotency key lives as long as the screen: «Try again» resends the same meal (4.8).
-  const [clientId] = useState(() => crypto.randomUUID());
+  const [clientId] = useState(uuid);
   const [rows, setRows] = useState(() => dishes.map(toRow));
   const [mealType, setMealType] = useState<MealType>(() =>
     mealTypeAt(opened.getHours()),
@@ -164,7 +165,7 @@ export function MealEditScreen({
       <div className="meal-edit__window">
         <NavBar
           title={t('edit.title', { day: t('day.today'), time })}
-          back={{ href: '/', label: t('common.cancel') }}
+          action={{ icon: X, label: t('common.close'), onClick: onClose }}
         />
         {status === 'error' && (
           <div className="meal-edit__error">
@@ -174,7 +175,9 @@ export function MealEditScreen({
           </div>
         )}
         <div className="meal-edit__body">
-          <aside className="meal-edit__summary">
+          <aside
+            className={`meal-edit__summary${photoId ? ' meal-edit__summary--photo' : ''}`}
+          >
             {photoId && (
               <img
                 className="meal-edit__thumb"
@@ -184,7 +187,8 @@ export function MealEditScreen({
             )}
             <div className="meal-edit__total tabular-nums">
               <p className="meal-edit__kcal">
-                {t('meal.kcal', { n: num(total('kcal')) })}
+                {num(total('kcal'))}{' '}
+                <span className="meal-edit__unit">{t('today.kcal')}</span>
               </p>
               <p className="meal-edit__macros">
                 {(

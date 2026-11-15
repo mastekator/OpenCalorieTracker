@@ -22,9 +22,13 @@
 
 .meal-edit__summary {
   display: grid;
-  grid-template-columns: auto 1fr;
   align-items: center;
   gap: var(--space-3) var(--space-4);
+}
+
+/* Only with a photo: an empty thumb column would still leave its gap. */
+.meal-edit__summary--photo {
+  grid-template-columns: auto 1fr;
 }
 
 .meal-edit__thumb {
@@ -36,15 +40,25 @@
 }
 
 .meal-edit__total {
-  grid-column: -2;
   display: grid;
   gap: var(--space-1);
+}
+
+.meal-edit__summary--photo .meal-edit__total {
+  grid-column: -2;
 }
 
 .meal-edit__kcal {
   font-size: var(--text-large-title-size);
   line-height: var(--text-large-title-lh);
   font-weight: var(--text-large-title-weight);
+}
+
+.meal-edit__unit {
+  font-size: var(--text-subhead-size);
+  line-height: var(--text-subhead-lh);
+  font-weight: var(--text-subhead-weight);
+  color: var(--color-text-secondary);
 }
 
 .meal-edit__macros {
@@ -170,7 +184,7 @@
     overflow-y: auto;
   }
 
-  .meal-edit__summary {
+  .meal-edit__summary--photo {
     grid-template-columns: 1fr;
   }
 
@@ -180,7 +194,7 @@
     aspect-ratio: 1;
   }
 
-  .meal-edit__total,
+  .meal-edit__summary--photo .meal-edit__total,
   .meal-edit__estimate {
     grid-column: auto;
   }
@@ -194,6 +208,10 @@
     display: flex;
     justify-content: flex-end;
     gap: var(--space-3);
+  }
+
+  .meal-edit__actions .button {
+    width: auto;
   }
 
   .meal-edit__cancel {

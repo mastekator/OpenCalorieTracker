@@ -815,7 +815,7 @@ export const en = {
       body: 'Your edits are kept. Check your connection and try again.',
     },
     offline_note:
-      'We’ll save it on this phone and send it once you’re back online.',
+      'We’ll save it on this device and send it once you’re back online.',
   },
   diary: {
     today_btn: 'Today',

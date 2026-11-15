@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { mealItemInputSchema, mealPatchSchema, nameKey } from './meals.js';
+import { z } from 'zod';
+import {
+  mealItemInputSchema,
+  mealPatchSchema,
+  nameKey,
+  uuid,
+} from './meals.js';
 
 describe('nameKey', () => {
   it('normalizes width, case and spaces, including non-breaking ones', () => {
@@ -49,5 +55,14 @@ describe('mealPatchSchema', () => {
         localDate: '2026-11-14',
       }).success,
     ).toBe(true);
+  });
+});
+
+describe('uuid', () => {
+  it('makes distinct v4 UUIDs that the clientId schema accepts', () => {
+    const a = uuid();
+    expect(z.uuid().safeParse(a).success).toBe(true);
+    expect(a[14]).toBe('4');
+    expect(a).not.toBe(uuid());
   });
 });
