@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  entryDay,
   isoWeekId,
   isPeriod,
   monthOf,
@@ -59,3 +60,38 @@ describe('dates', () => {
     expect(isPeriod('2026-11-01', '2026-11-29')).toBe(false);
   });
 });
+
+describe('entryDay', () => {
+  it('offers yesterday only from 00:00 to 03:59 local', () => {
+    expect(entryDay(at('2026-01-10T00:30:00Z'), 0, 'yesterday')).toBe(
+      '2026-01-09',
+    );
+    expect(entryDay(at('2026-01-10T00:30:00Z'), 0, 'today')).toBe('2026-01-10');
+    expect(entryDay(at('2026-01-10T03:59:00Z'), 0, 'yesterday')).toBe(
+      '2026-01-09',
+    );
+    expect(entryDay(at('2026-01-10T04:00:00Z'), 0, 'yesterday')).toBe(
+      '2026-01-10',
+    );
+    expect(entryDay(at('2026-01-10T23:59:00Z'), 0, 'yesterday')).toBe(
+      '2026-01-10',
+    );
+  });
+
+  it('takes an east-positive offset', () => {
+    // 01:00 UTC is 04:00 in UTC+3: out of the window.
+    expect(entryDay(at('2026-01-10T01:00:00Z'), 180, 'yesterday')).toBe(
+      '2026-01-10',
+    );
+    // 04:30 UTC is 23:30 on Jan 9 in UTC-5.
+    expect(entryDay(at('2026-01-10T04:30:00Z'), -300, 'today')).toBe(
+      '2026-01-09',
+    );
+    // 06:00 UTC is 01:00 in UTC-5: in the window.
+    expect(entryDay(at('2026-01-10T06:00:00Z'), -300, 'yesterday')).toBe(
+      '2026-01-09',
+    );
+  });
+});
+
+const at = (iso: string) => Date.parse(iso);

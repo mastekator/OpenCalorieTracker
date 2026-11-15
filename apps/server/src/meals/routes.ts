@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs';
 import { rm } from 'node:fs/promises';
 import { Hono } from 'hono';
 import {
-  addDays,
+  entryDay,
   isSimilarDensity,
   mealInputSchema,
   mealPatchSchema,
@@ -38,11 +38,9 @@ export function checkWhen(
   now = Date.now(),
 ): number {
   const ms = Date.parse(eatenAt);
-  const local = new Date(ms + tzOffsetMin * 60_000);
-  const date = local.toISOString().slice(0, 10);
   const ok =
-    localDate === date ||
-    (local.getUTCHours() < 4 && localDate === addDays(date, -1));
+    localDate === entryDay(ms, tzOffsetMin, 'today') ||
+    localDate === entryDay(ms, tzOffsetMin, 'yesterday');
   if (ms > now + FUTURE_SLACK_MS || !ok)
     throw new ApiError(400, 'validation_failed', [
       {

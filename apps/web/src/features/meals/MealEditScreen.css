@@ -259,3 +259,13 @@
     height: var(--thumb-size);
   }
 }
+
+/* Late snack: «Yesterday | Today» with its footnote (OCT-19 3.2). */
+.meal-edit__day {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.meal-edit__day .meal-edit__note {
+  text-align: start;
+}

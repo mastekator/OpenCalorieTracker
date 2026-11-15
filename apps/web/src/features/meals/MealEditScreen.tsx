@@ -4,11 +4,13 @@ import { Camera, Plus, Sparkle, UtensilsCrossed, X } from 'lucide-react';
 import { z } from 'zod';
 import {
   DISH_GRAMS,
+  entryDay,
   mealTypeAt,
   round1,
   scaleItem,
   type MealInput,
   type MealItemInput,
+  type DayChoice,
   type MealType,
   type Units,
   uuid,
@@ -22,6 +24,7 @@ import { useSession } from '../../app/SessionContext';
 import { useDirty } from '../../app/dirty';
 import { Banner } from '../../ui/Banner/Banner';
 import { Button } from '../../ui/Button/Button';
+import { Field } from '../../ui/Field/Field';
 import { DishRow } from '../../ui/DishRow/DishRow';
 import { DishSheet } from '../../ui/DishSheet/DishSheet';
 import {
@@ -32,7 +35,9 @@ import { MealTypeSegment } from '../../ui/MealTypeSegment/MealTypeSegment';
 import { NavBar } from '../../ui/NavBar/NavBar';
 import { OfflineBar, useOnline } from '../../ui/OfflineBar/OfflineBar';
 import { ScreenState } from '../../ui/ScreenState/ScreenState';
+import { Segment } from '../../ui/Segment/Segment';
 import { useToast } from '../../ui/Toast/Toast';
+import { diaryDay, localToday } from '../diary/day';
 import type { TodayState } from '../diary/TodayScreen';
 import { MEAL_NEW_PATH, useCapture } from './CaptureContext';
 import type { MealEditState } from './RecognitionScreen';
@@ -58,6 +63,17 @@ type Row = {
 };
 
 const photoSchema = z.object({ photoId: z.string() });
+
+/** Default time of a meal added to a past day (AC-2.12). */
+const MEAL_TIME: Record<MealType, string> = {
+  breakfast: '08:00',
+  lunch: '13:00',
+  dinner: '19:00',
+  snack: '16:00',
+};
+
+/** East-positive offset of the device at `at`, as the API takes it. */
+const offsetAt = (at: Date) => -at.getTimezoneOffset();
 
 const inRange = (g: number) => g >= DISH_GRAMS.min && g <= DISH_GRAMS.max;
 
@@ -105,8 +121,10 @@ type Props = {
    */
   onSave: (input: MealInput, photo?: Blob) => Promise<void>;
   onClose: () => void;
-  /** When the screen opened; also the time eaten. */
-  now?: Date;
+  /** A past day (`YYYY-MM-DD`) from «Add an entry for this day» (AC-2.11); none: now. */
+  date?: string;
+  /** The clock: read on open and again on Save, the time eaten (E-1.4). */
+  now?: () => Date;
 };
 
 /** Screen 4 (design OCT-16 §3, E.2): dishes, weights with live totals, meal type, save. */
@@ -117,17 +135,31 @@ export function MealEditScreen({
   units,
   onSave,
   onClose,
-  now,
+  date,
+  now = () => new Date(),
 }: Props) {
   const { t, num, locale } = useT();
   const online = useOnline();
-  const [opened] = useState(() => now ?? new Date());
+  const [opened] = useState(now);
+  // 00:00-03:59: the two choices give different days, a late snack goes to yesterday (AC-0.1a).
+  const late =
+    !date &&
+    entryDay(opened, offsetAt(opened), 'yesterday') !==
+      entryDay(opened, offsetAt(opened), 'today');
+  const [day, setDay] = useState<DayChoice>('yesterday');
   // The idempotency key lives as long as the screen: «Try again» resends the same meal (4.8).
   const [clientId] = useState(uuid);
   const [rows, setRows] = useState(() => dishes.map((d) => toRow(d)));
   const [mealType, setMealType] = useState<MealType>(() =>
-    mealTypeAt(opened.getHours()),
+    date ? 'lunch' : mealTypeAt(opened.getHours()),
   );
+  // A past day: the time follows the meal type until edited by hand (AC-2.12).
+  const [time, setTime] = useState<string | null>(null);
+  const eatenTime = time ?? MEAL_TIME[mealType];
+  const [hh, mm] = eatenTime.split(':').map(Number);
+  const [y, m, d] = (date ?? '').split('-').map(Number);
+  /** The time eaten on a past day, local. */
+  const pastAt = () => new Date(y!, m! - 1, d, hh, mm);
   const [status, setStatus] = useState<'idle' | 'saving' | 'error'>('idle');
   const [editing, setEditing] = useState<string | null>(null);
   const [adding, setAdding] = useState(manual !== undefined); // AC-5.5, 5.3
@@ -256,13 +288,14 @@ export function MealEditScreen({
     if (saving.current || !valid) return false; // a second tap sends nothing (E-4.2)
     saving.current = true;
     setStatus('saving');
+    const at = date ? pastAt() : now();
     try {
       await onSave(
         {
           clientId,
-          eatenAt: opened.toISOString(),
-          tzOffsetMin: -opened.getTimezoneOffset(),
-          localDate: opened.toLocaleDateString('sv'),
+          eatenAt: at.toISOString(),
+          tzOffsetMin: offsetAt(at),
+          localDate: date ?? entryDay(at, offsetAt(at), day),
           mealType,
           ...(photo && 'id' in photo && { photoId: photo.id }),
           // Entered by hand because of the AI, with a photo: recalculable later (5.6).
@@ -310,10 +343,25 @@ export function MealEditScreen({
     return () => document.removeEventListener('keydown', onKey);
   }, []);
 
-  const time = new Intl.DateTimeFormat(locale, {
-    hour: 'numeric',
-    minute: '2-digit',
-  }).format(opened);
+  const timeOf = (at: Date) =>
+    new Intl.DateTimeFormat(locale, {
+      hour: 'numeric',
+      minute: '2-digit',
+    }).format(at);
+  const dateOf = (iso: string, options: Intl.DateTimeFormatOptions) =>
+    new Intl.DateTimeFormat(locale, { ...options, timeZone: 'UTC' }).format(
+      new Date(`${iso}T00:00:00Z`),
+    );
+  const yesterday = entryDay(opened, offsetAt(opened), 'yesterday');
+  const title = date
+    ? t('edit.title', {
+        day: dateOf(date, { weekday: 'short', day: 'numeric', month: 'short' }),
+        time: timeOf(pastAt()),
+      })
+    : t('edit.title', {
+        day: t(late && day === 'yesterday' ? 'day.yesterday' : 'day.today'),
+        time: timeOf(opened),
+      });
   const busy = status === 'saving';
   const editingRow = rows.find((r) => r.id === editing);
 
@@ -322,7 +370,7 @@ export function MealEditScreen({
       <OfflineBar variant={useBarVariant()} />
       <div className="meal-edit__window">
         <NavBar
-          title={t('edit.title', { day: t('day.today'), time })}
+          title={title}
           action={{ icon: X, label: t('common.close'), onClick: onClose }}
         />
         {manual && manual !== 'user' && (
@@ -391,6 +439,40 @@ export function MealEditScreen({
           </aside>
           <div className="meal-edit__main">
             <MealTypeSegment value={mealType} onChange={setMealType} />
+            {late && (
+              <div className="meal-edit__day">
+                <Segment
+                  label={t('edit.late.label')}
+                  options={(['yesterday', 'today'] as const).map((v) => ({
+                    value: v,
+                    label: t(`edit.late.${v}`),
+                  }))}
+                  value={day}
+                  onChange={setDay}
+                />
+                {day === 'yesterday' && (
+                  <p className="meal-edit__note">
+                    {t('edit.late.hint', {
+                      time: timeOf(opened),
+                      // Keep "14 November" on one line.
+                      date: dateOf(yesterday, {
+                        day: 'numeric',
+                        month: 'long',
+                      }).replace(' ', '\u00a0'),
+                    })}
+                  </p>
+                )}
+              </div>
+            )}
+            {date && (
+              <Field
+                label={t('edit.time')}
+                type="time"
+                required
+                value={eatenTime}
+                onChange={(e) => setTime(e.target.value || null)}
+              />
+            )}
             {rows.length > 0 ? (
               <ul className="meal-edit__list">
                 {rows.map((row, i) => {
@@ -510,7 +592,12 @@ export function MealEditRoute() {
   const { user } = useSession();
   const [, navigate] = useLocation();
   const search = useSearch();
-  const photoId = new URLSearchParams(search).get('photo') ?? undefined;
+  const params = new URLSearchParams(search);
+  const photoId = params.get('photo') ?? undefined;
+  // Checked like the diary's address: a real past day, else today (AC-2.3).
+  const today = localToday();
+  const day = diaryDay(params.get('date') ?? today, today);
+  const date = day === today ? undefined : day;
   const [state] = useState(() => history.state as MealEditState | null);
   if (!state && photoId)
     return <Redirect to={`${MEAL_NEW_PATH}?${search}`} replace />;
@@ -519,9 +606,11 @@ export function MealEditRoute() {
       dishes={state && 'dishes' in state ? state.dishes : []}
       manual={state && 'manual' in state ? state.manual : undefined}
       photoId={photoId}
+      date={date}
       units={settings?.units ?? user?.units ?? 'metric'}
       onSave={async (input, photo) => {
         await createMeal(db, input, photo);
+        if (date) return navigate(`/diary/${date}`, { replace: true });
         navigate('/', {
           replace: true,
           state: { saved: input.clientId } satisfies TodayState,

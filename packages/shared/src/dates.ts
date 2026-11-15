@@ -70,3 +70,23 @@ export const parsePeriodId = (id: string): Period | null => {
 /** Whether `from..to` is exactly a Monday–Sunday week or a calendar month (ADR-0010). */
 export const isPeriod = (from: string, to: string) =>
   [weekOf(from), monthOf(from)].some((p) => p.from === from && p.to === to);
+
+export type DayChoice = 'yesterday' | 'today';
+
+/**
+ * The diary day of a meal eaten at `now` (ADR-0009 "Entry day"). `tzOffsetMin` is east-positive
+ * (local = UTC + offset), the opposite sign of JS `getTimezoneOffset()`. From 00:00 to 03:59
+ * local, "yesterday" puts a late snack on the day before (AC-0.1a); outside that window the
+ * choice is ignored. The window is open exactly when the two choices give different dates.
+ */
+export const entryDay = (
+  now: Date | number,
+  tzOffsetMin: number,
+  choice: DayChoice,
+): string => {
+  const local = new Date(new Date(now).getTime() + tzOffsetMin * 60_000);
+  const date = local.toISOString().slice(0, 10);
+  return choice === 'yesterday' && local.getUTCHours() < 4
+    ? addDays(date, -1)
+    : date;
+};
