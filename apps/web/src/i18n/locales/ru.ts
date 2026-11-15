@@ -922,7 +922,7 @@ const ru: DeepPartial<typeof en> = {
       label: 'День',
       yesterday: 'Вчера',
       today: 'Сегодня',
-      hint: 'Сейчас {time} — поздний перекус отнесём ко вчера, {date}.',
+      hint: 'Сейчас {time} — поздний перекус запишем во вчерашний день, {date}.',
     },
     time: 'Время',
     offline_note:
