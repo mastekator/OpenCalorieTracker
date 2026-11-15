@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   cmToFtIn,
+  dishWeightRange,
   ftInToCm,
+  gToOz,
+  ozToG,
   unitRanges,
   weightFromKg,
   weightToKg,
@@ -54,5 +57,18 @@ describe('units', () => {
       expect(cm).toBeLessThanOrEqual(250);
       expect(cmToFtIn(cm)).toEqual({ ft, in: inches % 12 });
     }
+  });
+});
+
+describe('dish weight in ounces (AC-3.15)', () => {
+  it('converts both ways with one decimal', () => {
+    expect(gToOz(100)).toBe(3.5);
+    expect(ozToG(10)).toBe(283.5);
+    expect(ozToG(gToOz(283.5))).toBe(283.5);
+  });
+
+  it('gives the 1–5000 g range in each system', () => {
+    expect(dishWeightRange('metric')).toEqual({ min: 1, max: 5000, step: 10 });
+    expect(dishWeightRange('us')).toEqual({ min: 0.1, max: 176.4, step: 0.5 });
   });
 });

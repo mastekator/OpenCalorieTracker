@@ -309,7 +309,7 @@ const ru: DeepPartial<typeof en> = {
     height: 'Рост',
     weight: 'Вес',
   },
-  unit: { cm: 'см', kg: 'кг', lb: 'lb' },
+  unit: { cm: 'см', kg: 'кг', lb: 'lb', g: 'г', oz: 'oz' },
   goal: {
     title: 'Цель',
     lose: 'Похудеть',
@@ -648,6 +648,29 @@ const ru: DeepPartial<typeof en> = {
     kcal: '{n} ккал',
     status: { late: 'поздний' },
     delete: 'Удалить: {meal}',
+  },
+  edit: {
+    meal_label: 'Приём пищи',
+    macros: 'Б {p} · Ж {f} · У {c}',
+    conf: {
+      exact: 'точно',
+      mid: 'примерно',
+      low: 'проверьте',
+      a11y: {
+        exact: 'Уверенность: точно',
+        high: 'Уверенность: высокая',
+        medium: 'Уверенность: средняя',
+        low: 'Уверенность: низкая, проверьте',
+      },
+    },
+    source: { manual: 'вручную', history: 'как в прошлый раз' },
+    weight: {
+      label: 'Вес: {dish}',
+      less: 'Меньше на {step}',
+      more: 'Больше на {step}',
+      err: 'Вес от 1 до 5000 г (в oz: от 0,1 до 176,4 oz)',
+    },
+    edit: 'Изменить: {dish}',
   },
   diary: {
     today_btn: 'Сегодня',
