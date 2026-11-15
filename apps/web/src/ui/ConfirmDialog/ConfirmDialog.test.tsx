@@ -56,7 +56,8 @@ describe('ConfirmDialog', () => {
     expect(document.activeElement).toBe(cancel);
   });
 
-  it('stack puts confirm first with focus and Cancel plain below', async () => {
+  it('stack puts confirm first, Cancel plain below, focus on the title', async () => {
+    const onConfirm = vi.fn();
     render(
       <ConfirmDialog
         open
@@ -65,7 +66,7 @@ describe('ConfirmDialog', () => {
         title="Fill in?"
         confirmLabel="Fill in and save"
         cancelLabel="I'll fix it myself"
-        onConfirm={vi.fn()}
+        onConfirm={onConfirm}
         onCancel={vi.fn()}
       />,
       { wrapper: I18nProvider },
@@ -75,7 +76,10 @@ describe('ConfirmDialog', () => {
       'Fill in and save',
       "I'll fix it myself",
     ]);
-    expect(document.activeElement).toBe(buttons[0]);
+    const title = screen.getByRole('heading', { name: 'Fill in?' });
+    expect(document.activeElement).toBe(title);
+    fireEvent.keyDown(title, { key: 'Enter' });
+    expect(onConfirm).not.toHaveBeenCalled();
   });
 
   it('Esc cancels and focus returns to the opener', async () => {
