@@ -178,3 +178,9 @@ export const Desktop: Story = { globals: { viewport: { value: 'desktop' } } };
 export const DesktopDark: Story = {
   globals: { viewport: { value: 'desktop' }, theme: 'dark' },
 };
+/** 8.15: offline — values only, no save bar, the assistant greyed out with why; «How it’s calculated» works. */
+export const Offline: Story = { args: { readOnly: true } };
+export const OfflineDark: Story = { ...Offline, globals: { theme: 'dark' } };
+export const OfflineManual: Story = {
+  args: { ...ManualSet.args, readOnly: true },
+};

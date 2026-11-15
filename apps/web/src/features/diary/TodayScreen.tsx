@@ -1,26 +1,16 @@
-import { useCallback, useEffect, useState } from 'react';
-import {
-  CircleAlert,
-  ImagePlus,
-  Pencil,
-  RefreshCw,
-  Utensils,
-} from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { ImagePlus, Pencil, Utensils } from 'lucide-react';
 import { useLocation } from 'wouter';
-import { z } from 'zod';
 import {
   addDays,
-  effectiveNorm,
   remainingOf,
   sumDay,
   summarize,
   weekOf,
   type Macros,
   type Meal,
-  type ProfileResponse,
 } from '@oct/shared';
-import { api } from '../../api/client';
-import { usePeriod } from '../../data/DataContext';
+import { useNorm, usePeriod } from '../../data/DataContext';
 import { useT } from '../../i18n';
 import { Button } from '../../ui/Button/Button';
 import { List } from '../../ui/List/List';
@@ -46,15 +36,14 @@ type ViewProps = {
   today: string;
   /** Today's meals in any order; undefined while the local copy loads. */
   meals: Meal[] | undefined;
-  /** Null: no norm set; 'error': the profile didn't load; undefined: loading. */
-  norm: Macros | null | 'error' | undefined;
+  /** Null: no norm set; undefined: loading. */
+  norm: Macros | null | undefined;
   /** kcal left for the week, negative is over; only with a norm. */
   weekRemainingKcal?: number;
   /** clientId of a meal just saved. */
   highlight?: string;
   onOpen: (meal: Meal) => void;
   onSetNorm: () => void;
-  onRetry: () => void;
 };
 
 const newestFirst = (a: Meal, b: Meal) => b.eatenAt.localeCompare(a.eatenAt);
@@ -68,7 +57,6 @@ export function TodayView({
   highlight,
   onOpen,
   onSetNorm,
-  onRetry,
 }: ViewProps) {
   const { t, locale } = useT();
   const capture = useCapture();
@@ -79,7 +67,6 @@ export function TodayView({
     timeZone: 'UTC',
   }).format(new Date(`${today}T00:00:00Z`));
   const loading = meals === undefined || norm === undefined;
-  const failed = norm === 'error';
 
   // 2.6: the card above the capture buttons, rows below them, so the buttons don't move.
   let summary;
@@ -91,24 +78,6 @@ export function TodayView({
           radius="var(--radius-lg)"
         />
       </Delayed>
-    );
-  else if (failed)
-    // 2.7: without the norm the card can't be drawn; capture still works.
-    summary = (
-      <ScreenState
-        icon={<CircleAlert />}
-        tone="danger"
-        role="alert"
-        title={t('load.err.title')}
-        action={
-          <Button onClick={onRetry}>
-            <RefreshCw aria-hidden="true" />
-            {t('common.retry')}
-          </Button>
-        }
-      >
-        {t('load.err.body')}
-      </ScreenState>
     );
   else {
     const eaten = sumDay(meals);
@@ -125,7 +94,7 @@ export function TodayView({
     );
   }
 
-  let list = null;
+  let list;
   if (loading)
     list = (
       <Delayed>
@@ -148,7 +117,7 @@ export function TodayView({
         ))}
       </List>
     );
-  else if (!loading && !failed)
+  else
     list = (
       <div className="today__empty">
         <ScreenState icon={<Utensils />} title={t('today.empty.title')}>
@@ -181,15 +150,13 @@ export function TodayView({
   );
 }
 
-// Our own server: trust the shape, as data/sync.ts does.
-const profileResponse = z.custom<ProfileResponse>();
-
-/** Today from the local copy (ADR-0011); the norm from /api/profile until it syncs (OCT-92). */
+/** Today from the local copy (ADR-0011, ADR-0014 §5). */
 export function TodayScreen() {
   const today = useToday();
   const week = weekOf(today);
   const weekMeals = usePeriod(week.from, week.to);
-  const [profile, setProfile] = useState<ProfileResponse | 'error'>();
+  // The week is counted against today's norm (summarize takes one).
+  const norm = useNorm(today);
   const [, navigate] = useLocation();
   // Read once: a reload or coming back later doesn't flash again.
   const [highlight] = useState(
@@ -199,21 +166,8 @@ export function TodayScreen() {
     if (highlight) history.replaceState(null, '');
   }, [highlight]);
 
-  const load = useCallback(() => {
-    setProfile(undefined);
-    api('/api/profile', profileResponse).then(setProfile, () =>
-      setProfile('error'),
-    );
-  }, []);
-  useEffect(load, [load]);
-
-  const norm =
-    profile === undefined || profile === 'error'
-      ? profile
-      : effectiveNorm(profile.profile, profile.manual, today);
-
   let weekRemainingKcal;
-  if (weekMeals && norm && norm !== 'error') {
+  if (weekMeals && norm) {
     const days = [];
     for (let d = week.from; d <= week.to; d = addDays(d, 1)) {
       const dayMeals = weekMeals.filter((m) => m.localDate === d);
@@ -231,7 +185,6 @@ export function TodayScreen() {
       highlight={highlight}
       onOpen={(meal) => navigate(mealPath(meal.clientId))}
       onSetNorm={() => navigate('/profile')}
-      onRetry={load}
     />
   );
 }
