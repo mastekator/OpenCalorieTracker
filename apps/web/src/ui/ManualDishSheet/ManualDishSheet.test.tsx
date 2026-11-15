@@ -103,6 +103,16 @@ describe('ManualDishSheet', () => {
     expect(onAdd).toHaveBeenCalledOnce();
   });
 
+  it('refuses totals over the API limits: 900 kcal/100 g × 2000 g', async () => {
+    const { onAdd, type, add } = await setup();
+    type(/^Name/, 'Nuts');
+    type(/^Weight/, '2000');
+    type(/^Calories ·/, '900');
+    add();
+    expect(onAdd).not.toHaveBeenCalled();
+    expect(screen.getByText(/Too much for one dish/)).toBeTruthy();
+  });
+
   it('converts ounces to grams', async () => {
     const { onAdd, type, add } = await setup('us');
     type(/^Name/, 'Yogurt');

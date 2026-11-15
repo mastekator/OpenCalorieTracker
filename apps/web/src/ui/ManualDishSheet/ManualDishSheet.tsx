@@ -79,18 +79,19 @@ export function ManualDishSheet({ units, onAdd, onClose }: Props) {
     ...(!name && { name: t('edit.dish.name_err') }),
     ...(grams === null && { weight: t('edit.weight.err') }),
   };
-  for (const k of ['kcal', 'proteinG', 'fatG', 'carbsG'] as const)
-    if (entered[k] === null) errors[k] = t('manual_dish.err.number');
-  const shown = (k: Fields) => (touched[k] ? errors[k] : undefined);
-
   const values = entered as Nutrients;
-  // shortcut: totals above the API limits (10000 kcal, 1000 g macros) are not checked here; add if users hit it.
   const totals =
     grams === null
       ? null
       : basis === 'per100'
         ? fromPer100(values, grams)
         : values;
+  for (const k of ['kcal', 'proteinG', 'fatG', 'carbsG'] as const)
+    if (entered[k] === null) errors[k] = t('manual_dish.err.number');
+    // Over the API limits the queued meal would be refused (mealItemInputSchema).
+    else if (totals && totals[k] > (k === 'kcal' ? 10000 : 1000))
+      errors[k] = t('manual_dish.err.too_big');
+  const shown = (k: Fields) => (touched[k] ? errors[k] : undefined);
   // Only with macros entered: kcal alone is not a mismatch.
   const anyMacro = !!(
     text.proteinG.trim() ||
@@ -151,6 +152,7 @@ export function ManualDishSheet({ units, onAdd, onClose }: Props) {
         <Field
           {...field('name')}
           label={required(t('manual_dish.name'))}
+          maxLength={80}
           placeholder={t('manual_dish.name_ph')}
         />
         <Field

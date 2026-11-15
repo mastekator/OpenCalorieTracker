@@ -668,7 +668,10 @@ export const en = {
     fat: 'Fat',
     carbs: 'Carbs',
     total: 'Total for {weight}: {kcal} kcal',
-    err: { number: 'Enter a number, like 12.5' },
+    err: {
+      number: 'Enter a number, like 12.5',
+      too_big: 'Too much for one dish — check the number',
+    },
     warn: {
       mismatch:
         'Macros add up to about {n} kcal. Check the numbers — you can still add it.',
