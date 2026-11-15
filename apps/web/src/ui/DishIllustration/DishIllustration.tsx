@@ -1,4 +1,9 @@
-import type { IllustrationId } from '@oct/shared';
+import {
+  CATEGORIES,
+  NAMES,
+  type IllustrationId,
+  type Locale,
+} from '@oct/shared';
 import sprite from '../../illustrations/sprite.svg?raw';
 import './DishIllustration.css';
 
@@ -27,3 +32,8 @@ export function DishIllustration({ id, size }: Props) {
     </span>
   );
 }
+
+/** Caption of an illustration: its own name, else its category's (OCT-33 picker). */
+export const illustrationLabel = (id: IllustrationId, locale: Locale) =>
+  NAMES[id]?.[locale === 'ru' ? 0 : 1] ??
+  CATEGORIES.find((c) => (c.items as readonly string[]).includes(id))![locale];

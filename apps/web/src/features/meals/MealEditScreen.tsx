@@ -38,7 +38,11 @@ import {
   useSettings,
 } from '../../data/DataContext';
 import type { Choices } from '../../data/db';
-import { createMeal, patchMeal } from '../../data/outbox';
+import {
+  createMeal,
+  patchMeal,
+  putIllustrationChoice,
+} from '../../data/outbox';
 import { useT } from '../../i18n';
 import { useBarVariant } from '../../app/connection';
 import { useSession } from '../../app/SessionContext';
@@ -49,6 +53,7 @@ import { Field } from '../../ui/Field/Field';
 import { DishRow } from '../../ui/DishRow/DishRow';
 import { DishSheet } from '../../ui/DishSheet/DishSheet';
 import { HistoryHint } from '../../ui/HistoryHint/HistoryHint';
+import { IllustrationPicker } from '../../ui/IllustrationPicker/IllustrationPicker';
 import {
   ManualDishSheet,
   type ManualDish,
@@ -219,6 +224,8 @@ type Props = {
   mealId?: number;
   /** Remembered illustration per dish nameKey (useIllustrationChoices). */
   choices?: Choices;
+  /** A pick in the «Dish picture» sheet, remembered for the name; null: back to automatic (AC-4.4). */
+  onChoice?: (name: string, illustration: IllustrationId | null) => void;
   /**
    * A saved meal (OCT-19 §3.1): its dishes, type and time; `onSave` is not used.
    * `onPatch` gets only what changed, null when nothing did; `onDelete` deletes it.
@@ -247,6 +254,7 @@ export function MealEditScreen({
   meal,
   mealId = meal?.id,
   choices,
+  onChoice,
   onPatch,
   onDelete,
   recalc,
@@ -292,6 +300,8 @@ export function MealEditScreen({
   const pastAt = () => new Date(y!, m! - 1, d, hh, mm);
   const [status, setStatus] = useState<'idle' | 'saving' | 'error'>('idle');
   const [editing, setEditing] = useState<string | null>(null);
+  // Row whose «Dish picture» sheet is open (OCT-33 4.1).
+  const [picking, setPicking] = useState<string | null>(null);
   const [adding, setAdding] = useState(manual !== undefined); // AC-5.5, 5.3
   // Recognized, uploaded from the slot, or kept on the device when the upload failed.
   const [photo, setPhoto] = useState<
@@ -311,6 +321,7 @@ export function MealEditScreen({
   );
   const [uploading, setUploading] = useState(false);
   const photoInput = useRef<HTMLInputElement>(null);
+  const cameraInput = useRef<HTMLInputElement>(null);
   const saving = useRef(false);
   // Row whose pencil gets focus after a delete or «Undo», so it never drops to <body> (WCAG 2.4.3).
   const focusRow = useRef<string | null>(null);
@@ -440,6 +451,25 @@ export function MealEditScreen({
         [lookupOf({ ...row, original: { ...row.original, name } })],
         LOOKUP_DELAY_MS,
       );
+  };
+
+  // Picked: on this dish and for its name; null: both go and the name matches again (AC-4.4, 4.7).
+  const pickIllustration = (row: Row, illustration: IllustrationId | null) => {
+    setPicking(null);
+    setRows((rs) =>
+      rs.map((r) =>
+        r.id === row.id
+          ? {
+              ...r,
+              original: {
+                ...r.original,
+                illustration: illustration ?? undefined,
+              },
+            }
+          : r,
+      ),
+    );
+    onChoice?.(row.original.name, illustration);
   };
 
   const addManual = (dish: ManualDish) => {
@@ -682,6 +712,13 @@ export function MealEditScreen({
   const editingRow = rows.find((r) => r.id === editing);
   const offer = !!meal?.recalcOffer && !!onRecalc && !recalced;
   const startRecalc = () => onRecalc?.({ rows, mealType, when });
+  const pickingRow = rows.find((r) => r.id === picking);
+  // A saved meal takes no photo in PATCH; a meal with a photo has one (AC-4.3).
+  const photoActions = !meal && !photo && !uploading;
+  const takePhoto = (input: typeof photoInput) => () => {
+    setPicking(null);
+    input.current?.click();
+  };
 
   return (
     <div className="meal-edit">
@@ -877,6 +914,7 @@ export function MealEditScreen({
                         onGramsChange={(g) => setGrams(i, g)}
                         onEdit={() => setEditing(row.id)}
                         onDelete={() => remove(row.id)}
+                        onIllustration={() => setPicking(row.id)}
                       />
                       {row.previous && (
                         <HistoryHint
@@ -971,6 +1009,33 @@ export function MealEditScreen({
         data-testid="edit-photo"
         onChange={(e) => void onPhoto(e)}
       />
+      <input
+        ref={cameraInput}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        hidden
+        data-testid="edit-camera"
+        onChange={(e) => void onPhoto(e)}
+      />
+      {pickingRow && (
+        <IllustrationPicker
+          open
+          name={pickingRow.original.name}
+          current={illustrationOf(pickingRow)}
+          manual={
+            !!pickingRow.original.illustration ||
+            !!choices?.[nameKey(pickingRow.original.name)]
+          }
+          onPick={(id) => pickIllustration(pickingRow, id)}
+          onReset={() => pickIllustration(pickingRow, null)}
+          onClose={() => setPicking(null)}
+          {...(photoActions && {
+            onCamera: takePhoto(cameraInput),
+            onGallery: takePhoto(photoInput),
+          })}
+        />
+      )}
       {adding && (
         <ManualDishSheet
           units={units}
@@ -1023,6 +1088,7 @@ export function MealEditRoute() {
       date={date}
       units={settings?.units ?? user?.units ?? 'metric'}
       choices={choices}
+      onChoice={(name, id) => void putIllustrationChoice(db, name, id)}
       onSave={async (input, photo) => {
         await createMeal(db, input, photo);
         if (date) return navigate(`/diary/${date}`, { replace: true });
@@ -1085,6 +1151,7 @@ export function MealEditExisting({ clientId }: { clientId: string }) {
       dishes={[]}
       units={settings?.units ?? user?.units ?? 'metric'}
       choices={choices}
+      onChoice={(name, id) => void putIllustrationChoice(db, name, id)}
       onSave={async () => {}}
       onPatch={async (patch) => {
         if (patch) await patchMeal(db, clientId, patch);

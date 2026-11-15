@@ -21,6 +21,7 @@ function Harness({ onClose = vi.fn() }: { onClose?: () => void }) {
         footer={<button>Done</button>}
       >
         <input aria-label="Name" />
+        <button tabIndex={-1}>Roving</button>
       </Sheet>
     </>
   );
@@ -50,6 +51,17 @@ describe('Sheet', () => {
     expect(document.activeElement).toBe(done);
     fireEvent.keyDown(done, { key: 'Tab' });
     expect(document.activeElement).toBe(close);
+  });
+
+  it('skips tabindex=-1 items on Tab', async () => {
+    render(<Harness />, { wrapper: I18nProvider });
+    await open();
+    const name = screen.getByRole('textbox', { name: 'Name' });
+    name.focus();
+    fireEvent.keyDown(name, { key: 'Tab' });
+    expect(document.activeElement).toBe(
+      screen.getByRole('button', { name: 'Done' }),
+    );
   });
 
   it('is labelled by its title', async () => {
