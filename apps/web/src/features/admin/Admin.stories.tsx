@@ -1,6 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import type { AdminBlock, AdminUser, Invite } from '@oct/shared';
 import { atPath } from '../../ui/navStory';
+// The screens reuse the settings layout; the app always loads its CSS.
+import '../settings/settings.css';
 import { ToastProvider } from '../../ui/Toast/Toast';
 import { BlocksScreen } from './BlocksScreen';
 import { InvitesScreen, NewInviteSheet } from './InvitesScreen';

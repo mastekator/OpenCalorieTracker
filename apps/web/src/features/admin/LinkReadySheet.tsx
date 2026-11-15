@@ -75,7 +75,7 @@ export function LinkReadySheet({ url, body, onClose }: Props) {
             {url}
           </p>
           <p role="status" className="admin-sheet__note">
-            {manual ? t('link_ready.copy_manual') : t('invites.once_hint')}
+            {manual && t('link_ready.copy_manual')}
           </p>
         </div>
       </Sheet>

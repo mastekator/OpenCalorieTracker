@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import { Mail, Plus } from 'lucide-react';
 import { useLocation, useSearch } from 'wouter';
 import { z } from 'zod';
@@ -30,7 +30,7 @@ const TONE = {
   pending: 'warn',
   used: 'ok',
   expired: 'neutral',
-  revoked: 'neutral',
+  revoked: 'err',
 } as const;
 
 /** «Earlier · 30 days» counts from when the status changed, not from creation. */
@@ -184,12 +184,19 @@ export function NewInviteSheet({ pending, onClose, onCreated }: SheetProps) {
   const [email, setEmail] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<ClientErrorCode | null>(null);
+  const [empty, setEmpty] = useState(false);
+  const input = useRef<HTMLInputElement>(null);
   const normalized = email.trim().toLowerCase();
   const replaces = pending.some((i) => i.email.toLowerCase() === normalized);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    if (!normalized) return;
+    // The button stays enabled: an empty field is explained, not blocked (4.2).
+    if (!normalized) {
+      setEmpty(true);
+      input.current?.focus();
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -215,17 +222,25 @@ export function NewInviteSheet({ pending, onClose, onCreated }: SheetProps) {
           type="email"
           autoComplete="off"
           autoFocus
+          ref={input}
           value={email}
           hint={
             replaces ? t('invites.new.replaces') : t('invites.new.email_hint')
           }
-          error={error === 'email_taken' ? t('invites.new.exists') : undefined}
+          error={
+            empty
+              ? t('invites.new.required')
+              : error === 'email_taken'
+                ? t('invites.new.exists')
+                : undefined
+          }
           onChange={(e) => {
             setEmail(e.target.value);
+            setEmpty(false);
             if (error === 'email_taken') setError(null);
           }}
         />
-        <Button type="submit" loading={busy} disabled={!normalized}>
+        <Button type="submit" loading={busy}>
           {t('invites.new.submit')}
         </Button>
       </form>

@@ -21,6 +21,14 @@ import './admin.css';
 const API = '/api/admin/users';
 const listSchema = z.array(adminUserSchema);
 const nameOf = (u: AdminUser) => u.name ?? u.email;
+/** «Since … · signed in …» (4.4, 4.5). */
+const meta = (t: ReturnType<typeof useT>['t'], locale: string, u: AdminUser) =>
+  u.lastLoginAt === null
+    ? t('users.meta_never', { date: formatDate(locale, u.createdAt) })
+    : t('users.meta', {
+        date: formatDate(locale, u.createdAt),
+        when: formatDate(locale, u.lastLoginAt),
+      });
 
 /** 4.4 Users (OCT-13 §7): one's own row opens nothing — self-deletion is not offered. */
 export function UsersScreen({ selfId }: { selfId: number }) {
@@ -30,7 +38,6 @@ export function UsersScreen({ selfId }: { selfId: number }) {
 
   if (failed) return failed;
   if (!items) return null;
-  const date = (ms: number) => formatDate(locale, ms);
   return (
     <div className="settings">
       <List>
@@ -38,12 +45,15 @@ export function UsersScreen({ selfId }: { selfId: number }) {
           <ListRow
             key={u.id}
             description={
-              u.lastLoginAt === null
-                ? t('users.meta_never', { date: date(u.createdAt) })
-                : t('users.meta', {
-                    date: date(u.createdAt),
-                    when: date(u.lastLoginAt),
-                  })
+              u.name ? (
+                <>
+                  {u.email}
+                  <br />
+                  {meta(t, locale, u)}
+                </>
+              ) : (
+                meta(t, locale, u)
+              )
             }
             value={
               u.role === 'admin' ? <Badge>{t('users.admin')}</Badge> : undefined
@@ -122,7 +132,9 @@ export function UserSheet({ user, onClose, onDelete }: SheetProps) {
       <Sheet open title={name} onClose={onClose}>
         <div className="admin-sheet">
           {error && <Banner tone="danger">{t(`errors.${error}`)}</Banner>}
-          <p className="admin-sheet__note">{user.email}</p>
+          <p className="admin-sheet__note">
+            {user.email} · {meta(t, locale, user)}
+          </p>
           <Button
             variant="tonal"
             loading={busy}

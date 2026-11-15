@@ -186,6 +186,21 @@ describe('InvitesScreen', () => {
     expect(screen.getByText('Pending')).toBeTruthy();
   });
 
+  it('an empty email is explained under the field, not sent', async () => {
+    const fetch = serve({ '/api/admin/invites': invites });
+    await wrap(<InvitesScreen />, '/settings/admin/invites?new');
+    const submit = await screen.findByRole('button', { name: 'Create link' });
+    expect((submit as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(submit);
+    expect(await screen.findByText('Enter an email')).toBeTruthy();
+    expect(document.activeElement).toBe(
+      screen.getByLabelText('Invitee’s email'),
+    );
+    expect(fetch.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(
+      false,
+    );
+  });
+
   it('empty state', async () => {
     serve({ '/api/admin/invites': [] });
     await wrap(<InvitesScreen />);
@@ -198,6 +213,8 @@ describe('UsersScreen', () => {
     const fetch = serve({ '/api/admin/users': users });
     await wrap(<UsersScreen selfId={1} />);
     expect(await screen.findByText('Admin')).toBeTruthy();
+    // A named user shows the email too (4.4).
+    expect(screen.getByText(/admin@example\.com/)).toBeTruthy();
     expect(screen.queryByRole('button', { name: /Admin/ })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: /b@example\.com/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Delete user' }));

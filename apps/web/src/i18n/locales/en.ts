@@ -131,6 +131,7 @@ export const en = {
       replaces: 'The previous invite for this email will be revoked',
       exists: 'A user with this email already exists',
       submit: 'Create link',
+      required: 'Enter an email',
     },
   },
   users: {

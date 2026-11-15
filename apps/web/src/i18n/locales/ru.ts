@@ -131,6 +131,7 @@ const ru: DeepPartial<typeof en> = {
       replaces: 'Прежнее приглашение на этот email будет отозвано',
       exists: 'Пользователь с таким email уже есть',
       submit: 'Создать ссылку',
+      required: 'Введите email',
     },
   },
   users: {
