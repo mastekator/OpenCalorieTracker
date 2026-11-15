@@ -18,11 +18,13 @@ import {
 import { api } from '../../api/client';
 import { useRequireOnline } from '../../app/connection';
 import { useT } from '../../i18n';
+import { Badge } from '../../ui/Badge/Badge';
 import { Banner } from '../../ui/Banner/Banner';
 import { Button } from '../../ui/Button/Button';
 import { List, ListRow } from '../../ui/List/List';
 import { useOnline } from '../../ui/OfflineBar/OfflineBar';
 import { AiStateBadge } from '../../ui/ProviderStatus/ProviderStatus';
+import { BLOCKS_API, blocksSchema } from '../admin/BlocksScreen';
 import { AI_STATUS_PATH } from './AiProviderScreen';
 import { enabledMethods } from './methods';
 import './settings.css';
@@ -51,12 +53,17 @@ export function SettingsScreen({ user, onLogout }: Props) {
   const authRow = (href: string) => requireOnline('auth', go(href));
   const isAdmin = user.role === 'admin';
   const [aiState, setAiState] = useState<AiProviderState | null>(null);
-  // A free read (no request to the provider); a failure just leaves the row without a badge.
+  const [blocks, setBlocks] = useState(0);
+  // Free reads (no request to the provider); a failure just leaves the row without a badge.
   useEffect(() => {
+    setBlocks(0);
     if (!isAdmin || !online) return setAiState(null);
     let live = true;
     api(AI_STATUS_PATH, adminAiStatusSchema)
       .then((s) => live && setAiState(s.state))
+      .catch(() => {});
+    api(BLOCKS_API, blocksSchema)
+      .then((b) => live && setBlocks(b.length))
       .catch(() => {});
     return () => {
       live = false;
@@ -85,7 +92,6 @@ export function SettingsScreen({ user, onLogout }: Props) {
         )}
 
       {isAdmin && (
-        // shortcut: the invites, users and blocks screens are stubs until OCT-46.
         <List
           title={t('settings.group.admin')}
           footer={online ? undefined : t('admin.offline')}
@@ -107,6 +113,7 @@ export function SettingsScreen({ user, onLogout }: Props) {
           <ListRow
             icon={<Shield />}
             disabled={!online}
+            value={blocks > 0 ? <Badge tone="err">{blocks}</Badge> : undefined}
             onClick={adminRow('/settings/admin/blocks')}
           >
             {t('blocks.title')}

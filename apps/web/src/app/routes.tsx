@@ -1,10 +1,9 @@
-import { Settings2 } from 'lucide-react';
+import { Plus, Settings2 } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { z } from 'zod';
 import { Redirect, Route, Switch, useLocation, useSearch } from 'wouter';
 import { api } from '../api/client';
 import { getLastUser, pendingOf } from '../data/user';
-import type { Key } from '../i18n/translate';
 import { useT } from '../i18n';
 import { NavBar } from '../ui/NavBar/NavBar';
 import { OfflineBar } from '../ui/OfflineBar/OfflineBar';
@@ -13,6 +12,9 @@ import { PasskeysScreen } from '../features/settings/PasskeysScreen';
 import { AiProviderScreen } from '../features/settings/AiProviderScreen';
 import { PasswordScreen } from '../features/settings/PasswordScreen';
 import { SettingsScreen } from '../features/settings/SettingsScreen';
+import { BlocksScreen } from '../features/admin/BlocksScreen';
+import { INVITES_PATH, InvitesScreen } from '../features/admin/InvitesScreen';
+import { UsersScreen } from '../features/admin/UsersScreen';
 import {
   CaptureProvider,
   MEAL_NEW_PATH,
@@ -62,13 +64,6 @@ function MealEditStub() {
     </div>
   );
 }
-
-// shortcut: admin screens are stubs until OCT-46 (invites, users, blocks).
-const ADMIN_TITLES: Record<string, Key> = {
-  invites: 'invites.title',
-  users: 'users.title',
-  blocks: 'blocks.title',
-};
 
 /** Signed-in screens, rendered inside AppShell. */
 export function AppScreens() {
@@ -182,14 +177,31 @@ export function AppScreens() {
           <AiProviderScreen />
         </Screen>
       </Route>
-      <Route path="/settings/admin/:page">
-        {({ page }) =>
-          ADMIN_TITLES[page] ? (
-            <Screen title={t(ADMIN_TITLES[page])} back={toSettings} />
-          ) : (
-            <Redirect to="/settings" replace />
-          )
-        }
+      <Route path={INVITES_PATH}>
+        <Screen
+          title={t('invites.title')}
+          back={toSettings}
+          action={{
+            icon: Plus,
+            label: t('invites.invite'),
+            href: `${INVITES_PATH}?new`,
+          }}
+        >
+          <InvitesScreen />
+        </Screen>
+      </Route>
+      <Route path="/settings/admin/users">
+        <Screen title={t('users.title')} back={toSettings}>
+          <UsersScreen selfId={user.id} />
+        </Screen>
+      </Route>
+      <Route path="/settings/admin/blocks">
+        <Screen title={t('blocks.title')} back={toSettings}>
+          <BlocksScreen />
+        </Screen>
+      </Route>
+      <Route path="/settings/admin/*">
+        <Redirect to="/settings" replace />
       </Route>
       <Route>
         <Redirect to="/" replace />

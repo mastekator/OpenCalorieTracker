@@ -1,0 +1,31 @@
+.admin-sheet {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.admin-sheet__note {
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+  color: var(--color-text-secondary);
+}
+
+/* One tap selects the whole link (4.3: the link is shown in full and selectable). */
+.link-ready__url {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+  overflow-wrap: anywhere;
+  user-select: all;
+  -webkit-user-select: all;
+}
+
+.link-ready__actions {
+  display: grid;
+  gap: var(--space-2);
+}
+
+/* «Unblock» sits under the row text (4.6). */
+.admin-row__action {
+  display: block;
+  margin-block-start: var(--space-2);
+}
