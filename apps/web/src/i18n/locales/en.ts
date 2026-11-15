@@ -22,7 +22,6 @@ export const en = {
     login: 'Sign in',
     invite: 'Accept invitation',
     recover: 'Recover access',
-    register: 'Create account',
   },
   auth: {
     email: 'Email',
