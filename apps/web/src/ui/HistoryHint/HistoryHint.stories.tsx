@@ -9,6 +9,7 @@ const meta = {
     eatenAt: '2026-11-12T12:30:00.000Z',
     grams: 250,
     kcal: 420,
+    illustration: 'soup-borscht',
     units: 'metric',
     onApply: fn(),
     onKeep: fn(),

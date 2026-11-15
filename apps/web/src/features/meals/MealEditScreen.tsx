@@ -5,18 +5,27 @@ import { z } from 'zod';
 import {
   DISH_GRAMS,
   entryDay,
+  illustrationIdSchema,
+  matchIllustration,
   mealTypeAt,
+  nameKey,
   round1,
   scaleItem,
   type MealInput,
   type MealItemInput,
   type DayChoice,
+  type IllustrationId,
   type MealType,
   type Units,
   uuid,
 } from '@oct/shared';
 import { api, ApiError } from '../../api/client';
-import { useDb, useSettings } from '../../data/DataContext';
+import {
+  useDb,
+  useIllustrationChoices,
+  useSettings,
+} from '../../data/DataContext';
+import type { Choices } from '../../data/db';
 import { createMeal } from '../../data/outbox';
 import { useT } from '../../i18n';
 import { useBarVariant } from '../../app/connection';
@@ -45,7 +54,11 @@ import type { MealEditState } from './RecognitionScreen';
 import { ImageDecodeError, prepareImage } from './prepareImage';
 import './MealEditScreen.css';
 
-type Dish = ManualDish & { confidence?: number };
+/**
+ * `illustration`: picked by hand on this dish — a loaded meal passes it only with
+ * `illustrationManual`, or the automatic one would freeze and stop following the name.
+ */
+type Dish = ManualDish & { confidence?: number; illustration?: IllustrationId };
 /** Why the manual sheet opened (MealEditState); set: no AI dishes came. */
 type ManualReason = Extract<MealEditState, { manual: unknown }>['manual'];
 
@@ -76,6 +89,7 @@ const previousSchema = z.array(
       proteinG: z.number(),
       fatG: z.number(),
       carbsG: z.number(),
+      illustration: illustrationIdSchema,
     })
     .nullable(),
 );
@@ -134,6 +148,10 @@ const itemOf = (row: Row): MealItemInput => {
     source: row.source,
     // A manual dish has no confidence (AC-3.9).
     ...(row.source === 'ai' && !row.edited && { confidence }),
+    // Only a hand-picked one is sent; the server matches the rest (ADR-0009).
+    ...(row.original.illustration && {
+      illustration: row.original.illustration,
+    }),
   };
 };
 
@@ -156,6 +174,8 @@ type Props = {
   now?: () => Date;
   /** Editing a saved meal: its own dishes are not «last time» (OCT-53 grooming). */
   mealId?: number;
+  /** Remembered illustration per dish nameKey (useIllustrationChoices). */
+  choices?: Choices;
 };
 
 /** Screen 4 (design OCT-16 §3, E.2): dishes, weights with live totals, meal type, save. */
@@ -169,6 +189,7 @@ export function MealEditScreen({
   date,
   now = () => new Date(),
   mealId,
+  choices,
 }: Props) {
   const { t, num, locale } = useT();
   const online = useOnline();
@@ -256,6 +277,9 @@ export function MealEditScreen({
   }, []);
 
   const items = rows.map(itemOf);
+  // Follows the name live (AC-3.6, AC-4.5): hand-picked, then remembered for the name, then matched.
+  const illustrationOf = ({ original: { name, illustration } }: Row) =>
+    illustration ?? choices?.[nameKey(name)] ?? matchIllustration(name);
   const total = (k: 'kcal' | 'proteinG' | 'fatG' | 'carbsG') =>
     items.reduce((s, i) => s + i[k], 0);
   const valid = rows.length > 0 && rows.every((r) => r.grams !== null);
@@ -612,6 +636,7 @@ export function MealEditScreen({
                           ...item,
                           grams: row.grams,
                           confidence: item.confidence,
+                          illustration: illustrationOf(row),
                         }}
                         units={units}
                         onGramsChange={(g) => setGrams(i, g)}
@@ -623,6 +648,7 @@ export function MealEditScreen({
                           eatenAt={row.previous.eatenAt}
                           grams={row.previous.grams}
                           kcal={row.previous.kcal}
+                          illustration={row.previous.illustration}
                           units={units}
                           onApply={() => applyPrevious(row, row.previous!)}
                           onKeep={() => keepEstimate(row.id)}
@@ -727,6 +753,7 @@ export function MealEditScreen({
 export function MealEditRoute() {
   const db = useDb();
   const settings = useSettings();
+  const choices = useIllustrationChoices();
   const { user } = useSession();
   const [, navigate] = useLocation();
   const search = useSearch();
@@ -746,6 +773,7 @@ export function MealEditRoute() {
       photoId={photoId}
       date={date}
       units={settings?.units ?? user?.units ?? 'metric'}
+      choices={choices}
       onSave={async (input, photo) => {
         await createMeal(db, input, photo);
         if (date) return navigate(`/diary/${date}`, { replace: true });

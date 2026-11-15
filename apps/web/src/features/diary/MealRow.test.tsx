@@ -15,7 +15,10 @@ const meal = (over: Partial<Meal> = {}) =>
     localDate: '2026-11-13',
     mealType: 'lunch',
     photo: { id: 'p1', full: true },
-    items: [{ name: 'Buckwheat' }, { name: 'Chicken' }],
+    items: [
+      { name: 'Buckwheat', illustration: 'grains', kcal: 300 },
+      { name: 'Chicken', illustration: 'poultry', kcal: 416.6 },
+    ],
     kcal: 716.6,
     ...over,
   }) as Meal;
@@ -38,11 +41,13 @@ describe('MealRow', () => {
       '/api/photos/p1?size=preview',
     );
     expect(screen.queryByText('late')).toBeNull();
+    expect(row.querySelector('.dish-illo')).toBeNull();
     fireEvent.error(row.querySelector('img')!);
     expect(row.querySelector('img')).toBeNull();
+    expect(row.querySelector('.dish-illo')).toBeTruthy();
   });
 
-  it('shows an icon without a photo and the late badge after midnight', async () => {
+  it('without a photo shows the illustration of the dish with the most kcal (AC-2.2) and the late badge after midnight', async () => {
     show(
       meal({
         photo: null,
@@ -53,6 +58,9 @@ describe('MealRow', () => {
     );
     expect(await screen.findByText('late')).toBeTruthy();
     expect(document.querySelector('img')).toBeNull();
+    const illo = document.querySelector('.dish-illo')!;
+    expect(illo.getAttribute('data-illo')).toBe('poultry');
+    expect(illo.getAttribute('aria-hidden')).toBe('true');
   });
 
   it('has a labelled trash button only with onDelete', async () => {

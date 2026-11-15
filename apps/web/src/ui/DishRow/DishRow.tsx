@@ -1,7 +1,8 @@
 import { Pencil, Trash2 } from 'lucide-react';
-import type { DishSource, Nutrients, Units } from '@oct/shared';
+import type { DishSource, IllustrationId, Nutrients, Units } from '@oct/shared';
 import { useT } from '../../i18n';
 import { ConfidenceBadge } from '../ConfidenceBadge/ConfidenceBadge';
+import { DishIllustration } from '../DishIllustration/DishIllustration';
 import { useSwipeDelete } from '../useSwipeDelete';
 import { WeightStepper } from '../WeightStepper/WeightStepper';
 import './DishRow.css';
@@ -13,6 +14,8 @@ export type DishRowDish = Nutrients & {
   source: DishSource;
   /** AI only; dropped by the screen after a weight or name edit (AC-2.9). */
   confidence?: number;
+  /** Shown left of the name and macros (OCT-33). */
+  illustration?: IllustrationId;
 };
 
 type Props = {
@@ -40,7 +43,12 @@ export function DishRow({
       className={`dish-row-swipe${dragging ? ' dish-row-swipe--dragging' : ''}${offset ? ' dish-row-swipe--shifted' : ''}`}
       {...bind}
     >
-      <div className="dish-row">
+      <div className={`dish-row${dish.illustration ? ' dish-row--illo' : ''}`}>
+        {dish.illustration && (
+          <span className="dish-row__illo">
+            <DishIllustration id={dish.illustration} />
+          </span>
+        )}
         <div className="dish-row__head">
           <button
             type="button"

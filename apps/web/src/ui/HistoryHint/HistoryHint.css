@@ -7,19 +7,11 @@
 
 .history-hint__text {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: var(--space-2);
   margin: 0;
   font-size: var(--text-footnote-size);
   line-height: var(--text-footnote-lh);
-}
-
-.history-hint__text svg {
-  flex: none;
-  width: var(--icon-size-sm);
-  height: var(--icon-size-sm);
-  stroke-width: var(--icon-stroke);
-  color: var(--color-accent);
 }
 
 .history-hint__actions {
