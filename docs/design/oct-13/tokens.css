@@ -49,6 +49,8 @@
   --switch-height: 31px;
   --chat-avatar-size: 28px;     /* OCT-22: agent mark in chat, step numbers in «Как считается» */
   --chat-bubble-max-width: 80%; /* OCT-22: user message width in chat */
+  --dish-illo-size: 40px;       /* OCT-33: dish illustration in edit rows (hit area stays 44) */
+  --illo-pick-size: 64px;       /* OCT-33: tile in the illustration picker grid */
   --icon-size: 24px;  --icon-size-sm: 20px;  --icon-stroke: 1.75;
   --content-max-width: 560px;   /* phone-like column: auth, settings, tablet/narrow window */
   /* Desktop (window ≥ 1024px; CSS vars can't be used in @media — keep 1024 in one place in code):
@@ -104,6 +106,13 @@
   --color-fat: #B36F00;
   --color-carbs: #16847E;
 
+  /* OCT-33: dish illustrations (flat, decorative). Shown on a round "plate" tile so they never pass for a photo */
+  --illo-tile: #F6F0E4;   /* round substrate behind every illustration */
+  --illo-plate: #C9D3CF;  --illo-white: #FFFFFF;  --illo-shade: rgb(60 40 20 / 0.12);
+  --illo-red: #E05A47;    --illo-orange: #F09A3A; --illo-yellow: #F6C945; --illo-pink: #F2A193;
+  --illo-green: #6DB563;  --illo-leaf: #2F8A4E;   --illo-blue: #7DB3E3;
+  --illo-tan: #DDA15E;    --illo-brown: #9A5B32;  --illo-cocoa: #5C3A28;
+
   --shadow-sheet: 0 -4px 24px rgb(24 33 29 / 0.06);
   --shadow-toast: 0 6px 20px rgb(24 33 29 / 0.10);
   --shadow-camera: 0 4px 14px rgb(19 120 74 / 0.24);
@@ -141,6 +150,11 @@
     --color-protein: #93ABF2;
     --color-fat: #EBB45C;
     --color-carbs: #5ECFC6;
+    --illo-tile: #2B2721;
+    --illo-plate: #4C524F;  --illo-white: #EEE8DC;  --illo-shade: rgb(0 0 0 / 0.28);
+    --illo-red: #EE7564;    --illo-orange: #EFA654; --illo-yellow: #EECB62; --illo-pink: #E39B8F;
+    --illo-green: #7CC472;  --illo-leaf: #4FAA6C;   --illo-blue: #86B9E4;
+    --illo-tan: #D29E66;    --illo-brown: #B27A52;  --illo-cocoa: #7A5440;
     --shadow-sheet: 0 -8px 32px rgb(0 0 0 / 0.5);
     --shadow-toast: 0 8px 24px rgb(0 0 0 / 0.5);
     --shadow-camera: 0 6px 16px rgb(0 0 0 / 0.5);
@@ -174,6 +188,11 @@
   --color-protein: #93ABF2;
   --color-fat: #EBB45C;
   --color-carbs: #5ECFC6;
+  --illo-tile: #2B2721;
+  --illo-plate: #4C524F;  --illo-white: #EEE8DC;  --illo-shade: rgb(0 0 0 / 0.28);
+  --illo-red: #EE7564;  --illo-orange: #EFA654; --illo-yellow: #EECB62; --illo-pink: #E39B8F;
+  --illo-green: #7CC472;  --illo-leaf: #4FAA6C;   --illo-blue: #86B9E4;
+  --illo-tan: #D29E66;  --illo-brown: #B27A52;  --illo-cocoa: #7A5440;
   --shadow-sheet: 0 -8px 32px rgb(0 0 0 / 0.5);
   --shadow-toast: 0 8px 24px rgb(0 0 0 / 0.5);
   --shadow-camera: 0 6px 16px rgb(0 0 0 / 0.5);
