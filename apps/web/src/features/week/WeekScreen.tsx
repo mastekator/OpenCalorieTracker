@@ -43,6 +43,36 @@ type ViewProps = {
   onSetNorm: () => void;
 };
 
+/** Bar heights of the 7.8 skeleton, repeated over the period. */
+const SKELETON_BARS = ['55%', '80%', '65%', '90%', '45%', '70%', '60%'];
+
+type HeadProps = Pick<
+  ViewProps,
+  'mode' | 'date' | 'today' | 'onPeriod' | 'onMode'
+>;
+
+/**
+ * «Week | Month» segment and the period pager. Rendered twice: under the title on the phone
+ * (in WeekView) and right of it from 1024px (NavBar `aside`, D.3); CSS shows one of them.
+ */
+export function WeekHead({ mode, date, today, onPeriod, onMode }: HeadProps) {
+  const { t } = useT();
+  return (
+    <div className="week__head">
+      <Segment
+        label={t('week.mode.label')}
+        options={[
+          { value: 'week', label: t('week.mode.week') },
+          { value: 'month', label: t('week.mode.month') },
+        ]}
+        value={mode}
+        onChange={onMode}
+      />
+      <DayPager mode={mode} date={date} today={today} onChange={onPeriod} />
+    </div>
+  );
+}
+
 /** Screen 7 «Week | Month» (OCT-19 §4, D.3): pager, kcal chart, budget, macro averages. */
 export function WeekView({
   mode,
@@ -67,10 +97,32 @@ export function WeekView({
     body = (
       <Delayed>
         <div className="week__body">
-          <Skeleton
-            height="calc(var(--chart-height) + var(--space-12))"
-            radius="var(--radius-lg)"
-          />
+          <p role="status" className="week__loading">
+            {t('common.loading')}
+          </p>
+          <div className="wcard">
+            {/* 7.8: bar silhouettes on the chart's own grid. */}
+            <div className={`kchart kchart--${mode}`}>
+              <div className="kchart__plot">
+                <div className="kchart__bars week__skeleton-bars">
+                  {Array.from(
+                    { length: daysBetween(period.from, period.to) + 1 },
+                    (_, i) => (
+                      <Skeleton
+                        key={i}
+                        height={SKELETON_BARS[i % SKELETON_BARS.length]}
+                        radius={
+                          mode === 'week'
+                            ? 'var(--radius-sm) var(--radius-sm) 0 0'
+                            : '2px 2px 0 0'
+                        }
+                      />
+                    ),
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
           <div className="week__cards">
             <Skeleton
               height="calc(var(--space-12) * 3)"
@@ -127,18 +179,13 @@ export function WeekView({
 
   return (
     <div className="week" {...swipe}>
-      <div className="week__head">
-        <Segment
-          label={t('week.mode.label')}
-          options={[
-            { value: 'week', label: t('week.mode.week') },
-            { value: 'month', label: t('week.mode.month') },
-          ]}
-          value={mode}
-          onChange={onMode}
-        />
-        <DayPager mode={mode} date={date} today={today} onChange={onPeriod} />
-      </div>
+      <WeekHead
+        mode={mode}
+        date={date}
+        today={today}
+        onPeriod={onPeriod}
+        onMode={onMode}
+      />
       {body}
     </div>
   );
@@ -150,6 +197,27 @@ export function WeekScreen({ mode, id }: { mode: PeriodMode; id: string }) {
   const period = periodOfId(mode, id, today);
   if (!period) return <Redirect to={periodPath(mode, today)} replace />;
   return <Week mode={mode} from={period.from} to={period.to} today={today} />;
+}
+
+/** Moves between periods by address, so the screen and its navbar head stay in step. */
+function usePeriodNav(mode: PeriodMode, to: string, today: string) {
+  const [, navigate] = useLocation();
+  return {
+    onPeriod: (date: string) =>
+      navigate(periodPath(mode, date), { replace: true }),
+    // The other view of the shown time: its last day, or today in the current period.
+    onMode: (next: PeriodMode) =>
+      navigate(periodPath(next, to < today ? to : today), { replace: true }),
+  };
+}
+
+/** The navbar `aside` of `/week/:id` and `/month/:id` (desktop, D.3). */
+export function WeekNavHead({ mode, id }: { mode: PeriodMode; id: string }) {
+  const today = useToday();
+  const period = periodOfId(mode, id, today);
+  const nav = usePeriodNav(mode, period ? period.to : today, today);
+  if (!period) return null;
+  return <WeekHead mode={mode} date={period.from} today={today} {...nav} />;
 }
 
 function Week({
@@ -166,6 +234,7 @@ function Week({
   const [, navigate] = useLocation();
   const meals = usePeriod(from, to);
   const norm = useNorm(today);
+  const nav = usePeriodNav(mode, to, today);
   return (
     <WeekView
       mode={mode}
@@ -173,11 +242,7 @@ function Week({
       today={today}
       days={meals && periodDays(meals, from, to)}
       norm={norm}
-      onPeriod={(date) => navigate(periodPath(mode, date), { replace: true })}
-      // The other view of the shown time: its last day, or today in the current period.
-      onMode={(next) =>
-        navigate(periodPath(next, to < today ? to : today), { replace: true })
-      }
+      {...nav}
       onOpenDay={(date) => navigate(`/diary/${date}`)}
       onSetNorm={() => navigate('/profile')}
     />

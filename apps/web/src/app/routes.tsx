@@ -30,7 +30,7 @@ import {
 import { MealEditRoute } from '../features/meals/MealEditScreen';
 import { ProfileScreen } from '../features/profile/ProfileScreen';
 import { periodPath } from '../features/week/period';
-import { WeekScreen } from '../features/week/WeekScreen';
+import { WeekNavHead, WeekScreen } from '../features/week/WeekScreen';
 import { AppShell } from './AppShell';
 import { AuthGate } from './AuthGate';
 import { AuthLayout } from './AuthLayout';
@@ -118,14 +118,24 @@ export function AppScreens() {
       </Route>
       <Route path="/week/:id">
         {({ id }) => (
-          <Screen wide large title={t('nav.week')}>
+          <Screen
+            wide
+            large
+            title={t('nav.week')}
+            aside={<WeekNavHead mode="week" id={id} />}
+          >
             <WeekScreen mode="week" id={id} />
           </Screen>
         )}
       </Route>
       <Route path="/month/:id">
         {({ id }) => (
-          <Screen wide large title={t('nav.week')}>
+          <Screen
+            wide
+            large
+            title={t('nav.week')}
+            aside={<WeekNavHead mode="month" id={id} />}
+          >
             <WeekScreen mode="month" id={id} />
           </Screen>
         )}

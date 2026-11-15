@@ -4,7 +4,7 @@ import { addDays, type DayTotals, type Macros } from '@oct/shared';
 import { fn } from 'storybook/test';
 import { useT } from '../../i18n';
 import { NavBar } from '../../ui/NavBar/NavBar';
-import { WeekView } from './WeekScreen';
+import { WeekHead, WeekView } from './WeekScreen';
 
 const NORM: Macros = { kcal: 2100, proteinG: 120, fatG: 70, carbsG: 240 };
 const TODAY = '2026-11-12';
@@ -42,12 +42,18 @@ const MONTH = period('2026-11-01', [
 const BIG = period('2026-11-09', [1850, 6000, 1960, 1240, 0, 0, 0]);
 const EMPTY = period('2026-11-09', Array<number>(7).fill(0));
 
-/** The app screen around the view: large «Week» navbar and the wide column. */
-function InScreen({ children }: { children: ReactNode }) {
+/** The app screen around the view: large «Week» navbar with the desktop head, the wide column. */
+function InScreen({
+  aside,
+  children,
+}: {
+  aside: ReactNode;
+  children: ReactNode;
+}) {
   const { t } = useT();
   return (
     <div className="screen screen--wide">
-      <NavBar large title={t('nav.week')} />
+      <NavBar large title={t('nav.week')} aside={aside} />
       <main className="screen__body">{children}</main>
     </div>
   );
@@ -56,7 +62,11 @@ function InScreen({ children }: { children: ReactNode }) {
 const meta = {
   title: 'Week/WeekScreen',
   component: WeekView,
-  decorators: [(Story) => <InScreen>{Story()}</InScreen>],
+  decorators: [
+    (Story, { args }) => (
+      <InScreen aside={<WeekHead {...args} />}>{Story()}</InScreen>
+    ),
+  ],
   parameters: { layout: 'fullscreen' },
   args: {
     mode: 'week',
@@ -107,3 +117,12 @@ export const MonthRussian: Story = { ...Month, globals: { locale: 'ru' } };
 export const Desktop: Story = { globals: desktop };
 export const DesktopDark: Story = { globals: { ...desktop, ...dark } };
 export const DesktopMonth: Story = { ...Month, globals: desktop };
+export const DesktopMonthRussian: Story = {
+  ...Month,
+  globals: { ...desktop, locale: 'ru' },
+};
+export const DesktopLoading: Story = { ...Loading, globals: desktop };
+export const DesktopLoadingDark: Story = {
+  ...Loading,
+  globals: { ...desktop, ...dark },
+};

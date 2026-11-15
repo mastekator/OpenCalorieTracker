@@ -50,6 +50,17 @@
   overflow-wrap: anywhere;
 }
 
+.navbar__large-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.navbar__aside {
+  padding: 0 var(--space-3) var(--space-2);
+}
+
 .navbar__back,
 .navbar__action {
   display: inline-flex;

@@ -1,4 +1,5 @@
 import { ChevronLeft, type LucideIcon } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { Link } from 'wouter';
 import './NavBar.css';
 
@@ -18,9 +19,11 @@ type Props = {
   back?: { href: string; label: string; mobileOnly?: boolean };
   /** One action on the right. */
   action?: Action;
+  /** With `large`: controls in the large title's row, on its right (OCT-19 D.3). */
+  aside?: ReactNode;
 };
 
-export function NavBar({ title, large = false, back, action }: Props) {
+export function NavBar({ title, large = false, back, action, aside }: Props) {
   let right = null;
   if (action) {
     const { icon: Icon, label, href, onClick, mobileOnly } = action;
@@ -61,7 +64,15 @@ export function NavBar({ title, large = false, back, action }: Props) {
         {!large && <h1 className="navbar__title">{title}</h1>}
         <div className="navbar__end">{right}</div>
       </div>
-      {large && <h1 className="navbar__large-title">{title}</h1>}
+      {large &&
+        (aside ? (
+          <div className="navbar__large-row">
+            <h1 className="navbar__large-title">{title}</h1>
+            <div className="navbar__aside">{aside}</div>
+          </div>
+        ) : (
+          <h1 className="navbar__large-title">{title}</h1>
+        ))}
     </header>
   );
 }
