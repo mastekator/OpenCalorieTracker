@@ -36,7 +36,7 @@ export interface NormPace {
   pctPerWeek: number;
   level: PaceLevel;
   source: 'deadline' | 'default';
-  /** When the target is reached at the actual pace: target without a usable deadline, or the floor clamped the norm (AC-2.1a). */
+  /** When the target is reached at the actual pace: target without a usable deadline, or the floor or the gain cap limited the norm (AC-2.1a). */
   etaDate: string | null;
   /** Deadline for 1 % a week, for "Push the deadline" (only when losing too fast). */
   safeDeadline: string | null;
@@ -63,11 +63,12 @@ export type NormResult =
 export const KCAL_PER_KG = 7700;
 const DEFAULT_PACE_PCT = { lose: 0.5, gain: 0.25 };
 const SAFE_LOSE_PCT = 1;
+const GAIN_FAST_PCT = 0.5;
 // Thresholds compare with a tolerance so "exactly 1 %" does not flip on float error.
 const EPS = 1e-9;
 
 const levelOf = (goal: 'lose' | 'gain', pct: number): PaceLevel => {
-  if (goal === 'gain') return pct > 0.5 + EPS ? 'gain_fast' : 'ok';
+  if (goal === 'gain') return pct > GAIN_FAST_PCT + EPS ? 'gain_fast' : 'ok';
   if (pct > 1.5 + EPS) return 'danger';
   return pct > 1 + EPS ? 'fast' : 'ok';
 };
@@ -102,6 +103,7 @@ export const calculateNorm = (profile: Profile, today: string): NormResult => {
   let pace: NormPace | null = null;
   let deltaKcal = 0;
   let goalReached = false;
+  let gainCapped = false;
   if (goal !== 'maintain') {
     goalReached =
       target !== null &&
@@ -114,7 +116,10 @@ export const calculateNorm = (profile: Profile, today: string): NormResult => {
       : (weightKg * DEFAULT_PACE_PCT[goal]) / 100;
     const pctPerWeek = (kgPerWeek / weightKg) * 100;
     const level = levelOf(goal, pctPerWeek);
-    deltaKcal = ((goal === 'lose' ? -1 : 1) * kgPerWeek * KCAL_PER_KG) / 7;
+    // A near deadline must not grow the gain norm without bound: cap at the gain_fast threshold.
+    gainCapped = level === 'gain_fast';
+    const plannedKg = gainCapped ? (weightKg * GAIN_FAST_PCT) / 100 : kgPerWeek;
+    deltaKcal = ((goal === 'lose' ? -1 : 1) * plannedKg * KCAL_PER_KG) / 7;
     pace = {
       kgPerWeek,
       pctPerWeek,
@@ -151,7 +156,7 @@ export const calculateNorm = (profile: Profile, today: string): NormResult => {
     pace &&
     target !== null &&
     !goalReached &&
-    (pace.source === 'default' || floor === 'clamped')
+    (pace.source === 'default' || floor === 'clamped' || gainCapped)
   ) {
     const actualKgPerWeek = (Math.abs(kcalRaw - tdee) * 7) / KCAL_PER_KG;
     if (actualKgPerWeek > 0)
