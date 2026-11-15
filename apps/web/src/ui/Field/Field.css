@@ -53,6 +53,12 @@
   padding-inline-end: var(--space-4);
 }
 
+.field__suffix {
+  flex: none;
+  padding-inline-end: var(--space-4);
+  color: var(--color-text-secondary);
+}
+
 .field__input::placeholder {
   color: var(--color-text-secondary);
 }
