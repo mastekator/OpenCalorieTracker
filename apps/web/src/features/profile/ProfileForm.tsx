@@ -1,7 +1,9 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
-import { Flag, Sparkles } from 'lucide-react';
+import { Check, Flag, Sparkles, Undo2 } from 'lucide-react';
 import { useLocation, useSearch } from 'wouter';
 import {
+  DEFAULT_MANUAL_PCT,
+  KCAL_FLOOR,
   REQUIRED_FIELDS,
   ageYears,
   birthDateError,
@@ -11,6 +13,7 @@ import {
   effectiveNorm,
   ftInToCm,
   goalSchema,
+  manualNormSchema,
   targetWeightError,
   addDays,
   addYears,
@@ -18,6 +21,7 @@ import {
   weightFromKg,
   weightToKg,
   type Goal,
+  type ManualNorm,
   type Profile,
   type ProfileRequest,
   type ProfileResponse,
@@ -46,7 +50,10 @@ import { List, ListRow } from '../../ui/List/List';
 import { NormCard } from '../../ui/NormCard/NormCard';
 import { SaveBar } from '../../ui/SaveBar/SaveBar';
 import { Segment } from '../../ui/Segment/Segment';
+import { Switch } from '../../ui/Switch/Switch';
 import { useToast } from '../../ui/Toast/Toast';
+import { MACROS, fillMacros, type Macro, type Pct } from './fillMacros';
+import { MacroFillDialog } from './MacroFillDialog';
 import './ProfileForm.css';
 
 type Field = keyof Profile;
@@ -81,6 +88,24 @@ const UNDO_MS = 5000;
 
 const isLoseGain = (goal: Goal | null) => goal === 'lose' || goal === 'gain';
 
+// The manual goal as typed: an emptied field is null (8.8).
+type ManualDraft = { kcal: number | null } & Record<Macro, number | null>;
+const toDraft = (m: ManualNorm | null): ManualDraft | null =>
+  m && {
+    kcal: m.kcal,
+    protein: m.proteinPct,
+    fat: m.fatPct,
+    carbs: m.carbsPct,
+  };
+const toManual = (kcal: number, pct: Pct): ManualNorm => ({
+  kcal,
+  proteinPct: pct.protein,
+  fatPct: pct.fat,
+  carbsPct: pct.carbs,
+});
+const KCAL = manualNormSchema.shape.kcal;
+const KCAL_PER_G: Pct = { protein: 4, fat: 9, carbs: 4 };
+
 type Props = {
   initial: ProfileResponse;
   units: Units;
@@ -94,6 +119,8 @@ type Props = {
   disclaimerHidden?: boolean;
   /** Sets that flag; works offline through the settings queue. */
   onHideDisclaimer?: () => void;
+  /** Bump to turn the manual goal on and scroll to it («Set my own goal» in the chat, 9.8). */
+  manualAt?: number;
 };
 
 /** Profile screen body (OCT-22 §2, D.1): the form in rows, live norm, Save. */
@@ -105,6 +132,7 @@ export function ProfileForm({
   onSave,
   disclaimerHidden = false,
   onHideDisclaimer,
+  manualAt,
 }: Props) {
   const { t, locale } = useT();
   const toast = useToast();
@@ -125,6 +153,12 @@ export function ProfileForm({
     localStorage.getItem(REACHED_LATER_KEY),
   );
   const [disclaimerClosed, setDisclaimerClosed] = useState(false);
+  const [manual, setManual] = useState(() => toDraft(initial.manual));
+  // The rest goes to fat when carbs were edited last (8.8a).
+  const lastEdited = useRef<Macro | null>(null);
+  const [fillOpen, setFillOpen] = useState(false);
+  const focusAfterFill = useRef<Macro | null>(null);
+  const switchId = useId();
   const agentId = useId();
   // 8.20 opens as /profile?how: the form stays mounted, so the draft survives the trip.
   const how = new URLSearchParams(useSearch()).has('how');
@@ -158,7 +192,9 @@ export function ProfileForm({
       hasTarget && draft.targetWeightKg !== null ? draft.deadline : null,
   };
   const changed = (f: Field) => profile[f] !== saved.profile[f];
-  const dirty = FIELDS.some(changed);
+  const manualChanged =
+    JSON.stringify(manual) !== JSON.stringify(toDraft(saved.manual));
+  const dirty = FIELDS.some(changed) || manualChanged;
 
   // Errors in form order; range errors in the user's units (AC-1.4).
   const ranges = unitRanges(units);
@@ -229,15 +265,67 @@ export function ProfileForm({
       codeError(field, serverErrors[field]);
   }
   const errorFields = Object.keys(errors) as Field[];
+
+  // The manual goal: kcal and shares in range; a sum other than 100 is not an error (8.8).
+  const pct: Pct | null = manual && {
+    protein: manual.protein ?? 0,
+    fat: manual.fat ?? 0,
+    carbs: manual.carbs ?? 0,
+  };
+  const pctSum = pct ? pct.protein + pct.fat + pct.carbs : 100;
+  let manualError: string | null = null;
+  if (manual) {
+    const bad = MACROS.find((m) => pct![m] > 100);
+    if (manual.kcal !== null && !KCAL.safeParse(manual.kcal).success)
+      manualError = t('range.error', {
+        field: t('manual.kcal'),
+        min: num1.format(KCAL.minValue!),
+        max: num1.format(KCAL.maxValue!),
+        unit: t('today.kcal'),
+      });
+    else if (bad)
+      manualError = t('range.error', {
+        field: t(`macro.${bad}`),
+        min: 0,
+        max: 100,
+        unit: '%',
+      });
+  }
+  const filled = pct && fillMacros(pct, lastEdited.current);
+  // Only a sum of 100 is ever saved (AC-3.2).
+  const manualRequest = (fill: boolean) =>
+    manual && filled && toManual(manual.kcal!, fill ? filled.pct : pct!);
+  // An empty kcal is not an error yet (8.1 style), but there is nothing to save.
+  const manualEmpty = manual?.kcal === null;
+  const blocked = errorFields.length > 0 || manualError !== null || manualEmpty;
   // «Save and leave» (8.19) can't save a draft with errors: it stays to show them.
-  useDirty(dirty, () => (errorFields.length ? Promise.resolve(false) : save()));
+  useDirty(dirty, () =>
+    blocked
+      ? Promise.resolve(false)
+      : save({ profile, manual: manualRequest(true) }),
+  );
+  useEffect(() => {
+    if (fillOpen || !focusAfterFill.current) return;
+    formRef.current
+      ?.querySelector<HTMLElement>(
+        `input[aria-label="${t(`macro.${focusAfterFill.current}`)}"]`,
+      )
+      ?.focus();
+    focusAfterFill.current = null;
+  }, [fillOpen, t]);
+  useEffect(() => {
+    if (manualAt) openManual();
+    // Only a new request opens it, not a re-render.
+  }, [manualAt]);
   const groupError = (calc: boolean) =>
     errorFields.find((f) => CALC_GROUP.has(f) === calc);
 
   // The norm: live from the draft (AC-1.2), the same function the server uses (ADR-0014 §4).
   const calc = errorFields.length ? null : calculateNorm(profile, today);
-  const norm = saved.manual
-    ? effectiveNorm(profile, saved.manual, today)
+  const norm = manual
+    ? manualError || manualEmpty
+      ? null
+      : effectiveNorm(profile, manualRequest(false), today)
     : calc?.status === 'ok'
       ? calc
       : null;
@@ -256,7 +344,7 @@ export function ProfileForm({
     }).format(new Date(date));
 
   // Warnings of the calculated norm (8.5b, 8.6, 8.11); they never block saving.
-  const ok = calc?.status === 'ok' && !saved.manual ? calc : null;
+  const ok = calc?.status === 'ok' && !manual ? calc : null;
   let warnings: ReactNode = null;
   if (ok) {
     const { pace, steps } = ok;
@@ -377,17 +465,24 @@ export function ProfileForm({
   const minor = calc?.status === 'minor';
   // Why there is no calculation: a field to fix, under 18, or what is missing.
   const emptyMessage = (missingKey: 'norm.missing' | 'how.missing') =>
-    errorFields[0]
-      ? t('norm.fix', { field: fieldName(errorFields[0]) })
-      : minor
-        ? t('norm.minor')
-        : t(missingKey, {
-            fields: new Intl.ListFormat(locale, {
-              type: 'conjunction',
-            }).format(
-              calc?.status === 'incomplete' ? calc.missing.map(fieldName) : [],
-            ),
-          });
+    manual && missingKey === 'norm.missing'
+      ? t(manualEmpty ? 'norm.missing' : 'norm.fix', {
+          field: t('manual.kcal').toLocaleLowerCase(locale),
+          fields: t('manual.kcal').toLocaleLowerCase(locale),
+        })
+      : errorFields[0]
+        ? t('norm.fix', { field: fieldName(errorFields[0]) })
+        : minor
+          ? t('norm.minor')
+          : t(missingKey, {
+              fields: new Intl.ListFormat(locale, {
+                type: 'conjunction',
+              }).format(
+                calc?.status === 'incomplete'
+                  ? calc.missing.map(fieldName)
+                  : [],
+              ),
+            });
   let card: ReactNode;
   if (firstVisit)
     card = <NormCard state="first" onAgent={onAgent} onForm={startForm} />;
@@ -401,16 +496,52 @@ export function ProfileForm({
           fat: norm.fatG,
           carbs: norm.carbsG,
         }}
-        badge={saved.manual ? 'manual' : dirty ? 'draft' : 'calc'}
+        badge={
+          manual
+            ? manualChanged
+              ? 'draft'
+              : 'manual'
+            : dirty
+              ? 'draft'
+              : 'calc'
+        }
         onHow={() => navigate('/profile?how')}
       >
         {warnings}
+        {saved.manual && manual && !manualChanged && (
+          // 8.9: the calculation for comparison and one tap back to it (AC-3.5, AC-3.6).
+          <div className="profile__override">
+            {calc?.status === 'ok' && (
+              <span>
+                {t('manual.by_profile', {
+                  n: new Intl.NumberFormat(locale).format(calc.kcal),
+                })}
+              </span>
+            )}
+            <Button
+              variant="plain"
+              small
+              disabled={saving || errorFields.length > 0}
+              onClick={resetToCalc}
+            >
+              <Undo2 aria-hidden="true" />
+              {t('manual.reset')}
+            </Button>
+          </div>
+        )}
       </NormCard>
     );
   else
     card = (
       <NormCard state="empty" message={emptyMessage('norm.missing')}>
-        {minor && <p>{t('norm.minor_body')}</p>}
+        {minor && !manual && (
+          <>
+            <p>{t('norm.minor_body')}</p>
+            <Button variant="tonal" onClick={openManual}>
+              {t('norm.minor_cta')}
+            </Button>
+          </>
+        )}
       </NormCard>
     );
 
@@ -463,8 +594,73 @@ export function ProfileForm({
       );
     else paceText = t('goal.rate', params);
   }
+  // Under the manual group: an error, else the sum hint and the low-kcal warning (8.8).
+  const floor = KCAL_FLOOR[profile.sex ?? 'male'];
+  let manualFooter: ReactNode = t('manual.hint');
+  if (manualError)
+    manualFooter = <span className="profile__error">{manualError}</span>;
+  else if (manual)
+    manualFooter = (pctSum !== 100 || (manual.kcal ?? floor) < floor) && (
+      <>
+        {pctSum !== 100 && (
+          <span className="profile__line">
+            {t(pctSum < 100 ? 'manual.sum_short' : 'manual.sum_over', {
+              n: Math.abs(100 - pctSum),
+            })}
+          </span>
+        )}
+        {(manual.kcal ?? floor) < floor && (
+          <span className="profile__line profile__warn">
+            {t('manual.low', {
+              floor: new Intl.NumberFormat(locale).format(floor),
+            })}{' '}
+            {t('norm.disclaimer')}
+          </span>
+        )}
+      </>
+    );
   const footerError = (f: Field | undefined) =>
     f && <span className="profile__error">{errors[f]}</span>;
+
+  function setManualField(field: keyof ManualDraft, value: number | null) {
+    if (field !== 'kcal') lastEdited.current = field;
+    setManual((m) => m && { ...m, [field]: value });
+  }
+
+  /** Switch on: the saved manual goal, else the current calculation's shares (AC-3.2). */
+  function turnManual(on: boolean) {
+    if (!on) return setManual(null);
+    lastEdited.current = null;
+    if (saved.manual) return setManual(toDraft(saved.manual));
+    if (calc?.status !== 'ok')
+      return setManual({ kcal: null, ...DEFAULT_MANUAL_PCT });
+    const protein = Math.round((calc.proteinG * 400) / calc.kcal);
+    const fat = Math.round((calc.fatG * 900) / calc.kcal);
+    setManual({ kcal: calc.kcal, protein, fat, carbs: 100 - protein - fat });
+  }
+
+  /** «Set manually» (8.12, 9.8): switch on and bring it into view. */
+  function openManual() {
+    if (!manual) turnManual(true);
+    const el = document.getElementById(switchId);
+    el?.scrollIntoView?.({ block: 'center' });
+    el?.focus();
+  }
+
+  /** 8.10: no dialog, «Undo» brings the manual goal back. */
+  function resetToCalc() {
+    const before = saved.manual;
+    void save(
+      { profile, manual: null },
+      () => save({ profile, manual: before }),
+      t('manual.reset_toast'),
+    );
+  }
+
+  function onSaveClick() {
+    if (manual && pctSum !== 100) setFillOpen(true);
+    else void save();
+  }
 
   function startForm() {
     setStarted(true);
@@ -481,10 +677,11 @@ export function ProfileForm({
     el?.focus();
   }
 
-  /** PUT the draft, or `request`; `undo` adds «Undo» to the toast (8.13). */
+  /** PUT the draft, or `request`; `undo` adds «Undo» to the toast (8.10, 8.13). */
   async function save(
-    request: ProfileRequest = { profile, manual: saved.manual },
+    request: ProfileRequest = { profile, manual: manualRequest(false) },
     undo?: () => void,
+    text = t('save.done'),
   ) {
     setSaving(true);
     setFailed(false);
@@ -492,15 +689,16 @@ export function ProfileForm({
       const res = await onSave(request);
       setSaved(res);
       setDraft(res.profile);
+      setManual(toDraft(res.manual));
       setFtIn(null);
       toast(
         undo
           ? {
-              text: t('save.done'),
+              text,
               action: { label: t('common.undo'), onClick: undo },
               ms: UNDO_MS,
             }
-          : { text: t('save.done') },
+          : { text },
       );
       return true;
     } catch (err) {
@@ -553,7 +751,7 @@ export function ProfileForm({
               <button
                 type="button"
                 className="profile__link"
-                onClick={() => save()}
+                onClick={onSaveClick}
               >
                 {t('common.retry')}
               </button>
@@ -566,8 +764,8 @@ export function ProfileForm({
                   ? `${new Intl.NumberFormat(locale).format(norm.kcal)} ${t('today.kcal')}`
                   : null
               }
-              onSave={() => save()}
-              disabled={!dirty || errorFields.length > 0}
+              onSave={onSaveClick}
+              disabled={!dirty || blocked}
               loading={saving}
             />
           </div>
@@ -726,7 +924,83 @@ export function ProfileForm({
               </>
             )}
           </List>
+
+          <List title={t('manual.title')} footer={manualFooter}>
+            <FormRow label={t('manual.toggle')}>
+              <Switch
+                id={switchId}
+                checked={manual !== null}
+                onChange={turnManual}
+                label={t('manual.toggle')}
+              />
+            </FormRow>
+            {manual && (
+              <>
+                <FormRow label={t('manual.kcal')}>
+                  <InlineNumber
+                    label={t('manual.kcal')}
+                    value={manual.kcal}
+                    onChange={(v) => setManualField('kcal', v)}
+                    unit={t('today.kcal')}
+                    error={
+                      manualError !== null && !MACROS.some((m) => pct![m] > 100)
+                    }
+                  />
+                </FormRow>
+                {MACROS.map((m) => (
+                  <FormRow key={m} label={t(`macro.${m}`)}>
+                    <span className="profile__pct">
+                      {manual.kcal !== null && (
+                        <span className="profile__grams">
+                          {Math.round(
+                            (manual.kcal * pct![m]) / 100 / KCAL_PER_G[m],
+                          )}{' '}
+                          {t('macro.g')}
+                        </span>
+                      )}
+                      <InlineNumber
+                        label={t(`macro.${m}`)}
+                        value={manual[m]}
+                        onChange={(v) => setManualField(m, v)}
+                        unit="%"
+                        error={pct![m] > 100}
+                      />
+                    </span>
+                  </FormRow>
+                ))}
+                <ListRow
+                  value={
+                    <span
+                      className={`profile__sum${pctSum === 100 ? ' profile__sum--ok' : ''}`}
+                    >
+                      {pctSum === 100 && <Check aria-hidden="true" />}
+                      {t('manual.pct', { n: pctSum })}
+                    </span>
+                  }
+                >
+                  {t('manual.sum')}
+                </ListRow>
+              </>
+            )}
+          </List>
         </div>
+
+        {manual && filled && (
+          <MacroFillDialog
+            open={fillOpen}
+            pct={pct!}
+            filled={filled.pct}
+            target={filled.target}
+            onApply={() => {
+              setFillOpen(false);
+              void save({ profile, manual: manualRequest(true) });
+            }}
+            onSelf={() => {
+              focusAfterFill.current = filled.target;
+              setFillOpen(false);
+            }}
+          />
+        )}
 
         <ActivitySheet
           open={activityOpen}

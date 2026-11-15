@@ -59,6 +59,8 @@
   --sheet-handle-width: 36px;  --sheet-handle-height: 5px;
   --modal-flow-max-width: 720px;   /* desktop: camera → recognition → edit window */
   --desktop-gutter: var(--space-10);
+  --switch-width: 51px;          /* on/off switch (OCT-22 §2, «Set my own goal») */
+  --switch-height: 31px;
   --chat-avatar-size: 28px;      /* agent icon circle in the norm chat (OCT-22 §3) */
   --chat-bubble-max-width: 80%;  /* user message bubble */
   --chat-dot-size: 6px;          /* «typing» dots */

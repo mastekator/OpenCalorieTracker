@@ -10,6 +10,7 @@ import {
 } from '@testing-library/react';
 import {
   calculateNorm,
+  type ManualNorm,
   type Profile,
   type ProfileRequest,
   type ProfileResponse,
@@ -52,13 +53,15 @@ function setup(
     units = 'metric' as Units,
     onSave = echo,
     rev = 1,
+    manual = null,
     ...extra
   }: Extra & {
     rev?: number;
+    manual?: ManualNorm | null;
   } = {},
 ) {
   const props = {
-    initial: { ...response(profile), rev },
+    initial: { ...response(profile), manual, rev },
     today,
     onSave,
     ...extra,
@@ -403,5 +406,107 @@ describe('ProfileForm', () => {
     expect(
       screen.queryByRole('button', { name: 'Hide this notice' }),
     ).toBeNull();
+  });
+  it('under 18: «Set manually» turns the switch on and focuses it', async () => {
+    setup({ ...base, birthDate: '2010-01-01' });
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Set manually' }),
+    );
+    const toggle = screen.getByRole('switch', { name: 'Set my own goal' });
+    expect(toggle.getAttribute('aria-checked')).toBe('true');
+    expect(document.activeElement).toBe(toggle);
+    // No calculation for under-18s: default shares, kcal to fill in.
+    expect((await field('Protein')).value).toBe('20');
+    expect((await field('Kcal a day')).value).toBe('');
+    expect((save() as HTMLButtonElement).disabled).toBe(true);
+    await type('Kcal a day', '2200');
+    await screen.findByText(kcal(2200));
+    expect((save() as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it('the switch starts from the current calculation', async () => {
+    setup(base);
+    fireEvent.click(await screen.findByRole('switch'));
+    expect((await field('Kcal a day')).value).toBe('2760');
+    const shares = ['Protein', 'Fat', 'Carbs'].map(async (n) =>
+      Number((await field(n)).value),
+    );
+    const [p, f, c] = await Promise.all(shares);
+    expect(p! + f! + c!).toBe(100);
+    screen.getByText('not saved');
+    // Below the floor: a warning with the disclaimer, saving still allowed (AC-3.3).
+    await type('Kcal a day', '1400');
+    screen.getByText(/That’s below 1,500 kcal/);
+    expect((save() as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it('21/30/44: the dialog fills carbs; «I’ll fix it myself» keeps the input', async () => {
+    setup(base);
+    fireEvent.click(await screen.findByRole('switch'));
+    await type('Kcal a day', '2000');
+    await type('Carbs', '44');
+    await type('Fat', '30');
+    await type('Protein', '21');
+    screen.getByText('5% left — we’ll fill it in when you save');
+    fireEvent.click(save());
+    const dialog = await screen.findByRole('alertdialog');
+    within(dialog).getByText('Carbs 44 → 49%');
+    within(dialog).getByText(/add the rest to carbs/);
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: 'I’ll fix it myself' }),
+    );
+    expect(echo).not.toHaveBeenCalled();
+    const carbs = await field('Carbs');
+    expect(carbs.value).toBe('44');
+    expect(document.activeElement).toBe(carbs);
+
+    fireEvent.click(save());
+    await act(async () =>
+      fireEvent.click(
+        within(await screen.findByRole('alertdialog')).getByRole('button', {
+          name: 'Fill in and save',
+        }),
+      ),
+    );
+    expect(echo.mock.calls[0]![0].manual).toEqual({
+      kcal: 2000,
+      proteinPct: 21,
+      fatPct: 30,
+      carbsPct: 49,
+    });
+    await screen.findByText('set manually');
+  });
+
+  it('the rest goes to fat when carbs were edited last', async () => {
+    setup(base);
+    fireEvent.click(await screen.findByRole('switch'));
+    await type('Protein', '20');
+    await type('Fat', '30');
+    await type('Carbs', '55');
+    screen.getByText('5% over — we’ll trim it when you save');
+    fireEvent.click(save());
+    within(await screen.findByRole('alertdialog')).getByText('Fat 30 → 25%');
+  });
+
+  it('a manual goal: «Reset to calculated» saves at once, «Undo» brings it back', async () => {
+    const manual = { kcal: 2000, proteinPct: 25, fatPct: 30, carbsPct: 45 };
+    setup(base, { manual });
+    await screen.findByText('set manually');
+    screen.getByText('From your profile: 2,760 kcal');
+    await act(async () =>
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Reset to calculated' }),
+      ),
+    );
+    expect(echo.mock.calls[0]![0]).toEqual({ profile: base, manual: null });
+    await screen.findByText('Using the calculated goal');
+    expect(screen.getByRole('switch').getAttribute('aria-checked')).toBe(
+      'false',
+    );
+    await act(async () =>
+      fireEvent.click(screen.getByRole('button', { name: 'Undo' })),
+    );
+    expect(echo.mock.calls[1]![0]).toEqual({ profile: base, manual });
+    await screen.findByText('set manually');
   });
 });

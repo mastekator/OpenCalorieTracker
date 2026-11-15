@@ -1,4 +1,4 @@
-import { useId } from 'react';
+import { useId, type ReactNode } from 'react';
 import { useT } from '../../i18n';
 import { Button } from '../Button/Button';
 import { useModalDialog } from '../useModalDialog';
@@ -7,7 +7,7 @@ import './ConfirmDialog.css';
 type Props = {
   open: boolean;
   title: string;
-  body?: string;
+  body?: ReactNode;
   confirmLabel: string;
   /** Defaults to «Cancel»; e.g. «Close» (3.8) or «Stay» (leave with edits). */
   cancelLabel?: string;
