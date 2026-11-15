@@ -885,6 +885,12 @@ const ru: DeepPartial<typeof en> = {
       more: 'Больше на {step}',
       err: 'Вес от 1 до 5000 г (в oz: от 0,1 до 176,4 oz)',
     },
+    history: {
+      hint: 'Похоже на запись {date}: {weight} · {kcal}\u00a0ккал',
+      apply: 'Как в прошлый раз',
+      keep: 'Оставить оценку',
+      applied: 'Подставили прошлую запись',
+    },
     edit: 'Изменить: {dish}',
     title: '{day}, {time}',
     estimate:

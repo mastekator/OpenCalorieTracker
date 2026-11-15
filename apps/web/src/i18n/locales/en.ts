@@ -871,6 +871,12 @@ export const en = {
       more: '{step} more',
       err: 'Weight from 1 to 5000 g (0.1 to 176.4 oz)',
     },
+    history: {
+      hint: 'Looks like your entry from {date}: {weight} · {kcal}\u00a0kcal',
+      apply: 'Same as last time',
+      keep: 'Keep estimate',
+      applied: 'Used your previous entry',
+    },
     edit: 'Edit {dish}',
     title: '{day}, {time}',
     estimate:
