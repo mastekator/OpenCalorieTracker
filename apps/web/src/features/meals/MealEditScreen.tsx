@@ -324,14 +324,18 @@ export function MealEditScreen({
     findPrevious(row.id, [lookupOf(row)], LOOKUP_DELAY_MS);
   };
 
-  const keepEstimate = (id: string) =>
+  // The hint unmounts with the focused button, so focus goes back to the dish row.
+  const keepEstimate = (id: string) => {
+    focusRow.current = id;
     setRows((rs) =>
       rs.map((r) => (r.id === id ? { ...r, previous: undefined } : r)),
     );
+  };
 
   // «Same as last time»: weight recalculation now starts from the previous values (AC-11.5).
   const applyPrevious = (row: Row, prev: Previous) => {
     const { grams, kcal, proteinG, fatG, carbsG } = prev;
+    focusRow.current = row.id;
     setRows((rs) =>
       rs.map((r) =>
         r.id === row.id

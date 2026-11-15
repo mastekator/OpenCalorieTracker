@@ -28,8 +28,8 @@ export function HistoryHint({
   const { t, num, locale } = useT();
   const us = units === 'us';
   const weight = us
-    ? `${new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(gToOz(grams))} ${t('unit.oz')}`
-    : `${num(grams)} ${t('unit.g')}`;
+    ? `${new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(gToOz(grams))}\u00a0${t('unit.oz')}`
+    : `${num(grams)}\u00a0${t('unit.g')}`;
   const date = new Intl.DateTimeFormat(locale, {
     day: 'numeric',
     month: 'short',

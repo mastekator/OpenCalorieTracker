@@ -667,7 +667,7 @@ describe('MealEditScreen: same as last time (4.3, OCT-61)', () => {
     ]);
     expect(screen.getAllByText(/^Looks like your entry from/)).toHaveLength(1);
     expect(hint()!.textContent).toBe(
-      'Looks like your entry from Nov 12: 200 g · 380 kcal',
+      'Looks like your entry from Nov 12: 200\u00a0g · 380\u00a0kcal',
     );
   });
 
@@ -689,12 +689,14 @@ describe('MealEditScreen: same as last time (4.3, OCT-61)', () => {
     await withHistory();
     fireEvent.click(screen.getByRole('button', { name: 'Keep estimate' }));
     expect(hint()).toBeNull();
+    expect(document.activeElement!.classList).toContain('dish-row__edit');
   });
 
   it('«Same as last time» saves the previous values from history; weight recalculates from them', async () => {
     const { onSave, save, input } = await withHistory();
     fireEvent.click(screen.getByRole('button', { name: 'Same as last time' }));
     expect(hint()).toBeNull();
+    expect(document.activeElement!.classList).toContain('dish-row__edit');
     expect(screen.getByText('as last time')).toBeTruthy();
     expect(await screen.findByText('Used your previous entry')).toBeTruthy();
     fireEvent.change(input, { target: { value: '100' } });
