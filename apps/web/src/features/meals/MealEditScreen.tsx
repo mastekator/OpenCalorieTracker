@@ -37,6 +37,7 @@ import { OfflineBar, useOnline } from '../../ui/OfflineBar/OfflineBar';
 import { ScreenState } from '../../ui/ScreenState/ScreenState';
 import { Segment } from '../../ui/Segment/Segment';
 import { useToast } from '../../ui/Toast/Toast';
+import { diaryDay, localToday } from '../diary/day';
 import type { TodayState } from '../diary/TodayScreen';
 import { MEAL_NEW_PATH, useCapture } from './CaptureContext';
 import type { MealEditState } from './RecognitionScreen';
@@ -155,6 +156,10 @@ export function MealEditScreen({
   // A past day: the time follows the meal type until edited by hand (AC-2.12).
   const [time, setTime] = useState<string | null>(null);
   const eatenTime = time ?? MEAL_TIME[mealType];
+  const [hh, mm] = eatenTime.split(':').map(Number);
+  const [y, m, d] = (date ?? '').split('-').map(Number);
+  /** The time eaten on a past day, local. */
+  const pastAt = () => new Date(y!, m! - 1, d, hh, mm);
   const [status, setStatus] = useState<'idle' | 'saving' | 'error'>('idle');
   const [editing, setEditing] = useState<string | null>(null);
   const [adding, setAdding] = useState(manual !== undefined); // AC-5.5, 5.3
@@ -283,9 +288,7 @@ export function MealEditScreen({
     if (saving.current || !valid) return false; // a second tap sends nothing (E-4.2)
     saving.current = true;
     setStatus('saving');
-    const [y, m, d] = (date ?? '').split('-').map(Number);
-    const [hh, mm] = eatenTime.split(':').map(Number);
-    const at = date ? new Date(y!, m! - 1, d, hh, mm) : now();
+    const at = date ? pastAt() : now();
     try {
       await onSave(
         {
@@ -353,7 +356,7 @@ export function MealEditScreen({
   const title = date
     ? t('edit.title', {
         day: dateOf(date, { weekday: 'short', day: 'numeric', month: 'short' }),
-        time: eatenTime,
+        time: timeOf(pastAt()),
       })
     : t('edit.title', {
         day: t(late && day === 'yesterday' ? 'day.yesterday' : 'day.today'),
@@ -590,7 +593,10 @@ export function MealEditRoute() {
   const search = useSearch();
   const params = new URLSearchParams(search);
   const photoId = params.get('photo') ?? undefined;
-  const date = params.get('date') ?? undefined;
+  // Checked like the diary's address: a real past day, else today (AC-2.3).
+  const today = localToday();
+  const day = diaryDay(params.get('date') ?? today, today);
+  const date = day === today ? undefined : day;
   const [state] = useState(() => history.state as MealEditState | null);
   if (!state && photoId)
     return <Redirect to={`${MEAL_NEW_PATH}?${search}`} replace />;
