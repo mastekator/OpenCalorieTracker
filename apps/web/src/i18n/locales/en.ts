@@ -291,9 +291,9 @@ export const en = {
     apply_error_body: 'Check your connection and try again.',
     applied: 'Goal applied',
     replace: {
-      title: 'Replace your manual goal?',
-      body: 'Your goal of {n} kcal set manually will be replaced by the calculated one.',
-      confirm: 'Replace',
+      title: 'Apply {n} kcal goal?',
+      body: 'Your manual goal of {m} kcal will be replaced.',
+      confirm: 'Apply',
     },
     manual: 'Set my own goal',
     back: 'Back',

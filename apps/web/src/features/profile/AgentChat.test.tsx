@@ -165,12 +165,17 @@ describe('AgentChat (container)', () => {
     const { onApplied } = await setup({ manualKcal: 2100 });
 
     fireEvent.click(await screen.findByRole('button', { name: 'Apply goal' }));
-    expect(screen.getByText(/2,100 kcal set manually/)).toBeTruthy();
+    expect(
+      screen.getByText(`Apply ${norm.kcal.toLocaleString('en')} kcal goal?`),
+    ).toBeTruthy();
+    expect(
+      screen.getByText('Your manual goal of 2,100 kcal will be replaced.'),
+    ).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(apiMock).toHaveBeenCalledTimes(1);
 
     fireEvent.click(screen.getByRole('button', { name: 'Apply goal' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Replace' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
     await waitFor(() => expect(onApplied).toHaveBeenCalledWith(applied));
   });
 
@@ -198,7 +203,7 @@ describe('AgentChat (container)', () => {
     await setup({ disclaimerHidden: true });
 
     expect(
-      await screen.findByText(/^I have: male formula, 34 years, 182 cm, 85 kg/),
+      await screen.findByText(/^I have: male formula, 34 years, 182 cm, 85 kg, activity — [a-z]/),
     ).toBeTruthy();
     expect(screen.queryByText(/This is an estimate/)).toBeNull();
     expect(screen.getByRole('button', { name: 'All correct' })).toBeTruthy();

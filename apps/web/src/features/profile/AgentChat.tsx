@@ -192,29 +192,30 @@ export function AgentChat({
   };
 
   /** 9.6: what the saved profile already says. */
+  const lower = (s: string) => s.toLocaleLowerCase(locale);
   const known = (p: Profile) =>
-    new Intl.ListFormat(locale, { type: 'unit' }).format(
-      [
+    [
         p.sex && t(`chat.known_sex.${p.sex}`),
         p.birthDate && t('field.age', { count: ageYears(p.birthDate, today) }),
         p.heightCm !== null && height(p.heightCm),
         p.weightKg !== null && weight(p.weightKg),
         p.activity &&
           t('chat.known_activity', {
-            name: t(`activity.${p.activity}.name`),
+            name: lower(t(`activity.${p.activity}.name`)),
           }),
         p.goal &&
           t('chat.known_goal', {
             name:
               p.targetWeightKg === null
-                ? t(`goal.${p.goal}`)
+                ? lower(t(`goal.${p.goal}`))
                 : t('chat.summary.goal_to', {
-                    goal: t(`goal.${p.goal}`),
+                    goal: lower(t(`goal.${p.goal}`)),
                     weight: weight(p.targetWeightKg),
                   }),
           }),
-      ].filter((s): s is string => !!s),
-    );
+    ]
+      .filter((s): s is string => !!s)
+      .join(', ');
 
   const invalidText = (m: Extract<AssistantMessage, { kind: 'invalid' }>) => {
     const { field, min, max } = m;
@@ -432,9 +433,11 @@ export function AgentChat({
       <ConfirmDialog
         open={confirm}
         tone="primary"
-        title={t('chat.replace.title')}
+        title={t('chat.replace.title', {
+          n: new Intl.NumberFormat(locale).format(lastSummary?.norm.kcal ?? 0),
+        })}
         body={t('chat.replace.body', {
-          n: new Intl.NumberFormat(locale).format(manualKcal ?? 0),
+          m: new Intl.NumberFormat(locale).format(manualKcal ?? 0),
         })}
         confirmLabel={t('chat.replace.confirm')}
         onConfirm={() => void apply()}
