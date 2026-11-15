@@ -749,7 +749,6 @@ export const en = {
     choose: 'Choose',
     share: 'Share',
     step1_hint: "At the bottom of Safari. If you can't see it, tap ••• first",
-    more: 'More',
     home: 'Add to Home Screen',
     step2_hint: "If it's not there, scroll down",
     add: 'Add',
