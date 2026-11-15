@@ -51,7 +51,7 @@ export function IllustrationPicker({
     if (open)
       grid.current
         ?.querySelector('[aria-checked="true"]')
-        ?.scrollIntoView?.({ block: 'center' });
+        ?.scrollIntoView?.({ block: 'nearest' });
   }, [open]);
 
   // Arrows move within the radiogroup; Enter or Space applies (D.1).
