@@ -4,6 +4,8 @@ const config: StorybookConfig = {
   stories: ['../src/**/*.stories.tsx'],
   addons: ['storybook-addon-pseudo-states'],
   framework: '@storybook/react-vite',
+  // Server test photos stand in for /api/photos/<id>; the ?size query is ignored.
+  staticDirs: [{ from: '../../server/test-photos', to: '/api/photos' }],
   // No service worker in Storybook: the PWA plugin would precache the Storybook build.
   viteFinal: (config) => ({
     ...config,

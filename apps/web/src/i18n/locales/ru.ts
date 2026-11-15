@@ -969,7 +969,7 @@ const ru: DeepPartial<typeof en> = {
       body_manual: 'Иначе введённые блюда пропадут.',
     },
     add_manual: 'Добавить блюдо вручную',
-    photo: { add: 'Фото' },
+    photo: { add: 'Фото', add_label: 'Добавить фото' },
     illo: {
       title: 'Картинка блюда',
       change: 'Иллюстрация: {name}, изменить',

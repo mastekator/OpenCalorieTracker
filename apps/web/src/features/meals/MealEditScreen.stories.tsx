@@ -113,18 +113,29 @@ export const NoDishesDark: Story = { args: { dishes: [] }, globals: dark };
 const manual = { dishes: [], manual: 'user' } satisfies Partial<Props>;
 export const Manual: Story = { args: manual };
 export const ManualDark: Story = { args: manual, globals: dark };
+/** A server test photo, served by Storybook's staticDirs as /api/photos/<id>. */
+const photoId = 'salad.jpg';
 /** 5.3: AI not set up; the banner shows above the header, the sheet is open. */
 const notConfigured = {
   dishes: [],
   manual: 'not_configured',
+  photoId,
 } satisfies Partial<Props>;
 export const NotConfigured: Story = { args: notConfigured };
 export const NotConfiguredDark: Story = { args: notConfigured, globals: dark };
-const noVision = { dishes: [], manual: 'no_vision' } satisfies Partial<Props>;
+const noVision = {
+  dishes: [],
+  manual: 'no_vision',
+  photoId,
+} satisfies Partial<Props>;
 export const NoVision: Story = { args: noVision };
 export const NoVisionDark: Story = { args: noVision, globals: dark };
 /** After 3.2–3.4 «Enter manually». */
-const aiDown = { dishes: [], manual: 'ai_down' } satisfies Partial<Props>;
+const aiDown = {
+  dishes: [],
+  manual: 'ai_down',
+  photoId,
+} satisfies Partial<Props>;
 export const AiDown: Story = { args: aiDown };
 export const AiDownDark: Story = { args: aiDown, globals: dark };
 /** 4.8: press Save to see the error banner and «Try again». */

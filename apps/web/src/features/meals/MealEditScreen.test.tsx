@@ -664,6 +664,33 @@ describe('MealEditScreen: manual entry (OCT-60)', () => {
     expect(onSave.mock.calls[0]![1]).toBeUndefined();
   });
 
+  it('the photo slot is named «Add photo» and spins while uploading', async () => {
+    let upload!: (r: Response) => void;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((path: string) =>
+        path === '/api/photos'
+          ? new Promise<Response>((r) => (upload = r))
+          : Promise.resolve(Response.json([])),
+      ),
+    );
+    await open('user');
+    const slot = screen.getByRole('button', { name: 'Add photo' });
+    expect(slot.querySelector('.button__spinner')).toBeNull();
+    fireEvent.change(screen.getByTestId('edit-photo'), {
+      target: { files: [new File(['jpeg'], 'a.jpg', { type: 'image/jpeg' })] },
+    });
+    await waitFor(() => expect(slot.getAttribute('aria-busy')).toBe('true'));
+    expect(
+      slot.querySelector('.button__spinner')?.getAttribute('aria-hidden'),
+    ).toBe('true');
+    upload(Response.json({ photoId: 'p9' }, { status: 201 }));
+    await waitFor(() =>
+      expect(document.querySelector('img.meal-edit__thumb')).toBeTruthy(),
+    );
+    expect(document.querySelector('.button__spinner')).toBeNull();
+  });
+
   it('a slot photo that failed to upload is queued with the meal', async () => {
     vi.stubGlobal(
       'fetch',
