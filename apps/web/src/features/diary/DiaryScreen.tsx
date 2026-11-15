@@ -1,7 +1,7 @@
 import type { Meal } from '@oct/shared';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Redirect, useLocation } from 'wouter';
-import { useDb, useMeals } from '../../data/DataContext';
+import { useDb, useMeals, useNorm } from '../../data/DataContext';
 import { deleteMeal } from '../../data/outbox';
 import { useT } from '../../i18n';
 import { useToast } from '../../ui/Toast/Toast';
@@ -27,6 +27,7 @@ function Diary({ date, today }: { date: string; today: string }) {
   const capture = useCapture();
   const [, navigate] = useLocation();
   const meals = useMeals(date);
+  const norm = useNorm(date);
   // Deleted on screen at once; the local delete (and its DELETE) waits for the undo window.
   const [hidden, setHidden] = useState<ReadonlySet<string>>(new Set());
   const pending = useRef<{
@@ -81,9 +82,13 @@ function Diary({ date, today }: { date: string; today: string }) {
     <DiaryDay
       date={date}
       today={today}
-      meals={meals?.filter((m) => !hidden.has(m.clientId))}
-      // The norm on the client comes with the profile in OCT-92.
-      norm={null}
+      // The norm waits with the meals, so the total doesn't jump from «eaten» to «left».
+      meals={
+        norm === undefined
+          ? undefined
+          : meals?.filter((m) => !hidden.has(m.clientId))
+      }
+      norm={norm ?? null}
       onDate={(next) => navigate(`/diary/${next}`, { replace: true })}
       // shortcut: editing a saved meal is OCT-69; until then a tap opens nothing.
       onOpen={() => {}}

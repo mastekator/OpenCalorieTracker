@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
-import { CircleAlert } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { z } from 'zod';
 import {
   aiStatusSchema,
@@ -9,12 +8,11 @@ import {
 } from '@oct/shared';
 import { api } from '../../api/client';
 import { useSession } from '../../app/SessionContext';
-import { useRequireOnline } from '../../app/connection';
-import { useDb, useSettings } from '../../data/DataContext';
+import { useDb, useProfile, useSettings } from '../../data/DataContext';
 import { patchSettings } from '../../data/outbox';
+import { storeProfile } from '../../data/sync';
 import { useT } from '../../i18n';
-import { Button } from '../../ui/Button/Button';
-import { ScreenState } from '../../ui/ScreenState/ScreenState';
+import { useOnline } from '../../ui/OfflineBar/OfflineBar';
 import { Delayed, Skeleton } from '../../ui/Skeleton/Skeleton';
 import { useToast } from '../../ui/Toast/Toast';
 import { AgentChat } from './AgentChat';
@@ -23,55 +21,33 @@ import { ProfileForm } from './ProfileForm';
 // Our own server: trust the shape, as data/sync.ts does.
 const profileResponse = z.custom<ProfileResponse>();
 
-type Loaded = { profile: ProfileResponse; interview: AiStatus['interview'] };
-
-/** /profile: loads the profile and whether the assistant is set up, then the form. */
+/** /profile: the profile from the local copy (ADR-0014 §5), read-only offline (8.15). */
 export function ProfileScreen() {
   const { t } = useT();
   const { user } = useSession();
   const db = useDb();
   const settings = useSettings();
+  const profile = useProfile();
+  const online = useOnline();
   const units = settings?.units ?? user?.units ?? 'metric';
-  const [data, setData] = useState<Loaded | null>(null);
-  const [failed, setFailed] = useState(false);
+  const [interview, setInterview] = useState<AiStatus['interview']>();
   const [chat, setChat] = useState(false);
   const [manualAt, setManualAt] = useState(0);
-  const requireOnline = useRequireOnline();
   const toast = useToast();
   const today = new Date().toLocaleDateString('sv');
   const disclaimerHidden =
     settings?.normDisclaimerHidden ?? user?.normDisclaimerHidden ?? false;
 
-  const load = useCallback(() => {
-    setFailed(false);
-    Promise.all([
-      api('/api/profile', profileResponse),
-      // Without a status the assistant is just not offered.
-      api('/api/ai/status', aiStatusSchema).then(
-        (s) => s.interview,
-        () => 'not_configured' as const,
-      ),
-    ]).then(
-      ([profile, interview]) => setData({ profile, interview }),
-      () => setFailed(true),
+  useEffect(() => {
+    if (!online) return;
+    // Without a status the assistant is just not offered.
+    api('/api/ai/status', aiStatusSchema).then(
+      (s) => setInterview(s.interview),
+      () => setInterview('not_configured'),
     );
-  }, []);
-  useEffect(load, [load]);
+  }, [online]);
 
-  if (failed)
-    return (
-      <ScreenState
-        icon={<CircleAlert />}
-        tone="danger"
-        title={t('errors.internal')}
-        action={
-          <Button variant="tonal" onClick={load}>
-            {t('common.retry')}
-          </Button>
-        }
-      />
-    );
-  if (!data)
+  if (!profile || (online && !interview))
     return (
       <Delayed>
         <div className="profile">
@@ -83,18 +59,22 @@ export function ProfileScreen() {
   return (
     <>
       <ProfileForm
-        // A goal applied in the chat replaces the form's state wholesale.
-        key={data.profile.rev}
-        initial={data.profile}
+        // A newer profile (a goal applied in the chat, another device) replaces the form's state.
+        key={profile.rev}
+        initial={profile}
         units={units}
         today={today}
+        readOnly={!online}
+        // Offline the status is unknown: the button shows, greyed out (8.15).
         onAgent={
-          data.interview === 'not_configured'
+          online && interview === 'not_configured'
             ? undefined
-            : requireOnline('agent', () => setChat(true))
+            : () => setChat(true)
         }
         onSave={(body: ProfileRequest) =>
-          api('/api/profile', profileResponse, { method: 'PUT', body })
+          api('/api/profile', profileResponse, { method: 'PUT', body }).then(
+            (saved) => storeProfile(db, saved),
+          )
         }
         disclaimerHidden={disclaimerHidden}
         onHideDisclaimer={() =>
@@ -107,11 +87,11 @@ export function ProfileScreen() {
         onClose={() => setChat(false)}
         units={units}
         today={today}
-        manualKcal={data.profile.manual?.kcal ?? null}
+        manualKcal={profile.manual?.kcal ?? null}
         disclaimerHidden={disclaimerHidden}
-        onApplied={(profile) => {
+        onApplied={(applied) => {
           setChat(false);
-          setData({ ...data, profile });
+          void storeProfile(db, applied).catch(() => {}); // closed by a user switch
           toast({ text: t('chat.applied') });
         }}
         // 9.8: back to the form with «Set my own goal» on.

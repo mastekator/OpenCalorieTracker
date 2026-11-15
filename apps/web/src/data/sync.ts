@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { SyncResponse } from '@oct/shared';
+import type { ProfileResponse, SyncResponse } from '@oct/shared';
 import { api } from '../api/client';
 import { emitChange } from './changes';
 import type { Choices, Db } from './db';
@@ -46,6 +46,10 @@ async function apply(db: Db, page: SyncResponse) {
   for (const clientId of page.deletedMealClientIds)
     await meals.delete(clientId);
   if (page.settings) await kv.put(page.settings, 'settings');
+  // A save answered while this page was in flight is newer: keep it.
+  const profile = (await kv.get('profile')) as ProfileResponse | undefined;
+  if (page.profile && !(profile && profile.rev > page.profile.rev))
+    await kv.put(page.profile, 'profile');
   if (page.illustrationChoices) {
     const choices = { ...((await kv.get('choices')) as Choices | undefined) };
     for (const { nameKey, illustration } of page.illustrationChoices)
@@ -55,4 +59,11 @@ async function apply(db: Db, page: SyncResponse) {
   }
   await kv.put(page.rev, 'rev');
   await tx.done;
+}
+
+/** The answer of a profile save (or an applied goal) into the local copy: every screen re-reads the norm. */
+export async function storeProfile(db: Db, profile: ProfileResponse) {
+  await db.put('kv', profile, 'profile');
+  emitChange();
+  return profile;
 }

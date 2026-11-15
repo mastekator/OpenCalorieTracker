@@ -6,8 +6,15 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import type { AccountSettings, Meal, MeResponse } from '@oct/shared';
+import {
+  effectiveNorm,
+  type AccountSettings,
+  type Meal,
+  type MeResponse,
+  type ProfileResponse,
+} from '@oct/shared';
 import { useT } from '../i18n';
+import { useOnline } from '../ui/OfflineBar/OfflineBar';
 import { useToast } from '../ui/Toast/Toast';
 import { onChange } from './changes';
 import { openUserDb, type Choices, type Db } from './db';
@@ -147,6 +154,46 @@ export const useSettings = () =>
       (await db.get('kv', 'settings')) as AccountSettings | undefined,
     [],
   );
+
+/** A profile never saved (what GET /api/profile answers for it). */
+export const EMPTY_PROFILE: ProfileResponse = {
+  profile: {
+    sex: null,
+    birthDate: null,
+    heightCm: null,
+    weightKg: null,
+    activity: null,
+    goal: null,
+    targetWeightKg: null,
+    deadline: null,
+  },
+  manual: null,
+  rev: 0,
+};
+
+/**
+ * Profile and manual norm from the local copy (ADR-0014 §5).
+ * Undefined while loading and, online, until the first sync; offline before it — empty.
+ */
+export function useProfile() {
+  const online = useOnline();
+  const stored = useLocal(async (db) => {
+    const [profile, rev] = await Promise.all([
+      db.get('kv', 'profile'),
+      db.get('kv', 'rev'),
+    ]);
+    if (rev === undefined) return null; // never synced
+    return (profile as ProfileResponse | undefined) ?? EMPTY_PROFILE;
+  }, []);
+  if (stored === null) return online ? undefined : EMPTY_PROFILE;
+  return stored;
+}
+
+/** The norm on `date` (`YYYY-MM-DD`): age moves with it (E-1.2). Null without one, undefined while loading. */
+export function useNorm(date: string) {
+  const p = useProfile();
+  return p && effectiveNorm(p.profile, p.manual, date);
+}
 
 /** Remembered illustration per dish nameKey. */
 export const useIllustrationChoices = () =>
