@@ -904,6 +904,13 @@ export const en = {
       title: 'Couldn’t save',
       body: 'Your edits are kept. Check your connection and try again.',
     },
+    late: {
+      label: 'Day',
+      yesterday: 'Yesterday',
+      today: 'Today',
+      hint: 'It’s {time} — we’ll count this late snack toward yesterday, {date}.',
+    },
+    time: 'Time',
     offline_note:
       'We’ll save it on this device and send it once you’re back online.',
   },
