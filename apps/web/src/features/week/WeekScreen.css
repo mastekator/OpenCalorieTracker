@@ -54,6 +54,7 @@
 
   .navbar .week__head .day-pager__date {
     flex: none;
+    min-width: var(--period-label-width);
   }
 
   .week__cards {
