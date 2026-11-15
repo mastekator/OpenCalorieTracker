@@ -91,6 +91,12 @@
   background: var(--color-carbs);
 }
 
+/* Plain button flush with the column's left edge (OCT-62 design). */
+.meal-edit__recalc {
+  display: block;
+  margin-inline-start: calc(-1 * var(--space-4));
+}
+
 .meal-edit__estimate {
   grid-column: 1 / -1;
   display: flex;

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useSearch } from 'wouter';
+import { X } from 'lucide-react';
 import {
   aiStatusSchema,
   recognitionSchema,
@@ -50,8 +51,20 @@ function whenBack(signal: AbortSignal) {
   });
 }
 
+/** Recalculating a saved meal (5.6): its dishes go back to it, every other way out returns to it as it was. */
+export type Recalc = {
+  onDishes: (dishes: RecognizedDish[]) => void;
+  onBack: () => void;
+};
+
 /** Screen 3 (design OCT-16 §2): POST /api/photos/:id/recognize → edit screen or a state 3.2–3.7. */
-export function RecognitionScreen({ photoId }: { photoId: string }) {
+export function RecognitionScreen({
+  photoId,
+  recalc,
+}: {
+  photoId: string;
+  recalc?: Recalc;
+}) {
   const { t } = useT();
   const [, navigate] = useLocation();
   const capture = useCapture();
@@ -62,7 +75,11 @@ export function RecognitionScreen({ photoId }: { photoId: string }) {
 
   // Replace: «Back» from the edit screen goes to Today, not into a new recognition.
   const toEdit = (editState: MealEditState) =>
-    navigate(MEAL_EDIT_PATH + query, { replace: true, state: editState });
+    recalc
+      ? 'dishes' in editState
+        ? recalc.onDishes(editState.dishes)
+        : recalc.onBack()
+      : navigate(MEAL_EDIT_PATH + query, { replace: true, state: editState });
 
   useEffect(() => {
     // Aborted by «Cancel» (unmount) or «Try again»; a late answer is then ignored (AC-2.5).
@@ -145,17 +162,25 @@ export function RecognitionScreen({ photoId }: { photoId: string }) {
   return (
     <div className="screen">
       <NavBar
-        title={t('nav.add_food')}
-        back={{ href: '/', label: t('common.cancel') }}
+        title={t(recalc ? 'recalc.action_photo' : 'nav.add_food')}
+        back={recalc ? undefined : { href: '/', label: t('common.cancel') }}
+        action={
+          recalc && {
+            icon: X,
+            label: t('common.cancel'),
+            onClick: recalc.onBack,
+          }
+        }
       />
       <main className="screen__body">
         <RecognitionState
           state={state}
           photoUrl={`/api/photos/${encodeURIComponent(photoId)}`}
           onRetry={() => setAttempt((a) => a + 1)}
-          onRetake={capture.camera}
+          // A retake would start a new meal: recalculating keeps to the entry's photo.
+          onRetake={recalc ? undefined : capture.camera}
           onManual={() => toEdit({ manual: aiDown ? 'ai_down' : 'user' })}
-          onClose={() => navigate('/')}
+          onClose={() => (recalc ? recalc.onBack() : navigate('/'))}
         />
       </main>
     </div>

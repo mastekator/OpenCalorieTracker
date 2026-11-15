@@ -197,6 +197,19 @@ describe('meals', () => {
       aiModel: 'gpt-old',
     });
 
+    // A recalculation from the photo is the current model's (AC-10.10).
+    const recalced = (await (
+      await withAi.call(withAi.cookie, 'PATCH', `/meals/${meal.id}`, {
+        items: input().items,
+        recalcOffer: false,
+      })
+    ).json()) as Meal;
+    expect(recalced.items[0]).toMatchObject({
+      source: 'ai',
+      aiProvider: 'google',
+      aiModel: 'gemini-x',
+    });
+
     const manual = await setup();
     const m2 = (await (
       await manual.call(manual.cookie, 'POST', '/meals', input())

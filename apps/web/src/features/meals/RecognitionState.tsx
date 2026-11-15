@@ -24,7 +24,8 @@ type Props = {
   state: RecognitionStateKind;
   photoUrl: string;
   onRetry: () => void;
-  onRetake: () => void;
+  /** None: no «Retake» (recalculating a saved meal's photo). */
+  onRetake?: () => void;
   onManual: () => void;
   onClose: () => void;
 };
@@ -54,11 +55,12 @@ export function RecognitionState({
       {t('common.retry')}
     </Button>
   );
-  const retake = (variant: 'primary' | 'tonal') => (
-    <Button key="retake" variant={variant} onClick={onRetake}>
-      {t('common.retake')}
-    </Button>
-  );
+  const retake = (variant: 'primary' | 'tonal') =>
+    onRetake && (
+      <Button key="retake" variant={variant} onClick={onRetake}>
+        {t('common.retake')}
+      </Button>
+    );
   const manual = (variant: 'primary' | 'tonal') => (
     <Button key="manual" variant={variant} onClick={onManual}>
       {t('common.manual_full')}

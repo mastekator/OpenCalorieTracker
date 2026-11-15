@@ -25,11 +25,13 @@ import {
   type DayChoice,
   type IllustrationId,
   type MealType,
+  type RecognizedDish,
   type Units,
   uuid,
 } from '@oct/shared';
 import { api, ApiError } from '../../api/client';
 import {
+  useAiStatus,
   useDb,
   useIllustrationChoices,
   useMeal,
@@ -61,7 +63,7 @@ import { diaryDay, localToday } from '../diary/day';
 import type { TodayState } from '../diary/TodayScreen';
 import { UNDO_MS, useUndoDelete } from '../diary/undoDelete';
 import { MEAL_NEW_PATH, useCapture } from './CaptureContext';
-import type { MealEditState } from './RecognitionScreen';
+import { RecognitionScreen, type MealEditState } from './RecognitionScreen';
 import { ImageDecodeError, prepareImage } from './prepareImage';
 import './MealEditScreen.css';
 
@@ -88,6 +90,14 @@ type Row = {
   /** A similar dish from the history: the hint under the row (4.3). */
   previous?: Previous;
 };
+
+/** The unsaved edits of a saved meal, kept across its recalculation (5.6). */
+export type Draft = { rows: Row[]; mealType: MealType; when: string };
+/**
+ * `history.state` of /meal/:clientId and its /recalc: the draft before the recalculation,
+ * and once the AI answered its dishes.
+ */
+export type RecalcState = { draft: Draft; dishes?: RecognizedDish[] };
 
 const photoSchema = z.object({ photoId: z.string() });
 const previousSchema = z.array(
@@ -216,6 +226,12 @@ type Props = {
   meal?: Meal;
   onPatch?: (patch: Omit<MealPatch, 'editedAt'> | null) => Promise<void>;
   onDelete?: () => void;
+  /** Coming back from a recalculation: the draft, and the AI's dishes in place of the rows. */
+  recalc?: RecalcState;
+  /** Set only while the meal can be recalculated: full photo, online, AI ready (AC-10.7). */
+  onRecalc?: (draft: Draft) => void;
+  /** «Not now» on the «AI is back» banner. */
+  onDismissRecalc?: () => void;
 };
 
 /** Screen 4 (design OCT-16 §3, E.2): dishes, weights with live totals, meal type, save. */
@@ -233,6 +249,9 @@ export function MealEditScreen({
   choices,
   onPatch,
   onDelete,
+  recalc,
+  onRecalc,
+  onDismissRecalc,
 }: Props) {
   const { t, num, locale } = useT();
   const online = useOnline();
@@ -247,16 +266,23 @@ export function MealEditScreen({
   // The idempotency key lives as long as the screen: «Try again» resends the same meal (4.8).
   const [clientId] = useState(uuid);
   const [rows, setRows] = useState(() =>
-    meal ? meal.items.map(savedRow) : dishes.map((d) => toRow(d)),
+    recalc?.dishes
+      ? recalc.dishes.map((d) => toRow(d))
+      : (recalc?.draft.rows ??
+        (meal ? meal.items.map(savedRow) : dishes.map((d) => toRow(d)))),
   );
+  // The AI's dishes replace the entry's: saved with the offer cleared, «Restore my numbers» undoes it.
+  const [recalced, setRecalced] = useState(!!recalc?.dishes);
   const [mealType, setMealType] = useState<MealType>(
-    () => meal?.mealType ?? (date ? 'lunch' : mealTypeAt(opened.getHours())),
+    () =>
+      recalc?.draft.mealType ??
+      meal?.mealType ??
+      (date ? 'lunch' : mealTypeAt(opened.getHours())),
   );
   // A saved meal: date and time on the device clock, never in the future (AC-2.9).
   const maxWhen = localInput(opened);
-  const [when, setWhen] = useState(() =>
-    meal ? localInput(new Date(meal.eatenAt)) : '',
-  );
+  const savedWhen = meal ? localInput(new Date(meal.eatenAt)) : '';
+  const [when, setWhen] = useState(recalc?.draft.when ?? savedWhen);
   // A past day: the time follows the meal type until edited by hand (AC-2.12).
   const [time, setTime] = useState<string | null>(null);
   const eatenTime = time ?? MEAL_TIME[mealType];
@@ -342,10 +368,19 @@ export function MealEditScreen({
     rows.length > 0 && rows.every((r) => r.grams !== null) && (!meal || !!when);
   // What a saved meal compares against: the screen is dirty once any of it differs (AC-2.10).
   const itemsKey = JSON.stringify(items);
-  const [initial] = useState(() => ({ itemsKey, mealType, when }));
+  // Against the saved meal, not a draft brought back from a recalculation.
+  const [initial] = useState(() =>
+    meal
+      ? {
+          itemsKey: JSON.stringify(meal.items.map(savedRow).map(itemOf)),
+          mealType: meal.mealType,
+          when: savedWhen,
+        }
+      : { itemsKey, mealType, when },
+  );
   const changed = {
     // An invalid weight is an edit too: leaving must not drop it silently (E-0.4).
-    items: itemsKey !== initial.itemsKey || !valid,
+    items: recalced || itemsKey !== initial.itemsKey || !valid,
     mealType: mealType !== initial.mealType,
     when: when !== initial.when,
   };
@@ -510,6 +545,8 @@ export function MealEditScreen({
     return {
       ...(changed.mealType && { mealType }),
       ...(changed.items && { items }),
+      // The server then records the current model on the AI dishes (AC-10.10).
+      ...(recalced && { recalcOffer: false }),
       ...(changed.when && {
         eatenAt: at.toISOString(),
         tzOffsetMin: offsetAt(at),
@@ -565,6 +602,25 @@ export function MealEditScreen({
           body: t(dishes.length ? 'edit.leave.body' : 'edit.leave.body_manual'),
         },
   );
+
+  // Once per recalculation: StrictMode runs effects twice, the ref outlives that.
+  const recalcToast = useRef(false);
+  useEffect(() => {
+    if (!recalc?.dishes || recalcToast.current) return;
+    recalcToast.current = true;
+    toast({
+      text: t('recalc.done'),
+      ms: 5000,
+      action: {
+        label: t('recalc.undo'),
+        // Back to the draft right before the recalculation, edits included (OCT-62 design).
+        onClick: () => {
+          setRows(recalc.draft.rows);
+          setRecalced(false);
+        },
+      },
+    });
+  }, []);
 
   // Runs after the sheet's cleanup, which returns focus to its (possibly deleted) opener.
   useEffect(() => {
@@ -624,6 +680,8 @@ export function MealEditScreen({
         });
   const busy = status === 'saving';
   const editingRow = rows.find((r) => r.id === editing);
+  const offer = !!meal?.recalcOffer && !!onRecalc && !recalced;
+  const startRecalc = () => onRecalc?.({ rows, mealType, when });
 
   return (
     <div className="meal-edit">
@@ -641,6 +699,26 @@ export function MealEditScreen({
                   ? 'manual_dish.ai_down'
                   : `recog.${manual}`,
               )}
+            </Banner>
+          </div>
+        )}
+        {offer && (
+          <div className="meal-edit__error">
+            <Banner
+              tone="accent"
+              title={t('recalc.banner.title')}
+              actions={
+                <>
+                  <Button onClick={startRecalc} disabled={busy}>
+                    {t('recalc.action')}
+                  </Button>
+                  <Button variant="plain" onClick={onDismissRecalc}>
+                    {t('recalc.dismiss')}
+                  </Button>
+                </>
+              }
+            >
+              {t('recalc.banner.body')}
             </Banner>
           </div>
         )}
@@ -691,6 +769,17 @@ export function MealEditScreen({
                   </span>
                 ))}
               </p>
+              {onRecalc && !offer && (
+                <span className="meal-edit__recalc">
+                  <Button variant="plain" onClick={startRecalc} disabled={busy}>
+                    <Sparkle
+                      aria-hidden="true"
+                      className="meal-edit__add-icon"
+                    />
+                    {t('recalc.action_photo')}
+                  </Button>
+                </span>
+              )}
             </div>
             {rows.some((r) => r.source === 'ai') && (
               <p className="meal-edit__estimate">
@@ -961,14 +1050,38 @@ export function MealEditExisting({ clientId }: { clientId: string }) {
   const undo = useUndoDelete();
   const toast = useToast();
   const [, navigate] = useLocation();
+  // Only a meal with its full photo can be recalculated: no request for the others.
+  const ai = useAiStatus(!!meal?.photo?.full);
+  const online = useOnline();
+  const [recalc] = useState(() => recalcState());
   if (meal === undefined) return null; // the local copy answers within a frame
   if (!meal || undo.hidden.has(clientId)) return <Redirect to="/" replace />;
   const from = meal.localDate;
   const back = from === localToday() ? '/' : `/diary/${from}`;
+  // A fresh «ready» only: the stored answer may be stale (AC-10.7).
+  const canRecalc =
+    !!meal.photo?.full &&
+    online &&
+    !ai.loading &&
+    ai.status?.recognition === 'ready';
   return (
     <MealEditScreen
       key={meal.clientId}
       meal={meal}
+      recalc={recalc}
+      onRecalc={
+        canRecalc
+          ? (draft) =>
+              // Replace: the leave guard lets it pass, the draft rides along (OCT-62 grooming).
+              navigate(`/meal/${encodeURIComponent(clientId)}/recalc`, {
+                replace: true,
+                state: { draft } satisfies RecalcState,
+              })
+          : undefined
+      }
+      onDismissRecalc={() =>
+        void patchMeal(db, clientId, { recalcOffer: false })
+      }
       dishes={[]}
       units={settings?.units ?? user?.units ?? 'metric'}
       choices={choices}
@@ -998,6 +1111,35 @@ export function MealEditExisting({ clientId }: { clientId: string }) {
         undo.remove(meal);
       }}
       onClose={() => navigate(back)}
+    />
+  );
+}
+
+const recalcState = () => {
+  const state = history.state as RecalcState | null;
+  return state && typeof state === 'object' && 'draft' in state
+    ? state
+    : undefined;
+};
+
+/** /meal/:clientId/recalc — screen 3 on the saved meal's photo; every way out goes back to it. */
+export function MealRecalc({ clientId }: { clientId: string }) {
+  const meal = useMeal(clientId);
+  const [, navigate] = useLocation();
+  const [state] = useState(() => recalcState());
+  if (meal === undefined) return null;
+  const to = `/meal/${encodeURIComponent(clientId)}`;
+  // Reloaded without the draft, or no photo to read: back to the entry.
+  if (!meal?.photo || !state) return <Redirect to={to} replace />;
+  const go = (dishes?: RecognizedDish[]) =>
+    navigate(to, {
+      replace: true,
+      state: { draft: state.draft, dishes } satisfies RecalcState,
+    });
+  return (
+    <RecognitionScreen
+      photoId={meal.photo.id}
+      recalc={{ onDishes: go, onBack: () => go() }}
     />
   );
 }

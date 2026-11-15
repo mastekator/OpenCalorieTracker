@@ -24,7 +24,7 @@ import { SessionContext } from '../../app/SessionContext';
 import { ToastProvider } from '../../ui/Toast/Toast';
 import { localToday } from '../diary/day';
 import { UNDO_MS, UndoDeleteProvider } from '../diary/undoDelete';
-import { MealEditExisting, MealEditScreen } from './MealEditScreen';
+import { MealEditExisting, MealEditScreen, MealRecalc } from './MealEditScreen';
 
 type Patch = Omit<MealPatch, 'editedAt'> | null;
 
@@ -346,5 +346,207 @@ describe('MealEditExisting (/meal/:clientId)', () => {
     const at = setup(onYesterday());
     act(() => at.navigate('/meal/unknown'));
     await waitFor(() => expect(at.history.at(-1)).toBe('/'));
+  });
+});
+
+describe('recalculation from the photo (OCT-62)', () => {
+  const yesterday = addDays(localToday(), -1);
+  let sent: { method: string; url: string; body?: unknown }[];
+  let statusCalls: number;
+
+  const withPhoto = (over: Partial<Meal> = {}) =>
+    saved({
+      eatenAt: new Date(`${yesterday}T19:55`).toISOString(),
+      localDate: yesterday,
+      photo: { id: 'p1', full: true },
+      recalcOffer: true,
+      ...over,
+    });
+
+  async function setup(
+    meal: Meal,
+    {
+      recognition = 'ready',
+      recognize = () => Response.json({ dishes: [porridge] }),
+    } = {},
+  ) {
+    sent = [];
+    statusCalls = 0;
+    let first = true;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string, init?: RequestInit) => {
+        const method = init?.method ?? 'GET';
+        if (url.startsWith('/api/meals')) {
+          const body = init?.body && JSON.parse(String(init.body));
+          sent.push({ method, url, body });
+          // The offer as sent: the local copy keeps «Not now».
+          return Response.json({ ...meal, recalcOffer: !!body?.recalcOffer });
+        }
+        if (url === '/api/ai/status') {
+          statusCalls++;
+          return Response.json({
+            recognition,
+            interview: 'ready',
+            providerName: null,
+            baseUrlHost: null,
+          });
+        }
+        if (url === '/api/photos/p1/recognize') return recognize();
+        if (url === '/api/dishes/previous') return Response.json([null]);
+        const page = {
+          rev: 1,
+          more: false,
+          meals: first ? [meal] : [],
+          deletedMealClientIds: [],
+        };
+        first = false;
+        return Response.json(page);
+      }),
+    );
+    history.replaceState(null, '', `/diary/${yesterday}`);
+    history.pushState(null, '', `/meal/${meal.clientId}`);
+    await renderLoaded(
+      <I18nProvider>
+        <ToastProvider>
+          <LeaveGuard>
+            <SessionContext
+              value={{
+                user: null,
+                refresh: async () => {},
+                signedIn: async () => {},
+                logout: async () => {},
+              }}
+            >
+              <DataProvider
+                user={{ id: 9, email: 'a@example.com' } as MeResponse}
+              >
+                <UndoDeleteProvider>
+                  <Switch>
+                    <Route path="/meal/:clientId">
+                      {({ clientId }) => (
+                        <MealEditExisting clientId={clientId} />
+                      )}
+                    </Route>
+                    <Route path="/meal/:clientId/recalc">
+                      {({ clientId }) => <MealRecalc clientId={clientId} />}
+                    </Route>
+                    <Route>
+                      <p>Day page</p>
+                    </Route>
+                  </Switch>
+                </UndoDeleteProvider>
+              </DataProvider>
+            </SessionContext>
+          </LeaveGuard>
+        </ToastProvider>
+      </I18nProvider>,
+    );
+    await screen.findByLabelText('Date and time');
+    // Asked only for a meal with its full photo.
+    if (meal.photo?.full) await waitFor(() => expect(statusCalls).toBe(1));
+    await act(async () => {}); // the status answer renders
+  }
+
+  const porridge = {
+    name: 'Porridge',
+    grams: 300,
+    kcal: 330,
+    proteinG: 9,
+    fatG: 6,
+    carbsG: 60,
+    confidence: 0.9,
+  };
+  const recalcButton = () =>
+    screen.queryByRole('button', { name: 'Recalculate from photo' });
+  const banner = () => screen.queryByText('AI is back');
+
+  afterEach(() => clearLocal(9));
+
+  it('no action without AI or without the full photo (AC-10.7)', async () => {
+    await setup(withPhoto(), { recognition: 'not_configured' });
+    expect(banner()).toBeNull();
+    expect(recalcButton()).toBeNull();
+    cleanup();
+    await clearLocal(9);
+    await setup(withPhoto({ photo: { id: 'p1', full: false } }));
+    expect(statusCalls).toBe(0);
+    expect(banner()).toBeNull();
+    expect(recalcButton()).toBeNull();
+  });
+
+  it('«Not now» drops the banner, patches the offer, the header action appears', async () => {
+    await setup(withPhoto());
+    expect(banner()).toBeTruthy();
+    expect(recalcButton()).toBeNull(); // no duplicate while the banner is up
+    fireEvent.click(button('Not now'));
+    await waitFor(() => expect(banner()).toBeNull());
+    expect(recalcButton()).toBeTruthy();
+    await waitFor(() =>
+      expect(sent).toContainEqual(
+        expect.objectContaining({
+          method: 'PATCH',
+          body: expect.objectContaining({ recalcOffer: false }),
+        }),
+      ),
+    );
+  });
+
+  it('keeps the draft; «Restore my numbers» brings it back as it was', async () => {
+    await setup(withPhoto({ recalcOffer: false }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Lunch' }));
+    fireEvent.change(weight(), { target: { value: '400' } });
+    fireEvent.click(recalcButton()!);
+    expect(dialog()).toBeNull(); // the leave guard lets it through
+    await screen.findByText('Porridge');
+    expect(
+      screen.getByRole('radio', { name: 'Lunch' }).getAttribute('aria-checked'),
+    ).toBe('true');
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Restore my numbers' }),
+    );
+    expect(screen.queryByText('Porridge')).toBeNull();
+    expect((weight() as HTMLInputElement).value).toBe('400');
+  });
+
+  it('saving sends one PATCH with the AI dishes and the offer cleared (AC-10.10)', async () => {
+    await setup(withPhoto());
+    fireEvent.click(button('Recalculate'));
+    await screen.findByText('Porridge');
+    expect(banner()).toBeNull();
+    fireEvent.click(button('Save'));
+    await waitFor(() => expect(sent).toHaveLength(1));
+    expect(sent[0]).toMatchObject({
+      method: 'PATCH',
+      url: '/api/meals/5',
+      body: {
+        recalcOffer: false,
+        items: [expect.objectContaining({ name: 'Porridge', source: 'ai' })],
+      },
+    });
+  });
+
+  it('leaving after a recalculation asks, and the entry stays (AC-10.9)', async () => {
+    await setup(withPhoto());
+    fireEvent.click(button('Recalculate'));
+    await screen.findByText('Porridge');
+    fireEvent.click(button('Close'));
+    await act(async () => fireEvent.click(button('Don’t save')));
+    expect(screen.getByText('Day page')).toBeTruthy();
+    expect(sent).toEqual([]);
+  });
+
+  it('an expired photo: no «Try again», back to the entry unchanged (E-10.1)', async () => {
+    await setup(withPhoto(), {
+      recognize: () =>
+        Response.json({ error: { code: 'photo_expired' } }, { status: 410 }),
+    });
+    fireEvent.click(button('Recalculate'));
+    expect(await screen.findByRole('alert')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Try again' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Retake' })).toBeNull();
+    fireEvent.click(button('Enter manually'));
+    expect(await screen.findByText('Buckwheat')).toBeTruthy();
+    expect(sent).toEqual([]);
   });
 });

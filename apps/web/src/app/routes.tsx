@@ -28,6 +28,7 @@ import {
 import {
   MealEditExisting,
   MealEditRoute,
+  MealRecalc,
 } from '../features/meals/MealEditScreen';
 import { UndoDeleteProvider } from '../features/diary/undoDelete';
 import { ProfileScreen } from '../features/profile/ProfileScreen';
@@ -322,6 +323,9 @@ function SignedIn() {
             {/* After the two above: «new» is not a clientId. */}
             <Route path="/meal/:clientId">
               {({ clientId }) => <MealEditExisting clientId={clientId} />}
+            </Route>
+            <Route path="/meal/:clientId/recalc">
+              {({ clientId }) => <MealRecalc clientId={clientId} />}
             </Route>
             <Route>
               <AppShell email={user?.email}>
