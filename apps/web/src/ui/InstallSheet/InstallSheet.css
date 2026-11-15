@@ -1,0 +1,107 @@
+.install-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.install-sheet p {
+  margin: 0;
+}
+
+.install-sheet__steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: install-step;
+}
+
+.install-sheet__steps li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  counter-increment: install-step;
+}
+
+.install-sheet__steps li::before {
+  content: counter(install-step);
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: var(--chat-avatar-size);
+  height: var(--chat-avatar-size);
+  border-radius: var(--radius-full);
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  font-size: var(--text-footnote-size);
+  font-weight: 700;
+}
+
+.install-sheet__hint {
+  display: block;
+  margin-top: var(--space-1);
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+  color: var(--color-text-secondary);
+}
+
+.syskey {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-2);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.syskey svg {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+  color: var(--color-accent);
+}
+
+.install-sheet__why {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-subhead-size);
+  line-height: var(--text-subhead-lh);
+  color: var(--color-text-secondary);
+}
+
+.install-sheet__why li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.install-sheet__why svg,
+.install-sheet__url svg {
+  flex: none;
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+  color: var(--color-accent);
+}
+
+.install-sheet__url {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--control-height-lg);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+  overflow-wrap: anywhere;
+}
+
+.install-sheet__url span {
+  user-select: all;
+  -webkit-user-select: all;
+}

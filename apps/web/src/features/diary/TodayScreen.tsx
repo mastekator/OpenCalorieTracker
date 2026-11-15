@@ -19,6 +19,7 @@ import { Delayed, Skeleton } from '../../ui/Skeleton/Skeleton';
 import { useCapture } from '../meals/CaptureContext';
 import { DropZone } from '../meals/DropZone';
 import { MealRow } from './MealRow';
+import { InstallHint } from './InstallHint';
 import { NormInvite } from './NormInvite';
 import { RemainingCard } from './RemainingCard';
 import { useToday } from './useToday';
@@ -83,6 +84,7 @@ export function TodayView({
     const eaten = sumDay(meals);
     summary = (
       <>
+        <InstallHint />
         {norm === null && <NormInvite onSet={onSetNorm} />}
         <RemainingCard
           eaten={eaten}
