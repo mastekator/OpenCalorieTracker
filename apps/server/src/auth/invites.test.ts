@@ -292,6 +292,31 @@ describe('registration', () => {
       expect(res.body).toMatchObject({ email: 'new@example.com' });
     });
 
+    it('is closed until the admin exists, so the admin can still be seeded', async () => {
+      const t = await setup({
+        REGISTRATION: 'open',
+        ADMIN_EMAIL: 'not-an-email',
+      });
+      const res = await t.register({
+        email: 'new@example.com',
+        password: NEW_PASSWORD,
+      });
+      expect(res.status).toBe(409);
+      expect(res.body).toMatchObject({ error: { code: 'not_configured' } });
+      const passkey = await t.call(
+        'POST',
+        '/api/auth/register/passkey/options',
+        { email: 'new@example.com' },
+      );
+      expect(passkey.status).toBe(409);
+      expect(passkey.body).toMatchObject({
+        error: { code: 'not_configured' },
+      });
+      expect(t.db.prepare('SELECT COUNT(*) AS n FROM users').get()).toEqual({
+        n: 0,
+      });
+    });
+
     it('gives a taken email or one with a pending invite the same vague answer and counts it', async () => {
       const { register, invite, fails } = await setup({ REGISTRATION: 'open' });
       await invite('invited@example.com');
