@@ -1,15 +1,18 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { z } from 'zod';
 import {
-  aiStatusSchema,
-  type AiStatus,
   type Profile,
   type ProfileRequest,
   type ProfileResponse,
 } from '@oct/shared';
 import { api } from '../../api/client';
 import { useSession } from '../../app/SessionContext';
-import { useDb, useProfile, useSettings } from '../../data/DataContext';
+import {
+  useAiStatus,
+  useDb,
+  useProfile,
+  useSettings,
+} from '../../data/DataContext';
 import { patchSettings } from '../../data/outbox';
 import { storeProfile } from '../../data/sync';
 import { useT } from '../../i18n';
@@ -31,7 +34,11 @@ export function ProfileScreen() {
   const profile = useProfile();
   const online = useOnline();
   const units = settings?.units ?? user?.units ?? 'metric';
-  const [interview, setInterview] = useState<AiStatus['interview']>();
+  const ai = useAiStatus();
+  // Without a status the assistant is just not offered.
+  const interview = ai.loading
+    ? undefined
+    : (ai.status?.interview ?? 'not_configured');
   const [chat, setChat] = useState(false);
   const [manualAt, setManualAt] = useState(0);
   const [agentDraft, setAgentDraft] = useState<{
@@ -43,15 +50,6 @@ export function ProfileScreen() {
   const today = new Date().toLocaleDateString('sv');
   const disclaimerHidden =
     settings?.normDisclaimerHidden ?? user?.normDisclaimerHidden ?? false;
-
-  useEffect(() => {
-    if (!online) return;
-    // Without a status the assistant is just not offered.
-    api('/api/ai/status', aiStatusSchema).then(
-      (s) => setInterview(s.interview),
-      () => setInterview('not_configured'),
-    );
-  }, [online]);
 
   if (!profile || (online && !interview))
     return (

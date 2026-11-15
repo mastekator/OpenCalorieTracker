@@ -84,11 +84,23 @@ export const en = {
     group: {
       admin: 'Admin',
       appearance: 'Appearance',
+      data: 'Data',
       app: 'App',
       signin: 'Sign-in · {email}',
     },
     language: 'Language',
     theme: 'Theme',
+    theme_option: { system: 'System', light: 'Light', dark: 'Dark' },
+    units: 'Measurement system',
+    units_option: { metric: 'Metric', us: 'US' },
+    units_hint:
+      'Food in oz, body weight in lb. Calories and macros stay the same.',
+    install: 'Add to Home Screen',
+    recognition: 'Photo recognition',
+    recognition_on: '{provider}. Your photos are sent to this service',
+    recognition_off: 'AI isn’t set up — manual entry is available',
+    offline:
+      'Everything works offline except sign-in and admin settings. We’ll sync your changes when you’re back online.',
     ai_provider: 'AI provider',
     version: 'Version {v}',
     logout: 'Sign out',
