@@ -6,8 +6,6 @@ import { api } from '../api/client';
 import { getLastUser, pendingOf } from '../data/user';
 import { useT } from '../i18n';
 import { NavBar } from '../ui/NavBar/NavBar';
-import { OfflineBar } from '../ui/OfflineBar/OfflineBar';
-import { useBarVariant } from './connection';
 import { PasskeysScreen } from '../features/settings/PasskeysScreen';
 import { AiProviderScreen } from '../features/settings/AiProviderScreen';
 import { PasswordScreen } from '../features/settings/PasswordScreen';
@@ -27,7 +25,11 @@ import {
   RecognitionScreen,
   type MealEditState,
 } from '../features/meals/RecognitionScreen';
-import { MealEditRoute } from '../features/meals/MealEditScreen';
+import {
+  MealEditExisting,
+  MealEditRoute,
+} from '../features/meals/MealEditScreen';
+import { UndoDeleteProvider } from '../features/diary/undoDelete';
 import { ProfileScreen } from '../features/profile/ProfileScreen';
 import { periodPath } from '../features/week/period';
 import { WeekNavHead, WeekScreen } from '../features/week/WeekScreen';
@@ -50,20 +52,6 @@ function Screen({
     <div className={`screen${wide ? ' screen--wide' : ''}`}>
       <NavBar {...nav} />
       <main className="screen__body">{children}</main>
-    </div>
-  );
-}
-
-// shortcut: a saved meal opens this placeholder until OCT-69.
-function MealEditStub() {
-  const { t } = useT();
-  return (
-    <div className="screen">
-      <OfflineBar variant={useBarVariant()} />
-      <NavBar
-        title={t('nav.add_food')}
-        back={{ href: '/', label: t('common.cancel') }}
-      />
     </div>
   );
 }
@@ -329,24 +317,26 @@ function SignedIn() {
     <AuthGate>
       {/* Above the meal flow too: «Retake» opens the camera in the same tap (iOS). */}
       <CaptureProvider>
-        <Switch>
-          {/* A modal flow over the whole screen, without the tab bar (OCT-16 §1). */}
-          <Route path={MEAL_NEW_PATH}>
-            <MealNew />
-          </Route>
-          <Route path={MEAL_EDIT_PATH}>
-            <MealEditRoute />
-          </Route>
-          {/* After the two above: «new» is not a clientId. */}
-          <Route path="/meal/:clientId">
-            <MealEditStub />
-          </Route>
-          <Route>
-            <AppShell email={user?.email}>
-              <AppScreens />
-            </AppShell>
-          </Route>
-        </Switch>
+        <UndoDeleteProvider>
+          <Switch>
+            {/* A modal flow over the whole screen, without the tab bar (OCT-16 §1). */}
+            <Route path={MEAL_NEW_PATH}>
+              <MealNew />
+            </Route>
+            <Route path={MEAL_EDIT_PATH}>
+              <MealEditRoute />
+            </Route>
+            {/* After the two above: «new» is not a clientId. */}
+            <Route path="/meal/:clientId">
+              {({ clientId }) => <MealEditExisting clientId={clientId} />}
+            </Route>
+            <Route>
+              <AppShell email={user?.email}>
+                <AppScreens />
+              </AppShell>
+            </Route>
+          </Switch>
+        </UndoDeleteProvider>
       </CaptureProvider>
     </AuthGate>
   );
