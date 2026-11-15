@@ -52,7 +52,7 @@ import { Segment } from '../../ui/Segment/Segment';
 import { useToast } from '../../ui/Toast/Toast';
 import { diaryDay, localToday } from '../diary/day';
 import type { TodayState } from '../diary/TodayScreen';
-import { useUndoDelete } from '../diary/undoDelete';
+import { UNDO_MS, useUndoDelete } from '../diary/undoDelete';
 import { MEAL_NEW_PATH, useCapture } from './CaptureContext';
 import type { MealEditState } from './RecognitionScreen';
 import { ImageDecodeError, prepareImage } from './prepareImage';
@@ -956,7 +956,7 @@ export function MealEditExisting({ clientId }: { clientId: string }) {
                 timeZone: 'UTC',
               }).format(new Date(`${to}T00:00:00Z`)),
             }),
-            ms: 5000,
+            ms: UNDO_MS,
             action: {
               label: t('edit.open'),
               onClick: () => navigate(`/diary/${to}`),
