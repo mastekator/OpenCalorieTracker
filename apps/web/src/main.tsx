@@ -4,9 +4,11 @@ import './styles/tokens.css';
 import './styles/base.css';
 import './styles/layout.css';
 import { App } from './app/App';
+import { listenInstallPrompt } from './app/install';
 import { startUpdates } from './app/update';
 
 startUpdates();
+listenInstallPrompt();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
