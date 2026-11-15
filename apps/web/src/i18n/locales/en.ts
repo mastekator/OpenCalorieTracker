@@ -804,6 +804,18 @@ export const en = {
       err: 'Weight from 1 to 5000 g (0.1 to 176.4 oz)',
     },
     edit: 'Edit {dish}',
+    title: '{day}, {time}',
+    estimate:
+      'AI estimate from the photo — check the weight. Calories and macros update automatically.',
+    empty_manual: 'No dishes yet',
+    save: 'Save',
+    saving: 'Saving…',
+    save_err: {
+      title: 'Couldn’t save',
+      body: 'Your edits are kept. Check your connection and try again.',
+    },
+    offline_note:
+      'We’ll save it on this device and send it once you’re back online.',
   },
   diary: {
     today_btn: 'Today',

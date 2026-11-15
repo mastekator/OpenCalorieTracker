@@ -252,7 +252,7 @@ describe('AuthGate', () => {
     serve(me);
     let location = renderAt('/meal/new');
     // No photo: manual entry on the edit screen, not a meal with clientId «new».
-    await screen.findByRole('heading', { name: 'Add food' });
+    await screen.findByRole('button', { name: 'Save' });
     expect(location.history.at(-1)).toBe('/meal/new/edit');
     cleanup();
 
