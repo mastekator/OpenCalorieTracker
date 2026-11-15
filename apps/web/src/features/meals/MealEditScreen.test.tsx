@@ -44,9 +44,9 @@ describe('MealEditScreen', () => {
     expect(screen.getByText('approx.')).toBeTruthy();
     fireEvent.change(input, { target: { value: '200' } });
     expect(screen.getByText('400 kcal')).toBeTruthy(); // the row
-    expect(
-      document.querySelector('.meal-edit__kcal')!.textContent,
-    ).toBe('400 kcal'); // the total
+    expect(document.querySelector('.meal-edit__kcal')!.textContent).toBe(
+      '400 kcal',
+    ); // the total
     expect(screen.queryByText('approx.')).toBeNull();
   });
 
