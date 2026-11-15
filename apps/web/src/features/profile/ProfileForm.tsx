@@ -819,6 +819,7 @@ export function ProfileForm({
                 }
                 max={today}
                 error={!!errors.birthDate}
+                readOnly={readOnly}
               />
             </FormRow>
             <FormRow label={t('field.height')}>
@@ -836,6 +837,7 @@ export function ProfileForm({
                     );
                   }}
                   error={!!errors.heightCm && !inchesError(ftInShown.in)}
+                  readOnly={readOnly}
                 />
               ) : (
                 <InlineNumber
@@ -848,6 +850,7 @@ export function ProfileForm({
                   onChange={(v) => set('heightCm', v)}
                   unit={t('unit.cm')}
                   error={!!errors.heightCm}
+                  readOnly={readOnly}
                 />
               )}
             </FormRow>
@@ -865,6 +868,7 @@ export function ProfileForm({
                 unit={weightUnit}
                 decimals={1}
                 error={!!errors.weightKg}
+                readOnly={readOnly}
               />
             </FormRow>
             <ListRow
@@ -879,6 +883,7 @@ export function ProfileForm({
                 profile.activity && t(`activity.${profile.activity}.desc`)
               }
               onClick={() => setActivityOpen(true)}
+              chevron={!readOnly}
             >
               {t('activity.title')}
             </ListRow>
@@ -921,6 +926,7 @@ export function ProfileForm({
                     decimals={1}
                     placeholder={t('field.optional')}
                     error={!!errors.targetWeightKg}
+                    readOnly={readOnly}
                   />
                 </FormRow>
                 <FormRow label={t('goal.deadline')}>
@@ -935,7 +941,7 @@ export function ProfileForm({
                     )}
                     min={addDays(today, 14)}
                     max={addYears(today, 2)}
-                    readOnly={profile.targetWeightKg === null}
+                    readOnly={readOnly || profile.targetWeightKg === null}
                     error={!!errors.deadline}
                   />
                 </FormRow>
@@ -963,6 +969,7 @@ export function ProfileForm({
                     error={
                       manualError !== null && !MACROS.some((m) => pct![m] > 100)
                     }
+                    readOnly={readOnly}
                   />
                 </FormRow>
                 {MACROS.map((m) => (
@@ -993,6 +1000,7 @@ export function ProfileForm({
                         onChange={(v) => setManualField(m, v)}
                         unit="%"
                         error={pct![m] > 100}
+                        readOnly={readOnly}
                       />
                     </span>
                   </FormRow>

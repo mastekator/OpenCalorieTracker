@@ -89,6 +89,13 @@
   box-shadow: none;
 }
 
+/* Inside a disabled fieldset (profile offline) the browser greys the input; keep the read-only look. */
+.inline-field--ro .inline-field__input:disabled {
+  color: inherit;
+  -webkit-text-fill-color: currentColor;
+  opacity: 1;
+}
+
 .inline-field__pair {
   display: inline-flex;
   gap: var(--space-2);
