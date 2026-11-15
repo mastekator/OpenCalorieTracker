@@ -167,7 +167,9 @@ describe('MealEditScreen: a saved meal (OCT-19 §3.1)', () => {
         localDate: '2026-10-20',
       });
     } finally {
-      process.env.TZ = tz;
+      // Assigning undefined would store the string "undefined", which Node reads as UTC.
+      if (tz === undefined) delete process.env.TZ;
+      else process.env.TZ = tz;
     }
   });
 
