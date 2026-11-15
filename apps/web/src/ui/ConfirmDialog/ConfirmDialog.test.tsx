@@ -56,6 +56,28 @@ describe('ConfirmDialog', () => {
     expect(document.activeElement).toBe(cancel);
   });
 
+  it('stack puts confirm first with focus and Cancel plain below', async () => {
+    render(
+      <ConfirmDialog
+        open
+        stack
+        tone="primary"
+        title="Fill in?"
+        confirmLabel="Fill in and save"
+        cancelLabel="I'll fix it myself"
+        onConfirm={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+      { wrapper: I18nProvider },
+    );
+    const buttons = await screen.findAllByRole('button');
+    expect(buttons.map((b) => b.textContent)).toEqual([
+      'Fill in and save',
+      "I'll fix it myself",
+    ]);
+    expect(document.activeElement).toBe(buttons[0]);
+  });
+
   it('Esc cancels and focus returns to the opener', async () => {
     const onConfirm = vi.fn();
     render(<Harness onConfirm={onConfirm} />, { wrapper: I18nProvider });

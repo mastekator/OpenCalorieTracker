@@ -130,6 +130,29 @@ export const Minor: Story = { args: withProfile({ birthDate: '2010-05-01' }) };
 export const GoalReached: Story = {
   args: withProfile({ weightKg: 74.5 }),
 };
+const manual = { kcal: 2000, proteinPct: 26, fatPct: 30, carbsPct: 44 };
+/** 8.9: a manual goal is in effect, «From your profile» and «Reset to calculated». */
+export const ManualSet: Story = {
+  args: { initial: { profile: filled, manual, rev: 1 } },
+};
+/** 8.8: below the floor — a warning with the disclaimer. Edit a share for the sum hint and 8.8a. */
+export const ManualLow: Story = {
+  args: {
+    initial: { profile: filled, manual: { ...manual, kcal: 1300 }, rev: 1 },
+  },
+};
+/** AC-3.7: a manual goal without a profile. */
+export const ManualNoProfile: Story = {
+  args: { initial: { profile: empty, manual, rev: 1 } },
+};
+export const ManualSetDark: Story = {
+  ...ManualSet,
+  globals: { theme: 'dark' },
+};
+export const ManualLowDark: Story = {
+  ...ManualLow,
+  globals: { theme: 'dark' },
+};
 /** 8.21: the disclaimer was closed. */
 export const DisclaimerHidden: Story = { args: { disclaimerHidden: true } };
 export const FastPaceDark: Story = { ...FastPace, globals: { theme: 'dark' } };
