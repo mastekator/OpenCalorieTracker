@@ -349,6 +349,57 @@ describe('flush', () => {
     expect(await pendingCount(db)).toBe(2);
   });
 
+  it('drops refused settings and choices and takes the server values back', async () => {
+    await db.put(
+      'kv',
+      { theme: 'light', photoRetentionDays: 30 } as never,
+      'settings',
+    );
+    await db.put('kv', { fish: 'fish' }, 'choices');
+    await patchSettings(db, { theme: 'dark' });
+    await putPhotoRetention(db, 7);
+    await putIllustrationChoice(db, 'Soup', 'pizza');
+    await settle();
+    serve({
+      'PATCH /api/account/settings': () => status(400),
+      'PUT /api/account/photo-retention': () => status(400),
+      'PUT /api/illustrations/choices': () => status(400),
+      'GET /api/account/settings': () =>
+        Response.json({ theme: 'light', photoRetentionDays: 30 }),
+      'GET /api/illustrations/choices': () =>
+        Response.json([{ nameKey: 'soup', illustration: 'soup' }]),
+    });
+    await flush(db);
+    expect(await ops()).toEqual([]);
+    expect(await pendingCount(db)).toBe(0);
+    expect(await db.get('kv', 'settings')).toEqual({
+      theme: 'light',
+      photoRetentionDays: 30,
+    });
+    expect(await db.get('kv', 'choices')).toEqual({
+      fish: 'fish',
+      soup: 'soup',
+    });
+  });
+
+  it('a refused settings op keeps the local value while a newer one waits', async () => {
+    await db.put('kv', { theme: 'light' } as never, 'settings');
+    await patchSettings(db, { theme: 'dark' });
+    await settle();
+    serve({
+      'PATCH /api/account/settings': () => status(400),
+      // Offline photo retention stays queued, so the server's settings must not land.
+      'GET /api/account/settings': () => Response.json({ theme: 'light' }),
+    });
+    await putPhotoRetention(db, 7);
+    await settle();
+    expect(await ops()).toMatchObject([{ kind: 'putPhotoRetention' }]);
+    expect(await db.get('kv', 'settings')).toEqual({
+      theme: 'dark',
+      photoRetentionDays: 7,
+    });
+  });
+
   it('stops on 401 and on client_outdated', async () => {
     await createMeal(db, input(A));
     await createMeal(db, input(B));

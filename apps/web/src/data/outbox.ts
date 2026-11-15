@@ -5,6 +5,7 @@ import {
   nameKey,
   type AccountSettings,
   type AccountSettingsPatch,
+  type IllustrationChoice,
   type IllustrationId,
   type Meal,
   type MealInput,
@@ -14,7 +15,7 @@ import {
 import { api, ApiError } from '../api/client';
 import { emitChange } from './changes';
 import type { Choices, Db, Op, OctDb } from './db';
-import { pull } from './sync';
+import { pull, settingsQueued } from './sync';
 
 const MIN_DELAY = 5_000;
 const MAX_DELAY = 5 * 60_000;
@@ -291,6 +292,8 @@ async function send(db: Db, s: State): Promise<boolean> {
         return false;
       }
       await refuse(db, op, err);
+      // A safeguard: offline, the refused local value stays until the next change.
+      await restore(db, op).catch(() => {});
     } finally {
       s.sending = undefined;
     }
@@ -380,12 +383,19 @@ async function saved(db: Db, op: Op, meal: Meal) {
   await tx.done;
 }
 
+const notMeal = (op: Op) =>
+  op.kind === 'patchSettings' ||
+  op.kind === 'putIllustrationChoice' ||
+  op.kind === 'putPhotoRetention';
+
 async function refuse(db: Db, op: Op, err: ApiError) {
   const tx = db.transaction('outbox', 'readwrite');
+  // Nothing marks a refused settings or choice op: drop it, restore() takes the server's value back.
   // 404 on an edit or delete: the meal is already gone on the server.
   if (
-    err.status === 404 &&
-    (op.kind === 'patchMeal' || op.kind === 'deleteMeal')
+    notMeal(op) ||
+    (err.status === 404 &&
+      (op.kind === 'patchMeal' || op.kind === 'deleteMeal'))
   )
     await tx.store.delete(op.seq!);
   else {
@@ -396,6 +406,37 @@ async function refuse(db: Db, op: Op, err: ApiError) {
         if (!o.error) await tx.store.put({ ...o, error: err.code });
   }
   await tx.done;
+}
+
+const settingsSchema = z.custom<AccountSettings>();
+const choicesSchema = z.custom<IllustrationChoice[]>();
+
+/** A refused op changed only the local copy: put the server's value back, unless a newer change waits. */
+async function restore(db: Db, op: Op) {
+  if (op.kind === 'patchSettings' || op.kind === 'putPhotoRetention') {
+    const settings = await api('/api/account/settings', settingsSchema);
+    const tx = db.transaction(['outbox', 'kv'], 'readwrite');
+    if (!(await settingsQueued(tx.objectStore('outbox').index('clientId'))))
+      await tx.objectStore('kv').put(settings, 'settings');
+    await tx.done;
+  } else if (op.kind === 'putIllustrationChoice') {
+    const key = nameKey(op.body.name);
+    const server = (
+      await api('/api/illustrations/choices', choicesSchema)
+    ).find((c) => c.nameKey === key)?.illustration;
+    const tx = db.transaction(['outbox', 'kv'], 'readwrite');
+    const kv = tx.objectStore('kv');
+    // Only this nameKey: the other choices may still be in the queue.
+    if (
+      !(await tx.objectStore('outbox').index('clientId').count(op.clientId))
+    ) {
+      const choices = { ...((await kv.get('choices')) as Choices | undefined) };
+      if (server) choices[key] = server;
+      else delete choices[key];
+      await kv.put(choices, 'choices');
+    }
+    await tx.done;
+  }
 }
 
 export type MealStatus = 'pending' | 'error' | 'synced';
@@ -410,5 +451,5 @@ export async function mealStatus(
   return ops.some((o) => o.error) ? 'error' : 'pending';
 }
 
-/** Unsent changes, refused ones included: they are lost on sign-out. */
+/** Unsent changes, refused meal ops included: they are lost on sign-out. Refused settings and choices are dropped. */
 export const pendingCount = (db: Db) => db.count('outbox');
