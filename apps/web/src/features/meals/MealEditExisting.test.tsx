@@ -257,7 +257,14 @@ describe('MealEditExisting (/meal/:clientId)', () => {
       <I18nProvider>
         <ToastProvider>
           <Router hook={at.hook}>
-            <SessionContext value={{ user: null, refresh: async () => {} }}>
+            <SessionContext
+              value={{
+                user: null,
+                refresh: async () => {},
+                signedIn: async () => {},
+                logout: async () => {},
+              }}
+            >
               <DataProvider
                 user={{ id: 9, email: 'a@example.com' } as MeResponse}
               >
