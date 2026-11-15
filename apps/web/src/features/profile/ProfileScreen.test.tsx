@@ -46,7 +46,14 @@ describe('ProfileScreen offline (8.15)', () => {
     render(
       <I18nProvider>
         <ToastProvider>
-          <SessionContext value={{ user: USER, refresh: async () => {} }}>
+          <SessionContext
+            value={{
+              user: USER,
+              refresh: async () => {},
+              signedIn: async () => {},
+              logout: async () => {},
+            }}
+          >
             <DataProvider user={USER}>
               <ProfileScreen />
             </DataProvider>
@@ -100,7 +107,14 @@ describe('ProfileScreen, AI configured but not answering (8.14)', () => {
     render(
       <I18nProvider>
         <ToastProvider>
-          <SessionContext value={{ user: USER, refresh: async () => {} }}>
+          <SessionContext
+            value={{
+              user: USER,
+              refresh: async () => {},
+              signedIn: async () => {},
+              logout: async () => {},
+            }}
+          >
             <DataProvider user={USER}>
               <ProfileScreen />
             </DataProvider>

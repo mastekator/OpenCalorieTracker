@@ -30,9 +30,25 @@ import { isPublicPath, loginHref } from './next';
 type Session = {
   /** null: not signed in. */
   user: MeResponse | null;
-  /** Re-reads the session, e.g. after sign-in or sign-out. */
+  /** Re-reads the session, e.g. after a passkey change. */
   refresh: () => Promise<void>;
+  /** After a sign-in or sign-up: forgets an offline sign-out, then re-reads. */
+  signedIn: () => Promise<void>;
+  /** Ends the session, removes the user's local data and goes to sign-in (4.6). */
+  logout: () => Promise<void>;
 };
+
+/**
+ * Signed out offline: the httpOnly session cookie is still there, so the next
+ * start ends it on the server before /me lets the user back in.
+ */
+export const SIGNED_OUT_KEY = 'oct.signedOut';
+
+const endSession = () =>
+  api('/api/auth/logout', z.unknown(), { method: 'POST' });
+
+const isNetwork = (err: unknown) =>
+  err instanceof ApiError && (err.status === 0 || err.status >= 500);
 
 /** Exported for stories that render signed-in screens without a server. */
 export const SessionContext = createContext<Session | null>(null);
@@ -66,6 +82,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const refresh = useCallback(async () => {
     try {
+      if (localStorage.getItem(SIGNED_OUT_KEY)) {
+        await endSession();
+        localStorage.removeItem(SIGNED_OUT_KEY);
+      }
       const me = await api(ME_PATH, meResponseSchema);
       const last = getLastUser();
       // Another user on this device: the previous one's local data goes first (AC-2.7).
@@ -89,8 +109,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         setError(null);
         return;
       }
+      if (isNetwork(err) && localStorage.getItem(SIGNED_OUT_KEY)) {
+        setUser(null);
+        setError(null);
+        return;
+      }
       // No network, or the server behind a proxy is down (502/503): the local copy still opens.
-      if (err instanceof ApiError && (err.status === 0 || err.status >= 500)) {
+      if (isNetwork(err)) {
         const local = await offlineUser();
         if (local) {
           setUser(local);
@@ -130,6 +155,24 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setUser(me);
   }
 
+  const signedIn = useCallback(async () => {
+    // Else the next start would end the new session.
+    localStorage.removeItem(SIGNED_OUT_KEY);
+    await refresh();
+  }, [refresh]);
+
+  const logout = useCallback(async () => {
+    try {
+      await endSession();
+    } catch (err) {
+      if (!isNetwork(err)) throw err;
+      localStorage.setItem(SIGNED_OUT_KEY, '1');
+    }
+    if (user) await clearLocal(user.id);
+    setUser(null);
+    navigate('/login', { replace: true });
+  }, [user, navigate]);
+
   async function cancelSwitch() {
     await api('/api/auth/logout', z.unknown(), { method: 'POST' }).catch(
       () => {},
@@ -139,7 +182,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   if (user === undefined) return <BootState error={error} onRetry={retry} />;
   return (
-    <SessionContext value={{ user, refresh }}>
+    <SessionContext value={{ user, refresh, signedIn, logout }}>
       {children}
       <ConfirmDialog
         open={!!switching}
