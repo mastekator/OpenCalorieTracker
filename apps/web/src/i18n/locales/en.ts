@@ -928,6 +928,15 @@ export const en = {
       today: 'Today',
       hint: 'It’s {time} — we’ll count this late snack toward yesterday, {date}.',
     },
+    title_existing: '{meal}, {date}',
+    when: 'Date and time',
+    delete_entry: 'Delete entry',
+    moved: 'Moved to {date}',
+    open: 'Open',
+    leave_existing: {
+      title: 'Save changes?',
+      body: 'Otherwise your edits to this entry will be lost.',
+    },
     time: 'Time',
     offline_note:
       'We’ll save it on this device and send it once you’re back online.',

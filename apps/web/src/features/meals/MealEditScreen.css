@@ -217,6 +217,16 @@
   .meal-edit__cancel {
     display: contents;
   }
+
+  /* «Delete entry» stays apart from Cancel and Save, on the left (OCT-19 §3.1). */
+  .meal-edit__delete {
+    display: contents;
+  }
+
+  .meal-edit__delete .button {
+    order: -1;
+    margin-inline-end: auto;
+  }
 }
 
 /* Photo slot without a photo (OCT-16 §4): camera, library or file. */
