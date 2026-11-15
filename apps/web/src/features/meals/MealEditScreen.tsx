@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { Redirect, useLocation, useSearch } from 'wouter';
-import { Calendar, Camera, Plus, Sparkle, UtensilsCrossed, X } from 'lucide-react';
+import {
+  Calendar,
+  Camera,
+  Plus,
+  Sparkle,
+  UtensilsCrossed,
+  X,
+} from 'lucide-react';
 import { z } from 'zod';
 import {
   DISH_GRAMS,
