@@ -454,10 +454,11 @@ export function MealEditScreen({
                   <p className="meal-edit__note">
                     {t('edit.late.hint', {
                       time: timeOf(opened),
+                      // Keep "14 November" on one line.
                       date: dateOf(yesterday, {
                         day: 'numeric',
                         month: 'long',
-                      }),
+                      }).replace(' ', '\u00a0'),
                     })}
                   </p>
                 )}
