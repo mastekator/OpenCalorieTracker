@@ -26,6 +26,8 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
+  /* Offsets the buttons' own padding: first label aligns under the text, RU fits one line at 375 px. */
+  margin-inline: calc(var(--space-2) * -1);
 }
 
 /* Both actions fit one line in RU at 375 px; height stays 44. */
