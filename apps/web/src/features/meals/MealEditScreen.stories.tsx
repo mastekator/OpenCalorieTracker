@@ -1,6 +1,35 @@
+import { useEffect, type ComponentProps } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { fn } from 'storybook/test';
+import { Router, useLocation } from 'wouter';
+import { memoryLocation } from 'wouter/memory-location';
+import { LeaveGuard } from '../../app/LeaveGuard';
+import { ToastProvider } from '../../ui/Toast/Toast';
 import { MealEditScreen } from './MealEditScreen';
+import { MEAL_EDIT_PATH } from './RecognitionScreen';
+
+type Props = ComponentProps<typeof MealEditScreen>;
+
+/** Close navigates like the app, so the leave guard asks (4.7); `leave` opens it, `deleteAll` shows 4.6. */
+function Screen({
+  leave,
+  deleteAll,
+  ...props
+}: Props & { leave?: boolean; deleteAll?: boolean }) {
+  const [, navigate] = useLocation();
+  const close = () => {
+    props.onClose();
+    navigate('/');
+  };
+  useEffect(() => {
+    if (deleteAll)
+      document
+        .querySelectorAll<HTMLButtonElement>('.dish-row__delete')
+        .forEach((b) => b.click());
+    if (leave) navigate('/');
+  }, [leave, deleteAll, navigate]);
+  return <MealEditScreen {...props} onClose={close} />;
+}
 
 const dishes = [
   {
@@ -36,6 +65,22 @@ const meta = {
   title: 'Meals/MealEditScreen',
   component: MealEditScreen,
   parameters: { layout: 'fullscreen' },
+  decorators: (Story) => (
+    <Router hook={memoryLocation({ path: MEAL_EDIT_PATH }).hook}>
+      <ToastProvider>
+        <LeaveGuard>
+          <Story />
+        </LeaveGuard>
+      </ToastProvider>
+    </Router>
+  ),
+  render: (args, { parameters }) => (
+    <Screen
+      {...args}
+      leave={parameters.leave as boolean}
+      deleteAll={parameters.deleteAll as boolean}
+    />
+  ),
   args: {
     dishes,
     units: 'metric',
@@ -61,3 +106,20 @@ export const NoDishesDark: Story = { args: { dishes: [] }, globals: dark };
 /** 4.8: press Save to see the error banner and «Try again». */
 export const SaveFails: Story = { args: failing };
 export const SaveFailsDark: Story = { args: failing, globals: dark };
+/** 4.6: every dish deleted, «Undo» toast for the last one, Save disabled. */
+export const AllDeleted: Story = { parameters: { deleteAll: true } };
+export const AllDeletedDark: Story = {
+  parameters: { deleteAll: true },
+  globals: dark,
+};
+/** 4.7: Close, Esc or «Back»; asks even without edits, focus on Stay. */
+export const LeaveDialog: Story = { parameters: { leave: true } };
+export const LeaveDialogDark: Story = {
+  parameters: { leave: true },
+  globals: dark,
+};
+/** §5: a trash button next to the pencil, no swipe. */
+export const Desktop: Story = { globals: { viewport: { value: 'desktop' } } };
+export const DesktopDark: Story = {
+  globals: { viewport: { value: 'desktop' }, theme: 'dark' },
+};

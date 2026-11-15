@@ -1,7 +1,8 @@
-import { Pencil } from 'lucide-react';
+import { Pencil, Trash2 } from 'lucide-react';
 import type { DishSource, Nutrients, Units } from '@oct/shared';
 import { useT } from '../../i18n';
 import { ConfidenceBadge } from '../ConfidenceBadge/ConfidenceBadge';
+import { useSwipeDelete } from '../useSwipeDelete';
 import { WeightStepper } from '../WeightStepper/WeightStepper';
 import './DishRow.css';
 
@@ -20,52 +21,79 @@ type Props = {
   onGramsChange: (grams: number | null) => void;
   /** Opens the «Dish» sheet: rename, weight, delete (OCT-16 4.4). */
   onEdit: () => void;
+  /** Phone: swipe left reveals «Delete», a full swipe deletes; desktop: a trash button (OCT-16 4.5, §5). */
+  onDelete?: () => void;
 };
 
-/** One dish on the edit screen: name and kcal, source badge and macros, weight stepper. */
-export function DishRow({ dish, units, onGramsChange, onEdit }: Props) {
+/** One dish on the edit screen: name and kcal, source badge and macros, weight stepper, delete. */
+export function DishRow({
+  dish,
+  units,
+  onGramsChange,
+  onEdit,
+  onDelete,
+}: Props) {
   const { t, num } = useT();
+  const { offset, dragging, remove, bind, confirm } = useSwipeDelete(onDelete);
   return (
-    <div className="dish-row">
-      <div className="dish-row__head">
+    <div
+      className={`dish-row-swipe${dragging ? ' dish-row-swipe--dragging' : ''}${offset ? ' dish-row-swipe--shifted' : ''}`}
+      {...bind}
+    >
+      <div className="dish-row">
+        <div className="dish-row__head">
+          <button
+            type="button"
+            className="dish-row__name"
+            tabIndex={-1} // the pencil is the keyboard and screen reader path
+            onClick={onEdit}
+          >
+            {dish.name}
+          </button>
+          <span className="dish-row__kcal tabular-nums">
+            {t('meal.kcal', { n: num(dish.kcal) })}
+          </span>
+        </div>
+        <div className="dish-row__meta">
+          <ConfidenceBadge source={dish.source} confidence={dish.confidence} />
+          <span className="tabular-nums">
+            {t('edit.macros', {
+              p: num(dish.proteinG),
+              f: num(dish.fatG),
+              c: num(dish.carbsG),
+            })}
+          </span>
+        </div>
+        <div className="dish-row__weight">
+          <WeightStepper
+            grams={dish.grams}
+            units={units}
+            label={t('edit.weight.label', { dish: dish.name })}
+            onChange={onGramsChange}
+          />
+          <button
+            type="button"
+            className="dish-row__edit"
+            aria-label={t('edit.edit', { dish: dish.name })}
+            onClick={onEdit}
+          >
+            <Pencil aria-hidden="true" />
+          </button>
+        </div>
+      </div>
+      {onDelete && (
+        // Always in the DOM: the screen reader's «Delete» and the keyboard reach it without a swipe.
         <button
+          ref={remove}
           type="button"
-          className="dish-row__name"
-          tabIndex={-1} // the pencil is the keyboard and screen reader path
-          onClick={onEdit}
+          className="dish-row__delete"
+          aria-label={t('edit.delete_dish', { dish: dish.name })}
+          onClick={confirm}
         >
-          {dish.name}
+          <Trash2 aria-hidden="true" />
+          <span className="dish-row__delete-text">{t('edit.delete')}</span>
         </button>
-        <span className="dish-row__kcal tabular-nums">
-          {t('meal.kcal', { n: num(dish.kcal) })}
-        </span>
-      </div>
-      <div className="dish-row__meta">
-        <ConfidenceBadge source={dish.source} confidence={dish.confidence} />
-        <span className="tabular-nums">
-          {t('edit.macros', {
-            p: num(dish.proteinG),
-            f: num(dish.fatG),
-            c: num(dish.carbsG),
-          })}
-        </span>
-      </div>
-      <div className="dish-row__weight">
-        <WeightStepper
-          grams={dish.grams}
-          units={units}
-          label={t('edit.weight.label', { dish: dish.name })}
-          onChange={onGramsChange}
-        />
-        <button
-          type="button"
-          className="dish-row__edit"
-          aria-label={t('edit.edit', { dish: dish.name })}
-          onClick={onEdit}
-        >
-          <Pencil aria-hidden="true" />
-        </button>
-      </div>
+      )}
     </div>
   );
 }

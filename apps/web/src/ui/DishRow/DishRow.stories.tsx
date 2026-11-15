@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { fn } from 'storybook/test';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { scaleItem, type Units } from '@oct/shared';
 import { DishRow, type DishRowDish } from './DishRow';
@@ -13,7 +14,15 @@ const rice = {
 };
 
 // Recalculates from the original values like the edit screen; an edit drops the badge (AC-2.9).
-function Demo({ dish, units }: { dish: DishRowDish; units: Units }) {
+function Demo({
+  dish,
+  units,
+  onDelete,
+}: {
+  dish: DishRowDish;
+  units: Units;
+  onDelete?: () => void;
+}) {
   const [row, setRow] = useState(dish);
   const original = { ...dish, grams: dish.grams ?? 1 };
   return (
@@ -28,6 +37,7 @@ function Demo({ dish, units }: { dish: DishRowDish; units: Units }) {
         )
       }
       onEdit={() => {}}
+      onDelete={onDelete}
     />
   );
 }
@@ -38,6 +48,7 @@ const meta = {
   args: {
     dish: { ...rice, source: 'ai', confidence: 0.6 },
     units: 'metric',
+    onDelete: fn(),
   },
   argTypes: { units: { control: 'inline-radio', options: ['metric', 'us'] } },
 } satisfies Meta<typeof Demo>;
@@ -97,4 +108,9 @@ export const Russian: Story = {
     },
   },
   globals: { locale: 'ru' },
+};
+/** §5: trash next to the pencil; on the phone swipe left (touch) or Tab to «Delete». */
+export const Desktop: Story = { globals: { viewport: { value: 'desktop' } } };
+export const DesktopDark: Story = {
+  globals: { viewport: { value: 'desktop' }, theme: 'dark' },
 };

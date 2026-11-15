@@ -1,0 +1,17 @@
+.dish-sheet {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.dish-sheet__numbers {
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+  color: var(--color-text-secondary);
+}
+
+.dish-sheet__kcal {
+  font-size: var(--text-headline-size);
+  line-height: var(--text-headline-lh);
+  font-weight: var(--text-headline-weight);
+  color: var(--color-text);
+}

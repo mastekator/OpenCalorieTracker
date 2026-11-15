@@ -3,7 +3,7 @@ import { Router, type AroundNavHandler } from 'wouter';
 import { navigate } from 'wouter/use-browser-location';
 import { useT } from '../i18n';
 import { ConfirmDialog } from '../ui/ConfirmDialog/ConfirmDialog';
-import { isDirty, saveDirty } from './dirty';
+import { isDirty, leaveText, saveDirty } from './dirty';
 
 const url = () => location.pathname + location.search + location.hash;
 const pathOf = (to: string) => to.split(/[?#]/)[0];
@@ -55,21 +55,24 @@ export function LeaveGuard({ children }: { children: ReactNode }) {
   }, []);
 
   const close = () => setGo(null);
+  const text = leaveText();
   return (
     <Router aroundNav={aroundNav}>
       {children}
       <ConfirmDialog
         open={go !== null}
-        title={t('leave.title')}
-        body={t('leave.body')}
+        title={text?.title ?? t('leave.title')}
+        body={text?.body ?? t('leave.body')}
         tone="primary"
         confirmLabel={t('leave.save')}
         secondaryLabel={t('leave.discard')}
         cancelLabel={t('leave.stay')}
-        // A failed save stays on the screen, which shows its own error.
+        // A failed save stays on the screen, which shows its own error; a screen that
+        // left by itself after saving (edit → Today) isn't navigated a second time.
         onConfirm={async () => {
           close();
-          if (await saveDirty()) go?.();
+          const at = url();
+          if ((await saveDirty()) && url() === at) go?.();
         }}
         onSecondary={() => {
           close();
