@@ -254,3 +254,33 @@ export const ExistingLeaveDark: Story = {
   parameters: { leave: true },
   globals: dark,
 };
+
+/** OCT-62 (5.6): entered by hand while AI was down, AI is back — «AI is back» on top. */
+const recalcOffer = {
+  ...existing,
+  meal: {
+    ...savedMeal,
+    photo: { id: 'p1', full: true },
+    recalcOffer: true,
+    items: savedMeal.items.map((i) => ({ ...i, source: 'manual' as const })),
+  },
+  onRecalc: fn(),
+  onDismissRecalc: fn(),
+} satisfies Partial<Props>;
+export const RecalcBanner: Story = { args: recalcOffer };
+export const RecalcBannerDark: Story = { args: recalcOffer, globals: dark };
+/** No banner: «Recalculate from photo» under the totals (OCT-62 design). */
+const recalcAction = {
+  ...recalcOffer,
+  meal: { ...recalcOffer.meal, recalcOffer: false },
+} satisfies Partial<Props>;
+export const RecalcAction: Story = { args: recalcAction };
+export const RecalcActionDark: Story = { args: recalcAction, globals: dark };
+export const RecalcActionDesktop: Story = {
+  args: recalcAction,
+  globals: { viewport: { value: 'desktop' } },
+};
+export const RecalcActionDesktopDark: Story = {
+  args: recalcAction,
+  globals: { viewport: { value: 'desktop' }, theme: 'dark' },
+};

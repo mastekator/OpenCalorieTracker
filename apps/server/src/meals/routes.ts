@@ -245,14 +245,19 @@ export function mealRoutes({ config, db }: AppDeps) {
             meal.id,
           );
           if (patch.items) {
-            // An edit keeps the model that recognized the photo, even if the server's AI changed since.
-            const recognizedBy = db
-              .prepare(
-                `SELECT ai_provider AS provider, ai_model AS model FROM meal_items
+            // An edit keeps the model that recognized the photo, even if the server's AI changed
+            // since; a recalculation (items with the offer cleared) is the current model's (AC-10.10).
+            const recognizedBy =
+              patch.recalcOffer === false
+                ? undefined
+                : (db
+                    .prepare(
+                      `SELECT ai_provider AS provider, ai_model AS model FROM meal_items
                  WHERE meal_id = ? AND source = 'ai' LIMIT 1`,
-              )
-              .get(meal.id) as
-              { provider: string | null; model: string | null } | undefined;
+                    )
+                    .get(meal.id) as
+                    | { provider: string | null; model: string | null }
+                    | undefined);
             db.prepare('DELETE FROM meal_items WHERE meal_id = ?').run(meal.id);
             insertItems(meal.id, patch.items, recognizedBy);
           }
