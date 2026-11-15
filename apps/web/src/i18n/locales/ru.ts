@@ -23,7 +23,6 @@ const ru: DeepPartial<typeof en> = {
     login: 'Вход',
     invite: 'Принять приглашение',
     recover: 'Восстановление доступа',
-    register: 'Регистрация',
   },
   auth: {
     email: 'Email',
