@@ -853,6 +853,18 @@ export const en = {
     undo: 'Undo',
   },
   day: { today: 'Today', yesterday: 'Yesterday' },
+  chart: {
+    a11y: 'Calories by day, goal {norm} per day',
+    a11y_no_norm: 'Calories by day',
+    bar: '{day}: {k} of {norm} kcal',
+    bar_over: '{day}: {k} of {norm} kcal, {n} over',
+    bar_no_norm: '{day}: {k} kcal',
+    future: '{day}: not yet',
+    tip: '{day}: {k} of {norm}',
+    tip_no_norm: '{day}: {k} kcal',
+    legend: { eaten: 'eaten', norm: 'goal {norm} per day', over: 'over goal' },
+    empty: { week: 'No entries this week', month: 'No entries this month' },
+  },
   errors: {
     validation_failed: 'Check the highlighted fields',
     unauthenticated: 'Please sign in',
