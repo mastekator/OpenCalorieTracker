@@ -110,6 +110,8 @@ export function MealEditScreen({
   const [status, setStatus] = useState<'idle' | 'saving' | 'error'>('idle');
   const [editing, setEditing] = useState<string | null>(null);
   const saving = useRef(false);
+  // Row whose pencil gets focus after a delete or «Undo», so it never drops to <body> (WCAG 2.4.3).
+  const focusRow = useRef<string | null>(null);
   const toast = useToast();
   const capture = useCapture();
 
@@ -132,14 +134,18 @@ export function MealEditScreen({
     const index = rows.findIndex((r) => r.id === id);
     const row = rows[index];
     if (!row) return;
+    // Next row, else the previous one; with none left the empty state takes focus.
+    focusRow.current = (rows[index + 1] ?? rows[index - 1])?.id ?? null;
     setRows((rs) => rs.filter((r) => r.id !== id));
     toast({
       text: t('edit.deleted', { dish: row.original.name }),
       ms: 5000,
       action: {
         label: t('common.undo'),
-        onClick: () =>
-          setRows((rs) => [...rs.slice(0, index), row, ...rs.slice(index)]),
+        onClick: () => {
+          focusRow.current = row.id;
+          setRows((rs) => [...rs.slice(0, index), row, ...rs.slice(index)]);
+        },
       },
     });
   };
@@ -189,6 +195,16 @@ export function MealEditScreen({
     title: t('edit.leave.title'),
     body: t(dishes.length ? 'edit.leave.body' : 'edit.leave.body_manual'),
   });
+
+  // Runs after the sheet's cleanup, which returns focus to its (possibly deleted) opener.
+  useEffect(() => {
+    const id = focusRow.current;
+    focusRow.current = null;
+    if (id)
+      document
+        .querySelector<HTMLElement>(`[data-row="${id}"] .dish-row__edit`)
+        ?.focus();
+  }, [rows]);
 
   const keys = useRef({ save, onClose });
   keys.current = { save, onClose };
@@ -275,7 +291,7 @@ export function MealEditScreen({
                 {rows.map((row, i) => {
                   const item = items[i]!;
                   return (
-                    <li key={row.id}>
+                    <li key={row.id} data-row={row.id}>
                       <DishRow
                         dish={{
                           ...item,
@@ -297,6 +313,7 @@ export function MealEditScreen({
               <ScreenState
                 icon={<UtensilsCrossed />}
                 title={t('edit.empty.title')}
+                focusTitle
                 action={
                   <Button variant="plain" onClick={capture.camera}>
                     {t('common.retake')}

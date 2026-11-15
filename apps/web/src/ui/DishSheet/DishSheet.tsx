@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { DISH_GRAMS, scaleItem, type Nutrients, type Units } from '@oct/shared';
 import { useT } from '../../i18n';
 import { Button } from '../Button/Button';
@@ -36,12 +37,17 @@ export function DishSheet({
     initial >= DISH_GRAMS.min && initial <= DISH_GRAMS.max ? initial : null,
   );
   const [nameErr, setNameErr] = useState(false);
+  const nameRef = useRef<HTMLInputElement>(null);
   // A name change never recalculates: the numbers follow the weight only (AC-3.5).
   const shown = scaleItem(original, grams ?? initial);
 
   const done = () => {
     const trimmed = name.trim();
-    if (!trimmed) return setNameErr(true);
+    if (!trimmed) {
+      // Render the error first, so focusing the field reads it via aria-describedby (WCAG 3.3.1).
+      flushSync(() => setNameErr(true));
+      return nameRef.current?.focus();
+    }
     if (grams !== null) onDone(trimmed, grams);
   };
 
@@ -61,6 +67,7 @@ export function DishSheet({
     >
       <div className="dish-sheet">
         <Field
+          ref={nameRef}
           label={t('edit.dish.name')}
           value={name}
           hint={t('edit.dish.name_hint')}

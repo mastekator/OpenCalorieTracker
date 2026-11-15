@@ -163,6 +163,7 @@ describe('MealEditScreen', () => {
       expect(sheet()).toBeTruthy();
       expect(within(sheet()).getByText('Enter a name')).toBeTruthy();
       expect(name().getAttribute('aria-invalid')).toBe('true');
+      expect(document.activeElement).toBe(name());
     });
 
     it('the weight recalculates live in the sheet and applies on Done', async () => {
@@ -212,18 +213,35 @@ describe('MealEditScreen', () => {
       expect(names()).toEqual(['Buckwheat', 'Rice']);
     });
 
-    it('«Delete dish» in the sheet deletes too', async () => {
+    it('«Delete dish» in the sheet deletes too, focus goes to the previous row', async () => {
       await setup(undefined, [buckwheat, rice]);
       fireEvent.click(screen.getByRole('button', { name: 'Edit Rice' }));
       fireEvent.click(screen.getByRole('button', { name: 'Delete dish' }));
       expect(screen.queryByRole('dialog')).toBeNull();
       expect(names()).toEqual(['Buckwheat']);
+      expect(document.activeElement).toBe(
+        screen.getByRole('button', { name: 'Edit Buckwheat' }),
+      );
+    });
+
+    it('focus goes to the next row after a delete and to the restored row after «Undo»', async () => {
+      await setup(undefined, [buckwheat, rice]);
+      fireEvent.click(screen.getByRole('button', { name: 'Delete Buckwheat' }));
+      expect(document.activeElement).toBe(
+        screen.getByRole('button', { name: 'Edit Rice' }),
+      );
+      fireEvent.click(await screen.findByRole('button', { name: 'Undo' }));
+      expect(document.activeElement).toBe(
+        screen.getByRole('button', { name: 'Edit Buckwheat' }),
+      );
     });
 
     it('all deleted: the empty state and Save disabled (AC-3.7)', async () => {
       const { save } = await setup();
       fireEvent.click(screen.getByRole('button', { name: 'Delete Buckwheat' }));
-      expect(screen.getByText('No dishes in the list')).toBeTruthy();
+      expect(document.activeElement).toBe(
+        screen.getByRole('heading', { name: 'No dishes in the list' }),
+      );
       expect(screen.getByRole('button', { name: 'Retake' })).toBeTruthy();
       expect((save() as HTMLButtonElement).disabled).toBe(true);
     });
