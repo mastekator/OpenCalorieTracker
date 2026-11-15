@@ -714,6 +714,12 @@ describe('MealEditScreen: same as last time (4.3, OCT-61)', () => {
     expect(hint()!.textContent).toBe(
       'Looks like your entry from Nov 12: 200\u00a0g · 380\u00a0kcal',
     );
+    // The previous entry's illustration (OCT-33).
+    expect(
+      document
+        .querySelector('.history-hint .dish-illo')!
+        .getAttribute('data-illo'),
+    ).toBe('grains');
   });
 
   it('a match from the meal being edited is not shown', async () => {

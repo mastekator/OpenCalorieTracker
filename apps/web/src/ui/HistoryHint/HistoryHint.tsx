@@ -1,7 +1,7 @@
-import { History } from 'lucide-react';
-import { gToOz, type Units } from '@oct/shared';
+import { gToOz, type IllustrationId, type Units } from '@oct/shared';
 import { useT } from '../../i18n';
 import { Button } from '../Button/Button';
+import { DishIllustration } from '../DishIllustration/DishIllustration';
 import './HistoryHint.css';
 
 type Props = {
@@ -9,6 +9,8 @@ type Props = {
   eatenAt: string;
   grams: number;
   kcal: number;
+  /** Of the previous entry (OCT-33). */
+  illustration: IllustrationId;
   units: Units;
   /** «Same as last time»: take the previous weight, kcal and macros. */
   onApply: () => void;
@@ -21,6 +23,7 @@ export function HistoryHint({
   eatenAt,
   grams,
   kcal,
+  illustration,
   units,
   onApply,
   onKeep,
@@ -37,7 +40,7 @@ export function HistoryHint({
   return (
     <div className="history-hint">
       <p className="history-hint__text tabular-nums">
-        <History aria-hidden="true" />
+        <DishIllustration id={illustration} size="var(--hint-illo-size)" />
         {t('edit.history.hint', { date, weight, kcal: num(kcal) })}
       </p>
       <div className="history-hint__actions">

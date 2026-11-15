@@ -23,7 +23,7 @@ export const Sizes: Story = {
         'var(--meal-thumb-size)',
         'var(--dish-illo-size)',
         'var(--illo-pick-size)',
-        'var(--chat-avatar-size)',
+        'var(--hint-illo-size)',
       ].map((size) => (
         <DishIllustration key={size} {...args} size={size} />
       ))}

@@ -73,6 +73,7 @@
   --chat-sheet-height: 88dvh;    /* desktop: chat dialog height (D.2) */
   --dish-illo-size: 40px;        /* OCT-33: dish illustration in edit rows (hit area stays 44) */
   --illo-pick-size: 64px;        /* OCT-33: tile in the illustration picker grid */
+  --hint-illo-size: 28px;        /* OCT-33: previous entry in the «Same as last time» hint */
 
   /* ── Radii ── */
   --radius-sm: 8px;   /* chips, small badges */

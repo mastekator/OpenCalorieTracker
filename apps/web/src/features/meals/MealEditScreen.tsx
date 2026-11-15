@@ -5,6 +5,7 @@ import { z } from 'zod';
 import {
   DISH_GRAMS,
   entryDay,
+  illustrationIdSchema,
   matchIllustration,
   mealTypeAt,
   nameKey,
@@ -88,6 +89,7 @@ const previousSchema = z.array(
       proteinG: z.number(),
       fatG: z.number(),
       carbsG: z.number(),
+      illustration: illustrationIdSchema,
     })
     .nullable(),
 );
@@ -646,6 +648,7 @@ export function MealEditScreen({
                           eatenAt={row.previous.eatenAt}
                           grams={row.previous.grams}
                           kcal={row.previous.kcal}
+                          illustration={row.previous.illustration}
                           units={units}
                           onApply={() => applyPrevious(row, row.previous!)}
                           onKeep={() => keepEstimate(row.id)}
