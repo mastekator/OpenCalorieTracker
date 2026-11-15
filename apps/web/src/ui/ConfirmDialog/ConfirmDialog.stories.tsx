@@ -10,6 +10,7 @@ type Props = {
   close?: boolean;
   leave?: boolean;
   switchUser?: boolean;
+  stack?: boolean;
 };
 
 function Demo({
@@ -18,6 +19,7 @@ function Demo({
   close = false,
   leave = false,
   switchUser = false,
+  stack = false,
 }: Props) {
   const { t } = useT();
   const [open, setOpen] = useState(true);
@@ -64,6 +66,7 @@ function Demo({
         body={body ? t('logout.confirm.body_unsaved') : undefined}
         confirmLabel={t('settings.logout')}
         cancelLabel={close ? t('common.close') : undefined}
+        stack={stack}
         onConfirm={() => setOpen(false)}
         onCancel={() => setOpen(false)}
       />
@@ -90,6 +93,11 @@ export const LeaveWithEditsDark: Story = {
 export const LeaveWithEditsRussian: Story = {
   args: { leave: true },
   globals: { locale: 'ru' },
+};
+export const Stacked: Story = { args: { tone: 'primary', stack: true } };
+export const StackedDark: Story = {
+  args: { tone: 'primary', stack: true },
+  globals: { theme: 'dark' },
 };
 export const Dark: Story = { globals: { theme: 'dark' } };
 export const Russian: Story = { globals: { locale: 'ru' } };

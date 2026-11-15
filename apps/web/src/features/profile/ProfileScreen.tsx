@@ -35,6 +35,7 @@ export function ProfileScreen() {
   const [data, setData] = useState<Loaded | null>(null);
   const [failed, setFailed] = useState(false);
   const [chat, setChat] = useState(false);
+  const [manualAt, setManualAt] = useState(0);
   const requireOnline = useRequireOnline();
   const toast = useToast();
   const today = new Date().toLocaleDateString('sv');
@@ -99,6 +100,7 @@ export function ProfileScreen() {
         onHideDisclaimer={() =>
           void patchSettings(db, { normDisclaimerHidden: true })
         }
+        manualAt={manualAt}
       />
       <AgentChat
         open={chat}
@@ -112,8 +114,11 @@ export function ProfileScreen() {
           setData({ ...data, profile });
           toast({ text: t('chat.applied') });
         }}
-        // shortcut: the screen has no manual-goal switch yet, so 9.8 just returns to the form.
-        onManual={() => setChat(false)}
+        // 9.8: back to the form with «Set my own goal» on.
+        onManual={() => {
+          setChat(false);
+          setManualAt((n) => n + 1);
+        }}
       />
     </>
   );

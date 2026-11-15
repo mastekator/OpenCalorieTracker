@@ -72,3 +72,80 @@
     grid-row: 1;
   }
 }
+
+.profile__line {
+  display: block;
+}
+
+/* 8.9: «From your profile: N kcal» | «Reset to calculated». */
+.profile__override {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+  color: var(--color-text-secondary);
+  font-size: var(--text-subhead-size);
+  font-variant-numeric: tabular-nums;
+}
+
+.profile__override .button {
+  /* The icon lines up with the card text. */
+  margin-inline-start: calc(var(--space-4) * -1);
+}
+
+.profile .switch,
+.profile__pct {
+  margin-inline-start: auto;
+}
+
+.profile__pct {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+.profile__grams {
+  color: var(--color-text-secondary);
+  font-size: var(--text-subhead-size);
+  font-variant-numeric: tabular-nums;
+}
+
+.profile__sum {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.profile__sum--ok {
+  color: var(--color-accent);
+}
+
+.profile__sum .lucide {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+}
+
+.profile__nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Ties the share rows to the colored bar of the norm card. */
+.profile__dot {
+  display: inline-block;
+  width: var(--space-2);
+  height: var(--space-2);
+  margin-inline-end: var(--space-2);
+  border-radius: var(--radius-full);
+  vertical-align: middle;
+}
+.profile__dot--protein {
+  background: var(--color-protein);
+}
+.profile__dot--fat {
+  background: var(--color-fat);
+}
+.profile__dot--carbs {
+  background: var(--color-carbs);
+}

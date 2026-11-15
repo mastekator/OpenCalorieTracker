@@ -334,6 +334,7 @@ export const en = {
     minor: 'This calculation is for adults',
     minor_body:
       'For teenagers, it’s best to set a goal with a doctor. You can enter one manually.',
+    minor_cta: 'Set manually',
     disclaimer:
       'This is an estimate, not medical advice. If you have a medical condition, are pregnant or breastfeeding, or are under 18, talk to a doctor.',
     disclaimer_hide: 'Hide this notice',
@@ -460,6 +461,41 @@ export const en = {
     body: 'Switch to “Maintain”? Your goal will be {n} kcal.',
     go: 'Switch',
     later: 'Not now',
+  },
+  manual: {
+    title: 'Own goal',
+    toggle: 'Set my own goal',
+    hint: 'If a dietitian or coach gave you a goal. You don’t have to fill in your profile.',
+    kcal: 'Kcal a day',
+    sum: 'Total',
+    pct: '{n}%',
+    sum_short: '{n}% left — we’ll fill it in when you save',
+    sum_over: '{n}% over — we’ll trim it when you save',
+    fill: {
+      title_short: '{n}% left',
+      title_over: '{n}% over',
+      to: {
+        protein:
+          'Macros need to add up to 100%. We’ll add the rest to protein:',
+        fat: 'Macros need to add up to 100%. We’ll add the rest to fat:',
+        carbs: 'Macros need to add up to 100%. We’ll add the rest to carbs:',
+      },
+      from: {
+        protein:
+          'Macros need to add up to 100%. We’ll take the extra from protein:',
+        fat: 'Macros need to add up to 100%. We’ll take the extra from fat:',
+        carbs:
+          'Macros need to add up to 100%. We’ll take the extra from carbs:',
+      },
+      share: '{macro} {n}%',
+      change: '{macro} {from} → {to}%',
+      apply: 'Fill in and save',
+      self: 'I’ll fix it myself',
+    },
+    low: 'That’s below {floor} kcal — it’s hard to get enough nutrients without a doctor’s supervision.',
+    by_profile: 'From your profile: {n} kcal',
+    reset: 'Reset to calculated',
+    reset_toast: 'Using the calculated goal',
   },
   range: {
     error: '{field}: {min} to {max} {unit}',

@@ -1,4 +1,4 @@
-import { useId } from 'react';
+import { useId, type ReactNode } from 'react';
 import { useT } from '../../i18n';
 import { Button } from '../Button/Button';
 import { useModalDialog } from '../useModalDialog';
@@ -7,7 +7,7 @@ import './ConfirmDialog.css';
 type Props = {
   open: boolean;
   title: string;
-  body?: string;
+  body?: ReactNode;
   confirmLabel: string;
   /** Defaults to «Cancel»; e.g. «Close» (3.8) or «Stay» (leave with edits). */
   cancelLabel?: string;
@@ -21,6 +21,11 @@ type Props = {
    */
   secondaryLabel?: string;
   onSecondary?: () => void;
+  /**
+   * Two buttons stacked full width, confirm on top and Cancel plain below,
+   * focus on confirm: for long labels (OCT-22 8.8a).
+   */
+  stack?: boolean;
 };
 
 export function ConfirmDialog({
@@ -34,14 +39,16 @@ export function ConfirmDialog({
   onCancel,
   secondaryLabel,
   onSecondary,
+  stack,
 }: Props) {
   const { t } = useT();
   const id = useId();
   const dialog = useModalDialog(open, onCancel);
   const three = secondaryLabel !== undefined;
+  const stacked = three || stack;
   const cancel = (
     <Button
-      variant={three ? 'plain' : 'tonal'}
+      variant={stacked ? 'plain' : 'tonal'}
       onClick={onCancel}
       data-autofocus={three || undefined}
     >
@@ -65,7 +72,7 @@ export function ConfirmDialog({
             id={`${id}-title`}
             className="confirm__title"
             tabIndex={-1}
-            data-autofocus={!three || undefined}
+            data-autofocus={!stacked || undefined}
           >
             {title}
           </h2>
@@ -74,14 +81,20 @@ export function ConfirmDialog({
               {body}
             </p>
           )}
-          {three ? (
+          {stacked ? (
             <div className="confirm__actions confirm__actions--stack">
-              <Button variant={tone} onClick={onConfirm}>
+              <Button
+                variant={tone}
+                onClick={onConfirm}
+                data-autofocus={!three || undefined}
+              >
                 {confirmLabel}
               </Button>
-              <Button variant="danger-plain" onClick={onSecondary}>
-                {secondaryLabel}
-              </Button>
+              {three && (
+                <Button variant="danger-plain" onClick={onSecondary}>
+                  {secondaryLabel}
+                </Button>
+              )}
               {cancel}
             </div>
           ) : (
