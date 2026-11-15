@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { Redirect, useLocation, useSearch } from 'wouter';
-import { Camera, Plus, Sparkle, UtensilsCrossed, X } from 'lucide-react';
+import { Calendar, Camera, Plus, Sparkle, UtensilsCrossed, X } from 'lucide-react';
 import { z } from 'zod';
 import {
   DISH_GRAMS,
@@ -720,17 +720,40 @@ export function MealEditScreen({
               </div>
             )}
             {meal && (
-              <Field
-                label={t('edit.when')}
-                type="datetime-local"
-                required
-                value={when}
-                max={maxWhen}
-                // A typed future time is pulled back to now (AC-2.9).
-                onChange={(e) =>
-                  setWhen(e.target.value > maxWhen ? maxWhen : e.target.value)
-                }
-              />
+              // OCT-19 §3.1: the value in the app's language; the native picker covers it transparently.
+              <label className="meal-edit__when">
+                <Calendar aria-hidden="true" />
+                <span aria-hidden="true">
+                  {new Intl.DateTimeFormat(locale, {
+                    weekday: 'short',
+                    day: 'numeric',
+                    month: 'short',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                  })
+                    .format(new Date(when))
+                    .replace(/ /g, '\u00a0')}
+                </span>
+                <input
+                  type="datetime-local"
+                  aria-label={t('edit.when')}
+                  required
+                  value={when}
+                  max={maxWhen}
+                  onClick={(event) => {
+                    try {
+                      event.currentTarget.showPicker(); // desktop Chrome: a click alone only focuses
+                    } catch {
+                      // No showPicker, or no user activation: the native behaviour stays.
+                    }
+                  }}
+                  // A typed future time is pulled back to now (AC-2.9); a cleared field keeps the value.
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v) setWhen(v > maxWhen ? maxWhen : v);
+                  }}
+                />
+              </label>
             )}
             {date && (
               <Field

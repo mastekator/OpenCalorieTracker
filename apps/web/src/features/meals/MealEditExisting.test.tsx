@@ -130,6 +130,8 @@ describe('MealEditScreen: a saved meal (OCT-19 §3.1)', () => {
       screen.getByRole('heading', { name: 'Dinner, Nov 12' }),
     ).toBeTruthy();
     expect(when().value).toBe('2026-11-12T19:55');
+    // Shown in the app's language, not the browser's (OCT-19 §3.1).
+    expect(screen.getByText(/^Thu,\u00a0Nov\u00a012,\u00a07:55/)).toBeTruthy();
     expect(when().max).toBe('2026-11-15T13:24');
     fireEvent.change(when(), { target: { value: '2026-11-20T10:00' } });
     expect(when().value).toBe('2026-11-15T13:24');
