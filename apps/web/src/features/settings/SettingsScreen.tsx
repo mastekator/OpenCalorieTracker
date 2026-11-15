@@ -270,6 +270,14 @@ export function SettingsScreen({ user, onLogout, platform: given }: Props) {
           title={t('settings.group.data')}
           footer={t('settings.units_hint')}
         >
+          <ListRow
+            icon={<Image />}
+            description={t('settings.photos.hint')}
+            value={retentionLabel(retention)}
+            onClick={() => setRetentionOpen(true)}
+          >
+            {t('settings.photos.keep')}
+          </ListRow>
           <SegmentedRow
             icon={<Ruler />}
             label={t('settings.units')}
@@ -280,14 +288,6 @@ export function SettingsScreen({ user, onLogout, platform: given }: Props) {
             value={units}
             onChange={(v) => void patchSettings(db, { units: v })}
           />
-          <ListRow
-            icon={<Image />}
-            description={t('settings.photos.hint')}
-            value={retentionLabel(retention)}
-            onClick={() => setRetentionOpen(true)}
-          >
-            {t('settings.photos.keep')}
-          </ListRow>
         </List>
         <RetentionSheet
           open={retentionOpen}
@@ -297,6 +297,7 @@ export function SettingsScreen({ user, onLogout, platform: given }: Props) {
         />
         <ConfirmDialog
           open={!!shorten}
+          stack
           title={
             shorten?.days === 0
               ? t('settings.photos.shorten.title_none')
