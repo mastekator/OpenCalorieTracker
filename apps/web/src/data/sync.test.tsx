@@ -154,6 +154,38 @@ describe('pull', () => {
     expect(await db.get('meals', 'a')).toBeUndefined();
   });
 
+  it('keeps settings and a choice with an unsent change, applies the rest', async () => {
+    await open();
+    const local = { theme: 'dark', photoRetentionDays: 7 };
+    await db.put('kv', local as never, 'settings');
+    await db.put('kv', { soup: 'pizza' }, 'choices');
+    await db.add('outbox', {
+      clientId: 'photoRetention',
+      kind: 'putPhotoRetention',
+      body: { days: 7 },
+    });
+    await db.add('outbox', {
+      clientId: 'choice:soup',
+      kind: 'putIllustrationChoice',
+      body: { name: 'soup', illustration: 'pizza' },
+    });
+    serve(
+      page({
+        settings: { theme: 'light' } as SyncResponse['settings'],
+        illustrationChoices: [
+          { nameKey: 'soup', illustration: 'soup' },
+          { nameKey: 'fish', illustration: 'fish' },
+        ],
+      }),
+    );
+    await pull(db);
+    expect(await db.get('kv', 'settings')).toEqual(local);
+    expect(await db.get('kv', 'choices')).toEqual({
+      soup: 'pizza',
+      fish: 'fish',
+    });
+  });
+
   it('stores the profile, but not over a newer saved one', async () => {
     await open();
     serve(page({ rev: 3, profile: { ...PROFILE, rev: 3 } }));
