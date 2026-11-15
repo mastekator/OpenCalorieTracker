@@ -15,6 +15,7 @@ import {
 } from '../../data/DataContext';
 import { patchSettings } from '../../data/outbox';
 import { storeProfile } from '../../data/sync';
+import { localToday } from '../diary/day';
 import { useT } from '../../i18n';
 import { useOnline } from '../../ui/OfflineBar/OfflineBar';
 import { Delayed, Skeleton } from '../../ui/Skeleton/Skeleton';
@@ -47,7 +48,7 @@ export function ProfileScreen() {
   }>();
   const [agentDown, setAgentDown] = useState(false);
   const toast = useToast();
-  const today = new Date().toLocaleDateString('sv');
+  const today = localToday();
   const disclaimerHidden =
     settings?.normDisclaimerHidden ?? user?.normDisclaimerHidden ?? false;
 
