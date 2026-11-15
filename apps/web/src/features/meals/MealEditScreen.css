@@ -97,6 +97,10 @@
   margin-inline-start: calc(-1 * var(--space-4));
 }
 
+.meal-edit__recalc .button {
+  width: auto;
+}
+
 .meal-edit__estimate {
   grid-column: 1 / -1;
   display: flex;

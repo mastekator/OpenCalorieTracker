@@ -738,6 +738,11 @@ export const en = {
     dismiss: 'Not now',
     done: 'Recalculated from the photo',
     undo: 'Restore my numbers',
+    back: 'Back to the entry',
+    gone: {
+      title: 'The photo is no longer stored',
+      body: 'It can’t be recalculated from the photo. The entry stays as it was.',
+    },
   },
   recog: {
     not_configured:

@@ -746,12 +746,12 @@ export function MealEditScreen({
               title={t('recalc.banner.title')}
               actions={
                 <>
-                  <Button onClick={startRecalc} disabled={busy}>
+                  <button type="button" onClick={startRecalc} disabled={busy}>
                     {t('recalc.action')}
-                  </Button>
-                  <Button variant="plain" onClick={onDismissRecalc}>
+                  </button>
+                  <button type="button" onClick={onDismissRecalc}>
                     {t('recalc.dismiss')}
-                  </Button>
+                  </button>
                 </>
               }
             >

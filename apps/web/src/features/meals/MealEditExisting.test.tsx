@@ -543,9 +543,10 @@ describe('recalculation from the photo (OCT-62)', () => {
     });
     fireEvent.click(button('Recalculate'));
     expect(await screen.findByRole('alert')).toBeTruthy();
+    expect(screen.getByText('The photo is no longer stored')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Try again' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Retake' })).toBeNull();
-    fireEvent.click(button('Enter manually'));
+    fireEvent.click(button('Back to the entry'));
     expect(await screen.findByText('Buckwheat')).toBeTruthy();
     expect(sent).toEqual([]);
   });
