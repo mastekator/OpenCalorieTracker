@@ -85,11 +85,23 @@ const ru: DeepPartial<typeof en> = {
     group: {
       admin: 'Администрирование',
       appearance: 'Внешний вид',
+      data: 'Данные',
       app: 'Приложение',
       signin: 'Вход · {email}',
     },
     language: 'Язык',
     theme: 'Тема',
+    theme_option: { system: 'Системная', light: 'Светлая', dark: 'Тёмная' },
+    units: 'Система мер',
+    units_option: { metric: 'Метрическая', us: 'США' },
+    units_hint:
+      'Вес еды — в унциях, вес тела — в фунтах. Калории и БЖУ не меняются.',
+    install: 'Установить на экран «Домой»',
+    recognition: 'Распознавание фото',
+    recognition_on: '{provider}. Фото отправляются этому сервису',
+    recognition_off: 'ИИ не настроен — доступен ручной ввод',
+    offline:
+      'Без сети работает всё, кроме входа и администрирования. Изменения отправим, когда сеть вернётся.',
     ai_provider: 'ИИ-провайдер',
     version: 'Версия {v}',
     logout: 'Выйти',

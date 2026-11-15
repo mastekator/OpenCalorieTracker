@@ -155,7 +155,8 @@ export function AppScreens() {
       </Route>
       <Route path="/settings">
         <Screen
-          title={t('nav.settings')}
+          wide
+          title={t('settings.title')}
           back={{ href: '/profile', label: t('nav.profile'), mobileOnly: true }}
         >
           <SettingsScreen user={user} onLogout={() => void logout()} />

@@ -7,7 +7,17 @@ import {
   waitFor,
 } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import type { MeResponse, Passkey } from '@oct/shared';
+import type {
+  AccountSettings,
+  AiStatus,
+  MeResponse,
+  Passkey,
+} from '@oct/shared';
+import { THEME_STORAGE_KEY } from '../../app/theme';
+import { emitChange } from '../../data/changes';
+import { DataProvider } from '../../data/DataContext';
+import { openUserDb } from '../../data/db';
+import { clearLocal } from '../../data/user';
 import { I18nProvider, LOCALE_STORAGE_KEY } from '../../i18n';
 import { ToastProvider } from '../../ui/Toast/Toast';
 import { isLastMethod } from './methods';
@@ -43,12 +53,18 @@ const passkey: Passkey = {
   thisDevice: true,
 };
 
-/** Renders once the dictionary has loaded. */
-async function wrap(node: ReactNode) {
+/** Renders once the dictionary has loaded; `data`: inside DataProvider, as SettingsScreen needs. */
+async function wrap(node: ReactNode, data = false) {
   const view = render(
     <I18nProvider>
       <ToastProvider>
-        <div data-testid="ready">{node}</div>
+        {data ? (
+          <DataProvider user={user}>
+            <div data-testid="ready">{node}</div>
+          </DataProvider>
+        ) : (
+          <div data-testid="ready">{node}</div>
+        )}
       </ToastProvider>
     </I18nProvider>,
   );
@@ -57,15 +73,18 @@ async function wrap(node: ReactNode) {
 }
 
 beforeEach(() => localStorage.setItem(LOCALE_STORAGE_KEY, 'en'));
-afterEach(() => {
+afterEach(async () => {
   cleanup();
   localStorage.clear();
+  delete document.documentElement.dataset.theme;
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
+  await clearLocal(user.id);
 });
 
 describe('SettingsScreen', () => {
   it('hides the admin group from a regular user', async () => {
-    await wrap(<SettingsScreen user={user} onLogout={() => {}} />);
+    await wrap(<SettingsScreen user={user} onLogout={() => {}} />, true);
     expect(screen.queryByRole('heading', { name: 'Admin' })).toBeNull();
     expect(screen.queryByText('Invites')).toBeNull();
     expect(screen.getByText('Sign-in · anna@example.com')).toBeTruthy();
@@ -74,7 +93,7 @@ describe('SettingsScreen', () => {
 
   it('shows the admin group to an admin, disabled offline with a toast', async () => {
     vi.stubGlobal('navigator', { ...navigator, onLine: false });
-    await wrap(<SettingsScreen user={admin} onLogout={() => {}} />);
+    await wrap(<SettingsScreen user={admin} onLogout={() => {}} />, true);
     expect(screen.getByRole('heading', { name: 'Admin' })).toBeTruthy();
     const invites = screen.getByRole('button', { name: 'Invites' });
     expect(invites.getAttribute('aria-disabled')).toBe('true');
@@ -103,13 +122,14 @@ describe('SettingsScreen', () => {
         user={{ ...user, enabledMethods: ['passkey'] }}
         onLogout={() => {}}
       />,
+      true,
     );
     expect(screen.getByText('My passkeys')).toBeTruthy();
     expect(screen.queryByText('Set password')).toBeNull();
   });
 
   it('shows the admin a closable hint while the config password is in use (AC-1.7)', async () => {
-    await wrap(<SettingsScreen user={admin} onLogout={() => {}} />);
+    await wrap(<SettingsScreen user={admin} onLogout={() => {}} />, true);
     expect(
       screen.getByText('Change the password set during installation'),
     ).toBeTruthy();
@@ -122,7 +142,7 @@ describe('SettingsScreen', () => {
 
   it('signs out', async () => {
     const onLogout = vi.fn();
-    await wrap(<SettingsScreen user={user} onLogout={onLogout} />);
+    await wrap(<SettingsScreen user={user} onLogout={onLogout} />, true);
     fireEvent.click(screen.getByRole('button', { name: 'Sign out' }));
     expect(onLogout).toHaveBeenCalled();
   });
@@ -240,5 +260,168 @@ describe('PasswordScreen', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Set password' }));
     expect(screen.getByText('Passwords don’t match')).toBeTruthy();
     expect(fetch).not.toHaveBeenCalled();
+  });
+});
+
+const synced: AccountSettings = {
+  locale: 'en',
+  theme: 'system',
+  units: 'metric',
+  settingsRev: 1,
+  photoRetentionDays: 30,
+  normDisclaimerHidden: false,
+};
+const seed = async (settings: AccountSettings, ai?: AiStatus) => {
+  const db = await openUserDb(user.id);
+  await db.put('kv', settings, 'settings');
+  await db.put('kv', 1, 'rev');
+  if (ai) await db.put('kv', ai, 'aiStatus');
+  db.close();
+};
+const outbox = async () => {
+  const db = await openUserDb(user.id);
+  const ops = await db.getAll('outbox');
+  db.close();
+  return ops;
+};
+const offlineNow = () => {
+  vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+  vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('offline')));
+};
+const serve = (body: unknown) =>
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => Response.json(body)),
+  );
+const screenOf = (u = user) => (
+  <SettingsScreen user={u} onLogout={() => {}} platform={null} />
+);
+
+describe('Appearance and data (OCT-25 §4)', () => {
+  it('language, theme and units apply without a reload and go to the queue', async () => {
+    offlineNow();
+    await seed(synced);
+    await wrap(screenOf(), true);
+
+    fireEvent.click(await screen.findByRole('radio', { name: 'Русский' }));
+    expect(await screen.findByText('Внешний вид')).toBeTruthy();
+    expect(document.documentElement.lang).toBe('ru');
+    expect(localStorage.getItem(LOCALE_STORAGE_KEY)).toBe('ru');
+
+    fireEvent.click(screen.getByRole('radio', { name: 'Тёмная' }));
+    await waitFor(() =>
+      expect(document.documentElement.dataset.theme).toBe('dark'),
+    );
+    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('dark');
+
+    fireEvent.click(screen.getByRole('radio', { name: 'США' }));
+    await waitFor(() =>
+      expect(
+        screen.getByRole('radio', { name: 'США' }).getAttribute('aria-checked'),
+      ).toBe('true'),
+    );
+    const ops = await outbox();
+    expect(ops).toHaveLength(1);
+    expect(ops[0]).toMatchObject({
+      kind: 'patchSettings',
+      body: { locale: 'ru', theme: 'dark', units: 'us' },
+    });
+
+    // Back to the system theme: no attribute, no saved key.
+    fireEvent.click(screen.getByRole('radio', { name: 'Системная' }));
+    await waitFor(() =>
+      expect(document.documentElement.dataset.theme).toBeUndefined(),
+    );
+    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBeNull();
+  });
+
+  it('settings synced from another device apply here and are not queued back', async () => {
+    offlineNow();
+    await seed(synced);
+    await wrap(screenOf(), true);
+    await screen.findByRole('radio', { name: 'English' });
+
+    await seed({ ...synced, locale: 'ru', theme: 'dark' });
+    emitChange();
+    expect(await screen.findByText('Внешний вид')).toBeTruthy();
+    expect(document.documentElement.dataset.theme).toBe('dark');
+    expect(await outbox()).toEqual([]);
+  });
+});
+
+describe('Offline (4.8)', () => {
+  it('banner, local rows active, sign-in and admin rows not, last AI status shown', async () => {
+    offlineNow();
+    await seed(synced, {
+      recognition: 'ready',
+      interview: 'ready',
+      providerName: 'Google Gemini',
+      baseUrlHost: null,
+    });
+    await wrap(
+      screenOf({ ...admin, id: user.id, passwordFromConfig: false }),
+      true,
+    );
+
+    expect(
+      await screen.findByText(/Everything works offline except sign-in/),
+    ).toBeTruthy();
+    expect(
+      await screen.findByText(
+        'Google Gemini. Your photos are sent to this service',
+      ),
+    ).toBeTruthy();
+    for (const name of ['English', 'Dark', 'US'])
+      expect(
+        screen.getByRole('radio', { name }).getAttribute('aria-disabled'),
+      ).toBeNull();
+    for (const name of [/passkey/i, 'Change password', 'Users'])
+      expect(
+        screen.getByRole('button', { name }).getAttribute('aria-disabled'),
+      ).toBe('true');
+    expect(
+      screen
+        .getByRole('button', { name: 'Sign out' })
+        .getAttribute('aria-disabled'),
+    ).toBeNull();
+  });
+
+  it('no AI: the manual-entry line; own server: its host', async () => {
+    serve({
+      recognition: 'not_configured',
+      interview: 'not_configured',
+      providerName: null,
+      baseUrlHost: null,
+    });
+    await wrap(screenOf(), true);
+    expect(
+      await screen.findByText('AI isn’t set up — manual entry is available'),
+    ).toBeTruthy();
+    cleanup();
+    await clearLocal(user.id);
+    serve({
+      recognition: 'ready',
+      interview: 'ready',
+      providerName: null,
+      baseUrlHost: '192.168.1.20:11434',
+    });
+    await wrap(screenOf(), true);
+    expect(
+      await screen.findByText(
+        '192.168.1.20:11434. Your photos are sent to this service',
+      ),
+    ).toBeTruthy();
+  });
+
+  it('the install row opens the iPhone sheet', async () => {
+    offlineNow();
+    await wrap(
+      <SettingsScreen user={user} onLogout={() => {}} platform="safari" />,
+      true,
+    );
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Add to Home Screen' }),
+    );
+    expect(await screen.findByText('Install on iPhone')).toBeTruthy();
   });
 });

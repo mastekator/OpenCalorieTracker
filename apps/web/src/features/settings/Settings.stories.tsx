@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import type { MeResponse, Passkey } from '@oct/shared';
+import { DataProvider } from '../../data/DataContext';
 import { atPath } from '../../ui/navStory';
 import { ToastProvider } from '../../ui/Toast/Toast';
 import { AiProviderScreen } from './AiProviderScreen';
@@ -43,24 +44,31 @@ const passkeys: Passkey[] = [
   },
 ];
 
-/** Answers GET /api/account/passkeys with `list`, /api/admin/ai with a quota state; anything else succeeds empty. */
+/** Answers GET /api/account/passkeys with `list`, /api/admin/ai with a quota state, /api/ai/status with Gemini; anything else succeeds empty. */
 const serve = (list: Passkey[]) => () => {
   const real = globalThis.fetch;
   globalThis.fetch = async (input) =>
     String(input).endsWith('/api/account/passkeys')
       ? Response.json(list)
-      : String(input).endsWith('/api/admin/ai')
+      : String(input).endsWith('/api/ai/status')
         ? Response.json({
-            provider: 'google',
+            recognition: 'ready',
+            interview: 'ready',
             providerName: 'Google Gemini',
-            model: 'gemini-2.5-flash',
-            keySet: true,
             baseUrlHost: null,
-            source: 'env',
-            state: 'quota_exceeded',
-            checkedAt: Date.now(),
           })
-        : new Response(null, { status: 204 });
+        : String(input).endsWith('/api/admin/ai')
+          ? Response.json({
+              provider: 'google',
+              providerName: 'Google Gemini',
+              model: 'gemini-2.5-flash',
+              keySet: true,
+              baseUrlHost: null,
+              source: 'env',
+              state: 'quota_exceeded',
+              checkedAt: Date.now(),
+            })
+          : new Response(null, { status: 204 });
   return () => {
     globalThis.fetch = real;
   };
@@ -85,8 +93,10 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 const dark = { globals: { theme: 'dark' } };
 
-const settings = (u: MeResponse) => (
-  <SettingsScreen user={u} onLogout={() => {}} />
+const settings = (u: MeResponse, platform: 'safari' | null = null) => (
+  <DataProvider user={u}>
+    <SettingsScreen user={u} onLogout={() => {}} platform={platform} />
+  </DataProvider>
 );
 /** Forces navigator.onLine off; the real screen follows the browser's online/offline events. */
 const offline = () => {
@@ -96,8 +106,31 @@ const offline = () => {
   });
   return () => void delete (navigator as { onLine?: boolean }).onLine;
 };
-export const User: Story = { render: () => settings(user) };
+/** 4.1: language, theme and units segments; recognition with the provider. */
+export const User: Story = {
+  beforeEach: serve([]),
+  render: () => settings(user),
+};
 export const UserDark: Story = { ...User, ...dark };
+/** iPhone in Safari, not installed: the «Add to Home Screen» row opens the steps sheet. */
+export const UserInstall: Story = {
+  beforeEach: serve([]),
+  render: () => settings(user, 'safari'),
+};
+export const UserInstallDark: Story = { ...UserInstall, ...dark };
+/** D.1: the same groups in two columns. */
+export const Desktop: Story = {
+  beforeEach: () => {
+    localStorage.setItem(hintClosedKey(admin.id), '1');
+    return serve([])();
+  },
+  render: () => settings(admin),
+  globals: { viewport: { value: 'desktop' } },
+};
+export const DesktopDark: Story = {
+  ...Desktop,
+  globals: { viewport: { value: 'desktop' }, theme: 'dark' },
+};
 /** Admin with the AC-1.7 hint and the AI provider badge. */
 export const Admin: Story = {
   beforeEach: () => {
@@ -107,7 +140,7 @@ export const Admin: Story = {
   render: () => settings(admin),
 };
 export const AdminDark: Story = { ...Admin, ...dark };
-/** 4.8 Offline: admin, passkey and password rows greyed out, a tap shows the reason (3.6). */
+/** 4.8 Offline: the banner; admin, passkey and password rows greyed out, a tap shows the reason (3.6). */
 export const AdminOffline: Story = {
   beforeEach: () => {
     localStorage.setItem(hintClosedKey(admin.id), '1');
