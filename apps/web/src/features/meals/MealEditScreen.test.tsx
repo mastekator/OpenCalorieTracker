@@ -235,6 +235,114 @@ describe('MealEditScreen', () => {
       expect(manual).toMatchObject({ illustration: 'pizza' });
     });
 
+    describe('«Dish picture» (OCT-33 4.1)', () => {
+      async function picker(
+        dishes: (RecognizedDish & { illustration?: 'pizza' })[],
+        photoId?: string,
+      ) {
+        const onSave = vi.fn(async (input: MealInput) => void input);
+        const onChoice = vi.fn();
+        await renderLoaded(
+          <I18nProvider>
+            <ToastProvider>
+              <MealEditScreen
+                dishes={dishes}
+                photoId={photoId}
+                units="metric"
+                onSave={onSave}
+                onClose={() => {}}
+                onChoice={onChoice}
+              />
+            </ToastProvider>
+          </I18nProvider>,
+        );
+        const save = () =>
+          act(async () =>
+            fireEvent.click(screen.getByRole('button', { name: 'Save' })),
+          );
+        return { onSave, onChoice, save };
+      }
+      const illo = () =>
+        document
+          .querySelector('.dish-row .dish-illo')!
+          .getAttribute('data-illo');
+
+      it('a pick is remembered for the name and sent with the dish (AC-4.4)', async () => {
+        const { onSave, onChoice, save } = await picker([buckwheat]);
+        fireEvent.click(
+          screen.getByRole('button', {
+            name: 'Illustration: Grains & sides, change',
+          }),
+        );
+        const sheet = screen.getByRole('dialog');
+        expect(
+          within(sheet).getByText('Matched by the name “Buckwheat”'),
+        ).toBeTruthy();
+        expect(
+          within(sheet)
+            .getByRole('radio', { name: 'Grains & sides' })
+            .getAttribute('aria-checked'),
+        ).toBe('true');
+        fireEvent.click(within(sheet).getByRole('radio', { name: 'Pizza' }));
+        expect(onChoice).toHaveBeenCalledWith('Buckwheat', 'pizza');
+        expect(screen.queryByRole('dialog')).toBeNull();
+        expect(illo()).toBe('pizza');
+        await save();
+        expect(onSave.mock.calls[0]![0].items[0]).toMatchObject({
+          illustration: 'pizza',
+        });
+      });
+
+      it('«Restore automatic» sends null and drops the field (AC-4.7)', async () => {
+        const { onSave, onChoice, save } = await picker([
+          { ...buckwheat, illustration: 'pizza' },
+        ]);
+        fireEvent.click(
+          screen.getByRole('button', { name: 'Illustration: Pizza, change' }),
+        );
+        const sheet = screen.getByRole('dialog');
+        expect(
+          within(sheet).getByText('Picked by you for “Buckwheat”'),
+        ).toBeTruthy();
+        fireEvent.click(
+          within(sheet).getByRole('button', { name: 'Restore automatic' }),
+        );
+        expect(onChoice).toHaveBeenCalledWith('Buckwheat', null);
+        expect(illo()).toBe('grains');
+        await save();
+        expect(onSave.mock.calls[0]![0].items[0]).not.toHaveProperty(
+          'illustration',
+        );
+      });
+
+      it('offers a photo only while the meal has none (AC-4.3)', async () => {
+        await picker([buckwheat]);
+        const open = () =>
+          fireEvent.click(
+            screen.getByRole('button', {
+              name: 'Illustration: Grains & sides, change',
+            }),
+          );
+        open();
+        const camera = screen.getByTestId('edit-camera') as HTMLInputElement;
+        const click = vi.spyOn(camera, 'click');
+        fireEvent.click(screen.getByRole('button', { name: 'Take photo' }));
+        expect(click).toHaveBeenCalled();
+        expect(screen.queryByRole('dialog')).toBeNull();
+        open();
+        expect(
+          screen.getByRole('button', { name: 'From library' }),
+        ).toBeTruthy();
+        cleanup();
+        await picker([buckwheat], 'p1');
+        open();
+        expect(screen.queryByRole('button', { name: 'Take photo' })).toBeNull();
+        expect(
+          screen.queryByRole('button', { name: 'From library' }),
+        ).toBeNull();
+      });
+    });
+
     it('an empty name is not accepted', async () => {
       await setup();
       open();

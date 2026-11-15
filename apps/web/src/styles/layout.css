@@ -135,3 +135,10 @@
     background: var(--color-surface);
   }
 }
+
+/* OCT-33 D.1: the illustration picker has 5 columns in the dialog. */
+@media (min-width: 1024px) {
+  :root .illo-picker__grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}

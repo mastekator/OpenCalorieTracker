@@ -18,10 +18,12 @@ function Demo({
   dish,
   units,
   onDelete,
+  onIllustration,
 }: {
   dish: DishRowDish;
   units: Units;
   onDelete?: () => void;
+  onIllustration?: () => void;
 }) {
   const [row, setRow] = useState(dish);
   const original = { ...dish, grams: dish.grams ?? 1 };
@@ -38,6 +40,7 @@ function Demo({
       }
       onEdit={() => {}}
       onDelete={onDelete}
+      onIllustration={onIllustration}
     />
   );
 }
@@ -119,6 +122,14 @@ export const Illustration: Story = {
   args: {
     dish: { ...rice, source: 'ai', confidence: 0.6, illustration: 'grains' },
   },
+};
+/** On the edit screen: a button with a pencil dot opens «Dish picture» (OCT-33 3.2). */
+export const IllustrationEditable: Story = {
+  args: { ...Illustration.args, onIllustration: fn() },
+};
+export const IllustrationEditableDark: Story = {
+  ...IllustrationEditable,
+  globals: { theme: 'dark' },
 };
 export const IllustrationDark: Story = {
   ...Illustration,
