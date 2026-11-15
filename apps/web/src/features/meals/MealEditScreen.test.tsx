@@ -179,6 +179,14 @@ describe('MealEditScreen', () => {
       );
     });
 
+    it('an out-of-range recognized weight stays invalid after Done (AC-3.4)', async () => {
+      const { save } = await setup(undefined, [{ ...buckwheat, grams: 6000 }]);
+      open();
+      fireEvent.click(within(sheet()).getByRole('button', { name: 'Done' }));
+      expect(sheet()).toBeTruthy();
+      expect((save() as HTMLButtonElement).disabled).toBe(true);
+    });
+
     it('closing without Done drops the draft', async () => {
       await setup();
       open();

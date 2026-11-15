@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { scaleItem, type Nutrients, type Units } from '@oct/shared';
+import { DISH_GRAMS, scaleItem, type Nutrients, type Units } from '@oct/shared';
 import { useT } from '../../i18n';
 import { Button } from '../Button/Button';
 import { Field } from '../Field/Field';
@@ -31,7 +31,10 @@ export function DishSheet({
 }: Props) {
   const { t, num } = useT();
   const [name, setName] = useState(original.name);
-  const [grams, setGrams] = useState<number | null>(initial);
+  // An out-of-range AI weight starts invalid, so «Done» can't pass it on as valid (AC-3.4).
+  const [grams, setGrams] = useState<number | null>(
+    initial >= DISH_GRAMS.min && initial <= DISH_GRAMS.max ? initial : null,
+  );
   const [nameErr, setNameErr] = useState(false);
   // A name change never recalculates: the numbers follow the weight only (AC-3.5).
   const shown = scaleItem(original, grams ?? initial);
