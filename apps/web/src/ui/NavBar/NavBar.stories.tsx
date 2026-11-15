@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Settings2, UserPlus } from 'lucide-react';
 import { useT } from '../../i18n';
 import { atPath } from '../navStory';
+import { Segment } from '../Segment/Segment';
 import { NavBar } from './NavBar';
 
 type Args = Parameters<typeof NavBar>[0];
@@ -112,6 +113,30 @@ export const FocusVisible: Story = {
     pseudo: { focusVisible: ['.navbar__back', '.navbar__action'] },
   },
 };
+/** Large title with controls on its right (Week, OCT-19 D.3); `aside` is the screen's own. */
+export const AsideDesktop: Story = {
+  render: () => (
+    <Localised
+      make={(t) => ({
+        title: t('nav.week'),
+        large: true,
+        aside: (
+          <Segment
+            label={t('week.mode.label')}
+            options={[
+              { value: 'week', label: t('week.mode.week') },
+              { value: 'month', label: t('week.mode.month') },
+            ]}
+            value="week"
+            onChange={() => {}}
+          />
+        ),
+      })}
+    />
+  ),
+  globals: { viewport: { value: 'desktop' } },
+};
+
 export const Desktop: Story = {
   ...Root,
   globals: { viewport: { value: 'desktop' } },

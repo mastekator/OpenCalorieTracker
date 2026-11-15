@@ -19,16 +19,42 @@
   align-items: start;
 }
 
-/* D.3: segment and pager right of the title, budget and averages in two columns. */
+/* The navbar copy of the head (WeekNavHead) is for the desktop only. */
+.navbar .week__head {
+  display: none;
+}
+
+/* Heard by screen readers, not shown. */
+.week__loading {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.week__skeleton-bars {
+  align-items: end;
+}
+
+/* D.3: segment and pager right of the title, sized to their content; budget and averages
+   in two columns. */
 @media (min-width: 1024px) {
-  .week__head {
-    flex-direction: row;
-    align-items: center;
-    justify-content: flex-end;
+  .week .week__head {
+    display: none;
   }
 
-  .week__head .day-pager {
-    flex: 0 1 var(--dialog-max-width);
+  .navbar .week__head {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-4);
+  }
+
+  .navbar .week__head .day-pager__date {
+    flex: none;
+    min-width: var(--period-label-width);
   }
 
   .week__cards {

@@ -45,6 +45,7 @@
   --swipe-action-width: 96px;   /* «Delete» revealed by swiping a meal row (OCT-19 6.3) */
   --photo-preview-height: 280px; /* photo on the recognition screen (OCT-16 §2) */
   --stepper-value-width: 96px;  /* weight field between − and + on the edit screen (OCT-16 §3) */
+  --period-label-width: 144px;  /* desktop week head: pager date, so arrows stay put while paging (OCT-19 D.3) */
   --progress-height: 8px;       /* kcal & macro bars on Today / Diary / Week */
   --hatch-size: 6px;            /* stripe period of the "over the norm" pattern (not colour-only) */
   --chart-height: 184px;        /* kcal-by-day plot on Week (OCT-19 §4) */
