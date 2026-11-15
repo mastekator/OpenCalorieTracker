@@ -79,6 +79,7 @@ describe('ConfirmDialog', () => {
     const title = screen.getByRole('heading', { name: 'Fill in?' });
     expect(document.activeElement).toBe(title);
     fireEvent.keyDown(title, { key: 'Enter' });
+    fireEvent.keyDown(screen.getByRole('alertdialog'), { key: 'Enter' });
     expect(onConfirm).not.toHaveBeenCalled();
   });
 
