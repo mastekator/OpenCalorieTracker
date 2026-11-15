@@ -2,11 +2,12 @@ import { describe, expect, it } from 'vitest';
 import {
   addDays,
   calculateNorm,
+  nextField,
   type InterviewDraft,
   type InterviewTurn,
   type Profile,
 } from '@oct/shared';
-import { advanceInterview, nextField } from './advance.js';
+import { advanceInterview } from './advance.js';
 
 const today = '2026-11-13';
 const metric = { units: 'metric' as const, today };

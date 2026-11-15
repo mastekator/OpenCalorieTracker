@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { NormResult } from './calculate.js';
+import { REQUIRED_FIELDS, type NormResult } from './calculate.js';
 import {
   activitySchema,
   goalSchema,
@@ -107,4 +107,18 @@ export interface AgentResponse {
   draft: InterviewDraft;
   state: InterviewState;
   userTurns: number;
+}
+
+/** First missing field in question order; target and deadline only for lose/gain, "unknown" counts as answered. */
+export function nextField({
+  profile: p,
+  unknown,
+}: Pick<InterviewDraft, 'profile' | 'unknown'>): InterviewField | null {
+  const required = REQUIRED_FIELDS.find((k) => p[k] === null);
+  if (required) return required;
+  if (p.goal === 'maintain') return null;
+  if (p.targetWeightKg === null)
+    return unknown.includes('targetWeightKg') ? null : 'targetWeightKg';
+  if (p.deadline === null && !unknown.includes('deadline')) return 'deadline';
+  return null;
 }

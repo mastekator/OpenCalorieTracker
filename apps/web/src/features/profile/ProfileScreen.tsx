@@ -15,8 +15,9 @@ import { patchSettings } from '../../data/outbox';
 import { useT } from '../../i18n';
 import { Button } from '../../ui/Button/Button';
 import { ScreenState } from '../../ui/ScreenState/ScreenState';
-import { Sheet } from '../../ui/Sheet/Sheet';
 import { Delayed, Skeleton } from '../../ui/Skeleton/Skeleton';
+import { useToast } from '../../ui/Toast/Toast';
+import { AgentChat } from './AgentChat';
 import { ProfileForm } from './ProfileForm';
 
 // Our own server: trust the shape, as data/sync.ts does.
@@ -35,6 +36,10 @@ export function ProfileScreen() {
   const [failed, setFailed] = useState(false);
   const [chat, setChat] = useState(false);
   const requireOnline = useRequireOnline();
+  const toast = useToast();
+  const today = new Date().toLocaleDateString('sv');
+  const disclaimerHidden =
+    settings?.normDisclaimerHidden ?? user?.normDisclaimerHidden ?? false;
 
   const load = useCallback(() => {
     setFailed(false);
@@ -77,9 +82,11 @@ export function ProfileScreen() {
   return (
     <>
       <ProfileForm
+        // A goal applied in the chat replaces the form's state wholesale.
+        key={data.profile.rev}
         initial={data.profile}
         units={units}
-        today={new Date().toLocaleDateString('sv')}
+        today={today}
         onAgent={
           data.interview === 'not_configured'
             ? undefined
@@ -88,17 +95,26 @@ export function ProfileScreen() {
         onSave={(body: ProfileRequest) =>
           api('/api/profile', profileResponse, { method: 'PUT', body })
         }
-        disclaimerHidden={
-          settings?.normDisclaimerHidden ?? user?.normDisclaimerHidden
-        }
+        disclaimerHidden={disclaimerHidden}
         onHideDisclaimer={() =>
           void patchSettings(db, { normDisclaimerHidden: true })
         }
       />
-      {/* shortcut: an empty sheet until the assistant chat (OCT-90). */}
-      <Sheet open={chat} onClose={() => setChat(false)} title={t('chat.title')}>
-        {null}
-      </Sheet>
+      <AgentChat
+        open={chat}
+        onClose={() => setChat(false)}
+        units={units}
+        today={today}
+        manualKcal={data.profile.manual?.kcal ?? null}
+        disclaimerHidden={disclaimerHidden}
+        onApplied={(profile) => {
+          setChat(false);
+          setData({ ...data, profile });
+          toast({ text: t('chat.applied') });
+        }}
+        // shortcut: the screen has no manual-goal switch yet, so 9.8 just returns to the form.
+        onManual={() => setChat(false)}
+      />
     </>
   );
 }
