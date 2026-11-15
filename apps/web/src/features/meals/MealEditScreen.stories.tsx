@@ -86,7 +86,7 @@ const meta = {
     units: 'metric',
     onSave: fn(async () => {}),
     onClose: fn(),
-    now: new Date(2026, 10, 15, 13, 24),
+    now: () => new Date(2026, 10, 15, 13, 24),
   },
 } satisfies Meta<typeof MealEditScreen>;
 export default meta;
@@ -141,3 +141,11 @@ export const Desktop: Story = { globals: { viewport: { value: 'desktop' } } };
 export const DesktopDark: Story = {
   globals: { viewport: { value: 'desktop' }, theme: 'dark' },
 };
+/** OCT-19 3.2: 00:35, «Yesterday | Today» under the meal type, a snack by default. */
+const lateSnack = { now: () => new Date(2026, 10, 15, 0, 35) };
+export const LateSnack: Story = { args: lateSnack };
+export const LateSnackDark: Story = { args: lateSnack, globals: dark };
+/** AC-2.11, AC-2.12: «Add an entry for this day», lunch at 13:00, the time field. */
+const pastDay = { date: '2026-11-10' };
+export const PastDay: Story = { args: pastDay };
+export const PastDayDark: Story = { args: pastDay, globals: dark };

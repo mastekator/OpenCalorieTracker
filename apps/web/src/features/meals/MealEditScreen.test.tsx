@@ -58,7 +58,7 @@ async function setup(
           units="metric"
           onSave={onSave}
           onClose={() => {}}
-          now={new Date(2026, 10, 15, 13, 24)}
+          now={() => new Date(2026, 10, 15, 13, 24)}
         />
       </ToastProvider>
     </I18nProvider>,
@@ -370,7 +370,7 @@ describe('MealEditScreen: manual entry (OCT-60)', () => {
             units="metric"
             onSave={onSave}
             onClose={() => {}}
-            now={new Date(2026, 10, 15, 13, 24)}
+            now={() => new Date(2026, 10, 15, 13, 24)}
           />
         </ToastProvider>
       </I18nProvider>,
@@ -500,5 +500,103 @@ describe('MealEditScreen: manual entry (OCT-60)', () => {
     await save();
     expect(onSave.mock.calls[0]![0]).not.toHaveProperty('photoId');
     expect(onSave.mock.calls[0]![1]).toBe(file);
+  });
+});
+
+describe('MealEditScreen entry day (OCT-19 3.2, AC-2.11, AC-2.12)', () => {
+  async function open(props: { now: () => Date; date?: string }) {
+    const onSave = vi.fn(async (input: MealInput) => void input);
+    await renderLoaded(
+      <I18nProvider>
+        <ToastProvider>
+          <MealEditScreen
+            dishes={[buckwheat]}
+            units="metric"
+            onSave={onSave}
+            onClose={() => {}}
+            {...props}
+          />
+        </ToastProvider>
+      </I18nProvider>,
+    );
+    const save = async () => {
+      await act(async () =>
+        fireEvent.click(screen.getByRole('button', { name: 'Save' })),
+      );
+      return onSave.mock.calls[0]![0];
+    };
+    return { save };
+  }
+  const dayGroup = () => screen.queryByRole('radiogroup', { name: 'Day' });
+
+  it('from 00:00 to 03:59 offers «Yesterday | Today», «Yesterday» and a snack by default', async () => {
+    const { save } = await open({ now: () => new Date(2026, 10, 15, 0, 35) });
+    const group = dayGroup()!;
+    expect(
+      within(group)
+        .getByRole('radio', { name: 'Yesterday' })
+        .getAttribute('aria-checked'),
+    ).toBe('true');
+    expect(
+      screen.getByText(/late snack toward yesterday, November 14/),
+    ).toBeTruthy();
+    expect(await save()).toMatchObject({
+      mealType: 'snack',
+      localDate: '2026-11-14',
+    });
+  });
+
+  it('«Today» in the window keeps today', async () => {
+    const { save } = await open({ now: () => new Date(2026, 10, 15, 3, 59) });
+    fireEvent.click(screen.getByRole('radio', { name: 'Today' }));
+    expect(await save()).toMatchObject({ localDate: '2026-11-15' });
+  });
+
+  it('has no day choice outside the window', async () => {
+    await open({ now: () => new Date(2026, 10, 15, 4, 0) });
+    expect(dayGroup()).toBeNull();
+  });
+
+  it('takes the day and time at Save: opened 23:59, saved 00:01 is a late snack (E-1.4)', async () => {
+    let clock = new Date(2026, 10, 14, 23, 59);
+    const { save } = await open({ now: () => clock });
+    expect(dayGroup()).toBeNull();
+    clock = new Date(2026, 10, 15, 0, 1);
+    expect(await save()).toMatchObject({
+      localDate: '2026-11-14',
+      eatenAt: clock.toISOString(),
+    });
+  });
+
+  it('a past day gets its date, lunch at 13:00, the time following the type until edited', async () => {
+    const { save } = await open({
+      now: () => new Date(2026, 10, 15, 0, 35),
+      date: '2026-11-10',
+    });
+    expect(dayGroup()).toBeNull();
+    const time = screen.getByLabelText('Time') as HTMLInputElement;
+    expect(time.value).toBe('13:00');
+    fireEvent.click(screen.getByRole('radio', { name: 'Dinner' }));
+    expect(time.value).toBe('19:00');
+    fireEvent.change(time, { target: { value: '20:15' } });
+    fireEvent.click(screen.getByRole('radio', { name: 'Breakfast' }));
+    expect(time.value).toBe('20:15');
+    expect(await save()).toMatchObject({
+      mealType: 'breakfast',
+      localDate: '2026-11-10',
+      eatenAt: new Date(2026, 10, 10, 20, 15).toISOString(),
+    });
+  });
+
+  it('a past day starts at lunch, 13:00', async () => {
+    const { save } = await open({
+      now: () => new Date(2026, 10, 15, 9, 0),
+      date: '2026-11-10',
+    });
+    expect(await save()).toMatchObject({
+      mealType: 'lunch',
+      localDate: '2026-11-10',
+      eatenAt: new Date(2026, 10, 10, 13, 0).toISOString(),
+    });
   });
 });
