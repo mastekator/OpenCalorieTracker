@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { DayTotals } from '@oct/shared';
 import { ChartColumn } from 'lucide-react';
 import { useT } from '../../i18n';
@@ -29,6 +29,21 @@ const dayOf = (date: string) => Number(date.slice(8));
 export function KcalChart({ days, norm, today, mode, onOpenDay }: Props) {
   const { t, num, locale } = useT();
   const [tip, setTip] = useState<string | null>(null);
+  const root = useRef<HTMLDivElement>(null);
+  // A tapped tip closes on a tap outside the chart or on Esc (OCT-19 7.3).
+  useEffect(() => {
+    if (!tip) return;
+    const onDown = (e: PointerEvent) => {
+      if (!root.current?.contains(e.target as Node)) setTip(null);
+    };
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setTip(null);
+    document.addEventListener('pointerdown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('pointerdown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [tip]);
   const past = days.filter((d) => d.date <= today);
   const top = chartScale(
     past.map((d) => d.kcal),
@@ -56,7 +71,7 @@ export function KcalChart({ days, norm, today, mode, onOpenDay }: Props) {
   const n = { norm: norm === null ? '' : num(norm) };
 
   return (
-    <div className={`kchart kchart--${mode}`}>
+    <div ref={root} className={`kchart kchart--${mode}`}>
       <div className="kchart__plot">
         {norm !== null && (
           <span
@@ -94,6 +109,7 @@ export function KcalChart({ days, norm, today, mode, onOpenDay }: Props) {
                   className="kchart__hit"
                   aria-label={label}
                   aria-current={d.date === today ? 'date' : undefined}
+                  data-tip={d.date === tip || undefined}
                   onClick={() => {
                     if (mode === 'week' || tip === d.date) onOpenDay(d.date);
                     else setTip(d.date);
@@ -164,7 +180,7 @@ export function KcalChart({ days, norm, today, mode, onOpenDay }: Props) {
                 {tick(d.date) ? dayOf(d.date) : ''}
               </li>
             );
-          const over = norm !== null && Math.round(d.kcal) > Math.round(norm);
+          const over = barOf(d.kcal, norm, top).over;
           return (
             <li key={d.date} className={`kchart__label${state}`}>
               {format(d.date, { weekday: 'short' })}

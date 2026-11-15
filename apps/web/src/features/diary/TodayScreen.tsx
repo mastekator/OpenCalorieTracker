@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { ImagePlus, Pencil, Utensils } from 'lucide-react';
 import { useLocation } from 'wouter';
 import {
-  addDays,
   remainingOf,
   sumDay,
   summarize,
@@ -18,6 +17,7 @@ import { ScreenState } from '../../ui/ScreenState/ScreenState';
 import { Delayed, Skeleton } from '../../ui/Skeleton/Skeleton';
 import { useCapture } from '../meals/CaptureContext';
 import { DropZone } from '../meals/DropZone';
+import { periodDays } from '../week/period';
 import { MealRow } from './MealRow';
 import { InstallHint } from './InstallHint';
 import { NormInvite } from './NormInvite';
@@ -169,14 +169,12 @@ export function TodayScreen() {
   }, [highlight]);
 
   let weekRemainingKcal;
-  if (weekMeals && norm) {
-    const days = [];
-    for (let d = week.from; d <= week.to; d = addDays(d, 1)) {
-      const dayMeals = weekMeals.filter((m) => m.localDate === d);
-      days.push({ date: d, ...sumDay(dayMeals), meals: dayMeals.length });
-    }
-    weekRemainingKcal = summarize(days, norm, today).remaining?.kcal;
-  }
+  if (weekMeals && norm)
+    weekRemainingKcal = summarize(
+      periodDays(weekMeals, week.from, week.to),
+      norm,
+      today,
+    ).remaining?.kcal;
 
   return (
     <TodayView

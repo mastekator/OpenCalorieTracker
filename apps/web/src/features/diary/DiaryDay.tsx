@@ -6,7 +6,6 @@ import {
   type Meal,
 } from '@oct/shared';
 import { BookOpen, CircleAlert } from 'lucide-react';
-import { useEffect, useRef, type PointerEvent } from 'react';
 import { useT } from '../../i18n';
 import { Button } from '../../ui/Button/Button';
 import { List } from '../../ui/List/List';
@@ -16,6 +15,7 @@ import { ScreenState } from '../../ui/ScreenState/ScreenState';
 import { Delayed, Skeleton } from '../../ui/Skeleton/Skeleton';
 import { DayPager } from './DayPager';
 import { MealRow } from './MealRow';
+import { usePager } from './usePager';
 import './DiaryDay.css';
 
 type Props = {
@@ -31,11 +31,6 @@ type Props = {
   /** «Add an entry for this day» (AC-2.11). */
   onAdd: () => void;
 };
-
-/** A horizontal swipe longer than this turns the day. */
-const SWIPE_PX = 60;
-/** tan 30°: a steeper move is a scroll. */
-const MAX_SLOPE = 0.577;
 
 const MACROS = [
   ['protein', 'proteinG'],
@@ -55,53 +50,11 @@ export function DiaryDay({
   onAdd,
 }: Props) {
   const { t } = useT();
-  const start = useRef<{ x: number; y: number } | null>(null);
-  const turn = (days: number) => {
-    const next = addDays(date, days);
+  // A swipe on a meal row deletes it, not turns the day.
+  const swipe = usePager((step) => {
+    const next = addDays(date, step);
     if (next <= today) onDate(next);
-  };
-  const turnRef = useRef(turn);
-  turnRef.current = turn;
-
-  // Desktop D.2: ← / → turn the day, unless typing or a dialog is open.
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey)
-        return;
-      const target = event.target;
-      if (
-        (target instanceof Element &&
-          target.closest('input, textarea, select, [contenteditable]')) ||
-        document.querySelector('dialog[open]')
-      )
-        return;
-      if (event.key === 'ArrowLeft') turnRef.current(-1);
-      if (event.key === 'ArrowRight') turnRef.current(1);
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, []);
-
-  const swipe = {
-    onPointerDown: (event: PointerEvent) => {
-      // A swipe on a meal row deletes it, not turns the day.
-      const onRow = (event.target as Element).closest('.meal-row');
-      start.current =
-        event.pointerType === 'mouse' || onRow
-          ? null
-          : { x: event.clientX, y: event.clientY };
-    },
-    onPointerUp: (event: PointerEvent) => {
-      const s = start.current;
-      start.current = null;
-      if (!s) return;
-      const dx = event.clientX - s.x;
-      const dy = event.clientY - s.y;
-      if (Math.abs(dx) > SWIPE_PX && Math.abs(dy) < Math.abs(dx) * MAX_SLOPE)
-        turn(dx > 0 ? -1 : 1);
-    },
-    onPointerCancel: () => (start.current = null),
-  };
+  }, '.meal-row');
 
   const add = t(date === today ? 'diary.add' : 'diary.add_here');
   return (

@@ -1,0 +1,37 @@
+.week {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  /* Horizontal moves are ours (period swipe), vertical ones scroll. */
+  touch-action: pan-y;
+}
+
+.week__head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.week__body,
+.week__cards {
+  display: grid;
+  gap: var(--space-4);
+  align-items: start;
+}
+
+/* D.3: segment and pager right of the title, budget and averages in two columns. */
+@media (min-width: 1024px) {
+  .week__head {
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+  }
+
+  .week__head .day-pager {
+    flex: 0 1 var(--dialog-max-width);
+  }
+
+  .week__cards {
+    grid-template-columns: 1fr 1fr;
+  }
+}

@@ -853,6 +853,30 @@ export const en = {
     undo: 'Undo',
   },
   day: { today: 'Today', yesterday: 'Yesterday' },
+  week: {
+    mode: { label: 'Period', week: 'Week', month: 'Month' },
+    this: 'This week',
+    last: 'Last week',
+    prev: { week: 'Previous week', month: 'Previous month' },
+    next: { week: 'Next week', month: 'Next month' },
+    left: { week: 'Left this week', month: 'Left this month' },
+    over: { week: 'Over for the week', month: 'Over for the month' },
+    total: { week: 'Week total', month: 'Month total' },
+    eaten_no_norm: { week: 'Eaten this week', month: 'Eaten this month' },
+    eaten_of: 'Eaten {x} of {y} kcal ({norm} × {days})',
+    per_day: {
+      one: 'Average for the remaining {count} day',
+      other: 'Average for the remaining {count} days',
+    },
+    per_day_kcal: '{k} kcal per day',
+    avg: {
+      title: 'Daily average',
+      note: {
+        one: 'over {count} day with entries',
+        other: 'over {count} days with entries',
+      },
+    },
+  },
   chart: {
     a11y: 'Calories by day, goal {norm} per day',
     a11y_no_norm: 'Calories by day',

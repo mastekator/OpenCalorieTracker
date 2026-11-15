@@ -77,6 +77,22 @@ describe('KcalChart', () => {
     expect(open).toHaveBeenCalledWith('2026-11-10');
   });
 
+  it('marks the tipped bar and closes the tip outside the chart or on Esc', async () => {
+    await show({ mode: 'month' });
+    const bar = screen.getByRole('button', { name: /^Tue, Nov 10/ });
+    const tip = 'Tue, Nov 10: 2,380 of 2,100';
+    fireEvent.click(bar);
+    expect(bar.dataset.tip).toBe('true');
+    fireEvent.pointerDown(bar);
+    expect(screen.getByText(tip)).toBeTruthy();
+    fireEvent.pointerDown(document.body);
+    expect(screen.queryByText(tip)).toBeNull();
+    expect(bar.dataset.tip).toBeUndefined();
+    fireEvent.click(bar);
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByText(tip)).toBeNull();
+  });
+
   it('drops the norm from labels and legend without a norm (7.5)', async () => {
     await show({ norm: null });
     expect(screen.getByRole('list', { name: 'Calories by day' })).toBeTruthy();
