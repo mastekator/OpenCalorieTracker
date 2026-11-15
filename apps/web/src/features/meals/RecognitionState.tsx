@@ -24,7 +24,8 @@ type Props = {
   state: RecognitionStateKind;
   photoUrl: string;
   onRetry: () => void;
-  onRetake: () => void;
+  /** None: no «Retake» (recalculating a saved meal's photo). */
+  onRetake?: () => void;
   onManual: () => void;
   onClose: () => void;
 };
@@ -39,6 +40,8 @@ export function RecognitionState({
   onClose,
 }: Props) {
   const { t } = useT();
+  // No «Retake» means recalculating a saved meal: every way out leads back to it.
+  const recalc = !onRetake;
   // The flow sits outside AppShell, so it shows the connection bar itself; an offline result shows it even if navigator.onLine lies.
   const bar = useBarVariant();
   const waiting = state === 'loading' || state === 'slow';
@@ -54,14 +57,15 @@ export function RecognitionState({
       {t('common.retry')}
     </Button>
   );
-  const retake = (variant: 'primary' | 'tonal') => (
-    <Button key="retake" variant={variant} onClick={onRetake}>
-      {t('common.retake')}
-    </Button>
-  );
+  const retake = (variant: 'primary' | 'tonal') =>
+    onRetake && (
+      <Button key="retake" variant={variant} onClick={onRetake}>
+        {t('common.retake')}
+      </Button>
+    );
   const manual = (variant: 'primary' | 'tonal') => (
     <Button key="manual" variant={variant} onClick={onManual}>
-      {t('common.manual_full')}
+      {t(recalc ? 'recalc.back' : 'common.manual_full')}
     </Button>
   );
 
@@ -97,9 +101,11 @@ export function RecognitionState({
     gone: {
       icon: <CircleAlert />,
       tone: 'danger',
-      title: t('recog.err.failed.title'),
-      body: t('errors.photo_expired'),
-      actions: [retake('primary'), manual('tonal')],
+      title: t(recalc ? 'recalc.gone.title' : 'recog.err.failed.title'),
+      body: t(recalc ? 'recalc.gone.body' : 'errors.photo_expired'),
+      actions: recalc
+        ? [manual('primary')]
+        : [retake('primary'), manual('tonal')],
     },
     empty: {
       icon: <SearchX />,

@@ -186,9 +186,9 @@ export const useSettings = () =>
 
 /**
  * GET /api/ai/status, one request per screen online; offline (or while it loads) the last
- * answer stored on this device. `loading`: online and not answered yet.
+ * answer stored on this device. `loading`: online and not answered yet; `ask` false: no request.
  */
-export function useAiStatus() {
+export function useAiStatus(ask = true) {
   const db = useDb();
   const online = useOnline();
   const stored = useLocal(
@@ -198,7 +198,7 @@ export function useAiStatus() {
   // null: the request failed.
   const [fresh, setFresh] = useState<AiStatus | null>();
   useEffect(() => {
-    if (!online) return;
+    if (!online || !ask) return;
     let live = true;
     api('/api/ai/status', aiStatusSchema).then(
       (s) => {
@@ -211,7 +211,7 @@ export function useAiStatus() {
     return () => {
       live = false;
     };
-  }, [db, online]);
+  }, [db, online, ask]);
   return {
     status: fresh ?? stored,
     loading: online && fresh === undefined,

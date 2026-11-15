@@ -728,6 +728,22 @@ export const en = {
     ai_down:
       'AI is unavailable — enter the dishes manually. Once it’s back, you can recalculate from the photo.',
   },
+  recalc: {
+    banner: {
+      title: 'AI is back',
+      body: 'You can recalculate this entry from its photo.',
+    },
+    action: 'Recalculate',
+    action_photo: 'Recalculate from photo',
+    dismiss: 'Not now',
+    done: 'Recalculated from the photo',
+    undo: 'Restore my numbers',
+    back: 'Back to the entry',
+    gone: {
+      title: 'The photo is no longer stored',
+      body: 'It can’t be recalculated from the photo. The entry stays as it was.',
+    },
+  },
   recog: {
     not_configured:
       'Photo recognition isn’t set up — enter the dishes manually. The photo is saved with the entry, so you can recalculate once AI is connected.',
