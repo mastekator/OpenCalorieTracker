@@ -149,3 +149,31 @@ export const LateSnackDark: Story = { args: lateSnack, globals: dark };
 const pastDay = { date: '2026-11-10' };
 export const PastDay: Story = { args: pastDay };
 export const PastDayDark: Story = { args: pastDay, globals: dark };
+/** 4.3: a similar dish from the history under the cutlet; «Same as last time» shows the toast. */
+const lastTime: Story = {
+  beforeEach: () => {
+    const real = window.fetch;
+    window.fetch = async (input, init) =>
+      String(input) === '/api/dishes/previous'
+        ? Response.json([
+            null,
+            {
+              mealId: 1,
+              eatenAt: '2026-11-12T12:30:00.000Z',
+              grams: 150,
+              kcal: 320,
+              proteinG: 27,
+              fatG: 20,
+              carbsG: 10,
+              illustration: 'meat',
+            },
+            null,
+          ])
+        : real(input, init);
+    return () => {
+      window.fetch = real;
+    };
+  },
+};
+export const LastTime: Story = lastTime;
+export const LastTimeDark: Story = { ...lastTime, globals: dark };

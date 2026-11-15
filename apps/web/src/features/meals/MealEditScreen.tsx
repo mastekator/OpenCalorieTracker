@@ -27,6 +27,7 @@ import { Button } from '../../ui/Button/Button';
 import { Field } from '../../ui/Field/Field';
 import { DishRow } from '../../ui/DishRow/DishRow';
 import { DishSheet } from '../../ui/DishSheet/DishSheet';
+import { HistoryHint } from '../../ui/HistoryHint/HistoryHint';
 import {
   ManualDishSheet,
   type ManualDish,
@@ -53,16 +54,44 @@ type Row = {
   id: string;
   /** As recognized or entered, with the current name: every recalculation starts from here (AC-3.2). */
   original: Dish;
-  source: 'ai' | 'manual';
+  source: 'ai' | 'manual' | 'history';
   /** Null while the weight field is invalid (AC-3.4). */
   grams: number | null;
   /** Last valid weight: the numbers stay on it while the field is invalid. */
   shown: number;
   /** Weight or name edited: the confidence badge goes (AC-2.9). */
   edited: boolean;
+  /** A similar dish from the history: the hint under the row (4.3). */
+  previous?: Previous;
 };
 
 const photoSchema = z.object({ photoId: z.string() });
+const previousSchema = z.array(
+  z
+    .object({
+      mealId: z.number(),
+      eatenAt: z.string(),
+      grams: z.number(),
+      kcal: z.number(),
+      proteinG: z.number(),
+      fatG: z.number(),
+      carbsG: z.number(),
+    })
+    .nullable(),
+);
+/** The fields of `PreviousDish` the hint uses. */
+type Previous = NonNullable<z.infer<typeof previousSchema>[number]>;
+/** Delay after a name typed by hand before looking it up (AC-11.6). */
+export const LOOKUP_DELAY_MS = 300;
+
+type Lookup = { id: string; name: string; kcalPer100?: number };
+const lookupOf = (row: Row): Lookup => ({
+  id: row.id,
+  name: row.original.name,
+  ...(row.original.grams > 0 && {
+    kcalPer100: (row.original.kcal / row.original.grams) * 100,
+  }),
+});
 
 /** Default time of a meal added to a past day (AC-2.12). */
 const MEAL_TIME: Record<MealType, string> = {
@@ -125,6 +154,8 @@ type Props = {
   date?: string;
   /** The clock: read on open and again on Save, the time eaten (E-1.4). */
   now?: () => Date;
+  /** Editing a saved meal: its own dishes are not «last time» (OCT-53 grooming). */
+  mealId?: number;
 };
 
 /** Screen 4 (design OCT-16 §3, E.2): dishes, weights with live totals, meal type, save. */
@@ -137,6 +168,7 @@ export function MealEditScreen({
   onClose,
   date,
   now = () => new Date(),
+  mealId,
 }: Props) {
   const { t, num, locale } = useT();
   const online = useOnline();
@@ -181,6 +213,47 @@ export function MealEditScreen({
   const focusRow = useRef<string | null>(null);
   const toast = useToast();
   const capture = useCapture();
+  // Pending history lookups by key; a new one with the same key cancels the old (AC-11.6).
+  const lookups = useRef(new Map<string, AbortController>());
+
+  /** The hint is optional (AC-11.3): errors and offline show nothing. */
+  function findPrevious(key: string, wanted: Lookup[], ms = 0) {
+    lookups.current.get(key)?.abort();
+    const ctl = new AbortController();
+    lookups.current.set(key, ctl);
+    const timer = setTimeout(() => {
+      api('/api/dishes/previous', previousSchema, {
+        method: 'POST',
+        body: {
+          dishes: wanted.map(({ name, kcalPer100 }) => ({ name, kcalPer100 })),
+        },
+        signal: ctl.signal,
+      }).then(
+        (found) =>
+          setRows((rs) =>
+            rs.map((r) => {
+              const i = wanted.findIndex((w) => w.id === r.id);
+              const prev = found[i];
+              // A renamed row waits for its own answer.
+              return prev &&
+                prev.mealId !== mealId &&
+                r.original.name === wanted[i]!.name
+                ? { ...r, previous: prev }
+                : r;
+            }),
+          ),
+        () => {},
+      );
+    }, ms);
+    ctl.signal.addEventListener('abort', () => clearTimeout(timer));
+  }
+
+  // One request for all recognized dishes, by the AI's kcal per 100 g.
+  useEffect(() => {
+    const pending = lookups.current;
+    if (rows.length) findPrevious('ai', rows.slice(0, 20).map(lookupOf));
+    return () => pending.forEach((c) => c.abort());
+  }, []);
 
   const items = rows.map(itemOf);
   const total = (k: 'kcal' | 'proteinG' | 'fatG' | 'carbsG') =>
@@ -219,6 +292,8 @@ export function MealEditScreen({
 
   const applySheet = (id: string, name: string, grams: number) => {
     setEditing(null);
+    const row = rows.find((r) => r.id === id);
+    const renamed = !!row && name !== row.original.name;
     setRows((rs) =>
       rs.map((r) =>
         r.id === id
@@ -227,11 +302,18 @@ export function MealEditScreen({
               original: { ...r.original, name },
               grams,
               shown: grams,
-              edited: r.edited || name !== r.original.name || grams !== r.grams,
+              edited: r.edited || renamed || grams !== r.grams,
+              previous: renamed ? undefined : r.previous,
             }
           : r,
       ),
     );
+    if (row && renamed)
+      findPrevious(
+        id,
+        [lookupOf({ ...row, original: { ...row.original, name } })],
+        LOOKUP_DELAY_MS,
+      );
   };
 
   const addManual = (dish: ManualDish) => {
@@ -239,6 +321,48 @@ export function MealEditScreen({
     const row = toRow(dish, 'manual');
     focusRow.current = row.id;
     setRows((rs) => [...rs, row]);
+    findPrevious(row.id, [lookupOf(row)], LOOKUP_DELAY_MS);
+  };
+
+  const keepEstimate = (id: string) =>
+    setRows((rs) =>
+      rs.map((r) => (r.id === id ? { ...r, previous: undefined } : r)),
+    );
+
+  // «Same as last time»: weight recalculation now starts from the previous values (AC-11.5).
+  const applyPrevious = (row: Row, prev: Previous) => {
+    const { grams, kcal, proteinG, fatG, carbsG } = prev;
+    setRows((rs) =>
+      rs.map((r) =>
+        r.id === row.id
+          ? {
+              ...r,
+              original: {
+                name: r.original.name,
+                grams,
+                kcal,
+                proteinG,
+                fatG,
+                carbsG,
+              },
+              source: 'history',
+              grams,
+              shown: grams,
+              edited: false,
+              previous: undefined,
+            }
+          : r,
+      ),
+    );
+    toast({
+      text: t('edit.history.applied'),
+      ms: 5000,
+      action: {
+        label: t('common.undo'),
+        onClick: () =>
+          setRows((rs) => rs.map((r) => (r.id === row.id ? row : r))),
+      },
+    });
   };
 
   // The slot photo never goes to the AI (AC-5.7).
@@ -490,6 +614,16 @@ export function MealEditScreen({
                         onEdit={() => setEditing(row.id)}
                         onDelete={() => remove(row.id)}
                       />
+                      {row.previous && (
+                        <HistoryHint
+                          eatenAt={row.previous.eatenAt}
+                          grams={row.previous.grams}
+                          kcal={row.previous.kcal}
+                          units={units}
+                          onApply={() => applyPrevious(row, row.previous!)}
+                          onKeep={() => keepEstimate(row.id)}
+                        />
+                      )}
                     </li>
                   );
                 })}
