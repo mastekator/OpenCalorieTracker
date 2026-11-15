@@ -23,6 +23,13 @@
   --safe-top: 0px;
 }
 
+/* In the chat sheet (9.11): edge to edge of the sheet body, under its header. */
+.offline-bar--inline {
+  width: auto;
+  margin-inline: calc(-1 * var(--screen-gutter));
+  padding-top: var(--space-2);
+}
+
 .offline-bar .lucide {
   width: var(--icon-size-sm);
   height: var(--icon-size-sm);

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Ellipsis } from 'lucide-react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useT } from '../../i18n';
 import { Button } from '../Button/Button';
@@ -12,6 +13,7 @@ type Props = {
   unsaved?: boolean;
   toast?: boolean;
   full?: boolean;
+  action?: boolean;
 };
 
 // Opens on load; «Open» reopens it, so focus return is visible after closing.
@@ -21,6 +23,7 @@ function Demo({
   unsaved = false,
   toast = false,
   full = false,
+  action = false,
 }: Props) {
   const { t } = useT();
   const showToast = useToast();
@@ -35,6 +38,11 @@ function Demo({
       <Sheet
         open={open}
         full={full}
+        action={
+          action
+            ? { label: t('chat.more'), icon: Ellipsis, onClick: () => {} }
+            : undefined
+        }
         title={t('auth.forgot_sheet.title')}
         onClose={() => (unsaved ? setConfirm(true) : setOpen(false))}
         footer={
@@ -105,4 +113,10 @@ export const Full: Story = { args: { full: true } };
 export const FullDesktopDark: Story = {
   args: { full: true, long: true },
   globals: { viewport: { value: 'desktop' }, theme: 'dark' },
+};
+/** «More» left of × (chat menu, OCT-22 9.13). */
+export const WithAction: Story = { args: { full: true, action: true } };
+export const WithActionDark: Story = {
+  args: { full: true, action: true },
+  globals: { theme: 'dark' },
 };

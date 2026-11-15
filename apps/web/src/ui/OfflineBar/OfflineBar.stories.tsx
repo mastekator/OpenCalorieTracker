@@ -18,6 +18,12 @@ export const ServerDown: Story = { args: { variant: 'server' } };
 export const Updated: Story = { args: { variant: 'updated' } };
 /** Sign-in screens (OCT-13 1.9): nothing is saved there offline. */
 export const NoNetwork: Story = { args: { variant: 'no_network' } };
+/** 9.11: inside the chat sheet, the dialog is kept on the server. */
+export const Chat: Story = { args: { variant: 'chat' } };
+export const DarkChat: Story = {
+  args: { variant: 'chat' },
+  globals: { theme: 'dark' },
+};
 /** All is well: an empty live region. */
 export const Hidden: Story = { args: { variant: null } };
 export const Desktop: Story = {

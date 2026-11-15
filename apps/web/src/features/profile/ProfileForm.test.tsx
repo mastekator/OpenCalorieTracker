@@ -424,6 +424,92 @@ describe('ProfileForm', () => {
     expect((save() as HTMLButtonElement).disabled).toBe(false);
   });
 
+  it('«Go to the form» from the chat: filled fields become unsaved edits (OCT-91)', async () => {
+    const partial = {
+      ...base,
+      birthDate: null,
+      weightKg: null,
+      activity: null,
+    };
+    const props = {
+      initial: response(partial),
+      units: 'metric' as Units,
+      today,
+      onSave: echo,
+    };
+    const view = render(<ProfileForm {...props} />, { wrapper });
+    await type('Height', '175');
+
+    view.rerender(
+      <ProfileForm
+        {...props}
+        agentDraft={{
+          profile: {
+            ...partial,
+            sex: 'female',
+            birthDate: '1990-05-01',
+            // Not told in the chat: the typed height stays.
+            heightCm: null,
+            activity: 'light',
+            goal: 'lose',
+            targetWeightKg: 60,
+          },
+          at: 1,
+        }}
+      />,
+    );
+
+    expect(
+      screen
+        .getByRole('radio', { name: 'Female' })
+        .getAttribute('aria-checked'),
+    ).toBe('true');
+    expect((await field('Height')).value).toBe('175');
+    expect(screen.getByDisplayValue('1990-05-01')).toBeTruthy();
+    expect(screen.getByText(/^Light/)).toBeTruthy();
+    expect((await field('Target weight')).value).toBe('60.0');
+    // Unsaved edits (no norm yet without the weight, so no badge on the card).
+    expect(document.querySelector('.profile--dirty')).toBeTruthy();
+    expect((save() as HTMLButtonElement).disabled).toBe(false);
+    // The first empty field gets the focus; nothing is saved.
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        screen.getByRole('textbox', { name: /^Weight/ }),
+      ),
+    );
+    expect(echo).not.toHaveBeenCalled();
+  });
+
+  it('«Go to the form» with an empty draft still starts the form (OCT-91)', async () => {
+    const props = {
+      initial: response({ ...base, weightKg: null }),
+      units: 'metric' as Units,
+      today,
+      onSave: echo,
+    };
+    const view = render(<ProfileForm {...props} />, { wrapper });
+    await field('Height');
+    view.rerender(
+      <ProfileForm {...props} agentDraft={{ profile: null, at: 1 }} />,
+    );
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        screen.getByRole('textbox', { name: /^Weight/ }),
+      ),
+    );
+    expect(echo).not.toHaveBeenCalled();
+  });
+
+  it('8.14: the AI-unavailable banner', async () => {
+    setup(base, { onAgent: vi.fn(), agentUnavailable: true });
+    expect(
+      await screen.findByText('The AI isn’t available right now'),
+    ).toBeTruthy();
+    expect(
+      screen.getByText('Try again later or fill in the form below.'),
+    ).toBeTruthy();
+  });
+
   it('the switch starts from the current calculation', async () => {
     setup(base);
     fireEvent.click(await screen.findByRole('switch'));

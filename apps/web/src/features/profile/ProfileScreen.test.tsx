@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import type { MeResponse, ProfileResponse } from '@oct/shared';
 import { SessionContext } from '../../app/SessionContext';
 import { DataProvider } from '../../data/DataContext';
@@ -74,5 +74,53 @@ describe('ProfileScreen offline (8.15)', () => {
     // «How it’s calculated» still opens.
     expect(screen.getByRole('button', { name: /How/ })).toBeTruthy();
     expect(fetch).not.toHaveBeenCalledWith('/api/profile', expect.anything());
+  });
+});
+
+describe('ProfileScreen, AI configured but not answering (8.14)', () => {
+  it('«Set up with the assistant» shows a banner instead of the chat', async () => {
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) =>
+        url === '/api/ai/status'
+          ? Response.json({
+              recognition: 'ready',
+              interview: 'unavailable',
+              providerName: 'x',
+              baseUrlHost: null,
+            })
+          : Promise.reject(new TypeError('no server in this test')),
+      ),
+    );
+    const db = await openUserDb(USER.id);
+    await db.put('kv', PROFILE, 'profile');
+    await db.put('kv', 3, 'rev');
+    db.close();
+    render(
+      <I18nProvider>
+        <ToastProvider>
+          <SessionContext value={{ user: USER, refresh: async () => {} }}>
+            <DataProvider user={USER}>
+              <ProfileScreen />
+            </DataProvider>
+          </SessionContext>
+        </ToastProvider>
+      </I18nProvider>,
+    );
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Set up with the assistant' }),
+    );
+    expect(
+      await screen.findByText('The AI isn’t available right now'),
+    ).toBeTruthy();
+    expect(
+      screen.queryByRole('heading', { name: 'Goal assistant' }),
+    ).toBeNull();
+    expect(fetch).not.toHaveBeenCalledWith(
+      '/api/norm-agent',
+      expect.anything(),
+    );
   });
 });

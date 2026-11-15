@@ -17,14 +17,16 @@ export function useOnline() {
   return useSyncExternalStore(subscribe, () => navigator.onLine);
 }
 
-/** `no_network`: sign-in screens, where nothing is saved offline. */
-export type BarVariant = 'offline' | 'server' | 'updated' | 'no_network';
+/** `no_network`: sign-in screens, where nothing is saved offline. `chat`: inside the full-screen chat sheet (OCT-22 9.11). */
+export type BarVariant =
+  'offline' | 'server' | 'updated' | 'no_network' | 'chat';
 
 const BARS = {
   offline: { icon: WifiOff, text: 'offline.bar' },
   server: { icon: ServerOff, text: 'offline.server' },
   updated: { icon: RefreshCw, text: 'update.stale' },
   no_network: { icon: WifiOff, text: 'offline.no_network' },
+  chat: { icon: WifiOff, text: 'chat.offline' },
 } as const;
 
 /**
@@ -35,11 +37,13 @@ export function OfflineBar({ variant }: { variant: BarVariant | null }) {
   const { t } = useT();
   const bar = variant && BARS[variant];
   const ref = useRef<HTMLDivElement>(null);
+  const inline = variant === 'chat';
   // Sticky headers below stop under the bar; its height changes with wrapping text.
   useEffect(() => {
     const el = ref.current;
     const root = document.documentElement.style;
-    if (!bar || !el || typeof ResizeObserver === 'undefined') return;
+    // The chat bar sits in its sheet: the page under it keeps the app bar's height.
+    if (!bar || inline || !el || typeof ResizeObserver === 'undefined') return;
     const ro = new ResizeObserver(() =>
       root.setProperty('--offline-bar-height', `${el.offsetHeight}px`),
     );
@@ -48,10 +52,16 @@ export function OfflineBar({ variant }: { variant: BarVariant | null }) {
       ro.disconnect();
       root.removeProperty('--offline-bar-height');
     };
-  }, [bar]);
+  }, [bar, inline]);
   // The live region stays mounted: screen readers skip regions inserted together with their text.
   return (
-    <div ref={ref} className={bar ? 'offline-bar' : undefined} role="status">
+    <div
+      ref={ref}
+      className={
+        bar ? `offline-bar${inline ? ' offline-bar--inline' : ''}` : undefined
+      }
+      role="status"
+    >
       {bar && (
         <>
           <bar.icon aria-hidden="true" />
