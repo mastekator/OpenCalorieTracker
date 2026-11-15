@@ -306,7 +306,7 @@ export const en = {
     height: 'Height',
     weight: 'Weight',
   },
-  unit: { cm: 'cm', kg: 'kg', lb: 'lb' },
+  unit: { cm: 'cm', kg: 'kg', lb: 'lb', g: 'g', oz: 'oz' },
   goal: {
     title: 'Goal',
     lose: 'Lose',
@@ -632,6 +632,29 @@ export const en = {
     kcal: '{n} kcal',
     status: { late: 'late' },
     delete: 'Delete {meal}',
+  },
+  edit: {
+    meal_label: 'Meal',
+    macros: 'P {p} · F {f} · C {c}',
+    conf: {
+      exact: 'exact',
+      mid: 'approx.',
+      low: 'check',
+      a11y: {
+        exact: 'Confidence: exact',
+        high: 'Confidence: high',
+        medium: 'Confidence: medium',
+        low: 'Confidence: low, check it',
+      },
+    },
+    source: { manual: 'manual', history: 'as last time' },
+    weight: {
+      label: 'Weight of {dish}',
+      less: '{step} less',
+      more: '{step} more',
+      err: 'Weight from 1 to 5000 g (0.1 to 176.4 oz)',
+    },
+    edit: 'Edit {dish}',
   },
   diary: {
     today_btn: 'Today',
