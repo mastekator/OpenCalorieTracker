@@ -1,19 +1,67 @@
 import { addDays } from '@oct/shared';
 import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useT } from '../../i18n';
+import { periodLabel, stepPeriod, type PeriodMode } from '../week/period';
 import { dayLabel } from './day';
 import './DayPager.css';
 
 type Props = {
-  /** The shown day, `YYYY-MM-DD`. */
+  /** Day (default) or a period; a period has no date picker. */
+  mode?: 'day' | PeriodMode;
+  /** The shown day, `YYYY-MM-DD`; for a period, any day in it. */
   date: string;
   /** Local today: «›» stops here (AC-2.3). */
   today: string;
+  /** The new day; for a period, its first day. */
   onChange: (date: string) => void;
 };
 
-/** ‹ day › with the system date picker on the label (OCT-19 §3). Week / month: OCT-71. */
-export function DayPager({ date, today, onChange }: Props) {
+/** ‹ day › with the system date picker on the label (OCT-19 §3); ‹ week › / ‹ month › (§4). */
+export function DayPager({ mode = 'day', ...props }: Props) {
+  return mode === 'day' ? (
+    <DayMode {...props} />
+  ) : (
+    <PeriodPager mode={mode} {...props} />
+  );
+}
+
+function PeriodPager({
+  mode,
+  date,
+  today,
+  onChange,
+}: Omit<Props, 'mode'> & { mode: PeriodMode }) {
+  const { t, locale } = useT();
+  const { label, sub } = periodLabel(mode, date, today, locale, t);
+  const next = stepPeriod(mode, date, 1);
+  return (
+    <div className="day-pager">
+      <button
+        type="button"
+        className="day-pager__arrow"
+        aria-label={t(`week.prev.${mode}`)}
+        onClick={() => onChange(stepPeriod(mode, date, -1))}
+      >
+        <ChevronLeft aria-hidden="true" />
+      </button>
+      <span className="day-pager__date">
+        <span className="day-pager__label">{label}</span>
+        {sub && <span className="day-pager__sub">{sub}</span>}
+      </span>
+      <button
+        type="button"
+        className="day-pager__arrow"
+        aria-label={t(`week.next.${mode}`)}
+        disabled={next > today}
+        onClick={() => onChange(next)}
+      >
+        <ChevronRight aria-hidden="true" />
+      </button>
+    </div>
+  );
+}
+
+function DayMode({ date, today, onChange }: Omit<Props, 'mode'>) {
   const { t, locale } = useT();
   const { label, sub } = dayLabel(date, today, locale, t);
   return (

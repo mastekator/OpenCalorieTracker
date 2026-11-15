@@ -29,6 +29,8 @@ import {
 } from '../features/meals/RecognitionScreen';
 import { MealEditRoute } from '../features/meals/MealEditScreen';
 import { ProfileScreen } from '../features/profile/ProfileScreen';
+import { periodPath } from '../features/week/period';
+import { WeekScreen } from '../features/week/WeekScreen';
 import { AppShell } from './AppShell';
 import { AuthGate } from './AuthGate';
 import { AuthLayout } from './AuthLayout';
@@ -112,7 +114,21 @@ export function AppScreens() {
         )}
       </Route>
       <Route path="/week">
-        <Screen wide large title={t('nav.week')} />
+        <Redirect to={periodPath('week', localToday())} replace />
+      </Route>
+      <Route path="/week/:id">
+        {({ id }) => (
+          <Screen wide large title={t('nav.week')}>
+            <WeekScreen mode="week" id={id} />
+          </Screen>
+        )}
+      </Route>
+      <Route path="/month/:id">
+        {({ id }) => (
+          <Screen wide large title={t('nav.week')}>
+            <WeekScreen mode="month" id={id} />
+          </Screen>
+        )}
       </Route>
       <Route path="/profile">
         {/* 8.20 is /profile?how: the same Screen, so ProfileScreen and its draft stay mounted. */}
