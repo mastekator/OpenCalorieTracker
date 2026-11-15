@@ -67,6 +67,11 @@
 .kchart--month .kchart__bar {
   border-radius: 2px 2px 0 0;
 }
+/* Month: the bar the tip belongs to (OCT-19 7.3). */
+.kchart--month .kchart__hit[data-tip] .kchart__bar {
+  outline: var(--focus-ring-width) solid var(--color-focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
 /* An empty day: a 2px line, not a bar (E-3.2). */
 .kchart__bar--zero {
   border-radius: 0;

@@ -218,7 +218,8 @@ describe('AuthGate', () => {
     serve(me);
     const location = renderAt('/login?next=%2Fweek');
     await screen.findByRole('heading', { name: 'Week' });
-    expect(location.history.at(-1)).toBe('/week');
+    // /week itself opens the current week.
+    expect(location.history.at(-1)).toMatch(/^\/week\/\d{4}-W\d{2}$/);
   });
 
   it('starts offline from the last user’s local copy without checking the session (E-8.10)', async () => {

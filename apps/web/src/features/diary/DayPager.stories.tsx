@@ -5,9 +5,15 @@ import { DayPager } from './DayPager';
 const TODAY = '2026-11-14';
 
 // Arrows and the picker move the day inside the story.
-function Demo({ date }: { date: string }) {
+function Demo({
+  date,
+  mode,
+}: {
+  date: string;
+  mode?: 'day' | 'week' | 'month';
+}) {
   const [day, setDay] = useState(date);
-  return <DayPager date={day} today={TODAY} onChange={setDay} />;
+  return <DayPager mode={mode} date={day} today={TODAY} onChange={setDay} />;
 }
 
 const meta = {
@@ -36,3 +42,22 @@ export const TodayDark: Story = {
 };
 export const Russian: Story = { globals: { locale: 'ru' } };
 export const Narrow: Story = { globals: { viewport: { value: 'iphoneSE' } } };
+/** OCT-19 §4: «This week» over the range, «›» disabled. */
+export const ThisWeek: Story = { args: { mode: 'week', date: TODAY } };
+export const LastWeek: Story = { args: { mode: 'week', date: '2026-11-05' } };
+/** Older weeks: the range alone. */
+export const OlderWeek: Story = { args: { mode: 'week', date: '2026-10-28' } };
+export const ThisMonth: Story = { args: { mode: 'month', date: TODAY } };
+export const LastMonth: Story = { args: { mode: 'month', date: '2026-10-01' } };
+export const WeekDark: Story = {
+  args: { mode: 'week', date: '2026-11-05' },
+  globals: { theme: 'dark' },
+};
+export const MonthRussian: Story = {
+  args: { mode: 'month', date: TODAY },
+  globals: { locale: 'ru' },
+};
+export const WeekRussian: Story = {
+  args: { mode: 'week', date: '2026-10-28' },
+  globals: { locale: 'ru' },
+};

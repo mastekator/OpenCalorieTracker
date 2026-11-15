@@ -75,6 +75,14 @@ export const LastWeekOverDark: Story = {
 /** 7.3: tap a bar for the value, tap again to open the day. */
 export const Month: Story = { args: { days: MONTH, mode: 'month' } };
 export const MonthDark: Story = { ...Month, globals: { theme: 'dark' } };
+/** 7.3 after a tap: the tip and the focus-ring frame on its bar; Esc or a tap outside closes it. */
+export const MonthTip: Story = {
+  ...Month,
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.click(canvas.getByRole('button', { name: /Nov 10/ }));
+  },
+};
+export const MonthTipDark: Story = { ...MonthTip, globals: { theme: 'dark' } };
 /** 7.4: 6,000 kcal against 2,000 — the axis stops at 4,000, the bar is clipped. */
 export const VeryBigDay: Story = {
   args: {
