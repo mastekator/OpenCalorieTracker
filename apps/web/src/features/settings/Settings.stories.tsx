@@ -95,7 +95,7 @@ const dark = { globals: { theme: 'dark' } };
 
 const settings = (u: MeResponse, platform: 'safari' | null = null) => (
   <DataProvider user={u}>
-    <SettingsScreen user={u} onLogout={() => {}} platform={platform} />
+    <SettingsScreen user={u} onLogout={async () => {}} platform={platform} />
   </DataProvider>
 );
 /** Forces navigator.onLine off; the real screen follows the browser's online/offline events. */

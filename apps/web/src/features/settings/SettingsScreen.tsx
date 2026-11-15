@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import {
   Download,
   Globe,
+  Image,
   KeyRound,
   Lock,
   Moon,
@@ -20,8 +21,9 @@ import {
   type AiStatus,
   type Locale,
   type MeResponse,
+  type PhotoRetentionDays,
 } from '@oct/shared';
-import { api } from '../../api/client';
+import { api, ApiError } from '../../api/client';
 import { useRequireOnline } from '../../app/connection';
 import {
   appUrl,
@@ -31,16 +33,29 @@ import {
 } from '../../app/install';
 import { applyTheme } from '../../app/theme';
 import { useAiStatus, useDb, useSettings } from '../../data/DataContext';
-import { patchSettings } from '../../data/outbox';
+import {
+  expiringPhotos,
+  flush,
+  patchSettings,
+  pendingCount,
+  putPhotoRetention,
+} from '../../data/outbox';
+import { DESKTOP_MEDIA } from '../../styles/breakpoints';
 import { useT } from '../../i18n';
 import { Badge } from '../../ui/Badge/Badge';
 import { Banner } from '../../ui/Banner/Banner';
 import { Button } from '../../ui/Button/Button';
+import { ConfirmDialog } from '../../ui/ConfirmDialog/ConfirmDialog';
 import { InstallSheet } from '../../ui/InstallSheet/InstallSheet';
 import { List, ListRow } from '../../ui/List/List';
+import {
+  RetentionSheet,
+  useRetentionLabel,
+} from '../../ui/RetentionSheet/RetentionSheet';
 import { useOnline } from '../../ui/OfflineBar/OfflineBar';
 import { AiStateBadge } from '../../ui/ProviderStatus/ProviderStatus';
 import { SegmentedRow } from '../../ui/SegmentedRow/SegmentedRow';
+import { useToast } from '../../ui/Toast/Toast';
 import { BLOCKS_API, blocksSchema } from '../admin/BlocksScreen';
 import { AI_STATUS_PATH } from './AiProviderScreen';
 import { enabledMethods } from './methods';
@@ -68,9 +83,14 @@ function recognitionText(
     : t('settings.recognition_off');
 }
 
+/** null (forever) is the longest. */
+const longer = (a: PhotoRetentionDays, b: PhotoRetentionDays) =>
+  a === null ? b !== null : b !== null && a > b;
+
 type Props = {
   user: MeResponse;
-  onLogout: () => void;
+  /** Ends the session and clears this device; called after the confirm (4.6, 4.7). */
+  onLogout: () => Promise<void>;
   /** iPhone install sheet; detected from the browser when omitted. */
   platform?: InstallPlatform | null;
 };
@@ -89,6 +109,20 @@ export function SettingsScreen({ user, onLogout, platform: given }: Props) {
     given === undefined ? currentInstallPlatform() : given,
   );
   const [installOpen, setInstallOpen] = useState(false);
+  // D.1: Chrome and Edge install from the address bar on the desktop.
+  const [desktop] = useState(
+    () => !!window.matchMedia?.(DESKTOP_MEDIA).matches,
+  );
+  const toast = useToast();
+  const retentionLabel = useRetentionLabel();
+  const retention = settings?.photoRetentionDays ?? 30;
+  const [retentionOpen, setRetentionOpen] = useState(false);
+  const [shorten, setShorten] = useState<{
+    days: PhotoRetentionDays;
+    count: number;
+  } | null>(null);
+  // 'sending': the queue goes out first; a number: the confirm with that many unsent (4.6, 4.7).
+  const [signOut, setSignOut] = useState<'sending' | number | null>(null);
   const theme = settings?.theme ?? user.theme;
   const units = settings?.units ?? user.units;
   const online = useOnline();
@@ -120,6 +154,23 @@ export function SettingsScreen({ user, onLogout, platform: given }: Props) {
       live = false;
     };
   }, [isAdmin, online]);
+
+  async function chooseRetention(days: PhotoRetentionDays) {
+    setRetentionOpen(false);
+    if (days === retention) return;
+    const count = longer(retention, days) ? await expiringPhotos(db, days) : 0;
+    if (count > 0) setShorten({ days, count });
+    else await putPhotoRetention(db, days);
+  }
+
+  async function startSignOut() {
+    if (signOut !== null) return;
+    if (navigator.onLine && (await pendingCount(db)) > 0) {
+      setSignOut('sending');
+      await flush(db).catch(() => {});
+    }
+    setSignOut(await pendingCount(db));
+  }
 
   return (
     <div className="settings">
@@ -229,7 +280,44 @@ export function SettingsScreen({ user, onLogout, platform: given }: Props) {
             value={units}
             onChange={(v) => void patchSettings(db, { units: v })}
           />
+          <ListRow
+            icon={<Image />}
+            description={t('settings.photos.hint')}
+            value={retentionLabel(retention)}
+            onClick={() => setRetentionOpen(true)}
+          >
+            {t('settings.photos.keep')}
+          </ListRow>
         </List>
+        <RetentionSheet
+          open={retentionOpen}
+          value={retention}
+          onSelect={(days) => void chooseRetention(days)}
+          onClose={() => setRetentionOpen(false)}
+        />
+        <ConfirmDialog
+          open={!!shorten}
+          title={
+            shorten?.days === 0
+              ? t('settings.photos.shorten.title_none')
+              : t('settings.photos.shorten.title', { days: shorten?.days ?? 0 })
+          }
+          body={
+            shorten &&
+            (shorten.days === 0
+              ? t('settings.photos.shorten.body_none', { count: shorten.count })
+              : t('settings.photos.shorten.body', {
+                  count: shorten.count,
+                  days: shorten.days ?? 0,
+                }))
+          }
+          confirmLabel={t('settings.photos.shorten.ok')}
+          onConfirm={() => {
+            if (shorten) void putPhotoRetention(db, shorten.days);
+            setShorten(null);
+          }}
+          onCancel={() => setShorten(null)}
+        />
       </div>
 
       <div className="settings__col">
@@ -266,7 +354,8 @@ export function SettingsScreen({ user, onLogout, platform: given }: Props) {
               {t('settings.install')}
             </ListRow>
           ) : (
-            prompt.canInstall && (
+            prompt.canInstall &&
+            !desktop && (
               <ListRow
                 icon={<Download />}
                 onClick={() => void prompt.install()}
@@ -293,11 +382,45 @@ export function SettingsScreen({ user, onLogout, platform: given }: Props) {
 
         <div className="settings__logout">
           <List>
-            <ListRow danger chevron={false} onClick={onLogout}>
-              {t('settings.logout')}
+            <ListRow danger chevron={false} onClick={() => void startSignOut()}>
+              {signOut === 'sending' ? (
+                <span className="settings__sending" aria-busy="true">
+                  {/* Button's spinner, the same on every waiting action. */}
+                  <span className="button__spinner" aria-hidden="true" />
+                  {t('logout.sending')}
+                </span>
+              ) : (
+                t('settings.logout')
+              )}
             </ListRow>
           </List>
         </div>
+        <ConfirmDialog
+          open={typeof signOut === 'number'}
+          title={t('logout.confirm.title')}
+          body={
+            typeof signOut === 'number' && signOut > 0
+              ? t('logout.confirm.queue', { count: signOut })
+              : t('logout.confirm.body')
+          }
+          confirmLabel={
+            typeof signOut === 'number' && signOut > 0
+              ? t('logout.confirm.queue_ok')
+              : t('logout.confirm.ok')
+          }
+          stack={typeof signOut === 'number' && signOut > 0}
+          onConfirm={() =>
+            void onLogout().catch((err) => {
+              setSignOut(null);
+              toast({
+                text: t(
+                  `errors.${err instanceof ApiError ? err.code : 'internal'}`,
+                ),
+              });
+            })
+          }
+          onCancel={() => setSignOut(null)}
+        />
 
         <p className="settings__version">
           {t('settings.version', { v: __APP_VERSION__ })}

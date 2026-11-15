@@ -10,9 +10,12 @@ import type { ReactNode } from 'react';
 import type {
   AccountSettings,
   AiStatus,
+  Meal,
   MeResponse,
   Passkey,
 } from '@oct/shared';
+import { listenInstallPrompt } from '../../app/install';
+import { DESKTOP_MEDIA } from '../../styles/breakpoints';
 import { THEME_STORAGE_KEY } from '../../app/theme';
 import { emitChange } from '../../data/changes';
 import { DataProvider } from '../../data/DataContext';
@@ -84,7 +87,7 @@ afterEach(async () => {
 
 describe('SettingsScreen', () => {
   it('hides the admin group from a regular user', async () => {
-    await wrap(<SettingsScreen user={user} onLogout={() => {}} />, true);
+    await wrap(<SettingsScreen user={user} onLogout={async () => {}} />, true);
     expect(screen.queryByRole('heading', { name: 'Admin' })).toBeNull();
     expect(screen.queryByText('Invites')).toBeNull();
     expect(screen.getByText('Sign-in · anna@example.com')).toBeTruthy();
@@ -93,7 +96,7 @@ describe('SettingsScreen', () => {
 
   it('shows the admin group to an admin, disabled offline with a toast', async () => {
     vi.stubGlobal('navigator', { ...navigator, onLine: false });
-    await wrap(<SettingsScreen user={admin} onLogout={() => {}} />, true);
+    await wrap(<SettingsScreen user={admin} onLogout={async () => {}} />, true);
     expect(screen.getByRole('heading', { name: 'Admin' })).toBeTruthy();
     const invites = screen.getByRole('button', { name: 'Invites' });
     expect(invites.getAttribute('aria-disabled')).toBe('true');
@@ -120,7 +123,7 @@ describe('SettingsScreen', () => {
     await wrap(
       <SettingsScreen
         user={{ ...user, enabledMethods: ['passkey'] }}
-        onLogout={() => {}}
+        onLogout={async () => {}}
       />,
       true,
     );
@@ -129,7 +132,7 @@ describe('SettingsScreen', () => {
   });
 
   it('shows the admin a closable hint while the config password is in use (AC-1.7)', async () => {
-    await wrap(<SettingsScreen user={admin} onLogout={() => {}} />, true);
+    await wrap(<SettingsScreen user={admin} onLogout={async () => {}} />, true);
     expect(
       screen.getByText('Change the password set during installation'),
     ).toBeTruthy();
@@ -138,13 +141,6 @@ describe('SettingsScreen', () => {
       screen.queryByText('Change the password set during installation'),
     ).toBeNull();
     expect(localStorage.getItem(hintClosedKey(admin.id))).toBe('1');
-  });
-
-  it('signs out', async () => {
-    const onLogout = vi.fn();
-    await wrap(<SettingsScreen user={user} onLogout={onLogout} />, true);
-    fireEvent.click(screen.getByRole('button', { name: 'Sign out' }));
-    expect(onLogout).toHaveBeenCalled();
   });
 });
 
@@ -294,7 +290,7 @@ const serve = (body: unknown) =>
     vi.fn(async () => Response.json(body)),
   );
 const screenOf = (u = user) => (
-  <SettingsScreen user={u} onLogout={() => {}} platform={null} />
+  <SettingsScreen user={u} onLogout={async () => {}} platform={null} />
 );
 
 describe('Appearance and data (OCT-25 §4)', () => {
@@ -416,12 +412,186 @@ describe('Offline (4.8)', () => {
   it('the install row opens the iPhone sheet', async () => {
     offlineNow();
     await wrap(
-      <SettingsScreen user={user} onLogout={() => {}} platform="safari" />,
+      <SettingsScreen
+        user={user}
+        onLogout={async () => {}}
+        platform="safari"
+      />,
       true,
     );
     fireEvent.click(
       await screen.findByRole('button', { name: 'Add to Home Screen' }),
     );
     expect(await screen.findByText('Install on iPhone')).toBeTruthy();
+  });
+});
+
+const DAY = 86_400_000;
+/** A meal with a full photo eaten `ago` days back. */
+const photoMeal = (clientId: string, ago: number) =>
+  ({
+    clientId,
+    eatenAt: new Date(Date.now() - ago * DAY).toISOString(),
+    photo: { id: clientId, full: true },
+  }) as Meal;
+
+describe('Keep meal photos (OCT-25 §4)', () => {
+  it('a shorter period that deletes photos asks with their number, then queues', async () => {
+    offlineNow();
+    await seed(synced);
+    const db = await openUserDb(user.id);
+    for (const m of [photoMeal('a', 2), photoMeal('b', 10), photoMeal('c', 20)])
+      await db.put('meals', m);
+    db.close();
+    await wrap(screenOf(), true);
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: /Keep meal photos/ }),
+    );
+    fireEvent.click(await screen.findByRole('radio', { name: '7 days' }));
+    const dialog = await screen.findByRole('alertdialog', {
+      name: 'Keep photos for 7 days?',
+    });
+    expect(dialog.textContent).toContain(
+      '2 photos older than 7 days will be deleted now.',
+    );
+    expect(await outbox()).toEqual([]);
+    fireEvent.click(screen.getByRole('button', { name: 'Delete photos' }));
+    await waitFor(async () =>
+      expect(await outbox()).toMatchObject([
+        { kind: 'putPhotoRetention', body: { days: 7 } },
+      ]),
+    );
+    expect(
+      (await screen.findByRole('button', { name: /Keep meal photos/ }))
+        .textContent,
+    ).toContain('7 days');
+  });
+
+  it('no alert when nothing would be deleted or the period grows', async () => {
+    offlineNow();
+    await seed(synced);
+    const db = await openUserDb(user.id);
+    await db.put('meals', photoMeal('a', 2));
+    db.close();
+    await wrap(screenOf(), true);
+
+    const row = await screen.findByRole('button', { name: /Keep meal photos/ });
+    fireEvent.click(row);
+    fireEvent.click(await screen.findByRole('radio', { name: '7 days' }));
+    await waitFor(async () =>
+      expect(await outbox()).toMatchObject([{ body: { days: 7 } }]),
+    );
+    fireEvent.click(row);
+    fireEvent.click(await screen.findByRole('radio', { name: 'Forever' }));
+    await waitFor(async () =>
+      expect(await outbox()).toMatchObject([{ body: { days: null } }]),
+    );
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+  });
+});
+
+describe('Sign out (4.6, 4.7)', () => {
+  const queueOne = async () => {
+    const db = await openUserDb(user.id);
+    await db.add('outbox', {
+      kind: 'patchSettings',
+      clientId: 'settings',
+      body: { theme: 'dark', editedAt: 1 },
+    });
+    db.close();
+  };
+
+  it('empty queue: the plain confirm, then onLogout', async () => {
+    offlineNow();
+    await seed(synced);
+    const onLogout = vi.fn(async () => {});
+    await wrap(
+      <SettingsScreen user={user} onLogout={onLogout} platform={null} />,
+      true,
+    );
+    fireEvent.click(await screen.findByRole('button', { name: 'Sign out' }));
+    const dialog = await screen.findByRole('alertdialog', {
+      name: 'Sign out?',
+    });
+    expect(dialog.textContent).toContain('Your diary stays on the server.');
+    expect(onLogout).not.toHaveBeenCalled();
+    fireEvent.click(
+      Array.from(dialog.querySelectorAll('button')).find(
+        (b) => b.textContent === 'Sign out',
+      )!,
+    );
+    expect(onLogout).toHaveBeenCalledOnce();
+  });
+
+  it('offline with a queue: names the unsent entries', async () => {
+    offlineNow();
+    await seed(synced);
+    await queueOne();
+    const onLogout = vi.fn(async () => {});
+    await wrap(
+      <SettingsScreen user={user} onLogout={onLogout} platform={null} />,
+      true,
+    );
+    fireEvent.click(await screen.findByRole('button', { name: 'Sign out' }));
+    const dialog = await screen.findByRole('alertdialog', {
+      name: 'Sign out?',
+    });
+    expect(dialog.textContent).toContain('1 entry hasn’t been sent');
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Sign out and delete entries' }),
+    );
+    expect(onLogout).toHaveBeenCalledOnce();
+  });
+
+  it('online: the queue goes out first, then the plain confirm', async () => {
+    await seed(synced);
+    await queueOne();
+    const fetch = vi.fn(async (url: string) =>
+      url.startsWith('/api/sync')
+        ? Response.json({
+            rev: 1,
+            more: false,
+            meals: [],
+            deletedMealClientIds: [],
+          })
+        : Response.json({}),
+    );
+    vi.stubGlobal('fetch', fetch);
+    await wrap(screenOf(), true);
+    fireEvent.click(await screen.findByRole('button', { name: 'Sign out' }));
+    const dialog = await screen.findByRole('alertdialog', {
+      name: 'Sign out?',
+    });
+    expect(dialog.textContent).toContain('Your diary stays on the server.');
+    expect(fetch.mock.calls.map(([url]) => url)).toContain(
+      '/api/account/settings',
+    );
+    expect(await outbox()).toEqual([]);
+  });
+});
+
+describe('Install on the desktop (D.1)', () => {
+  it('no install row even when the browser offered installing', async () => {
+    offlineNow();
+    listenInstallPrompt();
+    dispatchEvent(
+      Object.assign(new Event('beforeinstallprompt', { cancelable: true }), {
+        prompt: async () => {},
+      }),
+    );
+    await wrap(screenOf(), true);
+    expect(
+      await screen.findByRole('button', { name: 'Add to Home Screen' }),
+    ).toBeTruthy();
+    cleanup();
+    vi.stubGlobal('matchMedia', (q: string) => ({
+      matches: q === DESKTOP_MEDIA,
+    }));
+    await wrap(screenOf(), true);
+    await screen.findByText('Photo recognition');
+    expect(
+      screen.queryByRole('button', { name: 'Add to Home Screen' }),
+    ).toBeNull();
   });
 });

@@ -258,7 +258,7 @@ describe('Settings: blocks badge', () => {
     serve({ '/api/admin/blocks': [block, { ...block, id: 8 }] });
     await wrap(
       <DataProvider user={admin}>
-        <SettingsScreen user={admin} onLogout={() => {}} />
+        <SettingsScreen user={admin} onLogout={async () => {}} />
       </DataProvider>,
       '/settings',
     );
@@ -268,7 +268,7 @@ describe('Settings: blocks badge', () => {
     serve({ '/api/admin/blocks': [] });
     await wrap(
       <DataProvider user={admin}>
-        <SettingsScreen user={admin} onLogout={() => {}} />
+        <SettingsScreen user={admin} onLogout={async () => {}} />
       </DataProvider>,
       '/settings',
     );

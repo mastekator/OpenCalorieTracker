@@ -104,6 +104,33 @@ export const en = {
     ai_provider: 'AI provider',
     version: 'Version {v}',
     logout: 'Sign out',
+    photos: {
+      keep: 'Keep meal photos',
+      hint: 'Photos let you recalculate a meal later. Thumbnails are always kept.',
+      sheet_hint:
+        'While a photo is kept, you can recalculate the meal with AI. Diary thumbnails are always kept. The period starts from the meal time.',
+      option: {
+        none: 'Don’t keep',
+        days: '{days} days',
+        forever: 'Forever',
+      },
+      default: 'default',
+      shorten: {
+        title: 'Keep photos for {days} days?',
+        title_none: 'Stop keeping photos?',
+        body: {
+          one: '{count} photo older than {days} days will be deleted now. Entries and thumbnails stay.',
+          other:
+            '{count} photos older than {days} days will be deleted now. Entries and thumbnails stay.',
+        },
+        body_none: {
+          one: '{count} photo will be deleted now. Entries and thumbnails stay.',
+          other:
+            '{count} photos will be deleted now. Entries and thumbnails stay.',
+        },
+        ok: 'Delete photos',
+      },
+    },
   },
   admin: {
     hint: {
@@ -203,8 +230,17 @@ export const en = {
   logout: {
     confirm: {
       title: 'Sign out?',
+      body: 'Your diary stays on the server. To come back, sign in with your passkey or password.',
+      ok: 'Sign out',
       body_unsaved: 'Unsaved changes will be lost.',
+      queue: {
+        one: '{count} entry hasn’t been sent — if you sign out offline, it’ll be lost.',
+        other:
+          '{count} entries haven’t been sent — if you sign out offline, they’ll be lost.',
+      },
+      queue_ok: 'Sign out and delete entries',
     },
+    sending: 'Sending entries…',
   },
   link_ready: {
     title: 'Link ready',

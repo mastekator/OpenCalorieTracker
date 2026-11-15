@@ -71,17 +71,10 @@ function MealEditStub() {
 /** Signed-in screens, rendered inside AppShell. */
 export function AppScreens() {
   const { t } = useT();
-  const { user, refresh } = useSession();
+  const { user, refresh, logout } = useSession();
   const [, navigate] = useLocation();
   const how = new URLSearchParams(useSearch()).has('how');
   const toSettings = { href: '/settings', label: t('nav.settings') };
-  // shortcut: signs out at once; the confirm with unsent changes and clearing local data are OCT-80.
-  const logout = async () => {
-    await api('/api/auth/logout', z.undefined(), { method: 'POST' }).catch(
-      () => {},
-    );
-    await refresh();
-  };
   if (!user) return null;
   return (
     <Switch>
@@ -169,7 +162,7 @@ export function AppScreens() {
           title={t('settings.title')}
           back={{ href: '/profile', label: t('nav.profile'), mobileOnly: true }}
         >
-          <SettingsScreen user={user} onLogout={() => void logout()} />
+          <SettingsScreen user={user} onLogout={logout} />
         </Screen>
       </Route>
       <Route path="/settings/passkeys">
@@ -243,13 +236,13 @@ export function AppScreens() {
  * so an offline start from the local copy never waits for /api/config.
  */
 function Login() {
-  const { user, refresh } = useSession();
+  const { user, signedIn } = useSession();
   const params = new URLSearchParams(useSearch());
   if (user) return <Redirect to={safeNext(params.get('next'))} replace />;
   return (
     <ConfigProvider>
       <AuthLayout>
-        <LoginForm onSignedIn={refresh} expired={params.has('expired')} />
+        <LoginForm onSignedIn={signedIn} expired={params.has('expired')} />
       </AuthLayout>
     </ConfigProvider>
   );
@@ -297,7 +290,7 @@ export function MealNew() {
 /** Invite, recovery link or open registration; on success straight to Today (OCT-13 §6). */
 function Register({ kind }: { kind: RegisterKind }) {
   const config = useConfig();
-  const { user, refresh } = useSession();
+  const { user, refresh, signedIn } = useSession();
   // Set before the session refresh, so the new user goes to Today instead of seeing 2.5.
   const [done, setDone] = useState(false);
   if (user && (done || kind === 'open')) return <Redirect to="/" replace />;
@@ -312,7 +305,7 @@ function Register({ kind }: { kind: RegisterKind }) {
         user={user}
         onSignedIn={async () => {
           setDone(true);
-          await refresh();
+          await signedIn();
         }}
         onSignOut={async () => {
           await api('/api/auth/logout', z.unknown(), { method: 'POST' });
