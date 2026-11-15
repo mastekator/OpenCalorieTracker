@@ -1,0 +1,103 @@
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import type { AdminAiStatus } from '@oct/shared';
+import { ProviderStatus } from './ProviderStatus';
+
+const gemini: AdminAiStatus = {
+  provider: 'google',
+  providerName: 'Google Gemini',
+  model: 'gemini-2.5-flash',
+  keySet: true,
+  baseUrlHost: null,
+  source: 'env',
+  state: 'ok',
+  checkedAt: Date.now() - 20 * 60_000,
+};
+const error = (
+  state: AdminAiStatus['state'],
+  status: number,
+  message: string,
+): AdminAiStatus => ({ ...gemini, state, details: { status, message } });
+
+/** Admin «AI provider», OCT-25 §5 (5.1–5.5); D.2 at ≥ 1024 px. Offline (5.6): Settings/Screens. */
+const meta = {
+  title: 'UI/ProviderStatus',
+  component: ProviderStatus,
+  args: { status: gemini, onCheck: () => {} },
+  decorators: [
+    (Story) => (
+      <div className="screen__body">
+        <Story />
+      </div>
+    ),
+  ],
+  parameters: { layout: 'fullscreen' },
+} satisfies Meta<typeof ProviderStatus>;
+export default meta;
+type Story = StoryObj<typeof meta>;
+const dark = { globals: { theme: 'dark' } };
+
+/** 5.1 Working; Gemini always carries the free-tier warning. */
+export const Ok: Story = {};
+export const OkDark: Story = { ...dark };
+export const Checking: Story = { args: { checking: true } };
+export const CheckingDark: Story = { ...Checking, ...dark };
+/** 5.2 Key rejected, with «Details». */
+export const AuthError: Story = {
+  args: {
+    status: error(
+      'auth_error',
+      403,
+      'PERMISSION_DENIED: API key not valid. Please pass a valid API key.',
+    ),
+  },
+};
+export const AuthErrorDark: Story = { ...AuthError, ...dark };
+export const Quota: Story = {
+  args: {
+    status: error('quota_exceeded', 429, 'RESOURCE_EXHAUSTED: Quota exceeded'),
+  },
+};
+export const QuotaDark: Story = { ...Quota, ...dark };
+export const Unavailable: Story = {
+  args: { status: error('unavailable', 503, 'Service Unavailable') },
+};
+export const UnavailableDark: Story = { ...Unavailable, ...dark };
+export const NoVision: Story = {
+  args: { status: { ...gemini, state: 'no_vision' } },
+};
+export const NoVisionDark: Story = { ...NoVision, ...dark };
+/** Configured, no request since start: neutral, no «Last request» line. */
+export const Unknown: Story = {
+  args: { status: { ...gemini, state: 'unknown', checkedAt: null } },
+};
+export const UnknownDark: Story = { ...Unknown, ...dark };
+/** 5.3 Not set up: grey, env block, no check button. */
+export const NotConfigured: Story = {
+  args: {
+    status: {
+      provider: null,
+      providerName: null,
+      model: null,
+      keySet: false,
+      baseUrlHost: null,
+      source: null,
+      state: 'not_configured',
+      checkedAt: null,
+    },
+  },
+};
+export const NotConfiguredDark: Story = { ...NotConfigured, ...dark };
+/** 5.4 Own server: host only, no policy link. */
+export const Compatible: Story = {
+  args: {
+    status: {
+      ...gemini,
+      provider: 'openai-compatible',
+      providerName: null,
+      model: 'qwen2.5vl:7b',
+      keySet: false,
+      baseUrlHost: '192.168.1.20:11434',
+    },
+  },
+};
+export const CompatibleDark: Story = { ...Compatible, ...dark };

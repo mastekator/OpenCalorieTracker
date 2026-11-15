@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import type { MeResponse, Passkey } from '@oct/shared';
 import { atPath } from '../../ui/navStory';
 import { ToastProvider } from '../../ui/Toast/Toast';
+import { AiProviderScreen } from './AiProviderScreen';
 import { PasskeySheet, PasskeysScreen } from './PasskeysScreen';
 import { PasswordScreen } from './PasswordScreen';
 import { hintClosedKey, SettingsScreen } from './SettingsScreen';
@@ -42,13 +43,24 @@ const passkeys: Passkey[] = [
   },
 ];
 
-/** Answers GET /api/account/passkeys with `list`; anything else succeeds empty. */
+/** Answers GET /api/account/passkeys with `list`, /api/admin/ai with a quota state; anything else succeeds empty. */
 const serve = (list: Passkey[]) => () => {
   const real = globalThis.fetch;
   globalThis.fetch = async (input) =>
     String(input).endsWith('/api/account/passkeys')
       ? Response.json(list)
-      : new Response(null, { status: 204 });
+      : String(input).endsWith('/api/admin/ai')
+        ? Response.json({
+            provider: 'google',
+            providerName: 'Google Gemini',
+            model: 'gemini-2.5-flash',
+            keySet: true,
+            baseUrlHost: null,
+            source: 'env',
+            state: 'quota_exceeded',
+            checkedAt: Date.now(),
+          })
+        : new Response(null, { status: 204 });
   return () => {
     globalThis.fetch = real;
   };
@@ -86,9 +98,12 @@ const offline = () => {
 };
 export const User: Story = { render: () => settings(user) };
 export const UserDark: Story = { ...User, ...dark };
-/** Admin with the AC-1.7 hint. */
+/** Admin with the AC-1.7 hint and the AI provider badge. */
 export const Admin: Story = {
-  beforeEach: () => localStorage.removeItem(hintClosedKey(admin.id)),
+  beforeEach: () => {
+    localStorage.removeItem(hintClosedKey(admin.id));
+    return serve([])();
+  },
   render: () => settings(admin),
 };
 export const AdminDark: Story = { ...Admin, ...dark };
@@ -101,6 +116,12 @@ export const AdminOffline: Story = {
   render: () => settings(admin),
 };
 export const AdminOfflineDark: Story = { ...AdminOffline, ...dark };
+/** OCT-25 5.6: the AI provider screen offline shows no stale status. */
+export const AiProviderOffline: Story = {
+  beforeEach: offline,
+  render: () => <AiProviderScreen />,
+};
+export const AiProviderOfflineDark: Story = { ...AiProviderOffline, ...dark };
 /** Passkey-only server: no password row. */
 export const PasskeyOnly: Story = {
   render: () => settings({ ...user, enabledMethods: ['passkey'] }),
