@@ -1,0 +1,202 @@
+/* Screen 4 (OCT-16 §3): a full-screen flow on the phone, a two-column window on the desktop (E.2). */
+.meal-edit__window {
+  max-width: var(--content-max-width);
+  margin-inline: auto;
+}
+
+.meal-edit__error,
+.meal-edit__body,
+.meal-edit__footer {
+  padding-inline: max(var(--screen-gutter), env(safe-area-inset-left));
+}
+
+.meal-edit__error {
+  padding-top: var(--space-4);
+}
+
+.meal-edit__body {
+  display: grid;
+  gap: var(--space-4);
+  padding-block: var(--space-4);
+}
+
+.meal-edit__summary {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: var(--space-3) var(--space-4);
+}
+
+.meal-edit__thumb {
+  width: var(--thumb-size);
+  height: var(--thumb-size);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+  object-fit: cover;
+}
+
+.meal-edit__total {
+  grid-column: -2;
+  display: grid;
+  gap: var(--space-1);
+}
+
+.meal-edit__kcal {
+  font-size: var(--text-large-title-size);
+  line-height: var(--text-large-title-lh);
+  font-weight: var(--text-large-title-weight);
+}
+
+.meal-edit__macros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+  color: var(--color-text-secondary);
+}
+
+.meal-edit__macros span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.meal-edit__dot {
+  width: var(--space-2);
+  height: var(--space-2);
+  border-radius: var(--radius-full);
+}
+.meal-edit__dot--protein {
+  background: var(--color-protein);
+}
+.meal-edit__dot--fat {
+  background: var(--color-fat);
+}
+.meal-edit__dot--carbs {
+  background: var(--color-carbs);
+}
+
+.meal-edit__estimate {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: var(--space-2);
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+  color: var(--color-text-secondary);
+}
+
+.meal-edit__estimate svg {
+  flex: none;
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+  stroke-width: var(--icon-stroke);
+  color: var(--color-accent);
+}
+
+.meal-edit__main {
+  display: grid;
+  gap: var(--space-4);
+  align-content: start;
+}
+
+.meal-edit__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.meal-edit__list li + li {
+  border-top: 1px solid var(--color-separator);
+}
+
+.meal-edit__empty {
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+
+/* The phone keeps Save in reach at the bottom. */
+.meal-edit__footer {
+  position: sticky;
+  bottom: 0;
+  display: grid;
+  gap: var(--space-2);
+  padding-block: var(--space-3) max(var(--space-3), env(safe-area-inset-bottom));
+  background: var(--color-bg);
+}
+
+.meal-edit__note {
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+
+.meal-edit__actions {
+  display: grid;
+}
+
+.meal-edit__cancel {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .meal-edit {
+    display: grid;
+    place-items: center;
+    min-height: 100dvh;
+    padding: var(--desktop-gutter);
+  }
+
+  .meal-edit__window {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: var(--modal-flow-max-width);
+    max-height: 90dvh;
+    border-radius: var(--radius-lg);
+    background: var(--color-bg);
+    box-shadow: var(--shadow-toast);
+    overflow: hidden;
+  }
+
+  .meal-edit__body {
+    flex: 1;
+    grid-template-columns: var(--modal-summary-width) 1fr;
+    align-items: start;
+    gap: var(--space-6);
+    overflow-y: auto;
+  }
+
+  .meal-edit__summary {
+    grid-template-columns: 1fr;
+  }
+
+  .meal-edit__thumb {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1;
+  }
+
+  .meal-edit__total,
+  .meal-edit__estimate {
+    grid-column: auto;
+  }
+
+  .meal-edit__footer {
+    position: static;
+    border-top: 1px solid var(--color-separator);
+  }
+
+  .meal-edit__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-3);
+  }
+
+  .meal-edit__cancel {
+    display: contents;
+  }
+}

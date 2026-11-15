@@ -27,6 +27,7 @@ import {
   RecognitionScreen,
   type MealEditState,
 } from '../features/meals/RecognitionScreen';
+import { MealEditRoute } from '../features/meals/MealEditScreen';
 import { ProfileScreen } from '../features/profile/ProfileScreen';
 import { AppShell } from './AppShell';
 import { AuthGate } from './AuthGate';
@@ -51,7 +52,7 @@ function Screen({
   );
 }
 
-// shortcut: the edit screen placeholder until OCT-58.
+// shortcut: a saved meal opens this placeholder until OCT-69.
 function MealEditStub() {
   const { t } = useT();
   return (
@@ -307,7 +308,7 @@ function SignedIn() {
             <MealNew />
           </Route>
           <Route path={MEAL_EDIT_PATH}>
-            <MealEditStub />
+            <MealEditRoute />
           </Route>
           {/* After the two above: «new» is not a clientId. */}
           <Route path="/meal/:clientId">
