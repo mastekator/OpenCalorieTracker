@@ -2,7 +2,10 @@ import { Pencil, Trash2 } from 'lucide-react';
 import type { DishSource, IllustrationId, Nutrients, Units } from '@oct/shared';
 import { useT } from '../../i18n';
 import { ConfidenceBadge } from '../ConfidenceBadge/ConfidenceBadge';
-import { DishIllustration } from '../DishIllustration/DishIllustration';
+import {
+  DishIllustration,
+  illustrationLabel,
+} from '../DishIllustration/DishIllustration';
 import { useSwipeDelete } from '../useSwipeDelete';
 import { WeightStepper } from '../WeightStepper/WeightStepper';
 import './DishRow.css';
@@ -26,6 +29,8 @@ type Props = {
   onEdit: () => void;
   /** Phone: swipe left reveals «Delete», a full swipe deletes; desktop: a trash button (OCT-16 4.5, §5). */
   onDelete?: () => void;
+  /** Tap on the illustration: the «Dish picture» sheet (OCT-33 4.1); none: decorative only. */
+  onIllustration?: () => void;
 };
 
 /** One dish on the edit screen: name and kcal, source badge and macros, weight stepper, delete. */
@@ -35,8 +40,9 @@ export function DishRow({
   onGramsChange,
   onEdit,
   onDelete,
+  onIllustration,
 }: Props) {
-  const { t, num } = useT();
+  const { t, num, locale } = useT();
   const { offset, dragging, remove, bind, confirm } = useSwipeDelete(onDelete);
   return (
     <div
@@ -44,11 +50,26 @@ export function DishRow({
       {...bind}
     >
       <div className={`dish-row${dish.illustration ? ' dish-row--illo' : ''}`}>
-        {dish.illustration && (
-          <span className="dish-row__illo">
-            <DishIllustration id={dish.illustration} />
-          </span>
-        )}
+        {dish.illustration &&
+          (onIllustration ? (
+            <button
+              type="button"
+              className="dish-row__illo dish-row__illo--button"
+              aria-label={t('edit.illo.change', {
+                name: illustrationLabel(dish.illustration, locale),
+              })}
+              onClick={onIllustration}
+            >
+              <DishIllustration id={dish.illustration} />
+              <span className="dish-row__illo-dot" aria-hidden="true">
+                <Pencil />
+              </span>
+            </button>
+          ) : (
+            <span className="dish-row__illo">
+              <DishIllustration id={dish.illustration} />
+            </span>
+          ))}
         <div className="dish-row__head">
           <button
             type="button"
