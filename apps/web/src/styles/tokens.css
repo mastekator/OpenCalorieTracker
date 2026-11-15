@@ -47,6 +47,8 @@
   --stepper-value-width: 96px;  /* weight field between − and + on the edit screen (OCT-16 §3) */
   --progress-height: 8px;       /* kcal & macro bars on Today / Diary / Week */
   --hatch-size: 6px;            /* stripe period of the "over the norm" pattern (not colour-only) */
+  --chart-height: 184px;        /* kcal-by-day plot on Week (OCT-19 §4) */
+  --chart-height-wide: 280px;   /* the same plot on desktop (OCT-19 D.3) */
   --tabbar-height: 49px;        /* + env(safe-area-inset-bottom) */
   --navbar-height: 44px;        /* + env(safe-area-inset-top) */
   --icon-size: 24px;  --icon-size-sm: 20px;  --icon-stroke: 1.75;

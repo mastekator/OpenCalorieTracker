@@ -1,0 +1,104 @@
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import { addDays, type DayTotals } from '@oct/shared';
+import { fn } from 'storybook/test';
+import { KcalChart } from './KcalChart';
+
+const day = (date: string, kcal: number): DayTotals => ({
+  date,
+  kcal,
+  proteinG: 0,
+  fatG: 0,
+  carbsG: 0,
+  meals: kcal ? 1 : 0,
+});
+const period = (from: string, kcals: number[]) =>
+  kcals.map((k, i) => day(addDays(from, i), k));
+
+const THIS_WEEK = period('2026-11-09', [1850, 2380, 1960, 1240, 0, 0, 0]);
+const LAST_WEEK = period(
+  '2026-11-02',
+  [2050, 1890, 2600, 2200, 1720, 2900, 2400],
+);
+const MONTH = period('2026-11-01', [
+  1980,
+  2150,
+  1720,
+  2040,
+  2210,
+  1890,
+  2300,
+  2050,
+  1850,
+  2380,
+  1960,
+  1240,
+  ...Array<number>(18).fill(0),
+]);
+
+const meta = {
+  title: 'Week/KcalChart',
+  component: KcalChart,
+  args: {
+    days: THIS_WEEK,
+    norm: 2100,
+    today: '2026-11-12',
+    mode: 'week',
+    onOpenDay: fn(),
+  },
+  decorators: [
+    (Story) => (
+      <div
+        style={{
+          padding: 'var(--space-4)',
+          background: 'var(--color-surface)',
+        }}
+      >
+        {Story()}
+      </div>
+    ),
+  ],
+} satisfies Meta<typeof KcalChart>;
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+/** 7.1 */
+export const ThisWeek: Story = {};
+export const ThisWeekDark: Story = { globals: { theme: 'dark' } };
+/** 7.2: every day past, several over. */
+export const LastWeekOver: Story = {
+  args: { days: LAST_WEEK, today: '2026-11-12' },
+};
+export const LastWeekOverDark: Story = {
+  ...LastWeekOver,
+  globals: { theme: 'dark' },
+};
+/** 7.3: tap a bar for the value, tap again to open the day. */
+export const Month: Story = { args: { days: MONTH, mode: 'month' } };
+export const MonthDark: Story = { ...Month, globals: { theme: 'dark' } };
+/** 7.4: 6,000 kcal against 2,000 — the axis stops at 4,000, the bar is clipped. */
+export const VeryBigDay: Story = {
+  args: {
+    days: period('2026-11-09', [1850, 6000, 1960, 1240, 0, 0, 0]),
+    norm: 2000,
+  },
+};
+export const VeryBigDayDark: Story = {
+  ...VeryBigDay,
+  globals: { theme: 'dark' },
+};
+/** 7.5 */
+export const NoNorm: Story = { args: { norm: null } };
+export const NoNormDark: Story = { ...NoNorm, globals: { theme: 'dark' } };
+/** 7.6 */
+export const NoEntries: Story = {
+  args: { days: period('2026-11-09', [0, 0, 0, 0, 0, 0, 0]) },
+};
+export const NoEntriesDark: Story = {
+  ...NoEntries,
+  globals: { theme: 'dark' },
+};
+/** D.3: `--chart-height-wide` from 1024 px. */
+export const Desktop: Story = {
+  globals: { viewport: { value: 'desktop' } },
+};
+export const Russian: Story = { globals: { locale: 'ru' } };
