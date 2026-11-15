@@ -10,6 +10,8 @@ import type { ReactNode } from 'react';
 import { Router } from 'wouter';
 import { memoryLocation } from 'wouter/memory-location';
 import type { AdminBlock, AdminUser, Invite, MeResponse } from '@oct/shared';
+import { DataProvider } from '../../data/DataContext';
+import { clearLocal } from '../../data/user';
 import { I18nProvider, LOCALE_STORAGE_KEY } from '../../i18n';
 import { ToastProvider } from '../../ui/Toast/Toast';
 import { SettingsScreen } from '../settings/SettingsScreen';
@@ -255,19 +257,24 @@ describe('Settings: blocks badge', () => {
   it('shows the count only when there are blocks', async () => {
     serve({ '/api/admin/blocks': [block, { ...block, id: 8 }] });
     await wrap(
-      <SettingsScreen user={admin} onLogout={() => {}} />,
+      <DataProvider user={admin}>
+        <SettingsScreen user={admin} onLogout={() => {}} />
+      </DataProvider>,
       '/settings',
     );
-    const row = screen.getByRole('button', { name: /Blocks/ });
+    const row = await screen.findByRole('button', { name: /Blocks/ });
     await waitFor(() => expect(row.textContent).toBe('Blocks2'));
     cleanup();
     serve({ '/api/admin/blocks': [] });
     await wrap(
-      <SettingsScreen user={admin} onLogout={() => {}} />,
+      <DataProvider user={admin}>
+        <SettingsScreen user={admin} onLogout={() => {}} />
+      </DataProvider>,
       '/settings',
     );
-    const again = screen.getByRole('button', { name: /Blocks/ });
+    const again = await screen.findByRole('button', { name: /Blocks/ });
     await new Promise((r) => setTimeout(r, 20));
     expect(again.textContent).toBe('Blocks');
+    await clearLocal(admin.id);
   });
 });

@@ -7,12 +7,16 @@ import {
   type ReactNode,
 } from 'react';
 import {
+  aiStatusSchema,
   effectiveNorm,
   type AccountSettings,
+  type AiStatus,
   type Meal,
   type MeResponse,
   type ProfileResponse,
 } from '@oct/shared';
+import { api } from '../api/client';
+import { applyTheme, savedTheme } from '../app/theme';
 import { useT } from '../i18n';
 import { useOnline } from '../ui/OfflineBar/OfflineBar';
 import { useToast } from '../ui/Toast/Toast';
@@ -36,7 +40,7 @@ export function DataProvider({
 }) {
   const [db, setDb] = useState<Db | null>(null);
   const toast = useToast();
-  const { t } = useT();
+  const { t, locale, setLocale } = useT();
   const synced = useRef<(count: number) => void>(() => {});
   synced.current = (count) => toast({ text: t('sync.sent', { count }) });
 
@@ -90,6 +94,27 @@ export function DataProvider({
       live = false;
       window.removeEventListener('online', onOnline);
     };
+  }, [db]);
+
+  // Language and theme changed on another device arrive with a pull. Only applied here:
+  // writing to the queue would send them back and loop.
+  const current = useRef({ locale, setLocale });
+  current.current = { locale, setLocale };
+  useEffect(() => {
+    if (!db) return;
+    const apply = () =>
+      db.get('kv', 'settings').then(
+        (value) => {
+          const s = value as AccountSettings | undefined;
+          if (!s) return;
+          if (s.locale !== current.current.locale)
+            current.current.setLocale(s.locale);
+          if (s.theme !== savedTheme()) applyTheme(s.theme);
+        },
+        () => {},
+      ); // closed by a user switch
+    void apply();
+    return onChange(apply);
   }, [db]);
 
   if (!db) return null;
@@ -154,6 +179,40 @@ export const useSettings = () =>
       (await db.get('kv', 'settings')) as AccountSettings | undefined,
     [],
   );
+
+/**
+ * GET /api/ai/status, one request per screen online; offline (or while it loads) the last
+ * answer stored on this device. `loading`: online and not answered yet.
+ */
+export function useAiStatus() {
+  const db = useDb();
+  const online = useOnline();
+  const stored = useLocal(
+    (d) => d.get('kv', 'aiStatus') as Promise<AiStatus | undefined>,
+    [],
+  );
+  // null: the request failed.
+  const [fresh, setFresh] = useState<AiStatus | null>();
+  useEffect(() => {
+    if (!online) return;
+    let live = true;
+    api('/api/ai/status', aiStatusSchema).then(
+      (s) => {
+        if (!live) return;
+        setFresh(s);
+        db.put('kv', s, 'aiStatus').catch(() => {}); // closed by a user switch
+      },
+      () => live && setFresh(null),
+    );
+    return () => {
+      live = false;
+    };
+  }, [db, online]);
+  return {
+    status: fresh ?? stored,
+    loading: online && fresh === undefined,
+  };
+}
 
 /** A profile never saved (what GET /api/profile answers for it). */
 export const EMPTY_PROFILE: ProfileResponse = {

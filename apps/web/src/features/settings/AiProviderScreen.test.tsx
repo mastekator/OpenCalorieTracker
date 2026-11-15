@@ -12,6 +12,8 @@ import { memoryLocation } from 'wouter/memory-location';
 import type { AdminAiStatus, MeResponse } from '@oct/shared';
 import { AppScreens } from '../../app/routes';
 import { SessionContext } from '../../app/SessionContext';
+import { DataProvider } from '../../data/DataContext';
+import { clearLocal } from '../../data/user';
 import { I18nProvider, LOCALE_STORAGE_KEY } from '../../i18n';
 import { ProviderStatus } from '../../ui/ProviderStatus/ProviderStatus';
 import { ToastProvider } from '../../ui/Toast/Toast';
@@ -53,11 +55,17 @@ const off: AdminAiStatus = {
   checkedAt: null,
 };
 
-async function wrap(node: ReactNode) {
+async function wrap(node: ReactNode, data = false) {
   const view = render(
     <I18nProvider>
       <ToastProvider>
-        <div data-testid="ready">{node}</div>
+        {data ? (
+          <DataProvider user={user}>
+            <div data-testid="ready">{node}</div>
+          </DataProvider>
+        ) : (
+          <div data-testid="ready">{node}</div>
+        )}
       </ToastProvider>
     </I18nProvider>,
   );
@@ -74,16 +82,17 @@ const status = (s: Partial<AdminAiStatus>) => (
 );
 
 beforeEach(() => localStorage.setItem(LOCALE_STORAGE_KEY, 'en'));
-afterEach(() => {
+afterEach(async () => {
   cleanup();
   localStorage.clear();
   vi.unstubAllGlobals();
+  await clearLocal(user.id);
 });
 
 describe('AI provider: admin only', () => {
   it('a regular user has no row and is sent from the screen to /settings', async () => {
     const fetch = serve(gemini);
-    await wrap(<SettingsScreen user={user} onLogout={() => {}} />);
+    await wrap(<SettingsScreen user={user} onLogout={() => {}} />, true);
     expect(screen.queryByText('AI provider')).toBeNull();
     cleanup();
 
@@ -97,6 +106,7 @@ describe('AI provider: admin only', () => {
           <AppScreens />
         </SessionContext.Provider>
       </Router>,
+      true,
     );
     await waitFor(() => expect(location.history.at(-1)).toBe('/settings'));
     expect(fetch).not.toHaveBeenCalledWith('/api/admin/ai', expect.anything());
@@ -104,14 +114,14 @@ describe('AI provider: admin only', () => {
 
   it('the admin row carries the state badge', async () => {
     serve({ ...gemini, state: 'quota_exceeded' });
-    await wrap(<SettingsScreen user={admin} onLogout={() => {}} />);
+    await wrap(<SettingsScreen user={admin} onLogout={() => {}} />, true);
     const row = screen.getByRole('button', { name: /AI provider/ });
     await waitFor(() => expect(row.textContent).toContain('Quota'));
   });
 
   it('a failed status read leaves the row without a badge', async () => {
     serve({ error: { code: 'internal' } }, 500);
-    await wrap(<SettingsScreen user={admin} onLogout={() => {}} />);
+    await wrap(<SettingsScreen user={admin} onLogout={() => {}} />, true);
     const row = screen.getByRole('button', { name: /AI provider/ });
     await waitFor(() => expect(row.textContent).toBe('AI provider'));
   });

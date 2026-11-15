@@ -1,6 +1,19 @@
-.settings {
+.settings,
+.settings__col {
   display: grid;
   gap: var(--space-6);
+  align-content: start;
+}
+
+/* D.1: the same groups in two columns; the offline banner spans both. */
+@media (min-width: 1024px) {
+  .settings {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .settings__offline {
+    grid-column: 1 / -1;
+  }
 }
 
 .settings__version {
