@@ -856,6 +856,25 @@ const ru: DeepPartial<typeof en> = {
     undo: 'Вернуть',
   },
   day: { today: 'Сегодня', yesterday: 'Вчера' },
+  chart: {
+    a11y: 'Ккал по дням, норма {norm} в день',
+    a11y_no_norm: 'Ккал по дням',
+    bar: '{day}: {k} ккал из {norm}',
+    bar_over: '{day}: {k} ккал из {norm}, перебор {n}',
+    bar_no_norm: '{day}: {k} ккал',
+    future: '{day}: ещё не наступил',
+    tip: '{day}: {k} из {norm}',
+    tip_no_norm: '{day}: {k} ккал',
+    legend: {
+      eaten: 'съедено',
+      norm: 'норма {norm} в день',
+      over: 'сверх нормы',
+    },
+    empty: {
+      week: 'За эту неделю записей нет',
+      month: 'За этот месяц записей нет',
+    },
+  },
   errors: {
     validation_failed: 'Проверьте отмеченные поля',
     unauthenticated: 'Войдите в аккаунт',
