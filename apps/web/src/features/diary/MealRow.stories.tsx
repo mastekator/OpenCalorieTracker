@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import type { Meal } from '@oct/shared';
+import { matchIllustration, type Meal } from '@oct/shared';
 import { useT } from '../../i18n';
 import { List } from '../../ui/List/List';
 import { MealRow } from './MealRow';
@@ -21,10 +21,15 @@ const meal = (over: Partial<Meal>) =>
     carbsG: 0,
     ...over,
   }) as Meal;
+// First dish has the most kcal, so it gives the illustration of a meal without a photo.
 const dishes = (...names: string[]) =>
-  names.map((name) => ({ name })) as Meal['items'];
+  names.map((name, i) => ({
+    name,
+    illustration: matchIllustration(name),
+    kcal: 100 - i,
+  })) as Meal['items'];
 
-// No API in Storybook: the photo thumbnail shows its surface-2 placeholder.
+// No API in Storybook: the photo fails to load and falls back to the illustration, like offline.
 const MEALS = [
   meal({
     id: 3,
@@ -85,7 +90,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** Photo, no photo (utensils), late badge, long dishes truncated. */
+/** Photo, no photo (dish illustration), late badge, long dishes truncated. */
 export const Phone: Story = {};
 export const Narrow: Story = { globals: { viewport: { value: 'iphoneSE' } } };
 export const Hover: Story = {

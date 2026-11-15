@@ -190,6 +190,51 @@ describe('MealEditScreen', () => {
       });
     });
 
+    it('a rename changes the illustration, except one picked by hand (AC-4.5)', async () => {
+      const onSave = vi.fn(async (input: MealInput) => void input);
+      await renderLoaded(
+        <I18nProvider>
+          <ToastProvider>
+            <MealEditScreen
+              // A loaded meal: rice was picked by hand (illustrationManual), buckwheat is automatic.
+              dishes={[buckwheat, { ...rice, illustration: 'pizza' }]}
+              units="metric"
+              onSave={onSave}
+              onClose={() => {}}
+              choices={{ coffee: 'coffee-tea' }}
+            />
+          </ToastProvider>
+        </I18nProvider>,
+      );
+      const illos = () =>
+        [...document.querySelectorAll('.dish-row .dish-illo')].map((e) =>
+          e.getAttribute('data-illo'),
+        );
+      expect(illos()).toEqual(['grains', 'pizza']);
+      const rename = (dish: string, to: string) => {
+        fireEvent.click(screen.getByRole('button', { name: `Edit ${dish}` }));
+        fireEvent.change(
+          within(sheet()).getByRole('textbox', { name: 'Name' }),
+          {
+            target: { value: to },
+          },
+        );
+        fireEvent.click(within(sheet()).getByRole('button', { name: 'Done' }));
+      };
+      rename('Buckwheat', 'Borscht');
+      rename('Rice', 'Pasta');
+      expect(illos()).toEqual(['soup-borscht', 'pizza']);
+      // A choice remembered for the name beats the dictionary.
+      rename('Borscht', 'Coffee');
+      expect(illos()[0]).toBe('coffee-tea');
+      await act(async () =>
+        fireEvent.click(screen.getByRole('button', { name: 'Save' })),
+      );
+      const [auto, manual] = onSave.mock.calls[0]![0].items;
+      expect(auto).not.toHaveProperty('illustration');
+      expect(manual).toMatchObject({ illustration: 'pizza' });
+    });
+
     it('an empty name is not accepted', async () => {
       await setup();
       open();

@@ -5,6 +5,25 @@
   background: var(--color-surface);
 }
 
+/* OCT-33: the illustration in a 44 cell beside name and macros; the weight row stays full width. */
+.dish-row--illo {
+  grid-template-columns: var(--tap-min) minmax(0, 1fr);
+  column-gap: var(--space-3);
+}
+
+.dish-row__illo {
+  grid-row: 1 / span 2;
+  align-self: center;
+  display: grid;
+  place-items: center;
+  width: var(--tap-min);
+  height: var(--tap-min);
+}
+
+.dish-row--illo .dish-row__weight {
+  grid-column: 1 / -1;
+}
+
 .dish-row__head {
   display: flex;
   align-items: baseline;

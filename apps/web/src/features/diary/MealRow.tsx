@@ -1,8 +1,9 @@
-import type { Meal } from '@oct/shared';
+import { mealIllustration, type Meal } from '@oct/shared';
 import { useState } from 'react';
-import { Moon, Trash2, Utensils } from 'lucide-react';
+import { Moon, Trash2 } from 'lucide-react';
 import { useT } from '../../i18n';
 import { Badge } from '../../ui/Badge/Badge';
+import { DishIllustration } from '../../ui/DishIllustration/DishIllustration';
 import { useSwipeDelete } from '../../ui/useSwipeDelete';
 import { isLate, localClock } from './mealTime';
 import './MealRow.css';
@@ -20,7 +21,7 @@ type Props = {
 /** A meal in a `List` on Today / Diary: thumbnail, type, time, dishes, kcal. */
 export function MealRow({ meal, onOpen, onDelete, highlight }: Props) {
   const { t, num, locale } = useT();
-  // A preview that fails to load (offline, not cached) falls back to the icon.
+  // A preview that fails to load (offline, not cached) falls back to the illustration.
   const [broken, setBroken] = useState(false);
   const { offset, dragging, remove, bind, confirm } = useSwipeDelete(onDelete);
   const type = t(`meal.type.${meal.mealType}`);
@@ -47,9 +48,10 @@ export function MealRow({ meal, onOpen, onDelete, highlight }: Props) {
             onError={() => setBroken(true)}
           />
         ) : (
-          <span className="meal-row__thumb meal-row__thumb--icon">
-            <Utensils aria-hidden="true" />
-          </span>
+          <DishIllustration
+            id={mealIllustration(meal.items)}
+            size="var(--meal-thumb-size)"
+          />
         )}
         <span className="meal-row__main">
           <span className="meal-row__title">
