@@ -948,7 +948,18 @@ export function ProfileForm({
                   />
                 </FormRow>
                 {MACROS.map((m) => (
-                  <FormRow key={m} label={t(`macro.${m}`)}>
+                  <FormRow
+                    key={m}
+                    label={
+                      <>
+                        <span
+                          className={`profile__dot profile__dot--${m}`}
+                          aria-hidden="true"
+                        />
+                        {t(`macro.${m}`)}
+                      </>
+                    }
+                  >
                     <span className="profile__pct">
                       {manual.kcal !== null && (
                         <span className="profile__grams">

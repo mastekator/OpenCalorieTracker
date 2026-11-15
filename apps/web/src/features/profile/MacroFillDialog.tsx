@@ -31,6 +31,7 @@ export function MacroFillDialog({
     <ConfirmDialog
       open={open}
       tone="primary"
+      stack
       title={t(short ? 'manual.fill.title_short' : 'manual.fill.title_over', {
         n: Math.abs(diff),
       })}

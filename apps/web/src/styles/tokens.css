@@ -61,6 +61,7 @@
   --desktop-gutter: var(--space-10);
   --switch-width: 51px;          /* on/off switch (OCT-22 §2, «Set my own goal») */
   --switch-height: 31px;
+  --switch-knob-inset: 2px;
   --chat-avatar-size: 28px;      /* agent icon circle in the norm chat (OCT-22 §3) */
   --chat-bubble-max-width: 80%;  /* user message bubble */
   --chat-dot-size: 6px;          /* «typing» dots */
@@ -120,6 +121,7 @@
   --shadow-toast: 0 6px 20px rgb(24 33 29 / 0.10);
   --shadow-camera: 0 4px 14px rgb(19 120 74 / 0.24);
   --shadow-segment: 0 1px 3px rgb(24 33 29 / 0.12); /* selected segment on its surface-2 track */
+  --shadow-switch-knob: 0 2px 4px rgb(0 0 0 / 0.2);
   --color-segment-selected: var(--color-surface); /* raised above the surface-2 track */
   --tabbar-blur: saturate(180%) blur(20px);
   --tabbar-bg: rgb(248 250 249 / 0.88);
