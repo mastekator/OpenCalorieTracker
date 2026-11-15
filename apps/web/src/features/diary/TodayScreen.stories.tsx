@@ -86,7 +86,6 @@ const meta = {
     weekRemainingKcal: 7270,
     onOpen: () => {},
     onSetNorm: () => {},
-    onRetry: () => {},
   },
 } satisfies Meta<typeof TodayView>;
 export default meta;
@@ -113,11 +112,6 @@ export const FirstRunDark: Story = { ...FirstRun, globals: dark };
 /** 2.6: skeletons after 300 ms. */
 export const Loading: Story = { args: { meals: undefined, norm: undefined } };
 export const LoadingDark: Story = { ...Loading, globals: dark };
-/** 2.7: nothing loaded; capture still works. */
-export const LoadError: Story = { args: { meals: [], norm: 'error' } };
-export const LoadErrorDark: Story = { ...LoadError, globals: dark };
-/** The norm failed but the local copy has meals: the list stays. */
-export const NormErrorWithMeals: Story = { args: { norm: 'error' } };
 /** A meal just saved flashes accent-soft (OCT-16 A.6). */
 export const JustSaved: Story = { args: { highlight: 'm2' } };
 export const Russian: Story = { globals: { locale: 'ru' } };

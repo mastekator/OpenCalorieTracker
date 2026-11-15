@@ -121,6 +121,8 @@ type Props = {
   onHideDisclaimer?: () => void;
   /** Bump to turn the manual goal on and scroll to it («Set my own goal» in the chat, 9.8). */
   manualAt?: number;
+  /** Offline (8.15): values only, no saving, the assistant greyed out; «How it’s calculated» still works. */
+  readOnly?: boolean;
 };
 
 /** Profile screen body (OCT-22 §2, D.1): the form in rows, live norm, Save. */
@@ -133,10 +135,11 @@ export function ProfileForm({
   disclaimerHidden = false,
   onHideDisclaimer,
   manualAt,
+  readOnly = false,
 }: Props) {
   const { t, locale } = useT();
   const toast = useToast();
-  const formRef = useRef<HTMLDivElement>(null);
+  const formRef = useRef<HTMLFieldSetElement>(null);
   const [saved, setSaved] = useState(initial);
   // Draft in cm and kg, unrounded (ADR-0014 §2): switching units only changes what is shown (E-1.9).
   const [draft, setDraft] = useState(initial.profile);
@@ -331,6 +334,7 @@ export function ProfileForm({
       : null;
   const fieldName = (f: Field) => t(LABEL[f]).toLocaleLowerCase(locale);
   const firstVisit =
+    !readOnly &&
     !started &&
     !dirty &&
     saved.manual === null &&
@@ -521,7 +525,7 @@ export function ProfileForm({
             <Button
               variant="plain"
               small
-              disabled={saving || errorFields.length > 0}
+              disabled={saving || errorFields.length > 0 || readOnly}
               onClick={resetToCalc}
             >
               <Undo2 aria-hidden="true" />
@@ -740,10 +744,21 @@ export function ProfileForm({
             />
           )}
           {onAgent && !firstVisit && !minor && (
-            <Button id={agentId} variant="tonal" onClick={onAgent}>
+            <Button
+              id={agentId}
+              variant="tonal"
+              onClick={onAgent}
+              disabled={readOnly}
+              aria-describedby={readOnly ? `${agentId}-why` : undefined}
+            >
               <Sparkles aria-hidden="true" />
               {t('agent.cta')}
             </Button>
+          )}
+          {onAgent && !firstVisit && !minor && readOnly && (
+            <p id={`${agentId}-why`} className="profile__offline">
+              {t('offline.blocked.agent')}
+            </p>
           )}
           {failed && (
             <Banner tone="danger" title={t('save.error')}>
@@ -757,21 +772,24 @@ export function ProfileForm({
               </button>
             </Banner>
           )}
-          <div className={dirty ? undefined : 'profile__save--idle'}>
-            <SaveBar
-              preview={
-                norm
-                  ? `${new Intl.NumberFormat(locale).format(norm.kcal)} ${t('today.kcal')}`
-                  : null
-              }
-              onSave={onSaveClick}
-              disabled={!dirty || blocked}
-              loading={saving}
-            />
-          </div>
+          {!readOnly && (
+            <div className={dirty ? undefined : 'profile__save--idle'}>
+              <SaveBar
+                preview={
+                  norm
+                    ? `${new Intl.NumberFormat(locale).format(norm.kcal)} ${t('today.kcal')}`
+                    : null
+                }
+                onSave={onSaveClick}
+                disabled={!dirty || blocked}
+                loading={saving}
+              />
+            </div>
+          )}
         </div>
 
-        <div className="profile__form" ref={formRef}>
+        {/* Offline the native disabled reaches every field, the switch and the activity row. */}
+        <fieldset className="profile__form" ref={formRef} disabled={readOnly}>
           <List
             title={t('profile.calc')}
             footer={footerError(groupError(true)) ?? t('field.sex_hint')}
@@ -994,7 +1012,7 @@ export function ProfileForm({
               </>
             )}
           </List>
-        </div>
+        </fieldset>
 
         {manual && filled && (
           <MacroFillDialog

@@ -1,13 +1,18 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { act, cleanup, render, screen } from '@testing-library/react';
-import type { Meal, MeResponse, SyncResponse } from '@oct/shared';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
+import type {
+  Meal,
+  MeResponse,
+  ProfileResponse,
+  SyncResponse,
+} from '@oct/shared';
 import type { ReactNode } from 'react';
 import { I18nProvider, LOCALE_STORAGE_KEY } from '../i18n';
 import { ToastProvider } from '../ui/Toast/Toast';
-import { DataProvider, useMeals } from './DataContext';
+import { DataProvider, useMeals, useNorm } from './DataContext';
 import { openUserDb, type Db } from './db';
 import { patchSettings } from './outbox';
-import { pull } from './sync';
+import { pull, storeProfile } from './sync';
 import { clearLocal } from './user';
 
 const meal = (clientId: string, localDate = '2026-11-14'): Meal => ({
@@ -25,6 +30,21 @@ const meal = (clientId: string, localDate = '2026-11-14'): Meal => ({
   fatG: 10,
   carbsG: 60,
 });
+
+const PROFILE: ProfileResponse = {
+  profile: {
+    sex: 'male',
+    birthDate: '1996-01-01',
+    heightCm: 180,
+    weightKg: 80,
+    activity: 'moderate',
+    goal: 'maintain',
+    targetWeightKg: null,
+    deadline: null,
+  },
+  manual: { kcal: 2000, proteinPct: 30, fatPct: 30, carbsPct: 40 },
+  rev: 1,
+};
 
 const page = (p: Partial<SyncResponse>): SyncResponse => ({
   rev: 1,
@@ -134,6 +154,17 @@ describe('pull', () => {
     expect(await db.get('meals', 'a')).toBeUndefined();
   });
 
+  it('stores the profile, but not over a newer saved one', async () => {
+    await open();
+    serve(page({ rev: 3, profile: { ...PROFILE, rev: 3 } }));
+    await pull(db);
+    expect(await db.get('kv', 'profile')).toEqual({ ...PROFILE, rev: 3 });
+    await storeProfile(db, { ...PROFILE, manual: null, rev: 9 });
+    serve(page({ rev: 4, profile: { ...PROFILE, rev: 4 } }));
+    await pull(db);
+    expect(await db.get('kv', 'profile')).toMatchObject({ rev: 9 });
+  });
+
   it('runs one pull at a time', async () => {
     await open();
     const urls = serve(page({ rev: 1 }));
@@ -163,6 +194,32 @@ describe('useMeals', () => {
     serve(page({ rev: 2, meals: [meal('c')] }));
     await act(() => pull(db));
     expect(await screen.findByText('meals: a,c')).toBeTruthy();
+  });
+});
+
+describe('useNorm', () => {
+  it('moves with the birthday, with no request (E-1.2)', async () => {
+    const user = { id: 7, email: 'a@example.com' } as MeResponse;
+    const fetch = vi.fn(async () =>
+      Response.json(page({ rev: 1, profile: { ...PROFILE, manual: null } })),
+    );
+    vi.stubGlobal('fetch', fetch);
+    function Norm({ date }: { date: string }) {
+      return <p>{`kcal: ${useNorm(date)?.kcal}`}</p>;
+    }
+    const app = (date: string) =>
+      withApp(
+        <DataProvider user={user}>
+          <Norm date={date} />
+        </DataProvider>,
+      );
+    const { rerender } = render(app('2025-12-31'));
+    const before = await screen.findByText(/kcal: \d/);
+    const age29 = before.textContent;
+    const calls = fetch.mock.calls.length;
+    rerender(app('2026-01-01'));
+    await waitFor(() => expect(before.textContent).not.toBe(age29));
+    expect(fetch.mock.calls.length).toBe(calls);
   });
 });
 

@@ -8,6 +8,7 @@ import type {
   MealInput,
   MealPatch,
   MeResponse,
+  ProfileResponse,
 } from '@oct/shared';
 
 /** Bump with a new `oldVersion` branch in `upgrade` when the stores change. */
@@ -18,8 +19,8 @@ export interface OctDb extends DBSchema {
   /** Unsent changes, in order (OCT-77). */
   outbox: { key: number; value: Op; indexes: { clientId: string } };
   kv: {
-    key: 'rev' | 'me' | 'settings' | 'choices';
-    value: number | MeResponse | AccountSettings | Choices;
+    key: 'rev' | 'me' | 'settings' | 'choices' | 'profile';
+    value: number | MeResponse | AccountSettings | Choices | ProfileResponse;
   };
   /** Photos taken offline, by meal clientId (OCT-77). */
   photos: { key: string; value: Blob };

@@ -756,12 +756,6 @@ export const en = {
       body: 'Take a photo of your food — we’ll count calories and macros.',
     },
   },
-  load: {
-    err: {
-      title: 'Couldn’t load this day',
-      body: 'Check your connection and try again.',
-    },
-  },
   macro: {
     protein: 'Protein',
     fat: 'Fat',

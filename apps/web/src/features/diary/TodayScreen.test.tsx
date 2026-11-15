@@ -4,6 +4,7 @@ import type { Meal, MeResponse, ProfileResponse } from '@oct/shared';
 import { Router } from 'wouter';
 import { memoryLocation } from 'wouter/memory-location';
 import { emitChange } from '../../data/changes';
+import { storeProfile } from '../../data/sync';
 import { DataProvider } from '../../data/DataContext';
 import { openUserDb } from '../../data/db';
 import { clearLocal } from '../../data/user';
@@ -46,25 +47,21 @@ const profile = (kcal: number | null): ProfileResponse =>
     rev: 1,
   }) as ProfileResponse;
 
-/** /api/profile answers with `answer` (null → 500), sync with nothing new. */
-function serve(answer: ProfileResponse | null) {
-  vi.stubGlobal(
-    'fetch',
-    vi.fn(async (path: string) => {
-      if (path === '/api/profile')
-        return answer
-          ? Response.json(answer)
-          : Response.json({ error: { code: 'internal' } }, { status: 500 });
-      if (path.startsWith('/api/sync'))
-        return Response.json({
-          rev: 0,
-          more: false,
-          meals: [],
-          deletedMealClientIds: [],
-        });
-      return new Response(null, { status: 404 });
-    }),
-  );
+/** Sync brings `answer` as the profile; nothing else is asked for. */
+function serve(answer: ProfileResponse) {
+  const fetch = vi.fn(async (path: string) => {
+    if (path.startsWith('/api/sync'))
+      return Response.json({
+        rev: 1,
+        more: false,
+        meals: [],
+        deletedMealClientIds: [],
+        profile: answer,
+      });
+    return new Response(null, { status: 404 });
+  });
+  vi.stubGlobal('fetch', fetch);
+  return fetch;
 }
 
 async function seed(...meals: Meal[]) {
@@ -166,21 +163,16 @@ describe('TodayScreen', () => {
     expect(screen.queryByText('Nothing logged yet')).toBeNull();
   });
 
-  it('keeps the meals when only the norm failed to load, with a retry (2.7)', async () => {
-    serve(null);
-    await seed(meal('a', '2026-11-14', 9));
+  it('shows a saved profile’s norm without a request (OCT-92)', async () => {
+    const fetch = serve(profile(2000));
     renderToday();
-    expect(await screen.findByText('Couldn’t load this day')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy();
-    expect(await screen.findByText('Dish a')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'From library' })).toBeTruthy();
-  });
-
-  it('shows only the error, not the empty state, when nothing loaded (2.7)', async () => {
-    serve(null);
-    renderToday();
-    await screen.findByText('Couldn’t load this day');
-    expect(screen.queryByText('Nothing logged yet')).toBeNull();
+    expect(await screen.findByText('2,000')).toBeTruthy();
+    const calls = fetch.mock.calls.length;
+    const db = await openUserDb(USER.id);
+    await act(() => storeProfile(db, { ...profile(1800), rev: 2 }));
+    db.close();
+    expect(await screen.findByText('1,800')).toBeTruthy();
+    expect(fetch.mock.calls.length).toBe(calls);
   });
 });
 
