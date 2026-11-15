@@ -102,6 +102,8 @@ type Props = {
   onSignedIn: () => Promise<void>;
   /** Banner shown on arrival («session expired»). */
   notice?: Notice;
+  /** Unsent changes kept on this device, named under «session expired» (3.7). */
+  queued?: number;
   /** The page's origin; a prop only for stories and tests. */
   origin?: string;
 };
@@ -110,6 +112,7 @@ export function LoginScreen({
   config,
   onSignedIn,
   notice: initialNotice,
+  queued = 0,
   origin = location.origin,
 }: Props) {
   const { t } = useT();
@@ -271,6 +274,7 @@ export function LoginScreen({
     <NoticeBanner
       notice={shown}
       minutes={Math.ceil(timeoutLeft / 60_000)}
+      queued={queued}
       withPassword={withForm}
       withPasskey={withPasskey}
     />
@@ -374,11 +378,13 @@ export function LoginScreen({
 function NoticeBanner({
   notice,
   minutes,
+  queued,
   withPassword,
   withPasskey,
 }: {
   notice: Notice;
   minutes: number;
+  queued: number;
   withPassword: boolean;
   withPasskey: boolean;
 }) {
@@ -387,7 +393,13 @@ function NoticeBanner({
   const { t } = useT();
   switch (notice.kind) {
     case 'expired':
-      return <Banner tone="notice">{t('auth.session_expired')}</Banner>;
+      return queued > 0 ? (
+        <Banner tone="notice" title={t('auth.session_expired')}>
+          {t('session.queued', { count: queued })}
+        </Banner>
+      ) : (
+        <Banner tone="notice">{t('auth.session_expired')}</Banner>
+      );
     case 'error':
       return <Banner tone="danger">{t(`errors.${notice.code}`)}</Banner>;
     case 'timeout':
