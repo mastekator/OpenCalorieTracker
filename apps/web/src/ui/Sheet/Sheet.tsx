@@ -1,4 +1,5 @@
 import { useId, useRef, type PointerEvent, type ReactNode } from 'react';
+import type { LucideIcon } from 'lucide-react';
 import { useT } from '../../i18n';
 import { useModalDialog } from '../useModalDialog';
 import './Sheet.css';
@@ -13,6 +14,8 @@ type Props = {
   footer?: ReactNode;
   /** Full screen on the phone, 88 % high and wider on desktop (chat, D.2). */
   full?: boolean;
+  /** An icon button left of the close button, e.g. «More» in the chat (9.13). */
+  action?: { label: string; icon: LucideIcon; onClick: () => void };
 };
 
 const SWIPE_CLOSE_PX = 80;
@@ -25,6 +28,7 @@ export function Sheet({
   children,
   footer,
   full = false,
+  action,
 }: Props) {
   const { t } = useT();
   const titleId = useId();
@@ -82,6 +86,16 @@ export function Sheet({
               >
                 {title}
               </h2>
+              {action && (
+                <button
+                  type="button"
+                  className="sheet__close"
+                  aria-label={action.label}
+                  onClick={action.onClick}
+                >
+                  <action.icon aria-hidden="true" />
+                </button>
+              )}
               <button
                 type="button"
                 className="sheet__close"

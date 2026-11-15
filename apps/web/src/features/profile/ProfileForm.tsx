@@ -121,6 +121,10 @@ type Props = {
   onHideDisclaimer?: () => void;
   /** Bump to turn the manual goal on and scroll to it («Set my own goal» in the chat, 9.8). */
   manualAt?: number;
+  /** «Go to the form» from the chat: its filled fields become unsaved edits; a new `at` applies them. */
+  agentDraft?: { profile: Profile; at: number };
+  /** 8.14: the assistant was asked for but the AI doesn't answer. */
+  agentUnavailable?: boolean;
   /** Offline (8.15): values only, no saving, the assistant greyed out; «How it’s calculated» still works. */
   readOnly?: boolean;
 };
@@ -135,6 +139,8 @@ export function ProfileForm({
   disclaimerHidden = false,
   onHideDisclaimer,
   manualAt,
+  agentDraft,
+  agentUnavailable = false,
   readOnly = false,
 }: Props) {
   const { t, locale } = useT();
@@ -320,6 +326,20 @@ export function ProfileForm({
     if (manualAt) openManual();
     // Only a new request opens it, not a re-render.
   }, [manualAt]);
+  useEffect(() => {
+    if (!agentDraft) return;
+    // Only filled fields: an empty one in the chat must not wipe what the form has.
+    const filled = Object.fromEntries(
+      Object.entries(agentDraft.profile).filter(([, v]) => v !== null),
+    );
+    const next = { ...draft, ...filled };
+    setDraft(next);
+    setFtIn(null);
+    setStarted(true);
+    // After the chat sheet has closed and handed focus back to its opener.
+    const id = setTimeout(() => startForm(next));
+    return () => clearTimeout(id);
+  }, [agentDraft?.at]);
   const groupError = (calc: boolean) =>
     errorFields.find((f) => CALC_GROUP.has(f) === calc);
 
@@ -489,7 +509,9 @@ export function ProfileForm({
             });
   let card: ReactNode;
   if (firstVisit)
-    card = <NormCard state="first" onAgent={onAgent} onForm={startForm} />;
+    card = (
+      <NormCard state="first" onAgent={onAgent} onForm={() => startForm()} />
+    );
   else if (norm)
     card = (
       <NormCard
@@ -666,9 +688,9 @@ export function ProfileForm({
     else void save();
   }
 
-  function startForm() {
+  function startForm(from: Profile = draft) {
     setStarted(true);
-    const first = REQUIRED_FIELDS.find((f) => draft[f] === null);
+    const first = REQUIRED_FIELDS.find((f) => from[f] === null);
     if (!first) return;
     if (first === 'activity') return setActivityOpen(true);
     const label = t(LABEL[first]);
@@ -759,6 +781,11 @@ export function ProfileForm({
             <p id={`${agentId}-why`} className="profile__offline">
               {t('offline.blocked.agent')}
             </p>
+          )}
+          {agentUnavailable && (
+            <Banner title={t('agent.unavailable')}>
+              {t('agent.unavailable_body')}
+            </Banner>
           )}
           {failed && (
             <Banner tone="danger" title={t('save.error')}>

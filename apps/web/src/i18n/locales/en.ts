@@ -339,7 +339,11 @@ export const en = {
       'This is an estimate, not medical advice. If you have a medical condition, are pregnant or breastfeeding, or are under 18, talk to a doctor.',
     disclaimer_hide: 'Hide this notice',
   },
-  agent: { cta: 'Set up with the assistant' },
+  agent: {
+    cta: 'Set up with the assistant',
+    unavailable: 'The AI isn’t available right now',
+    unavailable_body: 'Try again later or fill in the form below.',
+  },
   chat: {
     title: 'Goal assistant',
     placeholder: 'Answer in your own words',
@@ -403,6 +407,19 @@ export const en = {
     pace_to: 'By {date}',
     pace_keep: 'Keep {date}',
     edit: 'What should I change?',
+    retry_error: 'Something went wrong, please try again',
+    ai_down: 'The AI isn’t available right now',
+    ai_down_body: 'We’ll move what you’ve told us into the form.',
+    fill_form: 'Fill in the form',
+    offline: 'Offline · chat saved',
+    offline_disabled: 'The assistant can’t reply offline',
+    to_form: 'Go to the form',
+    continue: 'Continue here',
+    restart: 'Start over',
+    restart_note:
+      'The chat will be cleared. Your profile and goal stay the same.',
+    more: 'More',
+    limit: 'The form may be quicker — we’ll move what you’ve told me there.',
   },
   field: {
     empty: 'Add',

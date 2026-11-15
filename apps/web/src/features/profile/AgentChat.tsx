@@ -6,7 +6,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { Pencil } from 'lucide-react';
+import { Ellipsis, Pencil } from 'lucide-react';
 import { z } from 'zod';
 import {
   activitySchema,
@@ -24,7 +24,7 @@ import {
   type ProfileResponse,
   type Units,
 } from '@oct/shared';
-import { api } from '../../api/client';
+import { api, ApiError } from '../../api/client';
 import { useT } from '../../i18n';
 import {
   AgentMessage,
@@ -37,14 +37,27 @@ import {
   UserMessage,
   type QuickReply,
 } from '../../ui/AgentChat/AgentChat';
+import { Banner } from '../../ui/Banner/Banner';
 import { Button } from '../../ui/Button/Button';
 import { ConfirmDialog } from '../../ui/ConfirmDialog/ConfirmDialog';
 import { HowCalculated } from '../../ui/HowCalculated/HowCalculated';
+import { OfflineBar, useOnline } from '../../ui/OfflineBar/OfflineBar';
 import { Sheet } from '../../ui/Sheet/Sheet';
 
 // Our own server: trust the shape, as data/sync.ts does.
 const agentResponse = z.custom<AgentResponse>();
 const profileResponse = z.custom<ProfileResponse>();
+const noContent = z.custom<undefined>();
+
+/** 9.10: the model is gone, the form takes over (E-5.2). */
+const AI_DOWN = new Set([
+  'ai_unavailable',
+  'ai_quota_exceeded',
+  'ai_not_configured',
+]);
+
+/** 9.9 retry banner, 9.10 AI gone, `agent_closed`: only the form or a fresh start. */
+type Failure = 'retry' | 'ai_down' | 'closed';
 
 type Props = {
   open: boolean;
@@ -60,6 +73,8 @@ type Props = {
   onApplied: (profile: ProfileResponse) => void;
   /** 9.8 «Set my own goal». */
   onManual: () => void;
+  /** «Go to the form» (9.10, 9.12, 9.13): the screen closes the chat and puts the draft into the form. */
+  onForm: (draft: Profile | null) => void;
 };
 
 type Rendered = {
@@ -77,6 +92,7 @@ export function AgentChat({
   disclaimerHidden,
   onApplied,
   onManual,
+  onForm,
 }: Props) {
   const { t, locale } = useT();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -87,17 +103,29 @@ export function AgentChat({
   const [applying, setApplying] = useState(false);
   const [applyFailed, setApplyFailed] = useState(false);
   const [how, setHow] = useState(false);
+  const [draft, setDraft] = useState<Profile | null>(null);
+  const [failure, setFailure] = useState<Failure | null>(null);
+  const [menu, setMenu] = useState(false);
+  // «Continue here» (9.12) hides the offer's capsules; the server makes it once.
+  const [dismissed, setDismissed] = useState(-1);
+  // The last text sent, until the server has answered it.
+  const pending = useRef<string | null>(null);
+  const online = useOnline();
   const endRef = useRef<HTMLDivElement>(null);
 
-  // shortcut: load, send and edit errors are OCT-91; until then a failed turn just reloads the dialog.
+  const take = (r: AgentResponse) => {
+    setState(r.state);
+    setDraft(r.draft.profile);
+  };
   const load = useCallback(
     () =>
       api('/api/norm-agent', agentResponse).then(
         (r) => {
           setMessages(r.messages);
-          setState(r.state);
+          take(r);
+          return r.messages;
         },
-        () => {},
+        () => null,
       ),
     [],
   );
@@ -106,6 +134,9 @@ export function AgentChat({
     setMessages([]);
     setHow(false);
     setApplyFailed(false);
+    setFailure(null);
+    setDismissed(-1);
+    pending.current = null;
     void load();
   }, [open, load]);
 
@@ -113,24 +144,65 @@ export function AgentChat({
     endRef.current?.scrollIntoView?.({ block: 'end' });
   }, [messages, typing]);
 
-  async function send(body: string) {
+  /** A new message, or `null` to retry the last one (9.9): the server already has it, so nothing is added. */
+  async function turn(body: string | null) {
     if (typing) return;
-    setText('');
-    setMessages((m) => [...m, { role: 'user', kind: 'text', text: body }]);
+    setFailure(null);
+    if (body !== null) {
+      pending.current = body;
+      setText('');
+      setMessages((m) => [...m, { role: 'user', kind: 'text', text: body }]);
+    }
     setTyping(true);
     try {
       const r = await api('/api/norm-agent/messages', agentResponse, {
         method: 'POST',
-        body: { text: body },
+        body: body === null ? { retry: true } : { text: body },
       });
-      // The turn's messages start with the saved copy of the user's one.
-      setMessages((m) => [...m.slice(0, -1), ...r.messages]);
-      setState(r.state);
-    } catch {
-      await load();
+      // A new turn's messages start with the saved copy of the user's one.
+      setMessages((m) => [
+        ...(body === null ? m : m.slice(0, -1)),
+        ...r.messages,
+      ]);
+      take(r);
+      pending.current = null;
+    } catch (error) {
+      await fail(error);
     } finally {
       setTyping(false);
     }
+  }
+
+  async function fail(error: unknown) {
+    const code = error instanceof ApiError ? error.code : 'internal';
+    if (AI_DOWN.has(code)) return setFailure('ai_down');
+    if (code === 'agent_closed') return setFailure('closed');
+    if (code !== 'agent_not_ready') return setFailure('retry');
+    // Nothing to answer: either the reply is saved already (the response was lost)
+    // or the message never reached the server. Show the saved dialog, keep the text.
+    const sent = pending.current;
+    pending.current = null;
+    const saved = await load();
+    if (
+      sent &&
+      saved &&
+      saved.findLast((m) => m.role === 'user')?.text !== sent
+    )
+      setText(sent);
+  }
+
+  async function restart() {
+    setMenu(false);
+    try {
+      await api('/api/norm-agent', noContent, { method: 'DELETE' });
+    } catch {
+      return; // shortcut: a failed reset keeps the dialog as it was, without a message.
+    }
+    setMessages([]);
+    setFailure(null);
+    setDismissed(-1);
+    pending.current = null;
+    await load();
   }
 
   async function edit() {
@@ -368,14 +440,64 @@ export function AgentChat({
       case 'edit':
         return { node: <AgentMessage>{t('chat.edit')}</AgentMessage> };
       case 'limit':
-        // shortcut: the 20-message offer is OCT-91.
-        return { node: null };
+        return {
+          node: <AgentMessage>{t('chat.limit')}</AgentMessage>,
+          replies: [
+            {
+              text: t('chat.to_form'),
+              primary: true,
+              act: () => onForm(draft),
+            },
+            { text: t('chat.continue'), act: () => setDismissed(lastIndex) },
+          ],
+        };
     }
   }
 
   const lastIndex = messages.length - 1;
   const lastReplies =
-    lastIndex >= 0 && !typing ? render(messages[lastIndex]!, true).replies : [];
+    lastIndex >= 0 && !typing && !failure && dismissed !== lastIndex
+      ? render(messages[lastIndex]!, true).replies
+      : [];
+
+  // No footer under «How it’s calculated» or the summary (9.4).
+  let footer: ReactNode;
+  if (how || state === 'summary') footer = null;
+  else if (failure === 'ai_down')
+    footer = (
+      <Banner
+        title={t('chat.ai_down')}
+        actions={
+          <Button onClick={() => onForm(draft)}>{t('chat.fill_form')}</Button>
+        }
+      >
+        {t('chat.ai_down_body')}
+      </Banner>
+    );
+  else if (failure === 'closed')
+    footer = (
+      <>
+        <Button onClick={() => onForm(draft)}>{t('chat.to_form')}</Button>
+        <Button variant="plain" onClick={() => void restart()}>
+          {t('chat.restart')}
+        </Button>
+      </>
+    );
+  else
+    footer = (
+      <Composer
+        value={text}
+        onChange={setText}
+        onSend={(body) => void turn(body)}
+        disabledText={
+          !online
+            ? t('chat.offline_disabled')
+            : state === 'minor'
+              ? t('chat.minor_disabled')
+              : undefined
+        }
+      />
+    );
 
   return (
     <>
@@ -384,20 +506,14 @@ export function AgentChat({
         full
         title={t('chat.title')}
         onClose={onClose}
-        footer={
-          !how &&
-          state !== 'summary' && (
-            <Composer
-              value={text}
-              onChange={setText}
-              onSend={(body) => void send(body)}
-              disabledText={
-                state === 'minor' ? t('chat.minor_disabled') : undefined
-              }
-            />
-          )
-        }
+        action={{
+          label: t('chat.more'),
+          icon: Ellipsis,
+          onClick: () => setMenu(true),
+        }}
+        footer={footer}
       >
+        {!online && <OfflineBar variant="chat" />}
         {how && lastSummary ? (
           <>
             <Button variant="plain" small onClick={() => setHow(false)}>
@@ -421,14 +537,52 @@ export function AgentChat({
                 onPick={(reply, i) => {
                   const act = lastReplies[i]!.act;
                   if (act) act();
-                  else void send(reply);
+                  else void turn(reply);
                 }}
               />
             )}
             {typing && <TypingIndicator />}
+            {failure === 'retry' && online && (
+              <Banner
+                tone="danger"
+                title={t('chat.retry_error')}
+                actions={
+                  <Button small onClick={() => void turn(null)}>
+                    {t('common.retry')}
+                  </Button>
+                }
+              />
+            )}
             <div ref={endRef} />
           </ChatFeed>
         )}
+      </Sheet>
+      <Sheet
+        open={menu}
+        title={t('chat.more')}
+        onClose={() => setMenu(false)}
+        footer={
+          <>
+            <Button
+              variant="tonal"
+              onClick={() => {
+                setMenu(false);
+                onForm(draft);
+              }}
+            >
+              {t('chat.to_form')}
+            </Button>
+            <Button variant="danger" onClick={() => void restart()}>
+              {t('chat.restart')}
+            </Button>
+            <Button variant="plain" onClick={() => setMenu(false)}>
+              {t('common.cancel')}
+            </Button>
+          </>
+        }
+      >
+        {/* 9.13: the note is the confirmation, no second dialog. */}
+        <p>{t('chat.restart_note')}</p>
       </Sheet>
       <ConfirmDialog
         open={confirm}

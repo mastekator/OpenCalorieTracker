@@ -3,6 +3,7 @@ import { z } from 'zod';
 import {
   aiStatusSchema,
   type AiStatus,
+  type Profile,
   type ProfileRequest,
   type ProfileResponse,
 } from '@oct/shared';
@@ -33,6 +34,11 @@ export function ProfileScreen() {
   const [interview, setInterview] = useState<AiStatus['interview']>();
   const [chat, setChat] = useState(false);
   const [manualAt, setManualAt] = useState(0);
+  const [agentDraft, setAgentDraft] = useState<{
+    profile: Profile;
+    at: number;
+  }>();
+  const [agentDown, setAgentDown] = useState(false);
   const toast = useToast();
   const today = new Date().toLocaleDateString('sv');
   const disclaimerHidden =
@@ -69,8 +75,13 @@ export function ProfileScreen() {
         onAgent={
           online && interview === 'not_configured'
             ? undefined
-            : () => setChat(true)
+            : // 8.14: configured but not answering — a banner instead of the chat.
+              () =>
+                online && interview === 'unavailable'
+                  ? setAgentDown(true)
+                  : setChat(true)
         }
+        agentUnavailable={agentDown}
         onSave={(body: ProfileRequest) =>
           api('/api/profile', profileResponse, { method: 'PUT', body }).then(
             (saved) => storeProfile(db, saved),
@@ -81,6 +92,7 @@ export function ProfileScreen() {
           void patchSettings(db, { normDisclaimerHidden: true })
         }
         manualAt={manualAt}
+        agentDraft={agentDraft}
       />
       <AgentChat
         open={chat}
@@ -98,6 +110,10 @@ export function ProfileScreen() {
         onManual={() => {
           setChat(false);
           setManualAt((n) => n + 1);
+        }}
+        onForm={(draft) => {
+          setChat(false);
+          if (draft) setAgentDraft({ profile: draft, at: Date.now() });
         }}
       />
     </>
