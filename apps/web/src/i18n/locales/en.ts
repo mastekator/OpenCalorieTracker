@@ -515,6 +515,22 @@ export const en = {
   sync: {
     sent: { one: 'Synced {count} entry', other: 'Synced {count} entries' },
   },
+  session: {
+    queued: {
+      one: "{count} offline entry is saved — we'll send it after you sign in.",
+      other:
+        "{count} offline entries are saved — we'll send them after you sign in.",
+    },
+  },
+  switch_user: {
+    title: 'Sign in with another account?',
+    body: {
+      one: "{count} entry from {email} hasn't been sent yet. It will be removed from this phone.",
+      other:
+        "{count} entries from {email} haven't been sent yet. They'll be removed from this phone.",
+    },
+    ok: 'Sign in',
+  },
   recog: {
     loading: 'Recognizing…',
     usual: 'Usually under 10 seconds',
@@ -540,6 +556,80 @@ export const en = {
     offline: {
       title: 'No connection',
       body: 'Your photo is kept. Reconnect and try again, or enter the dishes manually.',
+    },
+  },
+  ai: {
+    compatible: 'OpenAI-compatible',
+    status: {
+      ok: 'Working',
+      not_configured: 'Not set up',
+      auth_error: 'Key or access error',
+      quota_exceeded: 'Quota exceeded',
+      unavailable: 'Provider unavailable',
+      no_vision: "Model doesn't accept images",
+      unknown: 'Not checked yet',
+    },
+    badge: {
+      ok: 'Working',
+      not_configured: 'Not set up',
+      auth_error: 'Error',
+      quota_exceeded: 'Quota',
+      unavailable: 'Unavailable',
+      no_vision: 'No photos',
+      unknown: 'Not checked yet',
+    },
+    checked: 'From the last request · {when}',
+    last: 'Last request · {when}',
+    model: 'Model',
+    key: 'Key',
+    key_set: 'set',
+    key_unset: 'not set',
+    address: 'Address',
+    check: 'Check now',
+    checking: 'Checking…',
+    check_note:
+      'Sends a short test request — this uses a little of your quota.',
+    wait: 'Just checked. Try again in {count} s',
+    details: 'Details',
+    banner: {
+      auth_error: {
+        title: 'The provider rejected the key',
+        body: 'Check AI_API_KEY and model access in your provider account, then restart the container. Until then, users can log food manually.',
+      },
+      quota_exceeded: {
+        title: 'Request limit reached',
+        body: 'Recognition will work again when the quota resets, or upgrade your plan.',
+      },
+      unavailable: {
+        title: "The provider isn't responding",
+        body: "Check the address and the server's network.",
+      },
+      no_vision: {
+        title: 'Photo recognition is off',
+        body: 'The goal assistant still works. Choose a model that supports images.',
+      },
+    },
+    off: {
+      name: "AI isn't connected",
+      body: 'Photo recognition and the goal assistant are off. Diary, manual entry and goals work.',
+      how: 'How to connect',
+      env: 'Set these environment variables and restart the container:',
+      readme: 'Setup guide in README',
+    },
+    privacy: {
+      title: 'Where your data goes',
+      body: 'Food photos and goal assistant messages are sent to {provider} for processing. Photos have no EXIF or location data. How the data is stored and used is up to the provider.',
+      host: 'Food photos and goal assistant messages are sent to {host} for processing. Photos have no EXIF or location data.',
+      none: "While AI isn't connected, photos aren't sent anywhere.",
+      policy: '{provider} data policy',
+    },
+    gemini: {
+      title: 'Gemini free tier',
+      body: 'Google may use your requests to improve its products. To avoid this, use a paid plan, another provider, a local model, or no AI.',
+    },
+    offline: {
+      title: 'Connection needed',
+      body: "Provider status is only shown live — open this section when you're back online.",
     },
   },
   update: {

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Globe,
   KeyRound,
@@ -10,13 +10,20 @@ import {
   Users,
 } from 'lucide-react';
 import { useLocation } from 'wouter';
-import type { MeResponse } from '@oct/shared';
+import {
+  adminAiStatusSchema,
+  type AiProviderState,
+  type MeResponse,
+} from '@oct/shared';
+import { api } from '../../api/client';
 import { useRequireOnline } from '../../app/connection';
 import { useT } from '../../i18n';
 import { Banner } from '../../ui/Banner/Banner';
 import { Button } from '../../ui/Button/Button';
 import { List, ListRow } from '../../ui/List/List';
 import { useOnline } from '../../ui/OfflineBar/OfflineBar';
+import { AiStateBadge } from '../../ui/ProviderStatus/ProviderStatus';
+import { AI_STATUS_PATH } from './AiProviderScreen';
 import { enabledMethods } from './methods';
 import './settings.css';
 
@@ -43,6 +50,18 @@ export function SettingsScreen({ user, onLogout }: Props) {
   const adminRow = (href: string) => requireOnline('admin', go(href));
   const authRow = (href: string) => requireOnline('auth', go(href));
   const isAdmin = user.role === 'admin';
+  const [aiState, setAiState] = useState<AiProviderState | null>(null);
+  // A free read (no request to the provider); a failure just leaves the row without a badge.
+  useEffect(() => {
+    if (!isAdmin || !online) return setAiState(null);
+    let live = true;
+    api(AI_STATUS_PATH, adminAiStatusSchema)
+      .then((s) => live && setAiState(s.state))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [isAdmin, online]);
 
   return (
     <div className="settings">
@@ -66,7 +85,7 @@ export function SettingsScreen({ user, onLogout }: Props) {
         )}
 
       {isAdmin && (
-        // shortcut: the admin screens are stubs until OCT-46 and OCT-81.
+        // shortcut: the invites, users and blocks screens are stubs until OCT-46.
         <List
           title={t('settings.group.admin')}
           footer={online ? undefined : t('admin.offline')}
@@ -95,6 +114,7 @@ export function SettingsScreen({ user, onLogout }: Props) {
           <ListRow
             icon={<Sparkle />}
             disabled={!online}
+            value={aiState ? <AiStateBadge state={aiState} /> : undefined}
             onClick={adminRow('/settings/admin/ai')}
           >
             {t('settings.ai_provider')}

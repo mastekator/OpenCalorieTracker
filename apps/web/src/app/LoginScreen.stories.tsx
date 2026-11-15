@@ -51,6 +51,14 @@ export const OpenRegistration: Story = {
 };
 /** 1.6 Back after the session expired. */
 export const SessionExpired: Story = { args: { notice: { kind: 'expired' } } };
+/** 3.7 Session expired with offline entries still queued on this device. */
+export const SessionExpiredQueued: Story = {
+  args: { notice: { kind: 'expired' }, queued: 3 },
+};
+export const SessionExpiredQueuedDark: Story = {
+  args: { notice: { kind: 'expired' }, queued: 3 },
+  globals: { theme: 'dark' },
+};
 /** 1.2 Wrong email or password. */
 export const WrongPassword: Story = {
   args: {

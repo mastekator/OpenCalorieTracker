@@ -1,14 +1,16 @@
 import { Settings2 } from 'lucide-react';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { z } from 'zod';
 import { Redirect, Route, Switch, useLocation, useSearch } from 'wouter';
 import { api } from '../api/client';
+import { getLastUser, pendingOf } from '../data/user';
 import type { Key } from '../i18n/translate';
 import { useT } from '../i18n';
 import { NavBar } from '../ui/NavBar/NavBar';
 import { OfflineBar } from '../ui/OfflineBar/OfflineBar';
 import { useBarVariant } from './connection';
 import { PasskeysScreen } from '../features/settings/PasskeysScreen';
+import { AiProviderScreen } from '../features/settings/AiProviderScreen';
 import { PasswordScreen } from '../features/settings/PasswordScreen';
 import { SettingsScreen } from '../features/settings/SettingsScreen';
 import {
@@ -61,12 +63,11 @@ function MealEditStub() {
   );
 }
 
-// shortcut: admin screens are stubs until OCT-46 (invites, users, blocks) and OCT-81 (AI provider).
+// shortcut: admin screens are stubs until OCT-46 (invites, users, blocks).
 const ADMIN_TITLES: Record<string, Key> = {
   invites: 'invites.title',
   users: 'users.title',
   blocks: 'blocks.title',
-  ai: 'settings.ai_provider',
 };
 
 /** Signed-in screens, rendered inside AppShell. */
@@ -171,6 +172,16 @@ export function AppScreens() {
           />
         </Screen>
       </Route>
+      {user.role !== 'admin' && (
+        <Route path="/settings/admin/*">
+          <Redirect to="/settings" replace />
+        </Route>
+      )}
+      <Route path="/settings/admin/ai">
+        <Screen wide title={t('settings.ai_provider')} back={toSettings}>
+          <AiProviderScreen />
+        </Screen>
+      </Route>
       <Route path="/settings/admin/:page">
         {({ page }) =>
           ADMIN_TITLES[page] ? (
@@ -211,11 +222,18 @@ function LoginForm({
   onSignedIn: () => Promise<void>;
   expired: boolean;
 }) {
+  const [queued, setQueued] = useState(0);
+  // The expired user's queue waits on this device and goes out after sign-in (3.7).
+  useEffect(() => {
+    const last = getLastUser();
+    if (expired && last) void pendingOf(last.id).then(setQueued, () => {});
+  }, [expired]);
   return (
     <LoginScreen
       config={useConfig()}
       onSignedIn={onSignedIn}
       notice={expired ? { kind: 'expired' } : undefined}
+      queued={queued}
     />
   );
 }
