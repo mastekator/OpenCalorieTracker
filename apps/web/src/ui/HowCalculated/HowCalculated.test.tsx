@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import {
   calculateNorm,
   ftInToCm,
@@ -75,9 +75,9 @@ describe('HowCalculated (product OCT-5 §2.6 references)', () => {
     expect(text).toContain('10 × 80 + 6.25 × 180 − 5 × 30 + 5 = 1,780 kcal');
     expect(text).toContain('1,780 × 1.55 = 2,759 kcal');
     expect(text).toContain('2,760 kcal');
-    expect(screen.getByRole('heading', { level: 2 })).toBe(
-      document.activeElement,
-    );
+    // The title is focused by a passive effect that may run after findBy* sees it.
+    const heading = screen.getByRole('heading', { level: 2 });
+    await waitFor(() => expect(document.activeElement).toBe(heading));
   });
 
   it('3: lose 10 kg in 10 weeks — goal step with the fast-pace warning', async () => {

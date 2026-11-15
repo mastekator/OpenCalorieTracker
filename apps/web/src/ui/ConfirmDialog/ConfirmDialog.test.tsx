@@ -5,6 +5,7 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from '@testing-library/react';
 import { I18nProvider } from '../../i18n';
@@ -77,7 +78,8 @@ describe('ConfirmDialog', () => {
       "I'll fix it myself",
     ]);
     const title = screen.getByRole('heading', { name: 'Fill in?' });
-    expect(document.activeElement).toBe(title);
+    // The passive focus effect may run after findBy* sees the async-loaded dialog.
+    await waitFor(() => expect(document.activeElement).toBe(title));
     fireEvent.keyDown(title, { key: 'Enter' });
     fireEvent.keyDown(screen.getByRole('alertdialog'), { key: 'Enter' });
     expect(onConfirm).not.toHaveBeenCalled();
