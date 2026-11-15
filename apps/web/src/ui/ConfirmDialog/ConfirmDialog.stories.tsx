@@ -9,6 +9,7 @@ type Props = {
   body?: boolean;
   close?: boolean;
   leave?: boolean;
+  switchUser?: boolean;
 };
 
 function Demo({
@@ -16,9 +17,21 @@ function Demo({
   body = true,
   close = false,
   leave = false,
+  switchUser = false,
 }: Props) {
   const { t } = useT();
   const [open, setOpen] = useState(true);
+  if (switchUser)
+    return (
+      <ConfirmDialog
+        open={open}
+        title={t('switch_user.title')}
+        body={t('switch_user.body', { count: 3, email: 'anna@example.com' })}
+        confirmLabel={t('switch_user.ok')}
+        onConfirm={() => setOpen(false)}
+        onCancel={() => setOpen(false)}
+      />
+    );
   if (leave)
     return (
       <>
@@ -83,4 +96,14 @@ export const Russian: Story = { globals: { locale: 'ru' } };
 export const Desktop: Story = { globals: { viewport: { value: 'desktop' } } };
 export const DesktopDark: Story = {
   globals: { viewport: { value: 'desktop' }, theme: 'dark' },
+};
+/** Another account signs in while the previous one has unsent changes (OCT-25 3.8). */
+export const SwitchUser: Story = { args: { switchUser: true } };
+export const SwitchUserDark: Story = {
+  args: { switchUser: true },
+  globals: { theme: 'dark' },
+};
+export const SwitchUserRussian: Story = {
+  args: { switchUser: true },
+  globals: { locale: 'ru' },
 };

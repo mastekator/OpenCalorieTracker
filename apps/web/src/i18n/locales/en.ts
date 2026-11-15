@@ -471,6 +471,22 @@ export const en = {
   sync: {
     sent: { one: 'Synced {count} entry', other: 'Synced {count} entries' },
   },
+  session: {
+    queued: {
+      one: "{count} offline entry is saved — we'll send it after you sign in.",
+      other:
+        "{count} offline entries are saved — we'll send them after you sign in.",
+    },
+  },
+  switch_user: {
+    title: 'Sign in with another account?',
+    body: {
+      one: "{count} entry from {email} hasn't been sent yet. It will be removed from this phone.",
+      other:
+        "{count} entries from {email} haven't been sent yet. They'll be removed from this phone.",
+    },
+    ok: 'Sign in',
+  },
   recog: {
     loading: 'Recognizing…',
     usual: 'Usually under 10 seconds',

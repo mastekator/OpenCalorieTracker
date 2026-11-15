@@ -40,3 +40,13 @@ export async function readOfflineUser(): Promise<MeResponse | null> {
     db.close();
   }
 }
+
+/** Unsent changes of a user on this device: «session expired» (3.7) and «another account» (3.8). */
+export async function pendingOf(userId: number): Promise<number> {
+  const db = await openUserDb(userId);
+  try {
+    return await db.count('outbox');
+  } finally {
+    db.close();
+  }
+}
