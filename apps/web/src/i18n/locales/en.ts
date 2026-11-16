@@ -738,6 +738,14 @@ export const en = {
     done: 'Recalculated from the photo',
     undo: 'Restore my numbers',
     back: 'Back to the entry',
+    unavailable: 'Try again later. The entry stays as it was.',
+    quota:
+      'You can recalculate once the limit resets. The entry stays as it was.',
+    slow: 'Taking longer than usual. You can wait or go back to the entry — it stays as it was.',
+    failed: 'Try again. The entry stays as it was.',
+    empty:
+      'This photo can’t be used to recalculate. The entry stays as it was.',
+    offline: 'Reconnect and try again. The entry stays as it was.',
     gone: {
       title: 'The photo is no longer stored',
       body: 'It can’t be recalculated from the photo. The entry stays as it was.',
