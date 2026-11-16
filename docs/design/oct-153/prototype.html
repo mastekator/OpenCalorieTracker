@@ -1,0 +1,1117 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OCT-153 · Period report</title>
+<link rel="stylesheet" href="../oct-13/tokens.css">
+<script src="../preview-bar.js"></script>
+<style>
+/* Base components = ../oct-13 + ../oct-16 prototypes (same spec) */
+/* ===== Prototype canvas (not part of the app) ===== */
+*{box-sizing:border-box;margin:0}
+html{background:var(--color-bg);color:var(--color-text);font-family:var(--font-sans);-webkit-font-smoothing:antialiased}
+::selection{background:var(--color-selection)}
+body{padding:var(--space-10) var(--space-8)}
+.doc-h1{font-size:var(--text-large-title-size);line-height:var(--text-large-title-lh);font-weight:700;letter-spacing:var(--tracking-tight)}
+.doc-lead{font-size:var(--text-subhead-size);color:var(--color-text-secondary);max-width:70ch;margin-top:var(--space-2)}
+.doc-section{margin-top:var(--space-12)}
+.doc-h2{font-size:var(--text-title-size);font-weight:600;margin-bottom:var(--space-2)}
+.row{display:flex;flex-wrap:wrap;gap:var(--space-8);align-items:flex-start;margin-top:var(--space-6)}
+.frame{display:flex;flex-direction:column;gap:var(--space-3);width:390px}
+.frame>figcaption{font-size:var(--text-footnote-size);color:var(--color-text-secondary);line-height:var(--text-footnote-lh)}
+.frame>figcaption b{color:var(--color-text);font-weight:600}
+
+/* ===== Device chrome (prototype only) ===== */
+.phone{position:relative;width:390px;height:844px;border-radius:48px;overflow:hidden;background:var(--color-bg);outline:1px solid var(--color-separator);display:flex;flex-direction:column}
+.status{height:54px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 32px 0 40px;font-size:var(--text-body-size);font-weight:600}
+.status::after{content:"";width:68px;height:12px;border-radius:var(--radius-full);background:currentColor;opacity:.85;-webkit-mask:linear-gradient(90deg,#000 0 30%,transparent 30% 38%,#000 38% 62%,transparent 62% 70%,#000 70%)}
+.island{position:absolute;top:11px;left:50%;translate:-50% 0;width:124px;height:36px;border-radius:var(--radius-full);background:#000;z-index:100}
+.home-ind{position:absolute;bottom:8px;left:50%;translate:-50% 0;width:134px;height:5px;border-radius:var(--radius-full);background:var(--color-text);z-index:100}
+
+/* ===== App components (tokens only) ===== */
+.icon{width:var(--icon-size);height:var(--icon-size);flex:none;fill:none;stroke:currentColor;stroke-width:var(--icon-stroke);stroke-linecap:round;stroke-linejoin:round}
+.icon.sm{width:var(--icon-size-sm);height:var(--icon-size-sm)}
+.scroll{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.navbar{height:var(--navbar-height);flex:none;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 var(--space-2)}
+.navbar .title{font-size:var(--text-headline-size);font-weight:600}
+.navbar .back{display:flex;align-items:center;gap:2px;color:var(--color-accent);font-size:var(--text-body-size);min-height:var(--tap-min);padding-right:var(--space-2)}
+.navbar .act{justify-self:end;color:var(--color-accent);font-size:var(--text-body-size);min-height:var(--tap-min);display:flex;align-items:center;padding:0 var(--space-2)}
+.large-title{font-size:var(--text-large-title-size);line-height:var(--text-large-title-lh);font-weight:700;letter-spacing:var(--tracking-tight);padding:var(--space-1) var(--screen-gutter) var(--space-2)}
+.pad{padding:0 var(--screen-gutter)}
+.stack{display:flex;flex-direction:column;gap:var(--space-4)}
+.stack-sm{display:flex;flex-direction:column;gap:var(--space-2)}
+.grow{flex:1}
+.bottom{padding:var(--space-4) var(--screen-gutter) calc(34px + var(--space-2));display:flex;flex-direction:column;gap:var(--space-3)}
+.t-title{font-size:var(--text-title-size);line-height:var(--text-title-lh);font-weight:600}
+.t-headline{font-size:var(--text-headline-size);line-height:var(--text-headline-lh);font-weight:600}
+.t-body{font-size:var(--text-body-size);line-height:var(--text-body-lh)}
+.t-sub{font-size:var(--text-subhead-size);line-height:var(--text-subhead-lh)}
+.t-foot{font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh)}
+.t-cap{font-size:var(--text-caption-size);line-height:var(--text-caption-lh);font-weight:500}
+.muted{color:var(--color-text-secondary)}
+.center{text-align:center}
+.num{font-variant-numeric:tabular-nums}
+
+/* brand */
+.brand{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-headline-size);font-weight:600}
+.brand .mark{width:32px;height:32px;border-radius:var(--radius-sm);background:var(--color-accent);color:var(--color-on-accent);display:grid;place-items:center}
+
+/* buttons */
+.btn{appearance:none;border:0;font:inherit;width:100%;min-height:var(--control-height-lg);border-radius:var(--radius-md);font-size:var(--text-headline-size);font-weight:600;display:flex;align-items:center;justify-content:center;gap:var(--space-2);padding:0 var(--space-4);cursor:pointer;transition:transform var(--duration-fast) var(--ease-out),background var(--duration-fast) var(--ease-out)}
+.btn:active{transform:scale(var(--press-scale))}
+.btn:focus-visible{outline:2px solid var(--color-focus-ring);outline-offset:2px}
+.btn-primary{background:var(--color-accent);color:var(--color-on-accent)}
+.btn-primary.pressed{background:var(--color-accent-pressed)}
+.btn-tonal{background:var(--color-accent-soft);color:var(--color-accent)}
+.btn-plain{background:transparent;color:var(--color-accent);min-height:var(--tap-min)}
+.btn-danger{background:var(--color-danger);color:var(--color-on-danger)}
+.btn-danger-plain{background:transparent;color:var(--color-danger);min-height:var(--tap-min)}
+.btn[disabled],.btn.disabled{background:var(--color-surface-2);color:var(--color-text-disabled);cursor:default}
+.btn-plain.disabled{background:transparent}
+.btn-sm{min-height:var(--control-height);width:auto;font-size:var(--text-subhead-size);padding:0 var(--space-4)}
+.link{color:var(--color-accent);font-weight:500;text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px}
+.spinner{width:20px;height:20px;border-radius:50%;border:2px solid currentColor;border-right-color:transparent;animation:spin 800ms linear infinite}
+@keyframes spin{to{rotate:360deg}}
+
+/* fields */
+.field{display:flex;flex-direction:column;gap:var(--space-2)}
+.field label{font-size:var(--text-subhead-size);font-weight:500}
+.input{display:flex;align-items:center;gap:var(--space-2);min-height:var(--control-height-lg);padding:0 var(--space-4);border-radius:var(--radius-md);background:var(--color-surface);border:1px solid var(--color-border-strong);font-size:var(--text-body-size)}
+.input .ph{color:var(--color-text-secondary)}
+.input .val{flex:1}
+.input .trail{color:var(--color-text-secondary);display:grid;place-items:center;width:var(--tap-min);height:var(--tap-min);margin-right:calc(-1 * var(--space-3))}
+.input.focus{border-color:var(--color-accent);box-shadow:inset 0 0 0 1px var(--color-accent)}
+.input.caret .val::after{content:"";display:inline-block;width:2px;height:1.1em;background:var(--color-accent);vertical-align:-3px;margin-left:1px}
+.input.error{border-color:var(--color-danger);box-shadow:inset 0 0 0 1px var(--color-danger)}
+.input.locked{background:var(--color-surface-2);border-color:transparent;color:var(--color-text-secondary)}
+.field .msg{display:flex;gap:var(--space-1);align-items:flex-start;font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);color:var(--color-text-secondary)}
+.field .msg.err{color:var(--color-danger)}
+.rules{list-style:none;padding:0;display:grid;gap:var(--space-1);font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh)}
+.rules li{display:flex;gap:var(--space-2);align-items:center;color:var(--color-text-secondary)}
+.rules li.ok{color:var(--color-accent)}
+.rules li.bad{color:var(--color-danger)}
+
+/* segmented */
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;padding:2px;border-radius:var(--radius-md);background:var(--color-surface-2);min-height:var(--control-height)}
+.seg span{display:grid;place-items:center;border-radius:calc(var(--radius-md) - 2px);font-size:var(--text-subhead-size);font-weight:500;color:var(--color-text-secondary)}
+.seg span.on{background:var(--color-surface);color:var(--color-text);font-weight:600;box-shadow:0 1px 3px rgb(0 0 0 / .12)}
+
+/* grouped lists */
+.group-h{font-size:var(--text-footnote-size);color:var(--color-text-secondary);padding:0 var(--space-4) var(--space-2);margin-top:var(--space-6)}
+.group{background:var(--color-surface);border-radius:var(--radius-md);overflow:hidden}
+.group-f{font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);color:var(--color-text-secondary);padding:var(--space-2) var(--space-4) 0}
+.cell{display:flex;align-items:center;gap:var(--space-3);min-height:var(--control-height);padding:var(--space-3) var(--space-4);position:relative;font-size:var(--text-body-size)}
+.cell+.cell::before{content:"";position:absolute;top:0;right:0;left:var(--space-4);border-top:1px solid var(--color-separator)}
+.cell.ic+.cell::before,.cell.ic+.cell.ic::before{left:calc(var(--space-4) + 30px + var(--space-3))}
+.cell .lead-ic{width:30px;height:30px;border-radius:var(--radius-sm);display:grid;place-items:center;background:var(--color-accent-soft);color:var(--color-accent);flex:none}
+.cell .lead-ic.danger{background:var(--color-danger-soft);color:var(--color-danger)}
+.cell .main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.cell .main .sub{font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.cell .val{color:var(--color-text-secondary)}
+.cell .chev{color:var(--color-text-secondary)}
+.cell.danger{color:var(--color-danger)}
+.cell.accent{color:var(--color-accent)}
+.cell.dis{color:var(--color-text-disabled)}
+.badge{font-size:var(--text-caption-size);font-weight:600;padding:2px var(--space-2);border-radius:var(--radius-sm);background:var(--color-surface-2);color:var(--color-text-secondary);white-space:nowrap}
+.badge.ok{background:var(--color-accent-soft);color:var(--color-accent)}
+.badge.warn{background:var(--color-warning-soft);color:var(--color-warning)}
+.badge.err{background:var(--color-danger-soft);color:var(--color-danger)}
+
+/* banners */
+.banner{display:flex;gap:var(--space-3);align-items:flex-start;padding:var(--space-3) var(--space-4);border-radius:var(--radius-lg);font-size:var(--text-subhead-size);line-height:var(--text-subhead-lh)}
+.banner .b-title{font-weight:600}
+.banner.notice{background:var(--color-notice)}
+.banner.warning{background:var(--color-warning-soft)}
+.banner.warning .icon{color:var(--color-warning)}
+.banner.danger{background:var(--color-danger-soft)}
+.banner.danger .icon{color:var(--color-danger)}
+.banner.accent{background:var(--color-accent-soft)}
+.banner.accent .icon{color:var(--color-accent)}
+.banner .close{margin:-10px -12px -10px auto;width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;color:var(--color-text-secondary);flex:none}
+.offline-bar{display:flex;gap:var(--space-2);align-items:center;justify-content:center;min-height:32px;padding:var(--space-1) var(--space-4);background:var(--color-notice);font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+
+/* divider "или" */
+.or{display:flex;align-items:center;gap:var(--space-3);font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.or::before,.or::after{content:"";flex:1;border-top:1px solid var(--color-separator)}
+
+/* overlays */
+.scrim{position:absolute;inset:0;background:var(--color-scrim);z-index:var(--z-sheet)}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:var(--z-sheet);background:var(--color-surface);border-radius:var(--radius-xl) var(--radius-xl) 0 0;box-shadow:var(--shadow-sheet);padding:var(--space-2) var(--screen-gutter) calc(34px + var(--space-4));display:flex;flex-direction:column;gap:var(--space-4)}
+.sheet .grab{width:36px;height:5px;border-radius:var(--radius-full);background:var(--color-separator);margin:0 auto var(--space-1)}
+.sheet .sheet-head{display:flex;align-items:center;justify-content:space-between}
+.sheet .x{width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;margin-right:calc(-1 * var(--space-3));color:var(--color-text-secondary)}
+.sheet .inset{background:var(--color-surface-2)}
+.alert{position:absolute;left:50%;top:50%;translate:-50% -50%;width:300px;z-index:var(--z-alert);background:var(--color-surface);border-radius:var(--radius-lg);padding:var(--space-5) var(--space-4) var(--space-4);display:flex;flex-direction:column;gap:var(--space-2);text-align:center;box-shadow:var(--shadow-toast)}
+.alert .btns{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-2);margin-top:var(--space-3)}
+.alert .btns.col{grid-template-columns:1fr}
+.toast{position:absolute;left:var(--screen-gutter);right:var(--screen-gutter);bottom:calc(34px + var(--tabbar-height) + var(--space-3));z-index:var(--z-toast);display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);background:var(--color-text);color:var(--color-bg);box-shadow:var(--shadow-toast);font-size:var(--text-subhead-size)}
+.toast .act{margin-left:auto;font-weight:600;min-height:var(--tap-min);display:flex;align-items:center}
+
+/* state blocks */
+.state{display:flex;flex-direction:column;align-items:center;text-align:center;gap:var(--space-2);padding:var(--space-8) var(--space-6)}
+.state .s-ic{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;background:var(--color-surface-2);color:var(--color-text-secondary);margin-bottom:var(--space-2)}
+.state .s-ic.danger{background:var(--color-danger-soft);color:var(--color-danger)}
+.state .s-ic.warning{background:var(--color-warning-soft);color:var(--color-warning)}
+.state p{max-width:30ch}
+.state .btn{margin-top:var(--space-3)}
+.skel{background:var(--color-surface-2);border-radius:var(--radius-sm);height:14px;position:relative;overflow:hidden}
+.skel::after{content:"";position:absolute;inset:0;translate:-100% 0;background:linear-gradient(90deg,transparent,var(--color-surface),transparent);animation:shimmer 1.4s var(--ease-in-out) infinite}
+@keyframes shimmer{to{translate:100% 0}}
+
+/* tab bar */
+.tabbar{position:absolute;left:0;right:0;bottom:0;z-index:var(--z-tabbar);height:calc(var(--tabbar-height) + 34px);padding-bottom:34px;background:var(--tabbar-bg);-webkit-backdrop-filter:var(--tabbar-blur);backdrop-filter:var(--tabbar-blur);border-top:1px solid var(--color-separator);display:grid;grid-template-columns:repeat(5,1fr);align-items:center}
+.tab{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:var(--text-tab-size);font-weight:var(--text-tab-weight);color:var(--color-text-secondary);min-height:var(--tabbar-height);justify-content:center}
+.tab.on{color:var(--color-accent)}
+.cam{justify-self:center;width:var(--camera-button-size);height:var(--camera-button-size);border-radius:50%;background:var(--color-accent);color:var(--color-on-accent);display:grid;place-items:center;box-shadow:var(--shadow-camera);translate:0 -14px}
+.cam .icon{width:30px;height:30px}
+
+/* swatches (docs only) */
+.sw-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-2)}
+.sw{border-radius:var(--radius-md);overflow:hidden;background:var(--color-surface);font-size:var(--text-caption-size);outline:1px solid var(--color-separator)}
+.sw i{display:block;height:44px}
+.sw div{padding:var(--space-2);line-height:1.3}
+.sheetdoc{width:390px;background:var(--color-surface);border-radius:var(--radius-lg);padding:var(--space-5);display:flex;flex-direction:column;gap:var(--space-4);outline:1px solid var(--color-separator)}
+.sheetdoc h3{font-size:var(--text-headline-size)}
+.doc-note{font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.navmap{width:820px;background:var(--color-surface);border-radius:var(--radius-lg);padding:var(--space-6);outline:1px solid var(--color-separator);display:grid;grid-template-columns:repeat(5,1fr);gap:var(--space-3);font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh)}
+.navmap .col{display:flex;flex-direction:column;gap:var(--space-2)}
+.navmap .nd{padding:var(--space-2) var(--space-3);border-radius:var(--radius-sm);background:var(--color-surface-2)}
+.navmap .nd.tab{background:var(--color-accent-soft);color:var(--color-accent);font-weight:600;align-items:flex-start;font-size:var(--text-footnote-size)}
+.navmap .nd.modal{outline:1px dashed var(--color-border-strong);background:transparent}
+.navmap .arrow{color:var(--color-text-secondary);text-align:center}
+
+/* ===== Desktop (≥ 1024px) — section 6 ===== */
+.frame.wide{width:1280px}
+.desk{position:relative;width:1280px;height:800px;border-radius:var(--radius-lg);overflow:hidden;background:var(--color-bg);outline:1px solid var(--color-separator);display:flex;flex-direction:column}
+.desk .chrome{height:36px;flex:none;display:flex;align-items:center;gap:var(--space-2);padding:0 var(--space-4);background:var(--color-surface-2);border-bottom:1px solid var(--color-separator);font-size:var(--text-caption-size);color:var(--color-text-secondary)}
+.desk .chrome i{width:12px;height:12px;border-radius:50%;background:var(--color-separator)}
+.desk .chrome .url{margin-left:var(--space-6);padding:var(--space-1) var(--space-3);border-radius:var(--radius-sm);background:var(--color-surface)}
+.desk .body{flex:1;display:flex;min-height:0}
+.side{width:var(--sidebar-width);flex:none;display:flex;flex-direction:column;gap:var(--space-1);padding:var(--space-6) var(--space-4);border-right:1px solid var(--color-separator)}
+.side .brand{padding:0 var(--space-3) var(--space-6)}
+.side .btn{margin-bottom:var(--space-4)}
+.nav-i{display:flex;align-items:center;gap:var(--space-3);min-height:var(--tap-min);padding:0 var(--space-3);border-radius:var(--radius-md);font-size:var(--text-body-size);color:var(--color-text)}
+.nav-i .icon{color:var(--color-text-secondary)}
+.nav-i.hover{background:var(--color-hover)}
+.nav-i.on{background:var(--color-accent-soft);color:var(--color-accent);font-weight:600}
+.nav-i.on .icon{color:var(--color-accent)}
+.side .foot{margin-top:auto;display:flex;flex-direction:column;gap:var(--space-1)}
+.side .who{padding:var(--space-2) var(--space-3);font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.main-area{flex:1;overflow:hidden;padding:var(--space-8) var(--desktop-gutter)}
+.main-area .inner{max-width:var(--content-max-width-wide);margin:0 auto;display:flex;flex-direction:column;gap:var(--space-6)}
+.main-area .large-title{padding:0}
+.cols{display:grid;grid-template-columns:3fr 2fr;gap:var(--space-6)}
+.drop{display:flex;flex-direction:column;align-items:center;gap:var(--space-2);padding:var(--space-8);border:2px dashed var(--color-border-strong);border-radius:var(--radius-lg);color:var(--color-text-secondary);text-align:center;font-size:var(--text-subhead-size)}
+.auth-desk{flex:1;display:grid;place-items:center}
+.auth-card{width:var(--content-max-width);background:var(--color-surface);border-radius:var(--radius-lg);padding:var(--space-10);box-shadow:var(--shadow-toast)}
+.dialog{position:absolute;left:50%;top:50%;translate:-50% -50%;width:var(--dialog-max-width);z-index:var(--z-sheet);background:var(--color-surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-toast);padding:var(--space-6);display:flex;flex-direction:column;gap:var(--space-4)}
+.dialog .sheet-head{display:flex;align-items:center;justify-content:space-between}
+.dialog .x{width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;margin-right:calc(-1 * var(--space-3));color:var(--color-text-secondary)}
+.kbd{font-size:var(--text-caption-size);padding:1px var(--space-1);border-radius:var(--radius-sm);outline:1px solid var(--color-separator);color:var(--color-text-secondary)}
+.toast.desk-toast{left:50%;right:auto;translate:-50% 0;bottom:var(--space-6);width:auto;max-width:var(--dialog-max-width)}
+
+/* ===== OCT-16 additions (tokens only; prototype-only bits marked) ===== */
+.frame.sm{width:390px}
+.phone .content{flex:1;overflow:hidden;display:flex;flex-direction:column;gap:var(--space-4);padding-bottom:var(--space-4)}
+.navbar .x-btn{width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;color:var(--color-text-secondary)}
+.navbar .txt-btn{color:var(--color-accent);font-size:var(--text-body-size);min-height:var(--tap-min);display:flex;align-items:center;padding:0 var(--space-2)}
+.bottom.bar{background:var(--color-bg);border-top:1px solid var(--color-separator);margin-top:auto}
+.foot-note{display:flex;gap:var(--space-2);align-items:flex-start;font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);color:var(--color-text-secondary)}
+.foot-note .icon{color:var(--color-accent)}
+
+/* photo (user content) */
+.photo{display:block;width:100%;height:var(--photo-preview-height);border-radius:var(--radius-lg);overflow:hidden;position:relative;background:var(--color-surface-2)}
+.photo svg{width:100%;height:100%;display:block}
+.photo.scan::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgb(255 255 255 / .28) 50%,transparent 70%);translate:-100% 0;animation:sweep 1.8s var(--ease-in-out) infinite}
+@keyframes sweep{to{translate:100% 0}}
+.photo.dim{height:calc(var(--photo-preview-height) * .6)}
+.thumb{width:var(--thumb-size);height:var(--thumb-size);border-radius:var(--radius-md);overflow:hidden;flex:none;background:var(--color-surface-2)}
+.thumb svg{width:100%;height:100%;display:block}
+.thumb.add{display:grid;place-items:center;color:var(--color-accent);background:var(--color-accent-soft);font-size:var(--text-caption-size);font-weight:600;text-align:center;align-content:center;gap:2px}
+
+/* totals header */
+.totals{display:flex;gap:var(--space-4);align-items:center}
+.kcal-big{display:flex;align-items:baseline;gap:var(--space-1)}
+.kcal-big b{font-size:var(--text-large-title-size);line-height:var(--text-large-title-lh);font-weight:700;letter-spacing:var(--tracking-tight);font-variant-numeric:tabular-nums}
+.macros{display:flex;gap:var(--space-3);font-size:var(--text-footnote-size);color:var(--color-text-secondary);font-variant-numeric:tabular-nums}
+.macros span{display:flex;align-items:center;gap:var(--space-1)}
+.macros i{width:var(--space-2);height:var(--space-2);border-radius:var(--radius-full)}
+.m-p{background:var(--color-protein)} .m-f{background:var(--color-fat)} .m-c{background:var(--color-carbs)}
+
+/* dish row */
+.dish{display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-3) var(--space-4);position:relative;background:var(--color-surface)}
+.dish+.dish::before{content:"";position:absolute;top:0;right:0;left:var(--space-4);border-top:1px solid var(--color-separator)}
+.dish-top{display:flex;justify-content:space-between;align-items:baseline;gap:var(--space-3)}
+.dish-top .name{font-size:var(--text-headline-size);font-weight:600;line-height:var(--text-headline-lh)}
+.dish-top .kc{font-size:var(--text-headline-size);font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.dish-meta{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-footnote-size);color:var(--color-text-secondary);font-variant-numeric:tabular-nums}
+.badge{display:inline-flex;align-items:center;gap:2px}
+.badge .icon{width:14px;height:14px}
+.dish-ctl{display:flex;align-items:center;gap:var(--space-2)}
+.step{width:var(--tap-min);height:var(--tap-min);border-radius:var(--radius-full);background:var(--color-surface-2);color:var(--color-accent);display:grid;place-items:center;flex:none}
+.step.dis{color:var(--color-text-disabled)}
+.wv{width:var(--stepper-value-width);height:var(--control-height);border:1px solid var(--color-border-strong);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;gap:var(--space-1);font-size:var(--text-body-size);font-variant-numeric:tabular-nums;background:var(--color-surface)}
+.wv small{font-size:var(--text-subhead-size);color:var(--color-text-secondary)}
+.wv.focus{border-color:var(--color-accent);box-shadow:inset 0 0 0 1px var(--color-accent)}
+.wv.error{border-color:var(--color-danger);box-shadow:inset 0 0 0 1px var(--color-danger)}
+.dish .more{margin-left:auto;width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;color:var(--color-text-secondary)}
+.dish .err-msg{display:flex;gap:var(--space-1);align-items:center;font-size:var(--text-footnote-size);color:var(--color-danger)}
+.hint{display:flex;flex-direction:column;gap:var(--space-1);padding:var(--space-2) var(--space-3);border-radius:var(--radius-md);background:var(--color-accent-soft);font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh)}
+.hint .acts{display:flex;gap:var(--space-4)}
+.hint .acts span{color:var(--color-accent);font-weight:600;min-height:var(--tap-min);display:flex;align-items:center}
+.hint .acts span+span{color:var(--color-text-secondary);font-weight:500}
+/* swipe-to-delete reveal */
+.swipe{position:relative;background:var(--color-danger);overflow:hidden}
+.swipe .dish{translate:-96px 0}
+.swipe .del{position:absolute;right:0;top:0;bottom:0;width:96px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--color-on-danger);font-size:var(--text-footnote-size);font-weight:600}
+.add-row{display:flex;align-items:center;gap:var(--space-2);color:var(--color-accent);font-size:var(--text-body-size);font-weight:500;min-height:var(--tap-min);padding:0 var(--space-4)}
+
+/* recognition */
+.recog-title{display:flex;align-items:center;gap:var(--space-3)}
+.skel-dish{display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-3) var(--space-4);background:var(--color-surface);border-radius:var(--radius-md)}
+.state.compact{padding:var(--space-4) var(--space-6) 0}
+
+/* today (minimal stand-in; full screen is OCT-19) */
+.today-card{background:var(--color-surface);border-radius:var(--radius-lg);padding:var(--space-5);display:flex;flex-direction:column;gap:var(--space-2)}
+.display{font-size:var(--text-display-size);line-height:var(--text-display-lh);font-weight:700;letter-spacing:var(--tracking-tight);font-variant-numeric:tabular-nums}
+.quick{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3)}
+.quick .btn{width:100%}
+.meal{display:flex;align-items:center;gap:var(--space-3)}
+.meal .thumb{width:44px;height:44px;border-radius:var(--radius-sm)}
+.meal.new{background:var(--color-accent-soft)}
+.action-sheet{position:absolute;left:var(--space-2);right:var(--space-2);bottom:calc(34px + var(--space-2));z-index:var(--z-sheet);display:flex;flex-direction:column;gap:var(--space-2)}
+.action-sheet .grp{background:var(--color-surface);border-radius:var(--radius-lg);overflow:hidden}
+.action-sheet .it{display:flex;align-items:center;justify-content:center;gap:var(--space-2);min-height:var(--control-height-lg);font-size:var(--text-body-size);color:var(--color-accent);position:relative}
+.action-sheet .it+.it::before{content:"";position:absolute;top:0;left:0;right:0;border-top:1px solid var(--color-separator)}
+.action-sheet .cancel{font-weight:600}
+
+/* manual form */
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-3)}
+.field .input.num .val{font-variant-numeric:tabular-nums}
+.field .input .unit{color:var(--color-text-secondary);font-size:var(--text-subhead-size)}
+.field .msg.warn{color:var(--color-warning)}
+.result{display:flex;justify-content:space-between;align-items:baseline;padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);background:var(--color-surface-2);font-size:var(--text-subhead-size);font-variant-numeric:tabular-nums}
+.result b{font-size:var(--text-headline-size)}
+.req{color:var(--color-text-secondary);font-weight:400}
+
+/* ===== Prototype-only: system camera of iOS & tap markers ===== */
+.sys{background:#000;color:#fff}
+.sys .viewfinder{flex:1;margin-top:var(--space-12);overflow:hidden}
+.sys .viewfinder svg{width:100%;height:100%;display:block}
+.sys .shutter-row{height:180px;display:flex;align-items:center;justify-content:space-around;padding-bottom:34px;font-size:var(--text-body-size)}
+.sys .shutter{width:72px;height:72px;border-radius:50%;border:4px solid #fff;display:grid;place-items:center}
+.sys .shutter::after{content:"";width:58px;height:58px;border-radius:50%;background:#fff}
+.tap{position:absolute;z-index:200;width:64px;height:64px;border-radius:50%;border:3px solid var(--color-accent);box-shadow:0 0 0 6px var(--color-accent-soft);pointer-events:none}
+.tap b{position:absolute;top:-14px;right:-14px;width:28px;height:28px;border-radius:50%;background:var(--color-accent);color:var(--color-on-accent);display:grid;place-items:center;font-size:var(--text-subhead-size)}
+.flow-arrow{align-self:center;color:var(--color-text-secondary)}
+.auto{position:absolute;z-index:200;top:64px;right:16px;padding:var(--space-1) var(--space-3);border-radius:var(--radius-full);background:var(--color-accent);color:var(--color-on-accent);font-size:var(--text-footnote-size);font-weight:600}
+
+/* ===== Desktop modal flow ===== */
+.flow-win{position:absolute;left:50%;top:50%;translate:-50% -50%;width:var(--modal-flow-max-width);max-height:90%;z-index:var(--z-sheet);background:var(--color-bg);border-radius:var(--radius-lg);box-shadow:var(--shadow-toast);display:flex;flex-direction:column;overflow:hidden}
+.flow-win .wh{display:flex;align-items:center;justify-content:space-between;padding:var(--space-3) var(--space-3) var(--space-3) var(--space-6);border-bottom:1px solid var(--color-separator)}
+.flow-win .wb{display:grid;grid-template-columns:240px 1fr;gap:var(--space-6);padding:var(--space-6);overflow:hidden}
+.flow-win .wf{display:flex;justify-content:flex-end;gap:var(--space-3);padding:var(--space-4) var(--space-6);border-top:1px solid var(--color-separator)}
+.flow-win .wf .btn{width:auto;min-width:160px}
+.flow-win .photo{height:240px}
+.dish .trash{width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;color:var(--color-danger);border-radius:var(--radius-md);background:var(--color-hover)}
+.dropzone{position:absolute;inset:var(--space-4);z-index:var(--z-sheet);border:2px dashed var(--color-accent);border-radius:var(--radius-lg);background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--space-2);color:var(--color-accent);font-size:var(--text-title-size);font-weight:600}
+.dropzone .icon{width:48px;height:48px}
+
+
+/* ===== OCT-19 additions: Today, Diary, Week (tokens only) ===== */
+.phone .content{padding-bottom:calc(var(--tabbar-height) + 34px + var(--space-4))}
+.phone .content.modal{padding-bottom:var(--space-4)}
+.phone .bottom.bar{flex:none}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.large-title .date{display:block;font-size:var(--text-subhead-size);font-weight:400;letter-spacing:0;color:var(--color-text-secondary);margin-top:2px}
+.title-row{display:flex;align-items:flex-end;justify-content:space-between;gap:var(--space-2)}
+.title-row .txt-btn{color:var(--color-accent);font-size:var(--text-body-size);min-height:var(--tap-min);display:flex;align-items:center;padding:0 var(--screen-gutter);font-weight:500}
+
+/* card + numbers */
+.card{background:var(--color-surface);border-radius:var(--radius-lg);padding:var(--space-5);display:flex;flex-direction:column;gap:var(--space-3)}
+.card .lbl{display:flex;align-items:center;gap:var(--space-1);font-size:var(--text-subhead-size);color:var(--color-text-secondary)}
+.card .lbl.over{color:var(--color-warning);font-weight:600}
+.big{display:flex;align-items:baseline;gap:var(--space-2)}
+.big .unit{font-size:var(--text-subhead-size);color:var(--color-text-secondary)}
+.big .display.sm{font-size:var(--text-large-title-size);line-height:var(--text-large-title-lh)}
+.week-line{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);min-height:var(--tap-min);margin:0 calc(-1 * var(--space-5)) calc(-1 * var(--space-5));padding:0 var(--space-3) 0 var(--space-5);border-top:1px solid var(--color-separator);font-size:var(--text-subhead-size);font-variant-numeric:tabular-nums}
+.week-line b{font-weight:600}
+.week-line .icon{color:var(--color-text-secondary)}
+.week-line.over b{color:var(--color-warning)}
+.invite{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);background:var(--color-accent-soft);font-size:var(--text-subhead-size)}
+.invite .icon{color:var(--color-accent)}
+.invite .go{margin-left:auto;color:var(--color-accent);font-weight:600;min-height:var(--tap-min);display:flex;align-items:center;white-space:nowrap}
+
+/* progress bars: fill = eaten up to the norm; hatched tail = over the norm (pattern, not only colour) */
+.pbar{height:var(--progress-height);border-radius:var(--radius-full);background:var(--color-surface-2);display:flex;overflow:hidden}
+.pbar i{display:block;height:100%;background:var(--color-accent)}
+.pbar i.p{background:var(--color-protein)} .pbar i.f{background:var(--color-fat)} .pbar i.c{background:var(--color-carbs)}
+.pbar i.ov,.hatch{background-image:repeating-linear-gradient(-45deg,var(--color-warning) 0 calc(var(--hatch-size) / 2),transparent 0 var(--hatch-size))}
+.pbar.none{background:transparent;outline:1px dashed var(--color-separator)}
+
+/* macros block */
+.mac-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-3)}
+.mac{display:flex;flex-direction:column;gap:var(--space-1);min-width:0}
+.mac-h{display:flex;align-items:center;gap:var(--space-1);font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.mac-h i{width:var(--space-2);height:var(--space-2);border-radius:var(--radius-full)}
+.mac-v{font-size:var(--text-headline-size);font-weight:600;font-variant-numeric:tabular-nums}
+.mac-v small{font-size:var(--text-footnote-size);font-weight:400;color:var(--color-text-secondary)}
+.mac .pbar{margin:var(--space-1) 0}
+.mac .rest{white-space:nowrap;font-size:var(--text-footnote-size);color:var(--color-text-secondary);font-variant-numeric:tabular-nums;display:flex;align-items:center;gap:2px}
+.mac .rest.over{color:var(--color-warning);font-weight:600}
+.mac .rest .icon{width:14px;height:14px}
+.mac-rows{display:flex;flex-direction:column;gap:var(--space-3)}
+.mac-row{display:grid;grid-template-columns:auto 1fr;gap:var(--space-1) var(--space-3);align-items:center}
+.mac-row .mac-h{font-size:var(--text-subhead-size);color:var(--color-text)}
+.mac-row .mac-v{justify-self:end;font-size:var(--text-subhead-size)}
+.mac-row .pbar{grid-column:1 / -1}
+
+/* meal rows (Today / Diary) */
+.sec-h{display:flex;justify-content:space-between;align-items:baseline;font-size:var(--text-footnote-size);color:var(--color-text-secondary);padding:0 var(--space-4) var(--space-2)}
+.cell.meal .thumb{width:var(--meal-thumb-size);height:var(--meal-thumb-size);border-radius:var(--radius-sm)}
+.cell.meal .thumb.icon-only{display:grid;place-items:center;color:var(--color-text-secondary)}
+.cell.meal .main .t{display:flex;gap:var(--space-2);align-items:center;font-weight:600;font-size:var(--text-body-size)}
+.cell.meal .main .t small{font-weight:400;color:var(--color-text-secondary);font-size:var(--text-subhead-size);font-variant-numeric:tabular-nums}
+.cell.meal .main .sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cell.meal .main .st{display:flex;gap:var(--space-1);margin-top:2px}
+.cell.meal .val{color:var(--color-text);font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.cell.meal .val.zero{color:var(--color-text-secondary);font-weight:400}
+.cell.meal.queued .thumb{opacity:.7}
+.swipe .cell.meal{translate:-96px 0;background:var(--color-surface)}
+.cell.meal .trash{width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;color:var(--color-danger);border-radius:var(--radius-md);background:var(--color-hover);flex:none}
+.cell.meal.hover{background:var(--color-hover)}
+
+/* day / period switcher */
+.pager{display:grid;grid-template-columns:var(--tap-min) 1fr var(--tap-min);align-items:center;gap:var(--space-2)}
+.pager .ib{width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;border-radius:var(--radius-full);color:var(--color-accent);background:var(--color-surface)}
+.pager .ib.dis{color:var(--color-text-disabled);background:transparent}
+.pager .pick{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:var(--tap-min);text-align:center}
+.pager .pick .t-headline{display:flex;align-items:center;gap:var(--space-1)}
+.pager .pick .icon{width:16px;height:16px;color:var(--color-text-secondary)}
+.sum-line{display:flex;justify-content:space-between;align-items:baseline;gap:var(--space-2);font-variant-numeric:tabular-nums}
+.sum-line .rest{font-size:var(--text-subhead-size);color:var(--color-text-secondary)}
+.sum-line .rest.over{color:var(--color-warning);font-weight:600}
+
+/* chart */
+.chart{display:flex;flex-direction:column;gap:var(--space-2)}
+.plot{position:relative;height:var(--chart-height);display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:var(--space-2);align-items:end;border-bottom:1px solid var(--color-separator)}
+.plot.month{gap:2px}
+.plot.wide{height:var(--chart-height-wide);gap:var(--space-4)}
+.plot .norm{position:absolute;left:0;right:0;border-top:2px dashed var(--color-text-secondary);z-index:1;pointer-events:none}
+.plot .norm span{position:absolute;right:0;bottom:2px;font-size:var(--text-caption-size);color:var(--color-text-secondary);background:var(--color-surface);padding:0 var(--space-1);font-variant-numeric:tabular-nums}
+.col{position:relative;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:stretch;min-height:var(--tap-min);border-radius:var(--radius-sm) var(--radius-sm) 0 0}
+.col .b{display:flex;flex-direction:column-reverse;border-radius:var(--radius-sm) var(--radius-sm) 0 0;overflow:hidden;min-height:2px}
+.col .b .in{background:var(--color-accent);flex:none}
+.col .b .ov{flex:none;background-color:var(--color-warning-soft)}
+.col .b .ov.hatch{background-color:var(--color-warning-soft)}
+.col.today .b .in{background:var(--color-accent)}
+.col.past .b .in{opacity:1}
+.col .v{font-size:var(--text-caption-size);font-weight:500;color:var(--color-text-secondary);text-align:center;font-variant-numeric:tabular-nums;margin-bottom:var(--space-1);white-space:nowrap}
+.col .v.over{color:var(--color-warning);font-weight:600}
+.col.zero .b{background:var(--color-separator);height:2px}
+.col.sel{outline:2px solid var(--color-focus-ring);outline-offset:2px}
+.col .clip{position:absolute;left:-2px;right:-2px;height:8px;background:var(--color-surface);clip-path:polygon(0 50%,15% 0,30% 50%,45% 0,60% 50%,75% 0,90% 50%,100% 0,100% 50%,85% 100%,70% 50%,55% 100%,40% 50%,25% 100%,10% 50%,0 100%)}
+.xl{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:var(--space-2);font-size:var(--text-caption-size);color:var(--color-text-secondary);text-align:center;font-variant-numeric:tabular-nums;line-height:var(--text-caption-lh)}
+.xl.month{gap:2px}
+.xl.wide{gap:var(--space-4)}
+.xl span em{display:block;font-style:normal;margin-top:2px;color:var(--color-text-secondary)}
+.xl span em.over{color:var(--color-warning);font-weight:600}
+.xl span b{display:block;font-weight:600;color:var(--color-text)}
+.xl span.today{color:var(--color-accent)}
+.xl span.today b{color:var(--color-accent)}
+.xl span.future{color:var(--color-text-disabled)}
+.xl span.future b{color:var(--color-text-disabled)}
+.legend{display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-3);font-size:var(--text-caption-size);color:var(--color-text-secondary)}
+.legend span{display:flex;align-items:center;gap:var(--space-1)}
+.legend i{width:14px;height:10px;border-radius:2px;background-color:var(--color-accent)}
+.legend i.ov{background-color:var(--color-warning-soft)}
+.legend i.ln{height:0;border-top:2px dashed var(--color-text-secondary);border-radius:0}
+.chart-empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--space-1);text-align:center;color:var(--color-text-secondary);font-size:var(--text-subhead-size)}
+.tip{position:absolute;z-index:2;translate:-50% 0;padding:var(--space-2) var(--space-3);border-radius:var(--radius-md);background:var(--color-text);color:var(--color-bg);font-size:var(--text-footnote-size);white-space:nowrap;box-shadow:var(--shadow-toast);font-variant-numeric:tabular-nums}
+.avg-note{font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.callout{display:flex;flex-direction:column;gap:2px;padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);background:var(--color-accent-soft);font-size:var(--text-subhead-size);font-variant-numeric:tabular-nums}
+.callout b{font-size:var(--text-headline-size);color:var(--color-accent)}
+.callout.over{background:var(--color-warning-soft)}
+.callout.over b{color:var(--color-warning)}
+
+/* edit-record additions (screen 4 opened from Diary) */
+.when{display:flex;align-items:center;gap:var(--space-3);min-height:var(--control-height);padding:0 var(--space-4);border-radius:var(--radius-md);background:var(--color-surface);font-size:var(--text-body-size)}
+.when .v{margin-left:auto;color:var(--color-accent);font-variant-numeric:tabular-nums}
+.when .icon{color:var(--color-text-secondary)}
+.late{display:flex;flex-direction:column;gap:var(--space-2)}
+.picker{position:absolute;left:0;right:0;bottom:0;z-index:var(--z-sheet);background:var(--color-surface-2);border-radius:var(--radius-xl) var(--radius-xl) 0 0;padding:var(--space-3) var(--space-4) calc(34px + var(--space-3));display:flex;flex-direction:column;gap:var(--space-2);box-shadow:var(--shadow-sheet)}
+.picker .ph{display:flex;justify-content:space-between;font-size:var(--text-body-size);color:var(--color-accent);min-height:var(--tap-min);align-items:center}
+.picker .wheel{display:grid;grid-template-columns:2fr 1fr 1fr;text-align:center;font-size:var(--text-body-size);color:var(--color-text-secondary);font-variant-numeric:tabular-nums}
+.picker .wheel div{display:flex;flex-direction:column;gap:var(--space-2)}
+.picker .wheel .on{color:var(--color-text);font-weight:600;background:var(--color-surface);border-radius:var(--radius-sm);padding:var(--space-1) 0}
+
+/* desktop */
+.desk .cols.even{grid-template-columns:1fr 1fr}
+.desk .cols.side-r{grid-template-columns:3fr 2fr}
+.desk-title{display:flex;align-items:flex-end;justify-content:space-between;gap:var(--space-4)}
+.desk-title .large-title .date{display:inline;margin-left:var(--space-3)}
+.desk .pager{grid-template-columns:var(--tap-min) auto var(--tap-min)}
+.desk .seg{min-width:240px}
+
+/* ===== OCT-157 additions: sync conflict (tokens only) ===== */
+.badge.warn .icon,.invite.warn .icon{color:var(--color-warning)}
+.invite.warn{background:var(--color-warning-soft)}
+.navbar .prog{justify-self:end;padding:0 var(--space-3);font-size:var(--text-subhead-size);color:var(--color-text-secondary);font-variant-numeric:tabular-nums}
+.vq{padding:0 var(--screen-gutter)}
+.vq .t-sub{color:var(--color-text-secondary)}
+.vcard{background:var(--color-surface);border-radius:var(--radius-lg);padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-3)}
+.vhead{display:flex;align-items:center;gap:var(--space-3)}
+.vhead .vic{width:36px;height:36px;border-radius:var(--radius-full);display:grid;place-items:center;background:var(--color-accent-soft);color:var(--color-accent);flex:none}
+.vhead .vic.other{background:var(--color-surface-2);color:var(--color-text-secondary)}
+.vhead .vic.gone{background:var(--color-danger-soft);color:var(--color-danger)}
+.vhead .vt{flex:1;min-width:0;display:flex;flex-direction:column}
+.vhead .vt b{font-size:var(--text-headline-size);line-height:var(--text-headline-lh);font-weight:600}
+.vhead .vt b{white-space:nowrap}
+.vhead .vt span{font-size:var(--text-footnote-size);color:var(--color-text-secondary);font-variant-numeric:tabular-nums;display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-2);align-items:center;white-space:nowrap}
+.drow .dk.field{flex-direction:row;align-items:center;gap:var(--space-3);color:var(--color-text-secondary)}
+.vhead .vk{font-size:var(--text-headline-size);font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;letter-spacing:var(--tracking-tight)}
+.vhead .vk small{font-size:var(--text-footnote-size);font-weight:400;color:var(--color-text-secondary);letter-spacing:0}
+.dlist{display:flex;flex-direction:column}
+.drow{display:flex;align-items:center;gap:var(--space-3);min-height:var(--tap-min);padding:var(--space-2) 0;border-top:1px solid var(--color-separator);font-size:var(--text-subhead-size);line-height:var(--text-subhead-lh)}
+.drow .dk{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.drow .dk .lb{font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.drow .dv{font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right}
+.drow .dv.zero{color:var(--color-text-secondary);font-weight:400}
+.drow.gone .dk .nm{text-decoration:line-through;color:var(--color-text-secondary)}
+.drow.gone .dv{color:var(--color-text-secondary);font-weight:400}
+.drow .thumb{width:var(--meal-thumb-size);height:var(--meal-thumb-size);border-radius:var(--radius-sm)}
+.drow .thumb.icon-only{display:grid;place-items:center;color:var(--color-text-secondary)}
+.unch{display:flex;align-items:center;gap:var(--space-2);min-height:var(--tap-min);border-top:1px solid var(--color-separator);font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.unch .icon{margin-left:auto}
+.vcard .btn{min-height:var(--control-height)}
+.btn-danger-tonal{background:var(--color-danger-soft);color:var(--color-danger)}
+.gone-note{display:flex;gap:var(--space-2);align-items:center;padding:var(--space-3);border-radius:var(--radius-md);background:var(--color-surface-2);font-size:var(--text-subhead-size);color:var(--color-text-secondary)}
+.phone .content.cf{gap:var(--space-3);overflow:hidden}
+.vstack{display:flex;flex-direction:column;gap:var(--space-3);padding:0 var(--screen-gutter)}
+/* desktop: versions side by side, same row order → rows line up */
+.cf-dialog{position:absolute;left:50%;top:50%;translate:-50% -50%;width:var(--modal-flow-max-width);z-index:var(--z-sheet);background:var(--color-bg);border-radius:var(--radius-lg);box-shadow:var(--shadow-toast);display:flex;flex-direction:column;overflow:hidden}
+.cf-dialog .wh{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-3) var(--space-3) var(--space-6);border-bottom:1px solid var(--color-separator)}
+.cf-dialog .wh .prog{margin-left:auto;font-size:var(--text-subhead-size);color:var(--color-text-secondary);font-variant-numeric:tabular-nums}
+.cf-dialog .wb{display:flex;flex-direction:column;gap:var(--space-4);padding:var(--space-5) var(--space-6) var(--space-6)}
+.cf-dialog .pair{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4)}
+
+/* switch (OCT-22) */
+.switch{width:var(--switch-width);height:var(--switch-height);border-radius:var(--radius-full);background:var(--color-border-strong);position:relative;flex:none;margin-left:auto;transition:background var(--duration-fast) var(--ease-out)}
+.switch::after{content:"";position:absolute;top:2px;left:2px;width:calc(var(--switch-height) - 4px);height:calc(var(--switch-height) - 4px);border-radius:50%;background:var(--color-surface);box-shadow:0 2px 4px rgb(0 0 0 / .2);transition:translate var(--duration-fast) var(--ease-out)}
+.switch.on{background:var(--color-accent)}
+.switch.on::after{translate:calc(var(--switch-width) - var(--switch-height)) 0}
+.switch.dis{opacity:.5}
+
+/* ===== OCT-153 additions: period report (tokens only, no new tokens) ===== */
+.phone .content.rep{padding-bottom:var(--space-4);gap:var(--space-4)}
+.rep-head{padding:var(--space-1) var(--screen-gutter) 0;display:flex;flex-direction:column;gap:var(--space-1)}
+.rep-head .kicker{font-size:var(--text-footnote-size);font-weight:600;color:var(--color-accent);letter-spacing:.04em;text-transform:uppercase}
+.rep-head h2{font-size:var(--text-large-title-size);line-height:var(--text-large-title-lh);font-weight:700;letter-spacing:var(--tracking-tight)}
+.rep-head .meta{font-size:var(--text-subhead-size);color:var(--color-text-secondary);font-variant-numeric:tabular-nums}
+.navbar .ib-nav{justify-self:end;width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;color:var(--color-accent)}
+
+/* period calendar: 4 states, each = fill + glyph + label (never colour only) */
+.cal{display:flex;flex-direction:column;gap:var(--space-2)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:var(--space-1)}
+.cal-grid .wd{font-size:var(--text-caption-size);color:var(--color-text-secondary);text-align:center;padding-bottom:2px}
+.cal-grid .mlab{grid-column:1 / -1;font-size:var(--text-footnote-size);font-weight:600;color:var(--color-text-secondary);padding:var(--space-1) 0 0}
+.day{position:relative;min-height:var(--tap-min);aspect-ratio:1;border-radius:var(--radius-sm);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-size:var(--text-footnote-size);font-weight:600;font-variant-numeric:tabular-nums;background:var(--color-surface-2);color:var(--color-text)}
+.day .g{width:var(--space-3);height:var(--space-3);stroke-width:2.5}
+.day.in{background:var(--color-accent-soft);color:var(--color-accent)}
+.day.above{background-color:var(--color-warning-soft);color:var(--color-warning);background-image:repeating-linear-gradient(-45deg,rgb(from var(--color-warning) r g b / .14) 0 calc(var(--hatch-size) / 2),transparent 0 var(--hatch-size))}
+.day.below{background:var(--color-surface-2);color:var(--color-text)}
+.day.none{background:transparent;outline:1px dashed var(--color-border-strong);outline-offset:-1px;color:var(--color-text-secondary);font-weight:400}
+.day.plain{background:var(--color-surface-2);color:var(--color-text)}
+.day.out{background:transparent;color:var(--color-text);font-weight:400}
+.day.future{background:transparent;color:var(--color-text-disabled);font-weight:400}
+.day.blank{background:transparent;outline:0}
+.day.sel{box-shadow:0 0 0 2px var(--color-bg),0 0 0 4px var(--color-focus-ring)}
+.day.rng{border-radius:0;background:var(--color-accent-soft);color:var(--color-accent)}
+.day.rng.s{border-radius:var(--radius-sm) 0 0 var(--radius-sm);background:var(--color-accent);color:var(--color-on-accent)}
+.day.rng.e{border-radius:0 var(--radius-sm) var(--radius-sm) 0;background:var(--color-accent);color:var(--color-on-accent)}
+.cal-grid.rangepick{gap:var(--space-1) 0}
+.cal-legend{display:flex;flex-wrap:wrap;gap:var(--space-2) var(--space-4);font-size:var(--text-caption-size);color:var(--color-text-secondary);font-variant-numeric:tabular-nums}
+.cal-legend span{display:flex;align-items:center;gap:var(--space-1)}
+.cal-legend .day{min-height:0;width:18px;height:18px;aspect-ratio:auto;border-radius:4px}
+.cal-legend .day .g{width:10px;height:10px}
+.cal-tip{position:absolute;z-index:3;left:50%;translate:-50% 0;bottom:calc(100% + var(--space-2));display:flex;flex-direction:column;gap:2px;padding:var(--space-2) var(--space-3);border-radius:var(--radius-md);background:var(--color-text);color:var(--color-bg);font-size:var(--text-footnote-size);font-weight:400;white-space:nowrap;box-shadow:var(--shadow-toast);text-align:left}
+.cal-tip b{font-weight:600}
+.cal-tip .go{display:flex;align-items:center;gap:2px;font-weight:600;min-height:var(--space-6)}
+.cal-tip .go .icon{width:14px;height:14px}
+
+/* series chips under the calendar */
+.series{display:flex;flex-direction:column;gap:var(--space-2);font-size:var(--text-subhead-size);line-height:var(--text-subhead-lh);font-variant-numeric:tabular-nums}
+.series li{display:flex;gap:var(--space-2);align-items:flex-start;list-style:none}
+.series li .day{min-height:0;width:20px;height:20px;aspect-ratio:auto;flex:none;border-radius:5px;margin-top:1px}
+.series li .day .g{width:11px;height:11px}
+.series{padding:0;margin:0}
+
+/* AI text blocks */
+.ai-card{background:var(--color-surface);border-radius:var(--radius-lg);padding:var(--space-5);display:flex;flex-direction:column;gap:var(--space-4)}
+.ai-h{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-headline-size);font-weight:600}
+.ai-h .icon{color:var(--color-accent)}
+.ai-list{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:var(--space-3);font-size:var(--text-body-size);line-height:1.4}
+.ai-list li{display:flex;gap:var(--space-3)}
+.ai-list li::before{content:"";flex:none;width:6px;height:6px;border-radius:50%;background:var(--color-text-secondary);margin-top:.55em}
+.ai-list b{font-weight:600;font-variant-numeric:tabular-nums}
+.ai-steps{margin:0;padding:0;list-style:none;counter-reset:st;display:flex;flex-direction:column;gap:var(--space-3);font-size:var(--text-body-size);line-height:1.4}
+.ai-steps li{display:flex;gap:var(--space-3);counter-increment:st}
+.ai-steps li::before{content:counter(st);flex:none;width:var(--chat-avatar-size);height:var(--chat-avatar-size);border-radius:50%;background:var(--color-accent-soft);color:var(--color-accent);display:grid;place-items:center;font-size:var(--text-footnote-size);font-weight:700}
+.ai-steps b{font-weight:600;font-variant-numeric:tabular-nums}
+.ai-by{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);margin:0 calc(-1 * var(--space-5)) calc(-1 * var(--space-5));padding:0 var(--space-3) 0 var(--space-5);min-height:var(--tap-min);border-top:1px solid var(--color-separator);font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.ai-by .act{color:var(--color-accent);font-weight:600;min-height:var(--tap-min);display:flex;align-items:center;gap:var(--space-1);font-size:var(--text-subhead-size)}
+.gen-row{display:flex;align-items:center;gap:var(--space-3);min-height:var(--tap-min);font-size:var(--text-body-size)}
+.sent{display:flex;gap:var(--space-2);align-items:flex-start;font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);color:var(--color-text-secondary)}
+.sent .icon{color:var(--color-text-secondary);margin-top:1px}
+.gen-progress{display:flex;align-items:center;gap:var(--space-3);color:var(--color-accent);font-weight:600}
+.skel-lines{display:flex;flex-direction:column;gap:var(--space-2)}
+
+/* numbers */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3)}
+.stat{display:flex;flex-direction:column;gap:2px;padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);background:var(--color-surface-2);font-variant-numeric:tabular-nums}
+.stat .k{font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.stat .v{font-size:var(--text-title-size);font-weight:700;letter-spacing:var(--tracking-tight)}
+.stat .v small{font-size:var(--text-footnote-size);font-weight:400;color:var(--color-text-secondary);letter-spacing:0}
+.share-row{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.skew{display:inline-flex;align-items:center;gap:2px;font-size:var(--text-footnote-size);color:var(--color-warning);font-weight:600}
+.skew .icon{width:14px;height:14px}
+.list-row{display:flex;justify-content:space-between;align-items:center;gap:var(--space-3);min-height:var(--tap-min);border-top:1px solid var(--color-separator);font-size:var(--text-subhead-size);font-variant-numeric:tabular-nums}
+.list-row:first-of-type{border-top:0}
+.list-row .r{display:flex;align-items:center;gap:var(--space-2);white-space:nowrap}
+.list-row .r .icon{color:var(--color-text-secondary)}
+.list-row .over{color:var(--color-warning);font-weight:600}
+.list-row .muted{white-space:nowrap}
+.disclaimer{display:flex;gap:var(--space-2);align-items:flex-start;padding:0 var(--space-1);font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);color:var(--color-text-secondary)}
+
+/* report entry on the Week screen */
+.rep-entry{display:flex;flex-direction:column;gap:0;background:var(--color-surface);border-radius:var(--radius-lg);overflow:hidden}
+.rep-entry .btn{border-radius:0;min-height:var(--control-height-lg);justify-content:flex-start;padding:0 var(--space-4)}
+.rep-entry .btn .icon:last-child{margin-left:auto;color:var(--color-accent)}
+.rep-entry .cell{min-height:var(--tap-min)}
+
+/* report list */
+.cell .lead-ic.round{border-radius:50%}
+.cell.rep .main .sub{font-variant-numeric:tabular-nums}
+
+/* share image (PNG 1080 × 1920, shown at 1/3) — always light, see doc */
+.png{width:360px;height:640px;border-radius:var(--radius-md);overflow:hidden;outline:1px solid var(--color-separator);background:#F8FAF9;color:#18211D;display:flex;flex-direction:column;gap:10px;padding:18px 18px 14px;font-family:var(--font-sans)}
+.png.light-vars{--color-bg:#F8FAF9;--color-surface:#FFFFFF;--color-surface-2:#F1F4F2;--color-separator:#E7ECEA;--color-border-strong:#7C8782;--color-text:#18211D;--color-text-secondary:#5A6661;--color-text-disabled:#7F8A85;--color-accent:#13784A;--color-on-accent:#FFFFFF;--color-accent-soft:#E5F5EC;--color-warning:#8A5A00;--color-warning-soft:#FFF4DB}
+.png .p-k{font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-accent)}
+.png .p-t{font-size:22px;font-weight:700;letter-spacing:var(--tracking-tight);line-height:1.1}
+.png .p-m{font-size:10px;color:var(--color-text-secondary)}
+.png .cal-grid{gap:3px}
+.png .day{min-height:0;border-radius:4px;font-size:8.5px;gap:0}
+.png .day .g{width:7px;height:7px}
+.png .cal-grid .wd{font-size:8px}
+.png .cal-legend{font-size:7.5px;gap:4px 8px}
+.png .cal-legend .day{width:10px;height:10px;border-radius:2px}
+.png .cal-legend .day .g{width:6px;height:6px}
+.png .p-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.png .p-stats div{background:var(--color-surface);border-radius:6px;padding:6px 8px;display:flex;flex-direction:column;font-variant-numeric:tabular-nums}
+.png .p-stats span{font-size:7.5px;color:var(--color-text-secondary)}
+.png .p-stats b{font-size:13px}
+.png .p-sec{background:var(--color-surface);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:4px}
+.png .p-sec h4{font-size:10px;margin:0}
+.png .p-sec ul,.png .p-sec ol{margin:0;padding-left:12px;font-size:8.5px;line-height:1.35;display:flex;flex-direction:column;gap:2px}
+.png .p-foot{margin-top:auto;display:flex;justify-content:space-between;align-items:center;font-size:7.5px;color:var(--color-text-secondary)}
+.png .p-foot .brand{font-size:8.5px;gap:4px}
+.png .p-foot .brand .mark{width:14px;height:14px;border-radius:4px}
+.png .p-foot .brand .mark .icon{width:9px;height:9px}
+.txtshare{width:390px;background:var(--color-surface);border-radius:var(--radius-lg);padding:var(--space-5);outline:1px solid var(--color-separator);font:var(--text-footnote-size)/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;color:var(--color-text)}
+
+/* iOS share sheet stand-in (prototype only) */
+.ios-share{position:absolute;left:0;right:0;bottom:0;z-index:var(--z-sheet);background:var(--color-surface-2);border-radius:var(--radius-xl) var(--radius-xl) 0 0;padding:var(--space-4) var(--space-4) calc(34px + var(--space-4));display:flex;flex-direction:column;gap:var(--space-4);box-shadow:var(--shadow-sheet)}
+.ios-share .hd{display:flex;gap:var(--space-3);align-items:center}
+.ios-share .hd .pv{width:44px;height:78px;border-radius:6px;overflow:hidden;flex:none;outline:1px solid var(--color-separator);background:#F8FAF9}
+.ios-share .apps{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-2);text-align:center;font-size:var(--text-caption-size);color:var(--color-text-secondary)}
+.ios-share .apps i{display:block;width:56px;height:56px;margin:0 auto var(--space-1);border-radius:14px;background:var(--color-surface)}
+.ios-share .acts{background:var(--color-surface);border-radius:var(--radius-md)}
+.ios-share .acts div{min-height:var(--control-height);display:flex;align-items:center;justify-content:space-between;padding:0 var(--space-4);font-size:var(--text-body-size)}
+.ios-share .acts div+div{border-top:1px solid var(--color-separator)}
+.proto-tag{position:absolute;top:var(--space-2);right:var(--space-3);font-size:var(--text-caption-size);color:var(--color-text-secondary)}
+
+/* desktop report */
+.desk .rep-cols{display:grid;grid-template-columns:3fr 2fr;gap:var(--space-6);align-items:start}
+.desk .rep-actions{display:flex;gap:var(--space-2);align-items:center}
+.desk .rep-actions .btn{width:auto}
+
+.desk .rep-actions .btn{white-space:nowrap}
+.desk .desk-title .large-title .date{display:block;margin:var(--space-1) 0 0}
+</style></head><body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-key" viewBox="0 0 24 24"><path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"/><circle cx="16.5" cy="7.5" r=".5"/></symbol>
+  <symbol id="i-chev-r" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="i-chev-l" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+  <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 2v13"/><path d="m16 6-4-4-4 4"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-camera" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></symbol>
+  <symbol id="i-wifi-off" viewBox="0 0 24 24"><path d="M12 20h.01"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/><path d="M5 12.859a10 10 0 0 1 5.17-2.69"/><path d="M19 12.859a10 10 0 0 0-2.007-1.523"/><path d="M2 8.82a15 15 0 0 1 4.177-2.643"/><path d="M22 8.82a15 15 0 0 0-11.288-3.764"/><path d="m2 2 20 20"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
+  <symbol id="i-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></symbol>
+  <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+  <symbol id="i-user-plus" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6"/><path d="M22 11h-6"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></symbol>
+  <symbol id="i-plate" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/></symbol>
+</svg>
+<!-- Extra icons for OCT-16 (Lucide geometry; lucide-react names in the doc) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></symbol>
+  <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/></symbol>
+  <symbol id="i-retake" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></symbol>
+  <symbol id="i-history" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></symbol>
+  <symbol id="i-gauge" viewBox="0 0 24 24"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></symbol>
+  <symbol id="i-cloud-off" viewBox="0 0 24 24"><path d="m2 2 20 20"/><path d="M5.782 5.782A7 7 0 0 0 9 19h8.5a4.5 4.5 0 0 0 1.307-.193"/><path d="M21.532 16.5A4.5 4.5 0 0 0 17.5 10h-1.79A7.008 7.008 0 0 0 10 5.07"/></symbol>
+  <symbol id="i-search-x" viewBox="0 0 24 24"><path d="m13.5 8.5-5 5"/><path d="m8.5 8.5 5 5"/><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m17 8-5-5-5 5"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></symbol>
+  <!-- Prototype-only stand-in for the user's photo (real app shows the actual photo) -->
+  <symbol id="ph-food" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice">
+    <rect width="400" height="300" fill="#7a6552"/><rect width="400" height="300" fill="url(#wood)" opacity=".35"/>
+    <ellipse cx="200" cy="160" rx="150" ry="118" fill="#e9e5dc"/><ellipse cx="200" cy="160" rx="118" ry="92" fill="#f5f2ea"/>
+    <path d="M110 150c10-40 60-52 90-40 20 8 22 40 6 58-22 24-74 22-90 6-8-8-9-16-6-24z" fill="#8a5b37"/>
+    <g fill="#6e4528"><circle cx="135" cy="140" r="5"/><circle cx="160" cy="128" r="4"/><circle cx="180" cy="150" r="5"/><circle cx="150" cy="160" r="4"/></g>
+    <path d="M210 110c30-18 76-10 88 10 10 18-6 40-40 44-30 4-56-6-58-24-1-12 2-22 10-30z" fill="#d9a86a"/>
+    <path d="M222 122l60 6M220 138l66 4M226 152l52 2" stroke="#b5803f" stroke-width="5" stroke-linecap="round"/>
+    <ellipse cx="236" cy="210" rx="28" ry="20" fill="#fbfaf5"/><circle cx="236" cy="210" r="11" fill="#f2b632"/>
+    <ellipse cx="282" cy="196" rx="26" ry="19" fill="#fbfaf5"/><circle cx="282" cy="196" r="10" fill="#f2b632"/>
+    <ellipse cx="160" cy="212" rx="24" ry="14" fill="#f4eedb"/>
+    <defs><pattern id="wood" width="40" height="300" patternUnits="userSpaceOnUse"><path d="M0 0v300M20 0v300" stroke="#5a4636" stroke-width="2"/></pattern></defs>
+  </symbol>
+</svg>
+<!-- Extra icons for OCT-19 (Lucide geometry; lucide-react names in the doc) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-calendar" viewBox="0 0 24 24"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></symbol>
+  <symbol id="i-chev-d" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></symbol>
+  <symbol id="i-utensils" viewBox="0 0 24 24"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 3 2h3Zm0 0v7"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></symbol>
+  <symbol id="i-moon-star" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+  <symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol>
+</svg>
+
+<!-- Extra icons for OCT-157 (Lucide geometry: git-compare, smartphone, cloud, laptop, rotate-ccw) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-versions" viewBox="0 0 24 24"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><path d="M11 18H8a2 2 0 0 1-2-2V9"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><rect width="14" height="20" x="5" y="2" rx="2"/><path d="M12 18h.01"/></symbol>
+  <symbol id="i-laptop" viewBox="0 0 24 24"><path d="M18 5a2 2 0 0 1 2 2v8.526a2 2 0 0 0 .212.897l1.068 2.127a1 1 0 0 1-.9 1.45H3.62a1 1 0 0 1-.9-1.45l1.068-2.127A2 2 0 0 0 4 15.526V7a2 2 0 0 1 2-2z"/><path d="M20.054 15.987H3.946"/></symbol>
+  <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></symbol>
+  <symbol id="i-restore" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></symbol>
+</svg>
+<!-- Extra icons for OCT-153 (Lucide geometry: arrow-up, arrow-down, file-chart-column, lock-keyhole) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></symbol>
+  <symbol id="i-report" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M8 18v-2"/><path d="M12 18v-4"/><path d="M16 18v-6"/></symbol>
+</svg>
+<h1 class="doc-h1">OCT-153 · Отчёт-ретроспектива за период</h1>
+<p class="doc-lead">Этап 2 эпика OCT-136 по документу «Продукт OCT-28» (номера AC и E — оттуда). Только токены OCT-13 (<code>../oct-13/tokens.css</code>, новых токенов нет) и компоненты OCT-16, OCT-19, OCT-22, OCT-25. iPhone 14/15, 390 × 844 pt. Спецификация и тексты RU/EN — документ «Дизайн OCT-153» в проекте. Пример: отчёт за октябрь 2026, норма 2 100 ккал; кадры 2.2–2.4 — тот же экран, прокрученный ниже.</p>
+
+<section class="doc-section" id="start">
+  <h2 class="doc-h2">1 · Запуск: неделя → отчёт → «Сформировать»</h2>
+  <div class="row" id="start-row"></div>
+</section>
+<section class="doc-section" id="states">
+  <h2 class="doc-h2">1E · Когда сформировать нельзя</h2>
+  <div class="row" id="states-row"></div>
+</section>
+<section class="doc-section" id="report">
+  <h2 class="doc-h2">2 · Готовый отчёт</h2>
+  <div class="row" id="report-row"></div>
+</section>
+<section class="doc-section" id="list">
+  <h2 class="doc-h2">3 · «Мои отчёты»</h2>
+  <div class="row" id="list-row"></div>
+</section>
+<section class="doc-section" id="share">
+  <h2 class="doc-h2">4 · «Поделиться»: картинка и текст</h2>
+  <div class="row" id="share-row"></div>
+</section>
+<section class="doc-section" id="desktop">
+  <h2 class="doc-h2">D · Десктоп ≥ 1024 px</h2>
+  <div class="row" id="desk-row"></div>
+</section>
+<script>
+const I = (id, cls='') => `<svg class="icon ${cls}" aria-hidden="true"><use href="#i-${id}"/></svg>`;
+const PHOTO = `<svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Фото еды"><use href="#ph-food"/></svg>`;
+const frame = (id, title, note, inner, cls='') => `<figure class="frame"><div class="phone ${cls}">${inner}</div><figcaption><b>${id} ${title}.</b> ${note}</figcaption></figure>`;
+const arrow = `<div class="flow-arrow">${I('chev-r')}</div>`;
+
+/* ---------- data ---------- */
+const D = {
+  egg:  {n:'Яйцо варёное, 2 шт', g:100, k:155, p:13, f:11, c:1,  conf:'exact'},
+  buck: {n:'Гречка с грибами',  g:180, k:230, p:8,  f:6,  c:36, conf:'high'},
+  chick:{n:'Куриная грудка гриль', g:150, k:248, p:46, f:6, c:0, conf:'mid'},
+  sauce:{n:'Сметанный соус',     g:40,  k:84,  p:1,  f:8,  c:2,  conf:'low'},
+};
+const BADGE = {
+  exact:`<span class="badge ok" aria-label="Уверенность: точно">${I('check')}точно</span>`,
+  high:'',
+  mid:`<span class="badge" aria-label="Уверенность: средняя">примерно</span>`,
+  low:`<span class="badge warn" aria-label="Уверенность: низкая, проверьте">${I('alert')}проверьте</span>`,
+  manual:`<span class="badge">вручную</span>`,
+  history:`<span class="badge">${I('history')}как в прошлый раз</span>`,
+  edited:'',
+};
+function dish(d, o={}){
+  const unit = o.oz ? 'oz' : 'г';
+  const w = o.oz ? (d.g/28.35).toFixed(1).replace('.',',') : (o.w ?? d.g);
+  const wcls = o.focus ? 'focus' : o.err ? 'error' : '';
+  const conf = o.conf ?? d.conf;
+  const ctl = o.desk
+    ? `<div class="dish-ctl"><span class="step" aria-label="Меньше на 10 г">${I('minus')}</span><span class="wv ${wcls}">${w}<small>${unit}</small></span><span class="step" aria-label="Больше на 10 г">${I('plus')}</span><span class="more" style="margin-left:auto" aria-label="Изменить">${I('pencil','sm')}</span><span class="trash" aria-label="Удалить ${d.n}">${I('trash','sm')}</span></div>`
+    : `<div class="dish-ctl"><span class="step ${o.min?'dis':''}" aria-label="Меньше на 10 г">${I('minus')}</span><span class="wv ${wcls}">${w}<small>${unit}</small></span><span class="step" aria-label="Больше на 10 г">${I('plus')}</span><span class="more" aria-label="Изменить ${d.n}">${I('pencil','sm')}</span></div>`;
+  const hint = o.hint ? `<div class="hint"><span>${I('history','sm')} Похоже на запись 12 нояб.: <b class="num">250 г · 420 ккал</b></span><div class="acts"><span>Как в прошлый раз</span><span>Оставить оценку</span></div></div>` : '';
+  return `<div class="dish"><div class="dish-top"><span class="name">${o.name ?? d.n}</span><span class="kc">${o.k ?? d.k} ккал</span></div>
+    <div class="dish-meta">${BADGE[conf]}<span>Б ${o.p ?? d.p} · Ж ${o.f ?? d.f} · У ${o.c ?? d.c}</span></div>
+    ${ctl}${o.err?`<div class="err-msg">${I('alert','sm')}Вес от 1 до 5000 г</div>`:''}${hint}</div>`;
+}
+const nav = (title, left=`<span class="x-btn" aria-label="Закрыть">${I('x')}</span>`) => `<div class="navbar"><div>${left}</div><div class="title num">${title}</div><div></div></div>`;
+const seg = (on='Обед') => `<div class="seg" role="radiogroup" aria-label="Приём пищи">${['Завтрак','Обед','Ужин','Перекус'].map(x=>`<span class="${x===on?'on':''}">${x}</span>`).join('')}</div>`;
+const totals = (k='717', p=68, f=31, c=39, thumb=PHOTO) => `<div class="totals"><div class="thumb">${thumb}</div><div class="stack-sm"><div class="kcal-big"><b>${k}</b><span class="t-sub muted">ккал</span></div><div class="macros"><span><i class="m-p"></i>Б ${p} г</span><span><i class="m-f"></i>Ж ${f} г</span><span><i class="m-c"></i>У ${c} г</span></div></div></div>`;
+const estimate = `<div class="foot-note">${I('spark','sm')}<span>Оценка ИИ по фото — проверьте вес. Ккал и БЖУ пересчитаются сами.</span></div>`;
+const saveBar = (btn=`<button class="btn btn-primary">Сохранить</button>`, note='') => `<div class="bottom bar">${note}${btn}</div>`;
+function editScreen({title='Сегодня, 13:24', meal='Обед', dishes, top='', note=estimate, totalsHtml=totals(), bar=saveBar(), extra=''}){
+  return `${nav(title)}${top}<div class="content"><div class="pad stack">${totalsHtml}${seg(meal)}${note}</div>
+    <div class="pad"><div class="group">${dishes}</div><div class="add-row">${I('plus','sm')}Добавить блюдо вручную</div></div></div>${bar}${extra}`;
+}
+
+/* ================= OCT-19 ================= */
+const fmt = n => Math.round(n).toLocaleString('ru-RU').replace(/ /g,' ');
+const NORM = {k:2100, p:120, f:70, c:240};
+const ICON_ONLY = `<span class="thumb icon-only">${I('utensils','sm')}</span>`;
+const pct = (v, n) => Math.min(100, v / n * 100);
+
+function tabbar(on='Сегодня'){
+  const t = (ic, l) => `<span class="tab ${l===on?'on':''}" ${l===on?'aria-current="page"':''}>${I(ic)}${l}</span>`;
+  return `<nav class="tabbar">${t('home','Сегодня')}${t('book','Дневник')}<span class="cam" aria-label="Сфотографировать еду">${I('camera')}</span>${t('chart','Неделя')}${t('user','Профиль')}</nav>`;
+}
+/* kcal bar: fill up to the norm, hatched tail beyond it */
+function bar(v, n, cls=''){
+  if (!n) return `<div class="pbar none" aria-hidden="true"></div>`;
+  if (v <= n) return `<div class="pbar" aria-hidden="true"><i class="${cls}" style="width:${pct(v,n)}%"></i></div>`;
+  return `<div class="pbar" aria-hidden="true"><i class="${cls}" style="width:${n/v*100}%"></i><i class="ov" style="width:${(v-n)/v*100}%"></i></div>`;
+}
+function kcalCard({eaten=1240, norm=NORM.k, week='Осталось на неделю', weekVal=7270, weekOver=false, macros=[68,52,141], macroNorm=NORM, compact=false}={}){
+  let head;
+  if (!norm) head = `<span class="lbl">Съедено сегодня</span><div class="big"><span class="display num">${fmt(eaten)}</span><span class="unit">ккал</span></div>`;
+  else if (eaten > norm) head = `<span class="lbl over">${I('alert','sm')}Перебор</span><div class="big"><span class="display num">${fmt(eaten-norm)}</span><span class="unit">ккал</span></div>${bar(eaten,norm)}<span class="t-foot muted num">${fmt(eaten)} из ${fmt(norm)} ккал</span>`;
+  else head = `<span class="lbl">Осталось</span><div class="big"><span class="display num">${fmt(norm-eaten)}</span><span class="unit">ккал</span></div>${bar(eaten,norm)}<span class="t-foot muted num">${fmt(eaten)} из ${fmt(norm)} ккал</span>`;
+  const mac = macroBlock(macros, macroNorm);
+  const wl = norm ? `<a class="week-line ${weekOver?'over':''}" aria-label="${weekOver?'Перебор за неделю':'На неделю осталось'} ${fmt(weekVal)} ккал. Открыть неделю"><span>${weekOver?'Перебор за неделю':'На неделю осталось'} <b>${fmt(weekVal)} ккал</b></span>${I('chev-r','sm')}</a>` : '';
+  return `<section class="card" aria-label="Итог дня">${head}${mac}${wl}</section>`;
+}
+function macroBlock([p,f,c], n=NORM){
+  const one = (name, cls, v, nv) => {
+    let rest = '';
+    if (nv) rest = v > nv ? `<span class="rest over">${I('alert')}перебор ${fmt(v-nv)} г</span>` : `<span class="rest">осталось ${fmt(nv-v)} г</span>`;
+    return `<div class="mac"><span class="mac-h"><i class="m-${cls}"></i>${name}</span><span class="mac-v">${fmt(v)}${nv?`<small> / ${nv} г</small>`:'<small> г</small>'}</span>${nv?bar(v,nv,cls):''}${rest}</div>`;
+  };
+  return `<div class="mac-grid">${one('Белки','p',p,n&&n.p)}${one('Жиры','f',f,n&&n.f)}${one('Углеводы','c',c,n&&n.c)}</div>`;
+}
+const quick = `<div class="quick"><button class="btn btn-tonal btn-sm">${I('image','sm')}Из галереи</button><button class="btn btn-tonal btn-sm">${I('pencil','sm')}Вручную</button></div>`;
+function meal({type, time, sub, k, photo=true, st='', cls='', late=false}){
+  const kc = k===null ? `<span class="val zero num">— ккал</span>` : `<span class="val num">${fmt(k)} ккал</span>`;
+  return `<div class="cell meal ${cls}" role="button"><span class="thumb ${photo?'':'icon-only'}">${photo?PHOTO:I('utensils','sm')}</span><span class="main"><span class="t">${type}<small>${time}</small></span><span class="sub">${sub}</span>${st||late?`<span class="st">${late?`<span class="badge">${I('moon')}поздний</span>`:''}${st}</span>`:''}</span>${kc}</div>`;
+}
+const M = {
+  lunch: meal({type:'Обед', time:'13:24', sub:'Гречка с грибами, куриная грудка гриль, яйцо…', k:717}),
+  bf: meal({type:'Завтрак', time:'08:12', sub:'Овсянка на молоке, кофе с молоком', k:523, photo:false}),
+};
+const ST = {
+  queued: `<span class="badge">${I('cloud-off')}Ждёт отправки</span>`,
+  photoq: `<span class="badge">${I('cloud-off')}Распознаем, когда появится сеть</span>`,
+  check: `<span class="badge warn">${I('alert')}Проверьте</span>`,
+  failed: `<span class="badge err">${I('alert')}Не распознано</span>`,
+};
+const mealsGroup = (rows, h='Приёмы пищи', right='') => `<div><div class="sec-h"><span>${h}</span><span class="num">${right}</span></div><div class="group">${rows}</div></div>`;
+function todayScreen({card=kcalCard(), meals=mealsGroup(M.lunch+M.bf), top='', extra='', invite=''}={}){
+  return `<div class="large-title">Сегодня<span class="date">четверг, 13 ноября</span></div>${top}<div class="content"><div class="pad stack">${invite}${card}${quick}${meals}</div></div>${tabbar('Сегодня')}${extra}`;
+}
+const emptyMeals = `<div class="card" style="align-items:center;text-align:center;gap:var(--space-2)"><span class="s-ic" style="width:56px;height:56px;border-radius:50%;display:grid;place-items:center;background:var(--color-surface-2);color:var(--color-text-secondary)">${I('camera')}</span><span class="t-headline">Сегодня пока пусто</span><span class="t-sub muted" style="max-width:30ch">Сфотографируйте еду — калории и БЖУ посчитаем сами.</span></div>`;
+const invite = `<div class="invite">${I('target')}<span>Задайте норму — покажем, сколько осталось</span><span class="go">Задать</span></div>`;
+const offBar = (t='Офлайн · данные на 12:40') => `<div class="offline-bar">${I('wifi-off','sm')}${t}</div>`;
+const skelCard = `<div class="card"><div class="skel" style="width:40%"></div><div class="skel" style="width:55%;height:48px"></div><div class="skel" style="height:var(--progress-height)"></div><div class="mac-grid"><div class="skel" style="height:44px"></div><div class="skel" style="height:44px"></div><div class="skel" style="height:44px"></div></div></div>`;
+const skelRows = `<div class="group">${[1,2].map(()=>`<div class="cell"><div class="skel" style="width:var(--meal-thumb-size);height:var(--meal-thumb-size)"></div><div class="main"><div class="skel" style="width:50%"></div><div class="skel" style="width:80%"></div></div></div>`).join('')}</div>`;
+const errState = (title='Не удалось загрузить день', body='Проверьте сеть и попробуйте ещё раз.') => `<div class="state" role="alert"><span class="s-ic danger">${I('alert')}</span><span class="t-headline">${title}</span><p class="t-sub muted">${body}</p><button class="btn btn-primary btn-sm">${I('refresh','sm')}Повторить</button></div>`;
+const toast = (txt, act='Вернуть', ic='trash') => `<div class="toast" role="status">${I(ic,'sm')}<span>${txt}</span>${act?`<span class="act">${act}</span>`:''}</div>`;
+
+function pager(title, sub, {next=true, cal=true}={}){
+  return `<div class="pager"><span class="ib" role="button" aria-label="Предыдущий день">${I('chev-l')}</span><span class="pick" role="button" aria-label="${title}, ${sub}. Выбрать дату"><span class="t-headline">${title}${cal?I('chev-d'):''}</span><span class="t-foot muted">${sub}</span></span><span class="ib ${next?'':'dis'}" role="button" aria-label="Следующий день" ${next?'':'aria-disabled="true"'}>${I('chev-r')}</span></div>`;
+}
+/* ---------- 7. Week & Month ---------- */
+/* scale: max(maxDay, norm) × 1.15, capped at 2 × norm; taller days are clipped with a break mark (E-3.4) */
+function chart(days, {norm=NORM.k, month=false, wide=false, sel=-1, values=false, tip=''}={}){
+  const max = Math.max(norm||0, ...days.map(d=>d.k||0));
+  const top = norm ? Math.min(max*1.15, norm*2) : max*1.15 || 1;
+  const cols = days.map((d,i)=>{
+    const lab = `${d.w} ${d.d} нояб.: ${d.k==null?'нет данных':fmt(d.k)+' ккал'}${norm&&d.k!=null?' из '+fmt(norm):''}${norm&&d.k>norm?', перебор '+fmt(d.k-norm):''}`;
+    if (d.k==null) return `<span class="col" role="listitem" aria-label="${d.w} ${d.d} нояб.: ещё не наступил"></span>`;
+    if (d.k===0) return `<span class="col zero" role="listitem" aria-label="${lab}"><span class="b"></span></span>`;
+    const h = Math.min(d.k, top)/top*100;
+    const inn = norm ? Math.min(d.k, norm)/Math.min(d.k, top) : 1;
+    const over = norm && d.k>norm;
+    const clip = d.k>top ? `<span class="clip" style="bottom:calc(${h}% - 28px)"></span>` : '';
+    return `<span class="col ${i===sel?'sel':''}" role="listitem" tabindex="0" aria-label="${lab}">${values?`<span class="v ${over?'over':''}">${fmt(d.k)}</span>`:''}<span class="b" style="height:${values?`calc(${h}% * (1 - 20 / ${wide?280:184}))`:h+'%'}">${'<span class="in" style="height:'+(inn*100)+'%"></span>'}${over?`<span class="ov hatch" style="height:${(1-inn)*100}%"></span>`:''}</span>${clip}</span>`;
+  }).join('');
+  const nl = norm ? `<span class="norm" style="bottom:${norm/top*100}%"></span>` : '';
+  const tIdx = days.findIndex(d=>d.t);
+  const tick = d => d.t || ([1,5,10,15,20,25,30].includes(d.d) && (tIdx<0 || Math.abs(days[tIdx].d-d.d)>2));
+  const xl = days.map(d=> month ? `<span class="${d.t?'today':''}${d.k==null?' future':''}">${tick(d)?d.d:''}</span>` : `<span class="${d.t?'today':''}${d.k==null?' future':''}">${d.w}<b>${d.d}</b><em class="${norm&&d.k>norm?'over':''}">${d.k?fmt(d.k):d.k===0?'0':''}</em></span>`).join('');
+  return `<div class="chart"><div class="plot ${month?'month':''} ${wide?'wide':''}" role="list" aria-label="Ккал по дням${norm?', норма '+fmt(norm)+' в день':''}">${nl}${cols}${tip}</div><div class="xl ${month?'month':''} ${wide?'wide':''}" aria-hidden="true">${xl}</div>
+  <div class="legend" aria-hidden="true"><span><i></i>съедено</span>${norm?`<span><i class="ln"></i>норма ${fmt(norm)} в день</span><span><i class="ov hatch"></i>сверх нормы</span>`:''}</div></div>`;
+}
+const W = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+const wk = (ks, start=10, today=3) => ks.map((k,i)=>({w:W[i], d:start+i, k, t:i===today}));
+const CUR = wk([1850,2380,1960,1240,null,null,null]);
+const PREV = wk([2050,1890,2600,2200,1720,2900,2400],3,-1);
+function budget({eaten=7430, days=4, past=false, norm=NORM.k}={}){
+  const total = norm*7, rest = total-eaten;
+  if (!norm) return `<section class="card"><span class="lbl">Съедено за неделю</span><div class="big"><span class="display sm num">${fmt(eaten)}</span><span class="unit">ккал</span></div></section>`;
+  const head = rest>=0
+    ? `<span class="lbl">${past?'Итог недели':'Осталось на неделю'}</span><div class="big"><span class="display sm num">${fmt(past?eaten:rest)}</span><span class="unit">${past?`из ${fmt(total)} `:''}ккал</span></div>`
+    : `<span class="lbl over">${I('alert','sm')}Перебор за неделю</span><div class="big"><span class="display sm num">${fmt(-rest)}</span><span class="unit">ккал</span></div>`;
+  const foot = past ? (rest<0?`<span class="t-foot muted num">Съедено ${fmt(eaten)} из ${fmt(total)} ккал</span>`:`<span class="t-foot muted num">${fmt(rest)} ккал осталось неиспользованными</span>`) : `<span class="t-foot muted num">Съедено ${fmt(eaten)} из ${fmt(total)} ккал (${fmt(norm)} × 7)</span>`;
+  const call = past || rest<0 ? '' : `<div class="callout"><span>В среднем на оставшиеся ${days} дн.</span><b>${fmt(rest/days)} ккал в день</b></div>`;
+  return `<section class="card" aria-label="Недельный бюджет">${head}${bar(eaten,total)}${foot}${call}</section>`;
+}
+function avg(m=[92,68,206], n=4, norm=NORM){
+  const row = (name, cls, v, nv) => `<div class="mac-row"><span class="mac-h"><i class="m-${cls}"></i>${name}</span><span class="mac-v">${v} г${nv?` <small>из ${nv}</small>`:''}</span>${nv?bar(v,nv,cls):''}</div>`;
+  return `<section class="card" aria-label="Средние БЖУ"><div class="sum-line"><span class="t-headline">В среднем за день</span><span class="avg-note">за ${n} дн. с записями</span></div><div class="mac-rows">${row('Белки','p',m[0],norm&&norm.p)}${row('Жиры','f',m[1],norm&&norm.f)}${row('Углеводы','c',m[2],norm&&norm.c)}</div></section>`;
+}
+function weekScreen({mode='Неделя', title='Эта неделя', sub='10–16 ноября', next=false, ch=chart(CUR,{}), cards=budget()+avg(), top='', extra='', inv=''}={}){
+  return `<div class="large-title">Неделя</div>${top}<div class="content"><div class="pad stack"><div class="seg" role="radiogroup" aria-label="Период"><span class="${mode==='Неделя'?'on':''}">Неделя</span><span class="${mode==='Месяц'?'on':''}">Месяц</span></div>${pager(title,sub,{next,cal:false}).replace(/день/g, mode==='Неделя'?'неделя':'месяц').replace('Предыдущий неделя','Предыдущая неделя').replace('Следующий неделя','Следующая неделя')}${inv}<section class="card">${ch}</section>${cards}</div></div>${tabbar('Неделя')}${extra}`;
+}
+const MONTH = Array.from({length:30},(_,i)=>({w:W[(i+5)%7], d:i+1, k: i>12?null: [1980,2150,1700,0,2240,2600,1900,2050,1890,1850,2380,1960,1240][i], t:i===12}));
+const BIG = wk([1850,6000,1960,1240,null,null,null]);
+const EMPTYW = wk([0,0,0,0,null,null,null]);
+
+/* ================= OCT-153: period report ================= */
+const N = 2100;
+const MON = ['янв.','февр.','марта','апр.','мая','июня','июля','авг.','сент.','окт.','нояб.','дек.'];
+const MONN = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+const WDS = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+const dow = dt => (dt.getUTCDay()+6)%7;
+/* days: [{dt: Date(UTC), k: number|null|undefined}] — k undefined = future/outside */
+const days = (y, m, d0, ks) => ks.map((k,i)=>({dt:new Date(Date.UTC(y,m,d0+i)), k}));
+const OCT = days(2026,9,1,[2050,1980,2650,2480,2010,1950,null,2120,2060,2720,2390,1700,1650,2000,2100,2180,2900,2200,1990,2040,1950,2080,2250,2810,2450,null,null,1600,2010,2150,2600]);
+const WEEK = days(2026,10,2,[2050,1890,2600,2200,1720,2900,2400]);
+const THIS = days(2026,10,16,[1240,undefined,undefined,undefined,undefined,undefined,undefined]);
+
+const state = (k, norm) => k===undefined ? 'future' : k==null ? 'none' : !norm ? 'plain' : k>norm*1.1 ? 'above' : k<norm*0.9 ? 'below' : 'in';
+const GL = {in:'check', above:'up', below:'down', none:'minus', plain:'', future:''};
+const SL = {in:'в норме', above:'выше нормы', below:'ниже нормы', none:'нет данных', plain:'есть записи', future:'ещё не наступил'};
+const glyph = s => GL[s] ? `<svg class="icon g" aria-hidden="true"><use href="#i-${GL[s]}"/></svg>` : '';
+const dlabel = dt => `${WDS[dow(dt)]}, ${dt.getUTCDate()} ${MON[dt.getUTCMonth()]}`;
+
+function dayCell(x, {norm=N, sel=false, tip=''}={}){
+  const s = state(x.k, norm);
+  const kc = x.k ? `, ${fmt(x.k)} ккал` : '';
+  return `<span class="day ${s} ${sel?'sel':''}" role="${s==='future'?'gridcell':'button'}" aria-label="${dlabel(x.dt)}: ${SL[s]}${kc}">${x.dt.getUTCDate()}${glyph(s)}${tip}</span>`;
+}
+/* one block per month; weeks Mon–Sun; leading blanks for the first day */
+function calendar(list, {norm=N, sel=-1, tip='', legend=true, labels=null}={}){
+  const months = [];
+  list.forEach((x,i)=>{ const key = x.dt.getUTCMonth(); if(!months.length || months.at(-1).m!==key) months.push({m:key, y:x.dt.getUTCFullYear(), items:[]}); months.at(-1).items.push([x,i]); });
+  const showLab = labels ?? months.length>1;
+  const head = WDS.map(w=>`<span class="wd" aria-hidden="true">${w}</span>`).join('');
+  const body = months.map(mo => `${showLab?`<span class="mlab">${MONN[mo.m]}</span>`:''}${'<span class="day blank" aria-hidden="true"></span>'.repeat(dow(mo.items[0][0].dt))}${mo.items.map(([x,i])=>dayCell(x,{norm, sel:i===sel, tip:i===sel?tip:''})).join('')}`).join('');
+  const lg = !legend ? '' : norm
+    ? `<div class="cal-legend" aria-hidden="true"><span><i class="day in">${glyph('in')}</i>в норме ±10%</span><span><i class="day above">${glyph('above')}</i>выше нормы</span><span><i class="day below">${glyph('below')}</i>ниже нормы</span><span><i class="day none">${glyph('none')}</i>нет данных</span></div>`
+    : `<div class="cal-legend" aria-hidden="true"><span><i class="day plain"></i>есть записи</span><span><i class="day none">${glyph('none')}</i>нет данных</span></div>`;
+  return `<div class="cal"><div class="cal-grid" role="grid" aria-label="Календарь периода">${head}${body}</div>${lg}</div>`;
+}
+const sItem = (s, html) => `<li><i class="day ${s}" aria-hidden="true">${glyph(s)}</i><span>${html}</span></li>`;
+const SERIES_OCT = `<ul class="series" aria-label="Серии">${sItem('above','Выше нормы <b>во все 5 суббот</b> и в 3 из 4 воскресений')}${sItem('in','<b>6 дней подряд</b> в норме: 18–23 окт.')}${sItem('below','2 дня ниже нормы: 12–13 окт.')}${sItem('none','Нет данных: 7, 26, 27 окт.')}</ul>`;
+const SERIES_WEEK = `<ul class="series" aria-label="Серии">${sItem('above','2 дня подряд выше нормы: сб–вс')}${sItem('below','1 день ниже нормы: пт')}</ul>`;
+
+const back = (t='Неделя') => `<span class="back" role="button">${I('chev-l')}${t}</span>`;
+const repNav = (title='', left=back(), right='') => `<div class="navbar"><div>${left}</div><div class="title num">${title}</div>${right||'<div></div>'}</div>`;
+const segP = (on='Неделя') => `<div class="seg" role="radiogroup" aria-label="Период">${['Неделя','Месяц','Свой'].map(x=>`<span class="${x===on?'on':''}" role="radio" aria-checked="${x===on}">${x}</span>`).join('')}</div>`;
+const pagerP = (t, s, next=true) => pager(t, s, {next, cal:false}).replace('Предыдущий день','Предыдущий период').replace('Следующий день','Следующий период');
+const head = (kicker, title, meta) => `<div class="rep-head">${kicker?`<span class="kicker">${kicker}</span>`:''}<h2>${title}</h2><span class="meta">${meta}</span></div>`;
+const card = (inner, label='') => `<section class="card"${label?` aria-label="${label}"`:''}>${inner}</section>`;
+
+/* AI block — before generation */
+const SENT = `<div class="sent">${I('lock','sm')}<span>Провайдеру уйдут итоги по дням и названия частых блюд — без фото, имени и email.</span></div>`;
+const genCard = ({profile=true, note=''}={}) => `<section class="ai-card" aria-label="Разбор от ИИ"><div class="ai-h">${I('spark')}Что было и что попробовать</div><p class="t-sub muted">ИИ напишет короткий разбор и 2–5 шагов на следующий период. Числа считает приложение — модель их не меняет.</p>${SENT}<div class="gen-row" role="switch" aria-checked="${profile}"><span class="grow">Учитывать профиль <span class="muted t-sub">(возраст, пол, рост, вес)</span></span><span class="switch ${profile?'on':''}"></span></div>${note}</section>`;
+const genBusy = `<section class="ai-card" aria-label="Разбор от ИИ" aria-busy="true"><div class="gen-progress" role="status"><span class="spinner"></span>Пишем разбор…</div><div class="skel-lines"><div class="skel" style="width:92%"></div><div class="skel" style="width:78%"></div><div class="skel" style="width:85%"></div><div class="skel" style="width:60%"></div></div><p class="t-foot muted">Обычно до минуты. Можно уйти с экрана — отчёт появится в «Моих отчётах».</p></section>`;
+const genMsg = (ic, cls, title, body) => `<section class="ai-card" aria-label="Разбор от ИИ"><div class="ai-h">${I('spark')}Что было и что попробовать</div><div class="banner ${cls}" role="status">${I(ic)}<div><div class="b-title">${title}</div>${body}</div></div></section>`;
+
+/* AI block — generated */
+const WHAT = `<section class="ai-card" aria-label="Что было"><div class="ai-h">Что было</div><ul class="ai-list">
+<li><span>В среднем <b>2 181 ккал</b> в день при норме 2 100; за месяц <b>61 070 из 65 100 ккал</b>.</span></li>
+<li><span><b>Все 5 суббот</b> выше нормы — в среднем на <b>640 ккал</b>; воскресенья — в 3 из 4.</span></li>
+<li><span>Самая ровная полоса — <b>6 дней в норме подряд</b>, 18–23 октября.</span></li>
+<li><span>Ужин — <b>850 ккал</b>, это <b>39%</b> дня; обед — 690.</span></li>
+<li><span>Белки <b>92 г</b> при норме 120, жиры <b>90 г</b> при норме 70.</span></li></ul></section>`;
+const TRY = (by=true) => `<section class="ai-card" aria-label="Что попробовать"><div class="ai-h">Что попробовать</div><ol class="ai-steps">
+<li><span>Субботы в среднем <b>+640 ккал</b>. Решите заранее, где будет главный приём, а два других сделайте полегче.</span></li>
+<li><span>Перенесите около <b>200 ккал</b> ужина в обед — например, гарнир: ужин станет ~650 ккал.</span></li>
+<li><span>Добавьте <b>25–30 г белка</b> в день: творог к завтраку или куриная грудка к обеду.</span></li>
+<li><span>Жиры выше нормы на <b>20 г</b> в день — посмотрите соусы и масло в частых блюдах.</span></li></ol>
+${by?`<div class="ai-by"><span>Текст: Ollama, llama3.1 · 1 нояб.</span><span class="act" role="button">${I('refresh','sm')}Сформировать заново</span></div>`:''}</section>`;
+
+/* numbers (server) */
+const stat = (k, v, small='', sub='') => `<div class="stat"><span class="k">${k}</span><span class="v">${v}${small?`<small> ${small}</small>`:''}</span>${sub?`<span class="k">${sub}</span>`:''}</div>`;
+const KCAL = (note='', o={}) => { const {n=28, avg=2181, sum=61070, len=31, per='За месяц', up=8, dn=3} = o;
+  return card(`<div class="sum-line"><span class="t-headline">Калории</span><span class="avg-note">${note||`по ${n} дн. с записями`}</span></div><div class="stat-grid">${stat('В среднем в день',fmt(avg),'ккал','норма 2 100')}${stat(per,fmt(sum),'ккал','из '+fmt(N*len))}${stat('Выше нормы',up,'дн.','больше чем на 10%')}${stat('Ниже нормы',dn,'дн.','больше чем на 10%')}</div>${bar(sum,N*len)}<span class="t-foot muted">Норма 2 100 × ${len} ${len===31?'день':'дней'}. Дни без данных в среднее не входят.</span>`,'Калории'); };
+const mrow = (name, cls, v, nv, sh, nsh, skew='') => `<div class="mac-row"><span class="mac-h"><i class="m-${cls}"></i>${name}</span><span class="mac-v">${v} г <small>из ${nv}</small></span>${bar(v,nv,cls)}<span class="t-foot muted num" style="grid-column:1/-1;display:flex;gap:var(--space-2);align-items:center">${sh}% ккал · в норме ${nsh}%${skew}</span></div>`;
+const MACROS = card(`<div class="sum-line"><span class="t-headline">БЖУ в среднем за день</span></div><div class="mac-rows">${mrow('Белки','p',92,120,17,23,`<span class="skew">${I('down')}меньше нормы</span>`)}${mrow('Жиры','f',90,70,37,30,`<span class="skew">${I('up')}больше нормы</span>`)}${mrow('Углеводы','c',228,240,42,46)}</div>`,'БЖУ');
+const lrow = (l, r, cls='') => `<div class="list-row" role="button"><span>${l}</span><span class="r"><span class="${cls}">${r}</span>${I('chev-r','sm')}</span></div>`;
+const ABOVE = card(`<div class="sum-line"><span class="t-headline">Дни выше нормы</span><span class="avg-note">8 дн.</span></div><div>${[['Сб, 3 окт.',2650],['Вс, 4 окт.',2480],['Сб, 10 окт.',2720],['Вс, 11 окт.',2390],['Сб, 17 окт.',2900],['Сб, 24 окт.',2810]].map(([d,k])=>lrow(d,`${fmt(k)} ккал <span class="over">+${fmt(k-N)}</span>`)).join('')}<div class="unch" role="button" aria-expanded="false">Ещё 2 дня${I('chev-d','sm')}</div></div>`,'Дни выше нормы');
+const frow2 = (n, c, k) => `<div class="list-row"><span>${n}</span><span class="muted num">${c} раз · ${fmt(k)} ккал</span></div>`;
+const FREQ = card(`<div class="sum-line"><span class="t-headline">Частые блюда</span><span class="avg-note">раз · ккал за месяц</span></div><div>${frow2('Кофе с молоком',26,1560)}${frow2('Овсянка на молоке',14,4060)}${frow2('Гречка с грибами',9,2070)}${frow2('Куриная грудка гриль',8,1984)}${frow2('Творог 5%',7,840)}<div class="unch" role="button" aria-expanded="false">Ещё 5 блюд${I('chev-d','sm')}</div></div><div class="sum-line" style="margin-top:var(--space-2)"><span class="t-headline">Самые калорийные</span><span class="avg-note">сумма за месяц</span></div><div>${frow2('Овсянка на молоке',14,4060)}${frow2('Пицца маргарита',4,3280)}${frow2('Паста карбонара',3,2340)}</div>`,'Частые блюда');
+const MEALS = card(`<div class="sum-line"><span class="t-headline">По приёмам пищи</span><span class="avg-note">в среднем за день</span></div><div>${[['Завтрак',430,20],['Обед',690,32],['Ужин',850,39],['Перекус',211,10]].map(([n,k,p])=>`<div class="list-row"><span>${n}</span><span class="num"><b>${k}</b> <span class="muted">ккал · ${p}%</span></span></div>`).join('')}</div><span class="t-foot muted">Больше всего ккал — с 19 до 22 ч. Поздние перекусы (00:00–03:59): 4 раза, в среднем 320 ккал.</span>`,'По приёмам пищи');
+const GAPS = card(`<div class="sum-line"><span class="t-headline">Нет данных: 3 дн.</span></div><span class="t-sub muted">7, 26, 27 окт. — без записей. Это не 0 ккал: в средние эти дни не входят.</span>`,'Нет данных');
+const DISC = `<p class="disclaimer">${I('alert','sm')}Не медицинский совет. Нормы ориентировочные.</p>`;
+
+/* sticky bottom bars */
+const barGen = (dis=false, note='') => `<div class="bottom bar">${note}<button class="btn btn-primary ${dis?'disabled':''}" ${dis?'aria-disabled="true"':''}>${I('spark','sm')}Сформировать</button></div>`;
+const barShare = `<div class="bottom bar"><span class="share-row">${I('lock','sm')}Отчёт увидит тот, кому вы его отправите</span><button class="btn btn-tonal">${I('share','sm')}Поделиться</button></div>`;
+const barBusy = `<div class="bottom bar"><button class="btn btn-plain">Отменить</button></div>`;
+const barRetry = `<div class="bottom bar"><span class="share-row">${I('alert','sm')}Провайдер не ответил — разбор не получен</span><button class="btn btn-primary">${I('refresh','sm')}Повторить</button></div>`;
+
+function draft({seg='Неделя', pg=pagerP('Прошлая неделя','2–8 ноября'), meta='7 дней · 7 с записями', cal=calendar(WEEK), series=SERIES_WEEK, ai=genCard(), rest='', bottom=barGen(), top='', extra='', nav=repNav('Отчёт за период')}={}){
+  return `${nav}${top}<div class="content rep"><div class="pad stack">${segP(seg)}${pg}<span class="t-sub muted num" style="text-align:center;margin-top:calc(-1 * var(--space-2))">${meta}</span>${card(cal+series,'Календарь периода')}${ai}${rest}</div></div>${bottom}${extra}`;
+}
+function report({part=0, top='', extra='', kcalNote='', sel=-1, tip='', nav=null}={}){
+  const navbar = nav ?? repNav(part?'Октябрь 2026':'', back('Мои отчёты'));
+  const parts = [
+    `${head('Отчёт · сформирован 1 нояб.','Октябрь 2026','31 день · 28 с записями · 3 без данных')}<div class="pad stack">${card(calendar(OCT,{sel,tip})+SERIES_OCT,'Календарь периода')}${WHAT}</div>`,
+    `<div class="pad stack">${WHAT}${TRY()}</div>`,
+    `<div class="pad stack">${KCAL(kcalNote)}${MACROS}${ABOVE}</div>`,
+    `<div class="pad stack">${FREQ}${MEALS}${GAPS}${DISC}</div>`,
+  ];
+  return `${navbar}${top}<div class="content rep">${parts[part]}</div>${barShare}${extra}`;
+}
+
+/* 1 · start */
+const weekWithEntry = () => {
+  const entry = `<div class="rep-entry"><button class="btn btn-tonal">${I('report','sm')}Отчёт за период${I('chev-r','sm')}</button><div class="cell" role="button">${I('history','sm')}<span class="grow">Мои отчёты</span><span class="val num">3</span>${I('chev-r','sm')}</div></div>`;
+  return weekScreen({title:'Прошлая неделя', sub:'2–8 ноября', next:true, ch:chart(wk([2050,1890,2600,2200,1720,2900,2400],2,-1),{}), cards:entry+budget({eaten:15760, past:true})});
+};
+const SHEET_RANGE = (() => {
+  const L = [];
+  for (let d=1; d<=30; d++) L.push({dt:new Date(Date.UTC(2026,9,d))});
+  for (let d=1; d<=30; d++) L.push({dt:new Date(Date.UTC(2026,10,d))});
+  const s = Date.UTC(2026,9,20), e = Date.UTC(2026,10,9), today = Date.UTC(2026,10,16);
+  const cell = x => { const t = x.dt.getTime(); const n = x.dt.getUTCDate();
+    if (t>today) return `<span class="day future" aria-disabled="true">${n}</span>`;
+    if (t===s) return `<span class="day rng s" aria-label="Начало: 20 окт." aria-selected="true">${n}</span>`;
+    if (t===e) return `<span class="day rng e" aria-label="Конец: 9 нояб." aria-selected="true">${n}</span>`;
+    if (t>s && t<e) return `<span class="day rng">${n}</span>`;
+    return `<span class="day out">${n}</span>`; };
+  const oct = L.slice(19,30).concat([{dt:new Date(Date.UTC(2026,9,31))}]), nov = L.slice(30,30+21);
+  const blk = (name, arr) => `<span class="mlab">${name}</span>${'<span class="day blank"></span>'.repeat(dow(arr[0].dt))}${arr.map(cell).join('')}`;
+  return `<div class="scrim"></div><div class="sheet" role="dialog" aria-labelledby="rh"><div class="grab"></div><div class="sheet-head"><b class="t-headline" id="rh">Свой период</b><span class="x" aria-label="Закрыть">${I('x')}</span></div>
+  <div class="grid3" style="grid-template-columns:1fr 1fr"><div class="field"><label>С</label><div class="input focus"><span class="val num">20 окт. 2026</span></div></div><div class="field"><label>По</label><div class="input"><span class="val num">9 нояб. 2026</span></div></div></div>
+  <div class="cal-grid rangepick" role="grid" aria-label="Выберите начало и конец">${WDS.map(w=>`<span class="wd">${w}</span>`).join('')}${blk('Октябрь', oct.slice(0))}${blk('Ноябрь', nov.slice(0,16).concat(nov.slice(16,21)))}</div>
+  <span class="t-foot muted num">21 день · от 3 до 92 дней · после сегодня выбрать нельзя</span><button class="btn btn-primary">Готово</button></div>`;
+})();
+const CUSTOM = days(2026,9,20,[2040,1950,2080,2250,2810,2450,null,null,1600,2010,2150,2600,1980,2100,2050,1890,2600,2200,1720,2900,2400]);
+
+document.getElementById('start-row').innerHTML = [
+  frame('1.1','Вход: экран «Неделя»','Под графиком — блок отчёта (AC-1.1): «Отчёт за период» и «Мои отчёты» со счётчиком (AC-4.2). Отчёт открывается сразу для периода, который сейчас на графике, — здесь прошлая неделя 2–8 ноября. Второй вход в «Мои отчёты» — пункт в «Профиле».', weekWithEntry()),
+  frame('1.2','Отчёт до отправки','Один экран вместо «настроек + отчёта»: сверху выбор периода (Неделя / Месяц / Свой + ‹ ›), под ним сразу календарь и числа — их считает сервер, ИИ не нужен. Блок ИИ — что уйдёт провайдеру одной строкой и выключатель «Учитывать профиль» (по умолчанию включён, выбор запоминается, AC-4.1). «Сформировать» закреплена внизу: 2 касания от графика (раздел 5).', draft({rest:KCAL('',{n:7, avg:2251, sum:15760, len:7, per:'За неделю', up:3, dn:1})})),
+  frame('1.3','Свой период','«Свой» открывает лист с диапазоном: «С» и «По» + календарь, первое касание — начало, второе — конец. 3–92 дня, после сегодня выбрать нельзя (AC-1.2). Короче 3 или длиннее 92 — «Готово» неактивна, подпись снизу говорит почему. На десктопе — диалог.', draft({seg:'Свой', pg:pagerP('Свой период','20 окт. – 9 нояб.', false), meta:'21 день · 19 с записями', cal:calendar(CUSTOM), series:'', extra:SHEET_RANGE})),
+  frame('1.4','Пишем разбор','После «Сформировать» блок ИИ — «Пишем разбор…» со скелетоном строк, внизу «Отменить» (AC-1.4). Календарь и числа уже на месте. Уйти можно: отчёт допишется и появится в «Моих отчётах» (строка со спиннером, кадр 3.1). Готово — экран сам становится отчётом (2.1).', draft({seg:'Месяц', pg:pagerP('Октябрь','1–31 октября'), meta:'31 день · 28 с записями', cal:calendar(OCT), series:SERIES_OCT, ai:genBusy, bottom:barBusy})),
+].join('');
+
+document.getElementById('states-row').innerHTML = [
+  frame('1.5','Меньше 3 дней с записями','E-1.1: «Сформировать» неактивна, причина — прямо над кнопкой, не в подсказке: «Для отчёта нужно хотя бы 3 дня с записями». Сегодня понедельник: календарь показывает 1 день с записями; будущие дни — бледные, без рамки.', draft({pg:pagerP('Эта неделя','16–22 ноября', false), meta:'7 дней · 1 с записями', cal:calendar(THIS), series:'', bottom:barGen(true, `<span class="share-row">${I('alert','sm')}Для отчёта нужно хотя бы 3 дня с записями</span>`)})),
+  frame('1.6','ИИ не настроен','E-1.2: блок ИИ объясняет, почему текста нет; «Сформировать» не показываем вовсе — вместо неё «Поделиться» числовой частью (AC-4.7). Календарь, серии и все числа работают. Такой отчёт не сохраняется в «Мои отчёты»: числа и так пересчитываются в любой момент.', draft({seg:'Месяц', pg:pagerP('Октябрь','1–31 октября'), meta:'31 день · 28 с записями', cal:calendar(OCT), series:SERIES_OCT, ai:genMsg('spark','notice','Разбор от ИИ недоступен','Отчёт работает с ИИ-провайдером; администратор не настроил его.'), bottom:barShare.replace('<span class="share-row">', `<span class="share-row">${I('spark','sm')}Без ИИ — только числа. </span><span class="share-row">`)})),
+  frame('1.7','Ошибка провайдера','E-1.3: после одного повтора на сервере — баннер с причиной и «Повторить» внизу. Числа остаются на экране. 429 — тот же баннер с текстом «Провайдер занят, попробуйте через минуту».', draft({seg:'Месяц', pg:pagerP('Октябрь','1–31 октября'), meta:'31 день · 28 с записями', cal:calendar(OCT), series:SERIES_OCT, ai:genMsg('alert','danger','Не удалось получить разбор','Провайдер не ответил. Числа ниже уже посчитаны.'), bottom:barRetry})),
+  frame('1.8','Офлайн и лимит','E-1.4: полоса «Офлайн» OCT-25; «Сформировать» неактивна с причиной. Сохранённые отчёты открываются из кэша. Лимит 10 в день (AC-4.4) — тот же вид, текст «Сегодня уже 10 отчётов. Новый можно будет сформировать завтра».', draft({top:offBar('Офлайн · данные на 12:40'), bottom:barGen(true, `<span class="share-row">${I('wifi-off','sm')}Без сети разбор не сформировать</span>`)})),
+].join('');
+
+const dayTip = `<span class="cal-tip" role="tooltip"><b>Сб, 17 окт. · 2 900 ккал</b><span>на 800 выше нормы</span><span class="go">Открыть день${I('chev-r')}</span></span>`;
+const staleBanner = `<div class="pad"><div class="banner notice" role="status">${I('refresh')}<div><div class="b-title">Дневник изменился после отчёта</div><span class="link">Сформировать заново</span></div></div></div>`;
+const OCT_PLAIN = calendar(OCT,{norm:0});
+document.getElementById('report-row').innerHTML = [
+  frame('2.1','Отчёт: шапка и календарь','Снимок (AC-4.3): «сформирован 1 нояб.» в шапке. Календарь первым (AC-2.10): 4 состояния — заливка + значок + легенда, не только цвет. «В норме» — мягкий зелёный, «выше» — тёплый со штриховкой, как на графике недели, «ниже» — нейтральный серый, «нет данных» — пунктир. Ниже — серии (AC-2.11) теми же значками. «Поделиться» всегда внизу, над ней строка «Отчёт увидит тот, кому вы его отправите» (AC-4.6).', report()),
+  frame('2.2','«Что было» и «Что попробовать»','Два блока текста модели (AC-3.1): «Что было» — пункты с числами жирным, «Что попробовать» — нумерованные шаги в кружках. Внизу — «Текст: провайдер, модель» и «Сформировать заново» (AC-3.7): заменяет только текст.', report({part:1})),
+  frame('2.3','Числа','Калории (AC-2.2): среднее, итог против бюджета 2 100 × 31, дни выше/ниже на 10%+. БЖУ (AC-2.3): граммы против нормы, доля в ккал против доли нормы; перекос > 20% — подпись «меньше/больше нормы» со стрелкой. Дни выше нормы (AC-2.4) — касание открывает день в дневнике.', report({part:2})),
+  frame('2.4','Блюда, приёмы пищи, пропуски','Частые блюда — 5 + «Ещё», самые калорийные — 3 (AC-2.5). Приёмы пищи — ккал и доля дня, поздние перекусы отдельной строкой (AC-2.6). Дни без записей — отдельной карточкой «это не 0 ккал» (AC-2.7). Последним — дисклеймер (AC-3.6).', report({part:3})),
+  frame('2.5','Касание дня','Подсказка над днём: дата, ккал, «на 800 выше нормы» и «Открыть день ›» — второе касание ведёт в дневник (AC-2.10). VoiceOver: каждый день — кнопка «Сб, 17 октября: выше нормы, 2 900 ккал».', report({sel:16, tip:dayTip})),
+  frame('2.6','Дневник изменился, норма менялась','AC-4.3: если записи периода поправили после отчёта — баннер «Дневник изменился после отчёта · Сформировать заново» над шапкой. AC-2.9: если норма в периоде менялась, в карточке калорий вместо «по 28 дн.» — «Сравнение с текущей нормой».', report({part:2, top:staleBanner, kcalNote:'Сравнение с текущей нормой'})),
+  frame('2.7','Норма не задана','E-2.1: календарь в 2 состояния — «есть записи» / «нет данных», с ккал в подсказке. Сравнений с нормой и стрелок перекоса нет; над календарём — плашка «Задать норму» как на «Сегодня». Шаги модели — без цифр нормы.', `${repNav('', back('Мои отчёты'))}<div class="content rep">${head('Отчёт · сформирован 1 нояб.','Октябрь 2026','31 день · 28 с записями · 3 без данных')}<div class="pad stack"><div class="invite">${I('target')}<span>Задайте норму — сравним с ней</span><span class="go">Задать</span></div>${card(OCT_PLAIN,'Календарь периода')}${card(`<div class="sum-line"><span class="t-headline">Калории</span><span class="avg-note">по 28 дн. с записями</span></div><div class="stat-grid">${stat('В среднем в день','2 181','ккал')}${stat('За месяц','61 070','ккал')}</div>`)}</div></div>${barShare}`),
+].join('');
+
+/* 3 · my reports */
+const repCell = (t, sub, {busy=false, badge=''}={}) => `<div class="cell ic rep" role="button"><span class="lead-ic round">${busy?'<span class="spinner" style="width:16px;height:16px"></span>':I('report','sm')}</span><span class="main"><span>${t}</span><span class="sub">${sub}</span>${badge?`<span>${badge}</span>`:''}</span>${I('chev-r','sm').replace('class="icon','class="icon chev')}</div>`;
+const LIST = `<div class="group">${repCell('1–15 ноября','Пишем разбор…',{busy:true})}${repCell('Октябрь 2026','1 нояб. · в среднем 2 181 ккал',{badge:'<span class="badge">дневник изменился</span>'})}${repCell('20 окт. – 9 нояб.','10 нояб. · в среднем 2 105 ккал')}${repCell('2–8 ноября','9 нояб. · в среднем 2 251 ккал')}</div><p class="group-f">Отчёты видите только вы. Удалить — свайп влево.</p>`;
+const listScreen = (inner, extra='') => `${repNav('', back('Неделя'))}<div class="large-title">Мои отчёты</div><div class="content rep"><div class="pad">${inner}</div></div>${extra}`;
+const CH = I('chev-r','sm').replace('class="icon','class="icon chev');
+const swipeRow = `<div class="swipe"><div class="cell ic rep" style="translate:-96px 0;background:var(--color-surface)"><span class="lead-ic round">${I('report','sm')}</span><span class="main"><span>20 окт. – 9 нояб.</span><span class="sub">10 нояб. · в среднем 2 105 ккал</span></span>${CH}</div><span class="del">${I('trash','sm')}Удалить</span></div>`;
+const swipeList = `<div class="group">${repCell('1–15 ноября','Пишем разбор…',{busy:true})}${repCell('Октябрь 2026','1 нояб. · в среднем 2 181 ккал',{badge:'<span class="badge">дневник изменился</span>'})}${swipeRow}${repCell('2–8 ноября','9 нояб. · в среднем 2 251 ккал')}</div>`;
+const delAlert = `<div class="scrim"></div><div class="alert" role="alertdialog"><b class="t-headline">Удалить отчёт за 20 окт. – 9 нояб.?</b><p class="t-foot">Записи в дневнике не изменятся.</p><div class="btns"><button class="btn btn-plain">Отмена</button><button class="btn btn-danger-plain">Удалить</button></div></div>`;
+document.getElementById('list-row').innerHTML = [
+  frame('3.1','Список','Свежие сверху (AC-4.2): период, дата формирования, среднее ккал. Отчёт, который ещё пишется, — со спиннером «Пишем разбор…» (AC-1.4). Устаревший — бейдж «дневник изменился». Хранятся, пока пользователь не удалит; администратор их не видит.', listScreen(LIST)),
+  frame('3.2','Удаление','Свайп влево → «Удалить» → подтверждение: отчёт не вернуть, а сформировать заново — значит снова тратить запрос к модели. На десктопе — кнопка корзины в строке при наведении.', listScreen(swipeList, delAlert)),
+  frame('3.3','Пусто','Пока ни одного отчёта: подсказка, откуда он берётся, и кнопка к неделе.', listScreen(`<div class="state"><span class="s-ic">${I('report')}</span><span class="t-headline">Отчётов пока нет</span><p class="t-sub muted">Откройте неделю или месяц и нажмите «Отчёт за период».</p><button class="btn btn-tonal btn-sm">Открыть неделю</button></div>`)),
+].join('');
+
+/* 4 · share */
+const pngCal = calendar(OCT).replace('class="cal"','class="cal" style="gap:5px"');
+const PNG = `<div class="png light-vars" role="img" aria-label="Картинка отчёта за октябрь 2026"><span class="p-k">Отчёт за период</span><span class="p-t">Октябрь 2026</span><span class="p-m">31 день · 28 с записями · норма 2 100 ккал</span>${pngCal}<div class="p-stats"><div><span>В среднем</span><b>2 181</b></div><div><span>За месяц</span><b>61 070</b></div><div><span>Б / Ж / У, г</span><b>92/90/228</b></div></div><div class="p-sec"><h4>Что было</h4><ul><li>В среднем 2 181 ккал в день при норме 2 100.</li><li>Все 5 суббот выше нормы — в среднем на 640 ккал.</li><li>6 дней в норме подряд, 18–23 октября.</li><li>Ужин — 850 ккал, 39% дня.</li></ul></div><div class="p-sec"><h4>Что попробовать</h4><ol><li>Субботы +640 ккал: решите заранее, где главный приём.</li><li>Перенесите ~200 ккал ужина в обед.</li><li>Добавьте 25–30 г белка в день.</li><li>Жиры +20 г в день — посмотрите соусы и масло.</li></ol></div><div class="p-foot"><span>Не медицинский совет. Нормы ориентировочные.</span><span class="brand"><span class="mark">${I('plate')}</span>OpenCalorieTracker</span></div></div>`;
+const TXT = `Отчёт за период: октябрь 2026
+31 день · 28 с записями · норма 2 100 ккал
+
+В среднем 2 181 ккал в день · за месяц 61 070 из 65 100
+Б 92 г · Ж 90 г · У 228 г в день
+В норме 17 дн. · выше 8 · ниже 3 · нет данных 3
+
+Что было
+• В среднем 2 181 ккал в день при норме 2 100.
+• Все 5 суббот выше нормы — в среднем на 640 ккал.
+• 6 дней в норме подряд, 18–23 октября.
+• Ужин — 850 ккал, 39% дня.
+• Белки 92 г при норме 120, жиры 90 г при 70.
+
+Что попробовать
+1. Субботы +640 ккал: решите заранее, где главный приём.
+2. Перенесите ~200 ккал ужина в обед.
+3. Добавьте 25–30 г белка в день.
+4. Жиры +20 г в день — посмотрите соусы и масло.
+
+Не медицинский совет. Нормы ориентировочные.
+— OpenCalorieTracker`;
+const iosShare = `<div class="scrim"></div><div class="ios-share" aria-label="Системное меню «Поделиться» (iOS)"><span class="proto-tag">системное меню iOS</span><div class="hd"><span class="pv">${PNG.replace('class="png','style="transform:scale(.122);transform-origin:0 0" class="png')}</span><div class="stack-sm"><b class="t-headline">Отчёт за октябрь 2026</b><span class="t-foot muted">Картинка PNG и текст</span></div></div><div class="apps"><span><i></i>AirDrop</span><span><i></i>Сообщения</span><span><i></i>Почта</span><span><i></i>Telegram</span></div><div class="acts"><div>Скопировать${I('copy','sm')}</div><div>Сохранить изображение${I('download','sm')}</div></div></div>`;
+document.getElementById('share-row').innerHTML = [
+  frame('4.1','Системное меню','Касание «Поделиться» сразу открывает системное меню (Web Share, AC-4.5) с картинкой и тем же отчётом текстом: 2 касания до отправки. Строка «Отчёт увидит тот, кому вы его отправите» стоит над кнопкой всегда — без лишнего диалога. Работает без ИИ (числа) и офлайн для открытого отчёта (AC-4.7).', report({extra:iosShare})),
+  `<figure class="frame"><div style="display:grid;place-items:center">${PNG}</div><figcaption><b>4.2 Картинка PNG.</b> 1080 × 1920 (9:16 — для мессенджеров и сторис), здесь 1/3. Всегда светлая — читается в любом чате и при печати. Шапка, календарь с легендой, 3 главных числа, «Что было» и «Что попробовать» (до 4 пунктов, длинные обрезаются по фразе), дисклеймер и название приложения. Без имени, email, фото и профиля (AC-4.6).</figcaption></figure>`,
+  `<figure class="frame"><pre class="txtshare">${TXT}</pre><figcaption><b>4.3 Текст.</b> Тот же отчёт простым текстом — уходит вместе с картинкой и копируется кнопкой «Скопировать текст» на десктопе. Без ИИ — без блоков «Что было» и «Что попробовать».</figcaption></figure>`,
+].join('');
+
+/* D · desktop */
+const sideR = on => `<aside class="side"><div class="brand"><span class="mark">${I('plate','sm')}</span>OpenCalorieTracker</div><button class="btn btn-primary">${I('camera','sm')}Добавить еду</button>${[['home','Сегодня'],['book','Дневник'],['chart','Неделя'],['user','Профиль']].map(([ic,l])=>`<span class="nav-i ${l===on?'on':''}">${I(ic)}${l}</span>`).join('')}<div class="foot"><span class="nav-i">${I('settings')}Настройки</span></div></aside>`;
+document.getElementById('desk-row').innerHTML = `<figure class="frame wide"><div class="desk"><div class="chrome"><i></i><i></i><i></i><span class="url">calories.home.lan/reports/2026-10</span></div><div class="body">${sideR('Неделя')}<main class="main-area"><div class="inner">
+<div class="desk-title"><div><span class="link t-sub">${'‹ Мои отчёты'}</span><div class="large-title">Октябрь 2026<span class="date">Сформирован 1 нояб. · 31 день · 28 с записями · 3 без данных</span></div></div><div class="rep-actions"><button class="btn btn-tonal btn-sm">${I('download','sm')}Скачать картинку</button><button class="btn btn-tonal btn-sm">${I('copy','sm')}Скопировать текст</button></div></div>
+<div class="rep-cols"><div class="stack">${card(calendar(OCT)+SERIES_OCT,'Календарь периода')}${WHAT}</div><div class="stack">${TRY()}${KCAL()}</div></div>
+<span class="share-row">${I('lock','sm')}Отчёт увидит тот, кому вы его отправите</span></div></main></div></div><figcaption><b>D.1 Десктоп.</b> Отчёт — страница в основной области: слева календарь, серии и «Что было», справа «Что попробовать» и числа (дальше — БЖУ, дни выше нормы, блюда, приёмы пищи, пропуски, дисклеймер). В браузере без системного меню вместо «Поделиться» — «Скачать картинку» и «Скопировать текст» (AC-4.5); есть Web Share (Safari на Mac) — одна кнопка «Поделиться». Выбор своего периода — центрированный диалог <code>--dialog-max-width</code>, календарь дня — подсказка по наведению и фокусу.</figcaption></figure>`;
+document.querySelectorAll('.phone').forEach(p=>{p.insertAdjacentHTML('afterbegin','<div class="status"><span>9:41</span></div><div class="island"></div>');p.insertAdjacentHTML('beforeend','<div class="home-ind"></div>');});
+const only = new URLSearchParams(location.search).get('section');
+if(only) document.querySelectorAll('.doc-section').forEach(s=>{ if(s.id!==only) s.remove(); });
+if(only) document.querySelectorAll('.doc-h1,.doc-lead').forEach(e=>e.remove());
+</script>
+</body>
+</html>
