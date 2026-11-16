@@ -153,6 +153,16 @@ describe('KcalChart', () => {
       expect(open).not.toHaveBeenCalled();
     });
 
+    it('puts the previous tip back when the touch turns into a scroll', async () => {
+      const { tap, plot, at } = await touch('month');
+      tap(15);
+      fireEvent.pointerDown(plot, at(35));
+      expect(tipOf('Thu, Nov 12')).toBeTruthy();
+      fireEvent.pointerCancel(plot, at(35));
+      expect(tipOf('Tue, Nov 10')).toBeTruthy();
+      expect(tipOf('Thu, Nov 12')).toBeNull();
+    });
+
     it('opens the day on the first tap in a week, once', async () => {
       const { open, tap } = await touch('week');
       tap(5, screen.getByRole('button', { name: /^Mon, Nov 9/ }));

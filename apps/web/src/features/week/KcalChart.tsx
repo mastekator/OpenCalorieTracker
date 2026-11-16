@@ -131,7 +131,8 @@ export function KcalChart({ days, norm, today, mode, onOpenDay }: Props) {
             onOpenDay(g.date);
         }}
         onPointerCancel={() => {
-          // The browser took the gesture for a scroll: open nothing.
+          // The browser took the gesture for a scroll: open nothing, put the tip back.
+          if (gesture.current) setTip(gesture.current.before);
           gesture.current = null;
           lastDown.current = null;
         }}
