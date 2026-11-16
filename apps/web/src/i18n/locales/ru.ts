@@ -519,8 +519,10 @@ const ru: DeepPartial<typeof en> = {
     delete: 'Удалить взвешивание',
     fix: 'Исправить',
     jump_title: 'Проверьте вес',
-    jump_more: '{weight} — на {diff} больше, чем {date}. Всё верно?',
-    jump_less: '{weight} — на {diff} меньше, чем {date}. Всё верно?',
+    jump_more:
+      '{date} было {prev}, сейчас {weight} — на {diff} больше. Всё верно?',
+    jump_less:
+      '{date} было {prev}, сейчас {weight} — на {diff} меньше. Всё верно?',
     typo_below: '{weight} — меньше {min}',
     typo_above: '{weight} — больше {max}',
     typo_body: 'Возможно, имелось в виду {fix}?',

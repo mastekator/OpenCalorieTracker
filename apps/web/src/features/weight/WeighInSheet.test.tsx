@@ -14,6 +14,7 @@ import {
   type Weighing,
 } from '@oct/shared';
 import { I18nProvider, LOCALE_STORAGE_KEY } from '../../i18n';
+import { loadDict } from '../../i18n/translate';
 import { renderLoaded } from '../../test-utils';
 import { ToastProvider } from '../../ui/Toast/Toast';
 import { EMPTY_PROFILE } from '../../data/DataContext';
@@ -146,7 +147,7 @@ describe('WeighInSheet: log a weighing (OCT-189 §2)', () => {
     expect(button(/November 17, 2026/).hasAttribute('disabled')).toBe(true);
     fireEvent.click(button('Done'));
     expect(
-      screen.getByRole('heading', { name: 'Weight for Nov 15' }),
+      screen.getByRole('heading', { name: /^Weight for Nov\s15$/ }),
     ).toBeTruthy();
     await save();
     expect(onPut).toHaveBeenCalledWith('2026-11-15', 79.8);
@@ -158,7 +159,7 @@ describe('WeighInSheet: log a weighing (OCT-189 §2)', () => {
     type('86,9');
     await save();
     expect(dialogText()).toContain(
-      '86.9 kg is 7.1 kg more than on Nov 14. Is that right?',
+      'On Nov 14 it was 79.8 kg, now 86.9 kg — 7.1 kg more. Is that right?',
     );
     fireEvent.click(button('Edit'));
     expect(dialog()).toBeNull();
@@ -171,11 +172,29 @@ describe('WeighInSheet: log a weighing (OCT-189 §2)', () => {
     expect(onPut).toHaveBeenCalledWith(TODAY, 86.9);
   });
 
+  it('RU jump starts with an unbreakable date and has no double dot (OCT-226)', async () => {
+    localStorage.setItem(LOCALE_STORAGE_KEY, 'ru');
+    await setup();
+    await act(() => loadDict('ru'));
+    fireEvent.click(button(/Ввести вес с клавиатуры$/));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Вес' }), {
+      target: { value: '86,9' },
+    });
+    await act(async () => fireEvent.click(button('Сохранить')));
+    const text = dialog()!.textContent!;
+    expect(text).toContain('14\u00a0нояб.');
+    expect(text).not.toContain('..');
+    expect(text.replace(/\u00a0/g, ' ')).toContain(
+      '14 нояб. было 79,8 кг, сейчас 86,9 кг — на 7,1 кг больше. Всё верно?',
+    );
+  });
+
   it('offers the comma fix for a typo out of range (2.6)', async () => {
     const { onPut } = await setup();
     type('8,02');
     await save();
-    expect(dialogText()).toContain('8,02 kg is below 30 kg');
+    // The typed number is shown in the language's format (OCT-226).
+    expect(dialogText()).toContain('8.02 kg is below 30 kg');
     await act(async () => fireEvent.click(button(/^Yes, 80\.2\skg$/)));
     expect(onPut).toHaveBeenCalledWith(TODAY, 80.2);
   });
@@ -213,7 +232,7 @@ describe('WeighInSheet: edit a weighing (OCT-189 3.3–3.5)', () => {
   it('deletes at once and «Undo» puts it back (AC-9.6)', async () => {
     const { onPut, onDelete } = await setup({ edit: '2026-11-12' });
     expect(
-      screen.getByRole('heading', { name: 'Weigh-in · Nov 12' }),
+      screen.getByRole('heading', { name: /^Weigh-in · Nov\s12$/ }),
     ).toBeTruthy();
     await act(async () => fireEvent.click(button('Delete weigh-in')));
     expect(onDelete).toHaveBeenCalledWith('2026-11-12');
