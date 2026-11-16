@@ -9,7 +9,8 @@ import type { AppDeps } from '../app.js';
 import { requireUser, type AuthEnv } from '../auth/session.js';
 import { ApiError } from '../http/errors.js';
 import { validate } from '../http/validate.js';
-import { readProfile, writeProfile } from './norm.js';
+import { saveProfile } from '../weight/store.js';
+import { readProfile } from './norm.js';
 
 /** Local date of the process, i.e. in the installation's TZ (ADR-0014 §3). */
 export const serverToday = () => new Date().toLocaleDateString('sv');
@@ -55,7 +56,9 @@ export function profileRoutes({ db }: AppDeps) {
         );
         if (errors.length) throw new ApiError(400, 'validation_failed', errors);
 
-        db.transaction(() => writeProfile(db, userId, p, m))();
+        db.transaction(() =>
+          saveProfile(db, userId, p, m, old.weightKg, today),
+        )();
         return c.json(readProfile(db, userId));
       },
     );
