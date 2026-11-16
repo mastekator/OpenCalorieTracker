@@ -4,6 +4,7 @@ import { clientIp } from '../http/client-ip.js';
 import { setCookie, testApp } from '../test/app.js';
 import { ensureAdmin } from './admin.js';
 import { DEVICE_FAILS, IP_FAILS, STALE_AFTER, TIMEOUT } from './guard.js';
+import { hashPassword } from './password.js';
 
 const ADMIN = 'admin@example.com';
 const PASSWORD = 'Correct-horse-battery-9';
@@ -12,6 +13,10 @@ const IP = '203.0.113.7';
 async function setup() {
   const t = testApp();
   await ensureAdmin(t.config, t.db);
+  // Cheap scrypt params: the IP-limit tests make dozens of logins, real params time out in CI.
+  t.db
+    .prepare('UPDATE passwords SET hash = ?')
+    .run(await hashPassword(PASSWORD, { N: 1024, r: 8, p: 1 }));
   /** A browser: keeps the device cookie it is given, unless `cookies` is false. */
   const browser = (ip = IP, cookies = true) => {
     let jar = '';

@@ -133,7 +133,7 @@ describe('LinkReadySheet without navigator.share', () => {
       />,
     );
     expect(screen.queryByRole('button', { name: 'Share' })).toBeNull();
-    const copy = screen.getByRole('button', { name: 'Copy' });
+    const copy = await screen.findByRole('button', { name: 'Copy' });
     expect(copy.className).toContain('button--primary');
 
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
