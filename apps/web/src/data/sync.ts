@@ -115,5 +115,8 @@ export async function followLatest<S extends StoreNames<OctDb>[]>(
 export async function storeProfile(db: Db, profile: ProfileResponse) {
   await db.put('kv', profile, 'profile');
   emitChange();
+  // A new weight writes today's weighing on the server (AC-9.10): fetch it, don't wait for the network.
+  // shortcut: a pull already running is reused and may miss that weighing; the next pull brings it.
+  void pull(db).catch(() => {});
   return profile;
 }

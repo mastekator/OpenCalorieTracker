@@ -191,7 +191,10 @@ describe('TodayScreen', () => {
     await act(() => storeProfile(db, { ...profile(1800), rev: 2 }));
     db.close();
     expect(await screen.findByText('1,800')).toBeTruthy();
-    expect(fetch.mock.calls.length).toBe(calls);
+    // Only the pull after a profile save (OCT-225), no profile request.
+    expect(
+      fetch.mock.calls.slice(calls).map(([url]) => String(url).split('?')[0]),
+    ).toEqual(['/api/sync']);
   });
 
   it('ends with the weight card; «Log weight» opens the weigh-in sheet (OCT-189 §1)', async () => {
