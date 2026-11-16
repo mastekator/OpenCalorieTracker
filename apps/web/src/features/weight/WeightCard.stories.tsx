@@ -52,6 +52,7 @@ const meta = {
     profile: PROFILE,
     online: true,
     onAdd: () => {},
+    onOpen: () => {},
     onSetGoal: () => {},
     onMaintain: async () => {},
     onRetry: () => {},

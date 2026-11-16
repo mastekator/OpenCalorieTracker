@@ -1,12 +1,18 @@
 import { useState } from 'react';
-import { CircleAlert, CloudOff, Plus, Target, Weight } from 'lucide-react';
+import {
+  ChevronRight,
+  CircleAlert,
+  CloudOff,
+  Plus,
+  Target,
+  Weight,
+} from 'lucide-react';
 import {
   addDays,
   ageYears,
   calculateNorm,
   daysBetween,
   round1,
-  weightFromKg,
   type ProfileResponse,
   type Units,
   type Weighing,
@@ -18,10 +24,9 @@ import { Banner } from '../../ui/Banner/Banner';
 import { Button } from '../../ui/Button/Button';
 import { Skeleton } from '../../ui/Skeleton/Skeleton';
 import { offerMaintain, useReachedLater } from '../profile/goalReached';
+import { NB, useWeightFormat } from './format';
 import './WeightCard.css';
 
-const NB = ' ';
-const MINUS = '−';
 /** The mini chart covers the last 30 days, today included. */
 const SPAN = 30;
 // Plot box in px, as --weight-spark-width / --weight-spark-height.
@@ -44,6 +49,8 @@ type Props = {
   /** The profile saves only online: «Switch» is greyed out offline. */
   online: boolean;
   onAdd: () => void;
+  /** The weight screen: the weight, the chart and «All weigh-ins». */
+  onOpen: () => void;
   /** «Set goal»: the profile screen. */
   onSetGoal: () => void;
   /** «Switch» on «Goal reached»: the goal becomes «Maintain». */
@@ -60,21 +67,28 @@ export function WeightCard({
   profile,
   online,
   onAdd,
+  onOpen,
   onSetGoal,
   onMaintain,
   onRetry,
 }: Props) {
-  const { t, locale } = useT();
-  const [laterRev, later] = useReachedLater();
-  const [saving, setSaving] = useState(false);
-  const unit = t(units === 'us' ? 'unit.lb' : 'unit.kg');
+  const { t } = useT();
+  const f = useWeightFormat(units);
 
   const head = (when?: string) => (
-    <h2 className="weight-card__head">
-      <Weight aria-hidden="true" />
-      {t('weight_card.title')}
-      {when && <span>· {when}</span>}
-    </h2>
+    <div className="weight-card__bar">
+      <h2 className="weight-card__head">
+        <Weight aria-hidden="true" />
+        {t('weight_card.title')}
+        {when && <span>· {when}</span>}
+      </h2>
+      {when && (
+        <button type="button" className="weight-card__link" onClick={onOpen}>
+          {t('weight_card.all')}
+          <ChevronRight aria-hidden="true" />
+        </button>
+      )}
+    </div>
   );
   const add = (
     <Button variant="tonal" onClick={onAdd}>
@@ -123,131 +137,30 @@ export function WeightCard({
       </section>
     );
 
-  const n1 = (v: number) =>
-    new Intl.NumberFormat(locale, {
-      minimumFractionDigits: 1,
-      maximumFractionDigits: 1,
-    }).format(v);
-  // A goal reads «73 kg», «160.9 lb».
-  const n01 = (v: number) =>
-    new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(v);
-  const shown = (kg: number) => round1(weightFromKg(kg, units));
-  const short = (d: string) =>
-    new Intl.DateTimeFormat(locale, {
-      timeZone: 'UTC',
-      day: 'numeric',
-      month: 'short',
-    })
-      .format(new Date(`${d}T00:00:00Z`))
-      .replaceAll(' ', NB);
-
   const latest = weighings.at(-1)!;
-  const prev = weighings.at(-2);
-  const ago = daysBetween(latest.date, today);
-  const when =
-    ago <= 0
-      ? t('weight_card.today')
-      : ago === 1
-        ? t('weight_card.yesterday')
-        : t('weight_card.days_ago', { count: ago });
-
-  let delta = t('weight_card.first');
-  if (prev) {
-    // Signed number, no color or arrow (AC-9.17); «0.0» has no sign.
-    const d = round1(shown(latest.weightKg) - shown(prev.weightKg));
-    const sign = d > 0 ? '+' : d < 0 ? MINUS : '';
-    delta = t('weight_card.since', {
-      diff: `${sign}${n1(Math.abs(d))}${NB}${unit}`,
-      date: short(prev.date),
-    });
-  }
-
-  // The goal as of the latest weighing, counted here (ADR-0016 §4).
-  const p = { ...profile.profile, weightKg: latest.weightKg };
-  const minor = p.birthDate !== null && ageYears(p.birthDate, today) < 18;
-  const target =
-    !minor && (p.goal === 'lose' || p.goal === 'gain')
-      ? p.targetWeightKg
-      : null;
-
-  let goal = null;
-  if (minor) {
-    // Under 18: no goal row at all (AC-9.18).
-  } else if (p.goal === 'maintain')
-    goal = (
-      <p className="weight-card__goal">
-        <Target aria-hidden="true" />
-        {t('weight_card.maintain')}
-      </p>
-    );
-  else if (target === null)
-    goal = (
-      <p className="weight-card__goal">
-        <Target aria-hidden="true" />
-        <span className="weight-card__muted">{t('weight_card.no_goal')}</span>
-        <button type="button" className="weight-card__link" onClick={onSetGoal}>
-          {t('weight_card.set_goal')}
-        </button>
-      </p>
-    );
-  else {
-    const goalText = `${n01(shown(target))}${NB}${unit}`;
-    const left = round1(
-      p.goal === 'lose'
-        ? shown(latest.weightKg) - shown(target)
-        : shown(target) - shown(latest.weightKg),
-    );
-    const calc = profile.manual ? null : calculateNorm(p, today);
-    goal = offerMaintain(calc, p, profile.rev, laterRev) ? (
-      <Banner
-        tone="weight"
-        title={t('weight_card.reached_title', { weight: goalText })}
-        actions={
-          <>
-            <button
-              type="button"
-              disabled={!online || saving}
-              onClick={() => {
-                setSaving(true);
-                void onMaintain().finally(() => setSaving(false));
-              }}
-            >
-              {t('reached.go')}
-            </button>
-            <button type="button" onClick={() => later(profile.rev)}>
-              {t('reached.later')}
-            </button>
-          </>
-        }
-      >
-        {t('weight_card.reached_body')}
-      </Banner>
-    ) : (
-      <p className="weight-card__goal">
-        <Target aria-hidden="true" />
-        {t('weight_card.goal', { weight: goalText })}{' '}
-        <span className="weight-card__muted">
-          {left > 0
-            ? t('weight_card.to_go', { weight: `${n1(left)}${NB}${unit}` })
-            : t('weight_card.goal_reached')}
-        </span>
-      </p>
-    );
-  }
+  const target = goalTarget(profile, today);
 
   // No weighing in 30 days: no chart, a lone goal dash reads as broken.
   const recent = weighings.filter((w) => daysBetween(w.date, today) < SPAN);
 
   return (
     <section className="weight-card" aria-label={t('weight_card.title')}>
-      {head(when)}
-      <div className="weight-card__top">
+      {head(f.when(latest.date, today))}
+      <div
+        className="weight-card__top weight-card__top--link"
+        // A tap on the weight or the chart opens the screen; the keyboard has «All weigh-ins».
+        onClick={(e) => {
+          if (!(e.target as Element).closest('button')) onOpen();
+        }}
+      >
         <div className="weight-card__now">
           <p className="weight-card__big">
-            <b>{n1(shown(latest.weightKg))}</b>
-            <span>{unit}</span>
+            <b>{f.n1(f.shown(latest.weightKg))}</b>
+            <span>{f.unit}</span>
           </p>
-          <p className="weight-card__muted">{delta}</p>
+          <p className="weight-card__muted">
+            {f.since(latest, weighings.at(-2))}
+          </p>
           {latest.status === 'pending' && (
             <Badge>
               <CloudOff aria-hidden="true" />
@@ -279,9 +192,111 @@ export function WeightCard({
           />
         )}
       </div>
-      {goal}
+      <WeightGoal
+        today={today}
+        units={units}
+        profile={profile}
+        latest={latest}
+        online={online}
+        onSetGoal={onSetGoal}
+        onMaintain={onMaintain}
+      />
       {add}
     </section>
+  );
+}
+
+/** The target weight the charts dash; null under 18 or without a lose / gain goal. */
+export function goalTarget(profile: ProfileResponse, today: string) {
+  const p = profile.profile;
+  const minor = p.birthDate !== null && ageYears(p.birthDate, today) < 18;
+  return !minor && (p.goal === 'lose' || p.goal === 'gain')
+    ? p.targetWeightKg
+    : null;
+}
+
+type GoalProps = Pick<
+  Props,
+  'today' | 'units' | 'online' | 'onSetGoal' | 'onMaintain'
+> & { profile: ProfileResponse; latest: Weighing };
+
+/** The goal row under the weight: goal and what is left, «Set goal», or «Goal reached» (OCT-189 §1). */
+export function WeightGoal({
+  today,
+  units,
+  profile,
+  latest,
+  online,
+  onSetGoal,
+  onMaintain,
+}: GoalProps) {
+  const { t } = useT();
+  const f = useWeightFormat(units);
+  const [laterRev, later] = useReachedLater();
+  const [saving, setSaving] = useState(false);
+  const p = { ...profile.profile, weightKg: latest.weightKg };
+  const target = goalTarget(profile, today);
+
+  // Under 18: no goal row at all (AC-9.18).
+  if (p.birthDate !== null && ageYears(p.birthDate, today) < 18) return null;
+  if (p.goal === 'maintain')
+    return (
+      <p className="weight-card__goal">
+        <Target aria-hidden="true" />
+        {t('weight_card.maintain')}
+      </p>
+    );
+  if (target === null)
+    return (
+      <p className="weight-card__goal">
+        <Target aria-hidden="true" />
+        <span className="weight-card__muted">{t('weight_card.no_goal')}</span>
+        <button type="button" className="weight-card__link" onClick={onSetGoal}>
+          {t('weight_card.set_goal')}
+        </button>
+      </p>
+    );
+  const goalText = `${f.n01(f.shown(target))}${NB}${f.unit}`;
+  const left = round1(
+    p.goal === 'lose'
+      ? f.shown(latest.weightKg) - f.shown(target)
+      : f.shown(target) - f.shown(latest.weightKg),
+  );
+  const calc = profile.manual ? null : calculateNorm(p, today);
+  return offerMaintain(calc, p, profile.rev, laterRev) ? (
+    <Banner
+      tone="weight"
+      title={t('weight_card.reached_title', { weight: goalText })}
+      actions={
+        <>
+          <button
+            type="button"
+            disabled={!online || saving}
+            onClick={() => {
+              setSaving(true);
+              void onMaintain().finally(() => setSaving(false));
+            }}
+          >
+            {t('reached.go')}
+          </button>
+          <button type="button" onClick={() => later(profile.rev)}>
+            {t('reached.later')}
+          </button>
+        </>
+      }
+    >
+      {t('weight_card.reached_body')}
+    </Banner>
+  ) : (
+    <p className="weight-card__goal">
+      <Target aria-hidden="true" />
+      {t('weight_card.goal', { weight: goalText })}{' '}
+      <span className="weight-card__muted">
+        {left > 0
+          ? t('weight_card.to_go', { weight: `${f.n1(left)}${NB}${f.unit}` })
+          : t('weight_card.goal_reached')}
+      </span>
+    </p>
   );
 }
 

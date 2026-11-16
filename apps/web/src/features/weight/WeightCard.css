@@ -23,6 +23,24 @@
   font-weight: 400;
 }
 
+.weight-card__bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-block: calc(var(--space-3) * -1);
+}
+
+.weight-card__bar .weight-card__link {
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--text-subhead-size);
+}
+
+.weight-card__link .lucide {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+}
+
 .weight-card__head .lucide {
   width: var(--icon-size-sm);
   height: var(--icon-size-sm);
@@ -33,6 +51,10 @@
   display: flex;
   align-items: flex-end;
   gap: var(--space-4);
+}
+
+.weight-card__top--link {
+  cursor: pointer;
 }
 
 .weight-card__now {

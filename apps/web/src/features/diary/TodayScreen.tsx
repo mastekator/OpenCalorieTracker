@@ -229,6 +229,7 @@ export function TodayScreen() {
             profile={profile}
             online={online}
             onAdd={() => setWeighIn(true)}
+            onOpen={() => navigate('/weight')}
             onSetGoal={() => navigate('/profile')}
             onMaintain={() =>
               profile
