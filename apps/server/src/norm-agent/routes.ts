@@ -14,8 +14,9 @@ import { normInterview } from '../ai/interview.js';
 import { requireUser, type AuthEnv } from '../auth/session.js';
 import { ApiError } from '../http/errors.js';
 import { validate } from '../http/validate.js';
-import { readProfile, writeProfile } from '../profile/norm.js';
+import { readProfile } from '../profile/norm.js';
 import { serverToday } from '../profile/routes.js';
+import { saveProfile } from '../weight/store.js';
 import { advanceInterview } from './advance.js';
 
 /** User messages before the one-time "switch to the form" offer, and the hard cap (ADR-0015 §7). */
@@ -210,7 +211,7 @@ export function normAgentRoutes({ db, model = null }: AppDeps) {
         throw new ApiError(409, 'agent_not_ready');
       // One transaction: the profile, the cleared manual norm and the closed dialog (AC-5.12, E-3.1).
       db.transaction(() => {
-        writeProfile(db, userId, p, null);
+        saveProfile(db, userId, p, null, old.weightKg, today);
         clear(userId);
       })();
       return c.json(readProfile(db, userId));

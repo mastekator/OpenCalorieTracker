@@ -248,6 +248,10 @@ describe('summary, edit, apply', () => {
       weightKg: 70,
       goal: 'maintain',
     });
+    // The new weight is today's weighing (AC-9.10).
+    expect(t.db.prepare('SELECT date, weight_kg FROM weighings').all()).toEqual(
+      [{ date: serverToday(), weight_kg: 70 }],
+    );
     // The applied dialog is gone; the next one starts from the new profile.
     expect(t.count('agent_messages')).toBe(0);
     const next = await t.json(t.call('GET', '/norm-agent'));
@@ -266,6 +270,7 @@ describe('summary, edit, apply', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     expect((await t.call('POST', '/norm-agent/apply')).status).toBe(500);
     expect(await t.profile()).toEqual(before);
+    expect(t.count('weighings')).toBe(0);
     expect((await t.json(t.call('GET', '/norm-agent'))).state).toBe('summary');
   });
 
