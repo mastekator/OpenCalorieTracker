@@ -1,5 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { matchIllustration, type Meal } from '@oct/shared';
+import { DataContext } from '../../data/DataContext';
+import type { Db, Op } from '../../data/db';
 import { useT } from '../../i18n';
 import { List } from '../../ui/List/List';
 import { MealRow } from './MealRow';
@@ -120,3 +122,50 @@ export const SwipeOpenDark: Story = {
 export const Dark: Story = { globals: { theme: 'dark' } };
 /** A just-saved meal flashes accent-soft (OCT-16 A.6). */
 export const JustSaved: Story = { args: { highlight: true } };
+
+// Queue states by clientId: what mealStatus reads from the outbox.
+const OPS: Record<string, Partial<Op>[]> = {
+  queued: [{ kind: 'createMeal' }],
+  refused: [{ kind: 'createMeal', error: 'validation_failed' }],
+};
+const stubDb = {
+  getAllFromIndex: async (_store: string, _index: string, id: string) =>
+    OPS[id] ?? [],
+} as unknown as Db;
+
+/** OCT-206: «waiting to sync», «not saved» (before «late»), a saved meal without a badge. */
+export const SyncStatus: Story = {
+  render: () => (
+    <DataContext value={stubDb}>
+      <List title="Today">
+        {[
+          meal({
+            clientId: 'queued',
+            items: dishes('Oatmeal with milk', 'Coffee with milk'),
+            kcal: 523,
+          }),
+          {
+            ...MEALS[0]!,
+            clientId: 'refused',
+          },
+          meal({
+            clientId: 'saved',
+            mealType: 'breakfast',
+            items: dishes('Buckwheat with mushrooms'),
+            kcal: 310,
+          }),
+        ].map((m) => (
+          <MealRow key={m.clientId} meal={m} onOpen={() => {}} />
+        ))}
+      </List>
+    </DataContext>
+  ),
+};
+export const SyncStatusDark: Story = {
+  ...SyncStatus,
+  globals: { theme: 'dark' },
+};
+export const SyncStatusNarrow: Story = {
+  ...SyncStatus,
+  globals: { viewport: { value: 'iphoneSE' } },
+};

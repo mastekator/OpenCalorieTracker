@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import type { Meal } from '@oct/shared';
+import type { Meal, MealInput, MeResponse } from '@oct/shared';
+import { DataProvider } from '../../data/DataContext';
+import { openUserDb } from '../../data/db';
+import { createMeal, flush } from '../../data/outbox';
+import { clearLocal } from '../../data/user';
 import { I18nProvider, LOCALE_STORAGE_KEY } from '../../i18n';
 import { MealRow } from './MealRow';
 
@@ -141,6 +145,72 @@ describe('MealRow', () => {
       swipe(row, -250, 200);
       expect(onDelete).not.toHaveBeenCalled();
       expect(offset(row)).toBe('0px');
+    });
+  });
+
+  describe('sync status (OCT-206)', () => {
+    const USER = { id: 9 } as MeResponse;
+    const input = (clientId: string): MealInput => ({
+      clientId,
+      eatenAt: '2026-11-13T10:24:00Z',
+      tzOffsetMin: 180,
+      localDate: '2026-11-13',
+      mealType: 'lunch',
+      items: [],
+    });
+    afterEach(async () => {
+      vi.unstubAllGlobals();
+      await clearLocal(USER.id);
+    });
+
+    it('a refused createMeal says «not saved», a queued one «waiting to sync», a sent one nothing', async () => {
+      // The server refuses «bad», «queued» never gets through, the rest is synced.
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async (url: string, init?: RequestInit) => {
+          if (url.startsWith('/api/sync'))
+            return Response.json({
+              rev: 1,
+              more: false,
+              meals: [],
+              deletedMealClientIds: [],
+            });
+          const body = JSON.parse(String(init?.body)) as MealInput;
+          if (body.clientId === 'queued') throw new TypeError('offline');
+          return Response.json(
+            { error: { code: 'validation_failed' } },
+            { status: 400 },
+          );
+        }),
+      );
+      const db = await openUserDb(USER.id);
+      await createMeal(db, input('bad'));
+      await createMeal(db, input('queued'));
+      await db.put('meals', meal({ clientId: 'synced' }));
+      await flush(db).catch(() => {});
+      db.close();
+      render(
+        <I18nProvider>
+          <DataProvider user={USER}>
+            <ul>
+              {['bad', 'queued', 'synced'].map((id) => (
+                <MealRow
+                  key={id}
+                  meal={meal({ clientId: id })}
+                  onOpen={() => {}}
+                />
+              ))}
+            </ul>
+          </DataProvider>
+        </I18nProvider>,
+      );
+      const rows = await screen.findAllByRole('listitem');
+      await vi.waitFor(() =>
+        expect(rows.map((r) => r.querySelector('.badge')?.textContent)).toEqual(
+          ['not saved', 'waiting to sync', undefined],
+        ),
+      );
+      expect(rows[0]!.querySelector('.badge--err svg')).toBeTruthy();
     });
   });
 });

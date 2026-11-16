@@ -921,7 +921,7 @@ export const en = {
       snack: 'Snack',
     },
     kcal: '{n} kcal',
-    status: { late: 'late' },
+    status: { late: 'late', pending: 'waiting to sync', error: 'not saved' },
     delete: 'Delete {meal}',
   },
   edit: {
@@ -997,6 +997,12 @@ export const en = {
     empty_manual: 'No dishes yet',
     save: 'Save',
     saving: 'Saving…',
+    refused: {
+      title: 'The server didn’t accept this entry',
+      body: 'Check the date and time, then save again or delete the entry.',
+      photo:
+        'The server couldn’t use the photo. Save again to keep the entry without it.',
+    },
     save_err: {
       title: 'Couldn’t save',
       body: 'Your edits are kept. Check your connection and try again.',

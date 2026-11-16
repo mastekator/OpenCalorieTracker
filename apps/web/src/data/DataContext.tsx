@@ -22,10 +22,11 @@ import { useOnline } from '../ui/OfflineBar/OfflineBar';
 import { useToast } from '../ui/Toast/Toast';
 import { onChange } from './changes';
 import { openUserDb, type Choices, type Db } from './db';
-import { flush, mealStatus, pendingCount } from './outbox';
+import { flush, mealError, mealStatus, pendingCount } from './outbox';
 import { prefetchThumbs } from './thumbs';
 
-const DataContext = createContext<Db | null>(null);
+/** Exported for stories: a stub database shows queue states without IndexedDB. */
+export const DataContext = createContext<Db | null>(null);
 
 /**
  * Opens the signed-in user's database, stores `me` for an offline start and pulls changes.
@@ -128,11 +129,20 @@ export function useDb() {
   return db;
 }
 
-/** Reads from the local database and re-reads after every change; undefined while loading. */
-function useLocal<T>(read: (db: Db) => Promise<T>, deps: unknown[]) {
-  const db = useDb();
+/**
+ * Reads from the local database and re-reads after every change; undefined while loading.
+ * `optional`: outside DataProvider (stories, view tests) it stays undefined instead of throwing.
+ */
+function useLocal<T>(
+  read: (db: Db) => Promise<T>,
+  deps: unknown[],
+  optional = false,
+) {
+  const db = useContext(DataContext);
+  if (!db && !optional) throw new Error('data hook outside DataProvider');
   const [value, setValue] = useState<T>();
   useEffect(() => {
+    if (!db) return;
     let live = true;
     const load = () =>
       read(db).then(
@@ -266,9 +276,13 @@ export const useIllustrationChoices = () =>
     [],
   );
 
-/** Badge of one meal: `pending | error | synced`. */
+/** Badge of one meal: `pending | error | synced`; none outside DataProvider. */
 export const useMealStatus = (clientId: string) =>
-  useLocal((db) => mealStatus(db, clientId), [clientId]);
+  useLocal((db) => mealStatus(db, clientId), [clientId], true);
+
+/** The code the server refused the meal with, null when it did not. */
+export const useMealError = (clientId: string) =>
+  useLocal((db) => mealError(db, clientId), [clientId]);
 
 /** Unsent changes, for sign-out and account switch. */
 export const usePendingCount = () => useLocal(pendingCount, []);

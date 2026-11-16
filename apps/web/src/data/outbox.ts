@@ -131,7 +131,8 @@ export function patchMeal(
     if (!meal) return;
     await meals.put(withChange(meal, patch, await choicesOf(tx)));
     const outbox = tx.objectStore('outbox');
-    const ops = await queued(db, tx, clientId);
+    let ops = await queued(db, tx, clientId);
+    if (ops.some((o) => o.error)) ops = await retry(tx, ops);
     const create = ops.find((o) => o.kind === 'createMeal');
     const last = ops.at(-1);
     // Merge into the last op only: an older op after it would overwrite this edit.
@@ -154,6 +155,35 @@ export function patchMeal(
         error: create?.error,
       });
   });
+}
+
+/**
+ * Saving a refused meal again sends its ops once more (OCT-206). A refused create is not
+ * on the server: it goes out unsent with its later edits folded in, or a fixed time would
+ * still follow the refused one. A refused photo is dropped with its blob; the meal goes without it.
+ */
+async function retry(tx: Tx, ops: Op[]) {
+  const outbox = tx.objectStore('outbox');
+  const kept: Op[] = [];
+  for (const o of ops) {
+    const create = kept.find((k) => k.kind === 'createMeal');
+    if (o.kind === 'uploadPhoto' && o.error) {
+      await outbox.delete(o.seq!);
+      await tx.objectStore('photos').delete(o.clientId);
+    } else if (o.kind === 'patchMeal' && create?.kind === 'createMeal') {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { editedAt, ...patch } = o.body;
+      create.body = { ...create.body, ...patch };
+      await outbox.delete(o.seq!);
+    } else {
+      const next = { ...o };
+      delete next.error;
+      if (next.kind === 'createMeal') delete next.sent;
+      kept.push(next);
+    }
+  }
+  for (const o of kept) await outbox.put(o);
+  return kept;
 }
 
 export function deleteMeal(db: Db, clientId: string) {
@@ -462,6 +492,12 @@ export async function mealStatus(
   const ops = await db.getAllFromIndex('outbox', 'clientId', clientId);
   if (!ops.length) return 'synced';
   return ops.some((o) => o.error) ? 'error' : 'pending';
+}
+
+/** The code the server refused a meal's first op with; null when none was refused. */
+export async function mealError(db: Db, clientId: string) {
+  const ops = await db.getAllFromIndex('outbox', 'clientId', clientId);
+  return ops.find((o) => o.error)?.error ?? null;
 }
 
 /** Unsent changes, refused meal ops included: they are lost on sign-out. Refused settings and choices are dropped. */
