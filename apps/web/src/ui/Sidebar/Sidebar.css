@@ -25,11 +25,10 @@
   font-weight: var(--text-headline-weight);
 }
 
-.sidebar__brand img {
-  flex: none;
+.sidebar__brand .mark {
   width: var(--space-8);
   height: var(--space-8);
-  border-radius: var(--radius-sm);
+  --mark-gap: var(--color-surface);
 }
 
 .sidebar ul {

@@ -37,6 +37,7 @@ import { Segment } from '../ui/Segment/Segment';
 import { isInAppBrowser, LINK_ERRORS, linkProblem } from './link';
 import { isCancel } from './LoginScreen';
 import './LoginScreen.css';
+import { Mark } from '../ui/Mark/Mark';
 import './RegisterScreen.css';
 
 /** invite: 2.1–2.3, recovery: 2.6, open: 2.7 (REGISTRATION=open, no link). */
@@ -75,7 +76,7 @@ function Brand({ children }: { children?: ReactNode }) {
   const { t } = useT();
   return (
     <header className="login__header">
-      <img className="login__mark" src="/icon.svg" alt="" />
+      <Mark className="login__mark" />
       <p className="login__app">{t('common.appName')}</p>
       {children}
     </header>

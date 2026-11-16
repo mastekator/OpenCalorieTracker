@@ -8,7 +8,7 @@
     "typecheck": "tsc --noEmit",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
-    "icons": "mkdir -p public && cp ../../docs/design/oct-25/icon.svg public/icon.svg && node scripts/splash-master.mjs && pwa-assets-generator && pwa-assets-generator -c pwa-splash.config.ts && rm public/icon-splash.svg"
+    "icons": "mkdir -p public && cp ../../docs/design/oct-217/icon.svg public/icon.svg && node scripts/splash-master.mjs && pwa-assets-generator && pwa-assets-generator -c pwa-splash.config.ts && rm public/splash-light.svg public/splash-dark.svg"
   },
   "dependencies": {
     "@oct/shared": "workspace:*",

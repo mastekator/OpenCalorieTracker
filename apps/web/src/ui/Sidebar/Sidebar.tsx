@@ -3,8 +3,7 @@ import { Link } from 'wouter';
 import { useT } from '../../i18n';
 import { Button } from '../Button/Button';
 import { useIsCurrent, type NavItem } from '../nav';
-// The app icon master (OCT-25); Vite emits it as an asset.
-import logo from '../../../../../docs/design/oct-25/icon.svg';
+import { Mark } from '../Mark/Mark';
 import './Sidebar.css';
 
 type Props = {
@@ -34,7 +33,7 @@ export function Sidebar({ items, settings, email, onAdd }: Props) {
   return (
     <nav className="sidebar" aria-label={t('nav.main')}>
       <div className="sidebar__brand">
-        <img src={logo} alt="" />
+        <Mark />
         {t('common.appName')}
       </div>
       <Button onClick={onAdd}>

@@ -16,7 +16,6 @@
 .login__mark {
   width: var(--control-height-lg);
   height: var(--control-height-lg);
-  border-radius: var(--radius-md);
 }
 
 .login__app {

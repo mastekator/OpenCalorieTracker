@@ -1,12 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
-  <!-- OpenCalorieTracker app icon master (OCT-25).
-       Full-bleed square, no transparency, no rounded corners: iOS and Android masks round it themselves.
-       Colours = tokens: color-accent (light) #13784A, color-on-accent #FFFFFF, color-accent (dark) #5FD394.
-       Everything sits inside the central 80% circle, so the same file works as a "maskable" Android icon. -->
-  <rect width="1024" height="1024" fill="#13784A"/>
-  <!-- plate (top view): rim + well -->
-  <circle cx="472" cy="568" r="280" fill="none" stroke="#FFFFFF" stroke-width="52"/>
-  <circle cx="472" cy="568" r="150" fill="#FFFFFF" fill-opacity="0.16"/>
-  <!-- spark: photo recognition -->
-  <path d="M752 212 C761 266 774 279 828 288 C774 297 761 310 752 364 C743 310 730 297 676 288 C730 279 743 266 752 212 Z" fill="#5FD394"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#E5F5EC"/><g transform="translate(12 14) scale(.76)"><path d="M6 50C22 86 78 86 94 48C76 66 24 66 6 50Z" fill="#13784A"/><path d="M6 46C20 20 66 12 92 34C70 26 30 30 6 46Z" fill="#13784A" opacity=".5"/><g stroke="#E5F5EC" stroke-width="3" paint-order="stroke"><circle cx="29" cy="54" r="10" fill="#4766C4"/><circle cx="50" cy="57" r="10.5" fill="#B36F00"/><circle cx="71" cy="54" r="10" fill="#16847E"/></g><path d="M92 34c3-4 4-9 2-13" fill="none" stroke="#13784A" stroke-width="5" stroke-linecap="round"/></g></svg>
