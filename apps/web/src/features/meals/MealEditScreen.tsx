@@ -705,7 +705,8 @@ export function MealEditScreen({
           time: timeOf(pastAt()),
         })
       : t('edit.title', {
-          day: t(late && day === 'yesterday' ? 'day.yesterday' : 'day.today'),
+          // The real day: which day the snack counts toward is the segment's job (OCT-166).
+          day: t('day.today'),
           time: timeOf(opened),
         });
   const busy = status === 'saving';
