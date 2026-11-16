@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import type { MeResponse, Passkey } from '@oct/shared';
+import type { AiStatus, MeResponse, Passkey } from '@oct/shared';
 import { DataProvider } from '../../data/DataContext';
+import { openUserDb } from '../../data/db';
 import { atPath } from '../../ui/navStory';
 import { ToastProvider } from '../../ui/Toast/Toast';
 import { AiProviderScreen } from './AiProviderScreen';
@@ -44,6 +45,13 @@ const passkeys: Passkey[] = [
   },
 ];
 
+const geminiStatus: AiStatus = {
+  recognition: 'ready',
+  interview: 'ready',
+  providerName: 'Google Gemini',
+  baseUrlHost: null,
+};
+
 /** Answers GET /api/account/passkeys with `list`, /api/admin/ai with a quota state, /api/ai/status with Gemini; anything else succeeds empty. */
 const serve = (list: Passkey[]) => () => {
   const real = globalThis.fetch;
@@ -51,12 +59,7 @@ const serve = (list: Passkey[]) => () => {
     String(input).endsWith('/api/account/passkeys')
       ? Response.json(list)
       : String(input).endsWith('/api/ai/status')
-        ? Response.json({
-            recognition: 'ready',
-            interview: 'ready',
-            providerName: 'Google Gemini',
-            baseUrlHost: null,
-          })
+        ? Response.json(geminiStatus)
         : String(input).endsWith('/api/admin/ai')
           ? Response.json({
               provider: 'google',
@@ -140,15 +143,33 @@ export const Admin: Story = {
   render: () => settings(admin),
 };
 export const AdminDark: Story = { ...Admin, ...dark };
-/** 4.8 Offline: the banner; admin, passkey and password rows greyed out, a tap shows the reason (3.6). */
+/**
+ * 4.8 Offline: the banner; admin, passkey and password rows greyed out, a tap shows the reason (3.6).
+ * No AI status seen on this device yet: no recognition row until it arrives (OCT-172).
+ */
 export const AdminOffline: Story = {
-  beforeEach: () => {
+  beforeEach: async () => {
     localStorage.setItem(hintClosedKey(admin.id), '1');
+    const db = await openUserDb(admin.id);
+    await db.delete('kv', 'aiStatus');
+    db.close();
     return offline();
   },
   render: () => settings(admin),
 };
 export const AdminOfflineDark: Story = { ...AdminOffline, ...dark };
+/** Offline with the last known AI status: the recognition row shows it. */
+export const AdminOfflineSaved: Story = {
+  beforeEach: async () => {
+    localStorage.setItem(hintClosedKey(admin.id), '1');
+    const db = await openUserDb(admin.id);
+    await db.put('kv', geminiStatus, 'aiStatus');
+    db.close();
+    return offline();
+  },
+  render: () => settings(admin),
+};
+export const AdminOfflineSavedDark: Story = { ...AdminOfflineSaved, ...dark };
 /** OCT-25 5.6: the AI provider screen offline shows no stale status. */
 export const AiProviderOffline: Story = {
   beforeEach: offline,

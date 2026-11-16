@@ -63,10 +63,11 @@ export function OfflineBar({ variant }: { variant: BarVariant | null }) {
       role="status"
     >
       {bar && (
-        <>
+        // The icon sits in the text so it stays next to it when the text wraps.
+        <span>
           <bar.icon aria-hidden="true" />
-          <span>{t(bar.text)}</span>
-        </>
+          {t(bar.text)}
+        </span>
       )}
     </div>
   );
