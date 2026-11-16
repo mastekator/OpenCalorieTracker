@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { HEIGHT_CM, WEIGHT_KG } from '../units.js';
+import { HEIGHT_CM } from '../units.js';
+import { weightKgSchema as weightKg } from '../weight/schemas.js';
 import { addDays, addYears, ageYears } from '../dates.js';
 
 export const sexSchema = z.enum(['male', 'female']);
@@ -28,8 +29,6 @@ export const ACTIVITY_FACTORS: Record<Activity, number> = {
 export const KCAL_FLOOR: Record<Sex, number> = { male: 1500, female: 1200 };
 
 export const DEFAULT_MANUAL_PCT = { protein: 20, fat: 30, carbs: 50 } as const;
-
-const weightKg = z.number().min(WEIGHT_KG.min).max(WEIGHT_KG.max);
 
 /**
  * Profile in cm and kg; every field may be empty (partial profile, AC-1.3).

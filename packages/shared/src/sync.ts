@@ -14,7 +14,7 @@ export const syncQuerySchema = z.object({
 
 /**
  * Changes with `rev > since` (ADR-0011 §3). Ask again with `since = rev` while `more` is true.
- * `settings`, `illustrationChoices` and `profile` are omitted when unchanged.
+ * `settings`, `illustrationChoices`, `profile` and `weighings` are omitted when unchanged.
  */
 export interface SyncResponse {
   rev: number;
@@ -30,4 +30,6 @@ export interface SyncResponse {
     nameKey: string;
     illustration: IllustrationId | null;
   }[];
+  /** `weightKg: null` = deleted (ADR-0016 §4). */
+  weighings?: { date: string; weightKg: number | null }[];
 }
