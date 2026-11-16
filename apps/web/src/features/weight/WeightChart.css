@@ -1,0 +1,159 @@
+/* OCT-189 §3: the weight chart on the weight screen. */
+.wchart__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--weight-axis-width);
+  row-gap: var(--space-2);
+  color: var(--color-text-secondary);
+  font-size: var(--text-caption-size);
+  font-weight: var(--text-caption-weight);
+  line-height: var(--text-caption-lh);
+  font-variant-numeric: tabular-nums;
+}
+
+.wchart__area {
+  position: relative;
+  height: var(--chart-height);
+}
+@media (min-width: 1024px) {
+  .wchart__area {
+    height: var(--chart-height-wide);
+  }
+}
+
+.wchart__plot {
+  position: absolute;
+  inset: 0;
+  /* A horizontal drag picks weighings, a vertical one still scrolls the page. */
+  touch-action: pan-y;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+.wchart__plot:focus-visible {
+  outline: var(--focus-ring-width) solid var(--color-focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.wchart__svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.wchart__svg * {
+  vector-effect: non-scaling-stroke;
+  fill: none;
+}
+.wchart__grid {
+  stroke: var(--color-separator);
+  stroke-width: 1;
+}
+.wchart__goal {
+  stroke: var(--color-text-secondary);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
+}
+/* Zero-length segments with round caps: undistorted dots in one path. */
+.wchart__dots {
+  stroke: var(--color-weight);
+  stroke-width: calc(var(--weight-point-r) * 2);
+  stroke-linecap: round;
+  opacity: var(--weight-point-opacity);
+}
+.wchart__trend {
+  stroke: var(--color-weight);
+  stroke-width: var(--weight-trend-width);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.wchart__goal-label {
+  position: absolute;
+  left: var(--space-1);
+  translate: 0 calc(-100% - var(--space-1));
+  padding-inline: var(--space-1);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  pointer-events: none;
+}
+
+.wchart__last,
+.wchart__ring {
+  position: absolute;
+  translate: -50% -50%;
+  border-radius: var(--radius-full);
+  pointer-events: none;
+}
+.wchart__last {
+  width: calc(var(--weight-point-r) * 2 + 4px);
+  height: calc(var(--weight-point-r) * 2 + 4px);
+  border: 2px solid var(--color-surface);
+  background: var(--color-weight);
+  box-sizing: content-box;
+}
+.wchart__ring {
+  width: calc(var(--weight-point-r) * 2 + 6px);
+  height: calc(var(--weight-point-r) * 2 + 6px);
+  border: 2.5px solid var(--color-weight);
+  background: var(--color-surface);
+}
+.wchart__cross {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-left: 1px solid var(--color-weight);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.wchart__tip {
+  position: absolute;
+  /* Above the picked weighing, clear of the ring. */
+  margin-top: calc(-1 * (var(--tap-min) + var(--space-3)));
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: var(--tap-min);
+  padding: var(--space-2) var(--space-3);
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--color-text);
+  color: var(--color-bg);
+  font: inherit;
+  font-size: var(--text-footnote-size);
+  white-space: nowrap;
+  box-shadow: var(--shadow-toast);
+  cursor: pointer;
+}
+.wchart__tip-go {
+  display: inline-flex;
+  align-items: center;
+  margin-left: var(--space-2);
+  font-weight: 600;
+}
+.wchart__tip svg {
+  display: inline-block;
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+}
+
+.wchart__axis,
+.wchart__months {
+  position: relative;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.wchart__axis li {
+  position: absolute;
+  left: var(--space-2);
+  translate: 0 -50%;
+}
+.wchart__months {
+  min-height: 1lh;
+}
+.wchart__months li {
+  position: absolute;
+  translate: -50% 0;
+  white-space: nowrap;
+}

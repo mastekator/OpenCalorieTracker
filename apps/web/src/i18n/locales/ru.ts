@@ -534,6 +534,7 @@ const ru: DeepPartial<typeof en> = {
     deleted: 'Удалили {date} · {weight}',
   },
   weight_card: {
+    all: 'Все взвешивания',
     title: 'Вес',
     today: 'сегодня',
     yesterday: 'вчера',
@@ -559,6 +560,32 @@ const ru: DeepPartial<typeof en> = {
     retry: 'Повторить',
     chart: 'Вес за 30 дней',
   },
+  weight_screen: {
+    period: 'Период',
+    month: 'Месяц',
+    quarter: '3\u00a0месяца',
+    year: 'Год',
+    all: 'Всё',
+    per_month: 'месяц',
+    per_quarter: '3 месяца',
+    per_year: 'год',
+    per_all: 'всё время',
+    trend: 'За {period} по тренду: {diff}',
+    trend_soon: 'Тренд появится с третьего взвешивания',
+    legend_points: 'взвешивания',
+    legend_trend: 'тренд',
+    legend_goal: 'цель',
+    goal: 'Цель {weight}',
+    edit: 'Изменить',
+    chart:
+      'График веса за {period}: последнее взвешивание {weight}{trend}{goal}.',
+    chart_trend: ', по тренду {diff}',
+    chart_goal: ', цель {weight}',
+    empty_title: 'Пока ни одного взвешивания',
+    empty_body:
+      'Записывайте вес раз в несколько дней — здесь появятся график, тренд и все записи. Норма будет пересчитываться сама.',
+  },
+
   goal: {
     title: 'Цель',
     lose: 'Похудеть',

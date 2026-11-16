@@ -88,6 +88,7 @@ const WEIGHT = (
     profile={EMPTY_PROFILE}
     online
     onAdd={() => {}}
+    onOpen={() => {}}
     onSetGoal={() => {}}
     onMaintain={async () => {}}
     onRetry={() => {}}

@@ -35,6 +35,7 @@ import { UndoDeleteProvider } from '../features/diary/undoDelete';
 import { ProfileScreen } from '../features/profile/ProfileScreen';
 import { periodPath } from '../features/week/period';
 import { WeekNavHead, WeekScreen } from '../features/week/WeekScreen';
+import { WeightScreen } from '../features/weight/WeightScreen';
 import { AppShell } from './AppShell';
 import { AuthGate } from './AuthGate';
 import { AuthLayout } from './AuthLayout';
@@ -63,7 +64,8 @@ export function AppScreens() {
   const { t } = useT();
   const { user, refresh, logout } = useSession();
   const [, navigate] = useLocation();
-  const how = new URLSearchParams(useSearch()).has('how');
+  const search = new URLSearchParams(useSearch());
+  const how = search.has('how');
   const toSettings = { href: '/settings', label: t('nav.settings') };
   if (!user) return null;
   return (
@@ -122,6 +124,20 @@ export function AppScreens() {
             <WeekScreen mode="month" id={id} />
           </Screen>
         )}
+      </Route>
+      <Route path="/weight">
+        {/* No tab: back to where it was opened, Today or the profile (OCT-189 §3). */}
+        <Screen
+          wide
+          title={t('weight_card.title')}
+          back={
+            search.get('from') === 'profile'
+              ? { href: '/profile', label: t('nav.profile') }
+              : { href: '/', label: t('nav.today') }
+          }
+        >
+          <WeightScreen onSetGoal={() => navigate('/profile')} />
+        </Screen>
       </Route>
       <Route path="/profile">
         {/* 8.20 is /profile?how: the same Screen, so ProfileScreen and its draft stay mounted. */}

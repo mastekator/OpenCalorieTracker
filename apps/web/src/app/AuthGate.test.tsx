@@ -197,6 +197,20 @@ describe('AuthGate', () => {
       expect(link.getAttribute('aria-current')).toBe('page');
   });
 
+  it('the weight screen goes back to where it was opened (OCT-189 §3)', async () => {
+    const back = async () => {
+      await screen.findByRole('heading', { name: 'Weight', level: 1 });
+      const link = document.querySelector('.navbar__back')!;
+      return [link.getAttribute('href'), link.textContent];
+    };
+    serve(me);
+    renderAt('/weight?from=profile');
+    expect(await back()).toEqual(['/profile', 'Profile']);
+    cleanup();
+    renderAt('/weight');
+    expect(await back()).toEqual(['/', 'Today']);
+  });
+
   it('sends the user to sign-in with expired=1 when a request gets 401 mid-session', async () => {
     serve(me);
     const location = renderAt('/profile');

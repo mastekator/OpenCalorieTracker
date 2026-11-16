@@ -45,6 +45,7 @@ function show(
     profile: { ...PROFILE, profile: { ...PROFILE.profile, ...goal } },
     online: true,
     onAdd: vi.fn(),
+    onOpen: vi.fn(),
     onSetGoal: vi.fn(),
     onMaintain: vi.fn(async () => {}),
     onRetry: vi.fn(),
@@ -72,6 +73,22 @@ describe('WeightCard', () => {
     // 80.6 and 80.2 within 79.4..81.4 on a 6..50 px plot.
     expect(ys[0]).toBeCloseTo(23.6);
     expect(ys[1]).toBeCloseTo(32.4);
+  });
+
+  it('opens the weight screen from «All weigh-ins», the weight and the chart', async () => {
+    const { onOpen, onRetry } = show({
+      weighings: [w('2026-11-12', 80.6), w('2026-11-16', 80.2, 'error')],
+    });
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'All weigh-ins' }),
+    );
+    fireEvent.click(screen.getByText('80.2'));
+    fireEvent.click(screen.getByRole('img', { name: 'Weight over 30 days' }));
+    expect(onOpen).toHaveBeenCalledTimes(3);
+    // «Try again» sits in the same area but only retries.
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(onRetry).toHaveBeenCalled();
+    expect(onOpen).toHaveBeenCalledTimes(3);
   });
 
   it('drops the chart when no weighing is in the last 30 days', async () => {

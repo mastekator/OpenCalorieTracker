@@ -85,6 +85,10 @@
   --weight-spark-width: 128px;   /* OCT-189: 30-day mini chart on the Today weight card */
   --weight-spark-height: 56px;
   --weight-point-r: 3px;         /* OCT-189: weighing dot on the weight charts */
+  --weight-point-opacity: 0.45;  /* OCT-189: dots paler than the trend (AC-9.22) */
+  --weight-trend-width: 2.5px;   /* OCT-189: trend line on the weight screen */
+  --weight-axis-width: 40px;     /* OCT-189: value labels right of the weight chart */
+  --weight-row-height: 52px;     /* OCT-189: weigh-in list row, sizes off-screen months */
 
   /* ── Radii ── */
   --radius-sm: 8px;   /* chips, small badges */
