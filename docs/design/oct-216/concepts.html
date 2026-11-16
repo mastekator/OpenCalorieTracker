@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OCT-216 · README concepts</title>
+<link rel="stylesheet" href="../oct-13/tokens.css">
+<script src="../preview-bar.js"></script>
+<style>
+/* ===== Prototype canvas (not part of the README) ===== */
+*{box-sizing:border-box;margin:0}
+html{background:var(--color-bg);color:var(--color-text);font-family:var(--font-sans);-webkit-font-smoothing:antialiased}
+body{padding:var(--space-10) var(--space-8)}
+.doc-h1{font-size:var(--text-large-title-size);line-height:var(--text-large-title-lh);font-weight:700;letter-spacing:var(--tracking-tight)}
+.doc-lead{font-size:var(--text-subhead-size);line-height:var(--text-subhead-lh);color:var(--color-text-secondary);max-width:80ch;margin-top:var(--space-2)}
+.doc-lead b{color:var(--color-text)}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,720px),1fr));gap:var(--space-8);margin-top:var(--space-8);align-items:start}
+.col-h{font-size:var(--text-title-size);font-weight:600;margin-bottom:var(--space-1)}
+.col-p{font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);color:var(--color-text-secondary);margin-bottom:var(--space-4);max-width:70ch}
+.tag{display:inline-block;margin-left:var(--space-2);padding:2px var(--space-2);border-radius:var(--radius-full);background:var(--color-accent-soft);color:var(--color-accent);font-size:var(--text-caption-size);font-weight:600;vertical-align:middle}
+
+/* ===== README frame: how the file renders on the repository page ===== */
+.gh{border:1px solid var(--color-separator);border-radius:var(--radius-md);background:var(--color-surface);overflow:hidden}
+.gh-bar{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-3) var(--space-4);border-bottom:1px solid var(--color-separator);font-size:var(--text-footnote-size);font-weight:600}
+.gh-body{padding:var(--space-8);font-size:var(--text-subhead-size);line-height:1.6}
+.gh-body>*+*{margin-top:var(--space-4)}
+.gh-body h2{font-size:var(--text-title-size);font-weight:600;padding-bottom:var(--space-2);border-bottom:1px solid var(--color-separator);margin-top:var(--space-8)}
+.gh-body a{color:var(--color-accent);text-decoration:none}
+.gh-body svg.asset{display:block;width:100%;height:auto;border-radius:var(--radius-lg)}
+.gh-body code,.gh-body pre{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:var(--text-footnote-size)}
+.gh-body pre{background:var(--color-surface-2);border-radius:var(--radius-sm);padding:var(--space-4);overflow:auto;line-height:1.5}
+.gh-body table{border-collapse:collapse;width:100%;font-size:var(--text-footnote-size)}
+.gh-body th,.gh-body td{border:1px solid var(--color-separator);padding:var(--space-2) var(--space-3);text-align:left;vertical-align:top}
+.gh-body th{background:var(--color-surface-2);font-weight:600}
+.gh-body details{border-top:1px solid var(--color-separator);padding:var(--space-2) 0}
+.gh-body details:last-of-type{border-bottom:1px solid var(--color-separator)}
+.gh-body summary{cursor:pointer;font-weight:600;min-height:var(--tap-min);display:flex;align-items:center}
+.gh-body details p{color:var(--color-text-secondary);padding-bottom:var(--space-2)}
+.gh-body ul{padding-left:var(--space-6)}
+.badges{display:flex;gap:var(--space-1)}
+.badge{display:inline-flex;font:600 11px/20px var(--font-sans);border-radius:3px;overflow:hidden;color:#fff}
+.badge span{padding:0 6px;background:#555}
+.badge span+span{background:var(--color-accent)}
+html[data-theme="dark"] .badge span+span{color:var(--color-on-accent)}
+.links{font-size:var(--text-footnote-size)}
+.note{font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+
+/* ===== Asset graphics (exported as light + dark PNG @2x for <picture>) ===== */
+.a-bg{fill:var(--color-surface-2)}
+.a-card{fill:var(--color-surface);stroke:var(--color-separator)}
+.a-soft{fill:var(--color-accent-soft)}
+.a-tile{fill:var(--illo-tile)}
+.a-text{fill:var(--color-text);font-family:var(--font-sans)}
+.a-sec{fill:var(--color-text-secondary);font-family:var(--font-sans)}
+.a-acc{fill:var(--color-accent);font-family:var(--font-sans)}
+.a-line{stroke:var(--color-separator);fill:none}
+.a-stroke{stroke:var(--color-accent);fill:none;stroke-linecap:round;stroke-linejoin:round}
+.a-sec-stroke{stroke:var(--color-text-secondary);fill:none;stroke-linecap:round;stroke-linejoin:round}
+.a-p{fill:var(--color-protein)} .a-f{fill:var(--color-fat)} .a-c{fill:var(--color-carbs)}
+
+.spec{margin-top:var(--space-12);max-width:100ch}
+.spec h2{font-size:var(--text-title-size);font-weight:600;margin-bottom:var(--space-3)}
+.spec ol,.spec ul{padding-left:var(--space-6);font-size:var(--text-subhead-size);line-height:1.6}
+.spec li+li{margin-top:var(--space-1)}
+</style>
+</head>
+<body>
+<div id="sprite" hidden></div>
+
+<h1 class="doc-h1">README: our own pitch</h1>
+<p class="doc-lead">Two structures for the repository front page, drawn as they would render on the repo page. Both drop the centered hero with phones, the badge wall, the “Why” block and the per-section feature list. The look comes from three images in our colors and food illustrations: a banner, the <b>Snap · Check · Save</b> strip and the <b>data path</b> diagram. The long goal formula, sources and model table move to docs. Copy is a draft, to be reviewed with the product owner.</p>
+
+<div class="cols">
+  <section>
+    <h2 class="col-h">A · Photo first <span class="tag">Recommended</span></h2>
+    <p class="col-p">The first screen shows what the app does: three steps from photo to diary. Where the data lives is the very next section, full width, with a table of what leaves the server. Best for someone who opens the repo to see “what is this”.</p>
+    <div class="gh"><div class="gh-bar">README.md</div><div class="gh-body" id="readme-a"></div></div>
+  </section>
+  <section>
+    <h2 class="col-h">B · Your server first</h2>
+    <p class="col-p">The banner is the data path itself: phone → your server → AI provider, if you want one. The three steps come second. Stronger message for self-hosters, but the first screen shows a diagram, not food.</p>
+    <div class="gh"><div class="gh-bar">README.md</div><div class="gh-body" id="readme-b"></div></div>
+  </section>
+</div>
+
+<section class="spec">
+  <h2>Notes for the build (after approval)</h2>
+  <ol>
+    <li>Three images, each in light and dark, swapped with <code>&lt;picture&gt;</code> + <code>prefers-color-scheme</code>: banner, steps strip, data path. Export PNG @2x from this page (text stays crisp, no font fallback on the repo page). Width 840 CSS px.</li>
+    <li>When the demo clip from OCT-199 is ready, it can replace the steps strip; keep the same three captions under it.</li>
+    <li>Badges: license and CI only, as markdown under the banner, left-aligned. No stars/release/Docker buttons.</li>
+    <li>Move out of README: “How the daily goal is calculated” with sources → <code>docs/DAILY_GOAL.md</code>; “Tested models” → <code>docs/MODELS.md</code>; full feature list → one <code>&lt;details&gt;</code> “Everything it does”. Privacy and Disclaimer are merged into the data and “is / isn't” sections.</li>
+    <li>Everything is left-aligned (no <code>align="center"</code>) — that alone sets the page apart from the usual template.</li>
+  </ol>
+</section>
+
+<script>
+/* ---------- asset graphics ---------- */
+const illo = (id, cx, cy, r) =>
+  `<circle class="a-tile" cx="${cx}" cy="${cy}" r="${r}"/><use href="#illo-${id}" x="${cx - r * .8}" y="${cy - r * .8}" width="${r * 1.6}" height="${r * 1.6}"/>`;
+
+const bannerA = `<svg class="asset" viewBox="0 0 840 230" role="img" aria-label="OpenCalorieTracker. Snap a plate, check the numbers, keep the diary on your own server.">
+  <rect class="a-bg" width="840" height="230" rx="16"/>
+  <circle class="a-soft" cx="690" cy="115" r="150"/>
+  <text class="a-acc" x="40" y="62" font-size="13" font-weight="700" letter-spacing="1.5">SELF-HOSTED · OPEN SOURCE</text>
+  <text class="a-text" x="40" y="108" font-size="38" font-weight="700" letter-spacing="-.5">OpenCalorieTracker</text>
+  <text class="a-sec" x="40" y="146" font-size="18">Snap a plate. Check the numbers.</text>
+  <text class="a-sec" x="40" y="172" font-size="18">Keep the diary on your own server.</text>
+  ${illo('salad', 640, 112, 54)}${illo('grains-porridge', 742, 64, 34)}${illo('fruit-banana', 760, 168, 30)}
+  ${illo('coffee', 548, 58, 26)}${illo('fish-sushi', 556, 178, 28)}
+</svg>`;
+
+const row = (y, id, name, g, kcal) => `${illo(id, 336, y, 15)}
+  <text class="a-text" x="360" y="${y - 2}" font-size="13" font-weight="600">${name}</text>
+  <text class="a-sec" x="360" y="${y + 13}" font-size="11">${g}</text>
+  <text class="a-text" x="528" y="${y + 4}" font-size="13" text-anchor="end">${kcal}</text>`;
+
+const steps = `<svg class="asset" viewBox="0 0 840 270" role="img" aria-label="Three steps. Snap: photo of a plate. Check: buckwheat 180 g, chicken breast 120 g, tomato salad 150 g. Save: 1,240 of 2,100 kcal today.">
+  <rect class="a-bg" width="840" height="270" rx="16"/>
+  <!-- 1 Snap -->
+  <rect class="a-card" x="24" y="24" width="248" height="186" rx="14"/>
+  <path class="a-stroke" stroke-width="3" d="M68 52h-16v16M228 52h16v16M68 182h-16v-16M228 182h16v-16"/>
+  ${illo('salad', 148, 117, 50)}
+  <!-- 2 Check -->
+  <rect class="a-card" x="296" y="24" width="248" height="186" rx="14"/>
+  ${row(60, 'grains', 'Buckwheat', '180 g', '198 kcal')}
+  ${row(106, 'poultry-breast', 'Chicken breast', '120 g', '198 kcal')}
+  ${row(152, 'salad-tomato', 'Tomato salad', '150 g', '60 kcal')}
+  <rect class="a-p" x="320" y="186" width="80" height="6" rx="3"/><rect class="a-f" x="404" y="186" width="44" height="6" rx="3"/><rect class="a-c" x="452" y="186" width="68" height="6" rx="3"/>
+  <!-- 3 Save -->
+  <rect class="a-card" x="568" y="24" width="248" height="186" rx="14"/>
+  <circle class="a-line" stroke-width="10" cx="692" cy="100" r="48"/>
+  <circle class="a-stroke" stroke-width="10" cx="692" cy="100" r="48" pathLength="100" stroke-dasharray="59 100" transform="rotate(-90 692 100)"/>
+  <text class="a-text" x="692" y="102" font-size="20" font-weight="700" text-anchor="middle">1,240</text>
+  <text class="a-sec" x="692" y="120" font-size="11" text-anchor="middle">of 2,100 kcal</text>
+  <path class="a-stroke" stroke-width="2.2" d="M612 185l5 5 9-10"/>
+  <text class="a-text" x="634" y="190" font-size="13" font-weight="600">Lunch</text>
+  <text class="a-sec" x="792" y="190" font-size="13" text-anchor="end">456 kcal</text>
+  <!-- captions -->
+  <g font-size="15" font-weight="700">
+    <text class="a-acc" x="148" y="244" text-anchor="middle">1 · Snap</text>
+    <text class="a-acc" x="420" y="244" text-anchor="middle">2 · Check</text>
+    <text class="a-acc" x="692" y="244" text-anchor="middle">3 · Save</text>
+  </g>
+  <path class="a-sec-stroke" stroke-width="2" d="M276 117h16m-5-5 5 5-5 5M548 117h16m-5-5 5 5-5 5"/>
+</svg>`;
+
+const node = (x, title, l1, l2, icon, dashed) => `
+  <rect class="a-card" x="${x}" y="70" width="232" height="128" rx="14" stroke-width="${dashed ? 1.5 : 1}" ${dashed ? 'stroke-dasharray="6 5"' : ''}/>
+  <g transform="translate(${x + 20} 90)">${icon}</g>
+  <text class="a-text" x="${x + 20}" y="146" font-size="16" font-weight="700">${title}</text>
+  <text class="a-sec" x="${x + 20}" y="168" font-size="12">${l1}</text>
+  <text class="a-sec" x="${x + 20}" y="185" font-size="12">${l2}</text>`;
+const icPhone = `<rect class="a-stroke" stroke-width="2" x="4" y="0" width="18" height="30" rx="4"/><path class="a-stroke" stroke-width="2" d="M10 25h6"/>`;
+const icServer = `<rect class="a-stroke" stroke-width="2" x="0" y="2" width="28" height="11" rx="3"/><rect class="a-stroke" stroke-width="2" x="0" y="17" width="28" height="11" rx="3"/><path class="a-stroke" stroke-width="2.4" d="M6 7.5h.01M6 22.5h.01"/>`;
+const icAi = `<path class="a-sec-stroke" stroke-width="2" d="M14 2v6M14 22v6M2 15h6M20 15h6M6 7l4 4M18 19l4 4M22 7l-4 4M10 19l-4 4"/>`;
+const arrow = (x, label, sub) => `
+  <path class="a-sec-stroke" stroke-width="2" d="M${x} 134h20m-6-6 6 6-6 6"/>
+  <text class="a-sec" x="${x + 10}" y="112" font-size="11" text-anchor="middle">${label}</text>
+  <text class="a-sec" x="${x + 10}" y="124" font-size="11" text-anchor="middle">${sub}</text>`;
+
+const pathInner = (y0) => `<g transform="translate(0 ${y0})">
+  ${node(24, 'Your phone', 'Shrinks the photo,', 'strips EXIF and location', icPhone)}
+  ${arrow(260, 'photo', '')}
+  ${node(304, 'Your server', 'Diary, goals, weight,', 'photo previews · SQLite', icServer)}
+  ${arrow(540, 'photo', 'only')}
+  ${node(584, 'AI provider', 'Optional. Cloud, local', '(Ollama) or none at all', icAi, true)}
+  <text class="a-sec" x="420" y="232" font-size="12" text-anchor="middle">Nothing else leaves your server: no telemetry, no analytics, no ads.</text>
+</g>`;
+
+const dataPath = `<svg class="asset" viewBox="0 0 840 270" role="img" aria-label="Data path. Your phone shrinks the photo and strips location, sends it to your server, which keeps the diary. Only the photo goes on to an AI provider, if you set one up. No telemetry.">
+  <rect class="a-bg" width="840" height="270" rx="16"/>
+  <text class="a-text" x="24" y="44" font-size="15" font-weight="700">Where your food data goes</text>
+  ${pathInner(0)}
+</svg>`;
+
+const bannerB = `<svg class="asset" viewBox="0 0 840 330" role="img" aria-label="OpenCalorieTracker, a calorie diary that lives on your server. Data path: phone, your server, optional AI provider.">
+  <rect class="a-bg" width="840" height="330" rx="16"/>
+  <circle class="a-soft" cx="760" cy="40" r="110"/>
+  ${illo('salad', 762, 56, 34)}
+  <text class="a-text" x="24" y="58" font-size="34" font-weight="700" letter-spacing="-.5">OpenCalorieTracker</text>
+  <text class="a-sec" x="24" y="88" font-size="17">A photo calorie diary that lives on your server.</text>
+  ${pathInner(60)}
+</svg>`;
+
+/* ---------- shared README blocks ---------- */
+const badges = `<div class="badges"><span class="badge"><span>license</span><span>AGPL-3.0</span></span><span class="badge"><span>CI</span><span>passing</span></span></div>`;
+const lead = `<p>Take a photo of your plate. A vision model of your choice lists the dishes with grams, kcal, protein, fat and carbs. Fix what's off, save it to your diary. No AI? Type it in.</p>`;
+const leaves = `<table>
+  <tr><th></th><th>Stays on your server</th><th>Leaves it</th></tr>
+  <tr><td>Diary, goals, weight</td><td>Yes</td><td>Never</td></tr>
+  <tr><td>Food photo</td><td>A small preview; originals as long as you choose</td><td>A resized copy, only to the AI provider you set up. With a local model or without AI — nothing.</td></tr>
+  <tr><td>Location, EXIF</td><td>Stripped on the phone</td><td>Never</td></tr>
+  <tr><td>Usage data</td><td>Not collected</td><td>No telemetry, no analytics</td></tr>
+</table>
+<p class="note">On the free tier of Google Gemini, Google may use your requests to improve its products. Pick a paid tier, another provider or a local model if that matters.</p>`;
+const isnt = `<table>
+  <tr><th>It is</th><th>It isn't</th></tr>
+  <tr><td>A quick estimate from a photo, often within 20–30%</td><td>Medical or dietary advice</td></tr>
+  <tr><td>A diary for you and the people you invite</td><td>An account in someone else's cloud</td></tr>
+  <tr><td>Free and open source, one Docker container</td><td>Ads, subscriptions or upsells</td></tr>
+</table>`;
+const run = `<pre>curl -O https://raw.githubusercontent.com/…/docker-compose.yml
+printf 'PUBLIC_URL=…\\nADMIN_EMAIL=…\\nADMIN_PASSWORD=…\\n' &gt; .env
+docker compose up -d</pre>
+<p>Put it behind a reverse proxy with HTTPS. Runs on a home server, NAS, Raspberry Pi or VPS. Everything else: <a href="#">Self-hosting guide</a>.</p>`;
+const faq = `
+<details open><summary>Which AI model should I pick?</summary><p>Any model that reads images: Gemini, OpenAI, Anthropic, OpenRouter, or a local one through Ollama. See which ones pass our test photos in <a href="#">Tested models</a>.</p></details>
+<details><summary>How much does one photo cost?</summary><p>One resized photo is one request. With a cloud model it's usually well under one US cent; with a local model it's free.</p></details>
+<details><summary>Does it work without AI?</summary><p>Yes. Leave the provider empty and enter food by hand; everything else works the same.</p></details>
+<details><summary>Can my family use it?</summary><p>Yes. Send an invite link — each person gets their own diary and goal.</p></details>`;
+const more = `<details><summary>Everything it does</summary><ul><li>Photo, library, or drag and paste on desktop</li><li>Today, diary by day, week and month charts</li><li>Daily goal from your body data, or your own numbers</li><li>Passkeys and passwords, invites, admin</li><li>Install to home screen, works offline, light and dark</li><li>English and Russian</li></ul></details>
+<p class="links"><a href="#">Self-hosting</a> · <a href="#">How the daily goal is calculated</a> · <a href="#">Tested models</a> · <a href="#">Roadmap</a> · <a href="#">Changelog</a> · <a href="#">Contributing</a></p>
+<p class="note">AGPL-3.0. If you run a modified version as a service, publish its source.</p>`;
+
+document.getElementById('readme-a').innerHTML = `
+  ${bannerA}${badges}${lead}${steps}
+  <h2>Where your data lives</h2>${dataPath}${leaves}
+  <h2>What it is — and isn't</h2>${isnt}
+  <h2>Run it</h2>${run}
+  <h2>Questions</h2>${faq}
+  <h2>More</h2>${more}`;
+
+document.getElementById('readme-b').innerHTML = `
+  ${bannerB}${badges}${lead}
+  <h2>Snap. Check. Save.</h2>${steps}
+  <h2>What leaves your server</h2>${leaves}
+  <h2>What it is — and isn't</h2>${isnt}
+  <h2>Run it</h2>${run}
+  <h2>Questions</h2>${faq}
+  <h2>More</h2>${more}`;
+
+fetch('../oct-33/sprite.svg').then(r => r.ok ? r.text() : '').catch(() => '')
+  .then(s => { document.getElementById('sprite').innerHTML = s; });
+</script>
+</body>
+</html>
