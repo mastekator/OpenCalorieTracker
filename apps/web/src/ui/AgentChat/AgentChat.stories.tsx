@@ -20,6 +20,7 @@ type State =
   | 'several'
   | 'pace'
   | 'summary'
+  | 'gain_fast'
   | 'filled'
   | 'units'
   | 'minor'
@@ -40,6 +41,15 @@ const draft: Profile = {
   deadline: '2027-02-05',
 };
 const norm = calculateNorm(draft, TODAY);
+// Gaining 5 kg in a month: capped at the gain_fast pace, the real date is later (OCT-173).
+const gainDraft: Profile = {
+  ...draft,
+  weightKg: 70,
+  goal: 'gain',
+  targetWeightKg: 75,
+  deadline: '2026-12-13',
+};
+const gainNorm = calculateNorm(gainDraft, TODAY);
 
 // Model replies are free text from the AI; samples in both languages (OCT-22 prototype).
 const SAMPLE = {
@@ -101,10 +111,12 @@ function Chat({ state, units = 'metric', applying = false }: Props) {
   );
   const greeting = <AgentMessage>{t('chat.greeting')}</AgentMessage>;
   const note = <ChatNote>{t('norm.disclaimer')}</ChatNote>;
-  const summary = norm.status === 'ok' && (
+  const gain = state === 'gain_fast';
+  const shown = gain ? gainNorm : norm;
+  const summary = shown.status === 'ok' && (
     <NormSummary
-      draft={draft}
-      norm={norm}
+      draft={gain ? gainDraft : draft}
+      norm={shown}
       units={units}
       disclaimer
       applying={applying}
@@ -154,6 +166,12 @@ function Chat({ state, units = 'metric', applying = false }: Props) {
         {summary}
       </>
     ),
+    gain_fast: (
+      <>
+        <AgentMessage>{s.done}</AgentMessage>
+        {summary}
+      </>
+    ),
     apply_failed: (
       <>
         <AgentMessage>{s.done}</AgentMessage>
@@ -192,7 +210,8 @@ function Chat({ state, units = 'metric', applying = false }: Props) {
   };
 
   // The composer hides while the summary is shown (OCT-22 §3).
-  const withSummary = state === 'summary' || state === 'apply_failed';
+  const withSummary =
+    state === 'summary' || state === 'gain_fast' || state === 'apply_failed';
   return (
     <Sheet
       open
@@ -229,6 +248,7 @@ const meta = {
         'several',
         'pace',
         'summary',
+        'gain_fast',
         'filled',
         'units',
         'minor',
@@ -264,6 +284,12 @@ export const SummaryDark: Story = {
 export const SummaryUs: Story = { args: { state: 'summary', units: 'us' } };
 export const SummaryApplying: Story = {
   args: { state: 'summary', applying: true },
+};
+/** OCT-173: gaining capped at the gain_fast pace — the deadline and the real date. */
+export const GainFast: Story = { args: { state: 'gain_fast' } };
+export const GainFastDark: Story = {
+  args: { state: 'gain_fast' },
+  globals: dark,
 };
 /** 9.5 is the confirm dialog of the container (OCT-90); 9.6: the profile is already filled. */
 export const Filled: Story = { args: { state: 'filled' } };

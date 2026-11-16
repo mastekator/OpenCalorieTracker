@@ -509,6 +509,8 @@ export const en = {
       body: 'Talk to a doctor.',
     },
     gain_fast: 'Gaining this fast adds mostly fat.',
+    gain_fast_capped:
+      'Gaining this fast adds mostly fat, so your goal is capped: you won’t make it by {date}, more likely by {eta}.',
     postpone: 'Move the date',
   },
   floor: {

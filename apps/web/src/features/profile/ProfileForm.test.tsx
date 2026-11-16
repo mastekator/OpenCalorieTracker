@@ -301,6 +301,20 @@ describe('ProfileForm', () => {
     screen.getByText(/you won’t make it by Jan 22, more likely by Apr 12\./);
   });
 
+  it('gaining capped at gain_fast shows the deadline and the real date (OCT-173)', async () => {
+    setup({
+      ...base,
+      weightKg: 70,
+      goal: 'gain',
+      targetWeightKg: 75,
+      deadline: '2026-02-01',
+    });
+    await screen.findByText(
+      /Gaining this fast adds mostly fat, so your goal is capped: you won’t make it by Feb 1, more likely by Apr 11\./,
+    );
+    expect(screen.queryByText(/safe minimum/)).toBeNull();
+  });
+
   it('reference 4: TDEE below the floor (AC-2.1b)', async () => {
     setup({
       ...base,
