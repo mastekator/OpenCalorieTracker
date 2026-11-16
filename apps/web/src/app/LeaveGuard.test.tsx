@@ -155,13 +155,13 @@ describe('LeaveGuard', () => {
         </LeaveGuard>
       </I18nProvider>,
     );
-    const weight = await screen.findByRole('textbox', { name: 'Weight' });
-    fireEvent.focus(weight);
-    fireEvent.change(weight, { target: { value: '90' } });
-    fireEvent.blur(weight);
+    const height = await screen.findByRole('textbox', { name: 'Height' });
+    fireEvent.focus(height);
+    fireEvent.change(height, { target: { value: '190' } });
+    fireEvent.blur(height);
     fireEvent.click(screen.getByText('Diary'));
     await act(async () => fireEvent.click(button('Save and leave')));
-    expect(onSave.mock.calls[0]?.[0].profile.weightKg).toBe(90);
+    expect(onSave.mock.calls[0]?.[0].profile.heightCm).toBe(190);
     expect(path()).toBe('/diary');
   });
 });

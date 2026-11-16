@@ -12,8 +12,9 @@ import {
   useDb,
   useProfile,
   useSettings,
+  useWeighings,
 } from '../../data/DataContext';
-import { patchSettings } from '../../data/outbox';
+import { deleteWeighing, patchSettings, putWeighing } from '../../data/outbox';
 import type { Db } from '../../data/db';
 import { storeProfile } from '../../data/sync';
 import { localToday } from '../diary/day';
@@ -21,6 +22,7 @@ import { useT } from '../../i18n';
 import { useOnline } from '../../ui/OfflineBar/OfflineBar';
 import { Delayed, Skeleton } from '../../ui/Skeleton/Skeleton';
 import { useToast } from '../../ui/Toast/Toast';
+import { WeighInSheet } from '../weight/WeighInSheet';
 import { AgentChat } from './AgentChat';
 import { ProfileForm } from './ProfileForm';
 
@@ -54,6 +56,8 @@ export function ProfileScreen() {
     at: number;
   }>();
   const [agentDown, setAgentDown] = useState(false);
+  const weighings = useWeighings();
+  const [weighIn, setWeighIn] = useState(false);
   const toast = useToast();
   const today = localToday();
   const disclaimerHidden =
@@ -95,7 +99,21 @@ export function ProfileScreen() {
         }
         manualAt={manualAt}
         agentDraft={agentDraft}
+        weighedOn={weighings?.at(-1)?.date}
+        onWeighIn={() => setWeighIn(true)}
       />
+      {weighings && (
+        <WeighInSheet
+          open={weighIn}
+          onClose={() => setWeighIn(false)}
+          today={today}
+          units={units}
+          weighings={weighings}
+          profile={profile}
+          onPut={(date, kg) => putWeighing(db, date, kg)}
+          onDelete={(date) => deleteWeighing(db, date)}
+        />
+      )}
       <AgentChat
         open={chat}
         onClose={() => setChat(false)}

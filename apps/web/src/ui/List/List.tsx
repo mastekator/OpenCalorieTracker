@@ -41,6 +41,8 @@ type RowProps = {
   disabled?: boolean;
   href?: string;
   onClick?: (event: MouseEvent<HTMLElement>) => void;
+  /** A separate button at the row's end, its own tap zone, e.g. «+» on the profile's weight row. */
+  action?: ReactNode;
 };
 
 export function ListRow({
@@ -54,6 +56,7 @@ export function ListRow({
   disabled = false,
   href,
   onClick,
+  action,
 }: RowProps) {
   const interactive = href !== undefined || onClick !== undefined;
   const className = `list-row${danger ? ' list-row--danger' : ''}${accent ? ' list-row--accent' : ''}${icon ? ' list-row--icon' : ''}${interactive ? ' list-row--interactive' : ''}`;
@@ -97,5 +100,10 @@ export function ListRow({
       </button>
     );
   else row = <div {...common}>{content}</div>;
-  return <li className="list__item">{row}</li>;
+  return (
+    <li className={`list__item${action ? ' list__item--action' : ''}`}>
+      {row}
+      {action}
+    </li>
+  );
 }

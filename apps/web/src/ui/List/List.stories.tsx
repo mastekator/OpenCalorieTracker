@@ -20,6 +20,7 @@ const copy = {
     admin: 'Администрирование',
     users: 'Пользователи',
     invites: 'Приглашения',
+    invite: 'Пригласить',
     adminOffline: 'Администрирование недоступно без сети',
     logout: 'Выйти',
   },
@@ -35,6 +36,7 @@ const copy = {
     admin: 'Administration',
     users: 'Users',
     invites: 'Invitations',
+    invite: 'Invite',
     adminOffline: 'Administration is unavailable offline',
     logout: 'Sign out',
   },
@@ -74,6 +76,17 @@ function Settings({ disabled = false }: { disabled?: boolean }) {
           value={<Badge tone="warn">2</Badge>}
           disabled={disabled}
           onClick={noop}
+          action={
+            <button
+              type="button"
+              className="list-row__action"
+              aria-label={c.invite}
+              disabled={disabled}
+              onClick={noop}
+            >
+              <Plus aria-hidden="true" />
+            </button>
+          }
         >
           {c.invites}
         </ListRow>

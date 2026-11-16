@@ -78,6 +78,10 @@ describe('ProfileScreen offline (8.15)', () => {
     expect(
       screen.getByText('The goal assistant needs a connection'),
     ).toBeTruthy();
+    // The weight screen works offline: its row is a link, past the disabled fieldset.
+    expect(
+      screen.getByRole('link', { name: /^Weight/ }).matches(':disabled'),
+    ).toBe(false);
     // «How it’s calculated» still opens.
     expect(screen.getByRole('button', { name: /How/ })).toBeTruthy();
     expect(fetch).not.toHaveBeenCalledWith('/api/profile', expect.anything());
@@ -136,5 +140,11 @@ describe('ProfileScreen, AI configured but not answering (8.14)', () => {
       '/api/norm-agent',
       expect.anything(),
     );
+
+    // «+» on the weight row opens the weigh-in sheet (OCT-189 §4).
+    fireEvent.click(screen.getByRole('button', { name: 'Log weight' }));
+    expect(
+      await screen.findByRole('dialog', { name: 'Log weight' }),
+    ).toBeTruthy();
   });
 });

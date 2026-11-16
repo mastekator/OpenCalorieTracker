@@ -28,6 +28,8 @@ const meta = {
     onAgent: () => {},
     onSave: async (req: ProfileRequest) => ({ ...req, rev: 2 }),
     onHideDisclaimer: () => {},
+    weighedOn: '2026-11-13',
+    onWeighIn: () => {},
   },
   decorators: [
     (Story) => (
@@ -46,7 +48,10 @@ type Story = StoryObj<typeof meta>;
 export const Filled: Story = {};
 /** 8.1: first visit, AI set up. */
 export const FirstVisit: Story = {
-  args: { initial: { profile: empty, manual: null, rev: 0 } },
+  args: {
+    initial: { profile: empty, manual: null, rev: 0 },
+    weighedOn: undefined,
+  },
 };
 /** 8.2: first visit without AI. */
 export const FirstVisitNoAi: Story = {
@@ -61,6 +66,17 @@ export const Incomplete: Story = {
       rev: 1,
     },
   },
+};
+/** No weighing yet: the weight row has no value, «+» logs the first one (OCT-189 §4). */
+export const NoWeighing: Story = {
+  args: {
+    initial: { profile: { ...filled, weightKg: null }, manual: null, rev: 1 },
+    weighedOn: undefined,
+  },
+};
+export const NoWeighingDark: Story = {
+  ...NoWeighing,
+  globals: { theme: 'dark' },
 };
 /** 8.11: out of range (as if typed). */
 export const RangeError: Story = {
