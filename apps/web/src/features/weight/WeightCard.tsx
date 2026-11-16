@@ -201,6 +201,9 @@ export function WeightCard({
         onSetGoal={onSetGoal}
         onMaintain={onMaintain}
       />
+      {latest.status === 'pending' && (
+        <p className="weight-card__muted">{t('weight_card.pending_norm')}</p>
+      )}
       {add}
     </section>
   );

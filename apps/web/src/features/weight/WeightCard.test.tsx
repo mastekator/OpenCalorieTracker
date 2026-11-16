@@ -209,6 +209,17 @@ describe('WeightCard', () => {
       weighings: [w('2026-11-12', 80.6), w('2026-11-16', 80.2, 'pending')],
     });
     expect(await screen.findByText('waiting to sync')).toBeTruthy();
+    expect(
+      screen.getByText('Your target updates once this is sent'),
+    ).toBeTruthy();
+  });
+
+  it('drops the target note once the weighing is sent', async () => {
+    show({ weighings: [w('2026-11-12', 80.6), w('2026-11-16', 80.2)] });
+    await screen.findByText('Log weight');
+    expect(
+      screen.queryByText('Your target updates once this is sent'),
+    ).toBeNull();
   });
 
   it('a refused weighing says «not saved» and sends it again', async () => {

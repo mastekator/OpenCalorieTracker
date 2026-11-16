@@ -544,6 +544,7 @@ export const en = {
     empty_body: 'Your daily target will update itself after each weigh-in.',
     add: 'Log weight',
     retry: 'Try again',
+    pending_norm: 'Your target updates once this is sent',
     chart: 'Weight over 30 days',
   },
   weight_screen: {

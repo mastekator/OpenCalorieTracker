@@ -558,6 +558,7 @@ const ru: DeepPartial<typeof en> = {
     empty_body: 'Норма будет пересчитываться сама после каждого взвешивания.',
     add: 'Записать вес',
     retry: 'Повторить',
+    pending_norm: 'Норма пересчитается после отправки',
     chart: 'Вес за 30 дней',
   },
   weight_screen: {
