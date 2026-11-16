@@ -121,9 +121,15 @@
 
 .weight-card__error {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-3);
+  row-gap: 0;
   font-size: var(--text-subhead-size);
+}
+
+.weight-card__error .weight-card__link {
+  margin-left: 0;
 }
 
 .weight-card__invite {

@@ -61,6 +61,25 @@ function show(
 const target = () => document.querySelector('.weight-card__target');
 
 describe('WeightCard', () => {
+  it('keeps small swings small: the chart spans at least 2 kg, data centered', async () => {
+    show({ goal: { goal: 'maintain' } });
+    await screen.findByText('80.2');
+    const ys = document
+      .querySelector('.weight-card__line')!
+      .getAttribute('points')!
+      .split(' ')
+      .map((p) => Number(p.split(',')[1]));
+    // 80.6 and 80.2 within 79.4..81.4 on a 6..50 px plot.
+    expect(ys[0]).toBeCloseTo(23.6);
+    expect(ys[1]).toBeCloseTo(32.4);
+  });
+
+  it('drops the chart when no weighing is in the last 30 days', async () => {
+    show({ weighings: [w('2026-09-01', 80.2)] });
+    expect(await screen.findByText('80.2')).toBeTruthy();
+    expect(document.querySelector('.weight-card__spark')).toBeNull();
+  });
+
   it('shows the latest weight, when, the change and the goal left (1.1)', async () => {
     show();
     expect(await screen.findByText('80.2')).toBeTruthy();

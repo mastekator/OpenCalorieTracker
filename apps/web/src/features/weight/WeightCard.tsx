@@ -28,6 +28,8 @@ const SPAN = 30;
 const W = 128;
 const H = 56;
 const PAD = 6;
+/** The smallest vertical span, kg: small swings stay small (OCT-189 §1). */
+const MIN_RANGE_KG = 2;
 
 export type CardWeighing = Weighing & { status: MealStatus };
 
@@ -233,6 +235,9 @@ export function WeightCard({
     );
   }
 
+  // No weighing in 30 days: no chart, a lone goal dash reads as broken.
+  const recent = weighings.filter((w) => daysBetween(w.date, today) < SPAN);
+
   return (
     <section className="weight-card" aria-label={t('weight_card.title')}>
       {head(when)}
@@ -265,12 +270,14 @@ export function WeightCard({
             </p>
           )}
         </div>
-        <Spark
-          points={weighings.filter((w) => daysBetween(w.date, today) < SPAN)}
-          today={today}
-          target={target}
-          label={t('weight_card.chart')}
-        />
+        {recent.length > 0 && (
+          <Spark
+            points={recent}
+            today={today}
+            target={target}
+            label={t('weight_card.chart')}
+          />
+        )}
       </div>
       {goal}
       {add}
@@ -278,7 +285,7 @@ export function WeightCard({
   );
 }
 
-/** 30 days of weighings, the latest dot, the goal dashed; scaled to min..max, goal included. */
+/** 30 days of weighings, the latest dot, the goal dashed; scaled to min..max, goal included, at least MIN_RANGE_KG tall. */
 function Spark({
   points,
   today,
@@ -291,14 +298,15 @@ function Spark({
   label: string;
 }) {
   const ws = points.map((w) => w.weightKg);
-  const lo = Math.min(...ws, target ?? Infinity);
-  const hi = Math.max(...ws, target ?? -Infinity);
+  const min = Math.min(...ws, target ?? Infinity);
+  const max = Math.max(...ws, target ?? -Infinity);
+  const grow = Math.max(0, MIN_RANGE_KG - (max - min)) / 2;
+  const lo = min - grow;
+  const hi = max + grow;
   const from = addDays(today, 1 - SPAN);
   const x = (d: string) =>
     PAD + ((W - 2 * PAD) * daysBetween(from, d)) / (SPAN - 1);
-  // A flat diary sits in the middle.
-  const y = (kg: number) =>
-    hi === lo ? H / 2 : PAD + ((H - 2 * PAD) * (hi - kg)) / (hi - lo);
+  const y = (kg: number) => PAD + ((H - 2 * PAD) * (hi - kg)) / (hi - lo);
   const last = points.at(-1);
   return (
     <svg
