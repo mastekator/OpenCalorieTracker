@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OCT-217 · Launch animation: the pod opens</title>
+<link rel="stylesheet" href="../oct-13/tokens.css">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<script src="../preview-bar.js"></script>
+<style>
+*{box-sizing:border-box;margin:0}
+html{background:var(--color-bg);color:var(--color-text);font-family:var(--font-sans);-webkit-font-smoothing:antialiased}
+body{padding:var(--space-10) var(--space-8)}
+.doc-h1{font-size:var(--text-large-title-size);line-height:var(--text-large-title-lh);font-weight:700;letter-spacing:var(--tracking-tight)}
+.doc-lead{font-size:var(--text-subhead-size);line-height:var(--text-subhead-lh);color:var(--color-text-secondary);max-width:80ch;margin-top:var(--space-2)}
+h2{font-size:var(--text-title-size);line-height:var(--text-title-lh);font-weight:600;margin:var(--space-12) 0 var(--space-3)}
+
+.controls{display:flex;gap:var(--space-3);align-items:center;flex-wrap:wrap;margin-top:var(--space-6)}
+.btn{min-height:44px;padding:0 var(--space-5);border:0;border-radius:var(--radius-full);background:var(--color-accent);color:var(--color-on-accent);font:600 var(--text-body-size)/1 var(--font-sans);cursor:pointer}
+.btn:focus-visible,.chk input:focus-visible{outline:2px solid var(--color-focus-ring);outline-offset:2px}
+.chk{display:flex;align-items:center;gap:var(--space-2);min-height:44px;font-size:var(--text-subhead-size);cursor:pointer}
+.chk input{width:20px;height:20px;accent-color:var(--color-accent)}
+
+/* grounds: fixed light / dark, same as the approved splash */
+.on-light{background:var(--logo-paper);color:#1B1F22;--mk-pod:var(--logo-pod);--mk-p:var(--logo-protein);--mk-f:var(--logo-fat);--mk-c:var(--logo-carbs);--mk-gap:var(--logo-paper)}
+.on-dark{background:var(--logo-ink);color:#EEF3F0;--mk-pod:var(--logo-pod-on-dark);--mk-p:var(--logo-protein-on-dark);--mk-f:var(--logo-fat-on-dark);--mk-c:var(--logo-carbs-on-dark);--mk-gap:var(--logo-ink)}
+
+.phones{display:flex;gap:var(--space-8);flex-wrap:wrap;margin-top:var(--space-6)}
+.phone{width:280px;height:606px;border-radius:44px;padding:10px;background:#1B1F22;flex:none}
+.screen{height:100%;border-radius:36px;display:grid;place-items:center;align-content:center;gap:var(--space-4);position:relative;overflow:hidden}
+.island{position:absolute;top:10px;left:50%;translate:-50% 0;width:84px;height:24px;border-radius:12px;background:#000}
+.mk{width:112px;height:112px;overflow:visible}
+.wm{font-size:1.25rem;line-height:1.1;font-weight:700;letter-spacing:-0.02em;white-space:nowrap}
+.wm span{font-weight:400;opacity:.7}
+
+/* ── The animation. One duration token; every step is a share of it. ── */
+.anim{--d:var(--duration-splash)}
+.slow .anim{--d:calc(var(--duration-splash) * 4)}
+.pod{transform-box:view-box;transform-origin:50px 60px}
+.lid{transform-box:view-box;transform-origin:6px 48px}
+.pea{transform-box:fill-box;transform-origin:center}
+.play .pod{animation:squash var(--d) var(--ease-in-out) both}
+.play .lid{animation:open var(--d) var(--ease-spring) both}
+.play .lid-fill{animation:fade var(--d) var(--ease-out) both}
+.play .pea{animation:pop var(--d) var(--ease-spring) both}
+.play .pea.f{animation-name:pop2}
+.play .pea.c{animation-name:pop3}
+.play .wm{animation:rise var(--d) var(--ease-out) both}
+/* 0–15 %: closed pod gives a little squeeze */
+@keyframes squash{0%{transform:none}8%{transform:scale(1.05,.93)}16%,100%{transform:none}}
+/* 15–50 %: lid swings open on the left hinge, fades to its resting half-tone */
+@keyframes open{0%,15%{transform:rotate(17deg)}50%,100%{transform:none}}
+@keyframes fade{0%,15%{opacity:1}50%,100%{opacity:.5}}
+/* 35–75 %: peas pop out one by one — protein, fat, carbs */
+@keyframes pop{0%,35%{transform:scale(0)}58%,100%{transform:none}}
+@keyframes pop2{0%,43%{transform:scale(0)}66%,100%{transform:none}}
+@keyframes pop3{0%,51%{transform:scale(0)}74%,100%{transform:none}}
+/* 65–95 %: wordmark rises in */
+@keyframes rise{0%,65%{opacity:0;transform:translateY(8px)}95%,100%{opacity:1;transform:none}}
+
+/* frames strip */
+.frames{display:flex;gap:var(--space-3);flex-wrap:wrap}
+.frames figure{display:grid;justify-items:center;gap:var(--space-2);font-size:var(--text-caption-size);color:var(--color-text-secondary)}
+.frames .cell{width:120px;height:120px;border-radius:var(--radius-md);display:grid;place-items:center;box-shadow:inset 0 0 0 1px var(--color-separator)}
+.frames svg{width:84px;height:84px;overflow:visible}
+.frames .anim{animation-play-state:paused}
+.frames .anim *{animation-play-state:paused!important}
+
+.spec{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:var(--space-4)}
+.box{background:var(--color-surface);border:1px solid var(--color-separator);border-radius:var(--radius-lg);padding:var(--space-5)}
+.box h3{font-size:var(--text-headline-size);font-weight:600;margin-bottom:var(--space-3)}
+.box li{font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);color:var(--color-text-secondary)}
+.box ul{padding-left:1.1em;display:grid;gap:var(--space-1)}
+.box code{font-size:.95em;color:var(--color-text)}
+@media (max-width:760px){body{padding:var(--space-10) var(--space-4)}}
+</style>
+</head>
+<body>
+
+<svg id="amark" style="display:none" aria-hidden="true">
+    <!-- Same geometry as the approved mark, split into parts that move. -->
+      <g class="pod">
+        <path d="M6 50C22 86 78 86 94 48C76 66 24 66 6 50Z" fill="var(--mk-pod)"/>
+        <g class="lid">
+          <path class="lid-fill" d="M6 46C20 20 66 12 92 34C70 26 30 30 6 46Z" fill="var(--mk-pod)"/>
+          <path d="M92 34c3-4 4-9 2-13" fill="none" stroke="var(--mk-pod)" stroke-width="5" stroke-linecap="round"/>
+        </g>
+        <g stroke="var(--mk-gap)" stroke-width="3" paint-order="stroke">
+          <circle class="pea p" cx="29" cy="54" r="10" fill="var(--mk-p)"/>
+          <circle class="pea f" cx="50" cy="57" r="10.5" fill="var(--mk-f)"/>
+          <circle class="pea c" cx="71" cy="54" r="10" fill="var(--mk-c)"/>
+        </g>
+      </g>
+</svg>
+
+<h1 class="doc-h1">Launch animation: the pod opens</h1>
+<p class="doc-lead">The closed pod squeezes, opens on its hinge and lets out three peas — protein, fat, carbs. One second in total, it plays while the app loads and never makes you wait: if Today is ready earlier, the animation is cut. With “Reduce motion” on, the final logo is shown at once.</p>
+
+<div class="controls">
+  <button class="btn" id="replay" type="button">Play again</button>
+  <label class="chk"><input type="checkbox" id="slow"> Slow motion ×4</label>
+</div>
+
+<div class="phones" id="stage">
+  <div class="phone"><div class="screen on-light anim play"><span class="island"></span>
+    <svg class="mk" viewBox="0 0 100 100" role="img" aria-label="OpenCalorieTracker"></svg>
+    <span class="wm" aria-hidden="true">opencalorie<span>tracker</span></span></div></div>
+  <div class="phone"><div class="screen on-dark anim play"><span class="island"></span>
+    <svg class="mk" viewBox="0 0 100 100" role="img" aria-label="OpenCalorieTracker"></svg>
+    <span class="wm" aria-hidden="true">opencalorie<span>tracker</span></span></div></div>
+</div>
+
+<h2>Key frames</h2>
+<div class="frames" id="frames"></div>
+
+<h2>Spec for development</h2>
+<div class="spec">
+  <div class="box"><h3>Timing</h3><ul>
+    <li>Whole sequence: <code>--duration-splash</code> = 1000 ms; steps are shares of it.</li>
+    <li>0–15 % pod squeeze; 15–50 % lid opens (rotate 17° → 0° on the left tip, opacity 1 → .5).</li>
+    <li>35–75 % peas pop 0 → 1 in the order protein, fat, carbs, 8 % apart, <code>--ease-spring</code>.</li>
+    <li>65–95 % wordmark fades in and rises 8 px. Then cross-fade to Today, <code>--duration-base</code>.</li>
+  </ul></div>
+  <div class="box"><h3>Where it plays</h3><ul>
+    <li>iOS shows the static launch image first; it cannot move. That image becomes the first frame — the closed pod — so the animation continues it without a jump.</li>
+    <li>Only on a cold start. Returning from the background shows the app straight away.</li>
+    <li>Never delays the app: if data is ready before the end, skip to Today.</li>
+    <li>Reduce motion: <code>--duration-splash</code> is 0 ms, the final logo shows without movement.</li>
+  </ul></div>
+  <div class="box"><h3>Build</h3><ul>
+    <li>Inline SVG with the mark split into pod, lid and three peas; CSS keyframes only, no animation library.</li>
+    <li>Transforms and opacity only, so it stays smooth on older iPhones.</li>
+    <li>Colours come from the logo tokens for the light and dark grounds.</li>
+  </ul></div>
+</div>
+
+<script>
+const MARK = document.getElementById('amark').innerHTML;
+document.querySelectorAll('.mk').forEach(s => s.innerHTML = MARK);
+const stage = document.getElementById('stage');
+const replay = () => stage.querySelectorAll('.anim').forEach(el => {
+  el.classList.remove('play'); void el.offsetWidth; el.classList.add('play');
+});
+document.getElementById('replay').onclick = replay;
+document.getElementById('slow').onchange = e => { document.body.classList.toggle('slow', e.target.checked); replay(); };
+
+// key frames: the same animation, paused at fixed points
+const f = document.getElementById('frames');
+[[0,'Start'],[10,'Squeeze'],[30,'Opening'],[50,'Peas'],[70,'Last pea'],[100,'Final']].forEach(([p, label]) => {
+  const fig = document.createElement('figure');
+  fig.innerHTML = `<div class="cell on-light anim play"><svg viewBox="0 0 100 100" aria-hidden="true"></svg></div><figcaption>${p} % · ${label}</figcaption>`;
+  fig.querySelector('.cell').style.setProperty('--d', '1000ms');
+  fig.querySelector('svg').innerHTML = MARK;
+  fig.querySelectorAll('.cell, .cell *').forEach(n => n.style.animationDelay = `-${p * 10}ms`);
+  f.append(fig);
+});
+</script>
+</body>
+</html>
