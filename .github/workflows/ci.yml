@@ -17,6 +17,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      - run: sh scripts/check-forbidden-words.sh
+        env:
+          FORBIDDEN_WORDS: ${{ vars.FORBIDDEN_WORDS }}
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v7
         with:

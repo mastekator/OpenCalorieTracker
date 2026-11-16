@@ -23,6 +23,7 @@ Thanks for helping! The flow is simple:
 
 - **No secrets in code, logs or commits.** API keys and other settings come only from environment variables.
 - **No assumptions about the host.** Anything install-specific is configured through environment variables.
+- **No mentions of other products.** Do not name or link other trackers or apps in code, docs, commits or PRs. CI checks this against a private word list.
 - **UI values** (colors, spacing, fonts…) come only from the design tokens file.
 
 By contributing you agree that your contributions are licensed under [AGPL-3.0](LICENSE).
