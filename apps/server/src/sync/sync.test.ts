@@ -3,9 +3,17 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import type { Meal, MealInput, SyncResponse } from '@oct/shared';
+import {
+  SYNC_PAGE_SIZE,
+  addDays,
+  type Meal,
+  type MealInput,
+  type SyncResponse,
+} from '@oct/shared';
 import { ensureAdmin } from '../auth/admin.js';
 import { hashPassword } from '../auth/password.js';
+import { migrate } from '../db/migrate.js';
+import { serverToday } from '../profile/routes.js';
 import { setCookie, testApp } from '../test/app.js';
 import { bumpRev } from './rev.js';
 
@@ -70,6 +78,8 @@ async function setup() {
   };
   return { ...t, cookie, call, sync, addMeal, addUser };
 }
+
+const TODAY = serverToday();
 
 const PROFILE = {
   sex: 'female',
@@ -221,6 +231,8 @@ describe('GET /api/sync', () => {
     });
     await t.call(other, 'PATCH', '/account/settings', { theme: 'dark' });
     await t.call(other, 'PUT', '/profile', { profile: PROFILE, manual: null });
+    await t.call(other, 'PUT', `/weighings/${TODAY}`, { weightKg: 71 });
+    await t.call(other, 'DELETE', `/weighings/${TODAY}`);
     expect(await t.sync(0)).toEqual({
       rev: 0,
       more: false,
@@ -253,6 +265,94 @@ describe('GET /api/sync', () => {
     expect((await t.sync(rev)).settings).toMatchObject({
       normDisclaimerHidden: true,
     });
+  });
+
+  it('sends new, changed and deleted weighings by since', async () => {
+    const t = await setup();
+    const day = (n: number) => addDays(TODAY, -n);
+    const put = (n: number, weightKg: number) =>
+      t.call(t.cookie, 'PUT', `/weighings/${day(n)}`, { weightKg });
+    expect((await put(2, 71)).status).toBe(200);
+    await put(1, 70.5);
+    const first = await t.sync(0);
+    expect(first.weighings).toEqual([
+      { date: day(2), weightKg: 71 },
+      { date: day(1), weightKg: 70.5 },
+    ]);
+    expect((await t.sync(first.rev)).weighings).toBeUndefined();
+
+    await put(2, 71.2);
+    await put(0, 70);
+    const next = await t.sync(first.rev);
+    expect(next.weighings).toEqual([
+      { date: day(2), weightKg: 71.2 },
+      { date: day(0), weightKg: 70 },
+    ]);
+
+    // Deleting an older day leaves the profile weight (latest day) as is: only the deletion comes.
+    expect(
+      (await t.call(t.cookie, 'DELETE', `/weighings/${day(2)}`)).status,
+    ).toBe(200);
+    expect(await t.sync(next.rev)).toEqual({
+      rev: next.rev + 1,
+      more: false,
+      meals: [],
+      deletedMealClientIds: [],
+      weighings: [{ date: day(2), weightKg: null }],
+    });
+    expect((await t.sync(0)).weighings).toContainEqual({
+      date: day(2),
+      weightKg: null,
+    });
+  });
+
+  it('a page can end on a weighing', async () => {
+    const t = await setup();
+    const userId = t.db.prepare('SELECT id FROM users').pluck().get() as number;
+    const insert = t.db.prepare(
+      'INSERT INTO weighings (user_id, date, weight_kg, rev, updated_at) VALUES (?, ?, 70, ?, 0)',
+    );
+    t.db.transaction(() => {
+      for (let i = 0; i <= SYNC_PAGE_SIZE; i++)
+        insert.run(userId, addDays('2020-01-01', i), bumpRev(t.db, userId));
+    })();
+    // Never-changed settings (rev 0) take the first slot of the first page.
+    const p1 = await t.sync(0);
+    expect(p1.more).toBe(true);
+    expect(p1.settings).toBeDefined();
+    expect(p1.weighings).toHaveLength(SYNC_PAGE_SIZE - 1);
+    expect(p1.rev).toBe(SYNC_PAGE_SIZE - 1);
+    const p2 = await t.sync(p1.rev);
+    expect(p2.more).toBe(false);
+    expect(p2.weighings).toEqual(
+      [SYNC_PAGE_SIZE - 1, SYNC_PAGE_SIZE].map((i) => ({
+        date: addDays('2020-01-01', i),
+        weightKg: 70,
+      })),
+    );
+  });
+
+  it('sends the weighing moved from the profile by migration 0009 at since=0', async () => {
+    const t = await setup();
+    const userId = t.db.prepare('SELECT id FROM users').pluck().get() as number;
+    t.db
+      .prepare(
+        'INSERT INTO profiles (user_id, weight_kg, updated_at) VALUES (?, 72.5, ?)',
+      )
+      .run(userId, Date.now());
+    // Replay 0009 over a profile saved before it existed.
+    t.db.exec('DROP TABLE weighings');
+    t.db.pragma('user_version = 8');
+    migrate(t.db);
+    const rev = t.db
+      .prepare('SELECT rev FROM weighings WHERE user_id = ?')
+      .pluck()
+      .get(userId) as number;
+    expect(rev).toBeGreaterThan(0);
+    const res = await t.sync(0);
+    expect(res.weighings).toEqual([{ date: TODAY, weightKg: 72.5 }]);
+    expect(rev).toBeLessThanOrEqual(res.rev);
+    expect((await t.sync(res.rev)).weighings).toBeUndefined();
   });
 
   it('needs a session and a valid since', async () => {

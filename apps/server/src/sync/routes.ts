@@ -22,7 +22,8 @@ type Change =
       illustration: IllustrationId | null;
     }
   | { rev: number; kind: 'settings' }
-  | { rev: number; kind: 'profile' };
+  | { rev: number; kind: 'profile' }
+  | { rev: number; kind: 'weighing'; date: string; weightKg: number | null };
 
 /**
  * Everything of the user changed after `since`, by rev (ADR-0011 §3). Each change has its own
@@ -40,6 +41,10 @@ export function syncRoutes({ db }: AppDeps) {
   );
   const choices = db.prepare(
     `SELECT rev, 'choice' AS kind, name_key AS nameKey, illustration FROM illustration_choices
+     WHERE user_id = ? AND rev > ? ORDER BY rev LIMIT ${limit}`,
+  );
+  const weighings = db.prepare(
+    `SELECT rev, 'weighing' AS kind, date, weight_kg AS weightKg FROM weighings
      WHERE user_id = ? AND rev > ? ORDER BY rev LIMIT ${limit}`,
   );
   const profile = db.prepare(
@@ -65,6 +70,7 @@ export function syncRoutes({ db }: AppDeps) {
           ...(meals.all(userId, since) as Change[]),
           ...(tombstones.all(userId, since) as Change[]),
           ...(choices.all(userId, since) as Change[]),
+          ...(weighings.all(userId, since) as Change[]),
           ...(profile.all(userId, since) as Change[]),
           // since = 0 is the first load: never-changed settings (settings_rev 0) come too.
           ...(settingsRev > since || since === 0
@@ -92,6 +98,8 @@ export function syncRoutes({ db }: AppDeps) {
           else if (x.kind === 'settings')
             out.settings = readSettings(db, userId);
           else if (x.kind === 'profile') out.profile = readProfile(db, userId);
+          else if (x.kind === 'weighing')
+            (out.weighings ??= []).push({ date: x.date, weightKg: x.weightKg });
         return out;
       })();
       return c.json(res);
