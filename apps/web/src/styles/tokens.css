@@ -136,6 +136,16 @@
   --illo-green: #6DB563;  --illo-leaf: #2F8A4E;   --illo-blue: #7DB3E3;
   --illo-tan: #DDA15E;    --illo-brown: #9A5B32;  --illo-cocoa: #5C3A28;
 
+  /* OCT-217: logo «Macro peas». Fixed brand values, never follow the theme: the icon, favicon and splash
+     masters (docs/design/oct-217/icon.svg, public/favicon.svg, scripts/splash-master.mjs) bake them in. */
+  --logo-tile: #E5F5EC;
+  --logo-pod: #13784A;         --logo-protein: #4766C4;         --logo-fat: #B36F00;         --logo-carbs: #16847E;
+  --logo-pod-on-dark: #5FD394; --logo-protein-on-dark: #93ABF2; --logo-fat-on-dark: #EBB45C; --logo-carbs-on-dark: #5ECFC6;
+  --logo-paper: #F8FAF9;       --logo-ink: #0E1110;             /* splash grounds, light / dark */
+  /* The in-app mark (ui/Mark) follows the theme; --mark-gap is the ring around the peas = the ground under the mark. */
+  --mark-pod: var(--logo-pod); --mark-protein: var(--logo-protein); --mark-fat: var(--logo-fat); --mark-carbs: var(--logo-carbs);
+  --mark-gap: var(--color-bg);
+
   --shadow-sheet: 0 -4px 24px rgb(24 33 29 / 0.06);
   --shadow-toast: 0 6px 20px rgb(24 33 29 / 0.10);
   --shadow-camera: 0 4px 14px rgb(19 120 74 / 0.24);
@@ -188,6 +198,8 @@
     --illo-red: #EE7564;    --illo-orange: #EFA654; --illo-yellow: #EECB62; --illo-pink: #E39B8F;
     --illo-green: #7CC472;  --illo-leaf: #4FAA6C;   --illo-blue: #86B9E4;
     --illo-tan: #D29E66;    --illo-brown: #B27A52;  --illo-cocoa: #7A5440;
+    --mark-pod: var(--logo-pod-on-dark); --mark-protein: var(--logo-protein-on-dark);
+    --mark-fat: var(--logo-fat-on-dark); --mark-carbs: var(--logo-carbs-on-dark);
     --theme-color: #0E1110;
   }
 }
@@ -228,6 +240,8 @@
   --illo-red: #EE7564;    --illo-orange: #EFA654; --illo-yellow: #EECB62; --illo-pink: #E39B8F;
   --illo-green: #7CC472;  --illo-leaf: #4FAA6C;   --illo-blue: #86B9E4;
   --illo-tan: #D29E66;    --illo-brown: #B27A52;  --illo-cocoa: #7A5440;
+  --mark-pod: var(--logo-pod-on-dark); --mark-protein: var(--logo-protein-on-dark);
+  --mark-fat: var(--logo-fat-on-dark); --mark-carbs: var(--logo-carbs-on-dark);
   --theme-color: #0E1110;
   color-scheme: dark;
 }

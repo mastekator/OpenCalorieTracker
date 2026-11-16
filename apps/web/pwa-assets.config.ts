@@ -1,7 +1,7 @@
 import { defineConfig } from '@vite-pwa/assets-generator/config';
 
-// Run `pnpm --filter web icons` after changing docs/design/oct-25/icon.svg; the PNGs are committed (ADR-0012).
-// Square icons (system masks round them); splash screens: pwa-splash.config.ts.
+// Run `pnpm --filter web icons` after changing docs/design/oct-217/icon.svg; the PNGs are committed (ADR-0012).
+// Square icons (system masks round them); favicon.svg is hand-placed (rounded tile, bigger mark for 16–32 px); splash screens: pwa-splash.config.ts.
 export default defineConfig({
   headLinkOptions: { preset: '2023' },
   preset: {

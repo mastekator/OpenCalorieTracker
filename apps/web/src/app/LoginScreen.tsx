@@ -28,6 +28,7 @@ import { Field } from '../ui/Field/Field';
 import { OfflineBar, useOnline } from '../ui/OfflineBar/OfflineBar';
 import { ScreenState } from '../ui/ScreenState/ScreenState';
 import { Sheet } from '../ui/Sheet/Sheet';
+import { Mark } from '../ui/Mark/Mark';
 import './LoginScreen.css';
 
 export type LoginLayout =
@@ -221,7 +222,7 @@ export function LoginScreen({
 
   const brand = (
     <>
-      <img className="login__mark" src="/icon.svg" alt="" />
+      <Mark className="login__mark" />
       <p className="login__app">{t('common.appName')}</p>
     </>
   );

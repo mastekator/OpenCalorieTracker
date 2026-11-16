@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import {
   AllAppleDeviceNames,
   appleSplashScreenSizes,
@@ -5,12 +6,12 @@ import {
   type AppleDeviceSize,
 } from '@vite-pwa/assets-generator/config';
 
-// iPhone splash screens from the rounded master (scripts/splash-master.mjs); run via `pnpm --filter web icons`.
-// Colours = --theme-color in src/styles/tokens.css (light / dark).
+// iPhone splash screens: the closed pod (scripts/splash-master.mjs); run via `pnpm --filter web icons`.
+// Grounds = --logo-paper / --logo-ink in src/styles/tokens.css (light / dark).
 const LIGHT = '#F8FAF9';
 const DARK = '#0E1110';
-// Splash icon size in CSS px (design OCT-25 §1, --splash-icon-size).
-const SPLASH_ICON = 120;
+// Mark size in CSS px (design OCT-217, logo-final.html).
+const SPLASH_ICON = 112;
 
 // The generator only knows iPhones up to the 11; newer screens (portrait px, scale 3).
 const NEW_IPHONES: AppleDeviceSize[] = [
@@ -51,8 +52,10 @@ export default defineConfig({
       })),
       resizeOptions: { background: LIGHT },
       darkResizeOptions: { background: DARK },
+      // The pod is lighter on the dark ground.
+      darkImageResolver: () => readFile('public/splash-dark.svg'),
     },
   },
-  // Temporary master written and removed by the icons script.
-  images: ['public/icon-splash.svg'],
+  // Temporary masters written and removed by the icons script.
+  images: ['public/splash-light.svg'],
 });

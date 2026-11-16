@@ -30,6 +30,7 @@ import type { Key } from '../i18n/translate';
 import { Banner } from '../ui/Banner/Banner';
 import { Button } from '../ui/Button/Button';
 import { Field } from '../ui/Field/Field';
+import { Mark } from '../ui/Mark/Mark';
 import { NavBar } from '../ui/NavBar/NavBar';
 import { PasswordRules } from '../ui/PasswordRules/PasswordRules';
 import { ScreenState } from '../ui/ScreenState/ScreenState';
@@ -75,7 +76,7 @@ function Brand({ children }: { children?: ReactNode }) {
   const { t } = useT();
   return (
     <header className="login__header">
-      <img className="login__mark" src="/icon.svg" alt="" />
+      <Mark className="login__mark" />
       <p className="login__app">{t('common.appName')}</p>
       {children}
     </header>

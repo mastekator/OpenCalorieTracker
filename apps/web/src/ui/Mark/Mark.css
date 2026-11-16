@@ -1,0 +1,34 @@
+/* Geometry = docs/design/oct-217/icon.svg without the tile; colours: --mark-* in tokens.css. */
+.mark {
+  display: inline-block;
+  flex: none;
+  /* Fills its box unless the caller sizes it. */
+  width: 100%;
+  height: 100%;
+}
+.mark__pod {
+  fill: var(--mark-pod);
+}
+.mark__lid {
+  opacity: 0.5;
+}
+.mark__peas {
+  stroke: var(--mark-gap);
+  stroke-width: 3;
+  paint-order: stroke;
+}
+.mark__protein {
+  fill: var(--mark-protein);
+}
+.mark__fat {
+  fill: var(--mark-fat);
+}
+.mark__carbs {
+  fill: var(--mark-carbs);
+}
+.mark__stem {
+  fill: none;
+  stroke: var(--mark-pod);
+  stroke-width: 5;
+  stroke-linecap: round;
+}
