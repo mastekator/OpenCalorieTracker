@@ -40,8 +40,9 @@ export function BootState({ error, onRetry }: Props) {
       </main>
     );
   return (
-    <main className="page" role="alert">
+    <main className="page">
       <ScreenState
+        role="alert"
         icon={network ? <WifiOff /> : <CircleAlert />}
         tone={network ? 'neutral' : 'danger'}
         title={t(network ? 'offline.first.title' : `errors.${error.code}`)}

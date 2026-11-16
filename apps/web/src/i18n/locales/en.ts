@@ -204,7 +204,7 @@ export const en = {
     meta: 'Created {date} · used {when}',
     meta_unused: 'Created {date} · not used yet',
     this_device: 'this device',
-    hint: 'Tap a passkey to rename or delete it.',
+    hint: 'Select a passkey to rename or delete it.',
     add: 'Add a passkey on this device',
     name: 'Name',
     save_name: 'Save name',

@@ -9,6 +9,8 @@
 @media (min-width: 1024px) {
   .settings {
     grid-template-columns: 1fr 1fr;
+    /* Cards keep their own height instead of stretching to the row. */
+    align-items: start;
   }
 
   .settings__offline {

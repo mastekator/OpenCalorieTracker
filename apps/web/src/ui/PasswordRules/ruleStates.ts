@@ -11,8 +11,9 @@ export function ruleStates(
   attempted: boolean,
 ): [RuleKey, RuleState][] {
   const problems = passwordProblems(password, email);
+  // An empty field meets nothing yet, even «not the email».
   const state = (broken: boolean): RuleState =>
-    !broken ? 'ok' : attempted ? 'fail' : 'pending';
+    !broken && password ? 'ok' : attempted ? 'fail' : 'pending';
   const rows: [RuleKey, RuleState][] = [
     ['length', state(problems.includes('length'))],
     [
