@@ -84,3 +84,6 @@ export * from './locales.js';
 export * from './settings.js';
 export * from './illustrations/dictionary.js';
 export * from './sync.js';
+export * from './weight/schemas.js';
+export * from './weight/trend.js';
+export * from './weight/jump.js';
