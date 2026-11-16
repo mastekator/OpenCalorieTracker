@@ -1066,6 +1066,7 @@ const ru: DeepPartial<typeof en> = {
       other: 'В среднем на оставшиеся {count} дн.',
     },
     per_day_kcal: '{k} ккал в день',
+    per_day_kcal_norm: '{k} ккал в день — по норме',
     avg: {
       title: 'В среднем за день',
       note: {

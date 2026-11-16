@@ -1037,6 +1037,7 @@ export const en = {
       other: 'Average for the remaining {count} days',
     },
     per_day_kcal: '{k} kcal per day',
+    per_day_kcal_norm: '{k} kcal per day — your norm',
     avg: {
       title: 'Daily average',
       note: {
