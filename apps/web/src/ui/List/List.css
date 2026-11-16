@@ -77,7 +77,27 @@
 }
 
 .list__item--action {
+  position: relative;
   display: flex;
+}
+
+/* The row is narrower than the item here, so the separator is drawn on the item to reach the end. */
+.list__item + .list__item--action > .list-row::before {
+  content: none;
+}
+
+.list__item + .list__item--action::before {
+  content: '';
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: var(--space-4) 0;
+  border-block-start: 1px solid var(--color-separator);
+}
+
+.list__item + .list__item--action:has(.list-row--icon)::before {
+  inset-inline-start: calc(
+    var(--space-4) + var(--icon-size) * 1.25 + var(--space-3)
+  );
 }
 
 .list__item--action > .list-row {
@@ -90,14 +110,21 @@
   display: grid;
   place-items: center;
   flex: none;
+  position: relative;
   min-width: var(--tap-min);
-  margin-block: var(--space-2);
   padding-inline: var(--space-3);
   border: none;
-  border-inline-start: 1px solid var(--color-separator);
   background: transparent;
   color: var(--color-accent);
   cursor: pointer;
+}
+
+.list-row__action::before {
+  content: '';
+  position: absolute;
+  inset-inline-start: 0;
+  inset-block: var(--space-2);
+  border-inline-start: 1px solid var(--color-separator);
 }
 
 .list-row__action:disabled {
