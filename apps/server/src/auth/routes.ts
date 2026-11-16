@@ -105,7 +105,22 @@ export function authHelpers(deps: AppDeps) {
       )
       .get(email, email, Date.now());
 
-  return { passwordHash, userById, signedIn, usableLink, me, emailTaken };
+  /** Open registration before the admin exists would leave the database non-empty, so the admin is never seeded. */
+  const assertAdminExists = () => {
+    if (!db.prepare("SELECT 1 FROM users WHERE role = 'admin'").get()) {
+      throw new ApiError(409, 'not_configured');
+    }
+  };
+
+  return {
+    passwordHash,
+    userById,
+    signedIn,
+    usableLink,
+    me,
+    emailTaken,
+    assertAdminExists,
+  };
 }
 
 /**
@@ -115,8 +130,15 @@ export function authHelpers(deps: AppDeps) {
 export function authRoutes(deps: AppDeps) {
   const { config, db } = deps;
   const passwordOn = methodEnabled(config, 'password');
-  const { passwordHash, userById, signedIn, usableLink, me, emailTaken } =
-    authHelpers(deps);
+  const {
+    passwordHash,
+    userById,
+    signedIn,
+    usableLink,
+    me,
+    emailTaken,
+    assertAdminExists,
+  } = authHelpers(deps);
 
   return new Hono<AuthEnv>()
     .post(
@@ -179,6 +201,7 @@ export function authRoutes(deps: AppDeps) {
           // The invite fixes the email; one in the body is ignored.
           email = usableLink(token, 'invite', attempts).email;
         } else if (config.registration === 'open') {
+          assertAdminExists();
           const given = c.req.valid('json').email;
           if (!given) throw new ApiError(400, 'validation_failed');
           email = given;

@@ -80,8 +80,14 @@ export function passkeyName(ua = '') {
  */
 export function passkeyRoutes(deps: AppDeps) {
   const { config, db } = deps;
-  const { passwordHash, userById, signedIn, usableLink, emailTaken } =
-    authHelpers(deps);
+  const {
+    passwordHash,
+    userById,
+    signedIn,
+    usableLink,
+    emailTaken,
+    assertAdminExists,
+  } = authHelpers(deps);
   const passkeyOn = methodEnabled(config, 'passkey');
   const pending = challengeStore<Pending>();
   const rpName = 'OpenCalorieTracker';
@@ -294,6 +300,7 @@ export function passkeyRoutes(deps: AppDeps) {
         if (token) {
           email = usableLink(token, 'invite', attempts).email;
         } else if (config.registration === 'open') {
+          assertAdminExists();
           const given = c.req.valid('json').email;
           if (!given) throw new ApiError(400, 'validation_failed');
           // Checked here so nobody goes through the authenticator dialog for nothing (AC-3.6).
