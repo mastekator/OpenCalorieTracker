@@ -18,6 +18,8 @@ export const AllMet: Story = { args: { password: 'Pasta-2-go' } };
 export const FailedAttempt: Story = {
   args: { password: 'pasta2', attempted: true },
 };
+/** Empty field with a known email: every row stays neutral (OCT-170). */
+export const EmptyWithEmail: Story = { args: { email: 'me@example.com' } };
 export const WithEmail: Story = {
   args: { password: 'Pasta-2-go', email: 'me@example.com' },
 };

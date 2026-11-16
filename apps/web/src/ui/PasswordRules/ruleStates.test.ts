@@ -42,6 +42,19 @@ describe('ruleStates', () => {
     ]);
   });
 
+  it('keeps every row neutral for an empty password, failed after an attempt', () => {
+    expect(ruleStates('', 'me@example.com', false)).toEqual([
+      ['length', 'pending'],
+      ['letter_digit', 'pending'],
+      ['symbol', 'pending'],
+      ['not_email', 'pending'],
+    ]);
+    expect(ruleStates('', 'me@example.com', true)[3]).toEqual([
+      'not_email',
+      'fail',
+    ]);
+  });
+
   it('fails the length row above the maximum', () => {
     expect(ruleStates(`a1!${'x'.repeat(126)}`, undefined, true)[0]).toEqual([
       'length',
