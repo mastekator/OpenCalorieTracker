@@ -16,6 +16,8 @@
 .kchart__plot {
   position: relative;
   height: var(--chart-height);
+  /* A horizontal drag picks days, a vertical one still scrolls the page (OCT-168). */
+  touch-action: pan-y;
   border-bottom: 1px solid var(--color-separator);
 }
 @media (min-width: 1024px) {
