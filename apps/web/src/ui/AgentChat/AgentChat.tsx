@@ -283,7 +283,14 @@ export function NormSummary({
           {t(`pace.${pace.level}.body`)}
         </Banner>
       ) : pace?.level === 'gain_fast' ? (
-        <Banner tone="warning">{t('pace.gain_fast')}</Banner>
+        <Banner tone="warning">
+          {pace.source === 'deadline' && draft.deadline && pace.etaDate
+            ? t('pace.gain_fast_capped', {
+                date: date(draft.deadline),
+                eta: date(pace.etaDate),
+              })
+            : t('pace.gain_fast')}
+        </Banner>
       ) : null}
       {onHow && (
         <Button variant="plain" small onClick={onHow}>

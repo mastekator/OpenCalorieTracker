@@ -375,7 +375,12 @@ export function ProfileForm({
     const level = pace?.level ?? 'ok';
     const body = [
       level === 'gain_fast'
-        ? t('pace.gain_fast')
+        ? pace?.source === 'deadline' && profile.deadline && pace.etaDate
+          ? t('pace.gain_fast_capped', {
+              date: shortDate(profile.deadline),
+              eta: shortDate(pace.etaDate),
+            })
+          : t('pace.gain_fast')
         : level !== 'ok' && t(`pace.${level}.body`),
       steps.floor === 'tdee_below_floor' && t('floor.tdee'),
       steps.floor === 'clamped' &&

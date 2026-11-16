@@ -108,6 +108,16 @@ export const DangerFloor: Story = {
     deadline: '2026-12-05',
   }),
 };
+/** OCT-173: gaining capped at the gain_fast pace, with the real date. */
+export const GainFast: Story = {
+  args: withProfile({
+    weightKg: 70,
+    goal: 'gain',
+    targetWeightKg: 75,
+    deadline: '2026-12-14',
+  }),
+};
+export const GainFastDark: Story = { ...GainFast, globals: { theme: 'dark' } };
 /** 8.6, AC-2.1b: burns less than the floor. */
 export const BelowFloor: Story = {
   args: withProfile({
