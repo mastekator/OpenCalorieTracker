@@ -1,6 +1,88 @@
 # Self-hosting OpenCalorieTracker
 
-How to configure your own OpenCalorieTracker server. For what the app does, see the [README](../README.md).
+How to install and configure your own OpenCalorieTracker server. For what the app does, see the [README](../README.md).
+
+## Installation
+
+### Requirements
+
+- Docker with the Compose plugin, on an x86-64 or arm64 machine (home server, NAS, Raspberry Pi, VPS).
+- A domain name pointing at that machine, and a reverse proxy with HTTPS in front of the container (see [below](#reverse-proxy-and-https)).
+
+### Start
+
+```sh
+mkdir opencalorietracker && cd opencalorietracker
+curl -O https://raw.githubusercontent.com/mastekator/OpenCalorieTracker/main/docker-compose.yml
+curl -o .env https://raw.githubusercontent.com/mastekator/OpenCalorieTracker/main/.env.example
+```
+
+Edit `.env`: set `PUBLIC_URL` to the exact address users will open (e.g. `https://food.example.com`), and `ADMIN_EMAIL` and `ADMIN_PASSWORD` for the first admin. Then:
+
+```sh
+docker compose up -d
+docker compose logs
+```
+
+The log lists any configuration problems. The container listens on `127.0.0.1:3000` only; users reach it through the reverse proxy.
+
+### First sign-in
+
+Open `PUBLIC_URL` and sign in with `ADMIN_EMAIL` and `ADMIN_PASSWORD`. The admin is created only on the first start with an empty database; afterwards both variables are ignored, so change the password in the app and, if you like, add a passkey. Invite other users from the admin section.
+
+### AI provider
+
+AI recognizes food on photos and runs the goal assistant. It is optional: without it, food is entered by hand. Set the `AI_*` variables in `.env` and run `docker compose up -d` again.
+
+- **Cloud model:** `AI_PROVIDER` (`google`, `openai`, `anthropic` or `openrouter`), `AI_MODEL` and `AI_API_KEY` from the provider's console.
+- **Local model** (Ollama, LM Studio or any OpenAI-compatible server): `AI_PROVIDER=openai-compatible`, `AI_MODEL`, and `AI_BASE_URL`, e.g. `http://ollama:11434/v1` when Ollama runs in the same Compose project. `AI_API_KEY` only if the server asks for one.
+
+The model must read images. Which ones work well: [Tested models](MODELS.md).
+
+### Reverse proxy and HTTPS
+
+Passkeys work only over HTTPS and only on the exact domain in `PUBLIC_URL`, and invite and recovery links are built from it. So the proxy must serve the app over HTTPS at that address, and `PUBLIC_URL` must match what users type, scheme and port included. Plain `http://` is accepted only for `http://localhost`.
+
+A minimal [Caddy](https://caddyserver.com/docs/quick-starts/reverse-proxy) setup on the same host gets a certificate automatically. `Caddyfile`:
+
+```
+food.example.com {
+	reverse_proxy 127.0.0.1:3000
+}
+```
+
+If Caddy runs in its own container, `127.0.0.1:3000` is not reachable from it: put both containers on one Docker network and use `reverse_proxy opencalorietracker:3000`.
+
+Other proxies: [nginx](https://nginx.org/en/docs/http/ngx_http_proxy_module.html), [Traefik](https://doc.traefik.io/traefik/routing/providers/docker/), [Synology DSM reverse proxy](https://kb.synology.com/en-global/DSM/help/DSM/AdminCenter/system_login_portal_advanced). Whatever you use, keep [`TRUST_PROXY_HOPS`](#trust_proxy_hops-the-real-client-ip) equal to the number of proxies.
+
+### Updating
+
+Read the [changelog](../CHANGELOG.md), set the new version tag in `image:` in `docker-compose.yml`, then:
+
+```sh
+docker compose pull
+docker compose up -d
+```
+
+Database migrations run on start. Back up first.
+
+### Backup and restore
+
+Everything (database and photos) is in the `/data` volume. Compose prefixes the volume name with the project name, by default the directory name: with the steps above it is `opencalorietracker_oct-data` (check with `docker volume ls`). Back up with the container stopped:
+
+```sh
+docker compose stop
+docker run --rm -v opencalorietracker_oct-data:/data -v "$PWD":/b alpine tar czf /b/oct-backup.tgz -C /data .
+docker compose start
+```
+
+Restore into the same volume:
+
+```sh
+docker compose stop
+docker run --rm -v opencalorietracker_oct-data:/data -v "$PWD":/b alpine sh -c 'rm -rf /data/* && tar xzf /b/oct-backup.tgz -C /data'
+docker compose start
+```
 
 ## Configuration
 
