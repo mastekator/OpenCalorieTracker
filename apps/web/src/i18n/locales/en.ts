@@ -509,8 +509,10 @@ export const en = {
     delete: 'Delete weigh-in',
     fix: 'Edit',
     jump_title: 'Check the weight',
-    jump_more: '{weight} is {diff} more than on {date}. Is that right?',
-    jump_less: '{weight} is {diff} less than on {date}. Is that right?',
+    jump_more:
+      'On {date} it was {prev}, now {weight} — {diff} more. Is that right?',
+    jump_less:
+      'On {date} it was {prev}, now {weight} — {diff} less. Is that right?',
     typo_below: '{weight} is below {min}',
     typo_above: '{weight} is above {max}',
     typo_body: 'Did you mean {fix}?',
