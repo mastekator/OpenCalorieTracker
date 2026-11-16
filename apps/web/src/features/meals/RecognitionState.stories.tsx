@@ -61,6 +61,51 @@ export const EmptyDark: Story = { args: { state: 'empty' }, globals: dark };
 /** 3.7 */
 export const Offline: Story = { args: { state: 'offline' } };
 export const OfflineDark: Story = { args: { state: 'offline' }, globals: dark };
+/** Recalculating a saved meal: no «Retake», every way out leads back to the entry. */
+const recalc = { onRetake: undefined };
+export const RecalcSlow: Story = { args: { ...recalc, state: 'slow' } };
+export const RecalcSlowDark: Story = {
+  args: { ...recalc, state: 'slow' },
+  globals: dark,
+};
+export const RecalcUnavailable: Story = {
+  args: { ...recalc, state: 'unavailable' },
+};
+export const RecalcUnavailableDark: Story = {
+  args: { ...recalc, state: 'unavailable' },
+  globals: dark,
+};
+export const RecalcQuota: Story = { args: { ...recalc, state: 'quota' } };
+export const RecalcQuotaDark: Story = {
+  args: { ...recalc, state: 'quota' },
+  globals: dark,
+};
+export const RecalcFailed: Story = { args: { ...recalc, state: 'failed' } };
+export const RecalcFailedDark: Story = {
+  args: { ...recalc, state: 'failed' },
+  globals: dark,
+};
+export const RecalcGone: Story = {
+  args: { ...recalc, state: 'gone', photoUrl: '/api/photos/gone' },
+};
+export const RecalcGoneDark: Story = {
+  args: { ...recalc, state: 'gone', photoUrl: '/api/photos/gone' },
+  globals: dark,
+};
+export const RecalcEmpty: Story = { args: { ...recalc, state: 'empty' } };
+export const RecalcEmptyDark: Story = {
+  args: { ...recalc, state: 'empty' },
+  globals: dark,
+};
+export const RecalcOffline: Story = { args: { ...recalc, state: 'offline' } };
+export const RecalcOfflineDark: Story = {
+  args: { ...recalc, state: 'offline' },
+  globals: dark,
+};
+export const RecalcRussian: Story = {
+  args: { ...recalc, state: 'unavailable' },
+  globals: { locale: 'ru' },
+};
 export const Russian: Story = {
   args: { state: 'slow' },
   globals: { locale: 'ru' },
