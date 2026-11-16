@@ -69,7 +69,7 @@ export default defineConfig({
     name: 'web',
     environment: 'jsdom',
     setupFiles: ['src/test-setup.ts'],
-    // Lets tests import tokens.css?raw (Vitest blanks CSS by default).
-    css: { include: [/tokens\.css/] },
+    // Lets tests import tokens.css?raw and Splash.css?raw (Vitest blanks CSS by default).
+    css: { include: [/tokens\.css/, /Splash\.css/] },
   },
 });

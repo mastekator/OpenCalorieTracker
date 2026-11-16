@@ -1,4 +1,5 @@
 import { I18nProvider } from '../i18n';
+import { Splash } from '../ui/Splash/Splash';
 import { ToastProvider } from '../ui/Toast/Toast';
 import { LeaveGuard } from './LeaveGuard';
 import { Routes } from './routes';
@@ -14,6 +15,8 @@ export function App() {
           </SessionProvider>
         </LeaveGuard>
       </ToastProvider>
+      {/* Once per page load: App never remounts on navigation. */}
+      <Splash />
     </I18nProvider>
   );
 }

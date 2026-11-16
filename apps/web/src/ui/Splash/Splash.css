@@ -1,0 +1,154 @@
+/* Launch intro (OCT-217 splash-animation): the pod squeezes, opens, peas pop out, then the name.
+   Every step is a share of --duration-splash; transform and opacity only. */
+.splash {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-splash);
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: var(--space-4);
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.splash--fade {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-base) var(--ease-out);
+}
+
+.splash .mark {
+  width: var(--splash-mark-size);
+  height: var(--splash-mark-size);
+  overflow: visible;
+}
+
+.splash__name {
+  font-size: var(--text-title-size);
+  line-height: var(--text-title-lh);
+  font-weight: var(--text-large-title-weight);
+  letter-spacing: var(--tracking-tight);
+  white-space: nowrap;
+}
+
+.splash__name span {
+  font-weight: var(--text-body-weight);
+  color: var(--color-text-secondary);
+}
+
+.splash .mark__body {
+  transform-box: view-box;
+  transform-origin: 50px 60px;
+  animation: splash-squash var(--duration-splash) var(--ease-in-out) both;
+}
+.splash .mark__hinge {
+  transform-box: view-box;
+  transform-origin: 6px 48px;
+  animation: splash-open var(--duration-splash) var(--ease-spring) both;
+}
+.splash .mark__lid {
+  animation: splash-lid-fade var(--duration-splash) var(--ease-out) both;
+}
+.splash .mark__peas circle {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: splash-pop var(--duration-splash) var(--ease-spring) both;
+}
+.splash .mark__fat {
+  animation-name: splash-pop2;
+}
+.splash .mark__carbs {
+  animation-name: splash-pop3;
+}
+.splash__name {
+  animation: splash-rise var(--duration-splash) var(--ease-out) both;
+}
+
+/* 0–15 %: the closed pod gives a little squeeze */
+@keyframes splash-squash {
+  0% {
+    transform: none;
+  }
+  8% {
+    transform: scale(1.05, 0.93);
+  }
+  16%,
+  100% {
+    transform: none;
+  }
+}
+/* 15–50 %: the lid swings open on the left hinge and fades to its resting half-tone */
+@keyframes splash-open {
+  0%,
+  15% {
+    transform: rotate(17deg);
+  }
+  50%,
+  100% {
+    transform: none;
+  }
+}
+@keyframes splash-lid-fade {
+  0%,
+  15% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0.5;
+  }
+}
+/* 35–75 %: peas pop out one by one — protein, fat, carbs */
+@keyframes splash-pop {
+  0%,
+  35% {
+    transform: scale(0);
+  }
+  58%,
+  100% {
+    transform: none;
+  }
+}
+@keyframes splash-pop2 {
+  0%,
+  43% {
+    transform: scale(0);
+  }
+  66%,
+  100% {
+    transform: none;
+  }
+}
+@keyframes splash-pop3 {
+  0%,
+  51% {
+    transform: scale(0);
+  }
+  74%,
+  100% {
+    transform: none;
+  }
+}
+/* 65–95 %: the name rises in */
+@keyframes splash-rise {
+  0%,
+  65% {
+    opacity: 0;
+    transform: translateY(var(--space-2));
+  }
+  95%,
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Reduce motion: the final frame from the first paint (the Mark's resting state), no keyframe ever drawn. */
+@media (prefers-reduced-motion: reduce) {
+  .splash *,
+  .splash {
+    animation: none !important;
+    transition: none;
+  }
+}
