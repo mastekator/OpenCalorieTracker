@@ -58,6 +58,32 @@ html[data-theme="dark"] .badge span+span{color:var(--color-on-accent)}
 .a-sec-stroke{stroke:var(--color-text-secondary);fill:none;stroke-linecap:round;stroke-linejoin:round}
 .a-p{fill:var(--color-protein)} .a-f{fill:var(--color-fat)} .a-c{fill:var(--color-carbs)}
 
+.one{max-width:920px;margin-top:var(--space-8)}
+.sp{margin-top:var(--space-12)}
+.lt{display:block}.dk{display:none}
+html[data-theme="dark"] .lt{display:none}html[data-theme="dark"] .dk{display:block}
+@media (prefers-color-scheme:dark){html:not([data-theme="light"]) .lt{display:none}html:not([data-theme="light"]) .dk{display:block}}
+/* Screens strip (exported as one PNG, light + dark) */
+.shots{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-6);padding:var(--space-8) var(--space-8) var(--space-5);background:var(--color-surface-2);border-radius:var(--radius-lg)}
+.shots figure{margin:0}
+.shots img{width:100%;height:auto;border-radius:var(--radius-xl);box-shadow:0 0 0 1px var(--color-separator),var(--shadow-sheet)}
+.shots figcaption{margin-top:var(--space-4);text-align:center;font-size:var(--text-footnote-size);font-weight:600;color:var(--color-text-secondary)}
+/* Link preview (1600×800 canvas, scaled to fit) */
+.hero-box{position:relative;aspect-ratio:2/1;border-radius:var(--radius-md);overflow:hidden;border:1px solid var(--color-separator)}
+.hero{position:absolute;left:0;top:0;width:1600px;height:800px;transform-origin:0 0;background:var(--color-bg);color:var(--color-text);font-family:var(--font-sans);overflow:hidden}
+.hero-glow{position:absolute;width:1000px;height:1000px;right:-160px;top:-100px;border-radius:50%;background:radial-gradient(circle,var(--color-accent-soft),transparent 64%)}
+.hero-copy{position:absolute;left:96px;top:0;bottom:0;width:540px;display:flex;flex-direction:column;justify-content:center}
+.hero-brand{display:flex;align-items:center;gap:16px;font-size:26px;font-weight:600}
+.hero-brand img{width:56px;height:56px;border-radius:14px}
+.hero-h{font-size:66px;line-height:1.06;letter-spacing:-.03em;font-weight:700;margin:40px 0 24px}
+.hero-h em{font-style:normal;color:var(--color-accent)}
+.hero-p{font-size:24px;line-height:1.45;color:var(--color-text-secondary)}
+.hero-chips{display:flex;gap:10px;margin-top:36px}
+.hero-chips span{background:var(--color-accent-soft);color:var(--color-accent);font-size:17px;font-weight:600;padding:9px 16px;border-radius:999px}
+.ph{position:absolute;padding:7px;border-radius:50px;background:var(--color-surface);box-shadow:0 0 0 1px var(--color-separator),0 30px 60px -24px rgba(0,0,0,.28)}
+.ph img{width:100%;height:auto;border-radius:43px}
+.ph1{left:700px;top:150px;width:268px}.ph3{left:1262px;top:150px;width:268px}
+.ph2{left:950px;top:72px;width:330px;z-index:2}
 .spec{margin-top:var(--space-12);max-width:100ch}
 .spec h2{font-size:var(--text-title-size);font-weight:600;margin-bottom:var(--space-3)}
 .spec ol,.spec ul{padding-left:var(--space-6);font-size:var(--text-subhead-size);line-height:1.6}
@@ -67,28 +93,35 @@ html[data-theme="dark"] .badge span+span{color:var(--color-on-accent)}
 <body>
 <div id="sprite" hidden></div>
 
-<h1 class="doc-h1">README: our own pitch</h1>
-<p class="doc-lead">Two structures for the repository front page, drawn as they would render on the repo page. Both drop the centered hero with phones, the badge wall, the “Why” block and the per-section feature list. The look comes from three images in our colors and food illustrations: a banner, the <b>Snap · Check · Save</b> strip and the <b>data path</b> diagram. The long goal formula, sources and model table move to docs. Copy is a draft, to be reviewed with the product owner.</p>
+<h1 class="doc-h1">README · A “Photo first”, round 2</h1>
+<p class="doc-lead">Variant A, as chosen. Changes since round 1: <b>a “Screens” section</b> with three real app screens right after the steps; <b>the data path drawn again</b> — no words over the arrows, the cards say it all; <b>the old phone hero is reworked</b> and gets a new job as the link preview image (below the README).</p>
 
-<div class="cols">
-  <section>
-    <h2 class="col-h">A · Photo first <span class="tag">Recommended</span></h2>
-    <p class="col-p">The first screen shows what the app does: three steps from photo to diary. Where the data lives is the very next section, full width, with a table of what leaves the server. Best for someone who opens the repo to see “what is this”.</p>
-    <div class="gh"><div class="gh-bar">README.md</div><div class="gh-body" id="readme-a"></div></div>
-  </section>
-  <section>
-    <h2 class="col-h">B · Your server first</h2>
-    <p class="col-p">The banner is the data path itself: phone → your server → AI provider, if you want one. The three steps come second. Stronger message for self-hosters, but the first screen shows a diagram, not food.</p>
-    <div class="gh"><div class="gh-bar">README.md</div><div class="gh-body" id="readme-b"></div></div>
-  </section>
+<div class="one">
+  <div class="gh"><div class="gh-bar">README.md</div><div class="gh-body" id="readme-a"></div></div>
+
+  <h2 class="col-h sp">Link preview image <span class="tag">Reworked hero</span></h2>
+  <p class="col-p">Shown when the repository link is shared in a chat or social network (repository settings → Social preview, 1280×640). Same idea as the old README header, with the rough edges fixed: every phone is whole (none cut by the edge or the bottom), thin light frames instead of the heavy grey bezel, phones overlap only on empty margins, calmer spacing in the text.</p>
+  <div class="hero-box" id="hero-box"><div class="hero" id="hero">
+    <div class="hero-glow"></div>
+    <div class="hero-copy">
+      <div class="hero-brand"><img src="screens/app-icon.svg" alt="">OpenCalorieTracker</div>
+      <p class="hero-h">Snap your meal.<br><em>Count calories.</em></p>
+      <p class="hero-p">A self-hosted calorie tracker for your phone and laptop. Photo in — dishes with grams, calories and macros out.</p>
+      <div class="hero-chips"><span>Self-hosted</span><span>Bring your own AI</span><span>Open source</span></div>
+    </div>
+    <div class="ph ph1"><img class="lt" src="screens/today-light.png" alt=""><img class="dk" src="screens/today-dark.png" alt=""></div>
+    <div class="ph ph3"><img class="lt" src="screens/week-light.png" alt=""><img class="dk" src="screens/week-dark.png" alt=""></div>
+    <div class="ph ph2"><img class="lt" src="screens/check-light.png" alt=""><img class="dk" src="screens/check-dark.png" alt=""></div>
+  </div></div>
 </div>
 
 <section class="spec">
   <h2>Notes for the build (after approval)</h2>
   <ol>
-    <li>Three images, each in light and dark, swapped with <code>&lt;picture&gt;</code> + <code>prefers-color-scheme</code>: banner, steps strip, data path. Export PNG @2x from this page (text stays crisp, no font fallback on the repo page). Width 840 CSS px.</li>
+    <li>Four images, each in light and dark, swapped with <code>&lt;picture&gt;</code> + <code>prefers-color-scheme</code>: banner, steps strip, screens strip, data path. The screens strip replaces the four loose phone screenshots in the current README; the old hero files go to the social preview only. Export PNG @2x from this page (text stays crisp, no font fallback on the repo page). Width 840 CSS px.</li>
     <li>When the demo clip from OCT-199 is ready, it can replace the steps strip; keep the same three captions under it.</li>
     <li>Badges: license and CI only, as markdown under the banner, left-aligned. No stars/release/Docker buttons.</li>
+    <li>Link preview: export the reworked hero at 1280×640 (light only — the social preview has one image) and upload it in the repository settings. Screens in it and in the strip are taken from Storybook stories, so they can be refreshed after UI changes.</li>
     <li>Move out of README: “How the daily goal is calculated” with sources → <code>docs/DAILY_GOAL.md</code>; “Tested models” → <code>docs/MODELS.md</code>; full feature list → one <code>&lt;details&gt;</code> “Everything it does”. Privacy and Disclaimer are merged into the data and “is / isn't” sections.</li>
     <li>Everything is left-aligned (no <code>align="center"</code>) — that alone sets the page apart from the usual template.</li>
   </ol>
@@ -146,7 +179,7 @@ const steps = `<svg class="asset" viewBox="0 0 840 270" role="img" aria-label="T
 </svg>`;
 
 const node = (x, title, l1, l2, icon, dashed) => `
-  <rect class="a-card" x="${x}" y="70" width="232" height="128" rx="14" stroke-width="${dashed ? 1.5 : 1}" ${dashed ? 'stroke-dasharray="6 5"' : ''}/>
+  <rect class="a-card" x="${x}" y="70" width="236" height="128" rx="14" stroke-width="${dashed ? 1.5 : 1}" ${dashed ? 'stroke-dasharray="6 5"' : ''}/>
   <g transform="translate(${x + 20} 90)">${icon}</g>
   <text class="a-text" x="${x + 20}" y="146" font-size="16" font-weight="700">${title}</text>
   <text class="a-sec" x="${x + 20}" y="168" font-size="12">${l1}</text>
@@ -154,17 +187,17 @@ const node = (x, title, l1, l2, icon, dashed) => `
 const icPhone = `<rect class="a-stroke" stroke-width="2" x="4" y="0" width="18" height="30" rx="4"/><path class="a-stroke" stroke-width="2" d="M10 25h6"/>`;
 const icServer = `<rect class="a-stroke" stroke-width="2" x="0" y="2" width="28" height="11" rx="3"/><rect class="a-stroke" stroke-width="2" x="0" y="17" width="28" height="11" rx="3"/><path class="a-stroke" stroke-width="2.4" d="M6 7.5h.01M6 22.5h.01"/>`;
 const icAi = `<path class="a-sec-stroke" stroke-width="2" d="M14 2v6M14 22v6M2 15h6M20 15h6M6 7l4 4M18 19l4 4M22 7l-4 4M10 19l-4 4"/>`;
-const arrow = (x, label, sub) => `
-  <path class="a-sec-stroke" stroke-width="2" d="M${x} 134h20m-6-6 6 6-6 6"/>
-  <text class="a-sec" x="${x + 10}" y="112" font-size="11" text-anchor="middle">${label}</text>
-  <text class="a-sec" x="${x + 10}" y="124" font-size="11" text-anchor="middle">${sub}</text>`;
+const arrow = (cx) => `
+  <path class="a-line" stroke-width="1.5" d="M${cx - 21} 134h42"/>
+  <circle class="a-card" cx="${cx}" cy="134" r="14"/>
+  <path class="a-stroke" stroke-width="2" d="M${cx - 2} 128l6 6-6 6"/>`;
 
 const pathInner = (y0) => `<g transform="translate(0 ${y0})">
   ${node(24, 'Your phone', 'Shrinks the photo,', 'strips EXIF and location', icPhone)}
-  ${arrow(260, 'photo', '')}
-  ${node(304, 'Your server', 'Diary, goals, weight,', 'photo previews · SQLite', icServer)}
-  ${arrow(540, 'photo', 'only')}
-  ${node(584, 'AI provider', 'Optional. Cloud, local', '(Ollama) or none at all', icAi, true)}
+  ${arrow(281)}
+  ${node(302, 'Your server', 'Keeps diary, goals, weight.', 'Passes on only the photo.', icServer)}
+  ${arrow(559)}
+  ${node(580, 'AI provider', 'Optional: cloud, local', '(Ollama) or none at all', icAi, true)}
   <text class="a-sec" x="420" y="232" font-size="12" text-anchor="middle">Nothing else leaves your server: no telemetry, no analytics, no ads.</text>
 </g>`;
 
@@ -174,16 +207,10 @@ const dataPath = `<svg class="asset" viewBox="0 0 840 270" role="img" aria-label
   ${pathInner(0)}
 </svg>`;
 
-const bannerB = `<svg class="asset" viewBox="0 0 840 330" role="img" aria-label="OpenCalorieTracker, a calorie diary that lives on your server. Data path: phone, your server, optional AI provider.">
-  <rect class="a-bg" width="840" height="330" rx="16"/>
-  <circle class="a-soft" cx="760" cy="40" r="110"/>
-  ${illo('salad', 762, 56, 34)}
-  <text class="a-text" x="24" y="58" font-size="34" font-weight="700" letter-spacing="-.5">OpenCalorieTracker</text>
-  <text class="a-sec" x="24" y="88" font-size="17">A photo calorie diary that lives on your server.</text>
-  ${pathInner(60)}
-</svg>`;
 
 /* ---------- shared README blocks ---------- */
+const fig = (n, cap) => `<figure><img class="lt" src="screens/${n}-light.png" alt=""><img class="dk" src="screens/${n}-dark.png" alt=""><figcaption>${cap}</figcaption></figure>`;
+const screens = `<div class="shots" role="img" aria-label="App screens: Today with what's left of the goal; recognized dishes with grams to check; the week with calories by day.">${fig('today','Today')}${fig('check','Check the dishes')}${fig('week','Week')}</div>`;
 const badges = `<div class="badges"><span class="badge"><span>license</span><span>AGPL-3.0</span></span><span class="badge"><span>CI</span><span>passing</span></span></div>`;
 const lead = `<p>Take a photo of your plate. A vision model of your choice lists the dishes with grams, kcal, protein, fat and carbs. Fix what's off, save it to your diary. No AI? Type it in.</p>`;
 const leaves = `<table>
@@ -215,20 +242,16 @@ const more = `<details><summary>Everything it does</summary><ul><li>Photo, libra
 
 document.getElementById('readme-a').innerHTML = `
   ${bannerA}${badges}${lead}${steps}
+  <h2>Screens</h2>${screens}
   <h2>Where your data lives</h2>${dataPath}${leaves}
   <h2>What it is — and isn't</h2>${isnt}
   <h2>Run it</h2>${run}
   <h2>Questions</h2>${faq}
   <h2>More</h2>${more}`;
 
-document.getElementById('readme-b').innerHTML = `
-  ${bannerB}${badges}${lead}
-  <h2>Snap. Check. Save.</h2>${steps}
-  <h2>What leaves your server</h2>${leaves}
-  <h2>What it is — and isn't</h2>${isnt}
-  <h2>Run it</h2>${run}
-  <h2>Questions</h2>${faq}
-  <h2>More</h2>${more}`;
+
+const fit = () => { const b = document.getElementById('hero-box'); document.getElementById('hero').style.transform = `scale(${b.clientWidth / 1600})`; };
+addEventListener('resize', fit); fit();
 
 fetch('../oct-33/sprite.svg').then(r => r.ok ? r.text() : '').catch(() => '')
   .then(s => { document.getElementById('sprite').innerHTML = s; });
