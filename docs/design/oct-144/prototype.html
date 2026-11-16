@@ -621,6 +621,7 @@ body{padding:var(--space-10) var(--space-8)}
 .scan .finder i:nth-child(4){bottom:-2px;right:-2px;border-left:0;border-top:0;border-radius:0 0 var(--radius-lg) 0}
 .scan .finder .line{position:absolute;left:var(--space-4);right:var(--space-4);top:50%;height:2px;background:var(--color-accent);box-shadow:0 0 12px var(--color-accent);animation:scanline 1.8s var(--ease-in-out) infinite alternate}
 @keyframes scanline{from{translate:0 -60px}to{translate:0 60px}}
+@media (prefers-reduced-motion:reduce){.scan .finder .line{animation:none}}
 .scan .finder.hit{box-shadow:0 0 0 999px rgb(0 0 0 / .6),inset 0 0 0 3px var(--color-accent)}
 .scan .finder.hit i{border-color:var(--color-accent)}
 .scan .s-hint{position:absolute;z-index:3;left:0;right:0;top:520px;text-align:center;font-size:var(--text-subhead-size);text-shadow:0 1px 3px rgb(0 0 0 / .6)}
