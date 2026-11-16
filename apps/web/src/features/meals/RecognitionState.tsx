@@ -84,12 +84,14 @@ export function RecognitionState({
       tone: 'warning',
       title: t('recog.err.quota.title'),
       body: t(recalc ? 'recalc.quota' : 'recog.err.quota.body'),
-      actions: [
-        manual('primary'),
-        <Button key="close" variant="plain" onClick={onClose}>
-          {t('common.close')}
-        </Button>,
-      ],
+      actions: recalc
+        ? [manual('primary')]
+        : [
+            manual('primary'),
+            <Button key="close" variant="plain" onClick={onClose}>
+              {t('common.close')}
+            </Button>,
+          ],
     },
     failed: {
       icon: <CircleAlert />,
