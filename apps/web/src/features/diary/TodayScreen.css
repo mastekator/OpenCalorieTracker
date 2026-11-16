@@ -33,6 +33,12 @@
 }
 
 .today__side {
+  display: grid;
+  gap: var(--space-4);
+  align-content: start;
+}
+
+.today__drop {
   display: none;
 }
 
@@ -47,8 +53,11 @@
     display: none;
   }
 
-  .today__side {
+  .today__drop {
     display: block;
+  }
+
+  .today__side {
     position: sticky;
     top: var(--space-4);
   }

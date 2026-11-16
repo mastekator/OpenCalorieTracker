@@ -53,6 +53,7 @@ import { Segment } from '../../ui/Segment/Segment';
 import { Switch } from '../../ui/Switch/Switch';
 import { useToast } from '../../ui/Toast/Toast';
 import { MACROS, fillMacros, type Macro, type Pct } from './fillMacros';
+import { offerMaintain, useReachedLater } from './goalReached';
 import { MacroFillDialog } from './MacroFillDialog';
 import './ProfileForm.css';
 
@@ -82,8 +83,6 @@ const LABEL: Record<Field, Key> = {
   deadline: 'goal.deadline',
 };
 
-// «Not now» on «Goal reached» (8.13) lasts until the profile changes.
-const REACHED_LATER_KEY = 'oct.goalReached.laterRev';
 const UNDO_MS = 5000;
 
 const isLoseGain = (goal: Goal | null) => goal === 'lose' || goal === 'gain';
@@ -158,9 +157,7 @@ export function ProfileForm({
   const [failed, setFailed] = useState(false);
   const [started, setStarted] = useState(false);
   const [activityOpen, setActivityOpen] = useState(false);
-  const [laterRev, setLaterRev] = useState(() =>
-    localStorage.getItem(REACHED_LATER_KEY),
-  );
+  const [laterRev, later] = useReachedLater();
   const [disclaimerClosed, setDisclaimerClosed] = useState(false);
   const [manual, setManual] = useState(() => toDraft(initial.manual));
   // The rest goes to fat when carbs were edited last (8.8a).
@@ -437,12 +434,10 @@ export function ProfileForm({
     );
   }
 
-  // 8.13: offer «Maintain» once the target is reached, until «Not now» for this profile rev.
   let reached: ReactNode = null;
   if (
-    ok?.warnings.includes('goal_reached') &&
-    profile.targetWeightKg !== null &&
-    laterRev !== String(saved.rev)
+    offerMaintain(ok, profile, saved.rev, laterRev) &&
+    profile.targetWeightKg !== null
   ) {
     const maintain: Profile = {
       ...profile,
@@ -472,13 +467,7 @@ export function ProfileForm({
             >
               {t('reached.go')}
             </button>
-            <button
-              type="button"
-              onClick={() => {
-                localStorage.setItem(REACHED_LATER_KEY, String(saved.rev));
-                setLaterRev(String(saved.rev));
-              }}
-            >
+            <button type="button" onClick={() => later(saved.rev)}>
               {t('reached.later')}
             </button>
           </>

@@ -4,6 +4,8 @@ import type { Macros, Meal } from '@oct/shared';
 import { useT } from '../../i18n';
 import { NavBar } from '../../ui/NavBar/NavBar';
 import { atPath } from '../../ui/navStory';
+import { EMPTY_PROFILE } from '../../data/DataContext';
+import { WeightCard } from '../weight/WeightCard';
 import { TodayView } from './TodayScreen';
 
 const NORM: Macros = { kcal: 2100, proteinG: 120, fatG: 70, carbsG: 240 };
@@ -74,6 +76,24 @@ function InScreen({ children }: { children: ReactNode }) {
   );
 }
 
+/** OCT-189 §1: last on the phone, above the drop zone on desktop. */
+const WEIGHT = (
+  <WeightCard
+    today="2026-11-14"
+    units="metric"
+    weighings={[
+      { date: '2026-11-10', weightKg: 80.6, status: 'synced' },
+      { date: '2026-11-14', weightKg: 80.2, status: 'synced' },
+    ]}
+    profile={EMPTY_PROFILE}
+    online
+    onAdd={() => {}}
+    onSetGoal={() => {}}
+    onMaintain={async () => {}}
+    onRetry={() => {}}
+  />
+);
+
 const meta = {
   title: 'Diary/TodayScreen',
   component: TodayView,
@@ -86,6 +106,7 @@ const meta = {
     weekRemainingKcal: 7270,
     onOpen: () => {},
     onSetNorm: () => {},
+    weight: WEIGHT,
   },
 } satisfies Meta<typeof TodayView>;
 export default meta;

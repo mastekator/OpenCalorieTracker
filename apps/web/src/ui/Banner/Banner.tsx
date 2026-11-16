@@ -1,15 +1,23 @@
 import type { ReactNode } from 'react';
-import { CircleAlert, Info, Sparkle, TriangleAlert, X } from 'lucide-react';
+import {
+  CircleAlert,
+  Info,
+  PartyPopper,
+  Sparkle,
+  TriangleAlert,
+  X,
+} from 'lucide-react';
 import { useT } from '../../i18n';
 import './Banner.css';
 
-type Tone = 'notice' | 'warning' | 'danger' | 'accent';
+type Tone = 'notice' | 'warning' | 'danger' | 'accent' | 'weight';
 
 const ICONS = {
   notice: Info,
   warning: TriangleAlert,
   danger: CircleAlert,
   accent: Sparkle,
+  weight: PartyPopper,
 } as const;
 
 type Props = {

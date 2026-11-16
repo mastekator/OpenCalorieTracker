@@ -82,6 +82,9 @@
   --weight-ruler-height: 64px;   /* OCT-189: swipe ruler in the weigh-in sheet, 0.1 kg/lb = 1 tick */
   --weight-tick-gap: 10px;       /* OCT-189: distance between 0.1 ticks */
   --calendar-dot-size: 4px;      /* OCT-189: «has a weighing» dot under a calendar day */
+  --weight-spark-width: 128px;   /* OCT-189: 30-day mini chart on the Today weight card */
+  --weight-spark-height: 56px;
+  --weight-point-r: 3px;         /* OCT-189: weighing dot on the weight charts */
 
   /* ── Radii ── */
   --radius-sm: 8px;   /* chips, small badges */

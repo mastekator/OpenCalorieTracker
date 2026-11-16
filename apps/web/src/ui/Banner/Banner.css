@@ -138,3 +138,13 @@
 .banner--accent .banner__icon {
   color: var(--color-accent);
 }
+
+/* OCT-189: «Goal reached» on the weight card, the weight hue. */
+.banner--weight {
+  background: var(--color-weight-soft);
+  color: var(--color-text);
+}
+
+.banner--weight .banner__icon {
+  color: var(--color-weight);
+}
