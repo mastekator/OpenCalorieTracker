@@ -15,6 +15,7 @@ import type {
   RecognizedDish,
 } from '@oct/shared';
 import { I18nProvider, LOCALE_STORAGE_KEY } from '../../i18n';
+import { loadDict } from '../../i18n/translate';
 import { renderLoaded } from '../../test-utils';
 import { LeaveGuard } from '../../app/LeaveGuard';
 import { ToastProvider } from '../../ui/Toast/Toast';
@@ -809,10 +810,18 @@ describe('MealEditScreen entry day (OCT-19 3.2, AC-2.11, AC-2.12)', () => {
     });
     expect(dayGroup()).toBeNull();
     const time = screen.getByLabelText('Time') as HTMLInputElement;
+    // Shown in the app's format, as in the title (OCT-198).
+    const shown = () => time.previousElementSibling!.textContent;
     expect(time.value).toBe('13:00');
+    expect(shown()).toBe('1:00\u00a0PM');
     fireEvent.click(screen.getByRole('radio', { name: 'Dinner' }));
     expect(time.value).toBe('19:00');
+    expect(shown()).toBe('7:00\u00a0PM');
     fireEvent.change(time, { target: { value: '20:15' } });
+    expect(shown()).toBe('8:15\u00a0PM');
+    // A cleared field keeps the time.
+    fireEvent.change(time, { target: { value: '' } });
+    expect(shown()).toBe('8:15\u00a0PM');
     fireEvent.click(screen.getByRole('radio', { name: 'Breakfast' }));
     expect(time.value).toBe('20:15');
     expect(await save()).toMatchObject({
@@ -820,6 +829,17 @@ describe('MealEditScreen entry day (OCT-19 3.2, AC-2.11, AC-2.12)', () => {
       localDate: '2026-11-10',
       eatenAt: new Date(2026, 10, 10, 20, 15).toISOString(),
     });
+  });
+
+  it('a past day shows the time in Russian as in the title', async () => {
+    localStorage.setItem(LOCALE_STORAGE_KEY, 'ru');
+    await loadDict('ru');
+    await open({ now: () => new Date(2026, 10, 15, 9, 0), date: '2026-11-10' });
+    const time = screen.getByLabelText('Время');
+    expect(time.previousElementSibling!.textContent).toBe('13:00');
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toContain(
+      '13:00',
+    );
   });
 
   it('a past day starts at lunch, 13:00', async () => {

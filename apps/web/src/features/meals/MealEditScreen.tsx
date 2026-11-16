@@ -1,8 +1,15 @@
-import { useEffect, useRef, useState, type ChangeEvent } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type MouseEvent,
+} from 'react';
 import { Redirect, useLocation, useSearch } from 'wouter';
 import {
   Calendar,
   Camera,
+  Clock,
   ImageOff,
   Plus,
   Sparkle,
@@ -51,7 +58,6 @@ import { useSession } from '../../app/SessionContext';
 import { useDirty } from '../../app/dirty';
 import { Banner } from '../../ui/Banner/Banner';
 import { Button } from '../../ui/Button/Button';
-import { Field } from '../../ui/Field/Field';
 import { DishRow } from '../../ui/DishRow/DishRow';
 import { DishSheet } from '../../ui/DishSheet/DishSheet';
 import { HistoryHint } from '../../ui/HistoryHint/HistoryHint';
@@ -684,6 +690,13 @@ export function MealEditScreen({
     return () => document.removeEventListener('keydown', onKey);
   }, []);
 
+  const openPicker = (event: MouseEvent<HTMLInputElement>) => {
+    try {
+      event.currentTarget.showPicker(); // desktop Chrome: a click alone only focuses
+    } catch {
+      // No showPicker, or no user activation: the native behaviour stays.
+    }
+  };
   const timeOf = (at: Date) =>
     new Intl.DateTimeFormat(locale, {
       hour: 'numeric',
@@ -914,13 +927,7 @@ export function MealEditScreen({
                   required
                   value={when}
                   max={maxWhen}
-                  onClick={(event) => {
-                    try {
-                      event.currentTarget.showPicker(); // desktop Chrome: a click alone only focuses
-                    } catch {
-                      // No showPicker, or no user activation: the native behaviour stays.
-                    }
-                  }}
+                  onClick={openPicker}
                   // A typed future time is pulled back to now (AC-2.9); a cleared field keeps the value.
                   onChange={(e) => {
                     const v = e.target.value;
@@ -930,13 +937,25 @@ export function MealEditScreen({
               </label>
             )}
             {date && (
-              <Field
-                label={t('edit.time')}
-                type="time"
-                required
-                value={eatenTime}
-                onChange={(e) => setTime(e.target.value || null)}
-              />
+              // The same trick as a saved meal: the time as in the title, the native picker on top.
+              <label className="meal-edit__when">
+                <Clock aria-hidden="true" />
+                <span aria-hidden="true">
+                  {timeOf(pastAt()).replace(/ /g, '\u00a0')}
+                </span>
+                <input
+                  type="time"
+                  aria-label={t('edit.time')}
+                  required
+                  value={eatenTime}
+                  onClick={openPicker}
+                  // A cleared field keeps the value.
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v) setTime(v);
+                  }}
+                />
+              </label>
             )}
             {rows.length > 0 ? (
               <ul className="meal-edit__list">
