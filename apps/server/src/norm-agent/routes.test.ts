@@ -1,6 +1,7 @@
 import { MockLanguageModelV4 } from 'ai/test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { AgentResponse, Profile } from '@oct/shared';
+import { addDays, type AgentResponse, type Profile } from '@oct/shared';
+import { serverToday } from '../profile/routes.js';
 import { aiSetup, apiError, reply } from '../test/ai.js';
 
 const EMPTY: Profile = {
@@ -266,6 +267,36 @@ describe('summary, edit, apply', () => {
     expect((await t.call('POST', '/norm-agent/apply')).status).toBe(500);
     expect(await t.profile()).toEqual(before);
     expect((await t.json(t.call('GET', '/norm-agent'))).state).toBe('summary');
+  });
+
+  it('rechecks a stale summary deadline on apply, unless it is the saved one', async () => {
+    const t = await setup(scriptedModel(ALL).model);
+    await t.call('PUT', '/profile', { profile: EMPTY, manual: null });
+    await t.call('GET', '/norm-agent');
+    await t.say('everything');
+    // A summary made days ago: its deadline is now closer than 14 days.
+    const soon = addDays(serverToday(), 3);
+    const draft = JSON.parse(
+      t.db.prepare('SELECT draft FROM agent_drafts').pluck().get() as string,
+    ) as { profile: Profile };
+    Object.assign(draft.profile, {
+      goal: 'gain',
+      targetWeightKg: 75,
+      deadline: soon,
+    });
+    t.db
+      .prepare('UPDATE agent_drafts SET draft = ?')
+      .run(JSON.stringify(draft));
+    const before = await t.profile();
+
+    const res = await t.call('POST', '/norm-agent/apply');
+    expect(res.status).toBe(409);
+    expect(await res.json()).toEqual({ error: { code: 'agent_not_ready' } });
+    expect(await t.profile()).toEqual(before);
+
+    t.db.prepare('UPDATE profiles SET deadline = ?').run(soon);
+    expect((await t.call('POST', '/norm-agent/apply')).status).toBe(200);
+    expect((await t.profile()).profile.deadline).toBe(soon);
   });
 
   it('returns from the summary to the dialog on edit (AC-5.8)', async () => {

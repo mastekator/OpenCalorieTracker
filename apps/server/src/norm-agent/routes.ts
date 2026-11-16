@@ -1,6 +1,8 @@
 import { Hono } from 'hono';
 import {
   agentMessageRequestSchema,
+  birthDateError,
+  deadlineError,
   profileSchema,
   type AgentResponse,
   type ChatMessage,
@@ -193,9 +195,22 @@ export function normAgentRoutes({ db, model = null }: AppDeps) {
         (JSON.parse(row.draft) as InterviewDraft).profile,
       );
       if (!parsed.success) throw new ApiError(409, 'agent_not_ready');
+      // The summary may be days old: recheck date rules on changed fields, as PUT /profile does.
+      const p = parsed.data;
+      const old = readProfile(db, userId).profile;
+      const today = serverToday();
+      if (
+        (p.birthDate !== old.birthDate &&
+          p.birthDate &&
+          birthDateError(p.birthDate, today)) ||
+        (p.deadline !== old.deadline &&
+          p.deadline &&
+          deadlineError(p.deadline, today))
+      )
+        throw new ApiError(409, 'agent_not_ready');
       // One transaction: the profile, the cleared manual norm and the closed dialog (AC-5.12, E-3.1).
       db.transaction(() => {
-        writeProfile(db, userId, parsed.data, null);
+        writeProfile(db, userId, p, null);
         clear(userId);
       })();
       return c.json(readProfile(db, userId));

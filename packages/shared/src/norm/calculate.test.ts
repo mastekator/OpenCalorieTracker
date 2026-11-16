@@ -147,6 +147,20 @@ describe('calculateNorm: pace thresholds on the boundary', () => {
     expect(plan(105, 69)).toBe('gain_fast');
   });
 
+  it('gain with a near deadline is capped at the gain_fast pace', () => {
+    for (const deadline of ['2026-01-02', '2026-01-16']) {
+      const r = ok({ goal: 'gain', targetWeightKg: 85, deadline });
+      // 0.5 % of 80 kg = 0.4 kg/week = 440 kcal/day over TDEE.
+      expect(r.steps.deltaKcal).toBeCloseTo(440, 6);
+      expect(r.kcal).toBe(Math.round((r.steps.tdee + 440) / 10) * 10);
+      expect(r.pace).toMatchObject({
+        level: 'gain_fast',
+        source: 'deadline',
+        etaDate: '2026-03-30', // 5 kg at 0.4 kg/week = 88 days
+      });
+    }
+  });
+
   it('safeDeadline only when losing too fast', () => {
     const r = ok({
       weightKg: 100,
