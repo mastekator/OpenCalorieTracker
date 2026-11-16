@@ -489,6 +489,8 @@ export const en = {
   unit: { cm: 'cm', in: 'in', kg: 'kg', lb: 'lb', g: 'g', oz: 'oz' },
   weighing: {
     has: 'has a weighing',
+    legend_has: 'weigh-in logged',
+    legend_future: 'future days unavailable',
     title: 'Log weight',
     title_for: 'Weight for {date}',
     title_edit: 'Weigh-in · {date}',

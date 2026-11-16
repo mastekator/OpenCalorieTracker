@@ -346,6 +346,7 @@ function WeighIn({
                 aria-invalid={error}
                 aria-describedby={hintId}
                 autoFocus
+                style={{ width: `${Math.max(text.length, 1)}ch` }}
                 value={text}
                 onFocus={(e) => e.target.select()}
                 onChange={(e) => {

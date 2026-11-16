@@ -498,6 +498,8 @@ const ru: DeepPartial<typeof en> = {
   unit: { cm: 'см', in: 'in', kg: 'кг', lb: 'lb', g: 'г', oz: 'oz' },
   weighing: {
     has: 'есть взвешивание',
+    legend_has: 'есть взвешивание',
+    legend_future: 'будущие дни недоступны',
     title: 'Записать вес',
     title_for: 'Вес за {date}',
     title_edit: 'Взвешивание · {date}',
