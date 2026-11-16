@@ -51,6 +51,9 @@
   --chat-bubble-max-width: 80%; /* OCT-22: user message width in chat */
   --dish-illo-size: 40px;       /* OCT-33: dish illustration in edit rows (hit area stays 44) */
   --illo-pick-size: 64px;       /* OCT-33: tile in the illustration picker grid */
+  --water-figure-size: 120px;   /* OCT-147: water mascot / bar column on the Water card (phone) */
+  --drink-tile-size: 56px;      /* OCT-147: round drink tile in the drinks row (hit area = tile + label) */
+  --duration-fill: 1200ms;      /* OCT-147: water level rise after a tap (≤ 1.5 s, product AC-2.2) */
   --icon-size: 24px;  --icon-size-sm: 20px;  --icon-stroke: 1.75;
   --content-max-width: 560px;   /* phone-like column: auth, settings, tablet/narrow window */
   /* Desktop (window ≥ 1024px; CSS vars can't be used in @media — keep 1024 in one place in code):
@@ -105,6 +108,9 @@
   --color-protein: #4766C4;
   --color-fat: #B36F00;
   --color-carbs: #16847E;
+  /* OCT-147: water (graphics & text, ≥ 4.5:1 on surface) */
+  --color-water: #1F78C8;
+  --color-water-soft: #E8F2FB;
 
   /* OCT-33: dish illustrations (flat, decorative). Shown on a round "plate" tile so they never pass for a photo */
   --illo-tile: #F6F0E4;   /* round substrate behind every illustration */
@@ -150,6 +156,8 @@
     --color-protein: #93ABF2;
     --color-fat: #EBB45C;
     --color-carbs: #5ECFC6;
+    --color-water: #6DB6F2;
+    --color-water-soft: #13263A;
     --illo-tile: #2B2721;
     --illo-plate: #4C524F;  --illo-white: #EEE8DC;  --illo-shade: rgb(0 0 0 / 0.28);
     --illo-red: #EE7564;    --illo-orange: #EFA654; --illo-yellow: #EECB62; --illo-pink: #E39B8F;
@@ -188,6 +196,8 @@
   --color-protein: #93ABF2;
   --color-fat: #EBB45C;
   --color-carbs: #5ECFC6;
+  --color-water: #6DB6F2;
+  --color-water-soft: #13263A;
   --illo-tile: #2B2721;
   --illo-plate: #4C524F;  --illo-white: #EEE8DC;  --illo-shade: rgb(0 0 0 / 0.28);
   --illo-red: #EE7564;  --illo-orange: #EFA654; --illo-yellow: #EECB62; --illo-pink: #E39B8F;
@@ -204,5 +214,5 @@
 :root[data-theme="light"] { color-scheme: light; }
 
 @media (prefers-reduced-motion: reduce) {
-  :root { --duration-fast: 0ms; --duration-base: 0ms; --duration-slow: 0ms; --press-scale: 1; }
+  :root { --duration-fast: 0ms; --duration-base: 0ms; --duration-slow: 0ms; --press-scale: 1; --duration-fill: 0ms; }
 }
