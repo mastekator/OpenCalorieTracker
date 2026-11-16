@@ -74,8 +74,8 @@ export const en = {
     not_configured: {
       title: 'Installation isn’t set up',
       admin:
-        'Set the admin account in the container configuration. See the README.',
-      url: 'Set PUBLIC_URL in the container configuration. See the README.',
+        'Set the admin account in the container configuration. See the self-hosting guide.',
+      url: 'Set PUBLIC_URL in the container configuration. See the self-hosting guide.',
     },
   },
   settings: {
