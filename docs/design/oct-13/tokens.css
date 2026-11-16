@@ -54,6 +54,7 @@
   --water-figure-size: 120px;   /* OCT-147: water mascot / bar column on the Water card (phone) */
   --drink-tile-size: 56px;      /* OCT-147: round drink tile in the drinks row (hit area = tile + label) */
   --duration-fill: 1200ms;      /* OCT-147: water level rise after a tap (≤ 1.5 s, product AC-2.2) */
+  --dose-mark-size: 28px;       /* OCT-144: intake ring / check on a supplement row (hit area = whole row) */
   --icon-size: 24px;  --icon-size-sm: 20px;  --icon-stroke: 1.75;
   --content-max-width: 560px;   /* phone-like column: auth, settings, tablet/narrow window */
   /* Desktop (window ≥ 1024px; CSS vars can't be used in @media — keep 1024 in one place in code):
