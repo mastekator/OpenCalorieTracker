@@ -37,8 +37,9 @@ describe('ManualDishSheet', () => {
     add();
     expect(onAdd).not.toHaveBeenCalled();
     expect(screen.getByText('Enter a name')).toBeTruthy();
-    expect(screen.getByText(/Weight from 1 to 5000 g/)).toBeTruthy();
-    expect(screen.getAllByText('Enter a number, like 12.5')).toHaveLength(1);
+    expect(screen.getByText('Weight from 1 to 5000 g')).toBeTruthy();
+    expect(screen.getByText('Enter calories')).toBeTruthy();
+    expect(screen.queryByText('Enter a number, like 12.5')).toBeNull();
     expect(document.activeElement).toBe(screen.getByLabelText(/^Name/));
   });
 
@@ -90,6 +91,26 @@ describe('ManualDishSheet', () => {
       kcal: 31.3,
       proteinG: 31.3,
     });
+  });
+
+  it('empty kcal asks for calories, «abc» for a number, a number clears it', async () => {
+    const { type } = await setup();
+    const kcal = () => screen.getByLabelText(/^Calories ·/);
+    fireEvent.blur(kcal());
+    expect(screen.getByText('Enter calories')).toBeTruthy();
+    type(/^Calories ·/, 'abc');
+    expect(screen.getByText('Enter a number, like 12.5')).toBeTruthy();
+    expect(screen.queryByText('Enter calories')).toBeNull();
+    type(/^Calories ·/, '120');
+    expect(screen.queryByText('Enter a number, like 12.5')).toBeNull();
+    expect(kcal().getAttribute('aria-invalid')).not.toBe('true');
+  });
+
+  it('names only ounces in the weight error for US units', async () => {
+    const { add } = await setup('us');
+    add();
+    expect(screen.getByText('Weight from 0.1 to 176.4 oz')).toBeTruthy();
+    expect(screen.queryByText(/5000 g/)).toBeNull();
   });
 
   it('warns when macros disagree by more than 30 %, and still adds', async () => {

@@ -170,7 +170,7 @@ export function WeightStepper({ grams, units, label, onChange }: Props) {
       {!valid && (
         <p id={errorId} className="stepper__error">
           <CircleAlert aria-hidden="true" />
-          {t('edit.weight.err')}
+          {t(us ? 'edit.weight.err_oz' : 'edit.weight.err_g')}
         </p>
       )}
     </div>

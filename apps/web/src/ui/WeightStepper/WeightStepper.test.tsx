@@ -45,12 +45,19 @@ describe('WeightStepper', () => {
       expect(onChange).toHaveBeenLastCalledWith(null);
       expect(input.value).toBe(text);
       expect(input.getAttribute('aria-invalid')).toBe('true');
-      screen.getByText('Weight from 1 to 5000 g (0.1 to 176.4 oz)');
+      screen.getByText('Weight from 1 to 5000 g');
     }
     fireEvent.change(input, { target: { value: '5000' } });
     expect(onChange).toHaveBeenLastCalledWith(5000);
     expect(input.getAttribute('aria-invalid')).toBe('false');
     expect(screen.queryByText(/Weight from/)).toBeNull();
+  });
+
+  it('names only the current unit in the error', async () => {
+    const { input } = await setup(150, 'us');
+    fireEvent.change(input, { target: { value: '0' } });
+    screen.getByText('Weight from 0.1 to 176.4 oz');
+    expect(screen.queryByText(/ g/)).toBeNull();
   });
 
   it('steps by 10 g and disables − at 1 g', async () => {

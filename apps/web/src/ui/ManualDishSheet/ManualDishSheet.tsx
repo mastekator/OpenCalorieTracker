@@ -77,7 +77,9 @@ export function ManualDishSheet({ units, onAdd, onClose }: Props) {
   };
   const errors: Partial<Record<Fields, string>> = {
     ...(!name && { name: t('edit.dish.name_err') }),
-    ...(grams === null && { weight: t('edit.weight.err') }),
+    ...(grams === null && {
+      weight: t(us ? 'edit.weight.err_oz' : 'edit.weight.err_g'),
+    }),
   };
   const values = entered as Nutrients;
   const totals =
@@ -87,7 +89,12 @@ export function ManualDishSheet({ units, onAdd, onClose }: Props) {
         ? fromPer100(values, grams)
         : values;
   for (const k of ['kcal', 'proteinG', 'fatG', 'carbsG'] as const)
-    if (entered[k] === null) errors[k] = t('manual_dish.err.number');
+    if (entered[k] === null)
+      errors[k] = t(
+        k === 'kcal' && !text.kcal.trim()
+          ? 'manual_dish.err.kcal_empty'
+          : 'manual_dish.err.number',
+      );
     // Over the API limits the queued meal would be refused (mealItemInputSchema).
     else if (totals && totals[k] > (k === 'kcal' ? 10000 : 1000))
       errors[k] = t('manual_dish.err.too_big');
