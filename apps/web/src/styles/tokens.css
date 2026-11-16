@@ -54,6 +54,7 @@
   --navbar-height: 44px;        /* + env(safe-area-inset-top) */
   --icon-size: 24px;  --icon-size-sm: 20px;  --icon-stroke: 1.75;
   --app-icon-size: 40px;        /* OCT-25: app icon in the install hint card */
+  --splash-mark-size: 112px;    /* OCT-217: mark in the launch intro (ui/Splash) */
   --content-max-width: 560px;   /* phone-like column: auth, settings, tablet/narrow window */
   /* Desktop (window ≥ 1024px; CSS vars can't be used in @media — keep 1024 in one place in code):
      sidebar instead of tab bar, wider content, sheets become centred dialogs */
@@ -92,6 +93,8 @@
   --duration-slow: 360ms;   /* sheets, screen push */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1); /* small overshoot: peas pop, lid settles */
+  --duration-splash: 1000ms; /* launch intro (ui/Splash), whole sequence; never blocks the app */
   --press-scale: 0.97;
   --duration-spinner: 800ms; /* one turn of the button spinner; kept under reduced motion (it signals progress) */
   --duration-shimmer: 1400ms; /* one sweep of the skeleton shimmer; off under reduced motion */
@@ -99,7 +102,7 @@
   --duration-highlight: 1200ms; /* a just-saved row holds accent-soft, then fades; kept under reduced motion (colour, not movement) */
 
   /* ── Layers ── */
-  --z-tabbar: 10; --z-banner: 20; --z-sheet: 30; --z-alert: 40; --z-toast: 50;
+  --z-tabbar: 10; --z-banner: 20; --z-sheet: 30; --z-alert: 40; --z-toast: 50; --z-splash: 60;
 
   /* ── Colour ── */
   /* light values (default); dark overrides below */
@@ -248,5 +251,5 @@
 :root[data-theme="light"] { color-scheme: light; }
 
 @media (prefers-reduced-motion: reduce) {
-  :root { --duration-fast: 0ms; --duration-base: 0ms; --duration-slow: 0ms; --press-scale: 1; }
+  :root { --duration-fast: 0ms; --duration-base: 0ms; --duration-slow: 0ms; --press-scale: 1; --duration-splash: 0ms; }
 }
