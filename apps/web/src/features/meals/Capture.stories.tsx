@@ -30,6 +30,7 @@ function Demo({ show }: Props) {
         <ConfirmDialog
           open={open}
           tone="primary"
+          stack={show === 'open'}
           title={t(`${dialog}.title`)}
           body={t(`${dialog}.body`)}
           confirmLabel={t(

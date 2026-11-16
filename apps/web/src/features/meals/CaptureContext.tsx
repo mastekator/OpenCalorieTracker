@@ -252,6 +252,7 @@ export function CaptureProvider({ children }: { children: ReactNode }) {
       <ConfirmDialog
         open={dialog === 'open'}
         tone="primary"
+        stack
         title={t('capture.err.open.title')}
         body={t('capture.err.open.body')}
         confirmLabel={t('capture.err.open.cta')}
