@@ -76,14 +76,14 @@ export function RecognitionState({
       icon: <CloudOff />,
       tone: 'danger',
       title: t('recog.err.unavailable.title'),
-      body: t('recog.err.unavailable.body'),
+      body: t(recalc ? 'recalc.unavailable' : 'recog.err.unavailable.body'),
       actions: [retry('primary'), manual('tonal')],
     },
     quota: {
       icon: <Gauge />,
       tone: 'warning',
       title: t('recog.err.quota.title'),
-      body: t('recog.err.quota.body'),
+      body: t(recalc ? 'recalc.quota' : 'recog.err.quota.body'),
       actions: [
         manual('primary'),
         <Button key="close" variant="plain" onClick={onClose}>
@@ -95,7 +95,7 @@ export function RecognitionState({
       icon: <CircleAlert />,
       tone: 'danger',
       title: t('recog.err.failed.title'),
-      body: t('recog.err.failed.body'),
+      body: t(recalc ? 'recalc.failed' : 'recog.err.failed.body'),
       actions: [retry('primary'), retake('tonal'), manual('tonal')],
     },
     gone: {
@@ -111,14 +111,14 @@ export function RecognitionState({
       icon: <SearchX />,
       tone: 'neutral',
       title: t('recog.empty.title'),
-      body: t('recog.empty.body'),
+      body: t(recalc ? 'recalc.empty' : 'recog.empty.body'),
       actions: [retake('primary'), manual('tonal')],
     },
     offline: {
       icon: <WifiOff />,
       tone: 'neutral',
       title: t('recog.offline.title'),
-      body: t('recog.offline.body'),
+      body: t(recalc ? 'recalc.offline' : 'recog.offline.body'),
       // shortcut: «Save without recognizing» and its copy wait for the offline queue (epic OCT-6).
       actions: [manual('primary'), retry('tonal')],
     },
@@ -165,7 +165,9 @@ export function RecognitionState({
             </>
           ) : (
             <>
-              <Banner tone="notice">{t('recog.slow')}</Banner>
+              <Banner tone="notice">
+                {t(recalc ? 'recalc.slow' : 'recog.slow')}
+              </Banner>
               {manual('tonal')}
             </>
           )}
