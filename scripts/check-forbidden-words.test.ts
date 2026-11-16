@@ -77,4 +77,16 @@ describe('check-forbidden-words.sh', () => {
     );
     expect(out.toLowerCase()).not.toContain('forbiddenexample');
   });
+
+  it('never prints a matching path, even with a content hit', () => {
+    const dir = repo({
+      'docs/forbiddenexample-notes.md': 'forbiddenexample\n',
+      'b.md': 'forbiddenexample\n',
+    });
+    const { code, out } = run(dir, 'forbiddenexample');
+    expect(code).toBe(1);
+    expect(out).toContain('::error file=b.md,line=1::');
+    expect(out).toContain('1 tracked path(s)');
+    expect(out.toLowerCase()).not.toContain('forbiddenexample');
+  });
 });

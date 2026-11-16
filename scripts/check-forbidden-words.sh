@@ -12,7 +12,7 @@ fi
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 : > "$tmp/hits"
-paths=0
+: > "$tmp/paths"
 
 IFS=,
 for w in $FORBIDDEN_WORDS; do
@@ -22,12 +22,14 @@ for w in $FORBIDDEN_WORDS; do
   git grep -i -I -n -F -e "$w" > "$tmp/out" || [ $? -eq 1 ]
   # shortcut: cut breaks on paths containing ':', none exist; switch to `git grep -z` if that changes.
   cut -d: -f1,2 "$tmp/out" >> "$tmp/hits"
-  n=$(git ls-files | grep -i -F -c -e "$w" || true)
-  paths=$((paths + n))
+  git ls-files | grep -i -F -e "$w" >> "$tmp/paths" || true
 done
+paths=$(sort -u "$tmp/paths" | wc -l | tr -d ' ')
 
 # Sorted so the log does not reveal the order of words in the list.
+# A path that itself contains a word is only counted below, never printed.
 sort -u "$tmp/hits" | while IFS=: read -r file line; do
+  grep -q -x -F -e "$file" "$tmp/paths" && continue
   echo "::error file=$file,line=$line::forbidden word found"
 done
 
