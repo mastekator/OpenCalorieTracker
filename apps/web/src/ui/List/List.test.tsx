@@ -50,4 +50,18 @@ describe('ListRow', () => {
     expect(container.querySelector('.list-row__chevron')).toBeNull();
     expect(screen.getByText('Created today')).toBeTruthy();
   });
+
+  it('descriptionNowrap keeps the description on one line', () => {
+    render(
+      <List>
+        <ListRow description="Wrapping">A</ListRow>
+        <ListRow description="One line" descriptionNowrap>
+          B
+        </ListRow>
+      </List>,
+    );
+    const nowrap = 'list-row__description--nowrap';
+    expect(screen.getByText('Wrapping').classList.contains(nowrap)).toBe(false);
+    expect(screen.getByText('One line').classList.contains(nowrap)).toBe(true);
+  });
 });

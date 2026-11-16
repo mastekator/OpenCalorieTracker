@@ -177,6 +177,12 @@
   color: var(--color-text-secondary);
 }
 
+.list-row__description--nowrap {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .list-row[aria-disabled] .list-row__description,
 .list-row[aria-disabled] .list-row__chevron {
   color: var(--color-text-disabled);

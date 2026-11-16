@@ -924,6 +924,7 @@ export function ProfileForm({
               ]
                 .filter(Boolean)
                 .join(' · ')}
+              descriptionNowrap
               action={
                 <button
                   type="button"

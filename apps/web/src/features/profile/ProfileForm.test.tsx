@@ -192,9 +192,7 @@ describe('ProfileForm', () => {
     );
     const row = await screen.findByRole('link', { name: /^Weight/ });
     // 180 lb stays 180 lb (AC-0.4b).
-    expect(row.textContent).toBe(
-      'Weighttoday · history and chart180.0\u00a0lb',
-    );
+    expect(row.textContent).toBe('Weighttoday · history180.0\u00a0lb');
     expect(screen.queryByRole('textbox', { name: /^Weight/ })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Log weight' }));
     expect(onWeighIn).toHaveBeenCalledOnce();
@@ -224,7 +222,7 @@ describe('ProfileForm', () => {
   it('no weighing yet: the weight row has no value', async () => {
     setup({ ...base, weightKg: null });
     const row = await screen.findByRole('link', { name: /^Weight/ });
-    expect(row.textContent).toBe('Weighthistory and chart');
+    expect(row.textContent).toBe('Weighthistory');
   });
 
   it('converts the unsaved height when the units change (E-1.9)', async () => {

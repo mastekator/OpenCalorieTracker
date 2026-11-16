@@ -188,6 +188,15 @@ export const GoalReachedDark: Story = {
 };
 export const MinorDark: Story = { ...Minor, globals: { theme: 'dark' } };
 /** 8.19: feet and inches, pounds. */
+/** OCT-228: an older weighing in RU on 375 px; the weight row caption stays on one line. */
+export const WeightCaptionRu: Story = {
+  args: { weighedOn: '2026-11-03' },
+  globals: { viewport: { value: 'iphoneSE' }, locale: 'ru' },
+};
+export const WeightCaptionEn: Story = {
+  args: { weighedOn: '2026-11-03', units: 'us' },
+  globals: { viewport: { value: 'iphoneSE' }, theme: 'dark' },
+};
 export const UsUnits: Story = { args: { units: 'us' } };
 export const Dark: Story = { globals: { theme: 'dark' } };
 export const FirstVisitDark: Story = {
