@@ -1,11 +1,4 @@
-import {
-  useEffect,
-  useId,
-  useRef,
-  useState,
-  type KeyboardEvent,
-  type MouseEvent,
-} from 'react';
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
 import { CircleAlert, Minus, Plus } from 'lucide-react';
 import {
   DISH_GRAMS,
@@ -16,11 +9,8 @@ import {
   type Units,
 } from '@oct/shared';
 import { useT } from '../../i18n';
+import { usePressRepeat } from '../usePressRepeat';
 import './WeightStepper.css';
-
-/** Long press: first repeat after 400 ms, then every 100 ms (OCT-16 4.2). */
-const REPEAT_DELAY_MS = 400;
-const REPEAT_EVERY_MS = 100;
 
 type Props = {
   /** Current weight in grams; null while the field holds an invalid value. */
@@ -75,9 +65,6 @@ export function WeightStepper({ grams, units, label, onChange }: Props) {
     onChange(g);
   }
 
-  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const stop = () => clearTimeout(timer.current);
-
   const textRef = useRef(text);
   textRef.current = text;
   function step(dir: 1 | -1) {
@@ -90,23 +77,13 @@ export function WeightStepper({ grams, units, label, onChange }: Props) {
       ),
     );
     // At the edge the button disables and may never get pointerup: end the repeat here.
-    if (next === v) return stop();
+    if (next === v) return repeat.stop();
     const nextText = show(next);
     textRef.current = nextText;
     commit(nextText);
   }
 
-  useEffect(() => stop, []);
-  function press(dir: 1 | -1) {
-    step(dir);
-    const repeat = (delay: number) => {
-      timer.current = setTimeout(() => {
-        step(dir);
-        repeat(REPEAT_EVERY_MS);
-      }, delay);
-    };
-    repeat(REPEAT_DELAY_MS);
-  }
+  const repeat = usePressRepeat(step);
 
   const v = parse(text);
   const valid = inRange(v);
@@ -121,17 +98,7 @@ export function WeightStepper({ grams, units, label, onChange }: Props) {
           step: stepText,
         })}
         disabled={atEdge}
-        onPointerDown={(e) => {
-          if (e.button === 0) press(dir);
-        }}
-        onPointerUp={stop}
-        onPointerLeave={stop}
-        onPointerCancel={stop}
-        // Keyboard Enter/Space click (detail 0); pointer clicks already stepped on press.
-        onClick={(e: MouseEvent) => {
-          if (e.detail === 0) step(dir);
-        }}
-        onContextMenu={(e) => e.preventDefault()}
+        {...repeat.bind(dir)}
       >
         {dir < 0 ? <Minus aria-hidden="true" /> : <Plus aria-hidden="true" />}
       </button>

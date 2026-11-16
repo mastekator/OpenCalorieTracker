@@ -84,6 +84,14 @@
   cursor: default;
 }
 
+.day-cal__legend {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-caption-size);
+  text-align: center;
+}
+
+.day-cal__legend-dot,
 .day-cal__day--has::after {
   content: '';
   position: absolute;
@@ -103,4 +111,10 @@
   .day-cal__day:not(:disabled, [aria-pressed='true']):hover {
     background: var(--color-hover);
   }
+}
+
+.day-cal__legend-dot {
+  display: inline-block;
+  position: static;
+  vertical-align: middle;
 }

@@ -1,0 +1,96 @@
+.weigh-in {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.weigh-in .list-row__value {
+  color: var(--color-accent);
+}
+
+.weigh-in__note {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+  color: var(--color-text-secondary);
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+}
+
+.weigh-in__note svg {
+  flex: none;
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+}
+
+.weigh-in__value {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.weigh-in__number {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border: 2px solid transparent;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text);
+  font-size: var(--text-display-size);
+  line-height: var(--text-display-lh);
+  font-weight: var(--text-display-weight);
+  cursor: text;
+}
+
+.weigh-in__number--field {
+  border-color: var(--color-accent);
+}
+
+.weigh-in__number--error {
+  border-color: var(--color-danger);
+}
+
+.weigh-in__input {
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: end;
+  outline: none; /* the box shows focus */
+}
+
+.weigh-in__unit {
+  color: var(--color-text-secondary);
+  font-size: var(--text-subhead-size);
+  font-weight: var(--text-body-weight);
+}
+
+/* The ruler runs to the sheet's edges (OCT-189 2.1). */
+.weigh-in .ruler {
+  margin-inline: calc(-1 * var(--screen-gutter));
+}
+
+.weigh-in__range,
+.weigh-in__hint {
+  color: var(--color-text-secondary);
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+}
+
+.weigh-in__range {
+  min-height: var(--weight-ruler-height);
+  text-align: center;
+}
+
+.weigh-in__range--error {
+  color: var(--color-danger);
+}

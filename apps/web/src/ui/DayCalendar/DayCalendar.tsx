@@ -90,6 +90,10 @@ export function DayCalendar({ value, today, min, marked, onChange }: Props) {
           );
         })}
       </div>
+      <p className="day-cal__legend" aria-hidden="true">
+        <span className="day-cal__legend-dot" /> {t('weighing.legend_has')} ·{' '}
+        {t('weighing.legend_future')}
+      </p>
     </div>
   );
 }
