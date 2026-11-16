@@ -94,7 +94,8 @@ describe('normInterview', () => {
       ),
     ]);
     expect(logs()[0]).not.toContain('tall');
-    expect(logs()[0]).not.toContain('85');
+    // Drop the duration first: ms=85 would match the weight by chance.
+    expect(logs()[0]!.replace(/ms=\d+/, '')).not.toContain('85');
   });
 
   it('retries once on a schema mismatch', async () => {
