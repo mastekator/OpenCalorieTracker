@@ -128,6 +128,16 @@
   --illo-plate: #C9D3CF;  --illo-white: #FFFFFF;  --illo-shade: rgb(60 40 20 / 0.12);
   --illo-red: #E05A47;    --illo-orange: #F09A3A; --illo-yellow: #F6C945; --illo-pink: #F2A193;
   --illo-green: #6DB563;  --illo-leaf: #2F8A4E;   --illo-blue: #7DB3E3;
+
+  /* OCT-217: logo "Macro peas" — fixed brand values, never follow the theme.
+     Pod = accent green, peas = macro hues, tile = pale accent. -on-dark = lockup on dark grounds. */
+  --logo-tile: #E5F5EC;            /* = accent-soft (light): app icon, favicon, splash tile */
+  --logo-pod: #13784A;             /* = accent (light) */
+  --logo-protein: #4766C4; --logo-fat: #B36F00; --logo-carbs: #16847E;
+  --logo-pod-on-dark: #5FD394;     /* = accent (dark) */
+  --logo-protein-on-dark: #93ABF2; --logo-fat-on-dark: #EBB45C; --logo-carbs-on-dark: #5ECFC6;
+  --logo-paper: #F8FAF9;  --logo-ink: #0E1110;   /* light / dark grounds = color-bg of each theme */
+  --logo-icon-radius: 22.4%;       /* iOS squircle approximation, preview only — iOS rounds the PNG itself */
   --illo-tan: #DDA15E;    --illo-brown: #9A5B32;  --illo-cocoa: #5C3A28;
 
   --shadow-sheet: 0 -4px 24px rgb(24 33 29 / 0.06);

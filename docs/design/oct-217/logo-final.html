@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OCT-217 · Logo: Macro peas on the pale tile</title>
+<link rel="stylesheet" href="../oct-13/tokens.css">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<script src="../preview-bar.js"></script>
+<style>
+*{box-sizing:border-box;margin:0}
+html{background:var(--color-bg);color:var(--color-text);font-family:var(--font-sans);-webkit-font-smoothing:antialiased}
+body{padding:var(--space-10) var(--space-8)}
+.doc-h1{font-size:var(--text-large-title-size);line-height:var(--text-large-title-lh);font-weight:700;letter-spacing:var(--tracking-tight)}
+.doc-lead{font-size:var(--text-subhead-size);line-height:var(--text-subhead-lh);color:var(--color-text-secondary);max-width:80ch;margin-top:var(--space-2)}
+.doc-lead a{color:var(--color-accent)}
+h2{font-size:var(--text-title-size);line-height:var(--text-title-lh);font-weight:600;margin:var(--space-12) 0 var(--space-2)}
+.note{font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);color:var(--color-text-secondary);max-width:80ch;margin-bottom:var(--space-4)}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4)}
+
+/* mark colours come from the ground: light or dark (fixed, independent of the theme switch) */
+.on-light{background:var(--logo-paper);color:var(--color-text);--mk-pod:var(--logo-pod);--mk-p:var(--logo-protein);--mk-f:var(--logo-fat);--mk-c:var(--logo-carbs);--mk-gap:var(--logo-paper)}
+.on-dark{background:var(--logo-ink);color:#EEF3F0;--mk-pod:var(--logo-pod-on-dark);--mk-p:var(--logo-protein-on-dark);--mk-f:var(--logo-fat-on-dark);--mk-c:var(--logo-carbs-on-dark);--mk-gap:var(--logo-ink)}
+.on-light{box-shadow:inset 0 0 0 1px var(--color-separator)}
+
+.ground{border-radius:var(--radius-lg);padding:var(--space-10) var(--space-6);display:flex;align-items:center;justify-content:center;gap:var(--space-8);flex-wrap:wrap;min-height:180px}
+.lockup{display:flex;align-items:center;gap:var(--space-3)}
+.lockup svg{width:48px;height:48px;flex:none}
+.lockup.sm svg{width:28px;height:28px}.lockup.sm .wm{font-size:1rem}
+.wm{font-size:1.5rem;line-height:1.1;font-weight:700;letter-spacing:-0.02em;white-space:nowrap}
+.wm span{font-weight:400;opacity:.7}
+
+.tile{display:block;border-radius:var(--logo-icon-radius);overflow:hidden;box-shadow:0 0 0 1px rgb(0 0 0 / .06)}
+.tile svg{display:block;width:100%;height:100%}
+.hero-tile{width:160px;height:160px}
+
+/* home screen */
+.home{border-radius:var(--radius-lg);padding:var(--space-6) var(--space-4);display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-4) var(--space-2);justify-items:center}
+.home.wall-light{background:linear-gradient(160deg,#C9DCE8,#E9D9C9)}
+.home.wall-dark{background:linear-gradient(160deg,#1C2A36,#2E2420)}
+.app{display:grid;justify-items:center;gap:6px;width:72px}
+.app .tile,.app .ph{width:60px;height:60px}
+.app span:last-child{font-size:11px;white-space:nowrap}
+.wall-light .app span:last-child{color:#1B1F22}.wall-dark .app span:last-child{color:#F2F2F2}
+.ph{border-radius:var(--logo-icon-radius);display:grid;place-items:center}
+.ph svg{width:55%;height:55%}
+
+/* splash */
+.phones{display:flex;gap:var(--space-8);flex-wrap:wrap}
+.phone{width:280px;height:606px;border-radius:44px;padding:10px;background:#1B1F22;flex:none}
+.screen{height:100%;border-radius:36px;display:grid;place-items:center;align-content:center;gap:var(--space-4);position:relative;overflow:hidden}
+.screen svg.mk{width:112px;height:112px}
+.screen .wm{font-size:1.25rem}
+.island{position:absolute;top:10px;left:50%;translate:-50% 0;width:84px;height:24px;border-radius:12px;background:#000}
+
+/* favicon */
+.tabbar{border-radius:var(--radius-md) var(--radius-md) 0 0;padding:var(--space-2) var(--space-2) 0;display:flex;gap:2px}
+.tab{display:flex;align-items:center;gap:var(--space-2);height:32px;padding:0 var(--space-3);border-radius:var(--radius-sm) var(--radius-sm) 0 0;font-size:12px;white-space:nowrap}
+.tabbar.light{background:#DEE3E8}.tabbar.light .tab.on{background:#fff;color:#1B1F22}.tabbar.light .tab.off{color:#5A6661}
+.tabbar.dark{background:#202124}.tabbar.dark .tab.on{background:#35363A;color:#E8EAED}.tabbar.dark .tab.off{color:#9AA0A6}
+.tab .dot{width:16px;height:16px;border-radius:4px;background:currentColor;opacity:.3}
+.tab img{width:16px;height:16px}
+.sizes{display:flex;align-items:flex-end;gap:var(--space-5);margin-top:var(--space-4);font-size:var(--text-caption-size);color:var(--color-text-secondary)}
+.sizes figure{display:grid;justify-items:center;gap:var(--space-1)}
+
+/* README */
+.readme{border:1px solid var(--color-separator);border-radius:var(--radius-md);overflow:hidden}
+.readme-bar{padding:var(--space-2) var(--space-4);font-size:var(--text-footnote-size);font-weight:600}
+.on-light .readme-bar{background:#F6F8FA;border-bottom:1px solid #D1D9E0}.on-dark .readme-bar{background:#151B23;border-bottom:1px solid #3D444D}
+.readme-body{padding:var(--space-6);display:grid;gap:var(--space-2)}
+.readme-body p{font-size:var(--text-subhead-size);opacity:.72}
+
+/* spec */
+.spec{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:var(--space-4)}
+.box{background:var(--color-surface);border:1px solid var(--color-separator);border-radius:var(--radius-lg);padding:var(--space-5)}
+.box h3{font-size:var(--text-headline-size);font-weight:600;margin-bottom:var(--space-3)}
+.box li,.box p{font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);color:var(--color-text-secondary)}
+.box ul{padding-left:1.1em;display:grid;gap:var(--space-1)}
+.box code{font-size:.95em;color:var(--color-text)}
+.box a{color:var(--color-accent)}
+.sw{display:grid;grid-template-columns:28px 1fr;gap:var(--space-2) var(--space-3);align-items:center;font-size:var(--text-footnote-size)}
+.sw i{width:28px;height:28px;border-radius:var(--radius-sm);box-shadow:inset 0 0 0 1px rgb(0 0 0 / .08)}
+.sw small{color:var(--color-text-secondary)}
+.clear{display:grid;place-items:center;padding:var(--space-4)}
+.clear svg{width:220px;height:auto}
+
+@media (max-width:760px){
+  body{padding:var(--space-10) var(--space-4)}
+  .pair{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <!-- The mark. Peas get a gap in the ground colour so the teal carbs pea never merges with the green pod. -->
+    <symbol id="mark" viewBox="0 0 100 100">
+      <path d="M6 50C22 86 78 86 94 48C76 66 24 66 6 50Z" fill="var(--mk-pod)"/>
+      <path d="M6 46C20 20 66 12 92 34C70 26 30 30 6 46Z" fill="var(--mk-pod)" opacity=".5"/>
+      <g stroke="var(--mk-gap)" stroke-width="3" paint-order="stroke">
+        <circle cx="29" cy="54" r="10" fill="var(--mk-p)"/>
+        <circle cx="50" cy="57" r="10.5" fill="var(--mk-f)"/>
+        <circle cx="71" cy="54" r="10" fill="var(--mk-c)"/>
+      </g>
+      <path d="M92 34c3-4 4-9 2-13" fill="none" stroke="var(--mk-pod)" stroke-width="5" stroke-linecap="round"/>
+    </symbol>
+    <!-- App icon: the mark on the pale tile, inside the maskable safe zone (central 80 % circle) -->
+    <symbol id="icon" viewBox="0 0 100 100">
+      <rect width="100" height="100" fill="var(--logo-tile)"/>
+      <g style="--mk-pod:var(--logo-pod);--mk-p:var(--logo-protein);--mk-f:var(--logo-fat);--mk-c:var(--logo-carbs);--mk-gap:var(--logo-tile)">
+        <use href="#mark" x="12" y="14" width="76" height="76"/></g>
+    </symbol>
+    <symbol id="g-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5" fill="#fff"/><g stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></g></symbol>
+    <symbol id="g-note" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2" fill="#fff"/><path d="M8 8h8M8 12h8M8 16h5" stroke="#B9A16A" stroke-width="1.6" stroke-linecap="round"/></symbol>
+    <symbol id="g-cam" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="14" rx="3" fill="#3A3F44"/><circle cx="12" cy="13" r="4" fill="#C9CED3"/><rect x="8" y="3.5" width="8" height="3" rx="1" fill="#3A3F44"/></symbol>
+  </defs>
+</svg>
+
+<h1 class="doc-h1">Logo — Macro peas on the pale tile</h1>
+<p class="doc-lead">The chosen direction (E3 from round 3) on the pale accent tile, finished: peas a little larger and separated from the pod by a thin gap, so the carbs pea stays distinct at small sizes; the mark sits inside the safe zone for Android maskable icons. Below: the app icon, splash, favicon and README header in light and dark, then the spec and the asset files for the developer. <a href="logo-concepts-3.html">Round 3</a></p>
+
+<h2>Mark and lockup</h2>
+<p class="note">The icon is the same in both themes. The standalone mark (no tile) switches the pod and peas to the dark-theme greens and macro colours on dark grounds.</p>
+<div class="pair">
+  <div class="ground on-light">
+    <span class="tile hero-tile"><svg role="img" aria-label="OpenCalorieTracker app icon"><use href="#icon"/></svg></span>
+    <div class="lockup"><svg aria-hidden="true"><use href="#mark"/></svg><span class="wm">opencalorie<span>tracker</span></span></div>
+  </div>
+  <div class="ground on-dark">
+    <span class="tile hero-tile"><svg role="img" aria-label="OpenCalorieTracker app icon"><use href="#icon"/></svg></span>
+    <div class="lockup"><svg aria-hidden="true"><use href="#mark"/></svg><span class="wm">opencalorie<span>tracker</span></span></div>
+  </div>
+</div>
+
+<h2>Home screen, 60 pt</h2>
+<div class="pair">
+  <div class="home wall-light">
+    <div class="app"><span class="ph" style="background:linear-gradient(#4FA3E8,#2F7CD0)"><svg><use href="#g-sun"/></svg></span><span>Weather</span></div>
+    <div class="app"><span class="ph" style="background:linear-gradient(#FFE58A,#F5C94A)"><svg><use href="#g-note"/></svg></span><span>Notes</span></div>
+    <div class="app"><span class="tile"><svg aria-hidden="true"><use href="#icon"/></svg></span><span>OpenCalorie</span></div>
+    <div class="app"><span class="ph" style="background:linear-gradient(#E9ECEF,#C9CED3)"><svg><use href="#g-cam"/></svg></span><span>Camera</span></div>
+  </div>
+  <div class="home wall-dark">
+    <div class="app"><span class="ph" style="background:linear-gradient(#4FA3E8,#2F7CD0)"><svg><use href="#g-sun"/></svg></span><span>Weather</span></div>
+    <div class="app"><span class="ph" style="background:linear-gradient(#FFE58A,#F5C94A)"><svg><use href="#g-note"/></svg></span><span>Notes</span></div>
+    <div class="app"><span class="tile"><svg aria-hidden="true"><use href="#icon"/></svg></span><span>OpenCalorie</span></div>
+    <div class="app"><span class="ph" style="background:linear-gradient(#E9ECEF,#C9CED3)"><svg><use href="#g-cam"/></svg></span><span>Camera</span></div>
+  </div>
+</div>
+
+<h2>Splash</h2>
+<p class="note">Shown while the PWA starts from the home screen. Background = the theme's canvas (<code>color-bg</code>), so the splash fades into Today without a flash. Mark 112 pt in the optical centre, wordmark below; no spinner, no tagline.</p>
+<div class="phones">
+  <div class="phone"><div class="screen on-light"><span class="island"></span><svg class="mk" aria-hidden="true"><use href="#mark"/></svg><span class="wm">opencalorie<span>tracker</span></span></div></div>
+  <div class="phone"><div class="screen on-dark"><span class="island"></span><svg class="mk" aria-hidden="true"><use href="#mark"/></svg><span class="wm">opencalorie<span>tracker</span></span></div></div>
+</div>
+
+<h2>Favicon</h2>
+<p class="note">The favicon is the app icon with rounded corners (browsers do not round it). At 16 px the pod reads as a green shape with three coloured dots.</p>
+<div class="pair">
+  <div>
+    <div class="tabbar light"><div class="tab on"><img src="assets/favicon.svg" alt="">Today — OpenCalorieTracker</div><div class="tab off"><span class="dot"></span>Mail</div></div>
+    <div class="sizes"><figure><img src="assets/favicon.svg" width="48" height="48" alt=""><figcaption>48</figcaption></figure><figure><img src="assets/favicon.svg" width="32" height="32" alt=""><figcaption>32</figcaption></figure><figure><img src="assets/favicon.svg" width="16" height="16" alt=""><figcaption>16</figcaption></figure></div>
+  </div>
+  <div>
+    <div class="tabbar dark"><div class="tab on"><img src="assets/favicon.svg" alt="">Today — OpenCalorieTracker</div><div class="tab off"><span class="dot"></span>Mail</div></div>
+  </div>
+</div>
+
+<h2>README header</h2>
+<p class="note">The README uses one image that works on both GitHub themes: the app icon at 96 px plus the name in text, so no light/dark image switching is needed.</p>
+<div class="pair">
+  <div class="readme on-light"><div class="readme-bar">README.md</div>
+    <div class="readme-body"><div class="lockup"><span class="tile" style="width:56px;height:56px"><svg aria-hidden="true"><use href="#icon"/></svg></span><span class="wm" style="font-size:1.75rem">OpenCalorieTracker</span></div><p>Calorie tracking from a photo. Self-hosted, open source.</p></div></div>
+  <div class="readme on-dark"><div class="readme-bar">README.md</div>
+    <div class="readme-body"><div class="lockup"><span class="tile" style="width:56px;height:56px"><svg aria-hidden="true"><use href="#icon"/></svg></span><span class="wm" style="font-size:1.75rem">OpenCalorieTracker</span></div><p>Calorie tracking from a photo. Self-hosted, open source.</p></div></div>
+</div>
+
+<h2>Spec for the developer</h2>
+<div class="spec">
+  <div class="box"><h3>Colours (tokens.css, <code>--logo-*</code>)</h3>
+    <div class="sw">
+      <i style="background:var(--logo-tile)"></i><span>Tile <small>--logo-tile · #E5F5EC</small></span>
+      <i style="background:var(--logo-pod)"></i><span>Pod <small>--logo-pod · #13784A</small></span>
+      <i style="background:var(--logo-protein)"></i><span>Protein pea <small>--logo-protein · #4766C4</small></span>
+      <i style="background:var(--logo-fat)"></i><span>Fat pea <small>--logo-fat · #B36F00</small></span>
+      <i style="background:var(--logo-carbs)"></i><span>Carbs pea <small>--logo-carbs · #16847E</small></span>
+    </div>
+    <p style="margin-top:var(--space-3)">On dark grounds the standalone mark uses <code>--logo-*-on-dark</code> (the dark-theme accent and macro colours). Pea order is always protein · fat · carbs, left to right — the same order as on Today.</p>
+  </div>
+  <div class="box"><h3>Clear space and sizes</h3>
+    <div class="clear on-light" style="border-radius:var(--radius-md)">
+      <svg viewBox="-20 -20 140 140" aria-label="Clear space: one pea diameter on every side">
+        <rect x="-20" y="-20" width="140" height="140" fill="none" stroke="var(--logo-pod)" stroke-dasharray="3 3" stroke-width=".8"/>
+        <rect x="0" y="0" width="100" height="100" fill="none" stroke="var(--color-border-strong)" stroke-width=".5"/>
+        <use href="#mark" width="100" height="100"/>
+      </svg></div>
+    <ul>
+      <li>Clear space: one pea diameter (≈ 20 % of the mark) on every side.</li>
+      <li>Minimum: 16 px as the favicon tile, 24 px for the bare mark.</li>
+      <li>Don't recolour the peas, rotate the pod or put the bare mark on the green accent.</li>
+    </ul>
+  </div>
+  <div class="box"><h3>Assets</h3>
+    <ul>
+      <li><a href="assets/icon.svg">icon.svg</a> — square tile, no rounding: source for every PNG.</li>
+      <li><a href="assets/icon-180.png">icon-180.png</a> — <code>apple-touch-icon</code>.</li>
+      <li><a href="assets/icon-192.png">icon-192.png</a>, <a href="assets/icon-512.png">icon-512.png</a> — manifest <code>icons</code>, <code>purpose: "any maskable"</code> (the mark is inside the safe zone).</li>
+      <li><a href="assets/favicon.svg">favicon.svg</a> + <a href="assets/favicon-32.png">favicon-32.png</a> fallback.</li>
+      <li><a href="assets/mark.svg">mark.svg</a>, <a href="assets/mark-dark.svg">mark-dark.svg</a> — splash and in-app use.</li>
+      <li>Manifest <code>background_color</code> = <code>color-bg</code> (#F8FAF9), <code>theme_color</code> = <code>--theme-color</code> of each theme.</li>
+      <li>README: <code>icon-512.png</code> shown at 96 px + the name as an H1.</li>
+    </ul>
+  </div>
+</div>
+</body>
+</html>
