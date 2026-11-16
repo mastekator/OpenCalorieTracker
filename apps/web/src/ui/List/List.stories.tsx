@@ -115,6 +115,27 @@ export const Pressed: Story = { parameters: { pseudo: { active: true } } };
 export const FocusVisible: Story = {
   parameters: { pseudo: { focusVisible: true } },
 };
+/** descriptionNowrap: a long description stays on one line with an ellipsis. */
+export const DescriptionNowrap: Story = {
+  render: () => (
+    <List>
+      <ListRow
+        icon={<KeyRound />}
+        description="Created Nov 13 · used today · synced on three devices"
+        descriptionNowrap
+        value="80.5 kg"
+        onClick={noop}
+      >
+        iPhone
+      </ListRow>
+    </List>
+  ),
+  globals: { viewport: { value: 'iphoneSE' } },
+};
+export const DescriptionNowrapDark: Story = {
+  ...DescriptionNowrap,
+  globals: { ...DescriptionNowrap.globals, theme: 'dark' },
+};
 export const Desktop: Story = {
   globals: { viewport: { value: 'desktop' } },
 };

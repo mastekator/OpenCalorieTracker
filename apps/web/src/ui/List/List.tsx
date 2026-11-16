@@ -27,6 +27,8 @@ type RowProps = {
   children: ReactNode;
   /** Second line under the label (footnote, secondary), e.g. passkey dates. */
   description?: ReactNode;
+  /** Keep the description on one line, ellipsis when it does not fit. */
+  descriptionNowrap?: boolean;
   /** Secondary text on the right (current value, count, badge). */
   value?: ReactNode;
   /** Defaults to true for rows that navigate or act. */
@@ -49,6 +51,7 @@ export function ListRow({
   icon,
   children,
   description,
+  descriptionNowrap = false,
   value,
   chevron,
   danger = false,
@@ -66,7 +69,11 @@ export function ListRow({
       <span className="list-row__label">
         {children}
         {description && (
-          <span className="list-row__description">{description}</span>
+          <span
+            className={`list-row__description${descriptionNowrap ? ' list-row__description--nowrap' : ''}`}
+          >
+            {description}
+          </span>
         )}
       </span>
       {value !== undefined && <span className="list-row__value">{value}</span>}

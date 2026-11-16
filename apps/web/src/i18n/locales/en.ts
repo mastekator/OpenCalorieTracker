@@ -661,7 +661,7 @@ export const en = {
     calc: 'For the calculation',
     weight_hint:
       'Weight comes from your latest weigh-in. Log a new one and your target updates itself.',
-    weight_history: 'history and chart',
+    weight_history: 'history',
     err: {
       birth_date_in_future: 'The date of birth can’t be in the future',
       age_over_100: 'Check the date of birth: that’s over 100 years',
