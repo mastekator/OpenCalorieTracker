@@ -121,6 +121,25 @@ describe('AgentChat', () => {
     );
   });
 
+  it('the deadline row starts with the date, without the body-weight share (OCT-171)', async () => {
+    const dated: Profile = { ...profile, deadline: '2027-02-05' };
+    const withDate = calculateNorm(dated, '2026-11-13');
+    if (withDate.status !== 'ok' || withDate.pace?.source !== 'deadline')
+      throw new Error('fixture must pace by the deadline');
+    render(
+      <NormSummary
+        draft={dated}
+        norm={withDate}
+        units="metric"
+        onApply={() => {}}
+        onFix={() => {}}
+      />,
+      { wrapper: I18nProvider },
+    );
+    const row = await screen.findByText(/^by Feb 5 · ≈ [\d.]+ kg\/wk$/);
+    expect(row.textContent).not.toContain('%');
+  });
+
   it('gaining capped at gain_fast shows the deadline and the real date (OCT-173)', async () => {
     const gain: Profile = {
       ...profile,

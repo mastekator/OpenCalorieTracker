@@ -405,6 +405,7 @@ export const en = {
       age: 'Age',
       body: 'Height and weight',
       goal_to: '{goal} to {weight}',
+      deadline: 'by {date} · ≈ {x}/wk',
     },
     apply: 'Apply goal',
     fix: 'Edit',

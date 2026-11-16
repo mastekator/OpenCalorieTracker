@@ -247,7 +247,10 @@ export function NormSummary({
     rows.push([
       t('goal.deadline'),
       pace.source === 'deadline' && draft.deadline
-        ? t('goal.pace', { ...params, date: date(draft.deadline) })
+        ? t('chat.summary.deadline', {
+            x: params.x,
+            date: date(draft.deadline),
+          })
         : pace.etaDate
           ? t('goal.eta', { ...params, date: date(pace.etaDate) })
           : t('goal.rate', params),
