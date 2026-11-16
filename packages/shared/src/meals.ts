@@ -141,6 +141,8 @@ export type PreviousDishesResponse = (PreviousDish | null)[];
 export const illustrationChoiceInputSchema = z.object({
   name: z.string().trim().min(1).max(80),
   illustration: illustrationIdSchema.nullable(),
+  /** Unix ms of the user's choice; an older one than the stored choice is ignored. */
+  editedAt: z.number().int().nonnegative().optional(),
 });
 export type IllustrationChoiceInput = z.infer<
   typeof illustrationChoiceInputSchema

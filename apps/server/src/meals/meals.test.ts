@@ -641,6 +641,58 @@ describe('illustrations', () => {
       .get();
     expect(rev).toBeGreaterThan(0);
   });
+
+  it('an older offline choice does not overwrite a newer one', async () => {
+    const t = await setup();
+    const put = (illustration: string, editedAt?: number) =>
+      t.call(t.cookie, 'PUT', '/illustrations/choices', {
+        name: 'Пицца',
+        illustration,
+        editedAt,
+      });
+    const state = async () => ({
+      choices: await (
+        await t.call(t.cookie, 'GET', '/illustrations/choices')
+      ).json(),
+      sync: (
+        (await (await t.call(t.cookie, 'GET', '/sync?since=0')).json()) as {
+          changes: unknown[];
+        }
+      ).changes,
+      rev: t.db.prepare('SELECT rev FROM illustration_choices').pluck().get(),
+    });
+    const now = Date.now();
+
+    expect((await put('soup', now - 1000)).status).toBe(204);
+    const before = await state();
+    expect(before.choices).toEqual([
+      { nameKey: 'пицца', illustration: 'soup' },
+    ]);
+
+    // Queued offline earlier: ignored, nothing new to sync.
+    expect((await put('pizza', now - 2000)).status).toBe(204);
+    expect(await state()).toEqual(before);
+
+    // Newer, or without editedAt: applies.
+    await put('salad-tomato', now - 500);
+    expect((await state()).choices).toEqual([
+      { nameKey: 'пицца', illustration: 'salad-tomato' },
+    ]);
+    await put('pizza');
+    expect((await state()).choices).toEqual([
+      { nameKey: 'пицца', illustration: 'pizza' },
+    ]);
+
+    // A future editedAt is clamped to now, so it cannot lock the choice.
+    await put('soup', now + 3_600_000);
+    expect(
+      t.db.prepare('SELECT edited_at FROM illustration_choices').pluck().get(),
+    ).toBeLessThanOrEqual(Date.now());
+    await put('pizza');
+    expect((await state()).choices).toEqual([
+      { nameKey: 'пицца', illustration: 'pizza' },
+    ]);
+  });
 });
 
 describe('checkWhen', () => {
