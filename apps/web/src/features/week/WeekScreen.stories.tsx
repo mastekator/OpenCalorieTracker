@@ -40,6 +40,8 @@ const MONTH = period('2026-11-01', [
   ...Array<number>(18).fill(0),
 ]);
 const BIG = period('2026-11-09', [1850, 6000, 1960, 1240, 0, 0, 0]);
+/** Under the norm early in the week: the per-day average is capped at the norm (OCT-167). */
+const SHORTFALL = period('2026-11-09', [1200, 1400, 1100, 0, 0, 0, 0]);
 const EMPTY = period('2026-11-09', Array<number>(7).fill(0));
 
 /** The app screen around the view: large «Week» navbar with the desktop head, the wide column. */
@@ -108,6 +110,12 @@ export const NoNormDark: Story = { ...NoNorm, globals: dark };
 /** 7.6: full budget, no averages card. */
 export const NoEntries: Story = { args: { days: EMPTY } };
 export const NoEntriesDark: Story = { ...NoEntries, globals: dark };
+export const Shortfall: Story = { args: { days: SHORTFALL } };
+export const ShortfallDark: Story = { ...Shortfall, globals: dark };
+export const ShortfallRussian: Story = {
+  ...Shortfall,
+  globals: { locale: 'ru' },
+};
 /** 7.8: skeletons after 300 ms. */
 export const Loading: Story = { args: { days: undefined } };
 export const LoadingDark: Story = { ...Loading, globals: dark };

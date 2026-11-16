@@ -32,6 +32,9 @@ export function WeekBudgetCard({ mode, summary, norm, days, daysLeft }: Props) {
   const left = Math.round(remaining.kcal);
   const perDay = perRemainingDay === null ? 0 : Math.round(perRemainingDay);
   const over = left < 0;
+  // Never advise eating above the daily norm (OCT-167): past shortfall is not carried over.
+  const normDay = Math.round(norm);
+  const capped = perDay > normDay;
   const label = over
     ? t(`week.over.${mode}`)
     : t(daysLeft ? `week.left.${mode}` : `week.total.${mode}`);
@@ -60,7 +63,11 @@ export function WeekBudgetCard({ mode, summary, norm, days, daysLeft }: Props) {
       {!over && daysLeft > 0 && perDay > 0 && (
         <p className="wcard__per-day">
           <span>{t('week.per_day', { count: daysLeft })}</span>
-          <b>{t('week.per_day_kcal', { k: num(perDay) })}</b>
+          <b>
+            {capped
+              ? t('week.per_day_kcal_norm', { k: num(normDay) })
+              : t('week.per_day_kcal', { k: num(perDay) })}
+          </b>
         </p>
       )}
     </section>
