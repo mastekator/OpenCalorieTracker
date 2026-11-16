@@ -24,10 +24,8 @@ import { usePressRepeat } from '../../ui/usePressRepeat';
 import { WeightRuler } from '../../ui/WeightRuler/WeightRuler';
 import '../../ui/WeightStepper/WeightStepper.css';
 import { UNDO_MS } from '../diary/undoDelete';
+import { NB, useWeightFormat } from './format';
 import './WeighInSheet.css';
-
-/** Joins a number and its unit. */
-const NB = '\u00a0';
 
 /** Where the ruler starts with no weighing and no profile weight. */
 const DEFAULT_KG = 70;
@@ -101,21 +99,16 @@ function WeighIn({
       maximumFractionDigits: 1,
     }).format(n);
   const weight = (v: number) => `${num(v)}${NB}${unit}`;
-  const short = (d: string) =>
-    new Intl.DateTimeFormat(locale, {
-      timeZone: 'UTC',
-      day: 'numeric',
-      month: 'short',
-    }).format(new Date(`${d}T00:00:00Z`));
-  const dayName = (d: string) => {
-    if (d === today) return t('weighing.today', { date: short(d) });
-    const s = new Intl.DateTimeFormat(locale, {
-      timeZone: 'UTC',
-      weekday: 'short',
-      day: 'numeric',
-      month: 'short',
-    }).format(new Date(`${d}T00:00:00Z`));
-    return s.charAt(0).toLocaleUpperCase(locale) + s.slice(1);
+  const fmt = useWeightFormat(units);
+  const short = fmt.short;
+  const dayName = (d: string) =>
+    d === today ? t('weighing.today', { date: short(d) }) : fmt.day(d);
+  /** The typed number in the locale's format, up to 2 decimals; unparsable text stays as typed. */
+  const typed = (s: string) => {
+    const n = Number(s.trim().replace(',', '.'));
+    return Number.isFinite(n)
+      ? new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(n)
+      : s.trim();
   };
 
   const parse = (s: string) => {
@@ -397,7 +390,7 @@ function WeighIn({
                   ? 'weighing.typo_below'
                   : 'weighing.typo_above',
                 {
-                  weight: `${ask.text.trim()}${NB}${unit}`,
+                  weight: `${typed(ask.text)}${NB}${unit}`,
                   min: `${num(range.min, 0)}${NB}${unit}`,
                   max: `${num(range.max, 0)}${NB}${unit}`,
                 },
@@ -432,6 +425,7 @@ function WeighIn({
           ask?.kind === 'jump'
             ? t(ask.diff > 0 ? 'weighing.jump_more' : 'weighing.jump_less', {
                 weight: weight(ask.v),
+                prev: fmt.weight(ask.nearest.weightKg),
                 diff: weight(
                   Math.abs(
                     round1(ask.v - weightFromKg(ask.nearest.weightKg, units)),
