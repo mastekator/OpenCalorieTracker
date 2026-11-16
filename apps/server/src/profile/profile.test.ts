@@ -123,7 +123,8 @@ describe('GET/PUT /api/profile', () => {
     expect(first).toBe(syncRev());
     expect(first).toBeGreaterThan(0);
     const second = (await (await put({ ...FULL, weightKg: 69 })).json()).rev;
-    expect(second).toBe(first + 1);
+    // + 2: the new weight is also today's weighing, which takes a rev first (AC-9.10).
+    expect(second).toBe(first + 2);
     expect(second).toBe(syncRev());
     expect((await put({ ...FULL, birthDate: addDays(TODAY, 1) })).status).toBe(
       400,

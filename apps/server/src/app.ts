@@ -21,6 +21,7 @@ import { normAgentRoutes } from './norm-agent/routes.js';
 import { photoRoutes } from './photos/routes.js';
 import { profileRoutes } from './profile/routes.js';
 import { syncRoutes } from './sync/routes.js';
+import { weightRoutes } from './weight/routes.js';
 import { setupErrors, type Config } from './config.js';
 import { apiVersion } from './http/apiVersion.js';
 import { ApiError, onError } from './http/errors.js';
@@ -82,6 +83,7 @@ export function createApp(deps: AppDeps) {
   app.route('/api', diaryRoutes(deps));
   app.route('/api', normAgentRoutes(deps));
   app.route('/api', syncRoutes(deps));
+  app.route('/api', weightRoutes(deps));
 
   app.get('/api/health', (c) => c.json({ ok: true, version }));
   app.get('/api/config', (c) =>
