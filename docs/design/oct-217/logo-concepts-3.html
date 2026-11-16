@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OCT-217 · Logo, round 3: pod and bowl variations</title>
+<link rel="stylesheet" href="../oct-13/tokens.css">
+<script src="../preview-bar.js"></script>
+<style>
+/* Candidate logo tokens. After the owner picks a concept, the chosen ones move to tokens.css.
+   Values are existing tokens of OCT-13 (light accent, dark accent, canvases, macro hues). */
+:root{
+  --logo-green:#13784A;      /* = color-accent (light) — icon tile */
+  --logo-mint:#5FD394;       /* = color-accent (dark) — second colour on the tile */
+  --logo-white:#FFFFFF;
+  --logo-paper:#F8FAF9;      /* = color-bg (light) */
+  --logo-ink:#0E1110;        /* = color-bg (dark) */
+  --logo-ink-text:#18211D;   /* = color-text (light) */
+  --logo-paper-text:#EEF3F0; /* = color-text (dark) */
+  --logo-sprout:#E5F5EC;     /* = color-accent-soft (light) — E tile */
+  --logo-pea:#3FA86B;        /* new: mid green between accent and mint — E peas */
+  --logo-protein:#4766C4;    /* = color-protein (light) — E3 peas */
+  --logo-fat:#B36F00;        /* = color-fat (light) */
+  --logo-carbs:#16847E;      /* = color-carbs (light) */
+  --logo-protein-d:#93ABF2;  /* = color-protein (dark) */
+  --logo-fat-d:#EBB45C;      /* = color-fat (dark) */
+  --logo-carbs-d:#5ECFC6;    /* = color-carbs (dark) */
+  --logo-amber:#E0A030;      /* fat hue lifted — spark on light */
+  --logo-amber-dark:#F2C062; /* = color-warning (dark) — spark on dark */
+  --icon-radius:22.4%;       /* iOS home screen squircle approximation */
+  --home-icon:60px;
+}
+
+*{box-sizing:border-box;margin:0}
+html{background:var(--color-bg);color:var(--color-text);font-family:var(--font-sans);-webkit-font-smoothing:antialiased}
+body{padding:var(--space-10) var(--space-8)}
+.doc-h1{font-size:var(--text-large-title-size);line-height:var(--text-large-title-lh);font-weight:700;letter-spacing:var(--tracking-tight)}
+.doc-lead{font-size:var(--text-subhead-size);line-height:var(--text-subhead-lh);color:var(--color-text-secondary);max-width:80ch;margin-top:var(--space-2)}
+
+/* ── quick compare strip ── */
+.fam{font-size:var(--text-title-size);font-weight:600;margin-top:var(--space-10)}
+.compare{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:var(--space-4);margin-top:var(--space-4)}
+.cmp{display:flex;align-items:center;gap:var(--space-4);padding:var(--space-4);border-radius:var(--radius-lg);background:var(--color-surface);border:1px solid var(--color-separator)}
+.cmp a{color:inherit;text-decoration:none;font-weight:600;font-size:var(--text-headline-size)}
+.cmp small{display:block;color:var(--color-text-secondary);font-size:var(--text-footnote-size);font-weight:400}
+.cmp .sizes{display:flex;align-items:flex-end;gap:var(--space-2);margin-left:auto}
+
+/* ── concept card ── */
+.concepts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,640px),1fr));gap:var(--space-8);margin-top:var(--space-8)}
+.card{grid-template-columns:minmax(0,1fr);background:var(--color-surface);border:1px solid var(--color-separator);border-radius:var(--radius-xl);padding:var(--space-6);display:grid;gap:var(--space-5);scroll-margin-top:var(--space-12)}
+.card h2{font-size:var(--text-title-size);line-height:var(--text-title-lh);font-weight:600}
+.card h2 span{color:var(--color-accent);margin-right:var(--space-2)}
+.idea{font-size:var(--text-subhead-size);line-height:var(--text-subhead-lh);color:var(--color-text-secondary);margin-top:var(--space-1)}
+.lbl{font-size:var(--text-caption-size);font-weight:var(--text-caption-weight);color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.06em;margin-bottom:var(--space-2)}
+
+/* lockups on fixed light / dark grounds (do not follow the theme switch — that is the point) */
+.grounds{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3)}
+.ground{border-radius:var(--radius-lg);padding:var(--space-8) var(--space-5);display:flex;align-items:center;justify-content:center;min-height:132px}
+.ground.light{background:var(--logo-paper);color:var(--logo-ink-text);--mk-main:var(--l-main);--mk-sub:var(--l-sub);--mk-acc:var(--l-acc,var(--l-main));--mk-bg:var(--logo-paper);--mk-x1:var(--logo-protein);--mk-x2:var(--logo-fat);--mk-x3:var(--logo-carbs);--mk-sub2:var(--l-sub2,var(--l-main));box-shadow:inset 0 0 0 1px var(--color-separator)}
+.ground.dark{background:var(--logo-ink);color:var(--logo-paper-text);--mk-main:var(--d-main);--mk-sub:var(--d-sub);--mk-acc:var(--d-acc,var(--d-main));--mk-bg:var(--logo-ink);--mk-x1:var(--logo-protein-d);--mk-x2:var(--logo-fat-d);--mk-x3:var(--logo-carbs-d);--mk-sub2:var(--d-sub2,var(--d-main));}
+.lockup{display:flex;align-items:center;gap:var(--space-3)}
+.lockup svg{width:44px;height:44px;flex:none}
+.wm{font-size:1.375rem;line-height:1.1;letter-spacing:-0.01em;white-space:nowrap}
+
+/* wordmark styles per concept */
+.wm-a{font-weight:700;letter-spacing:-0.02em}
+.wm-b{font-weight:700}.wm-b em{font-style:normal;font-weight:500;color:var(--mk-acc)}
+.wm-c{font-weight:700;line-height:1}.wm-c small{display:block;font-size:.62em;font-weight:500;letter-spacing:.14em;text-transform:uppercase;opacity:.72;margin-top:3px}
+.wm-e{font-weight:700;letter-spacing:-0.02em}.wm-e span{font-weight:400;opacity:.7}
+.wm-f{font-weight:700}.wm-f em{font-style:normal;color:var(--mk-acc)}
+.wm-g{font-weight:600;line-height:1.05}.wm-g small{display:block;font-size:.62em;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--mk-acc);margin-top:3px}
+.wm-h{font-weight:800;letter-spacing:-0.035em}.wm-h span{font-weight:400;letter-spacing:-0.01em;opacity:.65}
+
+/* icon tile */
+.tile{display:block;border-radius:var(--icon-radius);overflow:hidden}
+.tile svg{display:block;width:100%;height:100%}
+
+/* home screen */
+.uses{display:grid;grid-template-columns:1.25fr 1fr;gap:var(--space-3)}
+.home{border-radius:var(--radius-lg);padding:var(--space-5) var(--space-4);display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-4) var(--space-2);justify-items:center;
+  background:linear-gradient(160deg,#C9DCE8,#E9D9C9)}
+[data-theme="dark"] .home{background:linear-gradient(160deg,#1C2A36,#2E2420)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .home{background:linear-gradient(160deg,#1C2A36,#2E2420)}}
+.app{display:grid;justify-items:center;gap:6px;width:72px}
+.app .tile,.app .ph{width:var(--home-icon);height:var(--home-icon)}
+.app span{font-size:11px;color:#1B1F22;white-space:nowrap;max-width:72px;overflow:hidden;text-overflow:ellipsis}
+[data-theme="dark"] .app span{color:#F2F2F2}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .app span{color:#F2F2F2}}
+.ph{border-radius:var(--icon-radius);display:grid;place-items:center}
+.ph svg{width:55%;height:55%}
+
+/* favicon: browser tab */
+.fav{display:grid;gap:var(--space-3)}
+.tabbar{background:var(--color-surface-2);border-radius:var(--radius-md) var(--radius-md) 0 0;padding:var(--space-2) var(--space-2) 0;display:flex;gap:2px}
+.tab{display:flex;align-items:center;gap:var(--space-2);height:32px;padding:0 var(--space-3);border-radius:var(--radius-sm) var(--radius-sm) 0 0;font-size:12px;max-width:200px;white-space:nowrap;overflow:hidden}
+.tab.on{background:var(--color-surface);box-shadow:0 0 0 1px var(--color-separator)}
+.tab.off{color:var(--color-text-secondary)}
+.tab .dot{width:16px;height:16px;border-radius:4px;background:var(--color-border-strong);opacity:.4;flex:none}
+.tab .tile{width:16px;height:16px;flex:none;border-radius:4px}
+.fav-sizes{display:flex;align-items:flex-end;gap:var(--space-4);font-size:var(--text-caption-size);color:var(--color-text-secondary)}
+.fav-sizes figure{display:grid;justify-items:center;gap:var(--space-1)}
+.s32{width:32px;height:32px}.s16{width:16px;height:16px}
+.s32.tile{border-radius:7px}.s16.tile{border-radius:4px}
+
+/* README header */
+.readme{border:1px solid var(--color-separator);border-radius:var(--radius-md);overflow:hidden}
+.readme-bar{padding:var(--space-2) var(--space-4);border-bottom:1px solid var(--color-separator);font-size:var(--text-footnote-size);font-weight:600;background:var(--color-surface-2)}
+.readme-body{padding:var(--space-6);display:grid;gap:var(--space-2);--mk-x1:var(--logo-protein);--mk-x2:var(--logo-fat);--mk-x3:var(--logo-carbs);--mk-sub2:var(--l-sub2,var(--l-main));--mk-main:var(--l-main);--mk-sub:var(--l-sub);--mk-acc:var(--l-acc,var(--l-main));--mk-bg:var(--color-bg)}
+[data-theme="dark"] .readme-body{--mk-bg:var(--logo-ink);--mk-x1:var(--logo-protein-d);--mk-x2:var(--logo-fat-d);--mk-x3:var(--logo-carbs-d);--mk-sub2:var(--d-sub2,var(--d-main));--mk-main:var(--d-main);--mk-sub:var(--d-sub);--mk-acc:var(--d-acc,var(--d-main))}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .readme-body{--mk-bg:var(--logo-ink);--mk-x1:var(--logo-protein-d);--mk-x2:var(--logo-fat-d);--mk-x3:var(--logo-carbs-d);--mk-sub2:var(--d-sub2,var(--d-main));--mk-main:var(--d-main);--mk-sub:var(--d-sub);--mk-acc:var(--d-acc,var(--d-main))}}
+.card.pale .tile{box-shadow:0 0 0 1px var(--color-separator)}
+.round1{color:var(--color-accent)}
+.readme-body .lockup svg{width:48px;height:48px}
+.readme-body .wm{font-size:1.75rem}
+.readme-body p{font-size:var(--text-subhead-size);color:var(--color-text-secondary)}
+
+.foot{margin-top:var(--space-10);font-size:var(--text-footnote-size);color:var(--color-text-secondary);max-width:80ch;line-height:var(--text-footnote-lh)}
+
+@media (max-width:700px){
+  body{padding:var(--space-10) var(--space-4)}
+  .grounds,.uses{grid-template-columns:1fr}
+  .wm{font-size:1.125rem}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ Marks: colours via --mk-main / --mk-sub / --mk-sub2 / --mk-bg / --mk-x1..3 (set by the ground) ═══ -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <!-- base pod (round 2, E) -->
+    <symbol id="mark-e" viewBox="0 0 100 100">
+      <path d="M6 50C22 86 78 86 94 48C76 66 24 66 6 50Z" fill="var(--mk-main)"/>
+      <path d="M6 46C20 20 66 12 92 34C70 26 30 30 6 46Z" fill="var(--mk-main)" opacity=".5"/>
+      <g fill="var(--mk-sub)"><circle cx="30" cy="54" r="9"/><circle cx="50" cy="57" r="9.5"/><circle cx="70" cy="54" r="9"/></g>
+      <path d="M92 34c3-4 4-9 2-13" fill="none" stroke="var(--mk-main)" stroke-width="5" stroke-linecap="round"/>
+    </symbol>
+    <!-- E1 / E2 · the pod on a rising diagonal: fills the square better -->
+    <symbol id="mark-e1" viewBox="0 0 100 100"><use href="#mark-e" width="100" height="100" transform="rotate(-28 50 50) translate(5 4) scale(.9)"/></symbol>
+    <symbol id="mark-e2" viewBox="0 0 100 100"><use href="#mark-e1" width="100" height="100"/></symbol>
+    <!-- E3 · peas in the app's macro colours: protein, fat, carbs -->
+    <symbol id="mark-e3" viewBox="0 0 100 100">
+      <path d="M6 50C22 86 78 86 94 48C76 66 24 66 6 50Z" fill="var(--mk-main)"/>
+      <path d="M6 46C20 20 66 12 92 34C70 26 30 30 6 46Z" fill="var(--mk-main)" opacity=".5"/>
+      <circle cx="30" cy="54" r="9" fill="var(--mk-x1)"/><circle cx="50" cy="57" r="9.5" fill="var(--mk-x2)"/><circle cx="70" cy="54" r="9" fill="var(--mk-x3)"/>
+      <path d="M92 34c3-4 4-9 2-13" fill="none" stroke="var(--mk-main)" stroke-width="5" stroke-linecap="round"/>
+    </symbol>
+    <!-- E4 · line pod: one stroke weight, like the app's line icons -->
+    <symbol id="mark-e4" viewBox="0 0 100 100">
+      <g fill="none" stroke="var(--mk-main)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M8 50C24 82 76 82 92 48"/><path d="M8 50C22 26 64 18 90 34"/><path d="M90 34c3-4 4-9 2-13"/></g>
+      <g fill="var(--mk-sub)"><circle cx="31" cy="55" r="9"/><circle cx="50" cy="58" r="9.5"/><circle cx="69" cy="55" r="9"/></g>
+    </symbol>
+
+    <!-- base bowl & spark (round 2, G) -->
+    <symbol id="mark-g" viewBox="0 0 100 100">
+      <path d="M12 54H88A38 38 0 0 1 12 54Z" fill="var(--mk-main)"/>
+      <path d="M50 8C52 22 56 26 68 28C56 30 52 34 50 46C48 34 44 30 32 28C44 26 48 22 50 8Z" fill="var(--mk-sub)"/>
+      <path d="M78 14C79 19 80 20 85 21C80 22 79 23 78 28C77 23 76 22 71 21C76 20 77 19 78 14Z" fill="var(--mk-sub)" opacity=".7"/>
+    </symbol>
+    <symbol id="mark-g1" viewBox="0 0 100 100"><use href="#mark-g" width="100" height="100"/></symbol>
+    <symbol id="mark-g2" viewBox="0 0 100 100"><use href="#mark-g" width="100" height="100"/></symbol>
+    <!-- G3 · bowl with three peas and a spark: the two directions combined -->
+    <symbol id="mark-g3" viewBox="0 0 100 100">
+      <g fill="var(--mk-sub2)"><circle cx="34" cy="52" r="9"/><circle cx="50" cy="49" r="9.5"/><circle cx="66" cy="52" r="9"/></g>
+      <path d="M10 56H90A40 40 0 0 1 10 56Z" fill="var(--mk-main)" stroke="var(--mk-bg)" stroke-width="3"/>
+      <path d="M50 4C51.5 14 54 17 63 18.5C54 20 51.5 23 50 33C48.5 23 46 20 37 18.5C46 17 48.5 14 50 4Z" fill="var(--mk-sub)"/>
+      <path d="M76 18C77 22 78 23 82 24C78 25 77 26 76 30C75 26 74 25 70 24C74 23 75 22 76 18Z" fill="var(--mk-sub)" opacity=".7"/>
+    </symbol>
+    <!-- G4 · line bowl, a large spark rises out of it -->
+    <symbol id="mark-g4" viewBox="0 0 100 100">
+      <path d="M12 56H88A38 38 0 0 1 12 56Z" fill="none" stroke="var(--mk-main)" stroke-width="8" stroke-linejoin="round"/>
+      <path d="M50 10C52 30 56 34 70 36C56 38 52 42 50 62C48 42 44 38 30 36C44 34 48 30 50 10Z" fill="var(--mk-sub)" stroke="var(--mk-bg)" stroke-width="6" paint-order="stroke" stroke-linejoin="round"/>
+    </symbol>
+
+    <!-- App icon tiles (fixed colours: the icon does not change with the theme) -->
+    <symbol id="tile-e1" viewBox="0 0 100 100"><rect width="100" height="100" fill="var(--logo-sprout)"/>
+      <g style="--mk-main:var(--logo-green);--mk-sub:var(--logo-pea)"><use href="#mark-e1" x="6" y="6" width="88" height="88"/></g></symbol>
+    <symbol id="tile-e2" viewBox="0 0 100 100"><rect width="100" height="100" fill="var(--logo-green)"/>
+      <g style="--mk-main:var(--logo-mint);--mk-sub:var(--logo-white)"><use href="#mark-e1" x="6" y="6" width="88" height="88"/></g></symbol>
+    <symbol id="tile-e3" viewBox="0 0 100 100"><rect width="100" height="100" fill="var(--logo-white)"/>
+      <g style="--mk-main:var(--logo-green);--mk-x1:var(--logo-protein);--mk-x2:var(--logo-fat);--mk-x3:var(--logo-carbs)"><use href="#mark-e3" x="10" y="10" width="80" height="80"/></g></symbol>
+    <symbol id="tile-e4" viewBox="0 0 100 100"><rect width="100" height="100" fill="var(--logo-sprout)"/>
+      <g style="--mk-main:var(--logo-green);--mk-sub:var(--logo-green)"><use href="#mark-e4" x="10" y="10" width="80" height="80"/></g></symbol>
+    <symbol id="tile-g1" viewBox="0 0 100 100"><rect width="100" height="100" fill="var(--logo-sprout)"/>
+      <g style="--mk-main:var(--logo-green);--mk-sub:var(--logo-amber)"><use href="#mark-g" x="14" y="12" width="72" height="72"/></g></symbol>
+    <symbol id="tile-g2" viewBox="0 0 100 100"><rect width="100" height="100" fill="var(--logo-green)"/>
+      <g style="--mk-main:var(--logo-white);--mk-sub:var(--logo-amber-dark)"><use href="#mark-g" x="14" y="12" width="72" height="72"/></g></symbol>
+    <symbol id="tile-g3" viewBox="0 0 100 100"><rect width="100" height="100" fill="var(--logo-ink)"/>
+      <g style="--mk-main:var(--logo-mint);--mk-sub:var(--logo-amber-dark);--mk-sub2:var(--logo-pea);--mk-bg:var(--logo-ink)"><use href="#mark-g3" x="12" y="12" width="76" height="76"/></g></symbol>
+    <symbol id="tile-g4" viewBox="0 0 100 100"><rect width="100" height="100" fill="var(--logo-ink)"/>
+      <g style="--mk-main:var(--logo-mint);--mk-sub:var(--logo-amber-dark);--mk-bg:var(--logo-ink)"><use href="#mark-g4" x="12" y="10" width="76" height="76"/></g></symbol>
+    <!-- neutral neighbour glyphs for the home-screen row (generic shapes, no real apps) -->
+    <symbol id="g-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5" fill="#fff"/><g stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></g></symbol>
+    <symbol id="g-note" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2" fill="#fff"/><path d="M8 8h8M8 12h8M8 16h5" stroke="#B9A16A" stroke-width="1.6" stroke-linecap="round"/></symbol>
+    <symbol id="g-cam" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="14" rx="3" fill="#3A3F44"/><circle cx="12" cy="13" r="4" fill="#C9CED3"/><rect x="8" y="3.5" width="8" height="3" rx="1" fill="#3A3F44"/></symbol>
+  </defs>
+</svg>
+
+<h1 class="doc-h1">Logo — round 3, pod and bowl variations</h1>
+<p class="doc-lead">Developing the two directions you liked, Open pod and Bowl &amp; spark, four takes each; G3 combines them. Citrus orange is dropped: only the app's own greens, the macro colours and the amber spark. Same checks as before. <a class="round1" href="logo-concepts-2.html">Round 2</a> · <a class="round1" href="logo-concepts.html">Round 1</a></p>
+
+<h2 class="fam">Open pod</h2>
+<div class="compare" data-fam="e" aria-label="Pod variations at a glance"></div>
+<h2 class="fam">Bowl &amp; spark</h2>
+<div class="compare" data-fam="g" aria-label="Bowl variations at a glance"></div>
+
+<div class="concepts" id="concepts"></div>
+
+<template id="card">
+  <section class="card">
+    <header><h2><span data-k></span><b data-name></b></h2><p class="idea" data-idea></p></header>
+    <div class="grounds">
+      <div class="ground light"><div class="lockup" data-lockup></div></div>
+      <div class="ground dark"><div class="lockup" data-lockup></div></div>
+    </div>
+    <div class="uses">
+      <div><p class="lbl">Home screen, 60 pt</p>
+        <div class="home">
+          <div class="app"><span class="ph" style="background:linear-gradient(#4FA3E8,#2F7CD0)"><svg><use href="#g-sun"/></svg></span><span>Weather</span></div>
+          <div class="app"><span class="ph" style="background:linear-gradient(#FFE58A,#F5C94A)"><svg><use href="#g-note"/></svg></span><span>Notes</span></div>
+          <div class="app"><span class="tile" data-tile></span><span>OpenCalorie</span></div>
+          <div class="app"><span class="ph" style="background:linear-gradient(#E9ECEF,#C9CED3)"><svg><use href="#g-cam"/></svg></span><span>Camera</span></div>
+        </div></div>
+      <div class="fav"><p class="lbl">Browser tab · favicon</p>
+        <div class="tabbar"><div class="tab on"><span class="tile" data-tile></span>Today — OpenCalorieTracker</div><div class="tab off"><span class="dot"></span>Mail</div></div>
+        <div class="fav-sizes">
+          <figure><span class="tile s32" data-tile></span><figcaption>32 px</figcaption></figure>
+          <figure><span class="tile s16" data-tile></span><figcaption>16 px</figcaption></figure>
+        </div></div>
+    </div>
+    <div><p class="lbl">README header</p>
+      <div class="readme"><div class="readme-bar">README.md</div>
+        <div class="readme-body"><div class="lockup" data-lockup></div><p>Calorie tracking from a photo. Self-hosted, open source.</p></div></div>
+    </div>
+  </section>
+</template>
+
+<p class="foot">Colours: all from the current palette — accent green (light and dark), the pale accent tile, the macro colours for E3, and the amber spark from round 2. Candidate values live in the page styles and move to tokens.css only after the choice. Neighbour icons on the home screen are neutral placeholders.</p>
+
+<script>
+const WE = '<span class="wm wm-e">opencalorie<span>tracker</span></span>';
+const WG = '<span class="wm wm-g">OpenCalorieTracker<small>photo · count · done</small></span>';
+const GV = '--l-main:var(--logo-green);--l-sub:var(--logo-amber);--l-acc:var(--logo-green);--d-main:var(--logo-mint);--d-sub:var(--logo-amber-dark);--d-acc:var(--logo-mint)';
+const C = [
+  {k:'e1', name:'Tilted pod', sub:'pale tile, diagonal', idea:'The round 2 pod turned onto a rising diagonal: more movement, and it fills the square icon instead of sitting as a thin strip.',
+   wm:WE, v:'--l-main:var(--logo-green);--l-sub:var(--logo-pea);--d-main:var(--logo-mint);--d-sub:#A7E8C4', pale:true},
+  {k:'e2', name:'Pod on green', sub:'bold green tile', idea:'The same tilted pod reversed: mint shell and white peas on the accent green. The most visible version on a busy home screen.',
+   wm:WE, v:'--l-main:var(--logo-green);--l-sub:var(--logo-pea);--d-main:var(--logo-mint);--d-sub:#FFFFFF'},
+  {k:'e3', name:'Macro peas', sub:'protein · fat · carbs', idea:'The three peas take the colours the app already uses for protein, fat and carbs, so the icon and the Today screen speak the same language.',
+   wm:WE, v:'--l-main:var(--logo-green);--d-main:var(--logo-mint)', pale:true},
+  {k:'e4', name:'Line pod', sub:'one stroke weight', idea:"The pod drawn as a line, like the app's own icons. Lighter and calmer, closest to the airy character of the interface.",
+   wm:WE, v:'--l-main:var(--logo-green);--l-sub:var(--logo-green);--d-main:var(--logo-mint);--d-sub:var(--logo-mint)', pale:true},
+  {k:'g1', name:'Bowl, pale tile', sub:'light, like the pod', idea:'The round 2 bowl and spark on the pale green tile: friendlier and lighter than the dark icon, same mark.',
+   wm:WG, v:GV, pale:true},
+  {k:'g2', name:'Bowl on green', sub:'white bowl, amber spark', idea:'A white bowl and a warm spark on the accent green. Strong contrast, still in the brand colour.',
+   wm:WG, v:GV},
+  {k:'g3', name:'Bowl with peas', sub:'pod + bowl combined', idea:'Three peas in the bowl, the spark above: food, macros and recognition in one sign. Dark tile, as in round 2.',
+   wm:WG, v:GV+';--l-sub2:var(--logo-pea);--d-sub2:#A7E8C4'},
+  {k:'g4', name:'Line bowl', sub:'the spark rises out', idea:'An outlined bowl with a large spark rising from it: lighter and more open, and the spark still reads at 16 px.',
+   wm:WG, v:GV},
+];
+const host = document.getElementById('concepts'), tpl = document.getElementById('card');
+for (const c of C) {
+  const n = tpl.content.cloneNode(true), sec = n.querySelector('.card');
+  sec.id = c.k;
+  sec.style.cssText = c.v;
+  if (c.pale) sec.classList.add('pale');
+  sec.setAttribute('aria-label', `Variation ${c.k.toUpperCase()}: ${c.name}`);
+  n.querySelector('[data-k]').textContent = c.k.toUpperCase();
+  n.querySelector('[data-name]').textContent = c.name;
+  n.querySelector('[data-idea]').textContent = c.idea;
+  n.querySelectorAll('[data-lockup]').forEach(l => l.innerHTML = `<svg role="img" aria-hidden="true"><use href="#mark-${c.k}"/></svg>${c.wm}`);
+  n.querySelectorAll('[data-tile]').forEach(t => t.innerHTML = `<svg aria-hidden="true"><use href="#tile-${c.k}"/></svg>`);
+  host.appendChild(n);
+  const ring = c.pale ? ';box-shadow:0 0 0 1px var(--color-separator)' : '';
+  const t = (cls, st='') => `<span class="tile ${cls}" style="${st}${ring}"><svg aria-hidden="true"><use href="#tile-${c.k}"/></svg></span>`;
+  document.querySelector(`[data-fam="${c.k[0]}"]`).insertAdjacentHTML('beforeend',
+    `<div class="cmp">${t('', 'width:60px;height:60px')}<a href="#${c.k}">${c.k.toUpperCase()} · ${c.name}<small>${c.sub}</small></a><span class="sizes">${t('s32')}${t('s16')}</span></div>`);
+}
+</script>
+</body>
+</html>
