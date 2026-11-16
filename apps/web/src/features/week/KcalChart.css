@@ -190,7 +190,7 @@
 }
 .kchart__label--future,
 .kchart__label--future b {
-  color: var(--color-text-disabled);
+  color: var(--color-text-secondary);
 }
 .kchart__label em.kchart__over-value {
   color: var(--color-warning);

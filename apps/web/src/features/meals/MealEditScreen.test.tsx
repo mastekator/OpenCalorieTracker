@@ -742,6 +742,10 @@ describe('MealEditScreen entry day (OCT-19 3.2, AC-2.11, AC-2.12)', () => {
 
   it('from 00:00 to 03:59 offers «Yesterday | Today», «Yesterday» and a snack by default', async () => {
     const { save } = await open({ now: () => new Date(2026, 10, 15, 0, 35) });
+    // The title keeps the real day: «Yesterday, 0:35» would read as yesterday at 0:35.
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(
+      'Today, 12:35 AM',
+    );
     const group = dayGroup()!;
     expect(
       within(group)
