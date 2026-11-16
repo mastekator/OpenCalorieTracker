@@ -19,6 +19,7 @@ import { DataProvider } from '../../data/DataContext';
 import { clearLocal } from '../../data/user';
 import { I18nProvider, LOCALE_STORAGE_KEY } from '../../i18n';
 import { renderLoaded } from '../../test-utils';
+import { isDirty } from '../../app/dirty';
 import { LeaveGuard } from '../../app/LeaveGuard';
 import { SessionContext } from '../../app/SessionContext';
 import { ToastProvider } from '../../ui/Toast/Toast';
@@ -532,6 +533,8 @@ describe('recalculation from the photo (OCT-62)', () => {
     await setup(withPhoto());
     fireEvent.click(button('Recalculate'));
     await screen.findByText('Porridge');
+    // The rows show at commit, the screen marks itself dirty in an effect right after.
+    await waitFor(() => expect(isDirty()).toBe(true));
     fireEvent.click(button('Close'));
     await act(async () => fireEvent.click(button('Don’t save')));
     expect(screen.getByText('Day page')).toBeTruthy();
