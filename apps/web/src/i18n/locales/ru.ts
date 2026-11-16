@@ -688,7 +688,7 @@ const ru: DeepPartial<typeof en> = {
       open: {
         title: 'Не получилось открыть фото',
         body: 'Попробуйте другое фото. Подходят JPEG, PNG, HEIC и WebP.',
-        cta: 'Выбрать другое',
+        cta: 'Другое фото',
       },
       camera: {
         title: 'Нет доступа к камере',
@@ -738,6 +738,7 @@ const ru: DeepPartial<typeof en> = {
     carbs: 'Углев.',
     total: 'Итого на {weight} — {kcal} ккал',
     err: {
+      kcal_empty: 'Введите калорийность',
       number: 'Введите число, например 12,5',
       too_big: 'Слишком много для одного блюда — проверьте число',
     },
@@ -965,7 +966,8 @@ const ru: DeepPartial<typeof en> = {
       label: 'Вес: {dish}',
       less: 'Меньше на {step}',
       more: 'Больше на {step}',
-      err: 'Вес от 1 до 5000 г (в oz: от 0,1 до 176,4 oz)',
+      err_g: 'Вес от 1 до 5000 г',
+      err_oz: 'Вес от 0,1 до 176,4 oz',
     },
     history: {
       hint: 'Похоже на запись {date}: {weight} · {kcal}\u00a0ккал',
@@ -979,7 +981,7 @@ const ru: DeepPartial<typeof en> = {
       'Оценка ИИ по фото — проверьте вес. Ккал и БЖУ пересчитаются сами.',
     delete: 'Удалить',
     delete_dish: 'Удалить: {dish}',
-    deleted: '{dish} удалено',
+    deleted: 'Удалено: {dish}',
     dish: {
       title: 'Блюдо',
       name: 'Название',

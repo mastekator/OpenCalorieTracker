@@ -719,6 +719,7 @@ export const en = {
     carbs: 'Carbs',
     total: 'Total for {weight}: {kcal} kcal',
     err: {
+      kcal_empty: 'Enter calories',
       number: 'Enter a number, like 12.5',
       too_big: 'Too much for one dish — check the number',
     },
@@ -943,7 +944,8 @@ export const en = {
       label: 'Weight of {dish}',
       less: '{step} less',
       more: '{step} more',
-      err: 'Weight from 1 to 5000 g (0.1 to 176.4 oz)',
+      err_g: 'Weight from 1 to 5000 g',
+      err_oz: 'Weight from 0.1 to 176.4 oz',
     },
     history: {
       hint: 'Looks like your entry from {date}: {weight} · {kcal}\u00a0kcal',
