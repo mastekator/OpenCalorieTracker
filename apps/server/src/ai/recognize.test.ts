@@ -1,5 +1,6 @@
 import { APICallError } from 'ai';
 import { MockLanguageModelV4 } from 'ai/test';
+import { mealItemInputSchema } from '@oct/shared';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { loadConfig } from '../config.js';
 import { createModel } from './model.js';
@@ -194,8 +195,38 @@ describe('sanitizeDish', () => {
         confidence: 1.2,
       }),
     ).toEqual({ ...egg, grams: 50, kcal: 78, fatG: 0, confidence: 1 });
-    expect(sanitizeDish({ ...egg, grams: 9000 }).grams).toBe(5000);
   });
+
+  it('scales nutrients when cutting grams, keeping the density, and flags the dish', () => {
+    expect(
+      sanitizeDish({
+        ...egg,
+        grams: 9000,
+        kcal: 9000,
+        proteinG: 900,
+        fatG: 450,
+        carbsG: 90,
+      }),
+    ).toEqual({
+      ...egg,
+      grams: 5000,
+      kcal: 5000,
+      proteinG: 500,
+      fatG: 250,
+      carbsG: 50,
+      confidence: 0,
+    });
+  });
+
+  it.each([{ kcal: 12_000 }, { proteinG: 2000, fatG: 2000, carbsG: 2000 }])(
+    'keeps %o within the meal item limits',
+    (bad) => {
+      const dish = sanitizeDish({ ...egg, ...bad });
+      expect(
+        mealItemInputSchema.safeParse({ ...dish, source: 'ai' }).success,
+      ).toBe(true);
+    },
+  );
 
   it.each([{ grams: 0 }, { grams: -20 }, { kcal: -5 }, { kcal: 12_000 }])(
     'flags impossible numbers %o with confidence 0',
