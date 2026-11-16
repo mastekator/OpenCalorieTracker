@@ -55,6 +55,13 @@
   --drink-tile-size: 56px;      /* OCT-147: round drink tile in the drinks row (hit area = tile + label) */
   --duration-fill: 1200ms;      /* OCT-147: water level rise after a tap (≤ 1.5 s, product AC-2.2) */
   --dose-mark-size: 28px;       /* OCT-144: intake ring / check on a supplement row (hit area = whole row) */
+  --weight-spark-width: 128px;  /* OCT-189: mini chart on the Weight card (Today) */
+  --weight-spark-height: 56px;
+  --weight-ruler-height: 64px;  /* OCT-189: swipe ruler in the weigh-in sheet, 0.1 kg = 1 tick */
+  --weight-tick-gap: 10px;      /* OCT-189: distance between 0.1 kg ticks */
+  --weight-point-r: 3px;        /* OCT-189: weigh-in dot on the chart (tap area is the nearest-point column) */
+  --weight-trend-width: 2.5px;  /* OCT-189: trend line stroke */
+  --weight-point-opacity: 0.45; /* OCT-189: raw weigh-ins are paler than the trend (AC-9.22) */
   --icon-size: 24px;  --icon-size-sm: 20px;  --icon-stroke: 1.75;
   --content-max-width: 560px;   /* phone-like column: auth, settings, tablet/narrow window */
   /* Desktop (window ≥ 1024px; CSS vars can't be used in @media — keep 1024 in one place in code):
@@ -112,6 +119,9 @@
   /* OCT-147: water (graphics & text, ≥ 4.5:1 on surface) */
   --color-water: #1F78C8;
   --color-water-soft: #E8F2FB;
+  /* OCT-189: weight diary — one neutral hue, never green/red by direction (AC-9.17) */
+  --color-weight: #6B4FA0;
+  --color-weight-soft: #F1ECF8;
 
   /* OCT-33: dish illustrations (flat, decorative). Shown on a round "plate" tile so they never pass for a photo */
   --illo-tile: #F6F0E4;   /* round substrate behind every illustration */
@@ -159,6 +169,8 @@
     --color-carbs: #5ECFC6;
     --color-water: #6DB6F2;
     --color-water-soft: #13263A;
+    --color-weight: #C2A8EE;
+    --color-weight-soft: #2A2238;
     --illo-tile: #2B2721;
     --illo-plate: #4C524F;  --illo-white: #EEE8DC;  --illo-shade: rgb(0 0 0 / 0.28);
     --illo-red: #EE7564;    --illo-orange: #EFA654; --illo-yellow: #EECB62; --illo-pink: #E39B8F;
@@ -199,6 +211,8 @@
   --color-carbs: #5ECFC6;
   --color-water: #6DB6F2;
   --color-water-soft: #13263A;
+  --color-weight: #C2A8EE;
+  --color-weight-soft: #2A2238;
   --illo-tile: #2B2721;
   --illo-plate: #4C524F;  --illo-white: #EEE8DC;  --illo-shade: rgb(0 0 0 / 0.28);
   --illo-red: #EE7564;  --illo-orange: #EFA654; --illo-yellow: #EECB62; --illo-pink: #E39B8F;

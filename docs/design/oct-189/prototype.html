@@ -1,0 +1,976 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OCT-189 · Weight diary</title>
+<link rel="stylesheet" href="../oct-13/tokens.css">
+<script src="../preview-bar.js"></script>
+<style>
+/* Base components = ../oct-13 + ../oct-16 prototypes (same spec) */
+/* ===== Prototype canvas (not part of the app) ===== */
+*{box-sizing:border-box;margin:0}
+html{background:var(--color-bg);color:var(--color-text);font-family:var(--font-sans);-webkit-font-smoothing:antialiased}
+::selection{background:var(--color-selection)}
+body{padding:var(--space-10) var(--space-8)}
+.doc-h1{font-size:var(--text-large-title-size);line-height:var(--text-large-title-lh);font-weight:700;letter-spacing:var(--tracking-tight)}
+.doc-lead{font-size:var(--text-subhead-size);color:var(--color-text-secondary);max-width:70ch;margin-top:var(--space-2)}
+.doc-section{margin-top:var(--space-12)}
+.doc-h2{font-size:var(--text-title-size);font-weight:600;margin-bottom:var(--space-2)}
+.row{display:flex;flex-wrap:wrap;gap:var(--space-8);align-items:flex-start;margin-top:var(--space-6)}
+.frame{display:flex;flex-direction:column;gap:var(--space-3);width:390px}
+.frame>figcaption{font-size:var(--text-footnote-size);color:var(--color-text-secondary);line-height:var(--text-footnote-lh)}
+.frame>figcaption b{color:var(--color-text);font-weight:600}
+
+/* ===== Device chrome (prototype only) ===== */
+.phone{position:relative;width:390px;height:844px;border-radius:48px;overflow:hidden;background:var(--color-bg);outline:1px solid var(--color-separator);display:flex;flex-direction:column}
+.status{height:54px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 32px 0 40px;font-size:var(--text-body-size);font-weight:600}
+.status::after{content:"";width:68px;height:12px;border-radius:var(--radius-full);background:currentColor;opacity:.85;-webkit-mask:linear-gradient(90deg,#000 0 30%,transparent 30% 38%,#000 38% 62%,transparent 62% 70%,#000 70%)}
+.island{position:absolute;top:11px;left:50%;translate:-50% 0;width:124px;height:36px;border-radius:var(--radius-full);background:#000;z-index:100}
+.home-ind{position:absolute;bottom:8px;left:50%;translate:-50% 0;width:134px;height:5px;border-radius:var(--radius-full);background:var(--color-text);z-index:100}
+
+/* ===== App components (tokens only) ===== */
+.icon{width:var(--icon-size);height:var(--icon-size);flex:none;fill:none;stroke:currentColor;stroke-width:var(--icon-stroke);stroke-linecap:round;stroke-linejoin:round}
+.icon.sm{width:var(--icon-size-sm);height:var(--icon-size-sm)}
+.scroll{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.navbar{height:var(--navbar-height);flex:none;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 var(--space-2)}
+.navbar .title{font-size:var(--text-headline-size);font-weight:600}
+.navbar .back{display:flex;align-items:center;gap:2px;color:var(--color-accent);font-size:var(--text-body-size);min-height:var(--tap-min);padding-right:var(--space-2)}
+.navbar .act{justify-self:end;color:var(--color-accent);font-size:var(--text-body-size);min-height:var(--tap-min);display:flex;align-items:center;padding:0 var(--space-2)}
+.large-title{font-size:var(--text-large-title-size);line-height:var(--text-large-title-lh);font-weight:700;letter-spacing:var(--tracking-tight);padding:var(--space-1) var(--screen-gutter) var(--space-2)}
+.pad{padding:0 var(--screen-gutter)}
+.stack{display:flex;flex-direction:column;gap:var(--space-4)}
+.stack-sm{display:flex;flex-direction:column;gap:var(--space-2)}
+.grow{flex:1}
+.bottom{padding:var(--space-4) var(--screen-gutter) calc(34px + var(--space-2));display:flex;flex-direction:column;gap:var(--space-3)}
+.t-title{font-size:var(--text-title-size);line-height:var(--text-title-lh);font-weight:600}
+.t-headline{font-size:var(--text-headline-size);line-height:var(--text-headline-lh);font-weight:600}
+.t-body{font-size:var(--text-body-size);line-height:var(--text-body-lh)}
+.t-sub{font-size:var(--text-subhead-size);line-height:var(--text-subhead-lh)}
+.t-foot{font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh)}
+.t-cap{font-size:var(--text-caption-size);line-height:var(--text-caption-lh);font-weight:500}
+.muted{color:var(--color-text-secondary)}
+.center{text-align:center}
+.num{font-variant-numeric:tabular-nums}
+
+/* brand */
+.brand{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-headline-size);font-weight:600}
+.brand .mark{width:32px;height:32px;border-radius:var(--radius-sm);background:var(--color-accent);color:var(--color-on-accent);display:grid;place-items:center}
+
+/* buttons */
+.btn{appearance:none;border:0;font:inherit;width:100%;min-height:var(--control-height-lg);border-radius:var(--radius-md);font-size:var(--text-headline-size);font-weight:600;display:flex;align-items:center;justify-content:center;gap:var(--space-2);padding:0 var(--space-4);cursor:pointer;transition:transform var(--duration-fast) var(--ease-out),background var(--duration-fast) var(--ease-out)}
+.btn:active{transform:scale(var(--press-scale))}
+.btn:focus-visible{outline:2px solid var(--color-focus-ring);outline-offset:2px}
+.btn-primary{background:var(--color-accent);color:var(--color-on-accent)}
+.btn-primary.pressed{background:var(--color-accent-pressed)}
+.btn-tonal{background:var(--color-accent-soft);color:var(--color-accent)}
+.btn-plain{background:transparent;color:var(--color-accent);min-height:var(--tap-min)}
+.btn-danger{background:var(--color-danger);color:var(--color-on-danger)}
+.btn-danger-plain{background:transparent;color:var(--color-danger);min-height:var(--tap-min)}
+.btn[disabled],.btn.disabled{background:var(--color-surface-2);color:var(--color-text-disabled);cursor:default}
+.btn-plain.disabled{background:transparent}
+.btn-sm{min-height:var(--control-height);width:auto;font-size:var(--text-subhead-size);padding:0 var(--space-4)}
+.link{color:var(--color-accent);font-weight:500;text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px}
+.spinner{width:20px;height:20px;border-radius:50%;border:2px solid currentColor;border-right-color:transparent;animation:spin 800ms linear infinite}
+@keyframes spin{to{rotate:360deg}}
+
+/* fields */
+.field{display:flex;flex-direction:column;gap:var(--space-2)}
+.field label{font-size:var(--text-subhead-size);font-weight:500}
+.input{display:flex;align-items:center;gap:var(--space-2);min-height:var(--control-height-lg);padding:0 var(--space-4);border-radius:var(--radius-md);background:var(--color-surface);border:1px solid var(--color-border-strong);font-size:var(--text-body-size)}
+.input .ph{color:var(--color-text-secondary)}
+.input .val{flex:1}
+.input .trail{color:var(--color-text-secondary);display:grid;place-items:center;width:var(--tap-min);height:var(--tap-min);margin-right:calc(-1 * var(--space-3))}
+.input.focus{border-color:var(--color-accent);box-shadow:inset 0 0 0 1px var(--color-accent)}
+.input.caret .val::after{content:"";display:inline-block;width:2px;height:1.1em;background:var(--color-accent);vertical-align:-3px;margin-left:1px}
+.input.error{border-color:var(--color-danger);box-shadow:inset 0 0 0 1px var(--color-danger)}
+.input.locked{background:var(--color-surface-2);border-color:transparent;color:var(--color-text-secondary)}
+.field .msg{display:flex;gap:var(--space-1);align-items:flex-start;font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);color:var(--color-text-secondary)}
+.field .msg.err{color:var(--color-danger)}
+.rules{list-style:none;padding:0;display:grid;gap:var(--space-1);font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh)}
+.rules li{display:flex;gap:var(--space-2);align-items:center;color:var(--color-text-secondary)}
+.rules li.ok{color:var(--color-accent)}
+.rules li.bad{color:var(--color-danger)}
+
+/* segmented */
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;padding:2px;border-radius:var(--radius-md);background:var(--color-surface-2);min-height:var(--control-height)}
+.seg span{display:grid;place-items:center;border-radius:calc(var(--radius-md) - 2px);font-size:var(--text-subhead-size);font-weight:500;color:var(--color-text-secondary)}
+.seg span.on{background:var(--color-surface);color:var(--color-text);font-weight:600;box-shadow:0 1px 3px rgb(0 0 0 / .12)}
+
+/* grouped lists */
+.group-h{font-size:var(--text-footnote-size);color:var(--color-text-secondary);padding:0 var(--space-4) var(--space-2);margin-top:var(--space-6)}
+.group{background:var(--color-surface);border-radius:var(--radius-md);overflow:hidden}
+.group-f{font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);color:var(--color-text-secondary);padding:var(--space-2) var(--space-4) 0}
+.cell{display:flex;align-items:center;gap:var(--space-3);min-height:var(--control-height);padding:var(--space-3) var(--space-4);position:relative;font-size:var(--text-body-size)}
+.cell+.cell::before{content:"";position:absolute;top:0;right:0;left:var(--space-4);border-top:1px solid var(--color-separator)}
+.cell.ic+.cell::before,.cell.ic+.cell.ic::before{left:calc(var(--space-4) + 30px + var(--space-3))}
+.cell .lead-ic{width:30px;height:30px;border-radius:var(--radius-sm);display:grid;place-items:center;background:var(--color-accent-soft);color:var(--color-accent);flex:none}
+.cell .lead-ic.danger{background:var(--color-danger-soft);color:var(--color-danger)}
+.cell .main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.cell .main .sub{font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.cell .val{color:var(--color-text-secondary)}
+.cell .chev{color:var(--color-text-secondary)}
+.cell.danger{color:var(--color-danger)}
+.cell.accent{color:var(--color-accent)}
+.cell.dis{color:var(--color-text-disabled)}
+.badge{font-size:var(--text-caption-size);font-weight:600;padding:2px var(--space-2);border-radius:var(--radius-sm);background:var(--color-surface-2);color:var(--color-text-secondary);white-space:nowrap}
+.badge.ok{background:var(--color-accent-soft);color:var(--color-accent)}
+.badge.warn{background:var(--color-warning-soft);color:var(--color-warning)}
+.badge.err{background:var(--color-danger-soft);color:var(--color-danger)}
+
+/* banners */
+.banner{display:flex;gap:var(--space-3);align-items:flex-start;padding:var(--space-3) var(--space-4);border-radius:var(--radius-lg);font-size:var(--text-subhead-size);line-height:var(--text-subhead-lh)}
+.banner .b-title{font-weight:600}
+.banner.notice{background:var(--color-notice)}
+.banner.warning{background:var(--color-warning-soft)}
+.banner.warning .icon{color:var(--color-warning)}
+.banner.danger{background:var(--color-danger-soft)}
+.banner.danger .icon{color:var(--color-danger)}
+.banner.accent{background:var(--color-accent-soft)}
+.banner.accent .icon{color:var(--color-accent)}
+.banner .close{margin:-10px -12px -10px auto;width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;color:var(--color-text-secondary);flex:none}
+.offline-bar{display:flex;gap:var(--space-2);align-items:center;justify-content:center;min-height:32px;padding:var(--space-1) var(--space-4);background:var(--color-notice);font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+
+/* divider "или" */
+.or{display:flex;align-items:center;gap:var(--space-3);font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.or::before,.or::after{content:"";flex:1;border-top:1px solid var(--color-separator)}
+
+/* overlays */
+.scrim{position:absolute;inset:0;background:var(--color-scrim);z-index:var(--z-sheet)}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:var(--z-sheet);background:var(--color-surface);border-radius:var(--radius-xl) var(--radius-xl) 0 0;box-shadow:var(--shadow-sheet);padding:var(--space-2) var(--screen-gutter) calc(34px + var(--space-4));display:flex;flex-direction:column;gap:var(--space-4)}
+.sheet .grab{width:36px;height:5px;border-radius:var(--radius-full);background:var(--color-separator);margin:0 auto var(--space-1)}
+.sheet .sheet-head{display:flex;align-items:center;justify-content:space-between}
+.sheet .x{width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;margin-right:calc(-1 * var(--space-3));color:var(--color-text-secondary)}
+.sheet .inset{background:var(--color-surface-2)}
+.alert{position:absolute;left:50%;top:50%;translate:-50% -50%;width:300px;z-index:var(--z-alert);background:var(--color-surface);border-radius:var(--radius-lg);padding:var(--space-5) var(--space-4) var(--space-4);display:flex;flex-direction:column;gap:var(--space-2);text-align:center;box-shadow:var(--shadow-toast)}
+.alert .btns{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-2);margin-top:var(--space-3)}
+.alert .btns.col{grid-template-columns:1fr}
+.toast{position:absolute;left:var(--screen-gutter);right:var(--screen-gutter);bottom:calc(34px + var(--tabbar-height) + var(--space-3));z-index:var(--z-toast);display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);background:var(--color-text);color:var(--color-bg);box-shadow:var(--shadow-toast);font-size:var(--text-subhead-size)}
+.toast .act{margin-left:auto;font-weight:600;min-height:var(--tap-min);display:flex;align-items:center}
+
+/* state blocks */
+.state{display:flex;flex-direction:column;align-items:center;text-align:center;gap:var(--space-2);padding:var(--space-8) var(--space-6)}
+.state .s-ic{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;background:var(--color-surface-2);color:var(--color-text-secondary);margin-bottom:var(--space-2)}
+.state .s-ic.danger{background:var(--color-danger-soft);color:var(--color-danger)}
+.state .s-ic.warning{background:var(--color-warning-soft);color:var(--color-warning)}
+.state p{max-width:30ch}
+.state .btn{margin-top:var(--space-3)}
+.skel{background:var(--color-surface-2);border-radius:var(--radius-sm);height:14px;position:relative;overflow:hidden}
+.skel::after{content:"";position:absolute;inset:0;translate:-100% 0;background:linear-gradient(90deg,transparent,var(--color-surface),transparent);animation:shimmer 1.4s var(--ease-in-out) infinite}
+@keyframes shimmer{to{translate:100% 0}}
+
+/* tab bar */
+.tabbar{position:absolute;left:0;right:0;bottom:0;z-index:var(--z-tabbar);height:calc(var(--tabbar-height) + 34px);padding-bottom:34px;background:var(--tabbar-bg);-webkit-backdrop-filter:var(--tabbar-blur);backdrop-filter:var(--tabbar-blur);border-top:1px solid var(--color-separator);display:grid;grid-template-columns:repeat(5,1fr);align-items:center}
+.tab{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:var(--text-tab-size);font-weight:var(--text-tab-weight);color:var(--color-text-secondary);min-height:var(--tabbar-height);justify-content:center}
+.tab.on{color:var(--color-accent)}
+.cam{justify-self:center;width:var(--camera-button-size);height:var(--camera-button-size);border-radius:50%;background:var(--color-accent);color:var(--color-on-accent);display:grid;place-items:center;box-shadow:var(--shadow-camera);translate:0 -14px}
+.cam .icon{width:30px;height:30px}
+
+/* swatches (docs only) */
+.sw-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-2)}
+.sw{border-radius:var(--radius-md);overflow:hidden;background:var(--color-surface);font-size:var(--text-caption-size);outline:1px solid var(--color-separator)}
+.sw i{display:block;height:44px}
+.sw div{padding:var(--space-2);line-height:1.3}
+.sheetdoc{width:390px;background:var(--color-surface);border-radius:var(--radius-lg);padding:var(--space-5);display:flex;flex-direction:column;gap:var(--space-4);outline:1px solid var(--color-separator)}
+.sheetdoc h3{font-size:var(--text-headline-size)}
+.doc-note{font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.navmap{width:820px;background:var(--color-surface);border-radius:var(--radius-lg);padding:var(--space-6);outline:1px solid var(--color-separator);display:grid;grid-template-columns:repeat(5,1fr);gap:var(--space-3);font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh)}
+.navmap .col{display:flex;flex-direction:column;gap:var(--space-2)}
+.navmap .nd{padding:var(--space-2) var(--space-3);border-radius:var(--radius-sm);background:var(--color-surface-2)}
+.navmap .nd.tab{background:var(--color-accent-soft);color:var(--color-accent);font-weight:600;align-items:flex-start;font-size:var(--text-footnote-size)}
+.navmap .nd.modal{outline:1px dashed var(--color-border-strong);background:transparent}
+.navmap .arrow{color:var(--color-text-secondary);text-align:center}
+
+/* ===== Desktop (≥ 1024px) — section 6 ===== */
+.frame.wide{width:1280px}
+.desk{position:relative;width:1280px;height:800px;border-radius:var(--radius-lg);overflow:hidden;background:var(--color-bg);outline:1px solid var(--color-separator);display:flex;flex-direction:column}
+.desk .chrome{height:36px;flex:none;display:flex;align-items:center;gap:var(--space-2);padding:0 var(--space-4);background:var(--color-surface-2);border-bottom:1px solid var(--color-separator);font-size:var(--text-caption-size);color:var(--color-text-secondary)}
+.desk .chrome i{width:12px;height:12px;border-radius:50%;background:var(--color-separator)}
+.desk .chrome .url{margin-left:var(--space-6);padding:var(--space-1) var(--space-3);border-radius:var(--radius-sm);background:var(--color-surface)}
+.desk .body{flex:1;display:flex;min-height:0}
+.side{width:var(--sidebar-width);flex:none;display:flex;flex-direction:column;gap:var(--space-1);padding:var(--space-6) var(--space-4);border-right:1px solid var(--color-separator)}
+.side .brand{padding:0 var(--space-3) var(--space-6)}
+.side .btn{margin-bottom:var(--space-4)}
+.nav-i{display:flex;align-items:center;gap:var(--space-3);min-height:var(--tap-min);padding:0 var(--space-3);border-radius:var(--radius-md);font-size:var(--text-body-size);color:var(--color-text)}
+.nav-i .icon{color:var(--color-text-secondary)}
+.nav-i.hover{background:var(--color-hover)}
+.nav-i.on{background:var(--color-accent-soft);color:var(--color-accent);font-weight:600}
+.nav-i.on .icon{color:var(--color-accent)}
+.side .foot{margin-top:auto;display:flex;flex-direction:column;gap:var(--space-1)}
+.side .who{padding:var(--space-2) var(--space-3);font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.main-area{flex:1;overflow:hidden;padding:var(--space-8) var(--desktop-gutter)}
+.main-area .inner{max-width:var(--content-max-width-wide);margin:0 auto;display:flex;flex-direction:column;gap:var(--space-6)}
+.main-area .large-title{padding:0}
+.cols{display:grid;grid-template-columns:3fr 2fr;gap:var(--space-6)}
+.drop{display:flex;flex-direction:column;align-items:center;gap:var(--space-2);padding:var(--space-8);border:2px dashed var(--color-border-strong);border-radius:var(--radius-lg);color:var(--color-text-secondary);text-align:center;font-size:var(--text-subhead-size)}
+.auth-desk{flex:1;display:grid;place-items:center}
+.auth-card{width:var(--content-max-width);background:var(--color-surface);border-radius:var(--radius-lg);padding:var(--space-10);box-shadow:var(--shadow-toast)}
+.dialog{position:absolute;left:50%;top:50%;translate:-50% -50%;width:var(--dialog-max-width);z-index:var(--z-sheet);background:var(--color-surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-toast);padding:var(--space-6);display:flex;flex-direction:column;gap:var(--space-4)}
+.dialog .sheet-head{display:flex;align-items:center;justify-content:space-between}
+.dialog .x{width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;margin-right:calc(-1 * var(--space-3));color:var(--color-text-secondary)}
+.kbd{font-size:var(--text-caption-size);padding:1px var(--space-1);border-radius:var(--radius-sm);outline:1px solid var(--color-separator);color:var(--color-text-secondary)}
+.toast.desk-toast{left:50%;right:auto;translate:-50% 0;bottom:var(--space-6);width:auto;max-width:var(--dialog-max-width)}
+
+/* ===== OCT-16 additions (tokens only; prototype-only bits marked) ===== */
+.frame.sm{width:390px}
+.phone .content{flex:1;overflow:hidden;display:flex;flex-direction:column;gap:var(--space-4);padding-bottom:var(--space-4)}
+.navbar .x-btn{width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;color:var(--color-text-secondary)}
+.navbar .txt-btn{color:var(--color-accent);font-size:var(--text-body-size);min-height:var(--tap-min);display:flex;align-items:center;padding:0 var(--space-2)}
+.bottom.bar{background:var(--color-bg);border-top:1px solid var(--color-separator);margin-top:auto}
+.foot-note{display:flex;gap:var(--space-2);align-items:flex-start;font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);color:var(--color-text-secondary)}
+.foot-note .icon{color:var(--color-accent)}
+
+/* photo (user content) */
+.photo{display:block;width:100%;height:var(--photo-preview-height);border-radius:var(--radius-lg);overflow:hidden;position:relative;background:var(--color-surface-2)}
+.photo svg{width:100%;height:100%;display:block}
+.photo.scan::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgb(255 255 255 / .28) 50%,transparent 70%);translate:-100% 0;animation:sweep 1.8s var(--ease-in-out) infinite}
+@keyframes sweep{to{translate:100% 0}}
+.photo.dim{height:calc(var(--photo-preview-height) * .6)}
+.thumb{width:var(--thumb-size);height:var(--thumb-size);border-radius:var(--radius-md);overflow:hidden;flex:none;background:var(--color-surface-2)}
+.thumb svg{width:100%;height:100%;display:block}
+.thumb.add{display:grid;place-items:center;color:var(--color-accent);background:var(--color-accent-soft);font-size:var(--text-caption-size);font-weight:600;text-align:center;align-content:center;gap:2px}
+
+/* totals header */
+.totals{display:flex;gap:var(--space-4);align-items:center}
+.kcal-big{display:flex;align-items:baseline;gap:var(--space-1)}
+.kcal-big b{font-size:var(--text-large-title-size);line-height:var(--text-large-title-lh);font-weight:700;letter-spacing:var(--tracking-tight);font-variant-numeric:tabular-nums}
+.macros{display:flex;gap:var(--space-3);font-size:var(--text-footnote-size);color:var(--color-text-secondary);font-variant-numeric:tabular-nums}
+.macros span{display:flex;align-items:center;gap:var(--space-1)}
+.macros i{width:var(--space-2);height:var(--space-2);border-radius:var(--radius-full)}
+.m-p{background:var(--color-protein)} .m-f{background:var(--color-fat)} .m-c{background:var(--color-carbs)}
+
+/* dish row */
+.dish{display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-3) var(--space-4);position:relative;background:var(--color-surface)}
+.dish+.dish::before{content:"";position:absolute;top:0;right:0;left:var(--space-4);border-top:1px solid var(--color-separator)}
+.dish-top{display:flex;justify-content:space-between;align-items:baseline;gap:var(--space-3)}
+.dish-top .name{font-size:var(--text-headline-size);font-weight:600;line-height:var(--text-headline-lh)}
+.dish-top .kc{font-size:var(--text-headline-size);font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.dish-meta{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-footnote-size);color:var(--color-text-secondary);font-variant-numeric:tabular-nums}
+.badge{display:inline-flex;align-items:center;gap:2px}
+.badge .icon{width:14px;height:14px}
+.dish-ctl{display:flex;align-items:center;gap:var(--space-2)}
+.step{width:var(--tap-min);height:var(--tap-min);border-radius:var(--radius-full);background:var(--color-surface-2);color:var(--color-accent);display:grid;place-items:center;flex:none}
+.step.dis{color:var(--color-text-disabled)}
+.wv{width:var(--stepper-value-width);height:var(--control-height);border:1px solid var(--color-border-strong);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;gap:var(--space-1);font-size:var(--text-body-size);font-variant-numeric:tabular-nums;background:var(--color-surface)}
+.wv small{font-size:var(--text-subhead-size);color:var(--color-text-secondary)}
+.wv.focus{border-color:var(--color-accent);box-shadow:inset 0 0 0 1px var(--color-accent)}
+.wv.error{border-color:var(--color-danger);box-shadow:inset 0 0 0 1px var(--color-danger)}
+.dish .more{margin-left:auto;width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;color:var(--color-text-secondary)}
+.dish .err-msg{display:flex;gap:var(--space-1);align-items:center;font-size:var(--text-footnote-size);color:var(--color-danger)}
+.hint{display:flex;flex-direction:column;gap:var(--space-1);padding:var(--space-2) var(--space-3);border-radius:var(--radius-md);background:var(--color-accent-soft);font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh)}
+.hint .acts{display:flex;gap:var(--space-4)}
+.hint .acts span{color:var(--color-accent);font-weight:600;min-height:var(--tap-min);display:flex;align-items:center}
+.hint .acts span+span{color:var(--color-text-secondary);font-weight:500}
+/* swipe-to-delete reveal */
+.swipe{position:relative;background:var(--color-danger);overflow:hidden}
+.swipe .dish{translate:-96px 0}
+.swipe .del{position:absolute;right:0;top:0;bottom:0;width:96px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--color-on-danger);font-size:var(--text-footnote-size);font-weight:600}
+.add-row{display:flex;align-items:center;gap:var(--space-2);color:var(--color-accent);font-size:var(--text-body-size);font-weight:500;min-height:var(--tap-min);padding:0 var(--space-4)}
+
+/* recognition */
+.recog-title{display:flex;align-items:center;gap:var(--space-3)}
+.skel-dish{display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-3) var(--space-4);background:var(--color-surface);border-radius:var(--radius-md)}
+.state.compact{padding:var(--space-4) var(--space-6) 0}
+
+/* today (minimal stand-in; full screen is OCT-19) */
+.today-card{background:var(--color-surface);border-radius:var(--radius-lg);padding:var(--space-5);display:flex;flex-direction:column;gap:var(--space-2)}
+.display{font-size:var(--text-display-size);line-height:var(--text-display-lh);font-weight:700;letter-spacing:var(--tracking-tight);font-variant-numeric:tabular-nums}
+.quick{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3)}
+.quick .btn{width:100%}
+.meal{display:flex;align-items:center;gap:var(--space-3)}
+.meal .thumb{width:44px;height:44px;border-radius:var(--radius-sm)}
+.meal.new{background:var(--color-accent-soft)}
+.action-sheet{position:absolute;left:var(--space-2);right:var(--space-2);bottom:calc(34px + var(--space-2));z-index:var(--z-sheet);display:flex;flex-direction:column;gap:var(--space-2)}
+.action-sheet .grp{background:var(--color-surface);border-radius:var(--radius-lg);overflow:hidden}
+.action-sheet .it{display:flex;align-items:center;justify-content:center;gap:var(--space-2);min-height:var(--control-height-lg);font-size:var(--text-body-size);color:var(--color-accent);position:relative}
+.action-sheet .it+.it::before{content:"";position:absolute;top:0;left:0;right:0;border-top:1px solid var(--color-separator)}
+.action-sheet .cancel{font-weight:600}
+
+/* manual form */
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-3)}
+.field .input.num .val{font-variant-numeric:tabular-nums}
+.field .input .unit{color:var(--color-text-secondary);font-size:var(--text-subhead-size)}
+.field .msg.warn{color:var(--color-warning)}
+.result{display:flex;justify-content:space-between;align-items:baseline;padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);background:var(--color-surface-2);font-size:var(--text-subhead-size);font-variant-numeric:tabular-nums}
+.result b{font-size:var(--text-headline-size)}
+.req{color:var(--color-text-secondary);font-weight:400}
+
+/* ===== Prototype-only: system camera of iOS & tap markers ===== */
+.sys{background:#000;color:#fff}
+.sys .viewfinder{flex:1;margin-top:var(--space-12);overflow:hidden}
+.sys .viewfinder svg{width:100%;height:100%;display:block}
+.sys .shutter-row{height:180px;display:flex;align-items:center;justify-content:space-around;padding-bottom:34px;font-size:var(--text-body-size)}
+.sys .shutter{width:72px;height:72px;border-radius:50%;border:4px solid #fff;display:grid;place-items:center}
+.sys .shutter::after{content:"";width:58px;height:58px;border-radius:50%;background:#fff}
+.tap{position:absolute;z-index:200;width:64px;height:64px;border-radius:50%;border:3px solid var(--color-accent);box-shadow:0 0 0 6px var(--color-accent-soft);pointer-events:none}
+.tap b{position:absolute;top:-14px;right:-14px;width:28px;height:28px;border-radius:50%;background:var(--color-accent);color:var(--color-on-accent);display:grid;place-items:center;font-size:var(--text-subhead-size)}
+.flow-arrow{align-self:center;color:var(--color-text-secondary)}
+.auto{position:absolute;z-index:200;top:64px;right:16px;padding:var(--space-1) var(--space-3);border-radius:var(--radius-full);background:var(--color-accent);color:var(--color-on-accent);font-size:var(--text-footnote-size);font-weight:600}
+
+/* ===== Desktop modal flow ===== */
+.flow-win{position:absolute;left:50%;top:50%;translate:-50% -50%;width:var(--modal-flow-max-width);max-height:90%;z-index:var(--z-sheet);background:var(--color-bg);border-radius:var(--radius-lg);box-shadow:var(--shadow-toast);display:flex;flex-direction:column;overflow:hidden}
+.flow-win .wh{display:flex;align-items:center;justify-content:space-between;padding:var(--space-3) var(--space-3) var(--space-3) var(--space-6);border-bottom:1px solid var(--color-separator)}
+.flow-win .wb{display:grid;grid-template-columns:240px 1fr;gap:var(--space-6);padding:var(--space-6);overflow:hidden}
+.flow-win .wf{display:flex;justify-content:flex-end;gap:var(--space-3);padding:var(--space-4) var(--space-6);border-top:1px solid var(--color-separator)}
+.flow-win .wf .btn{width:auto;min-width:160px}
+.flow-win .photo{height:240px}
+.dish .trash{width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;color:var(--color-danger);border-radius:var(--radius-md);background:var(--color-hover)}
+.dropzone{position:absolute;inset:var(--space-4);z-index:var(--z-sheet);border:2px dashed var(--color-accent);border-radius:var(--radius-lg);background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--space-2);color:var(--color-accent);font-size:var(--text-title-size);font-weight:600}
+.dropzone .icon{width:48px;height:48px}
+
+
+/* ===== OCT-19 additions: Today, Diary, Week (tokens only) ===== */
+.phone .content{padding-bottom:calc(var(--tabbar-height) + 34px + var(--space-4))}
+.phone .content.modal{padding-bottom:var(--space-4)}
+.phone .bottom.bar{flex:none}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.large-title .date{display:block;font-size:var(--text-subhead-size);font-weight:400;letter-spacing:0;color:var(--color-text-secondary);margin-top:2px}
+.title-row{display:flex;align-items:flex-end;justify-content:space-between;gap:var(--space-2)}
+.title-row .txt-btn{color:var(--color-accent);font-size:var(--text-body-size);min-height:var(--tap-min);display:flex;align-items:center;padding:0 var(--screen-gutter);font-weight:500}
+
+/* card + numbers */
+.card{background:var(--color-surface);border-radius:var(--radius-lg);padding:var(--space-5);display:flex;flex-direction:column;gap:var(--space-3)}
+.card .lbl{display:flex;align-items:center;gap:var(--space-1);font-size:var(--text-subhead-size);color:var(--color-text-secondary)}
+.card .lbl.over{color:var(--color-warning);font-weight:600}
+.big{display:flex;align-items:baseline;gap:var(--space-2)}
+.big .unit{font-size:var(--text-subhead-size);color:var(--color-text-secondary)}
+.big .display.sm{font-size:var(--text-large-title-size);line-height:var(--text-large-title-lh)}
+.week-line{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);min-height:var(--tap-min);margin:0 calc(-1 * var(--space-5)) calc(-1 * var(--space-5));padding:0 var(--space-3) 0 var(--space-5);border-top:1px solid var(--color-separator);font-size:var(--text-subhead-size);font-variant-numeric:tabular-nums}
+.week-line b{font-weight:600}
+.week-line .icon{color:var(--color-text-secondary)}
+.week-line.over b{color:var(--color-warning)}
+.invite{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);background:var(--color-accent-soft);font-size:var(--text-subhead-size)}
+.invite .icon{color:var(--color-accent)}
+.invite .go{margin-left:auto;color:var(--color-accent);font-weight:600;min-height:var(--tap-min);display:flex;align-items:center;white-space:nowrap}
+
+/* progress bars: fill = eaten up to the norm; hatched tail = over the norm (pattern, not only colour) */
+.pbar{height:var(--progress-height);border-radius:var(--radius-full);background:var(--color-surface-2);display:flex;overflow:hidden}
+.pbar i{display:block;height:100%;background:var(--color-accent)}
+.pbar i.p{background:var(--color-protein)} .pbar i.f{background:var(--color-fat)} .pbar i.c{background:var(--color-carbs)}
+.pbar i.ov,.hatch{background-image:repeating-linear-gradient(-45deg,var(--color-warning) 0 calc(var(--hatch-size) / 2),transparent 0 var(--hatch-size))}
+.pbar.none{background:transparent;outline:1px dashed var(--color-separator)}
+
+/* macros block */
+.mac-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-3)}
+.mac{display:flex;flex-direction:column;gap:var(--space-1);min-width:0}
+.mac-h{display:flex;align-items:center;gap:var(--space-1);font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.mac-h i{width:var(--space-2);height:var(--space-2);border-radius:var(--radius-full)}
+.mac-v{font-size:var(--text-headline-size);font-weight:600;font-variant-numeric:tabular-nums}
+.mac-v small{font-size:var(--text-footnote-size);font-weight:400;color:var(--color-text-secondary)}
+.mac .pbar{margin:var(--space-1) 0}
+.mac .rest{white-space:nowrap;font-size:var(--text-footnote-size);color:var(--color-text-secondary);font-variant-numeric:tabular-nums;display:flex;align-items:center;gap:2px}
+.mac .rest.over{color:var(--color-warning);font-weight:600}
+.mac .rest .icon{width:14px;height:14px}
+.mac-rows{display:flex;flex-direction:column;gap:var(--space-3)}
+.mac-row{display:grid;grid-template-columns:auto 1fr;gap:var(--space-1) var(--space-3);align-items:center}
+.mac-row .mac-h{font-size:var(--text-subhead-size);color:var(--color-text)}
+.mac-row .mac-v{justify-self:end;font-size:var(--text-subhead-size)}
+.mac-row .pbar{grid-column:1 / -1}
+
+/* meal rows (Today / Diary) */
+.sec-h{display:flex;justify-content:space-between;align-items:baseline;font-size:var(--text-footnote-size);color:var(--color-text-secondary);padding:0 var(--space-4) var(--space-2)}
+.cell.meal .thumb{width:var(--meal-thumb-size);height:var(--meal-thumb-size);border-radius:var(--radius-sm)}
+.cell.meal .thumb.icon-only{display:grid;place-items:center;color:var(--color-text-secondary)}
+.cell.meal .main .t{display:flex;gap:var(--space-2);align-items:center;font-weight:600;font-size:var(--text-body-size)}
+.cell.meal .main .t small{font-weight:400;color:var(--color-text-secondary);font-size:var(--text-subhead-size);font-variant-numeric:tabular-nums}
+.cell.meal .main .sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cell.meal .main .st{display:flex;gap:var(--space-1);margin-top:2px}
+.cell.meal .val{color:var(--color-text);font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.cell.meal .val.zero{color:var(--color-text-secondary);font-weight:400}
+.cell.meal.queued .thumb{opacity:.7}
+.swipe .cell.meal{translate:-96px 0;background:var(--color-surface)}
+.cell.meal .trash{width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;color:var(--color-danger);border-radius:var(--radius-md);background:var(--color-hover);flex:none}
+.cell.meal.hover{background:var(--color-hover)}
+
+/* day / period switcher */
+.pager{display:grid;grid-template-columns:var(--tap-min) 1fr var(--tap-min);align-items:center;gap:var(--space-2)}
+.pager .ib{width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;border-radius:var(--radius-full);color:var(--color-accent);background:var(--color-surface)}
+.pager .ib.dis{color:var(--color-text-disabled);background:transparent}
+.pager .pick{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:var(--tap-min);text-align:center}
+.pager .pick .t-headline{display:flex;align-items:center;gap:var(--space-1)}
+.pager .pick .icon{width:16px;height:16px;color:var(--color-text-secondary)}
+.sum-line{display:flex;justify-content:space-between;align-items:baseline;gap:var(--space-2);font-variant-numeric:tabular-nums}
+.sum-line .rest{font-size:var(--text-subhead-size);color:var(--color-text-secondary)}
+.sum-line .rest.over{color:var(--color-warning);font-weight:600}
+
+/* chart */
+.chart{display:flex;flex-direction:column;gap:var(--space-2)}
+.plot{position:relative;height:var(--chart-height);display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:var(--space-2);align-items:end;border-bottom:1px solid var(--color-separator)}
+.plot.month{gap:2px}
+.plot.wide{height:var(--chart-height-wide);gap:var(--space-4)}
+.plot .norm{position:absolute;left:0;right:0;border-top:2px dashed var(--color-text-secondary);z-index:1;pointer-events:none}
+.plot .norm span{position:absolute;right:0;bottom:2px;font-size:var(--text-caption-size);color:var(--color-text-secondary);background:var(--color-surface);padding:0 var(--space-1);font-variant-numeric:tabular-nums}
+.col{position:relative;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:stretch;min-height:var(--tap-min);border-radius:var(--radius-sm) var(--radius-sm) 0 0}
+.col .b{display:flex;flex-direction:column-reverse;border-radius:var(--radius-sm) var(--radius-sm) 0 0;overflow:hidden;min-height:2px}
+.col .b .in{background:var(--color-accent);flex:none}
+.col .b .ov{flex:none;background-color:var(--color-warning-soft)}
+.col .b .ov.hatch{background-color:var(--color-warning-soft)}
+.col.today .b .in{background:var(--color-accent)}
+.col.past .b .in{opacity:1}
+.col .v{font-size:var(--text-caption-size);font-weight:500;color:var(--color-text-secondary);text-align:center;font-variant-numeric:tabular-nums;margin-bottom:var(--space-1);white-space:nowrap}
+.col .v.over{color:var(--color-warning);font-weight:600}
+.col.zero .b{background:var(--color-separator);height:2px}
+.col.sel{outline:2px solid var(--color-focus-ring);outline-offset:2px}
+.col .clip{position:absolute;left:-2px;right:-2px;height:8px;background:var(--color-surface);clip-path:polygon(0 50%,15% 0,30% 50%,45% 0,60% 50%,75% 0,90% 50%,100% 0,100% 50%,85% 100%,70% 50%,55% 100%,40% 50%,25% 100%,10% 50%,0 100%)}
+.xl{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:var(--space-2);font-size:var(--text-caption-size);color:var(--color-text-secondary);text-align:center;font-variant-numeric:tabular-nums;line-height:var(--text-caption-lh)}
+.xl.month{gap:2px}
+.xl.wide{gap:var(--space-4)}
+.xl span em{display:block;font-style:normal;margin-top:2px;color:var(--color-text-secondary)}
+.xl span em.over{color:var(--color-warning);font-weight:600}
+.xl span b{display:block;font-weight:600;color:var(--color-text)}
+.xl span.today{color:var(--color-accent)}
+.xl span.today b{color:var(--color-accent)}
+.xl span.future{color:var(--color-text-disabled)}
+.xl span.future b{color:var(--color-text-disabled)}
+.legend{display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-3);font-size:var(--text-caption-size);color:var(--color-text-secondary)}
+.legend span{display:flex;align-items:center;gap:var(--space-1)}
+.legend i{width:14px;height:10px;border-radius:2px;background-color:var(--color-accent)}
+.legend i.ov{background-color:var(--color-warning-soft)}
+.legend i.ln{height:0;border-top:2px dashed var(--color-text-secondary);border-radius:0}
+.chart-empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--space-1);text-align:center;color:var(--color-text-secondary);font-size:var(--text-subhead-size)}
+.tip{position:absolute;z-index:2;translate:-50% 0;padding:var(--space-2) var(--space-3);border-radius:var(--radius-md);background:var(--color-text);color:var(--color-bg);font-size:var(--text-footnote-size);white-space:nowrap;box-shadow:var(--shadow-toast);font-variant-numeric:tabular-nums}
+.avg-note{font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.callout{display:flex;flex-direction:column;gap:2px;padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);background:var(--color-accent-soft);font-size:var(--text-subhead-size);font-variant-numeric:tabular-nums}
+.callout b{font-size:var(--text-headline-size);color:var(--color-accent)}
+.callout.over{background:var(--color-warning-soft)}
+.callout.over b{color:var(--color-warning)}
+
+/* edit-record additions (screen 4 opened from Diary) */
+.when{display:flex;align-items:center;gap:var(--space-3);min-height:var(--control-height);padding:0 var(--space-4);border-radius:var(--radius-md);background:var(--color-surface);font-size:var(--text-body-size)}
+.when .v{margin-left:auto;color:var(--color-accent);font-variant-numeric:tabular-nums}
+.when .icon{color:var(--color-text-secondary)}
+.late{display:flex;flex-direction:column;gap:var(--space-2)}
+.picker{position:absolute;left:0;right:0;bottom:0;z-index:var(--z-sheet);background:var(--color-surface-2);border-radius:var(--radius-xl) var(--radius-xl) 0 0;padding:var(--space-3) var(--space-4) calc(34px + var(--space-3));display:flex;flex-direction:column;gap:var(--space-2);box-shadow:var(--shadow-sheet)}
+.picker .ph{display:flex;justify-content:space-between;font-size:var(--text-body-size);color:var(--color-accent);min-height:var(--tap-min);align-items:center}
+.picker .wheel{display:grid;grid-template-columns:2fr 1fr 1fr;text-align:center;font-size:var(--text-body-size);color:var(--color-text-secondary);font-variant-numeric:tabular-nums}
+.picker .wheel div{display:flex;flex-direction:column;gap:var(--space-2)}
+.picker .wheel .on{color:var(--color-text);font-weight:600;background:var(--color-surface);border-radius:var(--radius-sm);padding:var(--space-1) 0}
+
+/* desktop */
+.desk .cols.even{grid-template-columns:1fr 1fr}
+.desk .cols.side-r{grid-template-columns:3fr 2fr}
+.desk-title{display:flex;align-items:flex-end;justify-content:space-between;gap:var(--space-4)}
+.desk-title .large-title .date{display:inline;margin-left:var(--space-3)}
+.desk .pager{grid-template-columns:var(--tap-min) auto var(--tap-min)}
+.desk .seg{min-width:240px}
+/* ===== OCT-22 switch, OCT-33 illustration tile (same spec) ===== */
+.switch{width:var(--switch-width);height:var(--switch-height);border-radius:var(--radius-full);background:var(--color-border-strong);position:relative;flex:none;margin-left:auto;transition:background var(--duration-fast) var(--ease-out)}
+.switch::after{content:"";position:absolute;top:2px;left:2px;width:calc(var(--switch-height) - 4px);height:calc(var(--switch-height) - 4px);border-radius:50%;background:var(--color-surface);box-shadow:0 2px 4px rgb(0 0 0 / .2);transition:translate var(--duration-fast) var(--ease-out)}
+.switch.on{background:var(--color-accent)}
+.switch.on::after{translate:calc(var(--switch-width) - var(--switch-height)) 0}
+.switch.dis{opacity:.5}
+.illo{display:grid;place-items:center;flex:none;border-radius:var(--radius-full);background:var(--illo-tile);overflow:hidden}
+.illo svg{width:80%;height:80%;display:block}
+.cell.meal .illo{width:var(--meal-thumb-size);height:var(--meal-thumb-size)}
+
+
+/* ===== OCT-189 Weight diary (tokens only) ===== */
+/* Today card */
+.wt{gap:var(--space-3)}
+.wt-head{display:flex;align-items:center;gap:var(--space-1);min-height:var(--tap-min);margin:calc(-1 * var(--space-3)) calc(-1 * var(--space-2)) calc(-1 * var(--space-2)) 0;font-size:var(--text-subhead-size);color:var(--color-text-secondary)}
+.wt-head>.icon{color:var(--color-weight)}
+.wt-head .go{margin-left:auto;display:flex;align-items:center;gap:2px;min-height:var(--tap-min);padding:0 var(--space-2);color:var(--color-accent);font-weight:500}
+.wt-top{display:flex;align-items:flex-end;gap:var(--space-4)}
+.wt-now{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.wt-big{display:flex;align-items:baseline;gap:var(--space-1);flex-wrap:wrap}
+.wt-big b{font-size:var(--text-large-title-size);line-height:var(--text-large-title-lh);font-weight:700;letter-spacing:var(--tracking-tight);font-variant-numeric:tabular-nums}
+.wt-big .u{font-size:var(--text-subhead-size);color:var(--color-text-secondary)}
+.wt-big .when{font-size:var(--text-subhead-size);color:var(--color-text-secondary);white-space:nowrap}
+.wt-delta{font-size:var(--text-subhead-size);color:var(--color-text-secondary);font-variant-numeric:tabular-nums}
+.wt-spark{width:var(--weight-spark-width);height:var(--weight-spark-height);flex:none}
+.wt-goal{display:flex;align-items:center;gap:var(--space-2);min-height:var(--tap-min);padding-top:var(--space-1);border-top:1px solid var(--color-separator);font-size:var(--text-subhead-size);font-variant-numeric:tabular-nums}
+.wt-goal>.icon{color:var(--color-text-secondary)}
+.wt-goal .muted{white-space:nowrap}
+.wt-goal .link{margin-left:auto;white-space:nowrap}
+.wt-acts{display:flex;gap:var(--space-3)}
+.wt-acts .btn{width:auto;flex:1}
+.wt-done{display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);background:var(--color-weight-soft);font-size:var(--text-subhead-size);line-height:var(--text-subhead-lh)}
+.wt-done .t{display:flex;align-items:center;gap:var(--space-2);font-weight:600}
+.wt-done .t .icon{color:var(--color-weight)}
+.wt-done .acts{display:flex;gap:var(--space-4)}
+.wt-done .acts span{min-height:var(--tap-min);display:flex;align-items:center;color:var(--color-accent);font-weight:600}
+.wt-done .acts span+span{color:var(--color-text-secondary);font-weight:500}
+.wt-invite{display:flex;gap:var(--space-4);align-items:center}
+.wt-invite .s-ic{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;background:var(--color-weight-soft);color:var(--color-weight);flex:none}
+.wt .badge{align-self:flex-start}
+.wt-err{display:flex;align-items:center;gap:var(--space-3);font-size:var(--text-subhead-size)}
+.wt-err .icon{color:var(--color-danger)}
+.wt-err .link{margin-left:auto;min-height:var(--tap-min);display:flex;align-items:center}
+
+/* chart (SVG, sizes in viewBox px = CSS px) */
+.wchart{display:block;width:100%;height:auto;overflow:visible}
+.wchart .grid{stroke:var(--color-separator);stroke-width:1}
+.wchart .ax{fill:var(--color-text-secondary);font-family:var(--font-sans);font-size:var(--text-caption-size);font-variant-numeric:tabular-nums}
+.wchart .pt{fill:var(--color-weight);opacity:var(--weight-point-opacity);r:var(--weight-point-r)}
+.wchart.spark .pt{r:calc(var(--weight-point-r) * .67)}
+.wchart .trend{fill:none;stroke:var(--color-weight);stroke-width:var(--weight-trend-width);stroke-linecap:round;stroke-linejoin:round}
+.wchart .goal{stroke:var(--color-text-secondary);stroke-width:1.5;stroke-dasharray:5 4}
+.wchart .goal-l{fill:var(--color-text-secondary);font-family:var(--font-sans);font-size:var(--text-caption-size);font-weight:500;paint-order:stroke;stroke:var(--color-surface);stroke-width:4px;stroke-linejoin:round}
+.wchart .last{fill:var(--color-weight);stroke:var(--color-surface);stroke-width:2;r:calc(var(--weight-point-r) + 2px)}
+.wchart .one{fill:var(--color-weight);r:calc(var(--weight-point-r) + 2px)}
+.wchart .sel{fill:var(--color-surface);stroke:var(--color-weight);stroke-width:2.5;r:calc(var(--weight-point-r) + 3px)}
+.wchart .cross{stroke:var(--color-weight);stroke-width:1;opacity:.5}
+.chart-wrap{position:relative}
+.trend-note{display:flex;justify-content:space-between;gap:var(--space-2);font-size:var(--text-footnote-size);color:var(--color-text-secondary);font-variant-numeric:tabular-nums}
+.legend i.pt{width:8px;height:8px;border-radius:50%;background:var(--color-weight);opacity:var(--weight-point-opacity)}
+.legend i.tr{height:0;border-top:var(--weight-trend-width) solid var(--color-weight);border-radius:0}
+.tip .go{display:inline-flex;align-items:center;margin-left:var(--space-2);font-weight:600}
+.tip .go .icon{width:14px;height:14px}
+
+/* weigh-in sheet */
+.wi-date{display:flex;align-items:center;gap:var(--space-3);min-height:var(--control-height);padding:0 var(--space-4);border-radius:var(--radius-md);background:var(--color-surface-2);font-size:var(--text-body-size)}
+.wi-date>.icon{color:var(--color-text-secondary)}
+.wi-date .v{margin-left:auto;display:flex;align-items:center;gap:2px;color:var(--color-accent);font-variant-numeric:tabular-nums}
+.wi-val{display:grid;grid-template-columns:var(--tap-min) 1fr var(--tap-min);align-items:center;gap:var(--space-2)}
+.wi-num{display:flex;align-items:baseline;justify-content:center;gap:var(--space-1);min-height:var(--control-height-lg);border-radius:var(--radius-md)}
+.wi-num b{font-size:var(--text-display-size);line-height:var(--text-display-lh);font-weight:700;letter-spacing:var(--tracking-tight);font-variant-numeric:tabular-nums}
+.wi-num .u{font-size:var(--text-headline-size);color:var(--color-text-secondary)}
+.wi-num.focus{box-shadow:inset 0 0 0 2px var(--color-accent)}
+.wi-num.focus b::after{content:"";display:inline-block;width:3px;height:.8em;background:var(--color-accent);margin-left:2px;vertical-align:-2px}
+.wi-num.error{box-shadow:inset 0 0 0 2px var(--color-danger)}
+.ruler{position:relative;height:var(--weight-ruler-height);margin:0 calc(-1 * var(--screen-gutter));overflow:hidden;-webkit-mask-image:linear-gradient(90deg,transparent,#000 22%,#000 78%,transparent);mask-image:linear-gradient(90deg,transparent,#000 22%,#000 78%,transparent);touch-action:pan-x;cursor:grab}
+.ruler svg{position:absolute;top:0;height:100%}
+.ruler .tk{stroke:var(--color-border-strong);stroke-width:1.5;stroke-linecap:round}
+.ruler .tk.h{stroke-width:2}
+.ruler .tl{fill:var(--color-text-secondary);font-family:var(--font-sans);font-size:var(--text-caption-size);text-anchor:middle;font-variant-numeric:tabular-nums}
+.ruler .tl.on{fill:var(--color-text);font-weight:600}
+.ruler::after{content:"";position:absolute;left:50%;top:0;height:60%;width:3px;translate:-50% 0;border-radius:var(--radius-full);background:var(--color-weight)}
+.wi-note{display:flex;gap:var(--space-2);align-items:flex-start;padding:var(--space-2) var(--space-3);border-radius:var(--radius-md);background:var(--color-surface-2);font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);color:var(--color-text-secondary)}
+.wi-note .icon{color:var(--color-text-secondary)}
+.wi-note b{color:var(--color-text);font-weight:600}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center;font-size:var(--text-subhead-size);font-variant-numeric:tabular-nums}
+.cal .h{font-size:var(--text-caption-size);color:var(--color-text-secondary);padding-bottom:var(--space-1)}
+.cal .d{min-height:var(--tap-min);display:grid;place-items:center;border-radius:var(--radius-full);position:relative}
+.cal .d.has::after{content:"";position:absolute;bottom:6px;width:4px;height:4px;border-radius:50%;background:var(--color-weight)}
+.cal .d.today{color:var(--color-accent);font-weight:600}
+.cal .d.on{background:var(--color-accent);color:var(--color-on-accent);font-weight:600}
+.cal .d.on::after{background:var(--color-on-accent)}
+.cal .d.fut{color:var(--color-text-disabled)}
+
+/* Weight screen */
+.seg.period{min-height:var(--control-height)}
+.wl{background:var(--color-surface);border-radius:var(--radius-md);overflow:hidden}
+.wl-i{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:var(--space-3);min-height:52px;padding:var(--space-2) var(--space-4);position:relative;font-variant-numeric:tabular-nums}
+.wl-i+.wl-i::before{content:"";position:absolute;top:0;right:0;left:var(--space-4);border-top:1px solid var(--color-separator)}
+.wl-i .dt-l{display:flex;flex-direction:column;gap:2px;font-size:var(--text-body-size)}
+.wl-i .dt-l small{font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.wl-i .dl{font-size:var(--text-subhead-size);color:var(--color-text-secondary);min-width:4.5em;text-align:right}
+.wl-i .w{font-size:var(--text-body-size);font-weight:600;min-width:4.5em;text-align:right}
+.wl-i.sel{background:var(--color-hover)}
+.wl-i.hover{background:var(--color-hover)}
+.wl-i .badge{justify-self:start}
+.screen-h{display:flex;flex-direction:column;gap:var(--space-3)}
+
+/* profile (screen 8) snippet */
+.cell .inline-act{color:var(--color-accent);font-weight:600;min-height:var(--tap-min);display:flex;align-items:center;padding-left:var(--space-3);border-left:1px solid var(--color-separator)}
+
+/* desktop */
+.desk .wt-spark{width:calc(var(--weight-spark-width) * 1.25)}
+.cols.weight{grid-template-columns:3fr 2fr}
+.wl.scroll{max-height:560px;overflow:hidden}
+
+/* copy table (docs only) */
+.copy{width:1280px;border-collapse:collapse;font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);background:var(--color-surface);border-radius:var(--radius-lg);overflow:hidden;outline:1px solid var(--color-separator)}
+.copy th,.copy td{text-align:left;vertical-align:top;padding:var(--space-2) var(--space-3);border-top:1px solid var(--color-separator)}
+.copy th{background:var(--color-surface-2);font-weight:600}
+.copy td:first-child{color:var(--color-text-secondary);white-space:nowrap}
+
+</style></head><body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-key" viewBox="0 0 24 24"><path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"/><circle cx="16.5" cy="7.5" r=".5"/></symbol>
+  <symbol id="i-chev-r" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="i-chev-l" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+  <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 2v13"/><path d="m16 6-4-4-4 4"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-camera" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></symbol>
+  <symbol id="i-wifi-off" viewBox="0 0 24 24"><path d="M12 20h.01"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/><path d="M5 12.859a10 10 0 0 1 5.17-2.69"/><path d="M19 12.859a10 10 0 0 0-2.007-1.523"/><path d="M2 8.82a15 15 0 0 1 4.177-2.643"/><path d="M22 8.82a15 15 0 0 0-11.288-3.764"/><path d="m2 2 20 20"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
+  <symbol id="i-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></symbol>
+  <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+  <symbol id="i-user-plus" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6"/><path d="M22 11h-6"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></symbol>
+  <symbol id="i-plate" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/></symbol>
+</svg>
+<!-- Extra icons for OCT-16 (Lucide geometry; lucide-react names in the doc) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></symbol>
+  <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/></symbol>
+  <symbol id="i-retake" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></symbol>
+  <symbol id="i-history" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></symbol>
+  <symbol id="i-gauge" viewBox="0 0 24 24"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></symbol>
+  <symbol id="i-cloud-off" viewBox="0 0 24 24"><path d="m2 2 20 20"/><path d="M5.782 5.782A7 7 0 0 0 9 19h8.5a4.5 4.5 0 0 0 1.307-.193"/><path d="M21.532 16.5A4.5 4.5 0 0 0 17.5 10h-1.79A7.008 7.008 0 0 0 10 5.07"/></symbol>
+  <symbol id="i-search-x" viewBox="0 0 24 24"><path d="m13.5 8.5-5 5"/><path d="m8.5 8.5 5 5"/><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m17 8-5-5-5 5"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></symbol>
+  <!-- Prototype-only stand-in for the user's photo (real app shows the actual photo) -->
+  <symbol id="ph-food" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice">
+    <rect width="400" height="300" fill="#7a6552"/><rect width="400" height="300" fill="url(#wood)" opacity=".35"/>
+    <ellipse cx="200" cy="160" rx="150" ry="118" fill="#e9e5dc"/><ellipse cx="200" cy="160" rx="118" ry="92" fill="#f5f2ea"/>
+    <path d="M110 150c10-40 60-52 90-40 20 8 22 40 6 58-22 24-74 22-90 6-8-8-9-16-6-24z" fill="#8a5b37"/>
+    <g fill="#6e4528"><circle cx="135" cy="140" r="5"/><circle cx="160" cy="128" r="4"/><circle cx="180" cy="150" r="5"/><circle cx="150" cy="160" r="4"/></g>
+    <path d="M210 110c30-18 76-10 88 10 10 18-6 40-40 44-30 4-56-6-58-24-1-12 2-22 10-30z" fill="#d9a86a"/>
+    <path d="M222 122l60 6M220 138l66 4M226 152l52 2" stroke="#b5803f" stroke-width="5" stroke-linecap="round"/>
+    <ellipse cx="236" cy="210" rx="28" ry="20" fill="#fbfaf5"/><circle cx="236" cy="210" r="11" fill="#f2b632"/>
+    <ellipse cx="282" cy="196" rx="26" ry="19" fill="#fbfaf5"/><circle cx="282" cy="196" r="10" fill="#f2b632"/>
+    <ellipse cx="160" cy="212" rx="24" ry="14" fill="#f4eedb"/>
+    <defs><pattern id="wood" width="40" height="300" patternUnits="userSpaceOnUse"><path d="M0 0v300M20 0v300" stroke="#5a4636" stroke-width="2"/></pattern></defs>
+  </symbol>
+</svg>
+<!-- Extra icons for OCT-19 (Lucide geometry; lucide-react names in the doc) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-calendar" viewBox="0 0 24 24"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></symbol>
+  <symbol id="i-chev-d" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></symbol>
+  <symbol id="i-utensils" viewBox="0 0 24 24"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 3 2h3Zm0 0v7"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></symbol>
+  <symbol id="i-moon-star" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+  <symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol>
+</svg>
+<!-- Extra icons for OCT-189 (Lucide geometry; lucide-react names in the doc) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-scale" viewBox="0 0 24 24"><circle cx="12" cy="5" r="3"/><path d="M6.5 8a2 2 0 0 0-1.905 1.46L2.1 18.5A2 2 0 0 0 4 21h16a2 2 0 0 0 1.925-2.54L19.4 9.5A2 2 0 0 0 17.48 8Z"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></symbol>
+  <symbol id="i-party" viewBox="0 0 24 24"><path d="M5.8 11.3 2 22l10.7-3.79"/><path d="M4 3h.01"/><path d="M22 8h.01"/><path d="M15 2h.01"/><path d="M22 20h.01"/><path d="m22 2-2.24.75a2.9 2.9 0 0 0-1.96 3.12c.1.86-.57 1.63-1.45 1.63h-.38c-.86 0-1.6.6-1.76 1.44L14 10"/><path d="m22 13-.82-.33c-.86-.34-1.82.2-1.98 1.11c-.11.7-.72 1.22-1.43 1.22H17"/><path d="m11 2 .33.82c.34.86-.2 1.82-1.11 1.98C9.52 4.9 9 5.52 9 6.23V7"/><path d="M11 13c1.93 1.93 2.83 4.17 2 5-.83.83-3.07-.07-5-2-1.93-1.93-2.83-4.17-2-5 .83-.83 3.07.07 5 2Z"/></symbol>
+</svg>
+
+<h1 class="doc-h1">OCT-189 · Дневник веса</h1>
+<p class="doc-lead">Этап дизайна для «Продукт OCT-186: дневник веса» (эпик OCT-5). Компоненты OCT-13, 16, 19, 22. Новые токены: <code>--color-weight</code>, <code>--color-weight-soft</code> (один нейтральный оттенок — никакого зелёного/красного по направлению, AC-9.17), <code>--weight-spark-width/height</code>, <code>--weight-ruler-height</code>, <code>--weight-tick-gap</code>, <code>--weight-point-r</code>, <code>--weight-trend-width</code>, <code>--weight-point-opacity</code>. iPhone 14/15, 390 × 844 pt. Пример: цель «похудеть» до 73 кг, последнее взвешивание 80,2 кг сегодня (пн 16 ноября), прошлое — 80,6 кг 12 ноября.</p>
+
+<section class="doc-section" id="card">
+  <h2 class="doc-h2">1 · Карточка «Вес» на «Сегодня»</h2>
+  <p class="doc-lead">Карточка — последней на «Сегодня», под приёмами пищи: камера в таб-баре, «Из галереи» и «Вручную» остаются на своих местах, путь записи еды не получает ни одного касания (AC-9.14). Вес смотрят раз в день — ему хватает места внизу.</p>
+  <div class="row" id="card-row"></div>
+</section>
+<section class="doc-section" id="entry">
+  <h2 class="doc-h2">2 · Запись веса</h2>
+  <p class="doc-lead">Кадр 2.1 — живой: тяните линейку или жмите −/+. Касания: ① «Записать вес» → ② значение на линейке → ③ «Сохранить» (AC-9.2).</p>
+  <div class="row" id="entry-row"></div>
+</section>
+<section class="doc-section" id="screen">
+  <h2 class="doc-h2">3 · Экран «Вес»</h2>
+  <div class="row" id="screen-row"></div>
+</section>
+<section class="doc-section" id="profile">
+  <h2 class="doc-h2">4 · Вход с экрана 8 «Профиль»</h2>
+  <div class="row" id="profile-row"></div>
+</section>
+<section class="doc-section" id="desktop">
+  <h2 class="doc-h2">D · Десктоп ≥ 1024 px</h2>
+  <div class="row" id="desk-row"></div>
+</section>
+<section class="doc-section" id="copy">
+  <h2 class="doc-h2">T · Тексты RU / EN</h2>
+  <p class="doc-lead">Правило AC-9.17: изменение — просто число со знаком, без «отлично», «увы», стрелок вверх-вниз цветом. Единственная реакция — «Цель достигнута». Знак минуса — U+2212, между числом и единицей — неразрывный пробел.</p>
+  <div class="row" id="copy-row"></div>
+</section>
+
+<script type="module">
+const I = (id, cls='') => `<svg class="icon ${cls}" aria-hidden="true"><use href="#i-${id}"/></svg>`;
+const PHOTO = `<svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Фото еды"><use href="#ph-food"/></svg>`;
+const frame = (id, t, note, inner, cls='') => `<figure class="frame"><div class="phone ${cls}">${inner}</div><figcaption><b>${id} ${t}.</b> ${note}</figcaption></figure>`;
+const docFrame = (id, t, note, inner) => `<figure class="frame"><div class="sheetdoc" style="background:var(--color-bg)">${inner}</div><figcaption><b>${id} ${t}.</b> ${note}</figcaption></figure>`;
+const NB = ' ';
+const fmt = n => Math.round(n).toLocaleString('ru-RU').replace(/\s/g, NB);
+const f1 = n => n.toLocaleString('ru-RU',{minimumFractionDigits:1, maximumFractionDigits:1});
+const sg = n => Math.abs(n) < .05 ? '0,0' : (n > 0 ? '+' : '−') + f1(Math.abs(n));
+const LB = 2.20462;
+
+/* ---------- dates: today = Mon 16 Nov 2026; points keep a day offset i (0 = today) ---------- */
+const TODAY = new Date(2026, 10, 16);
+const MON = ['янв.','февр.','марта','апр.','мая','июня','июля','авг.','сент.','окт.','нояб.','дек.'];
+const MONTH = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+const MON_AX = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+const WD = ['вс','пн','вт','ср','чт','пт','сб'];
+const dOf = i => { const d = new Date(TODAY); d.setDate(d.getDate() + i); return d; };
+const day = i => { const d = dOf(i); return `${d.getDate()}${NB}${MON[d.getMonth()]}`; };
+
+/* ---------- sample data: ~13 months, ~70 % of days weighed (prototype only) ---------- */
+let seed = 11; const rnd = () => (seed = seed * 16807 % 2147483647) / 2147483647;
+const S = [];
+for (let i = -400; i <= -5; i++) { if (rnd() < .3) continue; const k = (i + 400) / 400; S.push({i, w: Math.round((86 - 5.3*k + .5*Math.sin(k*7) + (rnd() - .5) * 1.1) * 10) / 10}); }
+S.push({i:-4, w:80.6}, {i:0, w:80.2});
+/* trend: EMA, 10 % of the new value per day (AC-9.22); a gap of n days weighs 1 − 0.9ⁿ */
+function trendOf(pts){ let t = null, prev = null; return pts.map(p => { t = t === null ? p.w : t + (1 - Math.pow(.9, p.i - prev)) * (p.w - t); prev = p.i; return {i:p.i, t}; }); }
+const TR = trendOf(S);
+
+/* ---------- chart (SVG, one function for card spark, screen and desktop) ---------- */
+function chart({days=90, W=310, H=184, goal=73, spark=false, sel=null, pts=S, lb=false, hoverX=null}={}){
+  const cv = v => lb ? v * LB : v;
+  const vis = pts.filter(p => days == null || p.i > -days);
+  const tr = pts.length >= 3 ? trendOf(pts).filter(p => days == null || p.i > -days) : [];
+  const vals = vis.map(p => cv(p.w)).concat(tr.map(p => cv(p.t)));
+  if (goal) vals.push(cv(goal));
+  const span = Math.max(...vals) - Math.min(...vals);
+  const step = [.5,1,2,5,10,20].find(s => span / s <= 4) || 20;
+  let lo = Math.floor((Math.min(...vals) - step*.3) / step) * step, hi = Math.ceil((Math.max(...vals) + step*.3) / step) * step;
+  if (hi - lo < step * 2) { lo -= step; hi += step; }
+  const pl = spark ? 4 : 0, pr = spark ? 6 : 40, pt = spark ? 6 : 10, pb = spark ? 6 : 24;
+  const x0 = days == null ? vis[0].i : -days + 1, x1 = 0;
+  const X = i => pl + (x1 === x0 ? .5 : (i - x0) / (x1 - x0)) * (W - pl - pr);
+  const Y = v => pt + (hi - v) / (hi - lo) * (H - pt - pb);
+  let g = '';
+  if (!spark) {
+    for (let v = lo; v <= hi + 1e-6; v += step) g += `<line class="grid" x1="${pl}" x2="${W - pr + 4}" y1="${Y(v)}" y2="${Y(v)}"/><text class="ax" x="${W - pr + 8}" y="${Y(v) + 4}">${step < 1 ? f1(v) : fmt(v)}</text>`;
+    let lastX = -99;
+    for (let i = x0; i <= 0; i++) { const d = dOf(i); const mark = days === 30 ? d.getDay() === 1 : d.getDate() === 1;
+      if (!mark || X(i) - lastX < (days === 30 ? 44 : 34) || X(i) > W - pr - 8) continue; lastX = X(i);
+      g += `<text class="ax" x="${X(i)}" y="${H - 6}">${days === 30 ? `${d.getDate()} ${MON_AX[d.getMonth()]}` : MON_AX[d.getMonth()]}</text>`; }
+  }
+  if (goal) g += `<line class="goal" x1="${pl}" x2="${W - pr + (spark ? 6 : 4)}" y1="${Y(cv(goal))}" y2="${Y(cv(goal))}"/>` + (spark ? '' : `<text class="goal-l" x="${pl + 2}" y="${Y(cv(goal)) - 6}">Цель ${lb ? f1(cv(goal)) : fmt(goal)}</text>`);
+  if (vis.length === 1) g += `<circle class="one" cx="${X(vis[0].i)}" cy="${Y(cv(vis[0].w))}"/>`;
+  else {
+    g += vis.map(p => `<circle class="pt" cx="${X(p.i).toFixed(1)}" cy="${Y(cv(p.w)).toFixed(1)}"/>`).join('');
+    if (tr.length) g += `<path class="trend" d="${tr.map((p, k) => `${k ? 'L' : 'M'}${X(p.i).toFixed(1)} ${Y(cv(p.t)).toFixed(1)}`).join('')}"/>`;
+    const L = vis[vis.length - 1];
+    g += `<circle class="last" cx="${X(L.i)}" cy="${Y(cv(L.w))}"/>`;
+  }
+  if (sel != null) { const p = vis.find(q => q.i === sel); g += `<line class="cross" x1="${X(p.i)}" x2="${X(p.i)}" y1="${pt}" y2="${H - pb}"/><circle class="sel" cx="${X(p.i)}" cy="${Y(cv(p.w))}"/>`; }
+  const last = vis[vis.length - 1], u = lb ? 'lb' : 'кг';
+  const dTr = tr.length ? cv(tr[tr.length - 1].t - tr[0].t) : null;
+  const label = spark ? '' : `График веса${days ? ` за ${PER[days]}` : ' за всё время'}: последнее взвешивание ${f1(cv(last.w))} ${u}${dTr != null ? `, по тренду ${sg(dTr)} ${u}` : ''}${goal ? `, цель ${f1(cv(goal))} ${u}` : ''}.`;
+  return {svg:`<svg class="wchart ${spark ? 'spark' : ''}" viewBox="0 0 ${W} ${H}" ${spark ? 'aria-hidden="true"' : `role="img" aria-label="${label}"`}>${g}</svg>`, dTr, X, Y:v => Y(cv(v))};
+}
+const PER = {30:'месяц', 90:'3 месяца', 365:'год'};
+
+/* ---------- shared screen bits (OCT-19) ---------- */
+const NORM = {k:2100, p:120, f:70, c:240};
+const tabbar = (on='Сегодня') => { const t = (ic, l) => `<span class="tab ${l===on?'on':''}">${I(ic)}${l}</span>`; return `<nav class="tabbar">${t('home','Сегодня')}${t('book','Дневник')}<span class="cam" aria-label="Сфотографировать еду">${I('camera')}</span>${t('chart','Неделя')}${t('user','Профиль')}</nav>`; };
+const bar = (v, n, cls='') => `<div class="pbar" aria-hidden="true"><i class="${cls}" style="width:${Math.min(100, v/n*100)}%"></i></div>`;
+function kcalCard(eaten=1240, macros=[68,44,140], norm=NORM.k){
+  const one = (name, cls, v, nv) => `<div class="mac"><span class="mac-h"><i class="m-${cls}"></i>${name}</span><span class="mac-v">${fmt(v)}<small> / ${nv} г</small></span>${bar(v,nv,cls)}<span class="rest">осталось ${fmt(nv-v)} г</span></div>`;
+  return `<section class="card" aria-label="Итог дня"><span class="lbl">Осталось</span><div class="big"><span class="display num">${fmt(norm-eaten)}</span><span class="unit">ккал</span></div>${bar(eaten,norm)}<span class="t-foot muted num">${fmt(eaten)} из ${fmt(norm)} ккал</span><div class="mac-grid">${one('Белки','p',macros[0],NORM.p)}${one('Жиры','f',macros[1],NORM.f)}${one('Углеводы','c',macros[2],NORM.c)}</div></section>`;
+}
+const quick = `<div class="quick"><button class="btn btn-tonal btn-sm">${I('image','sm')}Из галереи</button><button class="btn btn-tonal btn-sm">${I('pencil','sm')}Вручную</button></div>`;
+const mealRow = (type, time, sub, k, photo=true) => `<div class="cell meal" role="button"><span class="thumb ${photo?'':'icon-only'}">${photo?PHOTO:I('utensils','sm')}</span><span class="main"><span class="t">${type}<small>${time}</small></span><span class="sub">${sub}</span></span><span class="val num">${fmt(k)} ккал</span></div>`;
+const meals = `<div><div class="sec-h"><span>Приёмы пищи</span></div><div class="group">${mealRow('Обед','13:24','Гречка с грибами, куриная грудка гриль, яйцо…',717)}${mealRow('Завтрак','08:12','Овсянка на молоке',523,false)}</div></div>`;
+const titleT = `<div class="large-title">Сегодня<span class="date">понедельник, 16 ноября</span></div>`;
+const offBar = (t='Офлайн · всё сохраняется на телефоне') => `<div class="offline-bar">${I('wifi-off','sm')}${t}</div>`;
+const toast = (txt, act='', ic='scale') => `<div class="toast" role="status">${I(ic,'sm')}<span class="num">${txt}</span>${act?`<span class="act">${act}</span>`:''}</div>`;
+const sheetHead = (t, sub='') => `<div class="grab"></div><div class="sheet-head"><div><div class="t-headline">${t}</div>${sub?`<div class="t-foot muted num">${sub}</div>`:''}</div><span class="x" role="button" aria-label="Закрыть">${I('x')}</span></div>`;
+const navBack = (back, t, right='') => `<div class="navbar"><span class="back">${I('chev-l')}${back}</span><span class="title">${t}</span>${right?`<span class="act">${right}</span>`:'<span></span>'}</div>`;
+const cell = (main, right, {ic='', sub='', cls=''}={}) => `<div class="cell ${ic?'ic':''} ${cls}">${ic}<span class="main"><span>${main}</span>${sub?`<span class="sub">${sub}</span>`:''}</span>${right}</div>`;
+const chev = `<span class="chev">${I('chev-r','sm')}</span>`;
+const tapMark = (n, x, y) => `<span class="tap" style="left:${x}px;top:${y}px" aria-hidden="true"><b>${n}</b></span>`;
+const queuedBadge = `<span class="badge">${I('cloud-off')}Ждёт отправки</span>`;
+
+/* ---------- Weight card ---------- */
+function goalRow(goal, {w=80.2, lb=false}={}){
+  const u = lb ? 'lb' : 'кг', cv = v => lb ? v * LB : v;
+  if (goal === 'lose') return `<div class="wt-goal">${I('target','sm')}<span>Цель ${lb ? f1(cv(73)) : fmt(73)}${NB}${u}</span><span class="muted">· осталось ${f1(cv(w - 73))}${NB}${u}</span></div>`;
+  if (goal === 'none') return `<div class="wt-goal">${I('target','sm')}<span class="muted">Цель не задана</span><a class="link">Задать</a></div>`;
+  if (goal === 'keep') return `<div class="wt-goal">${I('target','sm')}<span>Цель: держать вес</span></div>`;
+  return '';
+}
+const reached = `<div class="wt-done" role="status"><span class="t">${I('party','sm')}Цель достигнута · 73${NB}кг</span><span>Перейти на «Держать вес»? Норма станет поддерживающей.</span><span class="acts"><span role="button">Перейти</span><span role="button">Не сейчас</span></span></div>`;
+function weightCard({state='normal', goal='lose', w=80.2, when='сегодня', queued=false, lb=false}={}){
+  const head = (go=true, w='') => `<div class="wt-head">${I('scale','sm')}Вес${w?`<span>· ${w}</span>`:''}${go?`<a class="go">Все взвешивания${I('chev-r','sm')}</a>`:''}</div>`;
+  const add = `<button class="btn btn-tonal btn-sm">${I('plus','sm')}Записать вес</button>`;
+  if (state === 'empty') return `<section class="card wt" aria-label="Вес">${head(false)}<div class="wt-invite"><span class="s-ic">${I('scale')}</span><div class="stack-sm" style="gap:var(--space-1)"><b class="t-headline">Запишите вес</b><span class="t-sub muted">Норма будет пересчитываться сама после каждого взвешивания.</span></div></div>${add}</section>`;
+  if (state === 'loading') return `<section class="card wt" aria-label="Вес" aria-busy="true">${head(false)}<div class="wt-top"><div class="wt-now stack-sm"><div class="skel" style="width:120px;height:34px"></div><div class="skel" style="width:150px"></div></div><div class="skel wt-spark"></div></div><div class="skel" style="height:var(--control-height)"></div></section>`;
+  if (state === 'error') return `<section class="card wt" aria-label="Вес">${head(false)}<div class="wt-err">${I('alert','sm')}<span>Не удалось загрузить вес</span><a class="link">Повторить</a></div></section>`;
+  const u = lb ? 'lb' : 'кг', cv = v => lb ? v * LB : v;
+  const one = state === 'one';
+  const sh = Math.abs(w - 80.2) > 1 ? w - 80.2 : 0; // prototype: shift sample data for the «goal reached» frame
+  const pts = one ? [{i:0, w}] : sh ? S.map(p => ({i:p.i, w:Math.round((p.w + sh) * 10) / 10})) : S;
+  const sp = chart({days:30, W:128, H:56, spark:true, pts, lb, goal: (goal === 'lose' || goal === 'reached') ? (goal === 'reached' ? 73 : 73) : null});
+  const delta = one ? 'Первое взвешивание' : `${sg(cv(w - 80.6 - sh))}${NB}${u} с 12${NB}нояб.`;
+  const big = `<span class="wt-big"><b>${f1(cv(w))}</b><span class="u">${u}</span></span>`;
+  return `<section class="card wt" aria-label="Вес">${head(true, when)}
+    <div class="wt-top" role="button" aria-label="Вес ${f1(cv(w))} ${u}, ${when}. ${delta}. Открыть экран «Вес»"><div class="wt-now">${big}<span class="wt-delta">${delta}</span>${queued?queuedBadge:''}</div><div class="wt-spark">${sp.svg}</div></div>
+    ${goal === 'reached' ? reached : goalRow(goal, {w, lb})}${queued?`<span class="t-foot muted">Норма обновится, когда появится сеть.</span>`:''}${add}</section>`;
+}
+const SC = 225;
+const todayW = ({card=weightCard(), scroll=SC, top='', extra='', norm=NORM.k}={}) => `${titleT}${top}<div class="content"><div class="pad stack" style="margin-top:-${scroll}px">${kcalCard(1240,[68,44,140],norm)}${quick}${meals}${card}</div></div>${tabbar()}${extra}`;
+
+document.getElementById('card-row').innerHTML = [
+  frame('1.1','Обычный день','Сверху вниз: текущий вес и когда; изменение с прошлого взвешивания серым, со знаком, без стрелок и цвета; справа мини-график за 30 дней с пунктиром цели. Строка цели: «Цель 73 кг · осталось 7,2 кг». Внизу «Записать вес» — тональная кнопка, в зоне большого пальца. Касание веса, графика или «Все взвешивания» — экран «Вес» (раздел 3).', todayW()),
+  frame('1.2','Пусто','Ни одного взвешивания — карточка-приглашение (AC-9.16). Кнопка та же. Пустую карточку не прячем: иначе о дневнике веса никто не узнает. После первого взвешивания — 1.3.', todayW({card:weightCard({state:'empty'}), scroll:SC - 40})),
+  frame('1.3','Одно взвешивание','Одна точка, без тренда и без изменения: вместо него «Первое взвешивание» (AC-9.16). Цель и остаток — как обычно.', todayW({card:weightCard({state:'one', w:80.2})})),
+  frame('1.4','Цель достигнута','Взвешивание дошло до цели или перешло её (AC-9.13). Плашка вместо строки цели — единственная «реакция» на вес. «Перейти» меняет цель на «Держать вес» и пересчитывает норму; «Не сейчас» прячет плашку, остаётся «Цель 73 кг · достигнута». Без ответа норма не меняется.', todayW({card:weightCard({goal:'reached', w:72.8}), scroll:SC + 40})),
+].join('');
+document.getElementById('card-row').insertAdjacentHTML('beforeend', [
+  docFrame('1.5','Цель: варианты','Сверху вниз: цель не задана — «Задать» ведёт на экран 8 к полю «Целевой вес»; «держать вес» — без остатка и без пунктира; младше 18 — строки цели нет совсем, пунктира тоже (AC-9.18); система мер «американская» — всё в lb, цель тоже (E-9.2).',
+    `<span class="t-foot muted">Цель не задана</span>${weightCard({goal:'none'})}<span class="t-foot muted">Держать вес</span>${weightCard({goal:'keep'})}<span class="t-foot muted">Младше 18</span>${weightCard({goal:'teen'})}<span class="t-foot muted">Американская система мер</span>${weightCard({lb:true})}`),
+  docFrame('1.6','Загрузка, ошибка, офлайн','Загрузка — скелет в размер карточки, без прыжков вёрстки. Ошибка — одна строка с «Повторить»; данные из локальной копии остаются, если есть. Офлайн: запись без сети сразу на карточке с «Ждёт отправки», норма пересчитается после отправки (AC-9.26) — об этом строка под целью.',
+    `<span class="t-foot muted">Загрузка</span>${weightCard({state:'loading'})}<span class="t-foot muted">Ошибка</span>${weightCard({state:'error'})}<span class="t-foot muted">Офлайн, взвешивание не отправлено</span>${weightCard({queued:true, w:79.9, when:'сегодня'})}`),
+].join(''));
+
+/* ---------- 2. Weigh-in sheet ---------- */
+function ruler(v){
+  const W = 390, c = W / 2, gap = 10; let g = '';
+  for (let k = -25; k <= 25; k++) { const t = Math.round(v * 10) + k, x = c + k * gap, whole = t % 10 === 0, half = t % 5 === 0;
+    g += `<line class="tk ${half?'h':''}" x1="${x}" x2="${x}" y1="4" y2="${whole ? 34 : half ? 28 : 16}"/>`;
+    if (half) g += `<text class="tl ${k===0?'on':''}" x="${x}" y="54">${whole ? t/10 : f1(t/10)}</text>`; }
+  return `<div class="ruler" data-ruler role="slider" aria-label="Вес" aria-valuemin="30" aria-valuemax="300" aria-valuenow="${v}" aria-valuetext="${f1(v)} килограмма" tabindex="0"><svg width="${W}" viewBox="0 0 ${W} 64" style="left:0">${g}</svg></div>`;
+}
+function weighSheet({v=80.2, date='Сегодня, 16 нояб.', title='Записать вес', sub='', note='', edit=false, focus=false, err=false, live=false, u='кг', top=''}={}){
+  return `<div class="scrim"></div><div class="sheet" role="dialog" aria-label="${title}" ${top?`style="top:${top}px"`:''} ${live?'data-live':''}>${sheetHead(title, sub)}
+    <div class="wi-date">${I('calendar','sm')}<span>Дата</span><span class="v">${date}${I('chev-r','sm')}</span></div>
+    ${note}
+    <div class="wi-val"><span class="step" role="button" aria-label="Меньше на 0,1 ${u}" data-step="-1">${I('minus')}</span><span class="wi-num ${focus?'focus':''} ${err?'error':''}" role="button" aria-label="Ввести вес с клавиатуры"><b data-v>${typeof v === 'number' ? f1(v) : v}</b><span class="u">${u}</span></span><span class="step" role="button" aria-label="Больше на 0,1 ${u}" data-step="1">${I('plus')}</span></div>
+    ${focus ? `<span class="t-foot muted center">От 30 до 300 кг · запятая или точка</span>` : ruler(typeof v === 'number' ? v : 80.2)}
+    <span class="t-foot muted">Взвешивайтесь в одно время — лучше утром, до завтрака. Так записи проще сравнивать.</span>
+    <button class="btn btn-primary">Сохранить</button>${edit?`<button class="btn btn-danger-plain" style="margin-top:calc(-1 * var(--space-2))">${I('trash','sm')}Удалить взвешивание</button>`:''}</div>`;
+}
+const existNote = (d, w) => `<div class="wi-note">${I('info','sm')}<span>За ${d} уже записано <b>${f1(w)}${NB}кг</b>. Сохраним новое значение вместо него.</span></div>`;
+const alertBox = (t, body, a, b) => `<div class="scrim" style="z-index:var(--z-alert)"></div><div class="alert" role="alertdialog" aria-label="${t}"><b class="t-headline">${t}</b><span class="t-sub muted">${body}</span><div class="btns"><button class="btn btn-tonal btn-sm" style="width:100%">${a}</button><button class="btn btn-primary btn-sm" style="width:100%">${b}</button></div></div>`;
+function calSheet(){
+  let d = '';
+  ['пн','вт','ср','чт','пт','сб','вс'].forEach(h => d += `<span class="h">${h}</span>`);
+  const has = new Set(S.filter(p => p.i > -40).map(p => dOf(p.i).getDate() + '-' + dOf(p.i).getMonth()));
+  for (let k = 0; k < 6; k++) d += '<span></span>'; // 1 Nov 2026 = Sunday
+  for (let n = 1; n <= 30; n++) { const fut = n > 16, on = n === 14, today = n === 16; d += `<span class="d ${fut?'fut':''} ${on?'on':''} ${today && !on?'today':''} ${has.has(n+'-10')?'has':''}" ${fut?'aria-disabled="true"':''}>${n}</span>`; }
+  return `<div class="scrim"></div><div class="sheet" role="dialog" aria-label="Дата взвешивания">${sheetHead('Дата взвешивания')}
+    <div class="pager" style="grid-template-columns:var(--tap-min) 1fr var(--tap-min)"><span class="ib">${I('chev-l')}</span><span class="pick"><span class="t-headline">Ноябрь 2026</span></span><span class="ib dis">${I('chev-r')}</span></div>
+    <div class="cal" role="grid">${d}</div>
+    <div class="legend"><span><i style="width:6px;height:6px;border-radius:50%;background:var(--color-weight)"></i>есть взвешивание</span><span>будущие дни недоступны</span></div>
+    <button class="btn btn-primary">Готово</button></div>`;
+}
+document.getElementById('entry-row').innerHTML = [
+  frame('2.1','Записать вес · живой','Лист с карточки. Подставлен последний вес, линейка под ним: шаг 0,1, подписи каждые 0,5. Сдвиг на пару делений и «Сохранить» — всего 3 касания (AC-9.2). Есть −/+ по 0,1. Дата по умолчанию — сегодня. Подсказка про утро — всегда, мелко. VoiceOver: линейка — регулируемый элемент, свайп вверх/вниз ±0,1.',
+    todayW({extra: weighSheet({live:true}) + tapMark(2, 238, 610) + tapMark(3, 163, 718)})),
+  frame('2.2','Ввод с клавиатуры','Касание числа — поле, цифровая клавиатура с запятой (<code>inputmode="decimal"</code>), значение выделено целиком: сразу печатаем новое. Запятая и точка равны (E-1.3). Линейку заменяет подсказка диапазона.',
+    todayW({extra: weighSheet({v:'79,8', focus:true})})),
+  frame('2.3','Задним числом','Дата → календарь (2.4). Если за выбранный день уже есть вес, сразу видно: «За 14 нояб. уже записано 79,8 кг. Сохраним новое значение вместо него» (AC-9.1). Заголовок — «Вес за 14 нояб.». Старое взвешивание вес профиля и норму не меняет (AC-9.8) — после сохранения уведомление «Записали вес за 14 нояб.» без слов про норму.',
+    todayW({extra: weighSheet({v:80.1, date:'Сб, 14 нояб.', title:'Вес за 14 нояб.', note: existNote('14 нояб.', 79.8)})})),
+  frame('2.4','Календарь','Точки — дни со взвешиванием. Будущие дни неактивны, раньше даты рождения — тоже (AC-9.3). Сегодня — зелёным текстом. «Готово» возвращает в лист.',
+    todayW({extra: calSheet()})),
+  frame('2.5','Проверка скачка','Больше 5 % от ближайшего по дате взвешивания — при «Сохранить», не во время ввода (AC-9.5). Нейтрально: «на 6,3 кг больше, чем 12 нояб.». «Сохранить» — основная, не блокируем.',
+    todayW({extra: weighSheet({v:86.9}) + alertBox('Проверьте вес', `86,9${NB}кг — на 6,3${NB}кг больше, чем 12${NB}нояб. Всё верно?`, 'Исправить', 'Сохранить')})),
+  frame('2.6','Вне диапазона','«Сохранить» всегда активна. Ввели 8,02 — при сохранении предлагаем исправление: «Имели в виду 80,2 кг?» (сдвиг запятой). Если подходящего исправления нет (например, 400) — поле красное, под ним «От 30 до 300 кг», лист не закрывается.',
+    todayW({extra: weighSheet({v:'8,02', err:true}) + alertBox(`8,02${NB}кг — меньше 30${NB}кг`, `Возможно, имелось в виду 80,2${NB}кг?`, 'Исправить', `Да, 80,2${NB}кг`)})),
+  frame('2.7','После сохранения','Лист закрывается, карточка обновляется на месте, уведомление: «Записали 79,8 кг · норма 2 090 ккал» — только если норма изменилась (AC-9.7). Остаток ккал выше уже по новой норме. Отмены в уведомлении нет: исправить можно в списке.',
+    todayW({card: weightCard({w:79.8}), norm:2090, extra: toast(`Записали 79,8${NB}кг · норма 2${NB}090${NB}ккал`)})),
+].join('');
+
+/* ---------- 3. Weight screen ---------- */
+function listRows(from=0, n=7, {queued=0, sel=null, hover=null, lb=false}={}){
+  const cv = v => lb ? v * LB : v, u = lb ? 'lb' : 'кг';
+  const desc = S.slice().reverse();
+  let out = '', month = null;
+  desc.slice(from, from + n).forEach((p, k) => {
+    const d = dOf(p.i), prev = desc[from + k + 1];
+    if (d.getMonth() !== month) { if (month !== null) out += `</div>`; month = d.getMonth(); out += `<div class="group-h" style="margin-top:${out ? 'var(--space-4)' : '0'}">${MONTH[month]}${d.getFullYear() !== 2026 ? ' ' + d.getFullYear() : ''}</div><div class="wl">`; }
+    const dl = prev ? `${sg(cv(p.w - prev.w))}` : '';
+    out += `<div class="wl-i ${p.i===sel?'sel':''} ${p.i===hover?'hover':''}" role="button" aria-label="${WD[d.getDay()]}, ${day(p.i)}: ${f1(cv(p.w))} ${u}${dl?`, ${dl} к прошлому`:''}. Изменить"><span class="dt-l">${WD[d.getDay()][0].toUpperCase() + WD[d.getDay()][1]}, ${day(p.i)}${k < queued ? `<small>${queuedBadge}</small>` : ''}</span><span class="dl">${dl}</span><span class="w">${f1(cv(p.w))}${NB}${u}</span></div>`;
+  });
+  return out + '</div>';
+}
+function weightHead({w=80.2, goal='lose', lb=false, one=false}={}){
+  const u = lb ? 'lb' : 'кг', cv = v => lb ? v * LB : v;
+  return `<div class="wt-now"><span class="wt-big"><b>${f1(cv(w))}</b><span class="u">${u}</span><span class="when">· сегодня</span></span><span class="wt-delta">${one ? 'Первое взвешивание' : `${sg(cv(w - 80.6))}${NB}${u} с 12${NB}нояб.`}</span></div>`;
+}
+const seg = (on) => `<div class="seg period" role="tablist" aria-label="Период">${[[30,'Месяц'],[90,'3 месяца'],[365,'Год'],[null,'Всё']].map(([d,l]) => `<span role="tab" aria-selected="${d===on}" class="${d===on?'on':''}">${l}</span>`).join('')}</div>`;
+function chartCard({days=90, W=310, H=184, sel=null, lb=false, pts=S, goal=73, head=true, tipAt=null}={}){
+  const c = chart({days, W, H, sel, lb, pts, goal});
+  const u = lb ? 'lb' : 'кг';
+  let tip = '';
+  if (sel != null) { const p = pts.find(q => q.i === sel); tip = `<span class="tip" role="button" style="left:${Math.min(Math.max(c.X(sel), 90), W - 90)}px;top:${c.Y(p.w) - 52}px">${WD[dOf(sel).getDay()]}, ${day(sel)} · <b>${f1(lb ? p.w * LB : p.w)}${NB}${u}</b><span class="go">Изменить${I('chev-r')}</span></span>`; }
+  const note = c.dTr == null ? `<span>Тренд появится с третьего взвешивания</span>` : `<span>За ${days ? PER[days] : 'всё время'} по тренду: ${sg(c.dTr)}${NB}${u}</span>`;
+  return `<section class="card" aria-label="График веса">${head ? `<div class="wt-top">${weightHead({lb, one: pts.length === 1})}</div>` : ''}${seg(days)}<div class="chart-wrap">${c.svg}${tip}</div><div class="trend-note">${note}</div><div class="legend"><span><i class="pt"></i>взвешивания</span><span><i class="tr"></i>тренд</span>${goal?`<span><i class="ln"></i>цель</span>`:''}</div>${goal ? goalRow('lose', {lb}) : ''}</section>`;
+}
+const addBtn = `<button class="btn btn-primary">${I('plus','sm')}Записать вес</button>`;
+const weightScreen = ({days=90, sel=null, scroll=0, top='', extra='', lb=false, queued=0, pts=S, empty=false, list=true}={}) => `${navBack('Сегодня','Вес')}${top}<div class="content"><div class="pad stack" style="margin-top:-${scroll}px">
+  ${empty ? `<div class="state"><span class="s-ic" style="background:var(--color-weight-soft);color:var(--color-weight)">${I('scale')}</span><b class="t-title">Пока ни одного взвешивания</b><p class="t-sub muted">Записывайте вес раз в несколько дней — здесь появятся график, тренд и все записи. Норма будет пересчитываться сама.</p></div>${addBtn}`
+  : `${chartCard({days, sel, lb, pts})}${addBtn}${list ? `<div><div class="sec-h"><span>Все взвешивания</span></div>${pts.length === 1 ? `<div class="wl"><div class="wl-i"><span class="dt-l">Пн, 16${NB}нояб.</span><span class="dl"></span><span class="w">80,2${NB}кг</span></div></div>` : listRows(0, 9, {queued, sel, lb})}</div>` : ''}`}
+  </div></div>${tabbar()}${extra}`;
+document.getElementById('screen-row').innerHTML = [
+  frame('3.1','Экран «Вес»','Из карточки или с экрана 8 (AC-9.20), новой вкладки нет. Сверху — та же сводка, переключатель периода (по умолчанию 3 месяца), график на всю ширину: бледные точки — взвешивания, сплошная линия — тренд, пунктир — цель; шкала раздвигается, чтобы цель была видна (AC-9.24). Под графиком — «За 3 месяца по тренду: −0,9 кг».', weightScreen()),
+  frame('3.2','Касание точки','Касание или протяжка пальцем по графику выбирает ближайшее взвешивание: вертикальная черта, кольцо, подсказка «пт, 12 нояб. · 80,6 кг · Изменить». Касание подсказки — правка (3.3). VoiceOver читает график одной фразой (последний вес и тренд за период), точки — в списке ниже.', weightScreen({sel:-4})),
+  frame('3.3','Правка','То же окно, что запись: заголовок «Взвешивание · 12 нояб.», можно сменить вес и дату, внизу «Удалить взвешивание» (AC-9.6). Удаление сразу, без подтверждения.', weightScreen({sel:-4, extra: weighSheet({v:80.6, date:'Чт, 12 нояб.', title:'Взвешивание · 12 нояб.', edit:true})})),
+  frame('3.4','Список и удаление','«Все взвешивания» — по месяцам, от новых к старым: день, изменение к прошлому взвешиванию (серым), вес. Касание строки — правка. После удаления — «Удалили 12 нояб. · 80,6 кг» с «Отменить» на 5 с (AC-9.6). Удалили последнее — вес профиля и норма берутся из предыдущего (AC-9.9). Список виртуализирован — годы записей без тормозов.', weightScreen({scroll:470, extra: toast(`Удалили 12${NB}нояб. · 80,6${NB}кг`, 'Отменить', 'trash')})),
+  frame('3.5','Перенос на занятый день','Сменили дату на день, где уже есть вес — при «Сохранить» спрашиваем: «За 14 нояб. уже есть 79,8 кг. Заменить его на 80,6 кг?» (AC-9.6).', weightScreen({extra: weighSheet({v:80.6, date:'Сб, 14 нояб.', title:'Взвешивание · 12 нояб.', edit:true}) + alertBox(`За 14${NB}нояб. уже есть 79,8${NB}кг`, `Заменить его на 80,6${NB}кг?`, 'Отмена', 'Заменить')})),
+  frame('3.6','Пусто','Ни одного взвешивания: объяснение и кнопка, без пустого графика.', weightScreen({empty:true})),
+  frame('3.7','Одно взвешивание','Одна крупная точка, без линии тренда; под графиком «Тренд появится с третьего взвешивания» (AC-9.22).', weightScreen({pts:[{i:0, w:80.2}]})),
+  frame('3.8','Офлайн · год · lb','Полоса «Офлайн». Записи без сети — сразу в списке и на графике, с «Ждёт отправки»; их можно править и удалять (AC-9.26). Период «Год»: подписи по месяцам. Здесь — американская система мер: шкала, цель и список в lb.', weightScreen({days:365, top: offBar(), queued:1, lb:true, scroll:330})),
+].join('');
+
+/* ---------- 4. Profile (screen 8) ---------- */
+const profile = `<div class="large-title">Профиль</div><div class="content"><div class="pad">
+  <div class="group-h">О вас</div><div class="group">${cell('Пол','<span class="val">Мужской</span>'+chev)}${cell('Дата рождения','<span class="val num">4 мая 1990</span>'+chev)}${cell('Рост','<span class="val num">178 см</span>'+chev)}
+    <div class="cell" role="button"><span class="main"><span>Вес</span><span class="sub">сегодня · история и график</span></span><span class="val num">80,2${NB}кг</span>${chev}<span class="inline-act" role="button" aria-label="Записать вес">${I('plus','sm')}</span></div></div>
+  <div class="group-f">Вес — из последнего взвешивания. Запишите новый — норма пересчитается сама.</div>
+  <div class="group-h">Цель</div><div class="group">${cell('Цель','<span class="val">Похудеть</span>'+chev)}${cell('Целевой вес','<span class="val num">73 кг</span>'+chev)}${cell('Срок','<span class="val num">к 1 июня</span>'+chev)}</div>
+  <div class="group-h">Норма</div><div class="group">${cell('Калории','<span class="val num">2 100 ккал</span>'+chev)}</div>
+</div></div>${tabbar('Профиль')}`;
+document.getElementById('profile-row').innerHTML = [
+  frame('4.1','Поле «Вес» на экране 8','Строка «Вес» больше не поле ввода: значение — последнее взвешивание, подпись «сегодня · история и график». Касание строки — экран «Вес» (3.1), «+» справа — сразу лист записи (2.1). Так профиль и дневник не расходятся (AC-9.10). Агент нормы при «Применить норму» записывает взвешивание за сегодня.', profile),
+].join('');
+
+/* ---------- Desktop ---------- */
+const side = on => `<aside class="side"><div class="brand"><span class="mark">${I('plate','sm')}</span>OpenCalorieTracker</div><button class="btn btn-primary">${I('camera','sm')}Добавить еду</button>${[['home','Сегодня'],['book','Дневник'],['chart','Неделя'],['user','Профиль']].map(([ic,l])=>`<span class="nav-i ${l===on?'on':''}">${I(ic)}${l}</span>`).join('')}<div class="foot"><span class="nav-i">${I('settings')}Настройки</span><span class="who">anna@example.com</span></div></aside>`;
+const desk = (url, main, extra='', cap='') => `<figure class="frame wide"><div class="desk"><div class="chrome"><i></i><i></i><i></i><span class="url">calories.home.lan/${url}</span></div><div class="body">${side('Сегодня')}<main class="main-area"><div class="inner">${main}</div></main></div>${extra}</div><figcaption>${cap}</figcaption></figure>`;
+const dsk = chartCard({W:500, H:280, sel:-4});
+document.getElementById('desk-row').innerHTML =
+  desk('weight', `<span class="back" style="color:var(--color-accent);display:flex;align-items:center;gap:2px;margin-bottom:calc(-1 * var(--space-4))">${I('chev-l','sm')}Сегодня</span><div class="desk-title"><div class="large-title">Вес</div><button class="btn btn-primary" style="width:auto">${I('plus','sm')}Записать вес</button></div>
+    <div class="cols weight"><div class="stack">${dsk}</div><div><div class="sec-h"><span>Все взвешивания</span></div><div class="wl scroll">${listRows(0, 9, {hover:-4}).replace(/^<div class="group-h"[^>]*>[^<]*<\/div><div class="wl">/, '')}</div></div></div>`, '',
+    `<b>D.1 Экран «Вес».</b> Две колонки: график <code>--chart-height-wide</code> слева, список справа. Наведение на точку — подсказка и подсветка строки в списке (и наоборот); клик — правка в центрированном диалоге. «Записать вес» — в заголовке. С клавиатуры: Tab до графика, ←/→ по точкам, Enter — правка.`)
+  + desk('today', `<div class="desk-title"><div class="large-title">Сегодня<span class="date">понедельник, 16 ноября</span></div></div><div class="cols side-r"><div class="stack">${kcalCard()}${meals}</div><div class="stack">${weightCard()}<div class="drop">${I('upload')}<b style="color:var(--color-text)">Перетащите фото еды сюда</b>или вставьте: <span><span class="kbd">⌘</span> + <span class="kbd">V</span></span></div></div></div>`,
+    `<div class="scrim"></div><div class="dialog" role="dialog" aria-label="Записать вес">${weighSheet().replace(/^<div class="scrim"><\/div><div class="sheet"[^>]*>/, '').replace('<div class="grab"></div>', '').replace(/<\/div>$/, '')}</div>`,
+    `<b>D.2 Сегодня + запись веса.</b> Карточка «Вес» — в правой колонке над зоной перетаскивания фото. Лист записи — центрированный диалог <code>--dialog-max-width</code>, фокус на числе: можно сразу печатать новое значение, ↑/↓ — ±0,1; линейка тянется мышью и колесом. Esc закрывает.`);
+
+/* ---------- Copy RU / EN ---------- */
+const C = [
+  ['Карточка','Вес','Weight'],['Карточка','Все взвешивания','All weigh-ins'],['Карточка','· сегодня / · вчера / · 3 дня назад','· today / · yesterday / · 3 days ago'],
+  ['Карточка','−0,4 кг с 12 нояб.','−0.4 kg since Nov 12'],['Карточка','0,0 кг с 12 нояб.','0.0 kg since Nov 12'],['Карточка','Первое взвешивание','First weigh-in'],
+  ['Карточка','Цель 73 кг · осталось 7,2 кг','Goal 73 kg · 7.2 kg to go'],['Карточка','Цель не задана · Задать','No goal set · Set goal'],['Карточка','Цель: держать вес','Goal: maintain weight'],
+  ['Карточка','Записать вес','Log weight'],['Пусто','Запишите вес','Log your weight'],['Пусто','Норма будет пересчитываться сама после каждого взвешивания.','Your daily target will update itself after each weigh-in.'],
+  ['Цель','Цель достигнута · 73 кг','Goal reached · 73 kg'],['Цель','Перейти на «Держать вес»? Норма станет поддерживающей.','Switch to “Maintain weight”? Your target will change to maintenance.'],['Цель','Перейти / Не сейчас','Switch / Not now'],
+  ['Состояния','Не удалось загрузить вес · Повторить','Couldn’t load your weight · Try again'],['Состояния','Ждёт отправки','Waiting to sync'],['Состояния','Норма обновится, когда появится сеть.','Your target will update once you’re back online.'],
+  ['Лист','Записать вес / Вес за 14 нояб. / Взвешивание · 12 нояб.','Log weight / Weight for Nov 14 / Weigh-in · Nov 12'],['Лист','Дата · Сегодня, 16 нояб.','Date · Today, Nov 16'],
+  ['Лист','За 14 нояб. уже записано 79,8 кг. Сохраним новое значение вместо него.','You already logged 79.8 kg for Nov 14. Saving will replace it.'],
+  ['Лист','Взвешивайтесь в одно время — лучше утром, до завтрака. Так записи проще сравнивать.','Weigh yourself at the same time each day, ideally in the morning before breakfast. That makes entries easier to compare.'],
+  ['Лист','От 30 до 300 кг · запятая или точка','30 to 300 kg · comma or dot'],['Лист','Сохранить / Удалить взвешивание','Save / Delete weigh-in'],
+  ['Диалог','Проверьте вес · 86,9 кг — на 6,3 кг больше, чем 12 нояб. Всё верно?','Check the weight · 86.9 kg is 6.3 kg more than on Nov 12. Is that right?'],['Диалог','Исправить / Сохранить','Edit / Save'],
+  ['Диалог','8,02 кг — меньше 30 кг · Возможно, имелось в виду 80,2 кг?','8.02 kg is below 30 kg · Did you mean 80.2 kg?'],['Диалог','Исправить / Да, 80,2 кг','Edit / Yes, 80.2 kg'],
+  ['Диалог','За 14 нояб. уже есть 79,8 кг · Заменить его на 80,6 кг?','There’s already 79.8 kg for Nov 14 · Replace it with 80.6 kg?'],['Диалог','Отмена / Заменить','Cancel / Replace'],
+  ['Уведомление','Записали 79,8 кг · норма 2 090 ккал','Logged 79.8 kg · target 2,090 kcal'],['Уведомление','Записали вес за 14 нояб.','Logged weight for Nov 14'],['Уведомление','Удалили 12 нояб. · 80,6 кг · Отменить','Deleted Nov 12 · 80.6 kg · Undo'],
+  ['Экран','Вес · Месяц / 3 месяца / Год / Всё','Weight · Month / 3 months / Year / All'],['Экран','За 3 месяца по тренду: −0,9 кг','Trend over 3 months: −0.9 kg'],['Экран','Тренд появится с третьего взвешивания','The trend appears after your third weigh-in'],
+  ['Экран','взвешивания · тренд · цель','weigh-ins · trend · goal'],['Экран','Пока ни одного взвешивания','No weigh-ins yet'],
+  ['Экран','Записывайте вес раз в несколько дней — здесь появятся график, тренд и все записи. Норма будет пересчитываться сама.','Log your weight every few days to see a chart, a trend and every entry here. Your daily target will update itself.'],
+  ['Экран 8','Вес · сегодня · история и график','Weight · today · history and chart'],['Экран 8','Вес — из последнего взвешивания. Запишите новый — норма пересчитается сама.','Weight comes from your latest weigh-in. Log a new one and your target updates itself.'],
+  ['VoiceOver','График веса за 3 месяца: последнее взвешивание 80,2 кг, по тренду −0,9 кг, цель 73 кг.','Weight chart, 3 months: latest weigh-in 80.2 kg, trend −0.9 kg, goal 73 kg.'],
+];
+document.getElementById('copy-row').innerHTML = `<table class="copy"><thead><tr><th>Где</th><th>RU</th><th>EN</th></tr></thead><tbody>${C.map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join('')}</tbody></table>`;
+
+/* device chrome (prototype only) */
+document.querySelectorAll('.phone').forEach(p => { p.insertAdjacentHTML('afterbegin','<div class="status"><span>9:41</span></div><div class="island"></div>'); p.insertAdjacentHTML('beforeend','<div class="home-ind"></div>'); });
+
+/* ---------- live frame 2.1 (prototype only) ---------- */
+const live = document.querySelector('[data-live]');
+if (live) {
+  let v = 80.2;
+  const set = nv => { v = Math.min(300, Math.max(30, Math.round(nv * 10) / 10)); live.querySelector('[data-v]').textContent = f1(v); live.querySelector('[data-ruler]').outerHTML = ruler(v); bind(); };
+  live.querySelectorAll('[data-step]').forEach(b => b.addEventListener('click', () => set(v + b.dataset.step / 10)));
+  const bind = () => {
+    const r = live.querySelector('[data-ruler]'); let x0 = null, v0 = v;
+    let moved = false;
+    r.addEventListener('pointerdown', e => { x0 = e.clientX; v0 = v; moved = false; r.setPointerCapture(e.pointerId); });
+    r.addEventListener('pointermove', e => { if (x0 === null) return; if (Math.abs(e.clientX - x0) > 3) moved = true; const nv = Math.round((v0 - (e.clientX - x0) / 100) * 10) / 10; if (nv !== v) { v = nv; live.querySelector('[data-v]').textContent = f1(v); r.querySelector('svg').style.left = `${(e.clientX - x0) - (v0 - v) * 100}px`; } });
+    r.addEventListener('pointerup', () => { x0 = null; set(v); });
+    r.addEventListener('click', e => { if (moved) return; const rect = r.getBoundingClientRect(); set(v + Math.round((e.clientX - rect.left - rect.width / 2) / 10) / 10); });
+    r.addEventListener('keydown', e => { if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') set(v - .1); if (e.key === 'ArrowRight' || e.key === 'ArrowUp') set(v + .1); });
+  };
+  bind();
+}
+</script>
+</body>
+</html>
