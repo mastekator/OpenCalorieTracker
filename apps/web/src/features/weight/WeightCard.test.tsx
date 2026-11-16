@@ -209,6 +209,38 @@ describe('WeightCard', () => {
       weighings: [w('2026-11-12', 80.6), w('2026-11-16', 80.2, 'pending')],
     });
     expect(await screen.findByText('waiting to sync')).toBeTruthy();
+    expect(
+      screen.getByText('Your target updates once this is sent'),
+    ).toBeTruthy();
+  });
+
+  it('no target note for a hand-set target or under 18', async () => {
+    const pending = [w('2026-11-12', 80.6), w('2026-11-16', 80.2, 'pending')];
+    show({
+      weighings: pending,
+      profile: {
+        ...PROFILE,
+        manual: { kcal: 2000, proteinPct: 30, fatPct: 30, carbsPct: 40 },
+      },
+    });
+    await screen.findByText('waiting to sync');
+    expect(
+      screen.queryByText('Your target updates once this is sent'),
+    ).toBeNull();
+    cleanup();
+    show({ weighings: pending, goal: { birthDate: '2010-01-01' } });
+    await screen.findByText('waiting to sync');
+    expect(
+      screen.queryByText('Your target updates once this is sent'),
+    ).toBeNull();
+  });
+
+  it('drops the target note once the weighing is sent', async () => {
+    show({ weighings: [w('2026-11-12', 80.6), w('2026-11-16', 80.2)] });
+    await screen.findByText('Log weight');
+    expect(
+      screen.queryByText('Your target updates once this is sent'),
+    ).toBeNull();
   });
 
   it('a refused weighing says «not saved» and sends it again', async () => {
