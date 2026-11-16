@@ -121,6 +121,35 @@ describe('AgentChat', () => {
     );
   });
 
+  it('gaining capped at gain_fast shows the deadline and the real date (OCT-173)', async () => {
+    const gain: Profile = {
+      ...profile,
+      weightKg: 70,
+      goal: 'gain',
+      targetWeightKg: 75,
+      deadline: '2026-12-13',
+    };
+    const capped = calculateNorm(gain, '2026-11-13');
+    if (capped.status !== 'ok' || capped.pace?.level !== 'gain_fast')
+      throw new Error('fixture must hit gain_fast');
+    const props = { units: 'metric' as const, onApply() {}, onFix() {} };
+    const view = render(<NormSummary draft={gain} norm={capped} {...props} />, {
+      wrapper: I18nProvider,
+    });
+    await screen.findByText(
+      /Gaining this fast adds mostly fat, so your goal is capped: you won’t make it by Dec 13, more likely by Feb 21\./,
+    );
+    // No deadline in the draft: the plain warning, no dates.
+    view.rerender(
+      <NormSummary
+        draft={{ ...gain, deadline: null }}
+        norm={capped}
+        {...props}
+      />,
+    );
+    await screen.findByText('Gaining this fast adds mostly fat.');
+  });
+
   it('a failed apply shows the error and retries (9.14)', async () => {
     const onApply = vi.fn();
     render(
