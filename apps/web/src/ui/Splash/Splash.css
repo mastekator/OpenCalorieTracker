@@ -5,9 +5,7 @@
   inset: 0;
   z-index: var(--z-splash);
   display: grid;
-  place-content: center;
-  justify-items: center;
-  gap: var(--space-4);
+  place-items: center;
   background: var(--color-bg);
   color: var(--color-text);
 }
@@ -25,6 +23,11 @@
 }
 
 .splash__name {
+  /* Out of flow so the mark sits dead centre, matching the iOS splash frame without a jump. */
+  position: absolute;
+  top: calc(50% + var(--splash-mark-size) / 2 + var(--space-4));
+  inset-inline: 0;
+  text-align: center;
   font-size: var(--text-title-size);
   line-height: var(--text-title-lh);
   font-weight: var(--text-large-title-weight);
