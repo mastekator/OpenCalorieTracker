@@ -3,6 +3,7 @@ import { Redirect, useLocation, useSearch } from 'wouter';
 import {
   Calendar,
   Camera,
+  ImageOff,
   Plus,
   Sparkle,
   UtensilsCrossed,
@@ -321,6 +322,8 @@ export function MealEditScreen({
   );
   const [uploading, setUploading] = useState(false);
   const photoInput = useRef<HTMLInputElement>(null);
+  // The url that failed to load: a new photo shows again without a reset.
+  const [brokenUrl, setBrokenUrl] = useState<string>();
   const cameraInput = useRef<HTMLInputElement>(null);
   const saving = useRef(false);
   // Row whose pencil gets focus after a delete or «Undo», so it never drops to <body> (WCAG 2.4.3).
@@ -772,7 +775,22 @@ export function MealEditScreen({
             className={`meal-edit__summary${!meal || photo ? ' meal-edit__summary--photo' : ''}`}
           >
             {photo ? (
-              <img className="meal-edit__thumb" src={photo.url} alt="" />
+              brokenUrl === photo.url ? (
+                <div
+                  className="meal-edit__thumb meal-edit__thumb--broken"
+                  role="img"
+                  aria-label={t('edit.photo.unavailable')}
+                >
+                  <ImageOff aria-hidden="true" />
+                </div>
+              ) : (
+                <img
+                  className="meal-edit__thumb"
+                  src={photo.url}
+                  alt=""
+                  onError={() => setBrokenUrl(photo.url)}
+                />
+              )
             ) : meal ? null : (
               <button
                 type="button"

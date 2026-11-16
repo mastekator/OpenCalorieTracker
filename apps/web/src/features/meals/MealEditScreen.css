@@ -39,6 +39,12 @@
   object-fit: cover;
 }
 
+.meal-edit__thumb--broken {
+  display: grid;
+  place-items: center;
+  color: var(--color-text-secondary);
+}
+
 .meal-edit__total {
   display: grid;
   gap: var(--space-1);

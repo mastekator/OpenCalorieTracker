@@ -234,6 +234,16 @@ export const ExistingDesktopDark: Story = {
   args: existing,
   globals: { viewport: { value: 'desktop' }, theme: 'dark' },
 };
+/** OCT-196: the photo did not load (offline, retention): a placeholder, not a broken image. */
+const brokenPhoto = {
+  ...existing,
+  meal: { ...savedMeal, photo: { id: 'missing.jpg', full: false } },
+} satisfies Partial<Props>;
+export const BrokenPhoto: Story = { args: brokenPhoto };
+export const BrokenPhotoDesktop: Story = {
+  args: brokenPhoto,
+  globals: { viewport: { value: 'desktop' } },
+};
 /** E-2.3: every dish deleted, «Delete entry» replaces Save. */
 export const ExistingAllDeleted: Story = {
   args: existing,
