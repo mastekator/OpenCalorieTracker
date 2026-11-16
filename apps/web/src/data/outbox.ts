@@ -395,7 +395,9 @@ const notMeal = (op: Op) =>
   op.kind === 'putPhotoRetention';
 
 async function refuse(db: Db, op: Op, err: ApiError) {
-  const tx = db.transaction('outbox', 'readwrite');
+  const tx = db.transaction(['outbox', 'meals'], 'readwrite');
+  const outbox = tx.objectStore('outbox');
+  const creates = op.kind === 'createMeal' || op.kind === 'uploadPhoto';
   // Nothing marks a refused settings or choice op: drop it, restore() takes the server's value back.
   // 404 on an edit or delete: the meal is already gone on the server.
   if (
@@ -403,13 +405,17 @@ async function refuse(db: Db, op: Op, err: ApiError) {
     (err.status === 404 &&
       (op.kind === 'patchMeal' || op.kind === 'deleteMeal'))
   )
-    await tx.store.delete(op.seq!);
+    await outbox.delete(op.seq!);
+  // A refused create of a meal deleted here: no badge can show it, so drop all its ops.
+  else if (creates && !(await tx.objectStore('meals').get(op.clientId)))
+    for (const o of await outbox.index('clientId').getAll(op.clientId))
+      await outbox.delete(o.seq!);
   else {
-    await tx.store.put({ ...op, error: err.code });
+    await outbox.put({ ...op, error: err.code });
     // Without the meal on the server its later ops would go out with id 0.
-    if (op.kind === 'createMeal' || op.kind === 'uploadPhoto')
-      for (const o of await tx.store.index('clientId').getAll(op.clientId))
-        if (!o.error) await tx.store.put({ ...o, error: err.code });
+    if (creates)
+      for (const o of await outbox.index('clientId').getAll(op.clientId))
+        if (!o.error) await outbox.put({ ...o, error: err.code });
   }
   await tx.done;
 }

@@ -431,6 +431,16 @@ describe('flush', () => {
     expect(await pendingCount(db)).toBe(2);
   });
 
+  it('drops a refused createMeal of a meal already deleted here', async () => {
+    await createMeal(db, input(A));
+    await settle(); // offline: marked sent, so the delete keeps it
+    await deleteMeal(db, A);
+    serve({ 'POST /api/meals': () => status(400) });
+    await flush(db);
+    expect(sent()).not.toContain('DELETE /api/meals/0');
+    expect(await pendingCount(db)).toBe(0);
+  });
+
   it('drops refused settings and choices and takes the server values back', async () => {
     await db.put(
       'kv',
