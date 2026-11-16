@@ -1,10 +1,21 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import type { MeResponse, ProfileResponse } from '@oct/shared';
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
+import {
+  calculateNorm,
+  type MeResponse,
+  type ProfileResponse,
+} from '@oct/shared';
 import { SessionContext } from '../../app/SessionContext';
 import { DataProvider } from '../../data/DataContext';
 import { openUserDb } from '../../data/db';
 import { clearLocal } from '../../data/user';
+import { localToday } from '../diary/day';
 import { I18nProvider, LOCALE_STORAGE_KEY } from '../../i18n';
 import { ToastProvider } from '../../ui/Toast/Toast';
 import { ProfileScreen } from './ProfileScreen';
@@ -146,5 +157,82 @@ describe('ProfileScreen, AI configured but not answering (8.14)', () => {
     expect(
       await screen.findByRole('dialog', { name: 'Log weight' }),
     ).toBeTruthy();
+  });
+});
+
+describe('ProfileScreen, goal applied in the chat (OCT-225)', () => {
+  it('brings today’s weighing into the local copy at once', async () => {
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
+    const today = localToday();
+    const draft = { ...PROFILE.profile, weightKg: 78 };
+    const norm = calculateNorm(draft, today);
+    let applied = false;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string, init?: RequestInit) => {
+        if (url === '/api/ai/status')
+          return Response.json({
+            recognition: 'ready',
+            interview: 'ready',
+            providerName: 'x',
+            baseUrlHost: null,
+          });
+        if (url === '/api/norm-agent')
+          return Response.json({
+            messages: [{ role: 'assistant', kind: 'summary', draft, norm }],
+            state: 'summary',
+            draft: { profile: draft, unknown: [], paceWarned: null },
+            userTurns: 1,
+          });
+        if (url === '/api/norm-agent/apply' && init?.method === 'POST') {
+          applied = true;
+          return Response.json({ ...PROFILE, profile: draft, rev: 4 });
+        }
+        if (url.startsWith('/api/sync'))
+          // The server wrote today's weighing with the applied profile (AC-9.10).
+          return Response.json({
+            rev: applied ? 4 : 3,
+            more: false,
+            meals: [],
+            deletedMealClientIds: [],
+            weighings: applied ? [{ date: today, weightKg: 78 }] : [],
+          });
+        throw new TypeError(`no ${url} in this test`);
+      }),
+    );
+    const db = await openUserDb(USER.id);
+    await db.put('kv', PROFILE, 'profile');
+    await db.put('kv', 3, 'rev');
+    await db.put('weighings', { date: '2026-01-01', weightKg: 80 });
+    render(
+      <I18nProvider>
+        <ToastProvider>
+          <SessionContext
+            value={{
+              user: USER,
+              refresh: async () => {},
+              signedIn: async () => {},
+              logout: async () => {},
+            }}
+          >
+            <DataProvider user={USER}>
+              <ProfileScreen />
+            </DataProvider>
+          </SessionContext>
+        </ToastProvider>
+      </I18nProvider>,
+    );
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Set up with the assistant' }),
+    );
+    fireEvent.click(await screen.findByRole('button', { name: 'Apply goal' }));
+    await waitFor(async () =>
+      expect(await db.get('weighings', today)).toEqual({
+        date: today,
+        weightKg: 78,
+      }),
+    );
+    db.close();
   });
 });
