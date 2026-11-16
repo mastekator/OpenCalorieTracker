@@ -188,6 +188,22 @@ describe('local write and merge', () => {
     ]);
     expect(await db.get('kv', 'choices')).toEqual({});
   });
+
+  it('stamps a choice when picked; a merged choice takes the last editedAt', async () => {
+    const now = vi.spyOn(Date, 'now').mockReturnValue(1000);
+    await putIllustrationChoice(db, 'Soup', 'pizza');
+    await settle();
+    now.mockReturnValue(2000);
+    await putIllustrationChoice(db, 'soup', 'soup');
+    now.mockRestore();
+    await settle();
+    expect(await ops()).toMatchObject([
+      {
+        kind: 'putIllustrationChoice',
+        body: { name: 'soup', illustration: 'soup', editedAt: 2000 },
+      },
+    ]);
+  });
 });
 
 describe('photo retention', () => {

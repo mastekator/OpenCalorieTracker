@@ -45,21 +45,29 @@ export function illustrationRoutes({ db }: AppDeps) {
       validate('json', illustrationChoiceInputSchema),
       (c) => {
         const userId = c.var.user.id;
-        const { name, illustration } = c.req.valid('json');
+        const { name, illustration, editedAt } = c.req.valid('json');
         const key = nameKey(name);
         if (!key)
           throw new ApiError(400, 'validation_failed', [
             { path: ['name'], code: 'custom' },
           ]);
         // "Back to automatic" keeps the row with NULL so other devices get it on sync (ADR-0011 §3).
-        db.transaction(() =>
-          db
+        db.transaction(() => {
+          // Same rule as PATCH /meals: clamp to server time, an older offline choice loses.
+          const now = Date.now();
+          const at = Math.min(editedAt ?? now, now);
+          const stored = db
             .prepare(
-              `INSERT INTO illustration_choices (user_id, name_key, illustration, rev) VALUES (?, ?, ?, ?)
-               ON CONFLICT (user_id, name_key) DO UPDATE SET illustration = excluded.illustration, rev = excluded.rev`,
+              'SELECT edited_at FROM illustration_choices WHERE user_id = ? AND name_key = ?',
             )
-            .run(userId, key, illustration, bumpRev(db, userId)),
-        )();
+            .pluck()
+            .get(userId, key) as number | null | undefined;
+          if (stored != null && stored <= now && at < stored) return;
+          db.prepare(
+            `INSERT INTO illustration_choices (user_id, name_key, illustration, rev, edited_at) VALUES (?, ?, ?, ?, ?)
+             ON CONFLICT (user_id, name_key) DO UPDATE SET illustration = excluded.illustration, rev = excluded.rev, edited_at = excluded.edited_at`,
+          ).run(userId, key, illustration, bumpRev(db, userId), at);
+        })();
         return c.body(null, 204);
       },
     );

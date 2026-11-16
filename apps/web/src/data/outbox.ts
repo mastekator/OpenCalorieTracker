@@ -214,7 +214,8 @@ export function putIllustrationChoice(
     const op: Op = {
       kind: 'putIllustrationChoice',
       clientId,
-      body: { name, illustration },
+      // Stamped when the user picks, not when sent: an older offline choice loses on the server.
+      body: { name, illustration, editedAt: Date.now() },
     };
     const outbox = tx.objectStore('outbox');
     if (last && !last.error) await outbox.put({ ...op, seq: last.seq });
