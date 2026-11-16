@@ -1,4 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from 'react';
 import type { DayTotals } from '@oct/shared';
 import { ChartColumn } from 'lucide-react';
 import { useT } from '../../i18n';
@@ -21,15 +26,36 @@ type Props = {
 const TICKS = [1, 5, 10, 15, 20, 25, 30];
 const dayOf = (date: string) => Number(date.slice(8));
 
+/** Column under `x` px of a `width` px plot of `count` columns, capped to the last past day (OCT-168). */
+export const dayAt = (
+  x: number,
+  width: number,
+  count: number,
+  lastPast: number,
+) => Math.max(0, Math.min(Math.floor((x / width) * count) || 0, lastPast));
+
+const isTouch = (e: ReactPointerEvent) =>
+  e.pointerType === 'touch' || e.pointerType === 'pen';
+
 /**
  * Kcal by day as HTML/CSS bars (ADR-0010): accent up to the norm, hatched overrun above it,
  * dashed norm line, clipped bars past `2 × norm`. Week: a tap opens the day. Month: the first
  * tap shows the value, the second opens the day. A mouse hover shows the value in both.
+ * Touch works on the whole plot, gaps included: a tap picks the nearest day, a drag only moves
+ * the tip (OCT-168). The bar buttons stay for the keyboard, a mouse and a screen reader.
  */
 export function KcalChart({ days, norm, today, mode, onOpenDay }: Props) {
   const { t, num, locale } = useT();
   const [tip, setTip] = useState<string | null>(null);
   const root = useRef<HTMLDivElement>(null);
+  // The touch gesture in progress: the tip before it, the day under the finger, a drag across days.
+  const gesture = useRef<{
+    before: string | null;
+    date: string;
+    moved: boolean;
+  } | null>(null);
+  // pointerType of the last pointerdown until its click: a touch click is handled on the plot.
+  const lastDown = useRef<string | null>(null);
   // A tapped tip closes on a tap outside the chart or on Esc (OCT-19 7.3).
   useEffect(() => {
     if (!tip) return;
@@ -69,10 +95,51 @@ export function KcalChart({ days, norm, today, mode, onOpenDay }: Props) {
   const tipIndex = days.findIndex((d) => d.date === tip);
   const tipDay = days[tipIndex];
   const n = { norm: norm === null ? '' : num(norm) };
+  const dateAt = (e: ReactPointerEvent) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    // Past days lead the period, and the handlers run only when there is one.
+    return past[
+      dayAt(e.clientX - r.left, r.width, days.length, past.length - 1)
+    ]!.date;
+  };
 
   return (
     <div ref={root} className={`kchart kchart--${mode}`}>
-      <div className="kchart__plot">
+      <div
+        className="kchart__plot"
+        onPointerDown={(e) => {
+          lastDown.current = e.pointerType;
+          if (!isTouch(e) || past.length === 0) return;
+          // Keeps the move events coming when the finger leaves the bar (absent in jsdom).
+          e.currentTarget.setPointerCapture?.(e.pointerId);
+          const date = dateAt(e);
+          gesture.current = { before: tip, date, moved: false };
+          setTip(date);
+        }}
+        onPointerMove={(e) => {
+          const g = gesture.current;
+          if (!g) return;
+          const date = dateAt(e);
+          if (date === g.date) return;
+          gesture.current = { ...g, date, moved: true };
+          setTip(date);
+        }}
+        onPointerUp={() => {
+          const g = gesture.current;
+          gesture.current = null;
+          if (g && !g.moved && (mode === 'week' || g.before === g.date))
+            onOpenDay(g.date);
+        }}
+        onPointerCancel={() => {
+          // The browser took the gesture for a scroll: open nothing.
+          gesture.current = null;
+          lastDown.current = null;
+        }}
+        // Bubbles after the bar's own onClick, so the bar still sees the touch flag.
+        onClick={() => {
+          lastDown.current = null;
+        }}
+      >
         {norm !== null && (
           <span
             className="kchart__norm"
@@ -111,6 +178,11 @@ export function KcalChart({ days, norm, today, mode, onOpenDay }: Props) {
                   aria-current={d.date === today ? 'date' : undefined}
                   data-tip={d.date === tip || undefined}
                   onClick={() => {
+                    if (
+                      lastDown.current === 'touch' ||
+                      lastDown.current === 'pen'
+                    )
+                      return;
                     if (mode === 'week' || tip === d.date) onOpenDay(d.date);
                     else setTip(d.date);
                   }}

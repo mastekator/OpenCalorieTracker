@@ -83,6 +83,30 @@ export const MonthTip: Story = {
   },
 };
 export const MonthTipDark: Story = { ...MonthTip, globals: { theme: 'dark' } };
+/** OCT-168 at 390 px: touch anywhere on the plot, gaps included; the 29th and 30th are future. */
+export const Month390: Story = {
+  args: {
+    days: period('2026-11-01', [
+      ...MONTH.slice(0, 12).map((d) => d.kcal),
+      ...MONTH.slice(0, 12)
+        .map((d) => d.kcal)
+        .reverse(),
+      2400,
+      0,
+      1700,
+      2050,
+      0,
+      0,
+    ]),
+    mode: 'month',
+    today: '2026-11-28',
+  },
+  globals: { viewport: { value: 'iphone390' } },
+};
+export const Month390Dark: Story = {
+  ...Month390,
+  globals: { ...Month390.globals, theme: 'dark' },
+};
 /** 7.4: 6,000 kcal against 2,000 — the axis stops at 4,000, the bar is clipped. */
 export const VeryBigDay: Story = {
   args: {
