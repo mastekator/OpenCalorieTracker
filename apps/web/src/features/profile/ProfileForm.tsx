@@ -182,6 +182,12 @@ export function ProfileForm({
   const wasHow = useRef(how);
 
   useEffect(() => setFtIn(null), [units]);
+  // A weigh-in («+») moves the local profile's weight without a new rev: take it, or Save would send the old one back as a new weighing.
+  const weightKg = initial.profile.weightKg;
+  useEffect(() => {
+    setDraft((d) => ({ ...d, weightKg }));
+    setSaved((s) => ({ ...s, profile: { ...s.profile, weightKg } }));
+  }, [weightKg]);
   // Back from 8.20: focus returns to the row that opened it.
   useEffect(() => {
     if (wasHow.current && !how)

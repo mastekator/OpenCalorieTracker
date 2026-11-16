@@ -69,6 +69,8 @@ function setup(
   const view = render(<ProfileForm {...props} units={units} />, { wrapper });
   return {
     setUnits: (u: Units) => view.rerender(<ProfileForm {...props} units={u} />),
+    setInitial: (initial: typeof props.initial) =>
+      view.rerender(<ProfileForm {...props} initial={initial} units={units} />),
   };
 }
 
@@ -199,6 +201,24 @@ describe('ProfileForm', () => {
     expect(location.pathname).toBe('/profile');
     fireEvent.click(row);
     expect(location.pathname + location.search).toBe('/weight?from=profile');
+  });
+
+  it('a weigh-in under unsaved edits: the row and Save take the new weight', async () => {
+    const { setInitial } = setup(base);
+    await type('Height', '190');
+    // «+» wrote a weighing: the local profile has the new weight, same rev.
+    setInitial({
+      ...response({ ...base, weightKg: 70 }),
+      manual: null,
+      rev: 1,
+    });
+    const row = await screen.findByRole('link', { name: /^Weight/ });
+    expect(row.textContent).toContain('70.0');
+    await act(async () => fireEvent.click(save()));
+    expect(echo.mock.calls[0]![0].profile).toMatchObject({
+      heightCm: 190,
+      weightKg: 70,
+    });
   });
 
   it('no weighing yet: the weight row has no value', async () => {
