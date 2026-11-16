@@ -98,5 +98,6 @@ export const Loading: Story = { args: { weighings: undefined } };
 export const LoadingDark: Story = { ...Loading, globals: dark };
 export const Pending: Story = { args: { weighings: last('pending') } };
 export const PendingDark: Story = { ...Pending, globals: dark };
+export const PendingRussian: Story = { ...Pending, globals: { locale: 'ru' } };
 export const Refused: Story = { args: { weighings: last('error') } };
 export const RefusedDark: Story = { ...Refused, globals: dark };
