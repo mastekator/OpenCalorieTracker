@@ -14,6 +14,7 @@ import {
   useSettings,
 } from '../../data/DataContext';
 import { patchSettings } from '../../data/outbox';
+import type { Db } from '../../data/db';
 import { storeProfile } from '../../data/sync';
 import { localToday } from '../diary/day';
 import { useT } from '../../i18n';
@@ -25,6 +26,12 @@ import { ProfileForm } from './ProfileForm';
 
 // Our own server: trust the shape, as data/sync.ts does.
 const profileResponse = z.custom<ProfileResponse>();
+
+/** PUT /api/profile, then the answer into the local copy. */
+export const saveProfile = (db: Db, body: ProfileRequest) =>
+  api('/api/profile', profileResponse, { method: 'PUT', body }).then((saved) =>
+    storeProfile(db, saved),
+  );
 
 /** /profile: the profile from the local copy (ADR-0014 §5), read-only offline (8.15). */
 export function ProfileScreen() {
@@ -81,11 +88,7 @@ export function ProfileScreen() {
                   : setChat(true)
         }
         agentUnavailable={agentDown}
-        onSave={(body: ProfileRequest) =>
-          api('/api/profile', profileResponse, { method: 'PUT', body }).then(
-            (saved) => storeProfile(db, saved),
-          )
-        }
+        onSave={(body: ProfileRequest) => saveProfile(db, body)}
         disclaimerHidden={disclaimerHidden}
         onHideDisclaimer={() =>
           void patchSettings(db, { normDisclaimerHidden: true })

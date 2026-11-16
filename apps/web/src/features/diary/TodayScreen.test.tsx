@@ -1,8 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, cleanup, render, screen } from '@testing-library/react';
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from '@testing-library/react';
 import type { Meal, MeResponse, ProfileResponse } from '@oct/shared';
 import { Router } from 'wouter';
 import { memoryLocation } from 'wouter/memory-location';
+import { SessionContext } from '../../app/SessionContext';
 import { emitChange } from '../../data/changes';
 import { storeProfile } from '../../data/sync';
 import { DataProvider } from '../../data/DataContext';
@@ -76,11 +83,20 @@ function renderToday() {
   render(
     <I18nProvider>
       <Router hook={location.hook}>
-        <DataProvider user={USER}>
-          <UndoDeleteProvider>
-            <TodayScreen />
-          </UndoDeleteProvider>
-        </DataProvider>
+        <SessionContext
+          value={{
+            user: USER,
+            refresh: async () => {},
+            signedIn: async () => {},
+            logout: async () => {},
+          }}
+        >
+          <DataProvider user={USER}>
+            <UndoDeleteProvider>
+              <TodayScreen />
+            </UndoDeleteProvider>
+          </DataProvider>
+        </SessionContext>
       </Router>
     </I18nProvider>,
   );
@@ -176,6 +192,14 @@ describe('TodayScreen', () => {
     db.close();
     expect(await screen.findByText('1,800')).toBeTruthy();
     expect(fetch.mock.calls.length).toBe(calls);
+  });
+
+  it('ends with the weight card; «Log weight» opens the weigh-in sheet (OCT-189 §1)', async () => {
+    serve(profile(2000));
+    renderToday();
+    expect(await screen.findByText('Log your weight')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Log weight' }));
+    expect(await screen.findByRole('slider')).toBeTruthy();
   });
 });
 

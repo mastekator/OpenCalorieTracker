@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useT } from '../../i18n';
 import { Banner } from './Banner';
 
-const tones = ['notice', 'warning', 'danger', 'accent'] as const;
+const tones = ['notice', 'warning', 'danger', 'accent', 'weight'] as const;
 type Args = Parameters<typeof Banner>[0];
 
 // Text comes from the dictionary so the locale toolbar switches RU / EN.
@@ -29,6 +29,7 @@ export const Notice: Story = {};
 export const Warning: Story = { args: { tone: 'warning' } };
 export const Danger: Story = { args: { tone: 'danger' } };
 export const Accent: Story = { args: { tone: 'accent' } };
+export const Weight: Story = { args: { tone: 'weight' } };
 export const Closable: Story = { args: { tone: 'accent', onClose: () => {} } };
 export const WithActions: Story = {
   render: (args) => {

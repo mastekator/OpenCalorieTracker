@@ -1,0 +1,150 @@
+/* OCT-189 §1: the «Weight» card on Today. */
+.weight-card {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  font-variant-numeric: tabular-nums;
+}
+
+.weight-card p {
+  margin: 0;
+}
+
+.weight-card__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-subhead-size);
+  line-height: var(--text-subhead-lh);
+  font-weight: 400;
+}
+
+.weight-card__head .lucide {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+  color: var(--color-weight);
+}
+
+.weight-card__top {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-4);
+}
+
+.weight-card__now {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  gap: var(--space-1);
+  justify-items: start;
+}
+
+.weight-card__big {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-1);
+}
+
+.weight-card__big b {
+  font-size: var(--text-large-title-size);
+  line-height: var(--text-large-title-lh);
+  font-weight: var(--text-large-title-weight);
+  letter-spacing: var(--tracking-tight);
+}
+
+.weight-card__big span,
+.weight-card__muted {
+  color: var(--color-text-secondary);
+  font-size: var(--text-subhead-size);
+  line-height: var(--text-subhead-lh);
+}
+
+.weight-card__spark {
+  flex: none;
+  width: var(--weight-spark-width);
+  height: var(--weight-spark-height);
+  overflow: visible;
+}
+
+.weight-card__line {
+  fill: none;
+  stroke: var(--color-weight);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.weight-card__dot {
+  r: var(--weight-point-r);
+  fill: var(--color-weight);
+}
+
+.weight-card__target {
+  stroke: var(--color-text-secondary);
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+}
+
+.weight-card__goal {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--tap-min);
+  padding-top: var(--space-1);
+  border-top: 1px solid var(--color-separator);
+  font-size: var(--text-subhead-size);
+  line-height: var(--text-subhead-lh);
+}
+
+.weight-card__goal .lucide {
+  flex: none;
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.weight-card__link {
+  min-height: var(--tap-min);
+  margin-left: auto;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-accent);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.weight-card__error {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--text-subhead-size);
+}
+
+.weight-card__invite {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.weight-card__invite-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: var(--tap-min);
+  height: var(--tap-min);
+  border-radius: var(--radius-full);
+  background: var(--color-weight-soft);
+  color: var(--color-weight);
+}
+
+.weight-card__invite-title {
+  font-size: var(--text-headline-size);
+  line-height: var(--text-headline-lh);
+  font-weight: var(--text-headline-weight);
+}

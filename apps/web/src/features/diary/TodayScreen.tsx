@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { ImagePlus, Pencil, Utensils } from 'lucide-react';
 import { useLocation } from 'wouter';
 import {
@@ -9,15 +9,29 @@ import {
   type Macros,
   type Meal,
 } from '@oct/shared';
-import { useNorm, usePeriod } from '../../data/DataContext';
+import { useSession } from '../../app/SessionContext';
+import {
+  useDb,
+  useNorm,
+  usePeriod,
+  useProfile,
+  useSettings,
+  useWeighings,
+} from '../../data/DataContext';
+import { deleteWeighing, putWeighing } from '../../data/outbox';
 import { useT } from '../../i18n';
 import { Button } from '../../ui/Button/Button';
 import { List } from '../../ui/List/List';
+import { useOnline } from '../../ui/OfflineBar/OfflineBar';
 import { ScreenState } from '../../ui/ScreenState/ScreenState';
 import { Delayed, Skeleton } from '../../ui/Skeleton/Skeleton';
+import { useToast } from '../../ui/Toast/Toast';
 import { useCapture } from '../meals/CaptureContext';
 import { DropZone } from '../meals/DropZone';
+import { saveProfile } from '../profile/ProfileScreen';
 import { periodDays } from '../week/period';
+import { WeighInSheet } from '../weight/WeighInSheet';
+import { WeightCard } from '../weight/WeightCard';
 import { MealRow } from './MealRow';
 import { InstallHint } from './InstallHint';
 import { NormInvite } from './NormInvite';
@@ -46,6 +60,8 @@ type ViewProps = {
   highlight?: string;
   onOpen: (meal: Meal) => void;
   onSetNorm: () => void;
+  /** The weight card: last on the phone, above the drop zone on desktop (OCT-189 §1). */
+  weight?: ReactNode;
 };
 
 const newestFirst = (a: Meal, b: Meal) => b.eatenAt.localeCompare(a.eatenAt);
@@ -59,6 +75,7 @@ export function TodayView({
   highlight,
   onOpen,
   onSetNorm,
+  weight,
 }: ViewProps) {
   const { t, locale } = useT();
   const capture = useCapture();
@@ -147,7 +164,10 @@ export function TodayView({
         {list}
       </div>
       <div className="today__side">
-        <DropZone />
+        {weight}
+        <div className="today__drop">
+          <DropZone />
+        </div>
       </div>
     </div>
   );
@@ -165,6 +185,16 @@ export function TodayScreen() {
   // The week is counted against today's norm (summarize takes one).
   const norm = useNorm(today);
   const [, navigate] = useLocation();
+  const db = useDb();
+  const { t } = useT();
+  const toast = useToast();
+  const online = useOnline();
+  const { user } = useSession();
+  const settings = useSettings();
+  const units = settings?.units ?? user?.units ?? 'metric';
+  const profile = useProfile();
+  const weighings = useWeighings();
+  const [weighIn, setWeighIn] = useState(false);
   // Read once: a reload or coming back later doesn't flash again.
   const [highlight] = useState(
     () => (history.state as TodayState | null)?.saved,
@@ -190,6 +220,48 @@ export function TodayScreen() {
       highlight={highlight}
       onOpen={(meal) => navigate(mealPath(meal.clientId))}
       onSetNorm={() => navigate('/profile')}
+      weight={
+        <>
+          <WeightCard
+            today={today}
+            units={units}
+            weighings={weighings}
+            profile={profile}
+            online={online}
+            onAdd={() => setWeighIn(true)}
+            onSetGoal={() => navigate('/profile')}
+            onMaintain={() =>
+              profile
+                ? saveProfile(db, {
+                    profile: {
+                      ...profile.profile,
+                      goal: 'maintain',
+                      targetWeightKg: null,
+                      deadline: null,
+                    },
+                    manual: profile.manual,
+                  }).then(
+                    () => toast({ text: t('save.done') }),
+                    () => toast({ text: t('save.error') }),
+                  )
+                : Promise.resolve()
+            }
+            onRetry={(w) => void putWeighing(db, w.date, w.weightKg)}
+          />
+          {profile && weighings && (
+            <WeighInSheet
+              open={weighIn}
+              onClose={() => setWeighIn(false)}
+              today={today}
+              units={units}
+              weighings={weighings}
+              profile={profile}
+              onPut={(date, kg) => putWeighing(db, date, kg)}
+              onDelete={(date) => deleteWeighing(db, date)}
+            />
+          )}
+        </>
+      }
     />
   );
 }
