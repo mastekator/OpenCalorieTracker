@@ -382,6 +382,32 @@ describe('Offline (4.8)', () => {
     ).toBeNull();
   });
 
+  it('online, before /api/ai/status answers: the last known status; none saved: no row', async () => {
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => new Promise<Response>(() => {})),
+    );
+    await seed(synced, {
+      recognition: 'ready',
+      interview: 'ready',
+      providerName: 'Google Gemini',
+      baseUrlHost: null,
+    });
+    await wrap(screenOf(), true);
+    expect(
+      await screen.findByText(
+        'Google Gemini. Your photos are sent to this service',
+      ),
+    ).toBeTruthy();
+    cleanup();
+    await clearLocal(user.id);
+    await seed(synced);
+    await wrap(screenOf(), true);
+    await screen.findByRole('radio', { name: 'English' });
+    expect(screen.queryByText('Photo recognition')).toBeNull();
+  });
+
   it('no AI: the manual-entry line; own server: its host', async () => {
     serve({
       recognition: 'not_configured',
@@ -589,7 +615,7 @@ describe('Install on the desktop (D.1)', () => {
       matches: q === DESKTOP_MEDIA,
     }));
     await wrap(screenOf(), true);
-    await screen.findByText('Photo recognition');
+    await screen.findByRole('radio', { name: 'English' });
     expect(
       screen.queryByRole('button', { name: 'Add to Home Screen' }),
     ).toBeNull();

@@ -19,7 +19,7 @@ const renderBar = async (variant: BarVariant | null) => {
 describe('OfflineBar', () => {
   it.each([
     ['offline', 'Offline · everything is saved on this device'],
-    ['server', 'Server unavailable · everything is saved on this device'],
+    ['server', 'Server unavailable · saved on this device'],
     ['updated', 'The app has been updated · please save again'],
     ['no_network', 'No connection'],
   ] as const)('shows the %s text', async (variant, text) => {

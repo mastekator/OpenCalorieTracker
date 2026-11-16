@@ -72,11 +72,7 @@ const languageName = (l: Locale) => {
 const LANGUAGES = LOCALES.map((l) => ({ value: l, label: languageName(l) }));
 
 /** Who gets the photos (AC-6.10): the provider, an own server's host, or nobody. */
-function recognitionText(
-  t: ReturnType<typeof useT>['t'],
-  status: AiStatus | undefined,
-) {
-  if (!status) return undefined;
+function recognitionText(t: ReturnType<typeof useT>['t'], status: AiStatus) {
   const provider = status.providerName ?? status.baseUrlHost;
   return status.recognition === 'ready' && provider
     ? t('settings.recognition_on', { provider })
@@ -365,12 +361,15 @@ export function SettingsScreen({ user, onLogout, platform: given }: Props) {
               </ListRow>
             )
           )}
-          <ListRow
-            icon={<Sparkle />}
-            description={recognitionText(t, ai.status)}
-          >
-            {t('settings.recognition')}
-          </ListRow>
+          {/* Hidden until the first status arrives: a guessed line could be untrue (OCT-172). */}
+          {ai.status && (
+            <ListRow
+              icon={<Sparkle />}
+              description={recognitionText(t, ai.status)}
+            >
+              {t('settings.recognition')}
+            </ListRow>
+          )}
         </List>
         {platform && (
           <InstallSheet

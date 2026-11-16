@@ -14,6 +14,19 @@ type Story = StoryObj<typeof meta>;
 export const Offline: Story = {};
 /** 3.2: the network is up, the server doesn't answer (E-2.4). */
 export const ServerDown: Story = { args: { variant: 'server' } };
+/** One line at 375 and 390 px in both languages (OCT-172). */
+export const ServerDownSE: Story = {
+  args: { variant: 'server' },
+  globals: { viewport: { value: 'iphoneSE' } },
+};
+export const ServerDownRu: Story = {
+  args: { variant: 'server' },
+  globals: { locale: 'ru' },
+};
+export const ServerDownSERu: Story = {
+  args: { variant: 'server' },
+  globals: { viewport: { value: 'iphoneSE' }, locale: 'ru' },
+};
 /** 6.2: the server rejected the old version; the app reloaded and asks to save again. */
 export const Updated: Story = { args: { variant: 'updated' } };
 /** Sign-in screens (OCT-13 1.9): nothing is saved there offline. */
