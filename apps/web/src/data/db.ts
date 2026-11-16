@@ -11,10 +11,11 @@ import type {
   MeResponse,
   PhotoRetention,
   ProfileResponse,
+  Weighing,
 } from '@oct/shared';
 
 /** Bump with a new `oldVersion` branch in `upgrade` when the stores change. */
-export const DB_VERSION = 1;
+export const DB_VERSION = 2;
 
 export interface OctDb extends DBSchema {
   meals: { key: string; value: Meal; indexes: { localDate: string } };
@@ -33,11 +34,14 @@ export interface OctDb extends DBSchema {
   };
   /** Photos taken offline, by meal clientId (OCT-77). */
   photos: { key: string; value: Blob };
+  /** The weight diary, one weighing per day (ADR-0016 §4). */
+  weighings: { key: string; value: Weighing };
 }
 
 /**
  * One queued change (ADR-0011 §4). `clientId` groups the ops of one meal;
- * settings use `settings`, the photo period `photoRetention`, an illustration choice `choice:<nameKey>`.
+ * settings use `settings`, the photo period `photoRetention`, an illustration choice `choice:<nameKey>`,
+ * a weighing `weighing:<date>`.
  * `id` is the meal's server id, 0 until its createMeal is answered.
  * `error` is the code of a refused op: it stays for the badge and is not resent.
  * `sent` marks a createMeal that went out at least once: the server may already have it.
@@ -55,6 +59,8 @@ export type Op = {
   | { kind: 'patchSettings'; body: AccountSettingsPatch }
   | { kind: 'putIllustrationChoice'; body: IllustrationChoiceInput }
   | { kind: 'putPhotoRetention'; body: PhotoRetention }
+  | { kind: 'putWeighing'; body: Weighing }
+  | { kind: 'deleteWeighing'; date: string }
 );
 
 /** Remembered illustration per dish nameKey. */
@@ -80,6 +86,8 @@ export function openUserDb(userId: number) {
         db.createObjectStore('kv');
         db.createObjectStore('photos');
       }
+      if (oldVersion < 2)
+        db.createObjectStore('weighings', { keyPath: 'date' });
     },
     // Another tab (or clearLocal) deletes or upgrades the base: let it through.
     blocking(_current, _blocked, event) {

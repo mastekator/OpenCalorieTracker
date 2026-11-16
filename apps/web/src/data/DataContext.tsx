@@ -22,7 +22,13 @@ import { useOnline } from '../ui/OfflineBar/OfflineBar';
 import { useToast } from '../ui/Toast/Toast';
 import { onChange } from './changes';
 import { openUserDb, type Choices, type Db } from './db';
-import { flush, mealError, mealStatus, pendingCount } from './outbox';
+import {
+  flush,
+  mealError,
+  mealStatus,
+  pendingCount,
+  type MealStatus,
+} from './outbox';
 import { prefetchThumbs } from './thumbs';
 
 /** Exported for stories: a stub database shows queue states without IndexedDB. */
@@ -283,6 +289,23 @@ export const useMealStatus = (clientId: string) =>
 /** The code the server refused the meal with, null when it did not. */
 export const useMealError = (clientId: string) =>
   useLocal((db) => mealError(db, clientId), [clientId]);
+
+/** The weight diary by date ascending, each weighing with its queue state (as a meal badge). */
+export const useWeighings = () =>
+  useLocal(async (db) => {
+    const [weighings, ops] = await Promise.all([
+      db.getAll('weighings'),
+      db.getAll('outbox'),
+    ]);
+    const state = new Map<string, MealStatus>();
+    for (const o of ops)
+      if (state.get(o.clientId) !== 'error')
+        state.set(o.clientId, o.error ? 'error' : 'pending');
+    return weighings.map((w) => ({
+      ...w,
+      status: state.get(`weighing:${w.date}`) ?? ('synced' as MealStatus),
+    }));
+  }, []);
 
 /** Unsent changes, for sign-out and account switch. */
 export const usePendingCount = () => useLocal(pendingCount, []);
