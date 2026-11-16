@@ -521,9 +521,7 @@ describe('leaving the edit screen (4.7)', () => {
     expect(onSave).not.toHaveBeenCalled();
     expect(dialog()).toBeNull();
     expect(location.pathname).toBe(MEAL_EDIT_PATH);
-    expect(
-      screen.getByText('Weight from 1 to 5000 g (0.1 to 176.4 oz)'),
-    ).toBeTruthy();
+    expect(screen.getByText('Weight from 1 to 5000 g')).toBeTruthy();
   });
 });
 
