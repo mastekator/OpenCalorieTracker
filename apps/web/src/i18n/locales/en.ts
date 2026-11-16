@@ -74,8 +74,8 @@ export const en = {
     not_configured: {
       title: 'Installation isn’t set up',
       admin:
-        'Set the admin account in the container configuration. See the README.',
-      url: 'Set PUBLIC_URL in the container configuration. See the README.',
+        'Set the admin account in the container configuration. See the self-hosting guide.',
+      url: 'Set PUBLIC_URL in the container configuration. See the self-hosting guide.',
     },
   },
   settings: {
@@ -840,7 +840,7 @@ export const en = {
       body: 'Photo recognition and the goal assistant are off. Diary, manual entry and goals work.',
       how: 'How to connect',
       env: 'Set these environment variables and restart the container:',
-      readme: 'Setup guide in README',
+      readme: 'Self-hosting guide',
     },
     privacy: {
       title: 'Where your data goes',

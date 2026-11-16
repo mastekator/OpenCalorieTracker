@@ -1,72 +1,90 @@
+<div align="center">
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/hero-dark.png">
+  <img alt="OpenCalorieTracker: snap your plate, get calories and macros" src="docs/assets/hero-light.png" width="100%">
+</picture>
+
 # OpenCalorieTracker
 
-Self-hosted calorie tracker that works from a photo: snap your plate, an AI vision model of your choice estimates the dishes with grams, kcal, protein, fat and carbs, you fix what's off and save it to your diary.
+Self-hosted calorie tracker that works from a photo.
 
-- **Self-hosted.** One Docker container (API + SQLite). Runs anywhere Docker runs: home server, NAS, mini PC, Raspberry Pi, VPS.
-- **Pluggable AI provider.** Gemini, OpenAI, Anthropic, OpenRouter, Ollama or any OpenAI-compatible endpoint. No AI configured — enter food manually.
-- **PWA.** Install it on your phone's home screen.
+[![Stars](https://img.shields.io/github/stars/mastekator/OpenCalorieTracker?style=flat-square)](https://github.com/mastekator/OpenCalorieTracker/stargazers)
+[![Release](https://img.shields.io/github/v/release/mastekator/OpenCalorieTracker?style=flat-square)](https://github.com/mastekator/OpenCalorieTracker/releases)
+[![CI](https://img.shields.io/github/actions/workflow/status/mastekator/OpenCalorieTracker/ci.yml?branch=main&style=flat-square&label=CI)](https://github.com/mastekator/OpenCalorieTracker/actions/workflows/ci.yml)
+[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue?style=flat-square)](LICENSE)
+
+[![Self-host with Docker](https://img.shields.io/badge/Self--host%20with-Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)](docs/SELF_HOSTING.md)
+
+[Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md)
+
+</div>
 
 ## Status
 
 🚧 **In development.** Nothing to install yet.
 
-## Installation (planned)
+## Why OpenCalorieTracker
 
-The main way to install will be Docker Compose: one container, one `/data` volume, behind any reverse proxy that terminates HTTPS. A ready `docker-compose.yml` and a reverse proxy example will land here before the first release.
+Your food diary is personal. OpenCalorieTracker runs on your own server, keeps your data there, and has no subscription, no ads and no telemetry. Invite your family or friends — each gets their own diary.
 
-## Configuration
+Snap your plate, and an AI vision model of your choice estimates the dishes with grams, kcal, protein, fat and carbs; you fix what's off and save. The whole app is one Docker container with SQLite: one `docker compose up` on a home server, NAS, Raspberry Pi or VPS.
 
-All settings are environment variables. An empty value (`KEY=`) counts as not set.
+## Features
 
-| Variable           | Default              | Meaning                                                                                                                                      |
-| ------------------ | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `PUBLIC_URL`       | —, required          | The origin users open, e.g. `https://food.example.com`. HTTPS is required except for `http://localhost`; no path. See below.                 |
-| `ADMIN_EMAIL`      | —                    | Admin account, created on the first start with an empty database. Ignored afterwards.                                                        |
-| `ADMIN_PASSWORD`   | —                    | Admin password for that first start (when password sign-in is on): 8–128 characters with a letter, a digit and a symbol. Ignored afterwards. |
-| `AUTH_METHODS`     | `password,passkey`   | Enabled sign-in methods: `password`, `passkey` or both, comma-separated. See below before changing it.                                       |
-| `REGISTRATION`     | `invite`             | Who can sign up: `invite` (by admin invite link only) or `open`.                                                                             |
-| `TRUST_PROXY_HOPS` | `1`                  | How many reverse proxies stand in front of the server. See below.                                                                            |
-| `AI_PROVIDER`      | —                    | `google`, `openai`, `anthropic`, `openrouter` or `openai-compatible` (Ollama, LM Studio, etc.). Not set: no AI, food is entered manually.    |
-| `AI_MODEL`         | —                    | Model id at that provider, e.g. `gemini-2.5-flash`. Required with `AI_PROVIDER`.                                                             |
-| `AI_API_KEY`       | —                    | API key of the provider. Never logged.                                                                                                       |
-| `AI_BASE_URL`      | —                    | Endpoint URL; required for `openai-compatible`, e.g. `http://ollama:11434/v1`.                                                               |
-| `DATA_DIR`         | `/data` in the image | Where the SQLite database and photos live. Mount a volume here.                                                                              |
-| `PORT`             | `3000`               | HTTP port inside the container.                                                                                                              |
-| `HOST`             | `0.0.0.0`            | Address to listen on.                                                                                                                        |
-| `WEB_DIST`         | set by the image     | Built web app directory; change only for development.                                                                                        |
+**Photo and recognition**
 
-Configuration problems (bad `PUBLIC_URL`, missing admin settings) do not stop the server: they are printed in the log at startup and shown on the sign-in screen.
+- Take a photo, pick one from the library, or drag and paste it on desktop.
+- Dishes come back with grams, kcal and macros; edit names and portions, add or remove dishes, recalculate.
+- Pluggable AI provider: Gemini, OpenAI, Anthropic, OpenRouter, Ollama or any OpenAI-compatible endpoint. AI is optional — without it, enter food manually.
+- Photos are resized and stripped of EXIF on your phone; you choose how long originals are kept.
 
-### `PUBLIC_URL`: choose it once
+**Diary and week**
 
-Passkeys are bound to the domain in `PUBLIC_URL`, and invite and recovery links are built from it. Pick the final address before users sign up. If you change it later:
+- Today screen with what's left of your goal and macros.
+- Diary by day: add entries for any date, delete with undo.
+- Week and month view with a calories-by-day chart, totals and a daily average.
 
-- every passkey stops working — users sign in with a password, or with a recovery link from the admin if passwords are off; the admin uses [`reset-admin-access`](#locked-out-reset-admin-access);
-- after signing in, users remove the old passkeys in settings and add new ones;
-- invite and recovery links issued before the change point to the old address — issue new ones.
+**Profile and daily goal**
 
-Accounts and all data stay.
+- Daily goal from your body data, activity and target (lose, maintain, gain), with a step-by-step explanation.
+- Set it up in a form or by chatting with the goal assistant (needs AI); or enter your own numbers.
+- Metric and US units.
 
-### `TRUST_PROXY_HOPS`: the real client IP
+**Sign-in and users**
 
-Sign-in protection (timeouts and blocks after failed attempts) counts per client IP, which the server takes from the `X-Forwarded-For` header written by your reverse proxies. Set the variable to the number of proxies in front of the container: `0` if users connect to it directly, `1` for one reverse proxy, `2` for two in a chain (for example, a tunnel service plus a local proxy).
+- Passkeys and passwords; choose which are enabled.
+- Sign-up by invite link or open registration.
+- Admin: invites, users, recovery links, sign-in blocks.
 
-- **Too low** — the server sees a proxy's address instead of the user's. Symptom: in the admin's list of blocks all entries have the same IP, and one user's failed attempts lock everyone out.
-- **Too high** — the server trusts a header the client can forge, so an attacker can bypass the limits by sending a fake `X-Forwarded-For`.
+**Offline and PWA**
 
-### Locked out: `reset-admin-access`
+- Install it on your phone's home screen or desktop.
+- Works offline; changes sync when you're back online.
+- Light and dark themes.
 
-If the admin cannot sign in (forgotten password, lost passkey, blocked IP or device), run in the running container:
+**Languages**
+
+- English and Russian.
+
+## Screenshots
+
+<p align="center">
+  <img src="docs/assets/screen-today.png" alt="Today: what's left of the daily goal" width="24%">
+  <img src="docs/assets/screen-recognize.png" alt="Recognized dishes from a photo" width="24%">
+  <img src="docs/assets/screen-week.png" alt="Week view with calories by day" width="24%">
+  <img src="docs/assets/screen-profile.png" alt="Profile and daily goal" width="24%">
+</p>
+
+## Quick start
 
 ```sh
-docker exec <container> node dist/cli.js reset-admin-access
+curl -O https://raw.githubusercontent.com/mastekator/OpenCalorieTracker/main/docker-compose.yml
+printf 'PUBLIC_URL=https://food.example.com\nADMIN_EMAIL=you@example.com\nADMIN_PASSWORD=change-me-1!\n' > .env
+docker compose up -d
 ```
 
-It lifts all sign-in blocks and timeouts and prints one admin recovery link, valid for 24 hours. Opening it lets you set a new password or add a passkey; your data and sessions stay. A previous unused admin recovery link stops working. The server keeps running meanwhile.
-
-### Changing `AUTH_METHODS`
-
-You can switch methods at any time by changing the variable and restarting. Users whose only sign-in method was turned off can no longer sign in: at startup the log warns how many such users there are. Give each of them a recovery link from the admin's user list; with it they set up a method that is enabled. If the admin is one of them, use `reset-admin-access`.
+Put it behind a reverse proxy with HTTPS. All settings are in [docs/SELF_HOSTING.md](docs/SELF_HOSTING.md).
 
 ## Tested models
 
