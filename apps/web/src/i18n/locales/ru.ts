@@ -409,6 +409,7 @@ const ru: DeepPartial<typeof en> = {
       age: 'Возраст',
       body: 'Рост и вес',
       goal_to: '{goal} до {weight}',
+      deadline: 'к {date} · ≈ {x} в нед.',
     },
     apply: 'Применить норму',
     fix: 'Исправить',
