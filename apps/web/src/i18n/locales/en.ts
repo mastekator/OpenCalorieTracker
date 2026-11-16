@@ -840,7 +840,7 @@ export const en = {
       body: 'Photo recognition and the goal assistant are off. Diary, manual entry and goals work.',
       how: 'How to connect',
       env: 'Set these environment variables and restart the container:',
-      readme: 'Setup guide in README',
+      readme: 'Self-hosting guide',
     },
     privacy: {
       title: 'Where your data goes',
