@@ -40,8 +40,14 @@ export interface OctDb extends DBSchema {
  * settings use `settings`, the photo period `photoRetention`, an illustration choice `choice:<nameKey>`.
  * `id` is the meal's server id, 0 until its createMeal is answered.
  * `error` is the code of a refused op: it stays for the badge and is not resent.
+ * `sent` marks a createMeal that went out at least once: the server may already have it.
  */
-export type Op = { seq?: number; clientId: string; error?: string } & (
+export type Op = {
+  seq?: number;
+  clientId: string;
+  error?: string;
+  sent?: true;
+} & (
   | { kind: 'uploadPhoto' }
   | { kind: 'createMeal'; body: MealInput }
   | { kind: 'patchMeal'; id: number; body: MealPatch }

@@ -87,6 +87,13 @@ let db: Db;
 /** Lets the background flush finish (offline: it fails and schedules a retry). */
 const settle = () => flush(db).catch(() => {});
 const ops = () => db.getAll('outbox');
+/** As if the failed send never left the device: the server cannot have the meal. */
+async function unsend() {
+  for (const o of await ops()) {
+    delete o.sent;
+    await db.put('outbox', o);
+  }
+}
 
 beforeEach(async () => {
   serve({});
@@ -121,6 +128,7 @@ describe('local write and merge', () => {
   it('an edit of an unsent meal goes into its createMeal', async () => {
     await createMeal(db, input(A));
     await settle();
+    await unsend();
     await patchMeal(db, A, { mealType: 'dinner', items: [item('Soup', 300)] });
     await settle();
     expect(await ops()).toMatchObject([
@@ -138,6 +146,7 @@ describe('local write and merge', () => {
   it('deleting an unsent meal drops both ops', async () => {
     await createMeal(db, input(A));
     await settle();
+    await unsend();
     await deleteMeal(db, A);
     await settle();
     expect(await ops()).toEqual([]);
@@ -272,6 +281,79 @@ describe('flush', () => {
     expect(await ops()).toEqual([]);
   });
 
+  /** A createMeal the server saved (id 42) but whose answer was lost. */
+  async function lostAnswer() {
+    nextId = 41;
+    serve({ 'POST /api/meals': async (b) => (await created(b), offline(b)) });
+    await createMeal(db, input(A));
+    await settle();
+    serve({}); // still offline for the edit or delete
+    nextId = 41; // the resend finds the same meal by clientId
+  }
+
+  it('an edit after a lost createMeal answer goes out as a PATCH', async () => {
+    await lostAnswer();
+    await patchMeal(db, A, { mealType: 'dinner' });
+    expect(await ops()).toMatchObject([
+      { kind: 'createMeal', body: { mealType: 'lunch' }, sent: true },
+      { kind: 'patchMeal', id: 0, body: { mealType: 'dinner' } },
+    ]);
+    serve({
+      'POST /api/meals': created,
+      'PATCH /api/meals/42': (b) =>
+        Response.json({ id: 42, clientId: A, ...(b as object) }),
+    });
+    await flush(db);
+    expect(sent()).toEqual([
+      'POST /api/meals',
+      'PATCH /api/meals/42',
+      'GET /api/sync?since=0',
+    ]);
+    expect(await db.get('meals', A)).toMatchObject({
+      id: 42,
+      mealType: 'dinner',
+    });
+    expect(await ops()).toEqual([]);
+  });
+
+  it('a delete after a lost createMeal answer deletes the meal on the server', async () => {
+    await lostAnswer();
+    await deleteMeal(db, A);
+    expect(await ops()).toMatchObject([
+      { kind: 'createMeal' },
+      { kind: 'deleteMeal', id: 0 },
+    ]);
+    serve({
+      'POST /api/meals': created,
+      'DELETE /api/meals/42': () => new Response(null, { status: 204 }),
+    });
+    await flush(db);
+    expect(sent().slice(0, 2)).toEqual([
+      'POST /api/meals',
+      'DELETE /api/meals/42',
+    ]);
+    expect(await db.get('meals', A)).toBeUndefined();
+    expect(await ops()).toEqual([]);
+  });
+
+  it('an edit then a delete after a lost createMeal answer sends no PATCH', async () => {
+    await lostAnswer();
+    await patchMeal(db, A, { mealType: 'dinner' });
+    await deleteMeal(db, A);
+    serve({
+      'POST /api/meals': created,
+      'DELETE /api/meals/42': () => new Response(null, { status: 204 }),
+    });
+    await flush(db);
+    expect(sent().slice(0, 2)).toEqual([
+      'POST /api/meals',
+      'DELETE /api/meals/42',
+    ]);
+    expect(sent().some((k) => k.startsWith('PATCH'))).toBe(false);
+    expect(await db.get('meals', A)).toBeUndefined();
+    expect(await ops()).toEqual([]);
+  });
+
   it('a meal deleted while its createMeal is in flight is deleted by server id', async () => {
     let answer!: () => void;
     serve({
@@ -347,6 +429,16 @@ describe('flush', () => {
     ]);
     expect(await mealStatus(db, A)).toBe('error');
     expect(await pendingCount(db)).toBe(2);
+  });
+
+  it('drops a refused createMeal of a meal already deleted here', async () => {
+    await createMeal(db, input(A));
+    await settle(); // offline: marked sent, so the delete keeps it
+    await deleteMeal(db, A);
+    serve({ 'POST /api/meals': () => status(400) });
+    await flush(db);
+    expect(sent()).not.toContain('DELETE /api/meals/0');
+    expect(await pendingCount(db)).toBe(0);
   });
 
   it('drops refused settings and choices and takes the server values back', async () => {
