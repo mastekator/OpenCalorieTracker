@@ -285,13 +285,13 @@ export const SummaryUs: Story = { args: { state: 'summary', units: 'us' } };
 export const SummaryApplying: Story = {
   args: { state: 'summary', applying: true },
 };
-/** 9.5 is the confirm dialog of the container (OCT-90); 9.6: the profile is already filled. */
 /** OCT-173: gaining capped at the gain_fast pace — the deadline and the real date. */
 export const GainFast: Story = { args: { state: 'gain_fast' } };
 export const GainFastDark: Story = {
   args: { state: 'gain_fast' },
   globals: dark,
 };
+/** 9.5 is the confirm dialog of the container (OCT-90); 9.6: the profile is already filled. */
 export const Filled: Story = { args: { state: 'filled' } };
 export const FilledDark: Story = { args: { state: 'filled' }, globals: dark };
 /** 9.7: unclear units. */
