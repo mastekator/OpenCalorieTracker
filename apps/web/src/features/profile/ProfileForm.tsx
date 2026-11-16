@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
-import { Check, Flag, Sparkles, Undo2 } from 'lucide-react';
+import { Check, Flag, Plus, Sparkles, Undo2 } from 'lucide-react';
 import { useLocation, useSearch } from 'wouter';
 import {
   DEFAULT_MANUAL_PCT,
@@ -46,6 +46,7 @@ import {
   PickValue,
   inchesError,
 } from '../../ui/FormList/FormList';
+import { useWeightFormat } from '../weight/format';
 import { List, ListRow } from '../../ui/List/List';
 import { NormCard } from '../../ui/NormCard/NormCard';
 import { SaveBar } from '../../ui/SaveBar/SaveBar';
@@ -126,6 +127,10 @@ type Props = {
   agentUnavailable?: boolean;
   /** Offline (8.15): values only, no saving, the assistant greyed out; «How it’s calculated» still works. */
   readOnly?: boolean;
+  /** Date of the latest weighing, `YYYY-MM-DD`: the weight row's «today» (OCT-189 §4). */
+  weighedOn?: string;
+  /** «+» on the weight row: the weigh-in sheet. The weight itself is not edited in the form. */
+  onWeighIn?: () => void;
 };
 
 /** Profile screen body (OCT-22 §2, D.1): the form in rows, live norm, Save. */
@@ -141,6 +146,8 @@ export function ProfileForm({
   agentDraft,
   agentUnavailable = false,
   readOnly = false,
+  weighedOn,
+  onWeighIn,
 }: Props) {
   const { t, locale } = useT();
   const toast = useToast();
@@ -166,6 +173,8 @@ export function ProfileForm({
   const focusAfterFill = useRef<Macro | null>(null);
   const switchId = useId();
   const agentId = useId();
+  const weighId = useId();
+  const wf = useWeightFormat(units);
   // 8.20 opens as /profile?how: the form stays mounted, so the draft survives the trip.
   const how = new URLSearchParams(useSearch()).has('how');
   const [, navigate] = useLocation();
@@ -688,14 +697,20 @@ export function ProfileForm({
     const first = REQUIRED_FIELDS.find((f) => from[f] === null);
     if (!first) return;
     if (first === 'activity') return setActivityOpen(true);
-    const label = t(LABEL[first]);
-    const el = formRef.current?.querySelector<HTMLElement>(
-      first === 'sex' || first === 'goal'
-        ? `[role="radiogroup"][aria-label="${label}"] [tabindex="0"]`
-        : `input[aria-label^="${label}"]`,
-    );
+    // Weight comes from a weighing: the hint leads to «+» (OCT-189 §4).
+    const el =
+      first === 'weightKg'
+        ? document.getElementById(weighId)
+        : formRef.current?.querySelector<HTMLElement>(selector(first));
     el?.scrollIntoView?.({ block: 'center' });
     el?.focus();
+  }
+
+  function selector(first: Field) {
+    const label = t(LABEL[first]);
+    return first === 'sex' || first === 'goal'
+      ? `[role="radiogroup"][aria-label="${label}"] [tabindex="0"]`
+      : `input[aria-label^="${label}"]`;
   }
 
   /** PUT the draft, or `request`; `undo` adds «Undo» to the toast (8.10, 8.13). */
@@ -814,7 +829,16 @@ export function ProfileForm({
         <fieldset className="profile__form" ref={formRef} disabled={readOnly}>
           <List
             title={t('profile.calc')}
-            footer={footerError(groupError(true)) ?? t('field.sex_hint')}
+            footer={
+              footerError(groupError(true)) ?? (
+                <>
+                  <span className="profile__line">
+                    {t('profile.weight_hint')}
+                  </span>
+                  <span className="profile__line">{t('field.sex_hint')}</span>
+                </>
+              )
+            }
           >
             <FormRow label={t('field.sex')} stacked>
               <Segment
@@ -876,23 +900,38 @@ export function ProfileForm({
                 />
               )}
             </FormRow>
-            <FormRow label={t('field.weight')}>
-              <InlineNumber
-                label={t('field.weight')}
-                value={
-                  profile.weightKg === null
-                    ? null
-                    : weightFromKg(profile.weightKg, units)
-                }
-                onChange={(v) =>
-                  set('weightKg', v === null ? null : weightToKg(v, units))
-                }
-                unit={weightUnit}
-                decimals={1}
-                error={!!errors.weightKg}
-                readOnly={readOnly}
-              />
-            </FormRow>
+            {/* A link, not a button: the weight screen works offline, past the disabled fieldset. */}
+            <ListRow
+              href="/weight?from=profile"
+              onClick={(e) => {
+                e.preventDefault();
+                navigate('/weight?from=profile');
+              }}
+              value={
+                profile.weightKg === null ? undefined : (
+                  <PickValue value={wf.weight(profile.weightKg)} />
+                )
+              }
+              description={[
+                weighedOn && wf.when(weighedOn, today),
+                t('profile.weight_history'),
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+              action={
+                <button
+                  type="button"
+                  id={weighId}
+                  className="list-row__action"
+                  aria-label={t('weight_card.add')}
+                  onClick={onWeighIn}
+                >
+                  <Plus aria-hidden="true" />
+                </button>
+              }
+            >
+              {t('field.weight')}
+            </ListRow>
             <ListRow
               value={
                 <PickValue

@@ -101,8 +101,8 @@ describe('ProfileForm', () => {
     expect(screen.getByText('calculated')).toBeTruthy();
     expect((save() as HTMLButtonElement).disabled).toBe(true);
 
-    await type('Weight', '90');
-    const next = calculateNorm({ ...base, weightKg: 90 }, today);
+    await type('Height', '190');
+    const next = calculateNorm({ ...base, heightCm: 190 }, today);
     if (next.status !== 'ok') throw new Error(next.status);
     expect(next.kcal).not.toBe(2760);
     await screen.findByText(kcal(next.kcal));
@@ -112,8 +112,8 @@ describe('ProfileForm', () => {
 
   it('opens «How it’s calculated» over the kept draft and focuses back on return', async () => {
     setup(base);
-    await type('Weight', '90');
-    const draft = calculateNorm({ ...base, weightKg: 90 }, today);
+    await type('Height', '190');
+    const draft = calculateNorm({ ...base, heightCm: 190 }, today);
     if (draft.status !== 'ok') throw new Error(draft.status);
     const how = await screen.findByRole('button', {
       name: /How it’s calculated/,
@@ -126,7 +126,7 @@ describe('ProfileForm', () => {
     expect(document.activeElement).toBe(title);
     // The steps explain the draft the card shows (AC-2.4b); the form is out of the way.
     expect(document.body.textContent).toContain(`${kcal(draft.kcal)} kcal`);
-    expect(screen.queryByRole('textbox', { name: 'Weight' })).toBeNull();
+    expect(screen.queryByRole('textbox', { name: 'Height' })).toBeNull();
 
     act(() => history.back());
     await waitFor(() =>
@@ -134,7 +134,7 @@ describe('ProfileForm', () => {
         screen.queryByRole('heading', { name: 'How we calculated your goal' }),
       ).toBeNull(),
     );
-    expect((await field('Weight')).value).toBe('90.0');
+    expect((await field('Height')).value).toBe('190');
     expect(document.activeElement?.textContent).toMatch(/How it’s calculated/);
   });
 
@@ -147,12 +147,12 @@ describe('ProfileForm', () => {
   it('asks for the missing fields and saves a partial profile', async () => {
     setup({ ...base, heightCm: null, activity: null });
     await screen.findByText('Add your height and activity to see your goal');
-    await type('Weight', '81');
+    fireEvent.click(screen.getByRole('radio', { name: 'Female' }));
     await act(async () => fireEvent.click(save()));
     expect(echo.mock.calls[0]![0].profile).toMatchObject({
       heightCm: null,
       activity: null,
-      weightKg: 81,
+      sex: 'female',
     });
     await screen.findByText('Add your height and activity to see your goal');
   });
@@ -169,28 +169,42 @@ describe('ProfileForm', () => {
   it('shows a field the server rejected at the field', async () => {
     const onSave = vi.fn(async () => {
       throw new ApiError(400, 'validation_failed', [
-        { path: ['profile', 'weightKg'], code: 'too_big' },
+        { path: ['profile', 'heightCm'], code: 'too_big' },
       ]);
     });
     setup(base, { onSave });
-    await type('Weight', '82');
+    await type('Height', '182');
     await act(async () => fireEvent.click(save()));
     await screen.findByText('Check the highlighted fields');
-    expect((await field('Weight')).getAttribute('aria-invalid')).toBe('true');
+    expect((await field('Height')).getAttribute('aria-invalid')).toBe('true');
     // Editing the field clears the server's error.
-    await type('Weight', '83');
+    await type('Height', '183');
     expect(screen.queryByText('Check the highlighted fields')).toBeNull();
   });
 
-  it('keeps 180 lb as 180 lb after saving and reopening (AC-0.4b)', async () => {
-    setup(base, { units: 'us' });
-    await type('Weight', '180');
-    await act(async () => fireEvent.click(save()));
-    const stored = echo.mock.calls[0]![0].profile;
-    expect(stored.weightKg).toBeCloseTo(81.6466266, 6);
-    cleanup();
-    setup(stored, { units: 'us' });
-    expect((await field('Weight')).value).toBe('180.0');
+  it("weight is a row, not a field: today's weighing, the weight screen, «+» (OCT-189 §4)", async () => {
+    const onWeighIn = vi.fn();
+    setup(
+      { ...base, weightKg: 81.6466266 },
+      { units: 'us', weighedOn: today, onWeighIn },
+    );
+    const row = await screen.findByRole('link', { name: /^Weight/ });
+    // 180 lb stays 180 lb (AC-0.4b).
+    expect(row.textContent).toBe(
+      'Weighttoday · history and chart180.0\u00a0lb',
+    );
+    expect(screen.queryByRole('textbox', { name: /^Weight/ })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Log weight' }));
+    expect(onWeighIn).toHaveBeenCalledOnce();
+    expect(location.pathname).toBe('/profile');
+    fireEvent.click(row);
+    expect(location.pathname + location.search).toBe('/weight?from=profile');
+  });
+
+  it('no weighing yet: the weight row has no value', async () => {
+    setup({ ...base, weightKg: null });
+    const row = await screen.findByRole('link', { name: /^Weight/ });
+    expect(row.textContent).toBe('Weighthistory and chart');
   });
 
   it('converts the unsaved height when the units change (E-1.9)', async () => {
@@ -331,7 +345,7 @@ describe('ProfileForm', () => {
   it('warns about an implausible BMI without blocking saving', async () => {
     setup({ ...base, weightKg: 40 });
     await screen.findByText('Check your height and weight');
-    await type('Weight', '41');
+    await type('Height', '181');
     expect((save() as HTMLButtonElement).disabled).toBe(false);
   });
 
@@ -485,10 +499,10 @@ describe('ProfileForm', () => {
     // Unsaved edits (no norm yet without the weight, so no badge on the card).
     expect(document.querySelector('.profile--dirty')).toBeTruthy();
     expect((save() as HTMLButtonElement).disabled).toBe(false);
-    // The first empty field gets the focus; nothing is saved.
+    // The first empty field gets the focus, the weight's «+»; nothing is saved.
     await waitFor(() =>
       expect(document.activeElement).toBe(
-        screen.getByRole('textbox', { name: /^Weight/ }),
+        screen.getByRole('button', { name: 'Log weight' }),
       ),
     );
     expect(echo).not.toHaveBeenCalled();
@@ -508,7 +522,7 @@ describe('ProfileForm', () => {
     );
     await waitFor(() =>
       expect(document.activeElement).toBe(
-        screen.getByRole('textbox', { name: /^Weight/ }),
+        screen.getByRole('button', { name: 'Log weight' }),
       ),
     );
     expect(echo).not.toHaveBeenCalled();
