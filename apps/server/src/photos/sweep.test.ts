@@ -79,7 +79,7 @@ describe('sweepPhotos', () => {
     ).toBe(1);
   });
 
-  it('deletes files no meal owns once older than a day, and leaves other names alone', async () => {
+  it('deletes files no meal owns once older than the orphan age, and leaves other names alone', async () => {
     const t = await setup();
     const old = 'old'.padEnd(22, 'a');
     const young = 'young'.padEnd(22, 'a');
@@ -90,7 +90,7 @@ describe('sweepPhotos', () => {
     const other = join(dir, 'notes.txt');
     for (const p of [tmp, other]) {
       await writeFile(p, 'x');
-      const at = new Date(NOW - 2 * DAY);
+      const at = new Date(NOW - ORPHAN_AGE_MS - DAY);
       await utimes(p, at, at);
     }
     await sweepPhotos(t.db, t.dataDir, NOW);

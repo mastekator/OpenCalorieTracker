@@ -5,8 +5,8 @@ import { bumpRev } from '../sync/rev.js';
 import { photoPath } from './store.js';
 
 export const SWEEP_INTERVAL_MS = 3_600_000;
-/** An upload not saved into a meal within this time is abandoned (ADR-0008). */
-export const ORPHAN_AGE_MS = 86_400_000;
+/** An upload not saved into a meal within 30 days is abandoned; the offline queue may hold its meal that long (ADR-0008). */
+export const ORPHAN_AGE_MS = 30 * 86_400_000;
 
 // `<photoId>.jpg|.webp`, optionally with the `.tmp` suffix of an unfinished write.
 const FILE_RE = /^([A-Za-z0-9_-]{22})\.(jpg|webp)(\.tmp)?$/;
@@ -15,7 +15,7 @@ const list = (dir: string) => readdir(dir).catch(() => [] as string[]);
 
 /**
  * Deletes expired full photos (keeping the preview and the meal), files no meal owns older than
- * a day, and the photo folders of deleted users. Only names the server itself creates are touched.
+ * 30 days, and the photo folders of deleted users. Only names the server itself creates are touched.
  */
 export async function sweepPhotos(db: Database, dataDir: string, now: number) {
   // DB first, files second: a crash in between leaves a stray file for the next sweep, never a meal without its photo.

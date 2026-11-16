@@ -64,20 +64,26 @@ export async function recognizeMeal(
   );
 }
 
-/** Clamps numbers into sane ranges; a dish with impossible numbers keeps confidence 0 (AC-2.6, E-7.4). */
+/**
+ * Clamps numbers into the ranges `mealItemInputSchema` accepts; a dish with impossible numbers
+ * keeps confidence 0 (AC-2.6, E-7.4). Cutting grams scales the nutrients too, keeping the density.
+ */
 export function sanitizeDish(d: RecognizedDish): RecognizedDish {
   const numbers = [d.grams, d.kcal, d.proteinG, d.fatG, d.carbsG, d.confidence];
   const finite = numbers.every(Number.isFinite);
-  const suspicious = !finite || d.grams <= 0 || d.kcal < 0 || d.kcal > 10_000;
+  const suspicious =
+    !finite || d.grams <= 0 || d.grams > 5000 || d.kcal < 0 || d.kcal > 10_000;
+  const scale = Number.isFinite(d.grams) && d.grams > 5000 ? 5000 / d.grams : 1;
   const safe = (n: number) => (Number.isFinite(n) ? n : 0);
-  const amount = (n: number) => Math.max(0, round1(safe(n)));
+  const amount = (n: number, max: number) =>
+    Math.min(max, Math.max(0, round1(safe(n * scale))));
   return {
     name: d.name,
     grams: Math.min(5000, Math.max(1, Math.round(safe(d.grams)))),
-    kcal: amount(d.kcal),
-    proteinG: amount(d.proteinG),
-    fatG: amount(d.fatG),
-    carbsG: amount(d.carbsG),
+    kcal: amount(d.kcal, 10_000),
+    proteinG: amount(d.proteinG, 1000),
+    fatG: amount(d.fatG, 1000),
+    carbsG: amount(d.carbsG, 1000),
     confidence: suspicious ? 0 : Math.min(1, Math.max(0, d.confidence)),
   };
 }
