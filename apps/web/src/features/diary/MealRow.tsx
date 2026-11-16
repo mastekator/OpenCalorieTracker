@@ -1,6 +1,7 @@
 import { mealIllustration, type Meal } from '@oct/shared';
 import { useState } from 'react';
-import { Moon, Trash2 } from 'lucide-react';
+import { CircleAlert, CloudOff, Moon, Trash2 } from 'lucide-react';
+import { useMealStatus } from '../../data/DataContext';
 import { useT } from '../../i18n';
 import { Badge } from '../../ui/Badge/Badge';
 import { DishIllustration } from '../../ui/DishIllustration/DishIllustration';
@@ -24,6 +25,8 @@ export function MealRow({ meal, onOpen, onDelete, highlight }: Props) {
   // A preview that fails to load (offline, not cached) falls back to the illustration.
   const [broken, setBroken] = useState(false);
   const { offset, dragging, remove, bind, confirm } = useSwipeDelete(onDelete);
+  const status = useMealStatus(meal.clientId);
+  const queued = status === 'pending' || status === 'error';
   const type = t(`meal.type.${meal.mealType}`);
   const time = new Intl.DateTimeFormat(locale, {
     timeStyle: 'short',
@@ -61,12 +64,26 @@ export function MealRow({ meal, onOpen, onDelete, highlight }: Props) {
           <span className="meal-row__dishes">
             {meal.items.map((item) => item.name).join(', ')}
           </span>
-          {isLate(meal) && (
+          {(queued || isLate(meal)) && (
             <span className="meal-row__badges">
-              <Badge>
-                <Moon aria-hidden="true" />
-                {t('meal.status.late')}
-              </Badge>
+              {status === 'pending' && (
+                <Badge>
+                  <CloudOff aria-hidden="true" />
+                  {t('meal.status.pending')}
+                </Badge>
+              )}
+              {status === 'error' && (
+                <Badge tone="err">
+                  <CircleAlert aria-hidden="true" />
+                  {t('meal.status.error')}
+                </Badge>
+              )}
+              {isLate(meal) && (
+                <Badge>
+                  <Moon aria-hidden="true" />
+                  {t('meal.status.late')}
+                </Badge>
+              )}
             </span>
           )}
         </span>

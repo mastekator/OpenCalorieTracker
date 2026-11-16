@@ -244,6 +244,20 @@ export const BrokenPhotoDesktop: Story = {
   args: brokenPhoto,
   globals: { viewport: { value: 'desktop' } },
 };
+/** OCT-206: the server refused the entry (a date in the future): fix and save again, or delete. */
+const refused = {
+  ...existing,
+  refused: 'validation_failed',
+} satisfies Partial<Props>;
+export const Refused: Story = { args: refused };
+export const RefusedDark: Story = { args: refused, globals: dark };
+/** OCT-206: the server refused the photo taken offline; saving again drops it. */
+const refusedPhoto = {
+  ...existing,
+  refused: 'photo_invalid',
+} satisfies Partial<Props>;
+export const RefusedPhoto: Story = { args: refusedPhoto };
+export const RefusedPhotoDark: Story = { args: refusedPhoto, globals: dark };
 /** E-2.3: every dish deleted, «Delete entry» replaces Save. */
 export const ExistingAllDeleted: Story = {
   args: existing,

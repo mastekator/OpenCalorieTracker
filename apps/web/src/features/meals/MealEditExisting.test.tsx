@@ -16,6 +16,7 @@ import {
   type MeResponse,
 } from '@oct/shared';
 import { DataProvider } from '../../data/DataContext';
+import { openUserDb, type Op } from '../../data/db';
 import { clearLocal } from '../../data/user';
 import { I18nProvider, LOCALE_STORAGE_KEY } from '../../i18n';
 import { renderLoaded } from '../../test-utils';
@@ -302,6 +303,56 @@ describe('MealEditExisting (/meal/:clientId)', () => {
       eatenAt: new Date(`${yesterday}T19:55`).toISOString(),
       localDate: yesterday,
     });
+
+  /** The meal in the local copy with its ops refused by the server. */
+  async function refused(meal: Meal, ...ops: Op[]) {
+    const db = await openUserDb(9);
+    await db.put('meals', meal);
+    for (const op of ops) await db.add('outbox', op);
+    db.close();
+  }
+
+  it('a refused meal says so; Save without edits sends it again (OCT-206)', async () => {
+    const meal = onYesterday();
+    const { clientId, eatenAt, tzOffsetMin, localDate, mealType } = meal;
+    await refused(meal, {
+      kind: 'createMeal',
+      clientId,
+      body: { clientId, eatenAt, tzOffsetMin, localDate, mealType, items: [] },
+      sent: true,
+      error: 'validation_failed',
+    });
+    setup(meal);
+    expect(
+      await screen.findByText('The server didn’t accept this entry'),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(
+        'Check the date and time, then save again or delete the entry.',
+      ),
+    ).toBeTruthy();
+    await act(async () =>
+      fireEvent.click(screen.getByRole('button', { name: 'Save' })),
+    );
+    await waitFor(() =>
+      expect(sent).toMatchObject([{ method: 'POST', url: '/api/meals' }]),
+    );
+  });
+
+  it('a refused photo has its own text', async () => {
+    const meal = onYesterday();
+    await refused(meal, {
+      kind: 'uploadPhoto',
+      clientId: meal.clientId,
+      error: 'photo_invalid',
+    });
+    setup(meal);
+    expect(
+      await screen.findByText(
+        'The server couldn’t use the photo. Save again to keep the entry without it.',
+      ),
+    ).toBeTruthy();
+  });
 
   it('a move stays on the original day with «Moved to … · Open» (6.7)', async () => {
     const at = setup(onYesterday());

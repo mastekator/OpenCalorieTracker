@@ -36,6 +36,7 @@ import {
   useDb,
   useIllustrationChoices,
   useMeal,
+  useMealError,
   useSettings,
 } from '../../data/DataContext';
 import type { Choices } from '../../data/db';
@@ -234,6 +235,8 @@ type Props = {
   meal?: Meal;
   onPatch?: (patch: Omit<MealPatch, 'editedAt'> | null) => Promise<void>;
   onDelete?: () => void;
+  /** The code the server refused the saved meal with (OCT-206): a banner says what to fix. */
+  refused?: string | null;
   /** Coming back from a recalculation: the draft, and the AI's dishes in place of the rows. */
   recalc?: RecalcState;
   /** Set only while the meal can be recalculated: full photo, online, AI ready (AC-10.7). */
@@ -258,6 +261,7 @@ export function MealEditScreen({
   onChoice,
   onPatch,
   onDelete,
+  refused,
   recalc,
   onRecalc,
   onDismissRecalc,
@@ -763,6 +767,18 @@ export function MealEditScreen({
             </Banner>
           </div>
         )}
+        {refused && (
+          <div className="meal-edit__error">
+            <Banner tone="danger" title={t('edit.refused.title')}>
+              {t(
+                // Only the photo upload is refused with a photo_* code.
+                refused.startsWith('photo_')
+                  ? 'edit.refused.photo'
+                  : 'edit.refused.body',
+              )}
+            </Banner>
+          </div>
+        )}
         {status === 'error' && (
           <div className="meal-edit__error">
             <Banner tone="danger" title={t('edit.save_err.title')}>
@@ -1138,6 +1154,7 @@ export function MealEditExisting({ clientId }: { clientId: string }) {
   const choices = useIllustrationChoices();
   const { user } = useSession();
   const meal = useMeal(clientId);
+  const refused = useMealError(clientId);
   const undo = useUndoDelete();
   const toast = useToast();
   const [, navigate] = useLocation();
@@ -1159,6 +1176,7 @@ export function MealEditExisting({ clientId }: { clientId: string }) {
     <MealEditScreen
       key={meal.clientId}
       meal={meal}
+      refused={refused}
       recalc={recalc}
       onRecalc={
         canRecalc
@@ -1179,7 +1197,8 @@ export function MealEditExisting({ clientId }: { clientId: string }) {
       onChoice={(name, id) => void putIllustrationChoice(db, name, id)}
       onSave={async () => {}}
       onPatch={async (patch) => {
-        if (patch) await patchMeal(db, clientId, patch);
+        // A refused meal is sent again even unchanged: the server may take it now.
+        if (patch || refused) await patchMeal(db, clientId, patch ?? {});
         navigate(back, { replace: true });
         const to = patch && 'localDate' in patch ? patch.localDate : undefined;
         if (to && to !== from)

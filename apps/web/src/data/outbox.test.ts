@@ -428,11 +428,11 @@ describe('flush', () => {
 
   it('marks a refused createMeal and the meal’s later ops, and goes on', async () => {
     await createMeal(db, input(A));
+    await settle(); // offline: marked sent, so the edit is an op of its own
+    await patchMeal(db, A, { mealType: 'dinner' });
     await settle();
     serve({ 'POST /api/meals': () => status(400) });
     await flush(db);
-    // Made after the refusal: never goes out with id 0.
-    await patchMeal(db, A, { mealType: 'dinner' });
     await patchSettings(db, { theme: 'dark' });
     serve({ 'PATCH /api/account/settings': () => Response.json({}) });
     await settle();
@@ -445,6 +445,66 @@ describe('flush', () => {
     ]);
     expect(await mealStatus(db, A)).toBe('error');
     expect(await pendingCount(db)).toBe(2);
+  });
+
+  it('saving a refused meal again sends it with the edits folded in', async () => {
+    await createMeal(db, input(A));
+    await settle();
+    serve({ 'POST /api/meals': () => status(400) });
+    await flush(db);
+    await patchMeal(db, A, { mealType: 'dinner' }); // sent again, refused again
+    await settle();
+    expect(await mealStatus(db, A)).toBe('error');
+    serve({ 'POST /api/meals': created });
+    // The fixed time, as the edit screen sends it.
+    const when = {
+      eatenAt: '2026-11-14T11:00:00.000Z',
+      tzOffsetMin: 0,
+      localDate: '2026-11-14',
+    };
+    await patchMeal(db, A, { mealType: 'dinner', ...when });
+    await settle();
+    expect(sent().filter((k) => !k.includes('/sync'))).toEqual([
+      'POST /api/meals',
+    ]);
+    expect(calls[0]![1]).toMatchObject({
+      mealType: 'dinner',
+      eatenAt: '2026-11-14T11:00:00.000Z',
+    });
+    expect(sent()).not.toContain('PATCH /api/meals/0');
+    expect(await mealStatus(db, A)).toBe('synced');
+  });
+
+  it('saving again after a refused edit sends the edit again', async () => {
+    await db.put('meals', { ...(await localMeal(A)), id: 5 });
+    await patchMeal(db, A, { mealType: 'dinner' });
+    serve({ 'PATCH /api/meals/5': () => status(400) });
+    await settle();
+    expect(await mealStatus(db, A)).toBe('error');
+    serve({ 'PATCH /api/meals/5': () => Response.json({ id: 5 }) });
+    await patchMeal(db, A, {});
+    await settle();
+    expect(calls[0]).toMatchObject([
+      'PATCH /api/meals/5',
+      { mealType: 'dinner' },
+    ]);
+    expect(await mealStatus(db, A)).toBe('synced');
+  });
+
+  it('saving again after a refused photo drops it and its blob', async () => {
+    await createMeal(db, input(A), new Blob(['bad'], { type: 'image/jpeg' }));
+    serve({ 'POST /api/photos': () => status(422, 'photo_invalid') });
+    await settle();
+    expect(await mealStatus(db, A)).toBe('error');
+    serve({ 'POST /api/meals': created });
+    await patchMeal(db, A, {});
+    await settle();
+    expect(sent().filter((k) => !k.includes('/sync'))).toEqual([
+      'POST /api/meals',
+    ]);
+    expect((calls[0]![1] as MealInput).photoId).toBeUndefined();
+    expect(await db.count('photos')).toBe(0);
+    expect(await mealStatus(db, A)).toBe('synced');
   });
 
   it('drops a refused createMeal of a meal already deleted here', async () => {
