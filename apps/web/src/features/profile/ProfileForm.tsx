@@ -918,12 +918,12 @@ export function ProfileForm({
                   <PickValue value={wf.weight(profile.weightKg)} />
                 )
               }
-              description={[
-                weighedOn && wf.when(weighedOn, today),
-                t('profile.weight_history'),
-              ]
-                .filter(Boolean)
-                .join(' · ')}
+              // The date alone: "history" got cut to "ist…" in RU; the chevron already leads there.
+              description={
+                weighedOn
+                  ? wf.when(weighedOn, today)
+                  : t('profile.weight_history')
+              }
               descriptionNowrap
               action={
                 <button

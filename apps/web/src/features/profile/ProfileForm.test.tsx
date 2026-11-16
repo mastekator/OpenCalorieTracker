@@ -192,7 +192,7 @@ describe('ProfileForm', () => {
     );
     const row = await screen.findByRole('link', { name: /^Weight/ });
     // 180 lb stays 180 lb (AC-0.4b).
-    expect(row.textContent).toBe('Weighttoday · history180.0\u00a0lb');
+    expect(row.textContent).toBe('Weighttoday180.0\u00a0lb');
     expect(screen.queryByRole('textbox', { name: /^Weight/ })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Log weight' }));
     expect(onWeighIn).toHaveBeenCalledOnce();
