@@ -284,10 +284,11 @@ export function NormSummary({
         </Banner>
       ) : pace?.level === 'gain_fast' ? (
         <Banner tone="warning">
+          {/* Non-breaking spaces keep each date on one line. */}
           {pace.source === 'deadline' && draft.deadline && pace.etaDate
             ? t('pace.gain_fast_capped', {
-                date: date(draft.deadline),
-                eta: date(pace.etaDate),
+                date: date(draft.deadline).replaceAll(' ', '\u00a0'),
+                eta: date(pace.etaDate).replaceAll(' ', '\u00a0'),
               })
             : t('pace.gain_fast')}
         </Banner>

@@ -373,12 +373,13 @@ export function ProfileForm({
   if (ok) {
     const { pace, steps } = ok;
     const level = pace?.level ?? 'ok';
+    // Dates use non-breaking spaces so "21 Feb" never wraps mid-date.
     const body = [
       level === 'gain_fast'
         ? pace?.source === 'deadline' && profile.deadline && pace.etaDate
           ? t('pace.gain_fast_capped', {
-              date: shortDate(profile.deadline),
-              eta: shortDate(pace.etaDate),
+              date: shortDate(profile.deadline).replaceAll(' ', '\u00a0'),
+              eta: shortDate(pace.etaDate).replaceAll(' ', '\u00a0'),
             })
           : t('pace.gain_fast')
         : level !== 'ok' && t(`pace.${level}.body`),
@@ -386,8 +387,8 @@ export function ProfileForm({
       steps.floor === 'clamped' &&
         (pace?.source === 'deadline' && profile.deadline && pace.etaDate
           ? t('floor.clamped', {
-              date: shortDate(profile.deadline),
-              eta: shortDate(pace.etaDate),
+              date: shortDate(profile.deadline).replaceAll(' ', '\u00a0'),
+              eta: shortDate(pace.etaDate).replaceAll(' ', '\u00a0'),
             })
           : t('floor.capped')),
     ]
