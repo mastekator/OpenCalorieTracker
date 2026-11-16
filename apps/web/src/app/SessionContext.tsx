@@ -34,8 +34,11 @@ type Session = {
   refresh: () => Promise<void>;
   /** After a sign-in or sign-up: forgets an offline sign-out, then re-reads. */
   signedIn: () => Promise<void>;
-  /** Ends the session, removes the user's local data and goes to sign-in (4.6). */
-  logout: () => Promise<void>;
+  /**
+   * Ends the session, removes the user's local data and goes to sign-in (4.6).
+   * `stay`: keeps the current page, e.g. an invite link for the next user (2.5).
+   */
+  logout: (opts?: { stay?: boolean }) => Promise<void>;
 };
 
 /**
@@ -161,17 +164,20 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     await refresh();
   }, [refresh]);
 
-  const logout = useCallback(async () => {
-    try {
-      await endSession();
-    } catch (err) {
-      if (!isNetwork(err)) throw err;
-      localStorage.setItem(SIGNED_OUT_KEY, '1');
-    }
-    if (user) await clearLocal(user.id);
-    setUser(null);
-    navigate('/login', { replace: true });
-  }, [user, navigate]);
+  const logout = useCallback(
+    async ({ stay = false }: { stay?: boolean } = {}) => {
+      try {
+        await endSession();
+      } catch (err) {
+        if (!isNetwork(err)) throw err;
+        localStorage.setItem(SIGNED_OUT_KEY, '1');
+      }
+      if (user) await clearLocal(user.id);
+      setUser(null);
+      if (!stay) navigate('/login', { replace: true });
+    },
+    [user, navigate],
+  );
 
   async function cancelSwitch() {
     await api('/api/auth/logout', z.unknown(), { method: 'POST' }).catch(

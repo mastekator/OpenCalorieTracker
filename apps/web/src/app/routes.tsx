@@ -1,9 +1,10 @@
 import { Plus, Settings2 } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
-import { z } from 'zod';
 import { Redirect, Route, Switch, useLocation, useSearch } from 'wouter';
-import { api } from '../api/client';
+import { openUserDb } from '../data/db';
+import { flush, pendingCount } from '../data/outbox';
 import { getLastUser, pendingOf } from '../data/user';
+import { ConfirmDialog } from '../ui/ConfirmDialog/ConfirmDialog';
 import { useT } from '../i18n';
 import { NavBar } from '../ui/NavBar/NavBar';
 import { PasskeysScreen } from '../features/settings/PasskeysScreen';
@@ -279,9 +280,29 @@ export function MealNew() {
 /** Invite, recovery link or open registration; on success straight to Today (OCT-13 §6). */
 function Register({ kind }: { kind: RegisterKind }) {
   const config = useConfig();
-  const { user, refresh, signedIn } = useSession();
+  const { user, signedIn, logout } = useSession();
+  const { t } = useT();
   // Set before the session refresh, so the new user goes to Today instead of seeing 2.5.
   const [done, setDone] = useState(false);
+  // Unsent changes of the signed-in user: the same warning as sign-out in settings (4.6).
+  const [queued, setQueued] = useState(0);
+
+  async function signOut() {
+    if (!user) return;
+    let count = await pendingOf(user.id).catch(() => 0);
+    if (count > 0 && navigator.onLine) {
+      const db = await openUserDb(user.id);
+      try {
+        await flush(db).catch(() => {});
+        count = await pendingCount(db);
+      } finally {
+        // An open connection would block the delete in clearLocal.
+        db.close();
+      }
+    }
+    if (count > 0) setQueued(count);
+    else await logout({ stay: true });
+  }
   if (user && (done || kind === 'open')) return <Redirect to="/" replace />;
   if (kind === 'open' && config.registration !== 'open')
     return <Redirect to="/login" replace />;
@@ -296,10 +317,19 @@ function Register({ kind }: { kind: RegisterKind }) {
           setDone(true);
           await signedIn();
         }}
-        onSignOut={async () => {
-          await api('/api/auth/logout', z.unknown(), { method: 'POST' });
-          await refresh();
+        onSignOut={signOut}
+      />
+      <ConfirmDialog
+        open={queued > 0}
+        title={t('logout.confirm.title')}
+        body={t('logout.confirm.queue', { count: queued })}
+        confirmLabel={t('logout.confirm.queue_ok')}
+        stack
+        onConfirm={() => {
+          setQueued(0);
+          void logout({ stay: true });
         }}
+        onCancel={() => setQueued(0)}
       />
     </AuthLayout>
   );
