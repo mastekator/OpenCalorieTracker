@@ -566,6 +566,7 @@ export const en = {
     chart: 'Weight chart, {period}: latest weigh-in {weight}{trend}{goal}.',
     chart_trend: ', trend {diff}',
     chart_goal: ', goal {weight}',
+    none: 'No weigh-ins in {period}',
     empty_title: 'No weigh-ins yet',
     empty_body:
       'Log your weight every few days to see a chart, a trend and every entry here. Your daily target will update itself.',

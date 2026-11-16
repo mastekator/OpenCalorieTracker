@@ -109,6 +109,9 @@ describe('WeightView', () => {
     fireEvent.keyDown(plot, { key: 'ArrowLeft' });
     // From nothing picked, ← starts at the latest weighing.
     expect(tip(container)).toMatch(/^Mon, Nov 16 · 80\.\d kg/);
+    expect(
+      plain(container.querySelector('.wchart__live')!.textContent),
+    ).toMatch(/^Mon, Nov 16 · 80\.\d kg$/);
     fireEvent.keyDown(plot, { key: 'ArrowLeft' });
     fireEvent.keyDown(plot, { key: 'ArrowLeft' });
     fireEvent.keyDown(plot, { key: 'ArrowRight' });
@@ -181,6 +184,20 @@ describe('WeightView', () => {
     screen.getByText('First weigh-in');
     expect(container.querySelector('.wchart__last')).not.toBeNull();
     expect(container.querySelector('.wchart__trend')).toBeNull();
+  });
+
+  it('a period without weigh-ins: a line instead of the chart, no trend, no legend', async () => {
+    const { container } = await show({
+      weighings: [w(addDays(TODAY, -200), 81), w(addDays(TODAY, -150), 80.5)],
+    });
+    screen.getByText('No weigh-ins in 3 months');
+    expect(container.querySelector('.wchart__area')).toBeNull();
+    expect(container.querySelector('.weight-screen__legend')).toBeNull();
+    expect(screen.queryByText(/^Trend over/)).toBeNull();
+    expect(container.querySelector('.weight-card__goal')).not.toBeNull();
+    screen.getByRole('button', { name: 'Log weight' });
+    fireEvent.click(screen.getByRole('radio', { name: 'Year' }));
+    expect(container.querySelector('.wchart__area')).not.toBeNull();
   });
 
   it('empty: an invitation, no chart', async () => {

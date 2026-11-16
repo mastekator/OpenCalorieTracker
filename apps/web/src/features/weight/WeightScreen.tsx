@@ -149,7 +149,11 @@ export function WeightView({
             setSelected(null);
           }}
         />
-        {points.length > 0 && (
+        {points.length === 0 ? (
+          <p className="weight-card__muted weight-screen__none">
+            {t('weight_screen.none', { period: per })}
+          </p>
+        ) : (
           <WeightChart
             points={points}
             trend={trend ? trend.slice(first) : null}
@@ -164,29 +168,33 @@ export function WeightView({
             onEdit={onEdit}
           />
         )}
-        <p className="weight-card__muted">
-          {diff === null
-            ? t('weight_screen.trend_soon')
-            : t('weight_screen.trend', { period: per, diff })}
-        </p>
-        <p className="weight-screen__legend" aria-hidden="true">
-          <span>
-            <i className="weight-screen__key" />
-            {t('weight_screen.legend_points')}
-          </span>
-          {trend && (
+        {points.length > 0 && (
+          <p className="weight-card__muted">
+            {diff === null
+              ? t('weight_screen.trend_soon')
+              : t('weight_screen.trend', { period: per, diff })}
+          </p>
+        )}
+        {points.length > 0 && (
+          <p className="weight-screen__legend" aria-hidden="true">
             <span>
-              <i className="weight-screen__key weight-screen__key--trend" />
-              {t('weight_screen.legend_trend')}
+              <i className="weight-screen__key" />
+              {t('weight_screen.legend_points')}
             </span>
-          )}
-          {target !== null && (
-            <span>
-              <i className="weight-screen__key weight-screen__key--goal" />
-              {t('weight_screen.legend_goal')}
-            </span>
-          )}
-        </p>
+            {trend && (
+              <span>
+                <i className="weight-screen__key weight-screen__key--trend" />
+                {t('weight_screen.legend_trend')}
+              </span>
+            )}
+            {target !== null && (
+              <span>
+                <i className="weight-screen__key weight-screen__key--goal" />
+                {t('weight_screen.legend_goal')}
+              </span>
+            )}
+          </p>
+        )}
         <WeightGoal
           today={today}
           units={units}

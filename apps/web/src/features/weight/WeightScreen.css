@@ -35,6 +35,18 @@
   display: grid;
 }
 
+.weight-screen__none {
+  display: grid;
+  place-items: center;
+  height: var(--chart-height);
+  text-align: center;
+}
+@media (min-width: 1024px) {
+  .weight-screen__none {
+    height: var(--chart-height-wide);
+  }
+}
+
 .weight-screen__legend {
   display: flex;
   flex-wrap: wrap;

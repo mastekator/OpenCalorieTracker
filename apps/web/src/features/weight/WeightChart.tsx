@@ -281,6 +281,10 @@ export function WeightChart({
             </button>
           )}
         </div>
+        <span className="wchart__live" aria-live="polite">
+          {sel >= 0 &&
+            `${f.day(points[sel]!.date)} · ${f.weight(points[sel]!.weightKg)}`}
+        </span>
         <ol className="wchart__axis" aria-hidden="true">
           {axis.ticks.map((v) => (
             <li key={v} style={{ top: pct(yOf(v)) }}>

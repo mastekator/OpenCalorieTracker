@@ -99,6 +99,15 @@ export const Pounds: Story = { args: { units: 'us' } };
 /** 3.7 */
 export const OneWeighing: Story = { args: { weighings: DIARY.slice(-1) } };
 export const OneWeighingDark: Story = { ...OneWeighing, globals: dark };
+/** No weigh-ins in the picked period (3 months): a quiet line in the chart's place. */
+export const EmptyPeriod: Story = {
+  args: { weighings: DIARY.filter((w) => w.date < addDays(TODAY, -100)) },
+};
+export const EmptyPeriodDark: Story = { ...EmptyPeriod, globals: dark };
+export const EmptyPeriodRussian: Story = {
+  ...EmptyPeriod,
+  globals: { locale: 'ru' },
+};
 /** 3.6: no chart, an invitation. */
 export const Empty: Story = { args: { weighings: [] } };
 export const EmptyDark: Story = { ...Empty, globals: dark };

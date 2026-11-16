@@ -157,3 +157,13 @@
   translate: -50% 0;
   white-space: nowrap;
 }
+
+/* Says the picked weighing to a screen reader; the tip itself is aria-hidden. */
+.wchart__live {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
