@@ -975,7 +975,11 @@ export const en = {
       body_manual: 'Otherwise the dishes you entered will be lost.',
     },
     add_manual: 'Add a dish manually',
-    photo: { add: 'Photo', add_label: 'Add photo' },
+    photo: {
+      add: 'Photo',
+      add_label: 'Add photo',
+      unavailable: 'Photo unavailable',
+    },
     illo: {
       title: 'Dish picture',
       change: 'Illustration: {name}, change',

@@ -664,6 +664,25 @@ describe('MealEditScreen: manual entry (OCT-60)', () => {
     expect(onSave.mock.calls[0]![1]).toBeUndefined();
   });
 
+  it('a thumbnail that fails to load becomes a quiet placeholder (OCT-196)', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => Response.json({ photoId: 'gone' }, { status: 201 })),
+    );
+    await open('user');
+    fireEvent.change(screen.getByTestId('edit-photo'), {
+      target: { files: [new File(['jpeg'], 'a.jpg', { type: 'image/jpeg' })] },
+    });
+    await waitFor(() =>
+      expect(document.querySelector('img.meal-edit__thumb')).toBeTruthy(),
+    );
+    fireEvent.error(document.querySelector('img.meal-edit__thumb')!);
+    expect(document.querySelector('img.meal-edit__thumb')).toBeNull();
+    expect(
+      screen.getByRole('img', { name: 'Photo unavailable' }).className,
+    ).toContain('meal-edit__thumb--broken');
+  });
+
   it('the photo slot is named «Add photo» and spins while uploading', async () => {
     let upload!: (r: Response) => void;
     vi.stubGlobal(
