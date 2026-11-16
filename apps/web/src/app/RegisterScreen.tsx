@@ -30,6 +30,7 @@ import type { Key } from '../i18n/translate';
 import { Banner } from '../ui/Banner/Banner';
 import { Button } from '../ui/Button/Button';
 import { Field } from '../ui/Field/Field';
+import { Mark } from '../ui/Mark/Mark';
 import { NavBar } from '../ui/NavBar/NavBar';
 import { PasswordRules } from '../ui/PasswordRules/PasswordRules';
 import { ScreenState } from '../ui/ScreenState/ScreenState';
@@ -37,7 +38,6 @@ import { Segment } from '../ui/Segment/Segment';
 import { isInAppBrowser, LINK_ERRORS, linkProblem } from './link';
 import { isCancel } from './LoginScreen';
 import './LoginScreen.css';
-import { Mark } from '../ui/Mark/Mark';
 import './RegisterScreen.css';
 
 /** invite: 2.1–2.3, recovery: 2.6, open: 2.7 (REGISTRATION=open, no link). */
