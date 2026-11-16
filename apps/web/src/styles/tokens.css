@@ -79,6 +79,9 @@
   --illo-dot-size: 18px;         /* OCT-33: pencil dot on a dish illustration */
   --illo-check-size: 22px;       /* OCT-33: check badge on the current picker tile */
   --icon-xs: 12px;               /* glyphs inside the illo dot and check (12–14 in the mock) */
+  --weight-ruler-height: 64px;   /* OCT-189: swipe ruler in the weigh-in sheet, 0.1 kg/lb = 1 tick */
+  --weight-tick-gap: 10px;       /* OCT-189: distance between 0.1 ticks */
+  --calendar-dot-size: 4px;      /* OCT-189: «has a weighing» dot under a calendar day */
 
   /* ── Radii ── */
   --radius-sm: 8px;   /* chips, small badges */
@@ -131,6 +134,9 @@
   --color-protein: #4766C4;
   --color-fat: #B36F00;
   --color-carbs: #16847E;
+  /* OCT-189: weight diary — one neutral hue, never green/red by direction (AC-9.17) */
+  --color-weight: #6B4FA0;
+  --color-weight-soft: #F1ECF8;
 
   /* OCT-33: dish illustrations (flat, decorative). Shown on a round "plate" tile so they never pass for a photo */
   --illo-tile: #F6F0E4;   /* round substrate behind every illustration */
@@ -189,6 +195,8 @@
     --color-protein: #93ABF2;
     --color-fat: #EBB45C;
     --color-carbs: #5ECFC6;
+    --color-weight: #C2A8EE;
+    --color-weight-soft: #2A2238;
     --shadow-sheet: 0 -8px 32px rgb(0 0 0 / 0.5);
     --shadow-toast: 0 8px 24px rgb(0 0 0 / 0.5);
     --shadow-camera: 0 6px 16px rgb(0 0 0 / 0.5);
@@ -231,6 +239,8 @@
   --color-protein: #93ABF2;
   --color-fat: #EBB45C;
   --color-carbs: #5ECFC6;
+  --color-weight: #C2A8EE;
+  --color-weight-soft: #2A2238;
   --shadow-sheet: 0 -8px 32px rgb(0 0 0 / 0.5);
   --shadow-toast: 0 8px 24px rgb(0 0 0 / 0.5);
   --shadow-camera: 0 6px 16px rgb(0 0 0 / 0.5);
