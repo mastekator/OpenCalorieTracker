@@ -1,9 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Meal, MealInput, SyncResponse } from '@oct/shared';
-import { openUserDb, type Db } from './db';
+import { openDB } from 'idb';
+import type {
+  Meal,
+  MealInput,
+  ProfileResponse,
+  SyncResponse,
+} from '@oct/shared';
+import { dbName, openUserDb, type Db } from './db';
 import {
   createMeal,
   deleteMeal,
+  deleteWeighing,
   expiringPhotos,
   flush,
   mealStatus,
@@ -12,6 +19,7 @@ import {
   pendingCount,
   putIllustrationChoice,
   putPhotoRetention,
+  putWeighing,
 } from './outbox';
 import { clearLocal } from './user';
 
@@ -620,5 +628,126 @@ describe('flush', () => {
     expect(calls[1]![1]).toMatchObject({ clientId: A, photoId: 'p1' });
     expect(await db.count('photos')).toBe(0);
     expect(await db.get('meals', A)).toMatchObject({ photo: { id: 'p1' } });
+  });
+});
+
+describe('weighings', () => {
+  const profile = (weightKg: number | null, rev = 3) =>
+    ({
+      profile: { weightKg, birthDate: null },
+      manual: null,
+      rev,
+    }) as ProfileResponse;
+  const weight = async () =>
+    ((await db.get('kv', 'profile')) as ProfileResponse).profile.weightKg;
+
+  it('offline put, edit and delete show at once and go out online', async () => {
+    await db.put('kv', profile(80), 'profile');
+    await putWeighing(db, '2026-11-14', 79);
+    await settle();
+    await putWeighing(db, '2026-11-14', 78.5);
+    await putWeighing(db, '2026-11-15', 78);
+    await settle();
+    await deleteWeighing(db, '2026-11-15');
+    await settle();
+    expect(await db.getAll('weighings')).toEqual([
+      { date: '2026-11-14', weightKg: 78.5 },
+    ]);
+    expect(await ops()).toMatchObject([
+      { kind: 'putWeighing', body: { date: '2026-11-14', weightKg: 78.5 } },
+      { kind: 'deleteWeighing', date: '2026-11-15' },
+    ]);
+    serve({
+      'PUT /api/weighings/2026-11-14': (b) =>
+        Response.json({ weighing: b, profile: profile(78.5, 4) }),
+      'DELETE /api/weighings/2026-11-15': () =>
+        Response.json({ profile: profile(78.5, 5) }),
+    });
+    await flush(db);
+    expect(calls.slice(0, 2)).toEqual([
+      ['PUT /api/weighings/2026-11-14', { weightKg: 78.5 }],
+      ['DELETE /api/weighings/2026-11-15', undefined],
+    ]);
+    expect(await ops()).toEqual([]);
+    expect(await db.get('kv', 'profile')).toEqual(profile(78.5, 5));
+  });
+
+  it('the profile weight follows the latest weighing at once, not a backdated one', async () => {
+    await db.put('kv', profile(80), 'profile');
+    await putWeighing(db, '2026-11-14', 79);
+    await settle();
+    expect(await weight()).toBe(79);
+    expect(((await db.get('kv', 'profile')) as ProfileResponse).rev).toBe(3);
+    await putWeighing(db, '2026-11-10', 82);
+    await settle();
+    expect(await weight()).toBe(79);
+    await deleteWeighing(db, '2026-11-14');
+    await settle();
+    expect(await weight()).toBe(82);
+    await deleteWeighing(db, '2026-11-10');
+    await settle();
+    expect(await weight()).toBe(82); // no weighings left: the profile keeps its weight
+  });
+
+  it('keeps the weight of a queued weighing over the server answer', async () => {
+    await db.put('kv', profile(80), 'profile');
+    await putWeighing(db, '2026-11-13', 79);
+    await putWeighing(db, '2026-11-14', 78);
+    await settle();
+    serve({
+      'PUT /api/weighings/2026-11-13': () =>
+        Response.json({ profile: profile(79, 4) }),
+    });
+    await flush(db);
+    expect(await weight()).toBe(78);
+  });
+
+  it('marks a refused weighing; a new value for the day replaces it', async () => {
+    await putWeighing(db, '2026-11-14', 79);
+    await settle();
+    serve({ 'PUT /api/weighings/2026-11-14': () => status(400) });
+    await flush(db);
+    expect(await ops()).toMatchObject([
+      { kind: 'putWeighing', error: 'validation_failed' },
+    ]);
+    expect(await db.get('weighings', '2026-11-14')).toBeDefined();
+    serve({});
+    await putWeighing(db, '2026-11-14', 78);
+    await settle();
+    expect(await ops()).toEqual([
+      expect.objectContaining({
+        kind: 'putWeighing',
+        body: { date: '2026-11-14', weightKg: 78 },
+      }),
+    ]);
+    expect((await ops())[0]!.error).toBeUndefined();
+  });
+});
+
+describe('upgrade from version 1', () => {
+  it('keeps meals and the queue and adds weighings', async () => {
+    db.close();
+    await clearLocal(7);
+    const v1 = await openDB(dbName(7), 1, {
+      upgrade(d) {
+        d.createObjectStore('meals', { keyPath: 'clientId' }).createIndex(
+          'localDate',
+          'localDate',
+        );
+        d.createObjectStore('outbox', {
+          keyPath: 'seq',
+          autoIncrement: true,
+        }).createIndex('clientId', 'clientId');
+        d.createObjectStore('kv');
+        d.createObjectStore('photos');
+      },
+    });
+    await v1.put('meals', { clientId: A, localDate: '2026-11-14' });
+    await v1.add('outbox', { kind: 'deleteMeal', clientId: A, id: 5 });
+    v1.close();
+    db = await openUserDb(7);
+    expect(await db.get('meals', A)).toMatchObject({ clientId: A });
+    expect(await ops()).toMatchObject([{ kind: 'deleteMeal', id: 5 }]);
+    expect(await db.count('weighings')).toBe(0);
   });
 });

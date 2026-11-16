@@ -11,7 +11,7 @@ import { I18nProvider, LOCALE_STORAGE_KEY } from '../i18n';
 import { ToastProvider } from '../ui/Toast/Toast';
 import { DataProvider, useMeals, useNorm } from './DataContext';
 import { openUserDb, type Db } from './db';
-import { patchSettings } from './outbox';
+import { patchSettings, putWeighing } from './outbox';
 import { pull, storeProfile } from './sync';
 import { clearLocal } from './user';
 
@@ -87,6 +87,34 @@ afterEach(async () => {
 });
 
 describe('pull', () => {
+  it('applies weighings but keeps a day with a queued op', async () => {
+    await open();
+    vi.stubGlobal('fetch', () => Promise.reject(new TypeError('offline')));
+    await db.put('kv', PROFILE, 'profile');
+    await putWeighing(db, '2026-11-14', 79);
+    await db.put('weighings', { date: '2026-11-01', weightKg: 81 });
+    serve(
+      page({
+        rev: 2,
+        profile: { ...PROFILE, rev: 2 },
+        weighings: [
+          { date: '2026-11-14', weightKg: 85 },
+          { date: '2026-11-10', weightKg: 80 },
+          { date: '2026-11-01', weightKg: null },
+        ],
+      }),
+    );
+    await pull(db);
+    expect(await db.getAll('weighings')).toEqual([
+      { date: '2026-11-10', weightKg: 80 },
+      { date: '2026-11-14', weightKg: 79 },
+    ]);
+    // The server profile does not know the queued weighing yet.
+    expect(
+      ((await db.get('kv', 'profile')) as ProfileResponse).profile.weightKg,
+    ).toBe(79);
+  });
+
   it('applies meals, settings and illustration choices and stores rev', async () => {
     await open();
     const settings = { locale: 'en', theme: 'dark', units: 'metric' };

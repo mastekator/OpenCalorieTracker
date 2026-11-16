@@ -11,11 +11,14 @@ import {
   type MealInput,
   type MealPatch,
   type PhotoRetentionDays,
+  type ProfileResponse,
+  type WeighingDeleteResponse,
+  type WeighingPutResponse,
 } from '@oct/shared';
 import { api, ApiError } from '../api/client';
 import { emitChange } from './changes';
 import type { Choices, Db, Op, OctDb } from './db';
-import { pull, settingsQueued } from './sync';
+import { followLatest, pull, settingsQueued, weighingsQueued } from './sync';
 
 const MIN_DELAY = 5_000;
 const MAX_DELAY = 5 * 60_000;
@@ -40,13 +43,16 @@ const stateOf = (db: Db) => {
 
 type Tx = IDBPTransaction<
   OctDb,
-  ('meals' | 'outbox' | 'kv' | 'photos')[],
+  ('meals' | 'outbox' | 'kv' | 'photos' | 'weighings')[],
   'readwrite'
 >;
 
 /** Changes the local copy and the queue in one transaction, then sends (ADR-0011 §4). */
 async function local(db: Db, change: (tx: Tx) => Promise<void>) {
-  const tx = db.transaction(['meals', 'outbox', 'kv', 'photos'], 'readwrite');
+  const tx = db.transaction(
+    ['meals', 'outbox', 'kv', 'photos', 'weighings'],
+    'readwrite',
+  );
   await change(tx);
   await tx.done;
   emitChange();
@@ -269,6 +275,32 @@ export function putPhotoRetention(db: Db, days: PhotoRetentionDays) {
   });
 }
 
+/** Records the day's weight (`YYYY-MM-DD`); moving a weighing to another day is delete + put. */
+export const putWeighing = (db: Db, date: string, weightKg: number) =>
+  weighing(db, {
+    kind: 'putWeighing',
+    clientId: `weighing:${date}`,
+    body: { date, weightKg },
+  });
+
+/** Always queued: the day may be on the server already, and the DELETE is idempotent. */
+export const deleteWeighing = (db: Db, date: string) =>
+  weighing(db, { kind: 'deleteWeighing', clientId: `weighing:${date}`, date });
+
+function weighing(db: Db, op: Op & { kind: 'putWeighing' | 'deleteWeighing' }) {
+  return local(db, async (tx) => {
+    const weighings = tx.objectStore('weighings');
+    if (op.kind === 'putWeighing') await weighings.put(op.body);
+    else await weighings.delete(op.date);
+    // One op per day: the new one replaces an unsent or refused one.
+    const outbox = tx.objectStore('outbox');
+    for (const o of await queued(db, tx, op.clientId))
+      await outbox.delete(o.seq!);
+    await outbox.add(op);
+    await followLatest(tx);
+  });
+}
+
 const DAY_MS = 86_400_000;
 
 /** Full photos a shorter period deletes now, by the local copy (OCT-25 §4); as the server's expiry. */
@@ -341,6 +373,8 @@ async function send(db: Db, s: State): Promise<boolean> {
 }
 
 const mealSchema = z.custom<Meal>();
+const putSchema = z.custom<WeighingPutResponse>();
+const deleteSchema = z.custom<WeighingDeleteResponse>();
 const photoSchema = z.object({ photoId: z.string() });
 
 async function deliver(db: Db, op: Op) {
@@ -383,6 +417,28 @@ async function deliver(db: Db, op: Op) {
         method: 'PUT',
         body: op.body,
       });
+      break;
+    case 'putWeighing':
+      return weighed(
+        db,
+        op,
+        (
+          await api(`/api/weighings/${op.body.date}`, putSchema, {
+            method: 'PUT',
+            body: { weightKg: op.body.weightKg },
+          })
+        ).profile,
+      );
+    case 'deleteWeighing':
+      return weighed(
+        db,
+        op,
+        (
+          await api(`/api/weighings/${op.date}`, deleteSchema, {
+            method: 'DELETE',
+          })
+        ).profile,
+      );
   }
   await db.delete('outbox', op.seq!);
 }
@@ -417,6 +473,16 @@ async function saved(db: Db, op: Op, meal: Meal) {
   const local = await meals.get(op.clientId);
   if (!later.length) await meals.put(meal);
   else if (local) await meals.put({ ...local, id: meal.id });
+  await tx.done;
+}
+
+/** The server's profile, with the weight of weighings still queued on top. */
+async function weighed(db: Db, op: Op, profile: ProfileResponse) {
+  const tx = db.transaction(['outbox', 'kv', 'weighings'], 'readwrite');
+  const outbox = tx.objectStore('outbox');
+  await outbox.delete(op.seq!);
+  await tx.objectStore('kv').put(profile, 'profile');
+  if (await weighingsQueued(outbox.index('clientId'))) await followLatest(tx);
   await tx.done;
 }
 
