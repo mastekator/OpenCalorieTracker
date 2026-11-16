@@ -1,0 +1,68 @@
+/* The sheet bleeds it to the screen edges; ticks fade out at both ends (OCT-189 2.1). */
+.ruler {
+  position: relative;
+  height: var(--weight-ruler-height);
+  overflow: hidden;
+  mask-image: linear-gradient(
+    90deg,
+    transparent,
+    #000 22%,
+    #000 78%,
+    transparent
+  );
+  touch-action: pan-y;
+  cursor: grab;
+  user-select: none;
+}
+
+.ruler:focus-visible {
+  outline: var(--focus-ring-width) solid var(--color-focus-ring);
+  outline-offset: var(--focus-ring-offset);
+  mask-image: none;
+}
+
+/* Centred on the pointer; 61 ticks = 2 × SIDE + 1 in WeightRuler.tsx, one --weight-tick-gap each. */
+.ruler__scale {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: calc(61 * var(--weight-tick-gap));
+  height: 100%;
+  translate: -50% 0;
+}
+
+.ruler__tick {
+  stroke: var(--color-border-strong);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+
+.ruler__tick--half {
+  stroke-width: 2;
+}
+
+.ruler__label {
+  fill: var(--color-text-secondary);
+  font-family: var(--font-sans);
+  font-size: var(--text-caption-size);
+  font-variant-numeric: tabular-nums;
+  text-anchor: middle;
+}
+
+.ruler__label--on {
+  fill: var(--color-text);
+  font-weight: var(--text-headline-weight);
+}
+
+/* The pointer: the value under it is the one shown above the ruler. */
+.ruler::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 3px;
+  height: 60%;
+  translate: -50% 0;
+  border-radius: var(--radius-full);
+  background: var(--color-weight);
+}

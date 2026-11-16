@@ -496,6 +496,7 @@ const ru: DeepPartial<typeof en> = {
     weight: 'Вес',
   },
   unit: { cm: 'см', in: 'in', kg: 'кг', lb: 'lb', g: 'г', oz: 'oz' },
+  weighing: { has: 'есть взвешивание' },
   goal: {
     title: 'Цель',
     lose: 'Похудеть',

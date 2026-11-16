@@ -487,6 +487,7 @@ export const en = {
     weight: 'Weight',
   },
   unit: { cm: 'cm', in: 'in', kg: 'kg', lb: 'lb', g: 'g', oz: 'oz' },
+  weighing: { has: 'has a weighing' },
   goal: {
     title: 'Goal',
     lose: 'Lose',
