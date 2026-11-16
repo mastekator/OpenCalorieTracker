@@ -315,6 +315,14 @@ describe('registration', () => {
       expect(t.db.prepare('SELECT COUNT(*) AS n FROM users').get()).toEqual({
         n: 0,
       });
+      // The operator fixes the env and restarts: the admin is seeded.
+      const fixed = testApp({ REGISTRATION: 'open' }).config;
+      await ensureAdmin(fixed, t.db);
+      expect(
+        t.db
+          .prepare("SELECT email, role FROM users WHERE role = 'admin'")
+          .all(),
+      ).toEqual([{ email: ADMIN, role: 'admin' }]);
     });
 
     it('gives a taken email or one with a pending invite the same vague answer and counts it', async () => {
