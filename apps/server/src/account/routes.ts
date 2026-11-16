@@ -76,7 +76,10 @@ export function accountRoutes({ db, config }: AppDeps) {
              WHERE user_id = @userId AND photo_full = 1`,
           ).run({ userId, days, dayMs: DAY_MS });
         })();
-        await sweepPhotos(db, config.dataDir, Date.now());
+        // The setting is saved; a failed sweep is retried hourly and must not fail the request.
+        await sweepPhotos(db, config.dataDir, Date.now()).catch((err) =>
+          console.error(`[photos] sweep failed: ${(err as Error).message}`),
+        );
         return c.json({ days });
       },
     )

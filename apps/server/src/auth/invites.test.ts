@@ -114,6 +114,19 @@ describe('admin invites', () => {
       status: 'invalid',
     });
     expect((await call('POST', revoke, undefined, admin)).status).toBe(409);
+    vi.useFakeTimers({ toFake: ['Date'] });
+    const expired = await invite('late@example.com');
+    vi.setSystemTime(Date.now() + LINK_TTL);
+    expect(
+      (
+        await call(
+          'POST',
+          `/api/admin/invites/${expired.id}/revoke`,
+          undefined,
+          admin,
+        )
+      ).body,
+    ).toEqual({ error: { code: 'invite_expired' } });
     expect(
       (await call('POST', '/api/admin/invites/999/revoke', undefined, admin))
         .status,

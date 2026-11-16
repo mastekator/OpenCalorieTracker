@@ -177,10 +177,15 @@ export function adminRoutes({ config, db, model = null }: AppDeps) {
           )
           .run({ now: Date.now(), id: inviteId });
         if (changes) return c.body(null, 204);
-        if (db.prepare('SELECT 1 FROM invites WHERE id = ?').get(inviteId)) {
-          throw new ApiError(409, 'invite_used');
-        }
-        throw new ApiError(404, 'not_found');
+        const row = db
+          .prepare('SELECT used_at, revoked_at FROM invites WHERE id = ?')
+          .get(inviteId) as
+          { used_at: number | null; revoked_at: number | null } | undefined;
+        if (!row) throw new ApiError(404, 'not_found');
+        // Neither used nor revoked: it expired while the admin had the list open.
+        if (row.used_at === null && row.revoked_at === null)
+          throw new ApiError(410, 'invite_expired');
+        throw new ApiError(409, 'invite_used');
       })
       .get('/admin/users', (c) => {
         const rows = db

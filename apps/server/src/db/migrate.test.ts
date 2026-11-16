@@ -33,6 +33,17 @@ describe('migrate', () => {
     ]);
   });
 
+  it('gives every migration its own number', () => {
+    // migrate() skips a file whose number is <= user_version, so a duplicate is never applied
+    // on a database that already took its twin. The 0005 pair predates any release.
+    const numbers = readdirSync(new URL('./migrations/', import.meta.url))
+      .filter((f) => /^\d{4}_\w+\.sql$/.test(f))
+      .map((f) => f.slice(0, 4));
+    expect(numbers.filter((n, i) => numbers.indexOf(n) !== i)).toEqual([
+      '0005',
+    ]);
+  });
+
   it('does nothing when run again', () => {
     const db = openDb(':memory:');
     migrate(db);
