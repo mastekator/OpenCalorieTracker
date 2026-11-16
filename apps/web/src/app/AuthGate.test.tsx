@@ -368,6 +368,45 @@ describe('sign-out (4.6) and the offline flag', () => {
     expect(localStorage.getItem(SIGNED_OUT_KEY)).toBeNull();
   });
 
+  it('from an invite link: deletes the local base and stays on the link (2.5)', async () => {
+    const calls = serveLogout();
+    setLastUser(me);
+    (await openUserDb(me.id)).close();
+    const location = renderAt('/invite');
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Sign out and continue' }),
+    );
+    await vi.waitFor(() => expect(getLastUser()).toBeNull());
+    expect(calls).toContain('POST /api/auth/logout');
+    expect(await dbNames()).not.toContain(`oct-${me.id}`);
+    expect(location.history.at(-1)).toBe('/invite');
+  });
+
+  it('from an invite link with unsent entries: warns first, «Cancel» keeps them', async () => {
+    const calls = serveLogout();
+    await queuedFor(me, 1);
+    renderAt('/invite');
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Sign out and continue' }),
+    );
+    // The send fails (401 here), so the entry is still unsent.
+    await screen.findByRole('alertdialog', { name: 'Sign out?' });
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(calls).not.toContain('POST /api/auth/logout');
+    expect(await pendingOf(me.id)).toBe(1);
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Sign out and continue' }),
+    );
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Sign out and delete entries',
+      }),
+    );
+    await vi.waitFor(() => expect(getLastUser()).toBeNull());
+    expect(await dbNames()).not.toContain(`oct-${me.id}`);
+  });
+
   it('offline: signs out here and ends the session on the next start', async () => {
     let offline = false;
     const calls = serveLogout(() => offline);
