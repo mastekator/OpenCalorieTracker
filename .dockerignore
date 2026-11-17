@@ -10,3 +10,5 @@ Dockerfile
 docker-compose.yml
 apps/server/test-photos
 **/storybook-static
+/data
+/apps/server/data
