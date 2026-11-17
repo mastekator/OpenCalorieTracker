@@ -69,6 +69,57 @@ jobs:
           curl -fsS -X POST http://localhost:3000/api/auth/login \
             -H 'Content-Type: application/json' \
             -d '{"email":"admin@example.com","password":"smoke-Pass-1!"}'
+          # Default compose: Docker creates ./data as root, the app hands it to 1000:1000.
+          [ "$(stat -c %u:%g data/oct.sqlite)" = 1000:1000 ]
+          docker compose down
+      # ADR-0017: a NAS folder owned by 1026:100, a wrong `user:`, and an upgrade from the 0.1.0 volume.
+      - name: Data folder owners
+        run: |
+          env="-e PUBLIC_URL=http://localhost:3000 -e ADMIN_EMAIL=admin@example.com -e ADMIN_PASSWORD=smoke-Pass-1!"
+          healthy() {
+            for i in $(seq 30); do
+              s=$(docker inspect -f '{{.State.Health.Status}}' oct)
+              [ "$s" = healthy ] && break
+              sleep 2
+            done
+            docker logs oct
+            [ "$s" = healthy ] || { echo "container is $s"; exit 1; }
+          }
+          login() {
+            curl -fsS -X POST http://localhost:3000/api/auth/login \
+              -H 'Content-Type: application/json' \
+              -d '{"email":"admin@example.com","password":"smoke-Pass-1!"}'
+          }
+
+          # (a) PUID/PGID 1026:100 on a folder owned by them; sign-in survives a restart.
+          mkdir /tmp/nas && sudo chown 1026:100 /tmp/nas
+          docker run -d --name oct -p 3000:3000 -v /tmp/nas:/data -e PUID=1026 -e PGID=100 $env oct:smoke
+          healthy && login
+          [ -z "$(sudo find /tmp/nas ! -user 1026 -o ! -group 100)" ] || { sudo ls -lan /tmp/nas; exit 1; }
+          docker restart oct && healthy && login
+
+          # The CLI run by `docker exec` as root leaves no root-owned files behind.
+          docker exec oct node dist/cli.js reset-admin-access
+          [ -z "$(sudo find /tmp/nas ! -user 1026 -o ! -group 100)" ] || { sudo ls -lan /tmp/nas; exit 1; }
+          docker rm -f oct
+
+          # (b) `user:` that cannot write the folder: the server stays up and names the problem.
+          docker run -d --name oct -p 3000:3000 -v /tmp/nas:/data --user 1000:1000 $env oct:smoke
+          healthy
+          docker logs oct 2>&1 | grep -q 'data_dir_not_writable: /data is not writable for 1000:1000'
+          curl -fsS http://localhost:3000/api/config | grep -q '"setupError":"data_dir_not_writable"'
+          docker rm -f oct
+
+          # Garbage PUID: refuses to start rather than run as root.
+          rc=0; timeout 60 docker run --rm -e PUID=0 oct:smoke || rc=$?
+          [ "$rc" = 1 ] || { echo "PUID=0 exited with $rc"; exit 1; }
+
+          # (c) Upgrade: a volume written by the 0.1.0 image keeps working.
+          docker volume create oct-old
+          docker run -d --name oct -p 3000:3000 -v oct-old:/data $env ghcr.io/mastekator/opencalorietracker:0.1.0
+          healthy && login && docker rm -f oct
+          docker run -d --name oct -p 3000:3000 -v oct-old:/data $env oct:smoke
+          healthy && login
 
   # Multi-arch build; pushed to GHCR only from main (edge) and v* tags.
   image:

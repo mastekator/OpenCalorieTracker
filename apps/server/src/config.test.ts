@@ -1,5 +1,10 @@
+import { chmodSync, mkdtempSync, readdirSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { loadConfig } from './config.js';
+import { dataDirWritable, loadConfig } from './config.js';
+import { createApp } from './app.js';
+import { parseIds } from './privileges.js';
 import { testApp } from './test/app.js';
 
 const setupError = async (env: Record<string, string | undefined>) => {
@@ -86,4 +91,50 @@ describe('setupError (AC-7.1, AC-1.3)', () => {
     };
     expect(body.setupError).toBeNull();
   });
+});
+
+describe('data dir (ADR-0017)', () => {
+  it('is writable when it can be created, and leaves no probe behind', () => {
+    const dir = join(mkdtempSync(join(tmpdir(), 'oct-')), 'data');
+    expect(dataDirWritable(dir)).toBe(true);
+    expect(readdirSync(dir)).toEqual([]);
+  });
+
+  it.skipIf(process.getuid?.() === 0)('reports a read-only folder', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'oct-'));
+    chmodSync(dir, 0o555);
+    expect(dataDirWritable(dir)).toBe(false);
+    expect(dataDirWritable(join(dir, 'data'))).toBe(false);
+  });
+
+  it('names the problem first in /api/config, without the path or ids', async () => {
+    const { config, db } = testApp({ DATA_DIR: '/srv/secret-dir' });
+    config.dataDirWritable = false;
+    const res = await createApp({ config, db }).request('/api/config');
+    const body = await res.text();
+    expect(JSON.parse(body).setupError).toBe('data_dir_not_writable');
+    expect(body).not.toContain('secret-dir');
+  });
+});
+
+describe('parseIds', () => {
+  it('defaults to 1000:1000, also for empty values', () => {
+    expect(parseIds({})).toEqual({ uid: 1000, gid: 1000 });
+    expect(parseIds({ PUID: '', PGID: '' })).toEqual({ uid: 1000, gid: 1000 });
+  });
+
+  it('takes the NAS user', () => {
+    expect(parseIds({ PUID: '1026', PGID: '100' })).toEqual({
+      uid: 1026,
+      gid: 100,
+    });
+  });
+
+  it.each(['0', '-1', 'abc', '10.5', ' 1026', '0x10'])(
+    'refuses %j, so the app never runs as root',
+    (v) => {
+      expect(() => parseIds({ PUID: v })).toThrow(/PUID/);
+      expect(() => parseIds({ PGID: v })).toThrow(/PGID/);
+    },
+  );
 });

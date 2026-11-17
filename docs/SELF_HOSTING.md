@@ -28,6 +28,29 @@ The log lists any configuration problems, and the sign-in page names the first o
 
 The container listens on `127.0.0.1:3000` only; users reach it through the reverse proxy.
 
+### Data folder and its owner
+
+The database and photos are kept in `./data` next to `docker-compose.yml`. The app runs as the user and group set by `PUID` and `PGID` in `.env` (default `1000`): at every start it gives `./data` to them, then drops root before doing anything else. Set them to the account that owns the folder on the host — `id` prints its numbers:
+
+```sh
+$ id
+uid=1026(alice) gid=100(users) ...
+```
+
+```
+PUID=1026
+PGID=100
+```
+
+If the folder cannot be written (for example, a network share that refuses ownership changes), the log says `data_dir_not_writable` and the sign-in screen explains it. Then set `PUID`/`PGID` to the folder's current owner, or give that user write access to the folder. Running the container with Compose `user: "1026:100"` instead of `PUID`/`PGID` also works, but then the folder must already be writable by that user.
+
+**Named volume instead of a folder.** If you prefer Docker to manage the storage, replace `./data:/data` with `oct-data:/data` in `docker-compose.yml` and add at the end:
+
+```yaml
+volumes:
+  oct-data:
+```
+
 ### First sign-in
 
 Open `PUBLIC_URL` and sign in with `ADMIN_EMAIL` and `ADMIN_PASSWORD`. The admin is created only on the first start with an empty database; afterwards both variables are ignored, so change the password in the app and, if you like, add a passkey. Invite other users from the admin section.
@@ -68,23 +91,50 @@ docker compose up -d
 
 Database migrations run on start. Back up first.
 
+`docker-compose.yml` pins a version (e.g. `:0.1.1`), so nothing changes until you edit the tag. `:latest` points to the newest release and `:0.1` to the newest `0.1.x`: with them every `docker compose pull` may bring a new version, migrations included, without you reading its changelog. Rolling back after a migration needs a backup, so a pinned version is recommended.
+
 ### Backup and restore
 
-Everything (database and photos) is in the `/data` volume. Compose prefixes the volume name with the project name, by default the directory name: with the steps above it is `opencalorietracker_oct-data` (check with `docker volume ls`). Back up with the container stopped:
+Everything (database and photos) is in the `data` folder. Back it up with the container stopped, so the database is not copied in the middle of a write:
 
 ```sh
 docker compose stop
-docker run --rm -v opencalorietracker_oct-data:/data -v "$PWD":/b alpine tar czf /b/oct-backup.tgz -C /data .
+tar czf oct-backup.tgz -C data .
 docker compose start
 ```
 
-Restore into the same volume:
+Restore:
 
 ```sh
 docker compose stop
-docker run --rm -v opencalorietracker_oct-data:/data -v "$PWD":/b alpine sh -c 'rm -rf /data/* && tar xzf /b/oct-backup.tgz -C /data'
+rm -rf data && mkdir data && tar xzf oct-backup.tgz -C data
 docker compose start
 ```
+
+Run these as the folder's owner or with `sudo`; the app fixes the owner on start.
+
+### Moving from a named volume to a folder
+
+Installations from 0.1.0 keep data in the Docker volume `opencalorietracker_oct-data` (the prefix is the directory name; check with `docker volume ls`). On Synology, run these commands over SSH with `sudo`; the prefix is the Container Manager project name. To move it into `./data`, next to `docker-compose.yml`:
+
+```sh
+docker compose down
+mkdir -p data
+docker run --rm -v opencalorietracker_oct-data:/from -v "$PWD/data":/to alpine cp -a /from/. /to/
+```
+
+Then in `docker-compose.yml` change `- oct-data:/data` to `- ./data:/data` and delete the `volumes:` section at the end (or take the current `docker-compose.yml` and set your version tag), add `PUID`/`PGID` to `.env`, and start with `docker compose up -d`. Once you have signed in and seen your diary, remove the old volume: `docker volume rm opencalorietracker_oct-data`.
+
+### Synology and other NAS
+
+Written for Synology DSM 7.2 with Container Manager; other NAS systems with Docker Compose follow the same steps.
+
+1. **Folder.** In File Station create `docker/opencalorietracker` (e.g. `/volume1/docker/opencalorietracker`). Put `docker-compose.yml` and `.env` from [Start](#start) there and fill in `.env`. The `data` subfolder is created on the first start.
+2. **User.** Set `PUID` and `PGID` in `.env` to the DSM user who should own the files. Over SSH, `id` prints them; the first user created on DSM is usually `1026`, the `users` group is `100`.
+3. **Project.** Container Manager → Project → Create: name `opencalorietracker`, path — the folder above, source — use the existing `docker-compose.yml`. Finish to start it. The project log shows the same messages as `docker compose logs`.
+4. **HTTPS.** Control Panel → Login Portal → Advanced → Reverse Proxy → Create: source `HTTPS`, your domain, port `443`; destination `HTTP`, `localhost`, port `3000`. Then Control Panel → Security → Certificate → Add → Let's Encrypt for that domain, and under Settings assign it to the reverse proxy entry. `TRUST_PROXY_HOPS=1`, `PUBLIC_URL=https://` plus your domain.
+5. **Backup.** In Hyper Backup include `docker/opencalorietracker` (the `data` folder holds everything). SQLite copied in the middle of a write may be inconsistent: for a guaranteed-clean copy, stop the project before the backup; otherwise keep several backup versions.
+6. **Updating.** Back up first. Container Manager → Project → Stop, edit the tag in `docker-compose.yml` (Project → YAML), then Build — it pulls the new image and starts it.
 
 ## Configuration
 
@@ -102,12 +152,13 @@ All settings are environment variables. An empty value (`KEY=`) counts as not se
 | `AI_MODEL`         | —                    | Model id at that provider, e.g. `gemini-3.8-flash`. Required with `AI_PROVIDER`.                                                             |
 | `AI_API_KEY`       | —                    | API key of the provider. Never logged.                                                                                                       |
 | `AI_BASE_URL`      | —                    | Endpoint URL; required for `openai-compatible`, e.g. `http://ollama:11434/v1`.                                                               |
-| `DATA_DIR`         | `/data` in the image | Where the SQLite database and photos live. Mount a volume here.                                                                              |
+| `DATA_DIR`         | `/data` in the image | Where the SQLite database and photos live. Mount a folder or volume here.                                                                    |
+| `PUID`, `PGID`     | `1000`               | User and group the app runs as and gives the data folder to. See [Data folder and its owner](#data-folder-and-its-owner).                    |
 | `PORT`             | `3000`               | HTTP port inside the container.                                                                                                              |
 | `HOST`             | `0.0.0.0`            | Address to listen on.                                                                                                                        |
 | `WEB_DIST`         | set by the image     | Built web app directory; change only for development.                                                                                        |
 
-Configuration problems (bad `PUBLIC_URL`, missing admin settings) do not stop the server: they are printed in the log at startup and shown on the sign-in screen.
+Configuration problems (bad `PUBLIC_URL`, missing admin settings, a data folder it cannot write) do not stop the server: they are printed in the log at startup and shown on the sign-in screen.
 
 ### `PUBLIC_URL`: choose it once
 
