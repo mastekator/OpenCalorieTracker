@@ -1,4 +1,4 @@
-import { Plus, Settings2 } from 'lucide-react';
+import { Settings2 } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Redirect, Route, Switch, useLocation, useSearch } from 'wouter';
 import { openUserDb } from '../data/db';
@@ -205,15 +205,8 @@ export function AppScreens() {
         </Screen>
       </Route>
       <Route path={INVITES_PATH}>
-        <Screen
-          title={t('invites.title')}
-          back={toSettings}
-          action={{
-            icon: Plus,
-            label: t('invites.invite'),
-            href: `${INVITES_PATH}?new`,
-          }}
-        >
+        {/* «Invite» is the row under the list (OCT-13 §7), not a navbar action too. */}
+        <Screen title={t('invites.title')} back={toSettings}>
           <InvitesScreen />
         </Screen>
       </Route>
