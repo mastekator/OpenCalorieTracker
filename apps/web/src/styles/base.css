@@ -9,6 +9,8 @@
 }
 
 html {
+  /* iOS standalone (black-translucent) samples the root for the status bar; without it WebKit blurs the edge. */
+  background: var(--color-bg);
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
 }
