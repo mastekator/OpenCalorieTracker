@@ -115,7 +115,7 @@ Run these as the folder's owner or with `sudo`; the app fixes the owner on start
 
 ### Moving from a named volume to a folder
 
-Installations from 0.1.0 keep data in the Docker volume `opencalorietracker_oct-data` (the prefix is the directory name; check with `docker volume ls`). To move it into `./data`, next to `docker-compose.yml`:
+Installations from 0.1.0 keep data in the Docker volume `opencalorietracker_oct-data` (the prefix is the directory name; check with `docker volume ls`). On Synology, run these commands over SSH with `sudo`; the prefix is the Container Manager project name. To move it into `./data`, next to `docker-compose.yml`:
 
 ```sh
 docker compose down
@@ -133,8 +133,8 @@ Written for Synology DSM 7.2 with Container Manager; other NAS systems with Dock
 2. **User.** Set `PUID` and `PGID` in `.env` to the DSM user who should own the files. Over SSH, `id` prints them; the first user created on DSM is usually `1026`, the `users` group is `100`.
 3. **Project.** Container Manager → Project → Create: name `opencalorietracker`, path — the folder above, source — use the existing `docker-compose.yml`. Finish to start it. The project log shows the same messages as `docker compose logs`.
 4. **HTTPS.** Control Panel → Login Portal → Advanced → Reverse Proxy → Create: source `HTTPS`, your domain, port `443`; destination `HTTP`, `localhost`, port `3000`. Then Control Panel → Security → Certificate → Add → Let's Encrypt for that domain, and under Settings assign it to the reverse proxy entry. `TRUST_PROXY_HOPS=1`, `PUBLIC_URL=https://` plus your domain.
-5. **Backup.** In Hyper Backup include `docker/opencalorietracker` (the `data` folder holds everything). Schedule it for a quiet hour: a copy taken while someone is saving food may need the previous backup version; stopping the project for the backup avoids that.
-6. **Updating.** Container Manager → Project → Stop, edit the tag in `docker-compose.yml` (Project → YAML), then Build — it pulls the new image and starts it.
+5. **Backup.** In Hyper Backup include `docker/opencalorietracker` (the `data` folder holds everything). SQLite copied in the middle of a write may be inconsistent: for a guaranteed-clean copy, stop the project before the backup; otherwise keep several backup versions.
+6. **Updating.** Back up first. Container Manager → Project → Stop, edit the tag in `docker-compose.yml` (Project → YAML), then Build — it pulls the new image and starts it.
 
 ## Configuration
 
