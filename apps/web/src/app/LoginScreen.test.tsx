@@ -369,6 +369,7 @@ describe('LoginScreen', () => {
   });
 
   it.each([
+    ['data_dir_not_writable', /^\/data isn’t writable/, false],
     ['public_url_invalid', /^PUBLIC_URL must be/, false],
     ['admin_missing', /^ADMIN_EMAIL isn’t set/, false],
     ['admin_email_invalid', /^ADMIN_EMAIL isn’t a valid/, true],
@@ -389,7 +390,7 @@ describe('LoginScreen', () => {
     expect(
       texts('.screen-state__details p').some((p) => /^In \.env, avoid/.test(p)),
     ).toBe(envHint);
-    const [variable = ''] = text.source.slice(1).split(' ');
+    const [variable = ''] = text.source.slice(1).replace('\\/', '/').split(' ');
     expect(screen.getAllByText(variable).at(0)?.tagName).toBe('CODE');
     expect(screen.queryAllByRole('listitem')).toHaveLength(
       setupError === 'admin_password_invalid' ? 6 : 0,

@@ -51,6 +51,7 @@ export type Registration = z.infer<typeof registrationSchema>;
 
 /** Installation problems the owner must fix in the compose file; shown on the sign-in screen. */
 export const setupErrorSchema = z.enum([
+  'data_dir_not_writable',
   'public_url_invalid',
   'admin_missing',
   'admin_email_invalid',

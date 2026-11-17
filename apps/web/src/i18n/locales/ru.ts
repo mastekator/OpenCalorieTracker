@@ -74,6 +74,8 @@ const ru: DeepPartial<typeof en> = {
     },
     not_configured: {
       title: 'Установка не настроена',
+      data_dir_not_writable:
+        'Нет прав на запись в `/data`. Задайте `PUID` и `PGID` — владельца папки с данными (команда `id` на сервере) — или поменяйте права на папку.',
       public_url_invalid:
         '`PUBLIC_URL` — адрес, который открывают пользователи, например `https://food.example.com`, без пути в конце. http подходит только для localhost.',
       admin_missing:

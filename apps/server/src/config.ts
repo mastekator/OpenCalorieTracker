@@ -1,3 +1,12 @@
+import {
+  accessSync,
+  constants,
+  existsSync,
+  mkdirSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { join } from 'node:path';
 import { z } from 'zod';
 import type { Database } from 'better-sqlite3';
 import {
@@ -43,6 +52,8 @@ export interface Config {
   adminPassword: string | undefined;
   trustProxyHops: number;
   dataDir: string;
+  /** False when the process cannot write DATA_DIR; set at startup by dataDirWritable(). */
+  dataDirWritable: boolean;
   webDist: string;
   port: number;
   host: string;
@@ -72,6 +83,7 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
     adminPassword: e.ADMIN_PASSWORD,
     trustProxyHops: e.TRUST_PROXY_HOPS,
     dataDir: e.DATA_DIR,
+    dataDirWritable: true,
     webDist: e.WEB_DIST,
     port: e.PORT,
     host: e.HOST,
@@ -103,6 +115,7 @@ function publicOrigin(raw: string | undefined): string | null {
 /** All installation problems, in display order; the first one is shown on the sign-in screen. */
 export function setupErrors(config: Config, db: Database): SetupError[] {
   const errors: SetupError[] = [];
+  if (!config.dataDirWritable) errors.push('data_dir_not_writable');
   if (!config.publicUrl) errors.push('public_url_invalid');
   // The admin from env is only used to seed an empty database.
   if (!db.prepare('SELECT 1 FROM users LIMIT 1').get()) {
@@ -124,7 +137,24 @@ export function setupErrors(config: Config, db: Database): SetupError[] {
   return errors;
 }
 
+/** Creates `dir` if needed and proves this process can write it and the database in it. */
+export function dataDirWritable(dir: string) {
+  try {
+    mkdirSync(dir, { recursive: true });
+    const probe = join(dir, '.write-test');
+    writeFileSync(probe, '');
+    rmSync(probe);
+    const db = join(dir, 'oct.sqlite');
+    if (existsSync(db)) accessSync(db, constants.W_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export const setupErrorMessages: Record<SetupError, string> = {
+  data_dir_not_writable:
+    'DATA_DIR is not writable for this user; set PUID/PGID to the owner of the data folder or fix its permissions.',
   public_url_invalid:
     'PUBLIC_URL must be the origin users open, e.g. https://food.example.com (https required except for localhost, no path).',
   admin_missing: 'ADMIN_EMAIL is not set and the database has no users yet.',

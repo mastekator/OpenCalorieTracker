@@ -106,6 +106,13 @@ export const WrongOriginDark: Story = {
 export const SetupError: Story = {
   args: withConfig({ setupError: 'admin_missing' }),
 };
+export const SetupErrorDataDir: Story = {
+  args: withConfig({ setupError: 'data_dir_not_writable' }),
+};
+export const SetupErrorDataDirDark: Story = {
+  args: withConfig({ setupError: 'data_dir_not_writable' }),
+  globals: { theme: 'dark' },
+};
 export const SetupErrorPublicUrl: Story = {
   args: withConfig({ setupError: 'public_url_invalid' }),
 };
