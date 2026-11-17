@@ -1,7 +1,8 @@
-import { TypeValidationError } from 'ai';
+import { APICallError, TypeValidationError } from 'ai';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { apiError, mockModel } from '../test/ai.js';
-import { callModel } from './common.js';
+import { MockLanguageModelV4 } from 'ai/test';
+import { callModel, quickReasoning } from './common.js';
 import {
   interviewStatus,
   providerState,
@@ -34,9 +35,15 @@ describe('provider state (ADR-0013)', () => {
     [undefined, 'ok', 'ready'],
     [apiError(401, 'bad key'), 'auth_error', 'unavailable'],
     [apiError(403, 'forbidden'), 'auth_error', 'unavailable'],
+    [apiError(404, 'model not found'), 'model_not_found', 'unavailable'],
     [apiError(429, 'quota'), 'quota_exceeded', 'unavailable'],
     [apiError(500, 'down'), 'unavailable', 'unavailable'],
     [new TypeError('fetch failed'), 'unavailable', 'unavailable'],
+    [
+      new APICallError({ message: 'x', url: 'u', requestBodyValues: {} }),
+      'unavailable',
+      'unavailable',
+    ],
     [apiError(400, 'model does not support image input'), 'no_vision', 'ready'],
   ])('records %s as %s, interview %s', (err, state, interview) => {
     recordAiResult(err);
@@ -68,7 +75,7 @@ describe('callModel records the result', () => {
     expect(providerState(model).state).toBe('quota_exceeded');
   });
 
-  it('unavailable on a timeout', async () => {
+  it('timeout with its seconds when the call runs out of time', async () => {
     vi.useFakeTimers();
     const model = mockModel();
     const call = callModel(
@@ -83,7 +90,11 @@ describe('callModel records the result', () => {
     await vi.advanceTimersByTimeAsync(1000);
     await done;
     vi.useRealTimers();
-    expect(providerState(model).state).toBe('unavailable');
+    expect(providerState(model)).toMatchObject({
+      state: 'timeout',
+      details: { timeoutSec: 1 },
+    });
+    expect(interviewStatus(model)).toBe('unavailable');
   });
 
   it('nothing on a client abort or a schema mismatch', async () => {
@@ -105,6 +116,17 @@ describe('callModel records the result', () => {
       }),
     ).rejects.toThrow();
     expect(providerState(model).state).toBe('unknown');
+  });
+});
+
+describe('quickReasoning', () => {
+  it('asks Gemini for the least thinking, leaves other providers alone', () => {
+    expect(
+      quickReasoning(
+        new MockLanguageModelV4({ provider: 'google.generative-ai' }),
+      ),
+    ).toBe('minimal');
+    expect(quickReasoning(mockModel())).toBeUndefined();
   });
 });
 

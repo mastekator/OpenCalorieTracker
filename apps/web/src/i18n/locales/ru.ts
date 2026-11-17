@@ -909,6 +909,8 @@ const ru: DeepPartial<typeof en> = {
       auth_error: 'Ошибка ключа или доступа',
       quota_exceeded: 'Превышена квота',
       unavailable: 'Провайдер недоступен',
+      model_not_found: 'Модель не найдена',
+      timeout: 'Модель отвечает слишком долго',
       no_vision: 'Модель не принимает изображения',
       unknown: 'Ещё не проверялся',
     },
@@ -918,6 +920,8 @@ const ru: DeepPartial<typeof en> = {
       auth_error: 'Ошибка',
       quota_exceeded: 'Квота',
       unavailable: 'Недоступен',
+      model_not_found: 'Нет модели',
+      timeout: 'Долго',
       no_vision: 'Без фото',
       unknown: 'Ещё не проверялся',
     },
@@ -946,6 +950,16 @@ const ru: DeepPartial<typeof en> = {
       unavailable: {
         title: 'Провайдер не отвечает',
         body: 'Проверьте адрес и сеть сервера.',
+      },
+      model_not_found: {
+        title: 'Модель недоступна',
+        body: 'Модель {model} недоступна у провайдера. Проверьте AI_MODEL и выберите модель из списка провайдера.',
+        body_compatible:
+          'Модель {model} недоступна у провайдера. Проверьте AI_MODEL и выберите модель из списка провайдера или адрес AI_BASE_URL.',
+      },
+      timeout: {
+        title: 'Модель отвечает слишком долго',
+        body: 'Модель отвечает дольше {count} с — выберите более быструю модель.',
       },
       no_vision: {
         title: 'Распознавание фото отключено',

@@ -28,16 +28,24 @@ interface AiResult {
   state: AiProviderState;
   checkedAt: number | null;
   /** Raw provider text: pass through redactSecrets before it leaves the server. */
-  details?: { status?: number; message?: string };
+  details?: { status?: number; message?: string; timeoutSec?: number };
 }
 
 // The last real provider call since start (ADR-0013); a restart forgets it (E-6.1).
 let last: AiResult | undefined;
 
-/** Called after every provider call: no argument on success, the error on failure. */
-export function recordAiResult(err?: unknown) {
+/** Called after every provider call: no argument on success, the error on failure; timeoutMs when the call ran out of time. */
+export function recordAiResult(err?: unknown, timeoutMs?: number) {
   if (err === undefined) {
     last = { state: 'ok', checkedAt: Date.now() };
+    return;
+  }
+  if (timeoutMs) {
+    last = {
+      state: 'timeout',
+      checkedAt: Date.now(),
+      details: { timeoutSec: Math.round(timeoutMs / 1000) },
+    };
     return;
   }
   const status = APICallError.isInstance(err) ? err.statusCode : undefined;
@@ -45,11 +53,14 @@ export function recordAiResult(err?: unknown) {
     state:
       status === 401 || status === 403
         ? 'auth_error'
-        : status === 429
-          ? 'quota_exceeded'
-          : isNoVision(err)
-            ? 'no_vision'
-            : 'unavailable',
+        : // Unknown or retired model id; also a wrong AI_BASE_URL path on openai-compatible.
+          status === 404
+          ? 'model_not_found'
+          : status === 429
+            ? 'quota_exceeded'
+            : isNoVision(err)
+              ? 'no_vision'
+              : 'unavailable',
     checkedAt: Date.now(),
     details: { status, message: (err as Error)?.message },
   };
@@ -68,7 +79,13 @@ export function providerState(model: AiModel | null): AiResult {
 export function interviewStatus(model: AiModel | null): AiStatus['interview'] {
   const { state } = providerState(model);
   if (state === 'not_configured') return 'not_configured';
-  return ['auth_error', 'quota_exceeded', 'unavailable'].includes(state)
+  return [
+    'auth_error',
+    'quota_exceeded',
+    'unavailable',
+    'model_not_found',
+    'timeout',
+  ].includes(state)
     ? 'unavailable'
     : 'ready';
 }

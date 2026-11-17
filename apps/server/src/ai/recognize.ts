@@ -5,7 +5,12 @@ import {
   type Recognition,
   type RecognizedDish,
 } from '@oct/shared';
-import { callModel, languageName, noVisionError } from './common.js';
+import {
+  callModel,
+  languageName,
+  noVisionError,
+  quickReasoning,
+} from './common.js';
 import type { AiModel } from './model.js';
 
 /** Bump on every prompt change; it is logged with each call. */
@@ -57,6 +62,7 @@ export async function recognizeMeal(
         ],
         output: Output.object({ schema: recognitionSchema }),
         maxRetries: 0,
+        reasoning: quickReasoning(model),
         abortSignal,
       });
       return { dishes: output.dishes.map(sanitizeDish) };
