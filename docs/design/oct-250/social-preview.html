@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OCT-250 · Social preview</title>
+<link rel="stylesheet" href="../oct-13/tokens.css">
+<script src="../preview-bar.js"></script>
+<style>
+/* ===== Prototype canvas (not part of the image) ===== */
+*{box-sizing:border-box;margin:0}
+html{background:var(--color-bg);color:var(--color-text);font-family:var(--font-sans);-webkit-font-smoothing:antialiased}
+body{padding:var(--space-10) var(--space-8);max-width:1360px;margin:0 auto}
+.doc-h1{font-size:var(--text-large-title-size);line-height:var(--text-large-title-lh);font-weight:700;letter-spacing:var(--tracking-tight)}
+.doc-lead{font-size:var(--text-subhead-size);line-height:var(--text-subhead-lh);color:var(--color-text-secondary);max-width:80ch;margin-top:var(--space-2)}
+.variant{margin-top:var(--space-12)}
+.col-h{font-size:var(--text-title-size);font-weight:600}
+.col-p{font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);color:var(--color-text-secondary);margin:var(--space-1) 0 var(--space-4);max-width:80ch}
+.tag{display:inline-block;margin-left:var(--space-2);padding:2px var(--space-2);border-radius:var(--radius-full);background:var(--color-accent-soft);color:var(--color-accent);font-size:var(--text-caption-size);font-weight:600;vertical-align:middle}
+.full{display:block;width:100%;height:auto;max-width:1280px;border-radius:var(--radius-lg);box-shadow:0 0 0 1px var(--color-separator)}
+/* link-card mock: how the image shows in a chat at small size */
+.cards{display:flex;gap:var(--space-6);align-items:flex-start;flex-wrap:wrap;margin-top:var(--space-4)}
+.card{border-left:3px solid var(--color-accent);padding-left:var(--space-3);font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh)}
+.card b{display:block;color:var(--color-accent)}
+.card span{display:block;color:var(--color-text-secondary);margin-bottom:var(--space-2)}
+.card svg{display:block;height:auto;border-radius:var(--radius-sm)}
+.card--l svg{width:400px} .card--s svg{width:240px}
+.spec{margin-top:var(--space-12);font-size:var(--text-subhead-size);line-height:1.6;max-width:90ch}
+.spec h2{font-size:var(--text-title-size);font-weight:600;margin-bottom:var(--space-2)}
+.spec ul{padding-left:var(--space-6)}
+
+/* ===== Image graphics (exported 1280×640 PNG, light and dark) ===== */
+.a-bg{fill:var(--color-surface-2)}
+.a-soft{fill:var(--color-accent-soft)}
+.a-tile{fill:var(--illo-tile)}
+.a-text{fill:var(--color-text);font-family:var(--font-sans)}
+.a-sec{fill:var(--color-text-secondary);font-family:var(--font-sans)}
+.a-acc{fill:var(--color-accent);font-family:var(--font-sans)}
+.a-pod{fill:var(--color-accent)}
+.a-peas{stroke:var(--color-accent-soft)}
+.a-p{fill:var(--color-protein)} .a-f{fill:var(--color-fat)} .a-c{fill:var(--color-carbs)}
+.a-stem{fill:none;stroke:var(--color-accent);stroke-linecap:round}
+</style>
+</head>
+<body>
+<div id="sprite" hidden></div>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <!-- logo "Macro peas" (OCT-217), drawn in theme tokens: accent = logo pod, macro colours = logo peas -->
+  <symbol id="mark" viewBox="0 0 100 100">
+    <path class="a-pod" d="M6 50C22 86 78 86 94 48C76 66 24 66 6 50Z"/>
+    <path class="a-pod" d="M6 46C20 20 66 12 92 34C70 26 30 30 6 46Z" opacity=".5"/>
+    <g class="a-peas" stroke-width="3" paint-order="stroke"><circle class="a-p" cx="29" cy="54" r="10"/><circle class="a-f" cx="50" cy="57" r="10.5"/><circle class="a-c" cx="71" cy="54" r="10"/></g>
+    <path class="a-stem" d="M92 34c3-4 4-9 2-13" stroke-width="5"/>
+  </symbol>
+</svg>
+
+<h1 class="doc-h1">Social preview · 3 variants</h1>
+<p class="doc-lead">The image GitHub shows when the repository link is shared in a chat or a post. 1280×640, in the README “Photo first” look with the Macro peas logo. Text is large, no screenshots. Switch the theme in the bar above to compare a light and a dark ground: one image is uploaded, so pick a variant and a ground. Under each variant: how it looks in a link card at about 400 and 240 px wide.</p>
+
+<section class="variant" id="a">
+  <h2 class="col-h">A · Banner</h2>
+  <p class="col-p">The README banner, stretched to the card. Same eyebrow, name and tagline, the plate cluster on the right. The repo page and the shared link look like one thing.</p>
+  <div data-art="a"></div>
+</section>
+
+<section class="variant" id="b">
+  <h2 class="col-h">B · Snap, then numbers <span class="tag">recommended</span></h2>
+  <p class="col-p">Leads with what the app does, not its name: a big headline, one plate turning into calories and macros. The name and logo sit small at the bottom, the way the link title already repeats them.</p>
+  <div data-art="b"></div>
+</section>
+
+<section class="variant" id="c">
+  <h2 class="col-h">C · Logo first</h2>
+  <p class="col-p">A large Macro peas mark and the name in the middle, one line under it, food around the edges. Quietest of the three; reads best at the smallest size.</p>
+  <div data-art="c"></div>
+</section>
+
+<section class="spec">
+  <h2>Notes</h2>
+  <ul>
+    <li>Recommended ground: <b>light</b> (theme bar → Light). A link card in a dark chat gets a light block that stands out; the dark one blends into it.</li>
+    <li>Why B: in the 240 px card only the headline is still readable, and B’s headline says what the app does; A and C shrink to the name, which the link title already shows. Smallest text is 30 px at 1280 wide (about 9 px in a 400 px card); the headline is 80 px.</li>
+    <li>Safe zone: nothing important within 60 px of the edges, some chats crop the card to a square-ish frame.</li>
+    <li>The chosen one is exported as <code>docs/assets/social-preview.png</code> (PNG, under 1 MB) and replaces the current file in a PR; the owner uploads it in the repository settings.</li>
+  </ul>
+</section>
+
+<script>
+const illo = (id, cx, cy, r) =>
+  `<circle class="a-tile" cx="${cx}" cy="${cy}" r="${r}"/><use href="#illo-${id}" x="${cx - r * .8}" y="${cy - r * .8}" width="${r * 1.6}" height="${r * 1.6}"/>`;
+const logoTile = (x, y, s) =>
+  `<rect class="a-soft" x="${x}" y="${y}" width="${s}" height="${s}" rx="${s * .224}"/><use href="#mark" x="${x + s * .12}" y="${y + s * .12}" width="${s * .76}" height="${s * .76}"/>`;
+const svg = (label, body) =>
+  `<svg viewBox="0 0 1280 640" role="img" aria-label="${label}"><rect class="a-bg" width="1280" height="640"/>${body}</svg>`;
+
+const art = {
+  a: svg('OpenCalorieTracker. Snap a plate. Check the numbers. Keep the diary on your own server.', `
+    <circle class="a-soft" cx="1050" cy="320" r="330"/>
+    ${logoTile(80, 112, 112)}
+    <text class="a-acc" x="80" y="296" font-size="30" font-weight="700" letter-spacing="3">SELF-HOSTED · OPEN SOURCE</text>
+    <text class="a-text" x="76" y="380" font-size="66" font-weight="700" letter-spacing="-1.5">OpenCalorieTracker</text>
+    <text class="a-sec" x="80" y="460" font-size="38">Snap a plate. Check the numbers.</text>
+    <text class="a-sec" x="80" y="510" font-size="38">Keep the diary on your own server.</text>
+    ${illo('salad', 1040, 320, 136)}${illo('grains-porridge', 1190, 150, 70)}${illo('fruit-banana', 1196, 490, 64)}
+    ${illo('coffee', 880, 130, 56)}${illo('fish-sushi', 870, 520, 58)}`),
+
+  b: svg('Snap a plate. Check the numbers. 495 kcal: protein 29 g, fat 24 g, carbs 45 g. OpenCalorieTracker, self-hosted.', `
+    <text class="a-text" x="80" y="200" font-size="80" font-weight="700" letter-spacing="-2">Snap a plate.</text>
+    <text class="a-acc" x="80" y="296" font-size="80" font-weight="700" letter-spacing="-2">Check the numbers.</text>
+    ${logoTile(80, 440, 88)}
+    <text class="a-text" x="188" y="482" font-size="40" font-weight="700" letter-spacing="-.5">OpenCalorieTracker</text>
+    <text class="a-sec" x="188" y="522" font-size="30">Self-hosted · open source</text>
+    <circle class="a-soft" cx="1046" cy="320" r="220"/>
+    ${illo('salad', 1046, 250, 106)}
+    <text class="a-text" x="1046" y="452" font-size="64" font-weight="700" text-anchor="middle" letter-spacing="-1">495 kcal</text>
+    <g font-size="30" font-weight="600">
+      <circle class="a-p" cx="916" cy="500" r="10"/><text class="a-sec" x="934" y="511">29 g</text>
+      <circle class="a-f" cx="1024" cy="500" r="10"/><text class="a-sec" x="1042" y="511">24 g</text>
+      <circle class="a-c" cx="1132" cy="500" r="10"/><text class="a-sec" x="1150" y="511">45 g</text>
+    </g>`),
+
+  c: svg('OpenCalorieTracker. Calories from a photo, on your own server.', `
+    <circle class="a-soft" cx="640" cy="300" r="250"/>
+    <use href="#mark" x="510" y="110" width="260" height="260"/>
+    <text class="a-text" x="640" y="430" font-size="76" font-weight="700" text-anchor="middle" letter-spacing="-1.5">OpenCalorieTracker</text>
+    <text class="a-sec" x="640" y="500" font-size="38" text-anchor="middle">Calories from a photo, on your own server.</text>
+    ${illo('salad', 150, 150, 72)}${illo('coffee', 130, 470, 56)}${illo('grains-porridge', 1130, 140, 64)}
+    ${illo('fruit-banana', 1150, 480, 60)}${illo('fish-sushi', 290, 560, 44)}${illo('bread-croissant', 990, 570, 42)}`)
+};
+
+const card = (k, cls) => `<div class="card ${cls}"><b>GitHub</b><span>OpenCalorieTracker: snap a plate, check the numbers…</span>${art[k]}</div>`;
+document.querySelectorAll('[data-art]').forEach(el => {
+  const k = el.dataset.art;
+  el.innerHTML = art[k].replace('<svg ', '<svg class="full" data-export="' + k + '" ') +
+    `<div class="cards">${card(k, 'card--l')}${card(k, 'card--s')}</div>`;
+});
+
+fetch('../oct-33/sprite.svg').then(r => r.ok ? r.text() : '').catch(() => '')
+  .then(s => { document.getElementById('sprite').innerHTML = s; });
+</script>
+</body>
+</html>
