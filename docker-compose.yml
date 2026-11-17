@@ -11,9 +11,7 @@ services:
       # Proxy on another host: publish on a private interface (e.g. '10.0.0.5:3000:3000') that only it reaches.
       - '127.0.0.1:3000:3000'
     volumes:
-      # Database and photos; back this volume up.
-      - oct-data:/data
+      # Database and photos in ./data next to this file; back this folder up.
+      # The app runs as PUID:PGID from .env (default 1000:1000) and takes ownership of ./data.
+      - ./data:/data
     env_file: .env
-
-volumes:
-  oct-data:

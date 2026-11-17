@@ -32,7 +32,7 @@ COPY --from=build /out/node_modules ./node_modules
 COPY --from=build /out/dist ./dist
 COPY --from=build /src/apps/web/dist /app/web
 RUN mkdir -p /data && chown node:node /data
-USER node
+# No USER: the app starts as root only to give /data to PUID:PGID, then drops to them (ADR-0017).
 VOLUME /data
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \

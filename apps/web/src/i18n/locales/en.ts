@@ -73,6 +73,8 @@ export const en = {
     },
     not_configured: {
       title: 'Installation isn’t set up',
+      data_dir_not_writable:
+        '`/data` isn’t writable. Set `PUID` and `PGID` to the owner of the data folder (run `id` on the host), or change the folder’s permissions.',
       public_url_invalid:
         '`PUBLIC_URL` must be the address people open, like `https://food.example.com`, with no path. Plain http works only for localhost.',
       admin_missing:

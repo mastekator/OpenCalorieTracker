@@ -1,3 +1,5 @@
+// First: `docker exec` runs as root; files it creates in DATA_DIR must stay PUID's (ADR-0017).
+import './privileges.js';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { resetAdminAccess } from './auth/admin.js';
