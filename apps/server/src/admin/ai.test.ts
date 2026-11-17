@@ -83,6 +83,11 @@ describe('POST /api/admin/ai/check', () => {
 
   it.each([
     [apiError(401, `invalid key ${KEY}`), 'auth_error', 'unavailable'],
+    [
+      apiError(404, `models/x is not found, key=${KEY}`),
+      'model_not_found',
+      'unavailable',
+    ],
     [apiError(429, `quota for Bearer ${KEY}`), 'quota_exceeded', 'unavailable'],
     [apiError(503, `down, key=${KEY}`), 'unavailable', 'unavailable'],
     [apiError(400, 'image input is not supported'), 'no_vision', 'ready'],

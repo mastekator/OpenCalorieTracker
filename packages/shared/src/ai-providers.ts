@@ -32,6 +32,8 @@ export const aiProviderStateSchema = z.enum([
   'auth_error',
   'quota_exceeded',
   'unavailable',
+  'model_not_found',
+  'timeout',
   'no_vision',
   'unknown',
 ]);
@@ -48,9 +50,13 @@ export const adminAiStatusSchema = z.object({
   source: z.literal('env').nullable(),
   state: aiProviderStateSchema,
   checkedAt: z.number().nullable(),
-  /** Provider's status code and message with secrets cut out, up to 500 chars. */
+  /** Provider's status code and message with secrets cut out, up to 500 chars; the timeout that ran out. */
   details: z
-    .object({ status: z.number().optional(), message: z.string().optional() })
+    .object({
+      status: z.number().optional(),
+      message: z.string().optional(),
+      timeoutSec: z.number().optional(),
+    })
     .optional(),
 });
 export type AdminAiStatus = z.infer<typeof adminAiStatusSchema>;

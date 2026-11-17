@@ -65,7 +65,7 @@ const serve = (list: Passkey[]) => () => {
           ? Response.json({
               provider: 'google',
               providerName: 'Google Gemini',
-              model: 'gemini-2.5-flash',
+              model: 'gemini-3.8-flash',
               keySet: true,
               baseUrlHost: null,
               source: 'env',

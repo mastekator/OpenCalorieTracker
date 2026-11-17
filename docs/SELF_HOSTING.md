@@ -99,7 +99,7 @@ All settings are environment variables. An empty value (`KEY=`) counts as not se
 | `REGISTRATION`     | `invite`             | Who can sign up: `invite` (by admin invite link only) or `open`.                                                                             |
 | `TRUST_PROXY_HOPS` | `1`                  | How many reverse proxies stand in front of the server. See below.                                                                            |
 | `AI_PROVIDER`      | —                    | `google`, `openai`, `anthropic`, `openrouter` or `openai-compatible` (Ollama, LM Studio, etc.). Not set: no AI, food is entered manually.    |
-| `AI_MODEL`         | —                    | Model id at that provider, e.g. `gemini-2.5-flash`. Required with `AI_PROVIDER`.                                                             |
+| `AI_MODEL`         | —                    | Model id at that provider, e.g. `gemini-3.8-flash`. Required with `AI_PROVIDER`.                                                             |
 | `AI_API_KEY`       | —                    | API key of the provider. Never logged.                                                                                                       |
 | `AI_BASE_URL`      | —                    | Endpoint URL; required for `openai-compatible`, e.g. `http://ollama:11434/v1`.                                                               |
 | `DATA_DIR`         | `/data` in the image | Where the SQLite database and photos live. Mount a volume here.                                                                              |

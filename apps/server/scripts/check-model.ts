@@ -10,7 +10,7 @@ import { compare, totalKcal, type Expected } from './compare.js';
 const dir = new URL('../test-photos/', import.meta.url);
 const setupHint =
   'Set AI_PROVIDER, AI_MODEL and AI_API_KEY (and AI_BASE_URL for openai-compatible), e.g.\n' +
-  '  AI_PROVIDER=google AI_MODEL=gemini-2.5-flash AI_API_KEY=... pnpm --filter @oct/server check-model';
+  '  AI_PROVIDER=google AI_MODEL=gemini-3.8-flash AI_API_KEY=... pnpm --filter @oct/server check-model';
 
 function fail(message: string): never {
   console.error(`check-model: ${message}\n${setupHint}`);

@@ -30,6 +30,8 @@ export const AI_STATES: Record<
   auth_error: { tone: 'err', badge: 'err', banner: 'danger' },
   quota_exceeded: { tone: 'warn', badge: 'warn', banner: 'warning' },
   unavailable: { tone: 'err', badge: 'err', banner: 'danger' },
+  model_not_found: { tone: 'err', badge: 'err', banner: 'danger' },
+  timeout: { tone: 'err', badge: 'err', banner: 'danger' },
   no_vision: { tone: 'warn', badge: 'warn', banner: 'warning' },
   unknown: { tone: 'off', badge: 'neutral' },
 };
@@ -37,7 +39,7 @@ export const AI_STATES: Record<
 export const README_URL =
   'https://github.com/mastekator/OpenCalorieTracker/blob/main/docs/SELF_HOSTING.md#configuration';
 const ENV_VARS = `AI_PROVIDER=google
-AI_MODEL=gemini-2.5-flash
+AI_MODEL=gemini-3.8-flash
 AI_API_KEY=…
 # openai-compatible:
 AI_BASE_URL=http://…`;
@@ -181,16 +183,18 @@ export function ProviderStatus({ status, checking = false, onCheck }: Props) {
         new Date().toDateString() && { dateStyle: 'medium' }),
       timeStyle: 'short',
     }).format(status.checkedAt);
-  const details = status.details && (
-    <Details>
-      {[
-        status.details.status && `HTTP ${status.details.status}`,
-        status.details.message,
-      ]
-        .filter(Boolean)
-        .join('\n')}
-    </Details>
-  );
+  const detailText = [
+    status.details?.status && `HTTP ${status.details.status}`,
+    status.details?.message,
+  ]
+    .filter(Boolean)
+    .join('\n');
+  const details = detailText && <Details>{detailText}</Details>;
+  // A 404 from an own server is as often a wrong AI_BASE_URL path as a wrong model.
+  const bannerBody =
+    state === 'model_not_found' && status.provider === 'openai-compatible'
+      ? 'ai.banner.model_not_found.body_compatible'
+      : (`ai.banner.${state as Failure}.body` as const);
 
   return (
     <div className="provider">
@@ -221,7 +225,10 @@ export function ProviderStatus({ status, checking = false, onCheck }: Props) {
                 tone={banner}
                 title={t(`ai.banner.${state as Failure}.title`)}
               >
-                {t(`ai.banner.${state as Failure}.body`)}
+                {t(bannerBody, {
+                  model: status.model ?? '',
+                  count: status.details?.timeoutSec ?? '',
+                })}
               </Banner>
             )}
             {details}

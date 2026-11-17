@@ -9,7 +9,7 @@ import {
   type CreatedLinkResponse,
   type Invite,
 } from '@oct/shared';
-import { callModel, noVisionError } from '../ai/common.js';
+import { callModel, noVisionError, quickReasoning } from '../ai/common.js';
 import { baseUrlHost, getAiSettings } from '../ai/settings.js';
 import { providerState, redactSecrets } from '../ai/status.js';
 import type { AppDeps } from '../app.js';
@@ -62,6 +62,7 @@ export function adminRoutes({ config, db, model = null }: AppDeps) {
       ...(details && {
         details: {
           status: details.status,
+          timeoutSec: details.timeoutSec,
           message:
             details.message && redactSecrets(details.message, settings?.apiKey),
         },
@@ -108,6 +109,7 @@ export function adminRoutes({ config, db, model = null }: AppDeps) {
                 ],
                 maxOutputTokens: CHECK_MAX_TOKENS,
                 maxRetries: 0,
+                reasoning: quickReasoning(model),
                 abortSignal,
               }),
           );

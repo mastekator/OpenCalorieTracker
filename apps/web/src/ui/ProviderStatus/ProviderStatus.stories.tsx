@@ -5,7 +5,7 @@ import { ProviderStatus } from './ProviderStatus';
 const gemini: AdminAiStatus = {
   provider: 'google',
   providerName: 'Google Gemini',
-  model: 'gemini-2.5-flash',
+  model: 'gemini-3.8-flash',
   keySet: true,
   baseUrlHost: null,
   source: 'env',
@@ -62,6 +62,44 @@ export const Unavailable: Story = {
   args: { status: error('unavailable', 503, 'Service Unavailable') },
 };
 export const UnavailableDark: Story = { ...Unavailable, ...dark };
+/** HTTP 404: the model id is unknown or retired at the provider. */
+export const ModelNotFound: Story = {
+  args: {
+    status: {
+      ...error(
+        'model_not_found',
+        404,
+        'models/gemini-2.5-flash is not found for API version v1beta, or is not supported for generateContent.',
+      ),
+      model: 'gemini-2.5-flash',
+    },
+  },
+};
+export const ModelNotFoundDark: Story = { ...ModelNotFound, ...dark };
+/** Own server: a 404 may also be a wrong AI_BASE_URL path. */
+export const ModelNotFoundCompatible: Story = {
+  args: {
+    status: {
+      ...error('model_not_found', 404, 'model "qwen2.5vl:7b" not found'),
+      provider: 'openai-compatible',
+      providerName: null,
+      model: 'qwen2.5vl:7b',
+      keySet: false,
+      baseUrlHost: '192.168.1.20:11434',
+    },
+  },
+};
+export const ModelNotFoundCompatibleDark: Story = {
+  ...ModelNotFoundCompatible,
+  ...dark,
+};
+/** The call ran out of its time; no provider message. */
+export const Timeout: Story = {
+  args: {
+    status: { ...gemini, state: 'timeout', details: { timeoutSec: 20 } },
+  },
+};
+export const TimeoutDark: Story = { ...Timeout, ...dark };
 export const NoVision: Story = {
   args: { status: { ...gemini, state: 'no_vision' } },
 };
