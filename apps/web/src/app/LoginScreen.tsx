@@ -26,6 +26,7 @@ import { Banner } from '../ui/Banner/Banner';
 import { Button } from '../ui/Button/Button';
 import { Field } from '../ui/Field/Field';
 import { OfflineBar, useOnline } from '../ui/OfflineBar/OfflineBar';
+import { README_URL } from '../ui/ProviderStatus/ProviderStatus';
 import { ScreenState } from '../ui/ScreenState/ScreenState';
 import { Sheet } from '../ui/Sheet/Sheet';
 import { Mark } from '../ui/Mark/Mark';
@@ -235,12 +236,9 @@ export function LoginScreen({
           icon={<TriangleAlert />}
           tone="danger"
           title={t('setup.not_configured.title')}
+          details={<SetupHelp error={layout.error} />}
         >
-          {t(
-            layout.error === 'public_url_invalid'
-              ? 'setup.not_configured.url'
-              : 'setup.not_configured.admin',
-          )}
+          {mono(t(`setup.not_configured.${layout.error}`))}
         </ScreenState>
       </div>
     );
@@ -436,4 +434,42 @@ function NoticeBanner({
     case 'revoked':
       return <Banner tone="notice">{t('auth.err.passkey_revoked')}</Banner>;
   }
+}
+
+/** Renders `backticked` parts of a translated sentence as <code>. */
+function mono(text: string) {
+  return text
+    .split('`')
+    .map((part, i) => (i % 2 ? <code key={i}>{part}</code> : part));
+}
+
+/** How to fix a setup error; never shows the variables' values (OCT-231). */
+function SetupHelp({ error }: { error: SetupError }) {
+  const { t } = useT();
+  return (
+    <>
+      {error === 'admin_password_invalid' && (
+        <ul>
+          <li>{t('pw.rule.length', { min: 8 })}</li>
+          <li>{t('pw.err.too_long')}</li>
+          <li>{t('pw.rule.letter_digit')}</li>
+          <li>{t('pw.rule.symbol')}</li>
+          <li>{mono(t('setup.not_configured.not_admin_email'))}</li>
+          <li>{t('setup.not_configured.not_common')}</li>
+        </ul>
+      )}
+      {(error === 'admin_email_invalid' ||
+        error === 'admin_password_invalid') && (
+        <p>{mono(t('setup.not_configured.env_hint'))}</p>
+      )}
+      <p>
+        {t('setup.not_configured.recreate')}
+        <br />
+        <code className="nowrap">docker compose up -d</code>
+      </p>
+      <a href={README_URL} target="_blank" rel="noreferrer">
+        {t('setup.not_configured.guide')}
+      </a>
+    </>
+  );
 }

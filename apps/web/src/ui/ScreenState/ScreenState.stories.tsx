@@ -4,7 +4,7 @@ import { useT } from '../../i18n';
 import { Button } from '../Button/Button';
 import { ScreenState } from './ScreenState';
 
-type Kind = 'empty' | 'error' | 'offline' | 'invalidLink';
+type Kind = 'empty' | 'error' | 'offline' | 'invalidLink' | 'details';
 
 // Text comes from the dictionary so the locale toolbar switches RU / EN.
 function Example({ kind }: { kind: Kind }) {
@@ -46,6 +46,30 @@ function Example({ kind }: { kind: Kind }) {
           {t('errors.invite_expired')}
         </ScreenState>
       );
+    case 'details':
+      return (
+        <ScreenState
+          icon={<CircleAlert />}
+          tone="danger"
+          title={t('setup.not_configured.title')}
+          details={
+            <>
+              <ul>
+                <li>{t('pw.rule.length', { min: 8 })}</li>
+                <li>{t('pw.rule.letter_digit')}</li>
+              </ul>
+              <p>
+                {t('setup.not_configured.recreate')}
+                <br />
+                <code className="nowrap">docker compose up -d</code>
+              </p>
+              <a href="#guide">{t('setup.not_configured.guide')}</a>
+            </>
+          }
+        >
+          {t('setup.not_configured.admin_password_invalid')}
+        </ScreenState>
+      );
   }
 }
 
@@ -63,6 +87,12 @@ export const OfflineNoCache: Story = {
 };
 export const InvalidLink: Story = {
   render: () => <Example kind="invalidLink" />,
+};
+/** A list or extra lines under the text. */
+export const Details: Story = { render: () => <Example kind="details" /> };
+export const DetailsDark: Story = {
+  render: () => <Example kind="details" />,
+  globals: { theme: 'dark' },
 };
 export const Desktop: Story = {
   render: () => <Example kind="error" />,

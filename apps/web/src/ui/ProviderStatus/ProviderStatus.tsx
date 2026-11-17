@@ -36,7 +36,7 @@ export const AI_STATES: Record<
   unknown: { tone: 'off', badge: 'neutral' },
 };
 
-const README_URL =
+export const README_URL =
   'https://github.com/mastekator/OpenCalorieTracker/blob/main/docs/SELF_HOSTING.md#configuration';
 const ENV_VARS = `AI_PROVIDER=google
 AI_MODEL=gemini-3.8-flash
