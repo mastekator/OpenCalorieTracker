@@ -51,11 +51,12 @@ Daily goals are approximate. Talk to a doctor or dietitian about your nutrition.
 
 ```sh
 curl -O https://raw.githubusercontent.com/mastekator/OpenCalorieTracker/main/docker-compose.yml
-printf 'PUBLIC_URL=https://food.example.com\nADMIN_EMAIL=you@example.com\nADMIN_PASSWORD=change-me-1!\n' > .env
+curl -o .env https://raw.githubusercontent.com/mastekator/OpenCalorieTracker/main/.env.example
+# edit .env: PUBLIC_URL, ADMIN_EMAIL, ADMIN_PASSWORD, and AI_* if you use AI
 docker compose up -d
 ```
 
-Put it behind a reverse proxy with HTTPS. Runs on a home server, NAS, Raspberry Pi or VPS. Everything else: [Self-hosting guide](docs/SELF_HOSTING.md).
+Put it behind a reverse proxy with HTTPS. Runs on a home server, NAS, Raspberry Pi or VPS. Step by step, with HTTPS, AI, updates and backups: [Installation](docs/SELF_HOSTING.md#installation).
 
 ## Questions
 

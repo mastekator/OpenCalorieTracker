@@ -1,12 +1,17 @@
+# Settings live in .env next to this file: copy .env.example, then set at least
+# PUBLIC_URL, ADMIN_EMAIL and ADMIN_PASSWORD. AI_* are optional (no AI = manual entry).
+# All variables: docs/SELF_HOSTING.md
 services:
   opencalorietracker:
-    image: ghcr.io/mastekator/opencalorietracker:latest
+    # Pinned release; to update, change the tag and run `docker compose pull && docker compose up -d`.
+    image: ghcr.io/mastekator/opencalorietracker:0.1.0
     restart: unless-stopped
     ports:
       # Loopback only: the reverse proxy must be the sole way in, or X-Forwarded-For can be forged.
       # Proxy on another host: publish on a private interface (e.g. '10.0.0.5:3000:3000') that only it reaches.
       - '127.0.0.1:3000:3000'
     volumes:
+      # Database and photos; back this volume up.
       - oct-data:/data
     env_file: .env
 
