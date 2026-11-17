@@ -389,8 +389,8 @@ describe('LoginScreen', () => {
     expect(
       texts('.screen-state__details p').some((p) => /^In \.env, avoid/.test(p)),
     ).toBe(envHint);
-    const variable = text.source.slice(1).split(' ')[0];
-    expect(screen.getAllByText(variable)[0].tagName).toBe('CODE');
+    const [variable = ''] = text.source.slice(1).split(' ');
+    expect(screen.getAllByText(variable).at(0)?.tagName).toBe('CODE');
     expect(screen.queryAllByRole('listitem')).toHaveLength(
       setupError === 'admin_password_invalid' ? 6 : 0,
     );
