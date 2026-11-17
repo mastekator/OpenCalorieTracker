@@ -9,6 +9,8 @@ type Props = {
   title: ReactNode;
   /** One short phrase (≤ 30 ch). */
   children?: ReactNode;
+  /** Longer block under the text: a list or extra lines, left-aligned. */
+  details?: ReactNode;
   /** Usually one <Button>; several stack full width. */
   action?: ReactNode;
   /** Live region for a state that replaces a wait: status, or alert for errors. */
@@ -23,6 +25,7 @@ export function ScreenState({
   tone = 'neutral',
   title,
   children,
+  details,
   action,
   role,
   focusTitle = false,
@@ -44,6 +47,7 @@ export function ScreenState({
         {title}
       </h2>
       {children && <p className="screen-state__text">{children}</p>}
+      {details && <div className="screen-state__details">{details}</div>}
       {action && <div className="screen-state__action">{action}</div>}
     </div>
   );
