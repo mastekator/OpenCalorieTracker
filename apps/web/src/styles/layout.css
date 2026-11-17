@@ -69,6 +69,18 @@
   );
 }
 
+/* Opaque strip under the iOS black-translucent status bar so scrolled content never shows
+   (blurred) behind it. Below OfflineBar, which paints its own colour there; zero height elsewhere. */
+.app-shell::before {
+  content: '';
+  position: fixed;
+  inset: 0 0 auto;
+  height: env(safe-area-inset-top);
+  z-index: var(--z-tabbar);
+  background: var(--color-bg);
+  pointer-events: none;
+}
+
 /* An app screen: navbar + content column. */
 .screen {
   max-width: var(--content-max-width);
