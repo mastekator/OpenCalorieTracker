@@ -58,6 +58,23 @@
   text-align: start;
 }
 
+.screen-state code {
+  font-family: var(--font-mono);
+}
+
+.screen-state code.nowrap {
+  white-space: nowrap;
+}
+
+.screen-state__details a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap-min);
+  justify-self: start;
+  color: var(--color-accent);
+  font-weight: 500;
+}
+
 .screen-state__details ul {
   padding-inline-start: var(--space-5);
   list-style: disc;

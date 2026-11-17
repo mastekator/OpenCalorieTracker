@@ -376,9 +376,21 @@ describe('LoginScreen', () => {
     ['admin_password_invalid', /^ADMIN_PASSWORD doesn’t meet/, true],
   ] as const)('names the setup error %s', async (setupError, text, envHint) => {
     renderLogin({ config: { ...config, setupError } });
-    expect(await screen.findByText(text)).toBeTruthy();
-    expect(screen.getByText(/recreate the container/)).toBeTruthy();
-    expect(!!screen.queryByText(/^In \.env, avoid/)).toBe(envHint);
+    await screen.findByText(/recreate the container/);
+    const texts = (sel: string) =>
+      [...document.querySelectorAll(sel)].map((n) => n.textContent ?? '');
+    expect(texts('.screen-state__text')[0]).toMatch(text);
+    expect(screen.getByText('docker compose up -d').tagName).toBe('CODE');
+    expect(
+      screen
+        .getByRole('link', { name: 'Self-hosting guide' })
+        .getAttribute('href'),
+    ).toMatch(/SELF_HOSTING\.md#configuration$/);
+    expect(
+      texts('.screen-state__details p').some((p) => /^In \.env, avoid/.test(p)),
+    ).toBe(envHint);
+    const variable = text.source.slice(1).split(' ')[0];
+    expect(screen.getAllByText(variable)[0].tagName).toBe('CODE');
     expect(screen.queryAllByRole('listitem')).toHaveLength(
       setupError === 'admin_password_invalid' ? 6 : 0,
     );

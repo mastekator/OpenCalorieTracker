@@ -58,7 +58,12 @@ function Example({ kind }: { kind: Kind }) {
                 <li>{t('pw.rule.length', { min: 8 })}</li>
                 <li>{t('pw.rule.letter_digit')}</li>
               </ul>
-              <p>{t('setup.not_configured.recreate')}</p>
+              <p>
+                {t('setup.not_configured.recreate')}
+                <br />
+                <code className="nowrap">docker compose up -d</code>
+              </p>
+              <a href="#guide">{t('setup.not_configured.guide')}</a>
             </>
           }
         >

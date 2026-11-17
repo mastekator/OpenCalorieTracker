@@ -74,18 +74,19 @@ export const en = {
     not_configured: {
       title: 'Installation isn’t set up',
       public_url_invalid:
-        'PUBLIC_URL must be the address people open, like https://food.example.com: no path, and https unless it’s localhost.',
+        '`PUBLIC_URL` must be the address people open, like `https://food.example.com`, with no path. Plain http works only for localhost.',
       admin_missing:
-        'ADMIN_EMAIL isn’t set. Add the admin’s email to the container configuration.',
-      admin_email_invalid: 'ADMIN_EMAIL isn’t a valid email address.',
+        '`ADMIN_EMAIL` isn’t set. Add the admin’s email to the container configuration.',
+      admin_email_invalid: '`ADMIN_EMAIL` isn’t a valid email address.',
       admin_password_missing:
-        'ADMIN_PASSWORD isn’t set. Password sign-in is on, so the admin needs a password.',
-      admin_password_invalid: 'ADMIN_PASSWORD doesn’t meet the rules:',
+        '`ADMIN_PASSWORD` isn’t set. Password sign-in is on, so the admin needs a password.',
+      admin_password_invalid: '`ADMIN_PASSWORD` doesn’t meet the rules:',
+      not_admin_email: 'Not the same as `ADMIN_EMAIL`',
       not_common: 'Not a common password',
       env_hint:
-        'In .env, avoid $, # and quotes in the value, or wrap the whole value in single quotes.',
-      recreate:
-        'After editing, recreate the container: docker compose up -d. See the self-hosting guide.',
+        'In `.env`, avoid `$`, `#` and quotes in the value, or wrap the whole value in single quotes.',
+      recreate: 'After editing, recreate the container:',
+      guide: 'Self-hosting guide',
     },
   },
   settings: {
