@@ -102,9 +102,25 @@ export const WrongOriginDark: Story = {
   args: { origin: 'http://192.168.1.5:3000' },
   globals: { theme: 'dark' },
 };
-/** 1.8 Installation isn't set up. */
+/** 1.8 Installation isn't set up: one story per reason (OCT-231). */
 export const SetupError: Story = {
   args: withConfig({ setupError: 'admin_missing' }),
+};
+export const SetupErrorPublicUrl: Story = {
+  args: withConfig({ setupError: 'public_url_invalid' }),
+};
+export const SetupErrorEmailInvalid: Story = {
+  args: withConfig({ setupError: 'admin_email_invalid' }),
+};
+export const SetupErrorPasswordMissing: Story = {
+  args: withConfig({ setupError: 'admin_password_missing' }),
+};
+export const SetupErrorPasswordInvalid: Story = {
+  args: withConfig({ setupError: 'admin_password_invalid' }),
+};
+export const SetupErrorPasswordInvalidDark: Story = {
+  args: withConfig({ setupError: 'admin_password_invalid' }),
+  globals: { theme: 'dark' },
 };
 /** 1.9 Offline: bar on top, buttons disabled, fields usable, a footnote under «Sign in». */
 export const Offline: Story = {

@@ -368,6 +368,22 @@ describe('LoginScreen', () => {
     expect(screen.queryByRole('button')).toBeNull();
   });
 
+  it.each([
+    ['public_url_invalid', /^PUBLIC_URL must be/, false],
+    ['admin_missing', /^ADMIN_EMAIL isn’t set/, false],
+    ['admin_email_invalid', /^ADMIN_EMAIL isn’t a valid/, true],
+    ['admin_password_missing', /^ADMIN_PASSWORD isn’t set/, false],
+    ['admin_password_invalid', /^ADMIN_PASSWORD doesn’t meet/, true],
+  ] as const)('names the setup error %s', async (setupError, text, envHint) => {
+    renderLogin({ config: { ...config, setupError } });
+    expect(await screen.findByText(text)).toBeTruthy();
+    expect(screen.getByText(/recreate the container/)).toBeTruthy();
+    expect(!!screen.queryByText(/^In \.env, avoid/)).toBe(envHint);
+    expect(screen.queryAllByRole('listitem')).toHaveLength(
+      setupError === 'admin_password_invalid' ? 6 : 0,
+    );
+  });
+
   it('disables the buttons offline but keeps the fields (1.9)', async () => {
     vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
     renderLogin();

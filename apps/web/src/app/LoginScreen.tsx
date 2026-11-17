@@ -235,12 +235,9 @@ export function LoginScreen({
           icon={<TriangleAlert />}
           tone="danger"
           title={t('setup.not_configured.title')}
+          details={<SetupHelp error={layout.error} />}
         >
-          {t(
-            layout.error === 'public_url_invalid'
-              ? 'setup.not_configured.url'
-              : 'setup.not_configured.admin',
-          )}
+          {t(`setup.not_configured.${layout.error}`)}
         </ScreenState>
       </div>
     );
@@ -436,4 +433,28 @@ function NoticeBanner({
     case 'revoked':
       return <Banner tone="notice">{t('auth.err.passkey_revoked')}</Banner>;
   }
+}
+
+/** How to fix a setup error; never shows the variables' values (OCT-231). */
+function SetupHelp({ error }: { error: SetupError }) {
+  const { t } = useT();
+  return (
+    <>
+      {error === 'admin_password_invalid' && (
+        <ul>
+          <li>{t('pw.rule.length', { min: 8 })}</li>
+          <li>{t('pw.err.too_long')}</li>
+          <li>{t('pw.rule.letter_digit')}</li>
+          <li>{t('pw.rule.symbol')}</li>
+          <li>{t('pw.rule.not_email')}</li>
+          <li>{t('setup.not_configured.not_common')}</li>
+        </ul>
+      )}
+      {(error === 'admin_email_invalid' ||
+        error === 'admin_password_invalid') && (
+        <p>{t('setup.not_configured.env_hint')}</p>
+      )}
+      <p>{t('setup.not_configured.recreate')}</p>
+    </>
+  );
 }

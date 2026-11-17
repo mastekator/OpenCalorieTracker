@@ -24,7 +24,9 @@ docker compose up -d
 docker compose logs
 ```
 
-The log lists any configuration problems. The container listens on `127.0.0.1:3000` only; users reach it through the reverse proxy.
+The log lists any configuration problems, and the sign-in page names the first one (never the values). In `.env`, avoid `$`, `#` and quotes in a value, or wrap the whole value in single quotes. After editing `.env`, recreate the container with `docker compose up -d`.
+
+The container listens on `127.0.0.1:3000` only; users reach it through the reverse proxy.
 
 ### First sign-in
 

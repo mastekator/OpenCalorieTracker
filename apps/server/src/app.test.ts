@@ -32,6 +32,22 @@ describe('GET /api/config', () => {
       setupError: null,
     });
   });
+
+  it.each([
+    [
+      { PUBLIC_URL: 'http://food.example.com/secret-path' },
+      'public_url_invalid',
+    ],
+    [{ ADMIN_EMAIL: 'not-an-email-x7' }, 'admin_email_invalid'],
+    [{ ADMIN_PASSWORD: 'sh0rt$#' }, 'admin_password_invalid'],
+  ])('reports %o as a code, without the values', async (env, code) => {
+    const res = await testApp(env).app.request('/api/config');
+    const body = await res.text();
+    expect(JSON.parse(body).setupError).toBe(code);
+    for (const value of Object.values(env)) expect(body).not.toContain(value);
+    expect(body).not.toContain('Correct-horse-battery-9');
+    expect(body).not.toContain('admin@example.com');
+  });
 });
 
 describe('JSON body limit', () => {
