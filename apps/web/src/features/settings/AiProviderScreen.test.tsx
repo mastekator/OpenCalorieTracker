@@ -38,7 +38,7 @@ const admin: MeResponse = { ...user, id: 1, role: 'admin' };
 const gemini: AdminAiStatus = {
   provider: 'google',
   providerName: 'Google Gemini',
-  model: 'gemini-2.5-flash',
+  model: 'gemini-3.8-flash',
   keySet: true,
   baseUrlHost: null,
   source: 'env',
@@ -143,6 +143,8 @@ describe('ProviderStatus', () => {
     ['auth_error', 'Key or access error', 'The provider rejected the key'],
     ['quota_exceeded', 'Quota exceeded', 'Request limit reached'],
     ['unavailable', 'Provider unavailable', "The provider isn't responding"],
+    ['model_not_found', 'Model not found', 'The model is unavailable'],
+    ['timeout', 'Slow response', 'The model is too slow'],
     ['no_vision', "Model doesn't accept images", 'Photo recognition is off'],
     ['unknown', 'Not checked yet', null],
   ] as const)('%s: status line and banner', async (state, line, banner) => {
@@ -205,6 +207,45 @@ describe('ProviderStatus', () => {
     fireEvent.click(details);
     expect(details.getAttribute('aria-expanded')).toBe('true');
     expect(screen.getByText(/HTTP 403\s+API key not valid/)).toBeTruthy();
+  });
+});
+
+describe('ProviderStatus: model not found and timeout', () => {
+  it('404 names the model and shows the provider reply in «Details»', async () => {
+    await wrap(
+      status({
+        state: 'model_not_found',
+        details: { status: 404, message: 'models/x is not found' },
+      }),
+    );
+    expect(
+      screen.getByText(
+        "The provider doesn't have model gemini-3.8-flash. Check AI_MODEL and pick a model from the provider's list.",
+      ),
+    ).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Details' }));
+    expect(screen.getByText(/HTTP 404\s+models\/x is not found/)).toBeTruthy();
+  });
+
+  it('own server: the 404 text also points at AI_BASE_URL', async () => {
+    await wrap(
+      status({
+        state: 'model_not_found',
+        provider: 'openai-compatible',
+        providerName: null,
+      }),
+    );
+    expect(screen.getByText(/and the AI_BASE_URL address/)).toBeTruthy();
+  });
+
+  it('timeout names the seconds and has no empty «Details»', async () => {
+    await wrap(status({ state: 'timeout', details: { timeoutSec: 20 } }));
+    expect(
+      screen.getByText(
+        'The model takes longer than 20 s to answer — choose a faster model.',
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Details' })).toBeNull();
   });
 });
 

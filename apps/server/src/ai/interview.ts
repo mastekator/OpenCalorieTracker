@@ -11,7 +11,7 @@ import {
   interviewSystemPrompt,
   toModelMessages,
 } from '../norm-agent/prompt.js';
-import { callModel } from './common.js';
+import { callModel, quickReasoning } from './common.js';
 import type { AiModel } from './model.js';
 
 export const INTERVIEW_TIMEOUT_MS = 30_000;
@@ -56,6 +56,7 @@ export async function normInterview(
         messages: toModelMessages(history),
         output: Output.object({ schema: interviewTurnSchema }),
         maxRetries: 0,
+        reasoning: quickReasoning(model),
         abortSignal,
       });
       return output;

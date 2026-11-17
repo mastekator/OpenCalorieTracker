@@ -35,6 +35,14 @@ export function noVisionError(err: unknown, timedOut: boolean) {
   return new ApiError(409, 'ai_no_vision');
 }
 
+/**
+ * Least thinking for Gemini: 3.x models think at length by default and miss our timeouts.
+ * Other providers keep their default.
+ */
+export function quickReasoning(model: AiModel) {
+  return model.provider.startsWith('google') ? ('minimal' as const) : undefined;
+}
+
 /** Error class and provider status for the log line, never the error text (AC-6.2). */
 export function failureNote(err: unknown) {
   let note = ` error=${(err as Error)?.name ?? 'unknown'}`;
@@ -93,9 +101,10 @@ export async function callModel<T>(
       result = 'aborted';
       throw err;
     }
-    // A schema mismatch means the provider answered: not a provider failure.
-    if (!isSchemaError(err)) recordAiResult(err);
     const timedOut = timeout.signal.aborted;
+    // A schema mismatch means the provider answered: not a provider failure.
+    if (!isSchemaError(err))
+      recordAiResult(err, timedOut ? timeoutMs : undefined);
     const apiError = mapError?.(err, timedOut) ?? toApiError(err, timedOut);
     result = apiError.code;
     throw apiError;
