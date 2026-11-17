@@ -5,15 +5,15 @@
   align-content: start;
 }
 
-/* D.1: the same groups in two columns; the offline banner spans both. */
+/* D.1: the main Settings screen only (wide); nested screens stay one column. */
 @media (min-width: 1024px) {
-  .settings {
+  .settings--columns {
     grid-template-columns: 1fr 1fr;
     /* Cards keep their own height instead of stretching to the row. */
     align-items: start;
   }
 
-  .settings__offline {
+  .settings--columns .settings__offline {
     grid-column: 1 / -1;
   }
 }

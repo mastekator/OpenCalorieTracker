@@ -193,6 +193,37 @@ export const Users: Story = {
   render: () => <UsersScreen selfId={1} />,
 };
 export const UsersDark: Story = { ...Users, ...dark };
+const desktop = { viewport: { value: 'desktop' } };
+const longUsers: AdminUser[] = [
+  ...users,
+  {
+    id: 4,
+    email: 'maria.konstantinopolskaya.family-account@subdomain.example.com',
+    name: 'Maria Konstantinopolskaya-Rimskaya',
+    role: 'user',
+    createdAt: now - 2 * DAY,
+    lastLoginAt: now - DAY,
+  },
+];
+/** OCT-229: one column the width of the screen (.screen); a long email breaks only where it must. */
+export const UsersDesktop: Story = {
+  beforeEach: serve(longUsers),
+  render: () => (
+    <div className="screen">
+      <UsersScreen selfId={1} />
+    </div>
+  ),
+  globals: desktop,
+};
+export const UsersDesktopDark: Story = {
+  ...UsersDesktop,
+  globals: { ...desktop, theme: 'dark' },
+};
+export const UsersLongEmail: Story = {
+  beforeEach: serve(longUsers),
+  render: () => <UsersScreen selfId={1} />,
+};
+export const UsersLongEmailDark: Story = { ...UsersLongEmail, ...dark };
 /** 4.5 A user's sheet. */
 export const User: Story = {
   render: () => (

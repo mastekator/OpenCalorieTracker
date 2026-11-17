@@ -169,7 +169,7 @@ export function SettingsScreen({ user, onLogout, platform: given }: Props) {
   }
 
   return (
-    <div className="settings">
+    <div className="settings settings--columns">
       {!online && (
         <div className="settings__offline">
           <Banner icon={<WifiOff aria-hidden="true" />}>
