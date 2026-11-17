@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import type { ReactNode } from 'react';
 import type { AiStatus, MeResponse, Passkey } from '@oct/shared';
 import { DataProvider } from '../../data/DataContext';
 import { openUserDb } from '../../data/db';
@@ -188,6 +189,42 @@ export const Passkeys: Story = {
   render: () => <PasskeysScreen user={user} onChanged={changed} />,
 };
 export const PasskeysDark: Story = { ...Passkeys, ...dark };
+const desktop = { viewport: { value: 'desktop' } };
+/** A nested screen's real column (.screen), so the desktop stories show its width. */
+const column = (node: ReactNode) => <div className="screen">{node}</div>;
+const longPasskeys: Passkey[] = [
+  ...passkeys,
+  {
+    id: 3,
+    name: 'Work laptop in the office upstairs · Microsoft Edge',
+    createdAt: Date.UTC(2026, 10, 10),
+    lastUsedAt: null,
+    thisDevice: false,
+  },
+  {
+    id: 4,
+    name: 'YubiKey5NFC-backup-key-from-the-drawer',
+    createdAt: Date.UTC(2026, 10, 12),
+    lastUsedAt: Date.UTC(2026, 10, 14),
+    thisDevice: false,
+  },
+];
+/** OCT-229: on the desktop one column the width of the screen; long names wrap by words. */
+export const PasskeysDesktop: Story = {
+  beforeEach: serve(longPasskeys),
+  render: () => column(<PasskeysScreen user={user} onChanged={changed} />),
+  globals: desktop,
+};
+export const PasskeysDesktopDark: Story = {
+  ...PasskeysDesktop,
+  globals: { ...desktop, theme: 'dark' },
+};
+/** Long names on the narrowest phone. */
+export const PasskeysLongNames: Story = {
+  beforeEach: serve(longPasskeys),
+  render: () => <PasskeysScreen user={user} onChanged={changed} />,
+};
+export const PasskeysLongNamesDark: Story = { ...PasskeysLongNames, ...dark };
 const sheet = (last: boolean) => (
   <PasskeySheet
     passkey={passkeys[0]!}
@@ -221,6 +258,15 @@ export const ChangePassword: Story = {
   render: () => <PasswordScreen user={user} onDone={changed} />,
 };
 export const ChangePasswordDark: Story = { ...ChangePassword, ...dark };
+/** OCT-229: the fields in one column in the order they are filled. */
+export const ChangePasswordDesktop: Story = {
+  render: () => column(<PasswordScreen user={user} onDone={changed} />),
+  globals: desktop,
+};
+export const ChangePasswordDesktopDark: Story = {
+  ...ChangePasswordDesktop,
+  globals: { ...desktop, theme: 'dark' },
+};
 /** 3.4 Set password: no current field. */
 export const SetPassword: Story = {
   render: () => (
