@@ -1,5 +1,18 @@
-/* Screen 4 (OCT-16 §3): a full-screen flow on the phone, a two-column window on the desktop (E.2). */
+/* Screen 4 (OCT-16 §3): a full-screen flow on the phone, a two-column window on the desktop (E.2).
+   The phone is a column one window tall: only the body scrolls, so nothing shows below the
+   footer (iOS standalone kept a document-sticky footer a tab bar high, OCT-239). */
+.meal-edit {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+}
+
 .meal-edit__window {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
   max-width: var(--content-max-width);
   margin-inline: auto;
 }
@@ -16,8 +29,13 @@
 
 .meal-edit__body {
   display: grid;
+  align-content: start;
   gap: var(--space-4);
   padding-block: var(--space-4);
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .meal-edit__summary {
@@ -147,10 +165,8 @@
   text-align: center;
 }
 
-/* The phone keeps Save in reach at the bottom. */
+/* The last block of the column keeps Save in reach at the bottom, over the home indicator. */
 .meal-edit__footer {
-  position: sticky;
-  bottom: 0;
   display: grid;
   gap: var(--space-2);
   padding-block: var(--space-3) max(var(--space-3), env(safe-area-inset-bottom));
@@ -176,14 +192,12 @@
   .meal-edit {
     display: grid;
     place-items: center;
+    height: auto;
     min-height: 100dvh;
     padding: var(--desktop-gutter);
   }
 
   .meal-edit__window {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
     max-width: var(--modal-flow-max-width);
     max-height: 90dvh;
     border-radius: var(--radius-lg);
@@ -193,11 +207,9 @@
   }
 
   .meal-edit__body {
-    flex: 1;
     grid-template-columns: var(--modal-summary-width) 1fr;
     align-items: start;
     gap: var(--space-6);
-    overflow-y: auto;
   }
 
   .meal-edit__summary--photo {
@@ -216,7 +228,6 @@
   }
 
   .meal-edit__footer {
-    position: static;
     border-top: 1px solid var(--color-separator);
   }
 
