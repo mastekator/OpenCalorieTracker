@@ -103,6 +103,11 @@ const failing = { onSave: fn(() => Promise.reject(new Error('quota'))) };
 
 export const Recognized: Story = {};
 export const RecognizedDark: Story = { globals: dark };
+
+// Only the body scrolls; the footer stays at the bottom edge with nothing below it (OCT-239).
+const longList = { dishes: [...dishes, ...dishes, ...dishes] };
+export const LongList: Story = { args: longList };
+export const LongListDark: Story = { args: longList, globals: dark };
 /** 4.10 */
 export const Ounces: Story = { args: { units: 'us' } };
 export const OuncesDark: Story = { args: { units: 'us' }, globals: dark };
