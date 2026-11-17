@@ -144,7 +144,7 @@ describe('ProviderStatus', () => {
     ['quota_exceeded', 'Quota exceeded', 'Request limit reached'],
     ['unavailable', 'Provider unavailable', "The provider isn't responding"],
     ['model_not_found', 'Model not found', 'The model is unavailable'],
-    ['timeout', 'Model too slow', 'The model is too slow'],
+    ['timeout', 'Slow response', 'The model is too slow'],
     ['no_vision', "Model doesn't accept images", 'Photo recognition is off'],
     ['unknown', 'Not checked yet', null],
   ] as const)('%s: status line and banner', async (state, line, banner) => {
@@ -235,7 +235,7 @@ describe('ProviderStatus: model not found and timeout', () => {
         providerName: null,
       }),
     );
-    expect(screen.getByText(/or check the AI_BASE_URL address/)).toBeTruthy();
+    expect(screen.getByText(/and the AI_BASE_URL address/)).toBeTruthy();
   });
 
   it('timeout names the seconds and has no empty «Details»', async () => {

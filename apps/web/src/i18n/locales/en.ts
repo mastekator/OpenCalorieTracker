@@ -886,7 +886,7 @@ export const en = {
       quota_exceeded: 'Quota exceeded',
       unavailable: 'Provider unavailable',
       model_not_found: 'Model not found',
-      timeout: 'Model too slow',
+      timeout: 'Slow response',
       no_vision: "Model doesn't accept images",
       unknown: 'Not checked yet',
     },
@@ -912,7 +912,7 @@ export const en = {
     checking: 'Checking…',
     check_note:
       'Sends a short test request — this uses a little of your quota.',
-    wait: 'Just checked. Try again in {count} s',
+    wait: 'Just checked. Try again in {count}\u00a0s',
     details: 'Details',
     banner: {
       auth_error: {
@@ -931,11 +931,11 @@ export const en = {
         title: 'The model is unavailable',
         body: "The provider doesn't have model {model}. Check AI_MODEL and pick a model from the provider's list.",
         body_compatible:
-          "The provider doesn't have model {model}. Check AI_MODEL and pick a model from the provider's list, or check the AI_BASE_URL address.",
+          "The provider doesn't have model {model}. Check AI_MODEL (a model from the provider's list) and the AI_BASE_URL address.",
       },
       timeout: {
         title: 'The model is too slow',
-        body: 'The model takes longer than {count} s to answer — choose a faster model.',
+        body: 'The model takes longer than {count}\u00a0s to answer — choose a faster model.',
       },
       no_vision: {
         title: 'Photo recognition is off',
