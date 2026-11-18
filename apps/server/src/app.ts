@@ -1,4 +1,3 @@
-import { readFileSync } from 'node:fs';
 import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { csrf } from 'hono/csrf';
@@ -24,14 +23,8 @@ import { syncRoutes } from './sync/routes.js';
 import { weightRoutes } from './weight/routes.js';
 import { setupErrors, type Config } from './config.js';
 import { apiVersion } from './http/apiVersion.js';
+import { appVersion as version } from './version.js';
 import { ApiError, onError } from './http/errors.js';
-
-// Same relative path from src/ (dev, tests) and dist/ (production).
-const { version } = JSON.parse(
-  readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
-) as {
-  version: string;
-};
 
 /** Cap for every /api/* body except photo upload; JSON bodies are read whole into memory. */
 export const MAX_JSON_BYTES = 64 * 1024;

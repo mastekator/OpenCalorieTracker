@@ -1,6 +1,6 @@
 # Test photos
 
-A small manual set for `pnpm --filter @oct/server check-model` (ADR-0007). Not used by CI and not copied into the Docker image.
+The model test set: **Settings → AI provider → Test model** and `pnpm --filter @oct/server check-model` run these photos (ADR-0007, ADR-0019). The photos and `expected.json` are copied into the Docker image; CI does not call a model with them.
 
 `expected.json` lists, per photo, the dishes we expect (for reading only), a rough kcal range for the whole photo and the expected confidence:
 

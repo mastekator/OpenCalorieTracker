@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { compare, type Expected } from './compare.js';
+import { access } from 'node:fs/promises';
+import {
+  compare,
+  readExpected,
+  TEST_PHOTOS_DIR,
+  type Expected,
+} from './compare.js';
 
 const dish = (kcal: number, confidence: number) => ({
   name: 'x',
@@ -47,5 +53,16 @@ describe('compare', () => {
   it('expects an empty list for non-food', () => {
     expect(compare(chair, { dishes: [] })).toBe(null);
     expect(compare(chair, { dishes: [dish(10, 0.3)] })).toMatch(/no dishes/);
+  });
+});
+
+describe('readExpected', () => {
+  it('reads the 9 test photos next to the server package', async () => {
+    const expected = await readExpected();
+    expect(expected).toHaveLength(9);
+    for (const e of expected)
+      await expect(
+        access(new URL(e.file, TEST_PHOTOS_DIR)),
+      ).resolves.toBeUndefined();
   });
 });

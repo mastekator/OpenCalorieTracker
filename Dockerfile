@@ -30,6 +30,8 @@ WORKDIR /app/server
 COPY --from=build /out/package.json ./
 COPY --from=build /out/node_modules ./node_modules
 COPY --from=build /out/dist ./dist
+# Model test photos for Settings → AI provider → Test model (ADR-0019); README stays out.
+COPY --from=build /src/apps/server/test-photos/*.jpg /src/apps/server/test-photos/expected.json ./test-photos/
 COPY --from=build /src/apps/web/dist /app/web
 RUN mkdir -p /data && chown node:node /data
 # No USER: the app starts as root only to give /data to PUID:PGID, then drops to them (ADR-0017).
