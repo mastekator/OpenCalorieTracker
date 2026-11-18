@@ -198,7 +198,8 @@ describe('model test', () => {
     // Two starts at once: one wins, the other is refused.
     const [a, b] = await Promise.all([t.start(), t.start()]);
     expect([a.status, b.status].sort()).toEqual([201, 409]);
-    const first = ((await (a.status === 201 ? a : b).json()) as { id: number }).id;
+    const first = ((await (a.status === 201 ? a : b).json()) as { id: number })
+      .id;
     const busy = await t.start();
     expect(busy.status).toBe(409);
     expect(await busy.json()).toEqual({
