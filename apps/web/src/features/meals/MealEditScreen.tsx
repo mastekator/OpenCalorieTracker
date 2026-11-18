@@ -1186,7 +1186,7 @@ export function MealEditScreen({
                   ) : (
                     <>
                       <WifiOff aria-hidden="true" />
-                      {t('edit.refine.offline')}
+                      {t('edit.refine.offline_save')}
                     </>
                   )
                 ) : refine.limitReached ? (
@@ -1214,7 +1214,8 @@ export function MealEditScreen({
               }
             />
           )}
-          {!online && (
+          {/* With the refine field its note already says it (OCT-283). */}
+          {!online && !canRefine && (
             <p className="meal-edit__note">{t('edit.offline_note')}</p>
           )}
           <div className="meal-edit__actions">
