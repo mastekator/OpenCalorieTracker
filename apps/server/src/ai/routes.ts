@@ -6,33 +6,34 @@ import { requireUser, type AuthEnv } from '../auth/session.js';
 import { ApiError } from '../http/errors.js';
 import { photoPath } from '../photos/store.js';
 import { recognizeMeal } from './recognize.js';
-import { baseUrlHost, getAiSettings } from './settings.js';
+import { baseUrlHost } from './settings.js';
 import { interviewStatus, recognitionStatus } from './status.js';
 
 const RESULT_TTL_MS = 10 * 60_000;
 
 /** AI status and photo recognition (ADR-0007 "HTTP"). State is per app instance. */
-export function aiRoutes({ config, model = null }: AppDeps) {
+export function aiRoutes({ config, ai }: AppDeps) {
   // Successful and in-flight recognitions by "userId:photoId"; failures are dropped at once.
   const results = new Map<string, Promise<Recognition>>();
   // The photo each user is recognizing now: one call per user at a time.
   const running = new Set<number>();
-  const settings = model ? getAiSettings(config) : null;
-  const provider = settings && AI_PROVIDERS[settings.provider];
 
   return new Hono<AuthEnv>()
-    .get('/ai/status', requireUser, (c) =>
-      c.json({
+    .get('/ai/status', requireUser, (c) => {
+      const { settings = null, model = null } = ai.current() ?? {};
+      return c.json({
         recognition: recognitionStatus(model),
         interview: interviewStatus(model),
-        providerName: provider?.name ?? null,
+        providerName: settings ? AI_PROVIDERS[settings.provider].name : null,
         baseUrlHost:
           settings?.provider === 'openai-compatible'
             ? baseUrlHost(settings)
             : null,
-      } satisfies AiStatus),
-    )
+      } satisfies AiStatus);
+    })
     .post('/photos/:id/recognize', requireUser, async (c) => {
+      // Taken once: a model change mid-request does not touch this call (ADR-0018 §3).
+      const model = ai.current()?.model ?? null;
       const status = recognitionStatus(model);
       if (status === 'not_configured')
         throw new ApiError(409, 'ai_not_configured');

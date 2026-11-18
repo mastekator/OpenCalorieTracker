@@ -6,7 +6,7 @@ export type AiModel = Exclude<LanguageModel, string>;
 
 /**
  * The language model for the settings, or null in manual mode. Only the chosen provider's
- * package is loaded. Call once and keep the result: settings change only on restart in MVP.
+ * package is loaded. The AI runtime keeps the result until the settings change.
  */
 export async function createModel(
   settings: AiSettings | null,

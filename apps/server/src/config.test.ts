@@ -108,9 +108,9 @@ describe('data dir (ADR-0017)', () => {
   });
 
   it('names the problem first in /api/config, without the path or ids', async () => {
-    const { config, db } = testApp({ DATA_DIR: '/srv/secret-dir' });
-    config.dataDirWritable = false;
-    const res = await createApp({ config, db }).request('/api/config');
+    const t = testApp({ DATA_DIR: '/srv/secret-dir' });
+    t.config.dataDirWritable = false;
+    const res = await createApp(t).request('/api/config');
     const body = await res.text();
     expect(JSON.parse(body).setupError).toBe('data_dir_not_writable');
     expect(body).not.toContain('secret-dir');

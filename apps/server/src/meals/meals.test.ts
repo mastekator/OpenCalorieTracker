@@ -6,9 +6,11 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import sharp from 'sharp';
 import type { Meal, MealInput, PreviousDishesResponse } from '@oct/shared';
+import type { AiModel } from '../ai/model.js';
 import { ensureAdmin } from '../auth/admin.js';
 import { hashPassword } from '../auth/password.js';
 import { photoPath } from '../photos/store.js';
+import { mockModel } from '../test/ai.js';
 import { setCookie, testApp } from '../test/app.js';
 import { checkWhen } from './routes.js';
 
@@ -19,10 +21,13 @@ afterEach(async () => {
   await Promise.all(dirs.splice(0).map((d) => rm(d, { recursive: true })));
 });
 
-async function setup(env: Record<string, string> = {}) {
+async function setup(
+  env: Record<string, string> = {},
+  model: AiModel | null = null,
+) {
   const dataDir = await mkdtemp(join(tmpdir(), 'oct-meals-'));
   dirs.push(dataDir);
-  const t = testApp({ DATA_DIR: dataDir, ...env });
+  const t = testApp({ DATA_DIR: dataDir, ...env }, model);
   await ensureAdmin(t.config, t.db);
   const signIn = async (email: string) => {
     const res = await t.app.request('/api/auth/login', {
@@ -170,7 +175,10 @@ describe('meals', () => {
   });
 
   it('records the AI provider and model from the server settings (AC-4.1)', async () => {
-    const withAi = await setup({ AI_PROVIDER: 'google', AI_MODEL: 'gemini-x' });
+    const withAi = await setup(
+      { AI_PROVIDER: 'google', AI_MODEL: 'gemini-x' },
+      mockModel(),
+    );
     const meal = (await (
       await withAi.call(withAi.cookie, 'POST', '/meals', input())
     ).json()) as Meal;

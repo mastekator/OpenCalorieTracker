@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { resetAiStatus } from '../ai/status.js';
 import { aiSetup, apiError, mockModel } from '../test/ai.js';
 
 const KEY = 'sk-test-SECRET-key-42';
@@ -31,7 +30,6 @@ beforeEach(() => {
 afterEach(async () => {
   vi.useRealTimers();
   vi.restoreAllMocks();
-  resetAiStatus();
   await cleanup?.();
   cleanup = undefined;
 });
@@ -46,6 +44,10 @@ describe('GET /api/admin/ai', () => {
       keySet: true,
       baseUrlHost: 'llm.local:11434',
       source: 'env',
+      keyLast4: null,
+      keyUnreadable: false,
+      savedInactive: false,
+      rev: null,
       state: 'unknown',
       checkedAt: null,
     });
