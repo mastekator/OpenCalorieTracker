@@ -5,12 +5,16 @@ import {
   AI_PROVIDERS,
   aiDraftSchema,
   aiModelsRequestSchema,
+  aiTestRunSummarySchema,
+  aiTestStartRequestSchema,
   createInviteRequestSchema,
   saveAiSettingsRequestSchema,
   type AdminAiStatus,
   type AiCheckResult,
   type AiDraft,
   type AiModelsResponse,
+  type AiTestPhoto,
+  type AiTestRun,
   type AdminBlock,
   type AdminUser,
   type CreatedLinkResponse,
@@ -18,6 +22,8 @@ import {
 } from '@oct/shared';
 import { callModel, noVisionError, quickReasoning } from '../ai/common.js';
 import { readExpected, TEST_PHOTOS_DIR } from '../ai/model-test/compare.js';
+import { modelsMdRow, reportMarkdown } from '../ai/model-test/format.js';
+import { createModelTestRunner } from '../ai/model-test/runner.js';
 import { createModel, type AiModel } from '../ai/model.js';
 import { listModels, MODELS_TIMEOUT_MS } from '../ai/models.js';
 import {
@@ -50,6 +56,55 @@ const CHECK_MAX_TOKENS = 16;
 const PIXEL_PNG =
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
 
+interface TestRunRow {
+  id: number;
+  provider: AiTestRun['provider'];
+  model: string;
+  status: AiTestRun['status'];
+  stop_reason: AiTestRun['stopReason'];
+  app_version: string;
+  prompt_version: number;
+  started_at: number;
+  finished_at: number | null;
+  input_tokens: number | null;
+  output_tokens: number | null;
+  cost_usd: number | null;
+  photos: string;
+}
+
+function testRun(r: TestRunRow): AiTestRun {
+  const photos = (JSON.parse(r.photos) as AiTestPhoto[]).map((p) =>
+    // A run cut by a restart never got to mark its rest (E-9).
+    r.status !== 'running' && p.result === 'pending'
+      ? { ...p, result: 'not_run' }
+      : p,
+  );
+  const ms = photos.flatMap((p) => (p.ms === undefined ? [] : [p.ms]));
+  const run: AiTestRun = {
+    id: r.id,
+    provider: r.provider,
+    model: r.model,
+    status: r.status,
+    stopReason: r.stop_reason,
+    appVersion: r.app_version,
+    promptVersion: r.prompt_version,
+    startedAt: r.started_at,
+    finishedAt: r.finished_at,
+    inputTokens: r.input_tokens,
+    outputTokens: r.output_tokens,
+    costUsd: r.cost_usd,
+    passed: photos.filter((p) => p.result === 'ok').length,
+    total: photos.length,
+    msPerPhoto: ms.length
+      ? Math.round(ms.reduce((a, b) => a + b, 0) / ms.length)
+      : null,
+    photos,
+  };
+  return r.status === 'done'
+    ? { ...run, modelsMdRow: modelsMdRow(run), report: reportMarkdown(run) }
+    : run;
+}
+
 // passkeyName falls back to "Passkey", which says nothing about a blocked device.
 const deviceName = (ua: string | null) => {
   const name = ua ? passkeyName(ua) : 'Passkey';
@@ -66,6 +121,15 @@ export function adminRoutes({ config, db, ai, secrets }: AppDeps) {
     const n = Number(raw);
     if (!Number.isSafeInteger(n)) throw new ApiError(404, 'not_found');
     return n;
+  };
+
+  const tests = createModelTestRunner(db);
+  const testRow = (raw: string) => {
+    const row = db
+      .prepare('SELECT * FROM ai_test_runs WHERE id = ?')
+      .get(id(raw)) as TestRunRow | undefined;
+    if (!row) throw new ApiError(404, 'not_found');
+    return row;
   };
 
   const redacted = (details: AiResult['details'], apiKey: string | undefined) =>
@@ -296,6 +360,55 @@ export function adminRoutes({ config, db, ai, secrets }: AppDeps) {
           }
         },
       )
+      // The active model when the draft is the active settings, so its calls set the status
+      // (AC-2.13); otherwise a temporary one the status ignores. Taken once: a save mid-run keeps it (E-3).
+      .post(
+        '/admin/ai/tests',
+        validate('json', aiTestStartRequestSchema),
+        async (c) => {
+          const settings = draftSettings(c.req.valid('json'));
+          const active = ai.current();
+          const same =
+            active &&
+            active.settings.provider === settings.provider &&
+            active.settings.model === settings.model &&
+            active.settings.apiKey === settings.apiKey &&
+            (active.settings.baseUrl ?? null) === (settings.baseUrl ?? null);
+          const runningId = tests.runningId();
+          if (runningId !== null)
+            throw new ApiError(409, 'ai_test_running', { id: runningId });
+          const model = same ? active.model : (await createModel(settings))!;
+          const testId = await tests.start(settings, model);
+          return c.json({ id: testId }, 201);
+        },
+      )
+      .get('/admin/ai/tests', (c) => {
+        const rows = db
+          .prepare('SELECT * FROM ai_test_runs ORDER BY id DESC')
+          .all() as TestRunRow[];
+        return c.json(
+          rows.map((r) => aiTestRunSummarySchema.parse(testRun(r))),
+        );
+      })
+      .get('/admin/ai/tests/:id', (c) =>
+        c.json(testRun(testRow(c.req.param('id')))),
+      )
+      .post('/admin/ai/tests/:id/stop', (c) => {
+        tests.stop(testRow(c.req.param('id')).id);
+        return c.body(null, 204);
+      })
+      .delete('/admin/ai/tests/:id', (c) => {
+        const row = testRow(c.req.param('id'));
+        if (row.status === 'running')
+          throw new ApiError(409, 'ai_test_running', { id: row.id });
+        db.prepare('DELETE FROM ai_test_runs WHERE id = ?').run(row.id);
+        return c.body(null, 204);
+      })
+      // Clear all: the running one stays.
+      .delete('/admin/ai/tests', (c) => {
+        db.prepare("DELETE FROM ai_test_runs WHERE status != 'running'").run();
+        return c.body(null, 204);
+      })
       // Thumbnails for the model test table (ADR-0019): only names from expected.json, so no path tricks.
       .get('/admin/ai/test-photos/:file', async (c) => {
         const file = c.req.param('file');

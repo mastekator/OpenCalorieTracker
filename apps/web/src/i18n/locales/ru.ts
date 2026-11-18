@@ -1375,6 +1375,7 @@ const ru: DeepPartial<typeof en> = {
     ai_key_required: 'Введите API-ключ этого провайдера',
     ai_check_failed: 'Проверка не прошла — настройки не сохранены',
     ai_models_failed: 'Не удалось загрузить список моделей',
+    ai_test_running: 'Тест модели уже идёт',
     photo_too_large: 'Фото слишком большое',
     photo_invalid: 'Не удалось прочитать файл как фото',
     client_outdated: 'Приложение обновилось. Сохраните ещё раз',
