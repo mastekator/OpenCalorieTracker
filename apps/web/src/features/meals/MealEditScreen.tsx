@@ -18,17 +18,12 @@ import {
 } from 'lucide-react';
 import { z } from 'zod';
 import {
-  DISH_GRAMS,
   entryDay,
-  illustrationIdSchema,
   matchIllustration,
   mealTypeAt,
   nameKey,
-  round1,
-  scaleItem,
   type Meal,
   type MealInput,
-  type MealItemInput,
   type MealPatch,
   type DayChoice,
   type IllustrationId,
@@ -78,31 +73,19 @@ import { UNDO_MS, useUndoDelete } from '../diary/undoDelete';
 import { MEAL_NEW_PATH, useCapture } from './CaptureContext';
 import { RecognitionScreen, type MealEditState } from './RecognitionScreen';
 import { ImageDecodeError, prepareImage } from './prepareImage';
+import {
+  itemOf,
+  previousSchema,
+  toRow,
+  withFixed,
+  type Dish,
+  type Previous,
+  type Row,
+} from './refine';
 import './MealEditScreen.css';
 
-/**
- * `illustration`: picked by hand on this dish — a loaded meal passes it only with
- * `illustrationManual`, or the automatic one would freeze and stop following the name.
- */
-type Dish = ManualDish & { confidence?: number; illustration?: IllustrationId };
 /** Why the manual sheet opened (MealEditState); set: no AI dishes came. */
 type ManualReason = Extract<MealEditState, { manual: unknown }>['manual'];
-
-type Row = {
-  /** Stable key: rows are deleted and put back in place (4.5). */
-  id: string;
-  /** As recognized or entered, with the current name: every recalculation starts from here (AC-3.2). */
-  original: Dish;
-  source: 'ai' | 'manual' | 'history';
-  /** Null while the weight field is invalid (AC-3.4). */
-  grams: number | null;
-  /** Last valid weight: the numbers stay on it while the field is invalid. */
-  shown: number;
-  /** Weight or name edited: the confidence badge goes (AC-2.9). */
-  edited: boolean;
-  /** A similar dish from the history: the hint under the row (4.3). */
-  previous?: Previous;
-};
 
 /** The unsaved edits of a saved meal, kept across its recalculation (5.6). */
 export type Draft = { rows: Row[]; mealType: MealType; when: string };
@@ -113,22 +96,6 @@ export type Draft = { rows: Row[]; mealType: MealType; when: string };
 export type RecalcState = { draft: Draft; dishes?: RecognizedDish[] };
 
 const photoSchema = z.object({ photoId: z.string() });
-const previousSchema = z.array(
-  z
-    .object({
-      mealId: z.number(),
-      eatenAt: z.string(),
-      grams: z.number(),
-      kcal: z.number(),
-      proteinG: z.number(),
-      fatG: z.number(),
-      carbsG: z.number(),
-      illustration: illustrationIdSchema,
-    })
-    .nullable(),
-);
-/** The fields of `PreviousDish` the hint uses. */
-type Previous = NonNullable<z.infer<typeof previousSchema>[number]>;
 /** Delay after a name typed by hand before looking it up (AC-11.6). */
 export const LOOKUP_DELAY_MS = 300;
 
@@ -173,43 +140,6 @@ const savedRow = (item: Meal['items'][number]): Row =>
     },
     item.source,
   );
-
-const inRange = (g: number) => g >= DISH_GRAMS.min && g <= DISH_GRAMS.max;
-
-function toRow(original: Dish, source: Row['source'] = 'ai'): Row {
-  // AI grams may carry any decimals; the API takes one (mealItemInputSchema).
-  const g = round1(original.grams);
-  return {
-    id: uuid(),
-    original,
-    source,
-    grams: inRange(g) ? g : null,
-    shown: g,
-    edited: false,
-  };
-}
-
-const itemOf = (row: Row): MealItemInput => {
-  const { name, kcal, proteinG, fatG, carbsG, grams, confidence } = scaleItem(
-    row.original,
-    row.shown,
-  );
-  return {
-    name,
-    grams,
-    kcal,
-    proteinG,
-    fatG,
-    carbsG,
-    source: row.source,
-    // A manual dish has no confidence (AC-3.9).
-    ...(row.source === 'ai' && !row.edited && { confidence }),
-    // Only a hand-picked one is sent; the server matches the rest (ADR-0009).
-    ...(row.original.illustration && {
-      illustration: row.original.illustration,
-    }),
-  };
-};
 
 type Props = {
   /** Recognized dishes; empty for manual entry. */
@@ -414,7 +344,12 @@ export function MealEditScreen({
     setRows((rs) =>
       rs.map((r, i) =>
         i === index
-          ? { ...r, grams, shown: grams ?? r.shown, edited: true }
+          ? {
+              ...r,
+              grams,
+              shown: grams ?? r.shown,
+              fixed: withFixed(r.fixed, 'grams'),
+            }
           : r,
       ),
     );
@@ -452,7 +387,10 @@ export function MealEditScreen({
               original: { ...r.original, name },
               grams,
               shown: grams,
-              edited: r.edited || renamed || grams !== r.grams,
+              fixed: [
+                ...(renamed ? ['name' as const] : []),
+                ...(grams !== r.grams ? ['grams' as const] : []),
+              ].reduce(withFixed, r.fixed),
               previous: renamed ? undefined : r.previous,
             }
           : r,
@@ -521,7 +459,7 @@ export function MealEditScreen({
               source: 'history',
               grams,
               shown: grams,
-              edited: false,
+              fixed: [],
               previous: undefined,
             }
           : r,

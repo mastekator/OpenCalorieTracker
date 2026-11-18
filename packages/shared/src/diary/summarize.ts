@@ -16,7 +16,7 @@ export interface DayTotals extends Macros {
 }
 
 /** The day's totals from its meals, unrounded (AC-0.3); the web and the server use the same sum. */
-export const sumDay = (meals: readonly Meal[]): Macros =>
+export const sumDay = (meals: readonly Macros[]): Macros =>
   each((k) => meals.reduce((s, m) => s + m[k], 0));
 
 /** `norm − eaten` for kcal and each macro: negative is over, exactly 0 is not (E-1.1). */
