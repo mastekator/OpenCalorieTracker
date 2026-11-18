@@ -497,8 +497,8 @@ describe('recalculation from the photo (OCT-62)', () => {
       </I18nProvider>,
     );
     await screen.findByLabelText('Date and time');
-    // Asked only for a meal with its full photo.
-    if (meal.photo?.full) await waitFor(() => expect(statusCalls).toBe(1));
+    // Asked for every meal: «Refine» works without a photo (AC-4.2).
+    await waitFor(() => expect(statusCalls).toBe(1));
     await act(async () => {}); // the status answer renders
   }
 
@@ -524,9 +524,13 @@ describe('recalculation from the photo (OCT-62)', () => {
     cleanup();
     await clearLocal(9);
     await setup(withPhoto({ photo: { id: 'p1', full: false } }));
-    expect(statusCalls).toBe(0);
     expect(banner()).toBeNull();
     expect(recalcButton()).toBeNull();
+    // «Refine» still works with text (OCT-232 §6): no «Recognize again», the reason under the field.
+    expect(
+      screen.queryByRole('button', { name: 'Recognize again' }),
+    ).toBeNull();
+    expect(screen.getByText('The photo is no longer stored')).toBeTruthy();
   });
 
   it('«Not now» drops the banner, patches the offer, the header action appears', async () => {

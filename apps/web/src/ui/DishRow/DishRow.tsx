@@ -1,5 +1,12 @@
-import { Pencil, Trash2 } from 'lucide-react';
-import type { DishSource, IllustrationId, Nutrients, Units } from '@oct/shared';
+import { CirclePlus, Pencil, Trash2 } from 'lucide-react';
+import {
+  gToOz,
+  type DishSource,
+  type IllustrationId,
+  type Nutrients,
+  type Units,
+} from '@oct/shared';
+import { Badge } from '../Badge/Badge';
 import { useT } from '../../i18n';
 import { ConfidenceBadge } from '../ConfidenceBadge/ConfidenceBadge';
 import {
@@ -31,6 +38,8 @@ type Props = {
   onDelete?: () => void;
   /** Tap on the illustration: the «Dish picture» sheet (OCT-33 4.1); none: decorative only. */
   onIllustration?: () => void;
+  /** After «Refine» / «Recognize again» (OCT-234 C): «new», or «changed, was …» with the old name or weight. */
+  mark?: { kind: 'new' } | { kind: 'changed'; name: string; grams: number };
 };
 
 /** One dish on the edit screen: name and kcal, source badge and macros, weight stepper, delete. */
@@ -41,15 +50,26 @@ export function DishRow({
   onEdit,
   onDelete,
   onIllustration,
+  mark,
 }: Props) {
   const { t, num, locale } = useT();
+  const was =
+    mark?.kind !== 'changed'
+      ? null
+      : mark.name !== dish.name
+        ? mark.name
+        : units === 'us'
+          ? `${new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(gToOz(mark.grams))}\u00a0${t('unit.oz')}`
+          : `${num(mark.grams)}\u00a0${t('unit.g')}`;
   const { offset, dragging, remove, bind, confirm } = useSwipeDelete(onDelete);
   return (
     <div
       className={`dish-row-swipe${dragging ? ' dish-row-swipe--dragging' : ''}${offset ? ' dish-row-swipe--shifted' : ''}`}
       {...bind}
     >
-      <div className={`dish-row${dish.illustration ? ' dish-row--illo' : ''}`}>
+      <div
+        className={`dish-row${dish.illustration ? ' dish-row--illo' : ''}${mark ? ' dish-row--marked' : ''}`}
+      >
         {dish.illustration &&
           (onIllustration ? (
             <button
@@ -84,6 +104,19 @@ export function DishRow({
           </span>
         </div>
         <div className="dish-row__meta">
+          {mark && (
+            // Not by colour only: an icon and a word (AC-3.1).
+            <span className={`dish-row__mark dish-row__mark--${mark.kind}`}>
+              <Badge tone="ok">
+                {mark.kind === 'new' ? (
+                  <CirclePlus aria-hidden="true" />
+                ) : (
+                  <Pencil aria-hidden="true" />
+                )}
+                {t(`edit.refine.mark.${mark.kind}`)}
+              </Badge>
+            </span>
+          )}
           <ConfidenceBadge source={dish.source} confidence={dish.confidence} />
           <span className="tabular-nums">
             {t('edit.macros', {
@@ -93,6 +126,11 @@ export function DishRow({
             })}
           </span>
         </div>
+        {was && (
+          <p className="dish-row__was">
+            {t('edit.refine.mark.was', { what: was })}
+          </p>
+        )}
         <div className="dish-row__weight">
           <WeightStepper
             grams={dish.grams}
