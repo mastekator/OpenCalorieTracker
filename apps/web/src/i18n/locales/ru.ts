@@ -1055,6 +1055,7 @@ const ru: DeepPartial<typeof en> = {
       unknown: 'Провайдер не сообщает',
       no_photo: 'Без фото',
       nothing: 'Ничего не нашли по «{query}»',
+      empty: 'Список моделей пуст',
       name: 'Имя модели',
       name_hint: 'Как в кабинете провайдера. Проверьте кнопкой «Проверить».',
       failed:

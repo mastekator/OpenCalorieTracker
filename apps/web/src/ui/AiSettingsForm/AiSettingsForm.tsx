@@ -184,7 +184,13 @@ export function AiSettingsForm({
         )}
         value={draft.apiKey}
         onChange={(event) => onChange({ apiKey: event.target.value })}
-        onBlur={() => draft.apiKey.trim() && !models.list && onLoadModels()}
+        onBlur={() =>
+          draft.apiKey.trim() &&
+          !models.list &&
+          !models.loading &&
+          !models.error &&
+          onLoadModels()
+        }
         error={
           keyError ??
           (status.keyUnreadable && draft.provider === status.provider
@@ -297,7 +303,10 @@ export function AiSettingsForm({
               >
                 <span className="list-row__label">
                   {t('ai.model')}
-                  <span className="list-row__description ai-form__mono">
+                  {/* Only the model name is monospaced, not the prompts (OCT-276 review). */}
+                  <span
+                    className={`list-row__description${draft.model ? ' ai-form__mono' : ''}`}
+                  >
                     {draft.model ||
                       t(
                         models.loading

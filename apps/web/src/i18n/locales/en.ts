@@ -1029,6 +1029,7 @@ export const en = {
       unknown: 'Not reported by the provider',
       no_photo: 'No photos',
       nothing: 'Nothing found for “{query}”',
+      empty: 'The model list is empty',
       name: 'Model name',
       name_hint: 'As shown in your provider account. Verify it with Check.',
       failed:

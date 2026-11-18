@@ -592,6 +592,9 @@ describe('AiProviderScreen: settings form', () => {
     type('API key', `${key}0`);
     fireEvent.blur(field('API key'));
     expect(models()).toHaveLength(2);
+    // Leaving the field during the pause fetched already: the timer must not fetch again.
+    await new Promise((r) => setTimeout(r, 700));
+    expect(models()).toHaveLength(2);
     for (const storage of [localStorage, sessionStorage])
       for (let i = 0; i < storage.length; i++)
         expect(storage.getItem(storage.key(i)!)).not.toContain(key);

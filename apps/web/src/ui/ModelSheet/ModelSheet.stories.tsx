@@ -81,6 +81,9 @@ export const LongDark: Story = { ...Long, ...dark };
 /** 2.2 Nothing found: one tap puts the query into manual entry. */
 export const NothingFound: Story = { args: { initialQuery: 'gpt-9-vision' } };
 export const NothingFoundDark: Story = { ...NothingFound, ...dark };
+/** The provider returned no models: say so, offer manual entry. */
+export const Empty: Story = { args: { models: [], value: '' } };
+export const EmptyDark: Story = { ...Empty, ...dark };
 /** The list is on its way. */
 export const Loading: Story = { args: { models: null, loading: true } };
 export const LoadingDark: Story = { ...Loading, ...dark };

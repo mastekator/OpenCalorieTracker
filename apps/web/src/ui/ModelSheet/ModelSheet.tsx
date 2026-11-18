@@ -8,6 +8,7 @@ import { Button } from '../Button/Button';
 import { Field } from '../Field/Field';
 import '../List/List.css';
 import { Sheet } from '../Sheet/Sheet';
+import { Skeleton } from '../Skeleton/Skeleton';
 import './ModelSheet.css';
 
 type Props = {
@@ -120,9 +121,28 @@ function Body({
 
   if (!models || loading)
     return (
-      <p className="model-sheet__note" role="status">
-        {t('ai.models.loading')}
-      </p>
+      <div className="model-sheet__loading">
+        <p className="model-sheet__note" role="status">
+          {t('ai.models.loading')}
+        </p>
+        {[0, 1, 2, 3, 4].map((i) => (
+          <Skeleton key={i} height="var(--tap-min)" />
+        ))}
+      </div>
+    );
+
+  if (!models.length)
+    return (
+      <div className="model-sheet__none">
+        <SearchX aria-hidden="true" />
+        <p className="model-sheet__none-title" role="status">
+          {t('ai.models.empty')}
+        </p>
+        <Button variant="tonal" small onClick={() => setManual(value)}>
+          <Pencil aria-hidden="true" />
+          {t('ai.models.manual')}
+        </Button>
+      </div>
     );
 
   const q = deferred.toLowerCase();

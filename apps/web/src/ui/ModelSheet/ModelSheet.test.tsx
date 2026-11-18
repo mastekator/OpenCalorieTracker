@@ -130,6 +130,28 @@ describe('ModelSheet', () => {
     expect(onRefresh).toHaveBeenCalledTimes(2);
   });
 
+  it('an empty list says so, not «Nothing found», and offers manual entry', async () => {
+    const { onPick } = show({ models: [], value: '' });
+    await screen.findByText('The model list is empty');
+    expect(screen.queryByText(/Nothing found/)).toBeNull();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Enter the name manually' }),
+    );
+    fireEvent.change(screen.getByLabelText('Model name'), {
+      target: { value: 'my-model' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+    expect(onPick).toHaveBeenCalledWith('my-model');
+  });
+
+  it('loading: the status line and placeholder rows', async () => {
+    show({ models: null, loading: true });
+    expect((await screen.findByRole('status')).textContent).toBe(
+      'Loading models…',
+    );
+    expect(document.querySelectorAll('.skeleton')).toHaveLength(5);
+  });
+
   it('«Enter the name manually» starts from the current model', async () => {
     show();
     fireEvent.click(

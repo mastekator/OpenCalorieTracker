@@ -92,9 +92,12 @@ export function AiProviderScreen() {
   const [models, setModels] = useState<ModelsState>(NO_MODELS);
   // Only the answer to the latest request is shown: the draft may change meanwhile.
   const modelsReq = useRef(0);
+  const modelsTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const loadModels = useCallback(
     async (d: AiDraftState) => {
+      // Leaving the key field during the pause fetches now, not twice.
+      clearTimeout(modelsTimer.current);
       const id = ++modelsReq.current;
       setModels({ ...NO_MODELS, loading: true });
       try {
@@ -121,8 +124,11 @@ export function AiProviderScreen() {
   // A typed key fetches the list once typing pauses; the key itself goes only to the server.
   useEffect(() => {
     if (!draft.apiKey.trim()) return;
-    const timer = setTimeout(() => void loadModels(draft), MODELS_DELAY_MS);
-    return () => clearTimeout(timer);
+    modelsTimer.current = setTimeout(
+      () => void loadModels(draft),
+      MODELS_DELAY_MS,
+    );
+    return () => clearTimeout(modelsTimer.current);
     // The model is left out on purpose: picking one must not refetch the list.
   }, [draft.apiKey, draft.baseUrl, draft.provider, loadModels]);
 
