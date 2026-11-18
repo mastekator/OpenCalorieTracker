@@ -30,6 +30,7 @@ import {
   type DayChoice,
   type IllustrationId,
   type MealType,
+  type AiQuestion,
   type RecognizedDish,
   type RecognitionStatus,
   type Units,
@@ -54,6 +55,7 @@ import { useT } from '../../i18n';
 import { useBarVariant } from '../../app/connection';
 import { useSession } from '../../app/SessionContext';
 import { useDirty } from '../../app/dirty';
+import { AiQuestion as Question } from '../../ui/AiQuestion/AiQuestion';
 import { Badge } from '../../ui/Badge/Badge';
 import { Banner } from '../../ui/Banner/Banner';
 import { Button } from '../../ui/Button/Button';
@@ -79,12 +81,14 @@ import { MEAL_NEW_PATH, useCapture } from './CaptureContext';
 import { RecognitionScreen, type MealEditState } from './RecognitionScreen';
 import { ImageDecodeError, prepareImage } from './prepareImage';
 import {
+  answer,
   applyAgain,
   applyRefine,
   itemOf,
   previousSchema,
   toRequest,
   toRow,
+  toRows,
   withFixed,
   type Applied,
   type Dish,
@@ -103,7 +107,11 @@ export type Draft = { rows: Row[]; mealType: MealType; when: string };
  * `history.state` of /meal/:clientId and its /recalc: the draft before the recalculation,
  * and once the AI answered its dishes.
  */
-export type RecalcState = { draft: Draft; dishes?: RecognizedDish[] };
+export type RecalcState = {
+  draft: Draft;
+  dishes?: RecognizedDish[];
+  questions?: AiQuestion[];
+};
 
 const photoSchema = z.object({ photoId: z.string() });
 /** Delay after a name typed by hand before looking it up (AC-11.6). */
@@ -154,6 +162,8 @@ const savedRow = (item: Meal['items'][number]): Row =>
 type Props = {
   /** Recognized dishes; empty for manual entry. */
   dishes: Dish[];
+  /** The AI's questions about `dishes` (ADR-0020 §4). */
+  questions?: AiQuestion[];
   /** Set: the manual sheet opens at once; other than 'user', a banner says why (5.3). */
   manual?: ManualReason;
   photoId?: string;
@@ -196,6 +206,7 @@ type Props = {
 /** Screen 4 (design OCT-16 §3, E.2): dishes, weights with live totals, meal type, save. */
 export function MealEditScreen({
   dishes,
+  questions,
   manual,
   photoId,
   units,
@@ -229,9 +240,9 @@ export function MealEditScreen({
   const [clientId] = useState(uuid);
   const [rows, setRows] = useState(() =>
     recalc?.dishes
-      ? recalc.dishes.map((d) => toRow(d))
+      ? toRows(recalc.dishes, recalc.questions)
       : (recalc?.draft.rows ??
-        (meal ? meal.items.map(savedRow) : dishes.map((d) => toRow(d)))),
+        (meal ? meal.items.map(savedRow) : toRows(dishes, questions))),
   );
   // The AI's dishes replace the entry's: saved with the offer cleared, «Restore my numbers» undoes it.
   const [recalced, setRecalced] = useState(!!recalc?.dishes);
@@ -289,7 +300,13 @@ export function MealEditScreen({
   const refine = useRefine<{ rows: Row[]; recalced: boolean }>();
   const [refineText, setRefineText] = useState('');
   // The last step's marks, «Removed» and kcal shift; gone with the next edit (OCT-234 C.2).
-  const [applied, setApplied] = useState<Applied | null>(null);
+  // `answered`: the step was an answer chip, not a request (OCT-234 H.2).
+  const [applied, setApplied] = useState<
+    (Applied & { answered?: boolean }) | null
+  >(null);
+  // Where focus goes once rendered: the field after «Other…» (H.6), the restored chip or the field after «Undo» (WCAG 2.4.3).
+  const [focusOn, setFocusOn] = useState<{ selector: string } | null>(null);
+  const answeredRow = useRef<string | null>(null);
   const lastRefine = useRef<RefineInput>(null);
   const [photoGone, setPhotoGone] = useState(!!meal?.photo && !meal.photo.full);
   const [noVision, setNoVision] = useState(false);
@@ -425,6 +442,8 @@ export function MealEditScreen({
                 ...(grams !== r.grams ? ['grams' as const] : []),
               ].reduce(withFixed, r.fixed),
               previous: renamed ? undefined : r.previous,
+              // A question about another dish (E-10.a).
+              question: renamed ? undefined : r.question,
             }
           : r,
       ),
@@ -496,6 +515,7 @@ export function MealEditScreen({
               shown: grams,
               fixed: [],
               previous: undefined,
+              question: undefined,
             }
           : r,
       ),
@@ -562,6 +582,7 @@ export function MealEditScreen({
     const next = (input.mode === 'again' ? applyAgain : applyRefine)(
       before,
       res.dishes,
+      res.questions,
     );
     setRows(next.rows);
     setApplied(next);
@@ -572,9 +593,35 @@ export function MealEditScreen({
     const fresh = next.rows.filter((r) => next.marks[r.id]).slice(0, 20);
     if (fresh.length) findPrevious('refine', fresh.map(lookupOf));
   }
+  // Local, no request: works offline and costs no refinement (ADR-0020 §4).
+  const answerRow = (row: Row, option: number) => {
+    refine.remember({ rows, recalced });
+    answeredRow.current = row.id;
+    const next = answer(rows, row.id, option);
+    setRows(next.rows);
+    setApplied({ ...next, answered: true });
+  };
+  const other = (row: Row) => {
+    const prefix = `${row.original.name}: `;
+    setRefineText((v) => (v.startsWith(prefix) ? v : prefix + v));
+    setFocusOn({ selector: '.refine__input' });
+  };
+  useEffect(() => {
+    if (!focusOn) return;
+    const el = document.querySelector<HTMLElement>(focusOn.selector);
+    el?.focus();
+    if (el instanceof HTMLTextAreaElement)
+      el.setSelectionRange(el.value.length, el.value.length);
+  }, [focusOn]);
   const undoRefine = () => {
     const before = refine.undo();
     if (!before) return;
+    // The «Undo» bar goes away: focus lands where the step was taken.
+    setFocusOn({
+      selector: applied?.answered
+        ? `[data-row="${answeredRow.current}"] [role="radio"][aria-checked="true"]`
+        : '.refine__input',
+    });
     setRows(before.rows);
     setRecalced(before.recalced);
     setApplied(null);
@@ -740,6 +787,15 @@ export function MealEditScreen({
   const vision = recognition === 'ready' && !noVision;
   const canAgain = canRefine && vision && !!serverPhoto;
   const refineOff = !online || working;
+  const asked = rows.filter(
+    (r) => r.question && r.question.chosen === undefined,
+  ).length;
+  // «Other…» needs a request: offline or at the limit it says why (OCT-234 H.8).
+  const otherOff = !online
+    ? t('edit.refine.offline')
+    : refineError === 'ai_quota_exceeded' || refineError === 'too_many_attempts'
+      ? t('edit.refine.err.quota.title')
+      : undefined;
   const again = () =>
     void sendRefine({
       mode: 'again',
@@ -908,7 +964,9 @@ export function MealEditScreen({
             {rows.some((r) => r.source === 'ai') && (
               <p className="meal-edit__estimate">
                 <Sparkle aria-hidden="true" />
-                {t('edit.estimate')}
+                {asked
+                  ? t('edit.question.count', { count: asked })
+                  : t('edit.estimate')}
               </p>
             )}
             {canAgain && (
@@ -1028,7 +1086,19 @@ export function MealEditScreen({
                         onDelete={() => remove(row.id)}
                         onIllustration={() => setPicking(row.id)}
                         mark={applied?.marks[row.id]}
-                      />
+                      >
+                        {row.question && (
+                          <Question
+                            text={row.question.text}
+                            options={row.question.options}
+                            guess={row.question.guess}
+                            chosen={row.question.chosen}
+                            onChoose={(o) => answerRow(row, o)}
+                            onOther={() => other(row)}
+                            otherOff={otherOff}
+                          />
+                        )}
+                      </DishRow>
                       {row.previous && (
                         <HistoryHint
                           eatenAt={row.previous.eatenAt}
@@ -1129,6 +1199,7 @@ export function MealEditScreen({
                       kcalDelta: applied.kcalDelta,
                       removed: applied.removed,
                       onUndo: undoRefine,
+                      answered: applied.answered,
                     }
                   : undefined
               }
@@ -1298,6 +1369,7 @@ export function MealEditRoute() {
   return (
     <MealEditScreen
       dishes={state && 'dishes' in state ? state.dishes : []}
+      questions={state && 'dishes' in state ? state.questions : undefined}
       manual={state && 'manual' in state ? state.manual : undefined}
       photoId={photoId}
       recognition={ai.status?.recognition}
@@ -1418,10 +1490,10 @@ export function MealRecalc({ clientId }: { clientId: string }) {
   const to = `/meal/${encodeURIComponent(clientId)}`;
   // Reloaded without the draft, or no photo to read: back to the entry.
   if (!meal?.photo || !state) return <Redirect to={to} replace />;
-  const go = (dishes?: RecognizedDish[]) =>
+  const go = (dishes?: RecognizedDish[], questions?: AiQuestion[]) =>
     navigate(to, {
       replace: true,
-      state: { draft: state.draft, dishes } satisfies RecalcState,
+      state: { draft: state.draft, dishes, questions } satisfies RecalcState,
     });
   return (
     <RecognitionScreen

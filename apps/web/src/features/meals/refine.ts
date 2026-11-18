@@ -7,6 +7,7 @@ import {
   scaleItem,
   sumDay,
   uuid,
+  type AiQuestion,
   type FixedField,
   type IllustrationId,
   type MealItemInput,
@@ -55,7 +56,11 @@ export type Row = {
   fixed: FixedField[];
   /** A similar dish from the history: the hint under the row (4.3). */
   previous?: Previous;
+  /** The AI's question about this dish (ADR-0020 §4); `chosen`: the option tapped, none yet. */
+  question?: Question;
 };
+
+export type Question = Omit<AiQuestion, 'dish'> & { chosen?: number };
 
 const inRange = (g: number) => g >= DISH_GRAMS.min && g <= DISH_GRAMS.max;
 
@@ -125,9 +130,10 @@ export const toRequest = (rows: Row[]): RefineDishIn[] =>
     fixed: fixedOf(row),
   }));
 
-/** «new», or «changed, was …» with the dish's previous name and weight. */
+/** «new», or «changed, was …» with the dish's previous name, weight and kcal. */
 export type Mark =
-  { kind: 'new' } | { kind: 'changed'; name: string; grams: number };
+  | { kind: 'new' }
+  | { kind: 'changed'; name: string; grams: number; kcal?: number };
 
 export type Applied = {
   rows: Row[];
@@ -171,7 +177,68 @@ const changedMark = (row: Row): Mark => ({
   kind: 'changed',
   name: row.original.name,
   grams: row.shown,
+  kcal: itemOf(row).kcal,
 });
+
+/** Questions onto the rows of the AI's answer: `dish` is an index into that answer. */
+function withQuestions(rows: Row[], questions: AiQuestion[] = []) {
+  for (const { dish, ...question } of questions)
+    if (rows[dish] && question.options[question.guess])
+      rows[dish] = { ...rows[dish], question };
+  return rows;
+}
+
+/** A new answer brings its own questions; the old ones go (ADR-0020 §4). */
+const unasked = (row: Row): Row =>
+  row.question ? { ...row, question: undefined } : row;
+
+/** Initial rows of a recognition with its questions. */
+export const toRows = (dishes: Dish[], questions?: AiQuestion[]) =>
+  withQuestions(
+    dishes.map((d) => toRow(d)),
+    questions,
+  );
+
+/**
+ * A tapped option: the dish takes its name and numbers, locally, and is the user's now
+ * (ADR-0020 §4). A weight set by hand stays and the option's numbers follow it.
+ */
+export function answer(rows: Row[], id: string, option: number): Applied {
+  const marks: Applied['marks'] = {};
+  const next = rows.map((row) => {
+    const o = row.question?.options[option];
+    if (row.id !== id || !o) return row;
+    const { name, grams, kcal, proteinG, fatG, carbsG } = o;
+    // Moved off the dish's own weight: the user's, not the AI's (the guess's grams may differ).
+    const q = row.question!;
+    const keep = row.grams !== null && row.shown !== round1(row.original.grams);
+    const g = keep ? row.shown : round1(grams);
+    marks[row.id] = changedMark(row);
+    return {
+      ...row,
+      original: {
+        name,
+        grams,
+        kcal,
+        proteinG,
+        fatG,
+        carbsG,
+        // Another dish: its picture follows the new name (as a rename in the sheet).
+        ...(nameKey(name) === nameKey(row.original.name) &&
+          row.original.illustration && {
+            illustration: row.original.illustration,
+          }),
+      },
+      source: 'ai' as const,
+      grams: keep || inRange(g) ? g : null,
+      shown: g,
+      fixed: ALL,
+      previous: undefined,
+      question: { ...q, chosen: option },
+    };
+  });
+  return result(rows, next, marks, []);
+}
 
 // `ref` belongs to the request only.
 const aiRow = ({
@@ -189,7 +256,11 @@ const aiRow = ({
  * «Refine»: the answer is the whole new list; `ref` points at the dish it replaces. An unknown
  * or repeated `ref` makes a new dish; a dish nobody points at is removed (ADR-0020 §3).
  */
-export function applyRefine(rows: Row[], dishes: RecognizedDish[]): Applied {
+export function applyRefine(
+  rows: Row[],
+  dishes: RecognizedDish[],
+  questions?: AiQuestion[],
+): Applied {
   const used = new Set<number>();
   const marks: Applied['marks'] = {};
   const next = dishes.map((dish) => {
@@ -202,7 +273,8 @@ export function applyRefine(rows: Row[], dishes: RecognizedDish[]): Applied {
     }
     used.add(at);
     const changes = changesOf(old, dish);
-    if (!changes.name && !changes.grams && !changes.nutrients) return old;
+    if (!changes.name && !changes.grams && !changes.nutrients)
+      return unasked(old);
     // Changed: an AI dish now; what the user set and the AI left alone stays theirs.
     const row = aiRow(dish);
     row.fixed = fixedOf(old).filter((f) => !changes[f]);
@@ -213,7 +285,7 @@ export function applyRefine(rows: Row[], dishes: RecognizedDish[]): Applied {
   });
   return result(
     rows,
-    next,
+    withQuestions(next, questions),
     marks,
     rows.filter((_, i) => !used.has(i)),
   );
@@ -223,8 +295,12 @@ export function applyRefine(rows: Row[], dishes: RecognizedDish[]): Applied {
  * «Recognize again»: every AI dish goes, edited or not (AC-1.5); manual and «Same as last
  * time» ones stay. Marks pair old and new AI dishes by `nameKey` (ADR-0020 §3).
  */
-export function applyAgain(rows: Row[], dishes: RecognizedDish[]): Applied {
-  const kept = rows.filter((r) => r.source !== 'ai');
+export function applyAgain(
+  rows: Row[],
+  dishes: RecognizedDish[],
+  questions?: AiQuestion[],
+): Applied {
+  const kept = rows.filter((r) => r.source !== 'ai').map(unasked);
   const oldAi = rows.filter((r) => r.source === 'ai');
   const marks: Applied['marks'] = {};
   const next = dishes.map((dish) => {
@@ -241,5 +317,10 @@ export function applyAgain(rows: Row[], dishes: RecognizedDish[]): Applied {
     }
     return row;
   });
-  return result(rows, [...kept, ...next], marks, oldAi);
+  return result(
+    rows,
+    [...kept, ...withQuestions(next, questions)],
+    marks,
+    oldAi,
+  );
 }

@@ -1,12 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import type { RecognizedDish } from '@oct/shared';
+import { QUESTION_CASES } from './questions.fixtures';
 import {
+  answer,
   applyAgain,
   applyRefine,
   fixedOf,
   itemOf,
   toRequest,
   toRow,
+  toRows,
   type Row,
 } from './refine';
 
@@ -89,6 +92,7 @@ describe('applyRefine', () => {
       kind: 'changed',
       name: 'Bread',
       grams: 40,
+      kcal: 100,
     });
     expect(res.marks[added!.id]).toEqual({ kind: 'new' });
     expect(added!.fixed).toEqual([]);
@@ -139,6 +143,7 @@ describe('applyAgain', () => {
       kind: 'changed',
       name: 'Porridge',
       grams: 100,
+      kcal: 120,
     });
     expect(res.marks[tea!.id]).toEqual({ kind: 'new' });
     expect(res.removed).toEqual(['Salad']);
@@ -149,5 +154,107 @@ describe('applyAgain', () => {
     const res = applyAgain([porridge()], [ai('Porridge', 250, 300)]);
     expect(res.marks).toEqual({});
     expect(res.removed).toEqual([]);
+  });
+});
+
+describe('questions', () => {
+  const { k1, k2, k4k5 } = QUESTION_CASES;
+
+  it('go onto their dish by index; a bad index or guess is dropped', () => {
+    const rows = toRows(k4k5.dishes, [
+      ...k4k5.questions,
+      { ...k4k5.questions[0]!, dish: 7 },
+    ]);
+    expect(rows.map((r) => r.question?.text)).toEqual([
+      'How was it cooked?',
+      undefined,
+      'What’s in the coffee?',
+    ]);
+    expect(
+      toRows(k1.dishes, [{ ...k1.questions[0]!, guess: 9 }])[0]!.question,
+    ).toBeUndefined();
+  });
+
+  it('an answer takes the option locally: fixed whole, marked, the total shifts', () => {
+    const rows = toRows(k1.dishes, k1.questions);
+    const res = answer(rows, rows[0]!.id, 1);
+    const row = res.rows[0]!;
+    expect(row.original.name).toBe('Vegetable salad with yogurt');
+    expect(row.question?.chosen).toBe(1);
+    expect(res.marks[row.id]).toEqual({
+      kind: 'changed',
+      name: 'Vegetable salad with mayo',
+      grams: 250,
+      kcal: 260,
+    });
+    expect(res.kcalDelta).toBe(110 - 260);
+    expect(res.rows[1]).toBe(rows[1]);
+    // Saved as an AI dish the user corrected: no confidence (ADR-0020 §3).
+    expect(itemOf(row)).toEqual({
+      name: 'Vegetable salad with yogurt',
+      grams: 250,
+      kcal: 110,
+      proteinG: 5,
+      fatG: 4,
+      carbsG: 11,
+      source: 'ai',
+    });
+    expect(fixedOf(row)).toEqual(['name', 'grams', 'nutrients']);
+  });
+
+  it('the answer can be switched; a weight after it scales the chosen option (E-10.b)', () => {
+    const rows = toRows(k2.dishes, k2.questions);
+    const id = rows[0]!.id;
+    const pumpkin = answer(rows, id, 1).rows;
+    expect(pumpkin[0]!.shown).toBe(220);
+    const carrot = answer(pumpkin, id, 2);
+    expect(carrot.rows[0]!.original.name).toBe('Baked carrot');
+    expect(carrot.kcalDelta).toBe(80 - 57);
+    const heavier = { ...carrot.rows[0]!, grams: 400, shown: 400 };
+    expect(itemOf(heavier).kcal).toBe(160);
+  });
+
+  it('a weight set by hand stays, the option follows it', () => {
+    const [row] = toRows(k2.dishes, k2.questions);
+    const set: Row = { ...row!, grams: 100, shown: 100, fixed: ['grams'] };
+    const pumpkin = answer([set], set.id, 1).rows;
+    expect(pumpkin[0]!.shown).toBe(100);
+    expect(itemOf(pumpkin[0]!).kcal).toBeCloseTo(57 / 2.2);
+    expect(answer(pumpkin, set.id, 2).rows[0]!.shown).toBe(100);
+  });
+
+  it("a guess with other grams than the dish's still takes the tapped option's weight", () => {
+    const [q] = k2.questions;
+    const off = {
+      ...q!,
+      options: q!.options.map((o, i) => (i ? o : { ...o, grams: 230 })),
+    };
+    const [row] = toRows(k2.dishes, [off]);
+    expect(answer([row!], row!.id, 1).rows[0]!.shown).toBe(220);
+  });
+
+  it('another name drops the picture picked for the old one', () => {
+    const [row] = toRows(k2.dishes, k2.questions);
+    const picked: Row = {
+      ...row!,
+      original: { ...row!.original, illustration: 'cake' as never },
+    };
+    expect(
+      answer([picked], picked.id, 1).rows[0]!.original.illustration,
+    ).toBeUndefined();
+  });
+
+  it('a new answer brings its own questions, the old ones go', () => {
+    const rows = toRows(k4k5.dishes, k4k5.questions);
+    const again = applyAgain(rows, k1.dishes as never, k1.questions);
+    expect(again.rows.map((r) => r.question?.text)).toEqual([
+      'What’s the salad dressing?',
+      undefined,
+    ]);
+    const kept = applyRefine(
+      rows,
+      k4k5.dishes.map((dish, i) => ({ ...dish, ref: `d${i + 1}` })),
+    );
+    expect(kept.rows.every((r) => !r.question)).toBe(true);
   });
 });

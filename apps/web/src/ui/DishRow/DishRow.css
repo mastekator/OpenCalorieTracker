@@ -50,7 +50,8 @@
   stroke-width: 2.25;
 }
 
-.dish-row--illo .dish-row__weight {
+.dish-row--illo .dish-row__weight,
+.dish-row--illo .dish-row__extra {
   grid-column: 1 / -1;
 }
 

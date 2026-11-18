@@ -4,6 +4,7 @@ import { X } from 'lucide-react';
 import {
   aiStatusSchema,
   recognitionSchema,
+  type AiQuestion,
   type RecognizedDish,
 } from '@oct/shared';
 import { api, ApiError } from '../../api/client';
@@ -23,7 +24,7 @@ export const MEAL_EDIT_PATH = `${MEAL_NEW_PATH}/edit`;
  * (`ai_down` after 3.2–3.4); empty after a reload → recognize the same photoId again.
  */
 export type MealEditState =
-  | { dishes: RecognizedDish[] }
+  | { dishes: RecognizedDish[]; questions?: AiQuestion[] }
   | { manual: 'user' | 'ai_down' | 'not_configured' | 'no_vision' };
 
 export const SLOW_MS = 10_000;
@@ -53,7 +54,7 @@ export function whenBack(signal: AbortSignal) {
 
 /** Recalculating a saved meal (5.6): its dishes go back to it, every other way out returns to it as it was. */
 export type Recalc = {
-  onDishes: (dishes: RecognizedDish[]) => void;
+  onDishes: (dishes: RecognizedDish[], questions?: AiQuestion[]) => void;
   onBack: () => void;
 };
 
@@ -77,7 +78,7 @@ export function RecognitionScreen({
   const toEdit = (editState: MealEditState) =>
     recalc
       ? 'dishes' in editState
-        ? recalc.onDishes(editState.dishes)
+        ? recalc.onDishes(editState.dishes, editState.questions)
         : recalc.onBack()
       : navigate(MEAL_EDIT_PATH + query, { replace: true, state: editState });
 
@@ -93,7 +94,7 @@ export function RecognitionScreen({
 
     const run = async (): Promise<void> => {
       try {
-        const { dishes } = await api(
+        const { dishes, questions } = await api(
           `/api/photos/${encodeURIComponent(photoId)}/recognize`,
           recognitionSchema,
           {
@@ -105,7 +106,7 @@ export function RecognitionScreen({
           },
         );
         if (ctrl.signal.aborted) return;
-        if (dishes.length > 0) toEdit({ dishes });
+        if (dishes.length > 0) toEdit({ dishes, questions });
         else setState('empty'); // E-7.1
       } catch (err) {
         if (ctrl.signal.aborted) return;
