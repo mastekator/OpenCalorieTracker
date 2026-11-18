@@ -1,0 +1,170 @@
+/* Fills the sheet so «Enter the name manually» sits at the bottom even under a short list. */
+.model-sheet {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.model-sheet__manual {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.model-sheet__mono,
+.model-sheet__manual .field__input {
+  font-family: var(--font-mono);
+}
+
+.model-sheet__mono {
+  font-size: var(--text-subhead-size);
+  line-height: var(--text-subhead-lh);
+  overflow-wrap: anywhere;
+}
+
+/* Stays on top while the list scrolls under it. */
+.model-sheet__search {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--control-height);
+  margin-bottom: var(--space-2);
+  padding-inline: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+  color: var(--color-text-secondary);
+}
+
+.model-sheet__search:focus-within {
+  box-shadow: inset 0 0 0 2px var(--color-accent);
+}
+
+.model-sheet__search > svg,
+.model-sheet__clear svg {
+  flex: none;
+  width: var(--space-4);
+  height: var(--space-4);
+}
+
+.model-sheet__input {
+  flex: 1;
+  min-width: 0;
+  align-self: stretch;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--text-body-size);
+  outline: none; /* the box shows focus */
+}
+
+.model-sheet__input::-webkit-search-cancel-button {
+  display: none; /* our own clear button */
+}
+
+.model-sheet__clear {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: var(--tap-min);
+  height: var(--tap-min);
+  margin-inline-end: calc(-1 * var(--space-3));
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.model-sheet__note {
+  margin: 0 0 var(--space-2);
+  padding-inline: var(--space-4);
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+  color: var(--color-text-secondary);
+}
+
+.model-sheet__loading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-inline: var(--space-4);
+}
+
+.model-sheet__loading .model-sheet__note {
+  padding-inline: 0;
+}
+
+.model-sheet__group + .model-sheet__group {
+  margin-top: var(--space-3);
+}
+
+.model-sheet__row {
+  /* The browser skips rows off screen: no virtualizing library for 300+ models (OCT-276). */
+  content-visibility: auto;
+  /* Height only: the shorthand would size the width too. */
+  contain-intrinsic-block-size: auto var(--tap-min);
+}
+
+.model-sheet__row .badge {
+  flex: none;
+}
+
+.model-sheet__mark {
+  background: var(--color-selection);
+  color: inherit;
+}
+
+.model-sheet__check {
+  flex: none;
+  width: var(--icon-size);
+  color: var(--color-accent);
+}
+
+.model-sheet__check .lucide {
+  width: var(--icon-size);
+  height: var(--icon-size);
+}
+
+.model-sheet__none {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-3);
+  padding-block: var(--space-8);
+  text-align: center;
+}
+
+.model-sheet__none > svg {
+  width: var(--space-8);
+  height: var(--space-8);
+  color: var(--color-text-secondary);
+}
+
+.model-sheet__none-title {
+  margin: 0;
+  font-size: var(--text-headline-size);
+  line-height: var(--text-headline-lh);
+  font-weight: var(--text-headline-weight);
+  overflow-wrap: anywhere;
+}
+
+/* «Enter the name manually» always at the bottom (OCT-248 1.4). */
+.model-sheet__foot {
+  position: sticky;
+  bottom: calc(-1 * var(--space-4));
+  display: grid;
+  margin: auto calc(-1 * var(--screen-gutter)) 0;
+  padding: var(--space-2) var(--screen-gutter);
+  border-top: 1px solid var(--color-separator);
+  background: var(--color-bg);
+}
+
+.model-sheet__manual .button svg,
+.model-sheet__foot .button svg,
+.model-sheet__none .button svg {
+  width: var(--space-4);
+  height: var(--space-4);
+}

@@ -32,18 +32,6 @@
   padding: var(--space-3) var(--space-4);
 }
 
-.ai-form__model {
-  position: relative;
-}
-
-/* The photo label sits on the label line, at the row's end. */
-.ai-form__model > .badge {
-  position: absolute;
-  inset-block-start: var(--space-3);
-  inset-inline-end: var(--space-4);
-}
-
-.ai-form__model .field__input,
 .ai-form__mono {
   font-family: var(--font-mono);
 }
@@ -85,6 +73,10 @@
 
 .ai-form__msg--warn svg {
   color: var(--color-warning);
+}
+
+.ai-form__msg--error {
+  color: var(--color-danger);
 }
 
 .ai-form__radio {
