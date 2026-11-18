@@ -469,7 +469,7 @@ body{padding:var(--space-10) var(--space-8)}
 .spec{max-width:900px;font-size:var(--text-subhead-size);line-height:var(--text-subhead-lh);display:flex;flex-direction:column;gap:var(--space-2)}
 .spec li{margin-left:var(--space-5)}
 .lang-bar{display:inline-flex}
-/* AI questions with answer chips (proposal) */
+/* AI questions with answer chips (product OCT-232, section 10) */
 .ask{display:flex;flex-direction:column;gap:var(--space-2);padding-top:var(--space-1)}
 .ask-q{display:flex;align-items:center;gap:var(--space-1);font-size:var(--text-subhead-size);line-height:var(--text-subhead-lh);font-weight:600}
 .ask-q .icon{color:var(--color-accent)}
@@ -480,6 +480,9 @@ body{padding:var(--space-10) var(--space-8)}
 .chip.on{background:var(--color-accent-soft);color:var(--color-accent);font-weight:600;box-shadow:inset 0 0 0 1px var(--color-accent)}
 .chip.other{background:transparent;color:var(--color-accent);box-shadow:inset 0 0 0 1px var(--color-border-strong)}
 .chip.active{box-shadow:inset 0 0 0 2px var(--color-accent)}
+.phone.tall{height:auto;min-height:844px} /* whole scrolled screen in one shot */
+.chip.dis{color:var(--color-text-disabled);box-shadow:inset 0 0 0 1px var(--color-surface-2)}
+.ask-l{color:var(--color-text-secondary);font-weight:400}
 .ai-line .foot-note b{color:var(--color-accent);font-weight:600}
 .lead-note{max-width:900px;font-size:var(--text-subhead-size);line-height:var(--text-subhead-lh);color:var(--color-text-secondary);margin-bottom:var(--space-2)}
 .lead-note b{color:var(--color-text)}
@@ -547,19 +550,19 @@ const S = {
 };
 let T = S[lang];
 Object.assign(S.ru, {
-  salMayo:'Салат овощной с майонезом', salYog:'Салат овощной с йогуртом', cheeseC:'Чизкейк классический', cheeseH:'Чизкейк творожный домашний', coffee:'Кофе с молоком',
-  qSalad:'Заправка — майонез?', qBatat:'Это батат?', qCheese:'Чизкейк — классический?',
-  oSalad:['Майонез','Сметана','Йогурт','Масло','Без заправки'], oBatat:['Батат','Тыква','Морковь','Картофель'], oCheese:['Классический','Творожный, лёгкий'],
-  other:'Другое…', ownRecipe:'Опишу свой…', cheesePrefix:'Чизкейк: ', cheeseTyped:'Чизкейк: творог 5% и немного греческого йогурта, без сахара',
-  ask1:'Оценка ИИ · <b>1 вопрос</b> ниже', ask2:'Оценка ИИ · <b>2 вопроса</b> ниже',
+  salMayo:'Салат овощной с майонезом', salYog:'Салат овощной с йогуртом', cheeseC:'Чизкейк классический', cheeseH:'Чизкейк творожный домашний', coffee:'Кофе с молоком', cutlet:'Котлета куриная жареная', cutletB:'Котлета куриная запечённая', buck:'Гречка отварная', oatsMilk:'Овсянка на молоке',
+  notSure:'ИИ сомневается', qSalad:'Чем заправлен салат?', qBatat:'Что это?', qCheese:'Какой чизкейк?', qCoffee:'Что в кофе?', qCook:'Как приготовлено?', qOats:'На чём каша?',
+  oSalad:['Майонез','Йогурт','Масло','Без заправки'], oBatat:['Батат','Тыква','Морковь'], oCheese:['Классический','Лёгкий (творог, йогурт)'], oCoffee:['Ничего','Молоко','Сахар','Молоко и сахар'], oCook:['Жареное','Запечённое','Варёное'], oOats:['На воде','На молоке'],
+  other:'Другое…', cheesePrefix:'Чизкейк: ', cheeseTyped:'Чизкейк: творог 5% и немного греческого йогурта, без сахара',
+  ask1:'Оценка ИИ · <b>1 вопрос</b> ниже', ask2:'Оценка ИИ · <b>2 вопроса</b> ниже', ask3:'Оценка ИИ · <b>3 вопроса</b> ниже',
   answered:'Ответ учтён', srChip:(q,o,g)=>`${q} Вариант «${o}»${g?', предположение ИИ':''}`,
 });
 Object.assign(S.en, {
-  salMayo:'Vegetable salad with mayo', salYog:'Vegetable salad with yogurt', cheeseC:'Classic cheesecake', cheeseH:'Homemade cottage cheese cheesecake', coffee:'Coffee with milk',
-  qSalad:'Dressing — mayo?', qBatat:'Is it sweet potato?', qCheese:'Cheesecake — classic?',
-  oSalad:['Mayo','Sour cream','Yogurt','Oil','No dressing'], oBatat:['Sweet potato','Pumpkin','Carrot','Potato'], oCheese:['Classic','Light, cottage cheese'],
-  other:'Something else…', ownRecipe:'My own recipe…', cheesePrefix:'Cheesecake: ', cheeseTyped:'Cheesecake: 5% cottage cheese and a little Greek yogurt, no sugar',
-  ask1:'AI estimate · <b>1 question</b> below', ask2:'AI estimate · <b>2 questions</b> below',
+  salMayo:'Vegetable salad with mayo', salYog:'Vegetable salad with yogurt', cheeseC:'Classic cheesecake', cheeseH:'Homemade cottage cheese cheesecake', coffee:'Coffee with milk', cutlet:'Fried chicken patty', cutletB:'Baked chicken patty', buck:'Boiled buckwheat', oatsMilk:'Oatmeal with milk',
+  notSure:'Not sure', qSalad:'What’s the salad dressing?', qBatat:'What is this?', qCheese:'Which cheesecake?', qCoffee:'What’s in the coffee?', qCook:'How was it cooked?', qOats:'Made with water or milk?',
+  oSalad:['Mayo','Yogurt','Oil','No dressing'], oBatat:['Sweet potato','Pumpkin','Carrot'], oCheese:['Classic','Light, cottage cheese'], oCoffee:['Nothing','Milk','Sugar','Milk and sugar'], oCook:['Fried','Baked','Boiled'], oOats:['Water','Milk'],
+  other:'Other…', cheesePrefix:'Cheesecake: ', cheeseTyped:'Cheesecake: 5% cottage cheese and a little Greek yogurt, no sugar',
+  ask1:'AI estimate · <b>1 question</b> below', ask2:'AI estimate · <b>2 questions</b> below', ask3:'AI estimate · <b>3 questions</b> below',
   answered:'Answer applied', srChip:(q,o,g)=>`${q} Option “${o}”${g?', AI guess':''}`,
 });
 const I = (id, cls='') => `<svg class="icon ${cls}" aria-hidden="true"><use href="#i-${id}"/></svg>`;
@@ -586,6 +589,10 @@ const D = () => ({
   cheeseC:{n:T.cheeseC,g:150,k:480,p:9,f:34,c:35,conf:'mid'},
   cheeseH:{n:T.cheeseH,g:150,k:210,p:20,f:7,c:17,conf:'mid'},
   coffee:{n:T.coffee,g:250,k:60,p:3,f:3,c:5,conf:'high'},
+  cutlet:{n:T.cutlet,g:120,k:290,p:22,f:19,c:8,conf:'mid'},
+  cutletB:{n:T.cutletB,g:120,k:200,p:23,f:9,c:7,conf:'mid'},
+  buck:{n:T.buck,g:150,k:165,p:6,f:2,c:32,conf:'high'},
+  oatsQ:{n:T.oats,g:60,k:211,p:7,f:4,c:36,conf:'mid'},
 });
 const badge = c => ({
   exact:`<span class="badge ok">${I('check')}${T.exact}</span>`, high:'',
@@ -601,7 +608,7 @@ function dish(d, o={}){
     <div class="dish-ctl"><span class="step">${I('minus')}</span><span class="wv">${d.g}<small>${T.g}</small></span><span class="step">${I('plus')}</span>${was}<span class="more">${I('pencil','sm')}</span></div>${o.ask||''}</div>`;
 }
 /* AI question under a dish: q text, options, index of the selected one (AI guess by default), last chip = free text */
-const ask = (q, opts, on=0, last=T.other, lastCls='other') => `<div class="ask" role="radiogroup" aria-label="${q}"><div class="ask-q">${I('spark','sm')}${q}</div><div class="chips">${opts.map((o,i)=>`<span class="chip ${i===on?'on':''}" role="radio" aria-checked="${i===on}">${i===on?I('check'):''}${o}</span>`).join('')}<span class="chip ${lastCls}">${last}</span></div></div>`;
+const ask = (q, opts, on=0, last=T.other, lastCls='other') => `<div class="ask" role="radiogroup" aria-label="${q}"><div class="ask-q">${I('spark','sm')}<span><span class="ask-l">${T.notSure}:</span> ${q}</span></div><div class="chips">${opts.map((o,i)=>`<span class="chip ${i===on?'on':''}" role="radio" aria-checked="${i===on}">${i===on?I('check'):''}${o}</span>`).join('')}<span class="chip ${lastCls}">${last}</span></div></div>`;
 const removedRow = d => `<div class="removed">${I('minus-c','sm')}<span>${T.removed(`<s>${d.n}</s>`)}</span><span class="num">−${d.k} ${T.kcal}</span></div>`;
 const nav = (title=T.title) => `<div class="navbar"><div><span class="x-btn" aria-label="${T.close}">${I('x')}</span></div><div class="title num">${title}</div><div></div></div>`;
 const seg = (on=1) => `<div class="seg" role="radiogroup" aria-label="${T.mealAria}">${T.meals.map((x,i)=>`<span class="${i===on?'on':''}">${x}</span>`).join('')}</div>`;
@@ -668,16 +675,19 @@ function render(){
     frame('C.2', lang==='ru'?'После «Распознать заново»':'After Recognize again', 'Блюда ИИ заменены, ручные («Хлеб», метка «вручную») остались. Совпавшее блюдо («Курица гриль») не помечается. Удалённое — в полосе результата: «Убрано: Батат запечённый» (несколько — через запятую, до 2 строк). Метки, «Убрано» и полоса «Отменить» живут до следующего действия: правки веса, нового запроса или «Сохранить».', B({totalsHtml:totals(...l.pumpkinAfterT,'−115'), list:l.pumpkinAfter, barHtml:`<div class="cmp">${undoStrip(`−115 ${T.kcal}`, d.batat.n)}${fieldRest()}</div>${saveBtn()}`})),
     frame('C.3', lang==='ru'?'Ручная запись без фото':'Manual entry, no photo', 'Поле — «Что съели или что поправить?». «Распознать заново» нет (фото нет). Пустой список + «овсянка 60 г с бананом и ложкой мёда» → ИИ добавил три блюда, все с меткой «новое». Модель без фото подходит.', screen({title:T.title, meal:0, totalsHtml:totals('348',8,4,71,'+348',I('plate','sm'),'plate'), ai:'', list:l.manual, barHtml:`<div class="cmp">${undoStrip(`+348 ${T.kcal}`)}${fieldRest(T.fieldNoPhotoShort)}</div>${saveBtn()}`})),
   ];
-  const H = [
-    frame('H.1', lang==='ru'?'Сомнение ИИ — вопрос под блюдом':'AI doubt — a question under the dish', 'ИИ спрашивает только там, где ответ заметно меняет ккал (≥ 50 ккал или ≥ 15 % блюда), не больше 3 вопросов на фото. Вопрос — сразу под блюдом, без лишнего касания. Выбрано предположение ИИ (галочка), поэтому не отвечать — нормально: «Сохранить» как раньше, касание 4. В строке оценки — сколько вопросов.', screen({totalsHtml:totals('520',42,29,21), ai:aiLine('on',T.ask1), list:dish(d.salMayo,{ask:ask(T.qSalad,T.oSalad)})+dish(d.grill)+dish(d.bread), barHtml:restBar()})),
-    frame('H.2', lang==='ru'?'Касание «Йогурт» — сразу пересчёт':'Tap “Yogurt” — instant recount', '<b>Одно касание, без запроса и ожидания.</b> Ккал и БЖУ каждого варианта ИИ присылает вместе с распознаванием, поэтому работает и офлайн. Блюдо переименовано, метка «изменено, было 260 ккал», сдвиг итога и «Отменить» — как в C.1. Вопрос остаётся на месте до «Сохранить» — можно передумать.', screen({totalsHtml:totals('370',44,9,23,'−150'), ai:aiLine(), list:dish(d.salYog,{was:`260${NB}${T.kcal}`,ask:ask(T.qSalad,T.oSalad,2)})+dish(d.grill)+dish(d.bread), barHtml:`<div class="cmp">${undoStrip(`−150 ${T.kcal}`).replace(T.updated,T.answered)}${fieldRest()}</div>${saveBtn()}`})),
-    frame('H.3', lang==='ru'?'«На что было похоже»':'“What it looked like”', 'Вопрос «что это?»: варианты — то, на что было похоже фото, первым — предположение ИИ. Второй вопрос (про салат) ниже, в строке оценки — «2 вопроса». «Другое…» — фокус в поле «Что поправить?» с началом фразы «Батат → », дальше обычное «Уточнить».', B({ai:aiLine('on',T.ask2), list:dish(d.batat,{ask:ask(T.qBatat,T.oBatat)})+dish(d.grill)+dish(d.bread), barHtml:restBar()})),
-    frame('H.4', lang==='ru'?'Касание «Тыква»':'Tap “Pumpkin”', 'Название, ккал и БЖУ — из варианта. «было батат» — старое название вместо граммов. Итог −115.', B({totalsHtml:totals(...l.pumpkinAfterT,'−115'), ai:aiLine('on',T.ask1), list:dish(d.pumpkin,{was:T.oBatat[0].toLowerCase(),ask:ask(T.qBatat,T.oBatat,1)})+dish(d.grill)+dish(d.bread), barHtml:`<div class="cmp">${undoStrip(`−115 ${T.kcal}`).replace(T.updated,T.answered)}${fieldRest()}</div>${saveBtn()}`})),
-    frame('H.5', lang==='ru'?'Домашнее блюдо по своему рецепту':'Homemade, own recipe', 'По фото рецепт не виден: ИИ предлагает частые варианты и «Опишу свой…» вместо «Другое…».', screen({totalsHtml:totals('540',12,37,40), meal:3, ai:aiLine('on',T.ask1), list:dish(d.cheeseC,{ask:ask(T.qCheese,T.oCheese,0,T.ownRecipe)})+dish(d.coffee), barHtml:restBar()})),
-    frame('H.6', lang==='ru'?'«Опишу свой…» → поле':'“My own recipe…” → the field', '<b>Касание 1 — фокус в поле</b> с началом «Чизкейк: », клавиатура открыта. Пишут или диктуют состав. <b>Касание 2 — «Уточнить»</b>, дальше обычный запрос (B.1). Нужна сеть.', screen({totalsHtml:totals('540',12,37,40), meal:3, ai:aiLine('on',T.ask1), list:dish(d.cheeseC,{ask:ask(T.qCheese,T.oCheese,0,T.ownRecipe,'other active')})+dish(d.coffee), barHtml:`<div class="cmp">${fieldTyped(T.cheeseTyped)}${actions()}</div>`, kbd:true}) + tap(2,'right:41px;bottom:331px')),
-    frame('H.7', lang==='ru'?'Ответ ИИ по рецепту':'AI answer for the recipe', 'Блюдо пересчитано по составу, вопрос снят — ответ дан. Если ИИ всё ещё не уверен, он может задать один новый вопрос (например, «Сколько сахара?»), не больше одного круга.', screen({totalsHtml:totals('270',23,10,22,'−270'), meal:3, ai:aiLine(), list:dish(d.cheeseH,{was:`480${NB}${T.kcal}`})+dish(d.coffee), barHtml:`<div class="cmp">${undoStrip(`−270 ${T.kcal}`)}${fieldRest()}</div>${saveBtn()}`})),
-  ];
   const offTop = `<div class="offline-bar">${I('wifi-off','sm')}${T.offlineBar}</div>`;
+  const H = [
+    frame('H.1', lang==='ru'?'Сомнение ИИ — вопрос под блюдом':'AI doubt — a question under the dish', 'ИИ спрашивает только там, где ответ заметно меняет ккал (≥ 50 ккал или ≥ 15 % блюда), не больше 3 вопросов на приём пищи. Вопрос — сразу под блюдом с меткой «ИИ сомневается», без лишнего касания. 2–4 варианта + «Другое…». Выбрано предположение ИИ (галочка), поэтому не отвечать — нормально: «Сохранить» как раньше, касание 4. В строке оценки — сколько вопросов.', screen({totalsHtml:totals('520',42,29,21), ai:aiLine('on',T.ask1), list:dish(d.salMayo,{ask:ask(T.qSalad,T.oSalad)})+dish(d.grill)+dish(d.bread), barHtml:restBar()})),
+    frame('H.2', lang==='ru'?'Касание «Йогурт» — сразу пересчёт':'Tap “Yogurt” — instant recount', '<b>Одно касание, без запроса и ожидания.</b> Ккал и БЖУ каждого варианта ИИ присылает вместе с распознаванием, поэтому работает и офлайн. Блюдо переименовано, метка «изменено, было 260 ккал», сдвиг итога и «Отменить» — как в C.1. Вопрос остаётся на месте до «Сохранить» — можно передумать.', screen({totalsHtml:totals('370',44,9,23,'−150'), ai:aiLine(), list:dish(d.salYog,{was:`260${NB}${T.kcal}`,ask:ask(T.qSalad,T.oSalad,1)})+dish(d.grill)+dish(d.bread), barHtml:`<div class="cmp">${undoStrip(`−150 ${T.kcal}`).replace(T.updated,T.answered)}${fieldRest()}</div>${saveBtn()}`})),
+    frame('H.3', lang==='ru'?'«На что было похоже»':'“What it looked like”', 'Вопрос «что это?»: варианты — то, на что было похоже фото, первым — предположение ИИ. Второй вопрос (про салат) ниже, в строке оценки — «2 вопроса». «Другое…» — фокус в поле «Что поправить?» с началом «Батат: », дальше обычное «Уточнить».', B({ai:aiLine('on',T.ask2), list:dish(d.batat,{ask:ask(T.qBatat,T.oBatat)})+dish(d.grill)+dish(d.bread), barHtml:restBar()})),
+    frame('H.4', lang==='ru'?'Касание «Тыква»':'Tap “Pumpkin”', 'Название, ккал и БЖУ — из варианта. «было батат» — старое название вместо граммов. Итог −115.', B({totalsHtml:totals(...l.pumpkinAfterT,'−115'), ai:aiLine('on',T.ask1), list:dish(d.pumpkin,{was:T.oBatat[0].toLowerCase(),ask:ask(T.qBatat,T.oBatat,1)})+dish(d.grill)+dish(d.bread), barHtml:`<div class="cmp">${undoStrip(`−115 ${T.kcal}`).replace(T.updated,T.answered)}${fieldRest()}</div>${saveBtn()}`})),
+    frame('H.5', lang==='ru'?'Домашнее блюдо по своему рецепту':'Homemade, own recipe', 'По фото рецепт не виден: ИИ предлагает частые варианты. Свой рецепт («творог и немного йогурта») — через «Другое…».', screen({totalsHtml:totals('540',12,37,40), meal:3, ai:aiLine('on',T.ask1), list:dish(d.cheeseC,{ask:ask(T.qCheese,T.oCheese)})+dish(d.coffee), barHtml:restBar()})),
+    frame('H.6', lang==='ru'?'«Другое…» → поле':'“Other…” → the field', '<b>Касание 1 — фокус в поле</b> с началом «Чизкейк: », клавиатура открыта. Пишут или диктуют состав. <b>Касание 2 — «Уточнить»</b>, дальше обычный запрос (B.1). Нужна сеть.', screen({totalsHtml:totals('540',12,37,40), meal:3, ai:aiLine('on',T.ask1), list:dish(d.cheeseC,{ask:ask(T.qCheese,T.oCheese,0,T.other,'other active')})+dish(d.coffee), barHtml:`<div class="cmp">${fieldTyped(T.cheeseTyped)}${actions()}</div>`, kbd:true}) + tap(2,'right:41px;bottom:331px')),
+    frame('H.7', lang==='ru'?'Ответ ИИ по рецепту':'AI answer for the recipe', 'Блюдо пересчитано по составу, вопрос снят — ответ дан. Если ИИ всё ещё не уверен, он может задать один новый вопрос (например, «Сколько сахара?»), не больше одного круга.', screen({totalsHtml:totals('270',23,10,22,'−270'), meal:3, ai:aiLine(), list:dish(d.cheeseH,{was:`480${NB}${T.kcal}`})+dish(d.coffee), barHtml:`<div class="cmp">${undoStrip(`−270 ${T.kcal}`)}${fieldRest()}</div>${saveBtn()}`})),
+    frame('H.8', lang==='ru'?'Кофе и способ приготовления, офлайн':'Coffee and cooking method, offline', '<b>Кейсы К4 и К5.</b> Два вопроса у разных блюд, у гречки вопроса нет — её ккал от ответа почти не зависит. <b>Офлайн ответы работают</b>: варианты уже пришли с распознаванием. Недоступно только «Другое…» — ему нужен запрос, причина под полем. Экран показан целиком, с прокруткой.', screen({top:offTop, totalsHtml:totals('515',31,30,45), meal:1, ai:aiLine('dis',T.ask2), list:dish(d.cutlet,{ask:ask(T.qCook,T.oCook,0,T.other,'dis')})+dish(d.buck)+dish(d.coffee,{ask:ask(T.qCoffee,T.oCoffee,1,T.other,'dis')}), barHtml:`<div class="cmp">${fieldRest()}<div class="ccap">${I('wifi-off','sm')}${T.needNet}</div></div>${saveBtn()}`}), 'tall'),
+    frame('H.9', lang==='ru'?'Касание «Запечённое» офлайн':'Tap “Baked” offline', 'Пересчёт локальный: −90 ккал, метка «изменено», «Отменить». Выбранный вариант считается заданным пользователем: следующее «Уточнить» его не тронет. Удалили блюдо или переименовали вручную — вопрос исчезает. Поправили вес после ответа — ккал и БЖУ считаются от выбранного варианта.', screen({top:offTop, totalsHtml:totals('425',32,20,44,'−90'), meal:1, ai:aiLine('dis'), list:dish(d.cutletB,{was:`290${NB}${T.kcal}`,ask:ask(T.qCook,T.oCook,1,T.other,'dis')})+dish(d.buck)+dish(d.coffee,{ask:ask(T.qCoffee,T.oCoffee,1,T.other,'dis')}), barHtml:`<div class="cmp">${undoStrip(`−90 ${T.kcal}`).replace(T.updated,T.answered)}${fieldRest()}</div>${saveBtn()}`}), 'tall'),
+    frame('H.10', lang==='ru'?'Без фото: «На чём каша?»':'No photo: water or milk?', '<b>Кейс К6.</b> Ручная запись: «овсянка 60 г» → ИИ добавил кашу и сразу спросил. Вопросы приходят в том же ответе, что и блюда, — после распознавания, «Распознать заново», «Уточнить» и текста без фото. Уже отвеченное про то же блюдо повторно не спрашивается.', screen({title:T.title, meal:0, totalsHtml:totals('211',7,4,36,'+211',I('plate','sm'),'plate'), ai:'', list:dish(d.oatsQ,{isNew:1,ask:ask(T.qOats,T.oOats)}), barHtml:`<div class="cmp">${undoStrip(`+211 ${T.kcal}`)}${fieldRest(T.fieldNoPhotoShort)}</div>${saveBtn()}`})),
+  ];
   const Dst = [
     frame('D.1', lang==='ru'?'ИИ не настроен':'AI not set up', 'Поля и «Распознать заново» нет — экран как в OCT-16, только ручная правка.', N({ai:'', barHtml:saveBtn()})),
     frame('D.2', lang==='ru'?'Модель не принимает фото':'Model can’t read photos', '«Распознать заново» нет. «Уточнить» работает текстом — по списку, без фото.', N({ai:aiLine('none'), barHtml:restBar()})),
@@ -716,8 +726,8 @@ function render(){
     ['429', `${R.quota}. ${R.quotaBody}`, `${En.quota}. ${En.quotaBody}`], ['Невалидный', R.invalid, En.invalid], ['Пустой ответ', R.empty, En.empty],
     ['Лимит', R.limit, En.limit], ['Фото нет', `${R.estimateText} ${R.gone}.`, `${En.estimateText} ${En.gone}.`],
     ['Пустой список', R.emptyList, En.emptyList],
-    ['Вопросы ИИ', `${R.qSalad} · ${R.qBatat} · ${R.qCheese}`, `${En.qSalad} · ${En.qBatat} · ${En.qCheese}`],
-    ['Варианты', `${R.oSalad.join(' · ')} · ${R.other} · ${R.ownRecipe}`, `${En.oSalad.join(' · ')} · ${En.other} · ${En.ownRecipe}`],
+    ['Вопрос ИИ, метка', R.notSure, En.notSure], ['Свой вариант', R.other, En.other],
+    ...['qSalad:oSalad','qBatat:oBatat','qCheese:oCheese','qCoffee:oCoffee','qCook:oCook','qOats:oOats'].map((k,i)=>{const [q,o]=k.split(':'); return [`К${i+1} (пишет ИИ)`, `${R[q]} ${R[o].join(' · ')}`, `${En[q]} ${En[o].join(' · ')}`];}),
     ['Строка оценки', `${R.ask1} / ${R.ask2}`, `${En.ask1} / ${En.ask2}`], ['Полоса', `${R.answered} · −150 ккал · ${R.undo}`, `${En.answered} · −150 kcal · ${En.undo}`],
     ['VoiceOver, вариант', R.srChip(R.qSalad,'Майонез',1), En.srChip(En.qSalad,'Mayo',1)], ['Счётчик (с 250)', R.countLeft(50), En.countLeft(50)], ['Десктоп', R.enterHint, En.enterHint],
   ];
@@ -728,7 +738,7 @@ function render(){
   <section class="doc-section" id="entry"><h2 class="doc-h2">A. Вход: ≤ 2 касаний до ввода, главный сценарий без изменений</h2><div class="row">${A.join('')}</div></section>
   <section class="doc-section" id="request"><h2 class="doc-h2">B. Идёт запрос</h2><div class="row">${Bq.join('')}</div></section>
   <section class="doc-section" id="result"><h2 class="doc-h2">C. Что изменилось и «Отменить»</h2><div class="row">${C.join('')}</div></section>
-  <section class="doc-section" id="questions"><h2 class="doc-h2">H. Вопросы ИИ с вариантами ответа — предложение</h2><p class="lead-note">Ждёт решения продукта. <b>Почему вопросы под блюдом, а не после «Уточнить»:</b> их видно сразу, ответ — одно касание без запроса и ожидания; поле «Что поправить?» остаётся для всего остального.</p><div class="row">${H.join('')}</div></section>
+  <section class="doc-section" id="questions"><h2 class="doc-h2">H. Вопросы ИИ с вариантами ответа</h2><p class="lead-note">По разделу 10 «Продукт OCT-232», все шесть кейсов: К1 салат (H.1–H.2), К2 тыква/батат (H.3–H.4), К3 домашний чизкейк (H.5–H.7), К4 кофе и К5 способ приготовления (H.8–H.9, офлайн), К6 каша без фото (H.10). <b>Вопрос — прямо под блюдом</b>, а не за «Уточнить»: ответ — одно касание без запроса и ожидания; поле «Что поправить?» остаётся для всего остального.</p><div class="row">${H.join('')}</div></section>
   <section class="doc-section" id="states"><h2 class="doc-h2">D. Состояния</h2><div class="row">${Dst.join('')}</div></section>
   <section class="doc-section" id="desktop"><h2 class="doc-h2">E. Десктоп ≥ 1024 px</h2><div class="row">${E.join('')}</div></section>
   <section class="doc-section" id="spec"><h2 class="doc-h2">F. Правила для вёрстки</h2><ul class="spec">
@@ -737,7 +747,7 @@ function render(){
     <li><b>Запрос.</b> Один за раз. Блок «Уточняем…» заменяет поле (<code>role=status</code>), список <code>aria-busy</code> и недоступен, «Сохранить» недоступна. Через 10 с — строка «Дольше обычного»; 60 с — D.5. Уход с экрана — обычный диалог «Сохранить и выйти / Не сохранять / Остаться», сохраняется список до запроса.</li>
     <li><b>Результат.</b> Сравниваем список до/после: новое → метка «новое», изменились граммы/название/ккал → «изменено» + «было …» (граммы или старое название), удалено → «Убрано: …» второй строкой в полосе «Список обновлён» (всегда на виду, а не в конце длинного списка). Фон <code>--color-accent-soft</code> — дополнение к тексту, не замена. Сдвиг у итога и в полосе «Список обновлён». Всё это и «Отменить» исчезает при следующем действии; «Отменить» возвращает снимок до запроса целиком. Фокус после ответа — на полосе «Список обновлён», после «Отменить» — в поле.</li>
     <li><b>Ошибки.</b> Баннер над полем (<code>role=alert</code>), текст запроса в поле, список не тронут. Снимается правкой текста или новым запросом.</li>
-    <li><b>Вопросы ИИ (H, предложение).</b> В ответе распознавания у блюда — до 1 вопроса: текст, 2–5 вариантов, у каждого готовые название, граммы, ккал и БЖУ, индекс предположения ИИ. Всего ≤ 3 вопросов на фото, только при разнице ≥ 50 ккал или ≥ 15 %. Блок — <code>role=radiogroup</code> с подписью-вопросом, варианты — <code>role=radio</code>, видимая высота 36, зона нажатия 44 pt. Выбор варианта меняет блюдо локально (без запроса, работает офлайн), ставит метку «изменено» и полосу «Ответ учтён · Отменить». Последний чип («Другое…» / «Опишу свой…») — фокус в поле с началом фразы, дальше «Уточнить»; офлайн — недоступен. Вопросы исчезают после «Сохранить», после ответа через поле и после «Распознать заново» (придут новые). На десктопе — так же под блюдом, стрелки ← → внутри группы.</li>
+    <li><b>Вопросы ИИ (H).</b> Приходят в том же ответе, что и блюда (распознавание, «Распознать заново», «Уточнить», текст без фото). У блюда — до 1 вопроса: текст до 60 символов, 2–4 варианта до 25 символов, у каждого готовые название, граммы, ккал и БЖУ, индекс предположения ИИ. Всего ≤ 3 вопросов на приём пищи, только при разнице ≥ 50 ккал или ≥ 15 %. Блок — <code>role=radiogroup</code> с подписью «ИИ сомневается: {вопрос}» (метка — <code>text-secondary</code>, вопрос — 600), варианты — <code>role=radio</code>, видимая высота 36, зона нажатия 44 pt. Выбор варианта меняет блюдо локально (без запроса, работает офлайн), ставит метку «изменено» и полосу «Ответ учтён · Отменить». Последний чип «Другое…» — фокус в поле с названием блюда и двоеточием («Чизкейк: »), дальше «Уточнить»; офлайн, при лимите и во время запроса — недоступен (<code>aria-disabled</code>), остальные чипы работают. Выбранный вариант = задан пользователем (следующее «Уточнить» его не меняет). Блюдо удалили или переименовали вручную — вопрос исчезает; вес поправили — пересчёт от выбранного варианта. Неполный вопрос (нет вариантов или чисел) не показывается, ошибки нет. Вопросы исчезают после «Сохранить», после ответа через поле и после «Распознать заново» (придут новые). На десктопе — так же под блюдом, стрелки ← → внутри группы.</li>
     <li><b>Движение.</b> Подсветка появляется за <code>--duration-base</code>; при <code>prefers-reduced-motion</code> — без анимации.</li>
   </ul></section>
   <section class="doc-section" id="copy"><h2 class="doc-h2">G. Тексты RU / EN</h2><table class="copy"><thead><tr><th>Где</th><th>RU</th><th>EN</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join('')}</tbody></table></section>`;
