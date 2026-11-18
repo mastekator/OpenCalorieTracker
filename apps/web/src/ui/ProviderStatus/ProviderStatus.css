@@ -16,6 +16,10 @@
   .provider {
     grid-template-columns: 1fr 1fr;
   }
+
+  .provider__wide {
+    grid-column: 1 / -1;
+  }
 }
 
 .provider__state {
