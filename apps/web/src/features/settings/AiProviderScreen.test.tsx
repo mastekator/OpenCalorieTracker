@@ -85,7 +85,7 @@ const serve = (body: unknown, status = 200) => {
   return fetch;
 };
 const status = (s: Partial<AdminAiStatus>) => (
-  <ProviderStatus status={{ ...gemini, ...s }} onCheck={() => {}} />
+  <ProviderStatus status={{ ...gemini, ...s }} />
 );
 
 beforeEach(() => localStorage.setItem(LOCALE_STORAGE_KEY, 'en'));
@@ -155,19 +155,19 @@ describe('ProviderStatus', () => {
     await wrap(status({ state }));
     expect(screen.getByText(line)).toBeTruthy();
     if (banner) expect(screen.getByText(banner)).toBeTruthy();
-    else expect(document.querySelector('.provider__main .banner')).toBeNull();
-    expect(screen.getByRole('button', { name: 'Check now' })).toBeTruthy();
+    else
+      expect(
+        document.querySelector('.banner--danger, .banner--warning'),
+      ).toBeNull();
     expect(
       screen.queryByText(/Last request|From the last request/) === null,
     ).toBe(state === 'unknown');
   });
 
-  it('not configured: env block, no check, nothing is sent', async () => {
-    await wrap(<ProviderStatus status={off} onCheck={() => {}} />);
+  it('not configured: grey state, nothing is sent', async () => {
+    await wrap(<ProviderStatus status={off} />);
     expect(screen.getByText("AI isn't connected")).toBeTruthy();
     expect(screen.getByText('Not set up')).toBeTruthy();
-    expect(screen.getByText(/AI_PROVIDER=/)).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Check now' })).toBeNull();
     expect(
       screen.getByText(
         "While AI isn't connected, photos aren't sent anywhere.",
@@ -175,15 +175,10 @@ describe('ProviderStatus', () => {
     ).toBeTruthy();
   });
 
-  it('warns about the Gemini free tier only for google', async () => {
-    await wrap(status({}));
-    expect(screen.getByText('Gemini free tier')).toBeTruthy();
-    expect(screen.getByText('Google Gemini data policy')).toBeTruthy();
-    cleanup();
-    await wrap(
-      status({ provider: 'openai', providerName: 'OpenAI', model: 'gpt-4o' }),
-    );
-    expect(screen.queryByText('Gemini free tier')).toBeNull();
+  it('saved from the screen: the banner does not point at AI_*', async () => {
+    await wrap(status({ state: 'auth_error', source: 'admin' }));
+    expect(screen.getByText(/Check the key and model access/)).toBeTruthy();
+    expect(screen.queryByText(/AI_API_KEY/)).toBeNull();
   });
 
   it('own server: the host, no policy link', async () => {
@@ -195,7 +190,7 @@ describe('ProviderStatus', () => {
       }),
     );
     expect(screen.getByText('OpenAI-compatible')).toBeTruthy();
-    expect(screen.getAllByText('192.168.1.20:11434')).toHaveLength(2);
+    expect(screen.getAllByText('192.168.1.20:11434')).toHaveLength(1);
     expect(screen.queryByText(/data policy/)).toBeNull();
   });
 
@@ -303,5 +298,291 @@ describe('AiProviderScreen', () => {
     expect(screen.getByText('Connection needed')).toBeTruthy();
     expect(screen.queryByText('Google Gemini')).toBeNull();
     expect(fetch).not.toHaveBeenCalled();
+  });
+});
+
+describe('AiProviderScreen: settings form', () => {
+  const saved: AdminAiStatus = {
+    ...gemini,
+    source: 'admin',
+    keyLast4: 'a3F9',
+    rev: 3,
+  };
+  type Call = { method: string; url: string; body: unknown };
+  /** Answers by method; records every call with its JSON body. */
+  function server(answer: (call: Call) => [unknown, number?]) {
+    const calls: Call[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string, init?: RequestInit) => {
+        const call = {
+          method: init?.method ?? 'GET',
+          url,
+          body: init?.body ? JSON.parse(String(init.body)) : undefined,
+        };
+        calls.push(call);
+        const [body, code = 200] = answer(call);
+        return Response.json(body, { status: code });
+      }),
+    );
+    return calls;
+  }
+  const field = (name: string) =>
+    screen.getByLabelText(name) as HTMLInputElement;
+  const type = (name: string, value: string) =>
+    fireEvent.change(field(name), { target: { value } });
+
+  it('env: read-only rows, no Save and no Turn off', async () => {
+    server(() => [{ ...gemini, savedInactive: true, rev: 2 }]);
+    await wrap(<AiProviderScreen />);
+    expect(
+      await screen.findByText('Settings come from .env and take priority'),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(
+        'Settings saved here are inactive while AI_* variables are set',
+      ),
+    ).toBeTruthy();
+    expect(screen.queryAllByRole('textbox')).toHaveLength(0);
+    expect(document.querySelector('input')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Save' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Turn off AI/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Provider/ })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Check now' })).toBeTruthy();
+  });
+
+  it('unchanged: one «Check now»; an edit brings «Check» and «Save»', async () => {
+    server(() => [saved]);
+    await wrap(<AiProviderScreen />);
+    await screen.findByText('Set · …a3F9');
+    expect(screen.getByRole('button', { name: 'Check now' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Save' })).toBeNull();
+    type('Model', 'gemini-3.8-pro');
+    expect(screen.queryByRole('button', { name: 'Check now' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Check' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Save' })).toBeTruthy();
+    expect(screen.getByText('Gemini free tier')).toBeTruthy();
+  });
+
+  it('«Save anyway» only after ai_check_failed, gone on an edit', async () => {
+    const calls = server(({ method, body }) =>
+      method === 'PUT' && !(body as { force?: boolean }).force
+        ? [
+            {
+              error: {
+                code: 'ai_check_failed',
+                details: {
+                  state: 'unavailable',
+                  details: { status: 503, message: 'Service Unavailable' },
+                },
+              },
+            },
+            422,
+          ]
+        : method === 'PUT'
+          ? [{ ...saved, model: 'gemini-3.8-pro', state: 'unknown', rev: 4 }]
+          : [saved],
+    );
+    await wrap(<AiProviderScreen />);
+    await screen.findByText('Set · …a3F9');
+    type('Model', 'gemini-3.8-pro');
+    expect(screen.queryByRole('button', { name: 'Save anyway' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    expect(
+      await screen.findByText('Not saved: Provider unavailable'),
+    ).toBeTruthy();
+    expect(calls.at(-1)?.body).toEqual({
+      provider: 'google',
+      model: 'gemini-3.8-pro',
+      rev: 3,
+    });
+
+    type('Model', 'gemini-3.8-pro ');
+    expect(screen.queryByRole('button', { name: 'Save anyway' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Save anyway' }));
+    await screen.findByText('Saved. The new model is already in use');
+    expect(calls.at(-1)?.body).toEqual({
+      provider: 'google',
+      model: 'gemini-3.8-pro',
+      rev: 3,
+      force: true,
+    });
+  });
+
+  it('after saving, the key is nowhere in the DOM, only its last 4', async () => {
+    const key = 'sk-proj-secret-9xQ2';
+    const calls = server(({ method }) =>
+      method === 'PUT'
+        ? [
+            {
+              ...saved,
+              provider: 'openai',
+              providerName: 'OpenAI',
+              model: 'gpt-5-mini',
+              keyLast4: '9xQ2',
+            },
+          ]
+        : [off],
+    );
+    await wrap(<AiProviderScreen />);
+    fireEvent.click(await screen.findByRole('button', { name: /Provider/ }));
+    fireEvent.click(screen.getByRole('radio', { name: 'OpenAI' }));
+    type('API key', key);
+    type('Model', 'gpt-5-mini');
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await screen.findByText('Set · …9xQ2');
+    expect(calls.at(-1)).toMatchObject({
+      method: 'PUT',
+      body: { provider: 'openai', apiKey: key, rev: null },
+    });
+    expect(document.body.innerHTML).not.toContain(key);
+    for (const input of document.querySelectorAll('input'))
+      expect(input.value).not.toContain(key);
+  });
+
+  it('another provider clears the key and asks for its own', async () => {
+    server(() => [saved]);
+    await wrap(<AiProviderScreen />);
+    fireEvent.click(await screen.findByRole('button', { name: /Provider/ }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Anthropic' }));
+    expect(field('API key').value).toBe('');
+    expect(field('Model').value).toBe('');
+    expect(
+      screen.getByText('Anthropic needs its own key — the old one won’t work'),
+    ).toBeTruthy();
+    expect(screen.queryByText('Gemini free tier')).toBeNull();
+  });
+
+  it('first setup: buttons stay active, a tap names and focuses the empty field', async () => {
+    const calls = server(() => [off]);
+    await wrap(<AiProviderScreen />);
+    fireEvent.click(await screen.findByRole('button', { name: /Provider/ }));
+    fireEvent.click(screen.getByRole('radio', { name: /Ollama|compatible/i }));
+    const save = screen.getByRole('button', {
+      name: 'Save',
+    }) as HTMLButtonElement;
+    expect(save.disabled).toBe(false);
+    fireEvent.click(save);
+    expect(screen.getByText('Enter an address')).toBeTruthy();
+    expect(screen.getByText('Enter a model')).toBeTruthy();
+    expect(document.activeElement).toBe(field('Address'));
+    type('Address', 'http://ollama:11434/v1');
+    expect(screen.queryByText('Enter an address')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Check' }));
+    expect(document.activeElement).toBe(field('Model'));
+    expect(calls.every((c) => c.method === 'GET')).toBe(true);
+  });
+
+  it('own server: a model change alone saves without the address', async () => {
+    const ollama: AdminAiStatus = {
+      ...saved,
+      provider: 'openai-compatible',
+      providerName: null,
+      model: 'llava',
+      keySet: false,
+      keyLast4: null,
+      baseUrlHost: 'ollama:11434',
+    };
+    const calls = server(({ method }) =>
+      method === 'PUT' ? [{ ...ollama, model: 'qwen2.5vl', rev: 4 }] : [ollama],
+    );
+    await wrap(<AiProviderScreen />);
+    expect(
+      await screen.findByText('Saved: ollama:11434. Leave empty to keep it'),
+    ).toBeTruthy();
+    expect(field('Address').value).toBe('');
+    expect(field('Address').placeholder).toBe('Unchanged');
+    type('Model', 'qwen2.5vl');
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await screen.findByText('Saved. The new model is already in use');
+    expect(calls.at(-1)?.body).toEqual({
+      provider: 'openai-compatible',
+      model: 'qwen2.5vl',
+      rev: 3,
+    });
+  });
+
+  it('the model hint asks for Check only on an edited form; the eye says «key»', async () => {
+    server(() => [saved]);
+    await wrap(<AiProviderScreen />);
+    await screen.findByText('Set · …a3F9');
+    expect(screen.getByText('As shown in your provider account.')).toBeTruthy();
+    type('Model', 'gemini-3.8-pro');
+    expect(
+      screen.getByText(
+        'As shown in your provider account. Verify it with Check.',
+      ),
+    ).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Replace key' }));
+    expect(screen.getByRole('button', { name: 'Show key' })).toBeTruthy();
+  });
+
+  it('a draft check that fails shows the state, nothing is saved', async () => {
+    const calls = server(({ method }) =>
+      method === 'POST'
+        ? [{ state: 'model_not_found', checkedAt: 1 }]
+        : [saved],
+    );
+    await wrap(<AiProviderScreen />);
+    await screen.findByText('Set · …a3F9');
+    type('Model', 'gemini-9');
+    fireEvent.click(screen.getByRole('button', { name: 'Check' }));
+    expect(await screen.findByText('Model not found')).toBeTruthy();
+    expect(calls.at(-1)?.body).toEqual({
+      provider: 'google',
+      model: 'gemini-9',
+    });
+  });
+
+  it('409 ai_settings_changed: «changed in another window», Reload re-reads', async () => {
+    const calls = server(({ method }) =>
+      method === 'PUT'
+        ? [{ error: { code: 'ai_settings_changed' } }, 409]
+        : [saved],
+    );
+    await wrap(<AiProviderScreen />);
+    await screen.findByText('Set · …a3F9');
+    type('Model', 'gemini-3.8-pro');
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    expect(
+      await screen.findByText(
+        'Settings were changed in another window. Reload the page',
+      ),
+    ).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Reload' }));
+    await waitFor(() => expect(field('Model').value).toBe(saved.model));
+    expect(calls.at(-1)?.method).toBe('GET');
+  });
+
+  it('the saved key can’t be read: the key field says so', async () => {
+    server(() => [
+      {
+        ...saved,
+        source: null,
+        keySet: false,
+        keyLast4: null,
+        keyUnreadable: true,
+        state: 'not_configured',
+      },
+    ]);
+    await wrap(<AiProviderScreen />);
+    expect(
+      await screen.findByText('The saved key can’t be read — enter it again'),
+    ).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Save' })).toBeTruthy();
+  });
+
+  it('«Turn off AI» asks first, then deletes', async () => {
+    const calls = server(({ method }) => [method === 'DELETE' ? off : saved]);
+    await wrap(<AiProviderScreen />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Turn off AI' }));
+    expect(calls.some((c) => c.method === 'DELETE')).toBe(false);
+    fireEvent.click(screen.getByRole('button', { name: 'Turn off' }));
+    expect(await screen.findByText('AI turned off')).toBeTruthy();
+    expect(calls.at(-1)).toMatchObject({
+      method: 'DELETE',
+      url: '/api/admin/ai/settings',
+    });
   });
 });

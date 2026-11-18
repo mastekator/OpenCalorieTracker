@@ -16,6 +16,8 @@ type Props = Omit<
   locked?: boolean;
   /** Unit after the value: «g», «oz». */
   suffix?: string;
+  /** Names of the show/hide button when the password field holds something else (an API key). */
+  revealLabels?: [show: string, hide: string];
   ref?: Ref<HTMLInputElement>;
 };
 
@@ -25,6 +27,7 @@ export function Field({
   error,
   locked = false,
   suffix,
+  revealLabels,
   type = 'text',
   ...rest
 }: Props) {
@@ -59,7 +62,11 @@ export function Field({
           <button
             type="button"
             className="field__action"
-            aria-label={t(shown ? 'auth.hide_password' : 'auth.show_password')}
+            aria-label={
+              revealLabels
+                ? revealLabels[shown ? 1 : 0]
+                : t(shown ? 'auth.hide_password' : 'auth.show_password')
+            }
             aria-pressed={shown}
             disabled={rest.disabled}
             onClick={() => setShown(!shown)}

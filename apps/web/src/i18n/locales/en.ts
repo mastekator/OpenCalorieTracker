@@ -891,6 +891,7 @@ export const en = {
     },
   },
   ai: {
+    status_label: 'AI status',
     compatible: 'OpenAI-compatible',
     status: {
       ok: 'Working',
@@ -917,9 +918,6 @@ export const en = {
     checked: 'From the last request · {when}',
     last: 'Last request · {when}',
     model: 'Model',
-    key: 'Key',
-    key_set: 'set',
-    key_unset: 'not set',
     address: 'Address',
     check: 'Check now',
     checking: 'Checking…',
@@ -931,6 +929,8 @@ export const en = {
       auth_error: {
         title: 'The provider rejected the key',
         body: 'Check AI_API_KEY and model access in your provider account, then restart the container. Until then, users can log food manually.',
+        body_admin:
+          'Check the key and model access in your provider account. Until recognition works, people enter food manually.',
       },
       quota_exceeded: {
         title: 'Request limit reached',
@@ -945,6 +945,8 @@ export const en = {
         body: "The provider doesn't have model {model}. Check AI_MODEL and pick a model from the provider's list.",
         body_compatible:
           "The provider doesn't have model {model}. Check AI_MODEL (a model from the provider's list) and the AI_BASE_URL address.",
+        body_admin:
+          'The model {model} isn’t available from the provider — choose another one.',
       },
       timeout: {
         title: 'The model is too slow',
@@ -958,9 +960,58 @@ export const en = {
     off: {
       name: "AI isn't connected",
       body: 'Photo recognition and the goal assistant are off. Diary, manual entry and goals work.',
-      how: 'How to connect',
-      env: 'Set these environment variables and restart the container:',
-      readme: 'Self-hosting guide',
+    },
+    form: {
+      connection: 'Connection',
+      provider: 'Provider',
+      hint: {
+        google: 'Has a free tier',
+        openrouter: 'Hundreds of models from many companies',
+        compatible: 'Ollama, LM Studio and others — your own address',
+      },
+      address_placeholder: 'http://192.168.1.20:11434/v1',
+      address_unchanged: 'Unchanged',
+      key: 'API key',
+      key_set: 'Set',
+      key_last4: 'Set · …{last4}',
+      key_unset: 'Not set',
+      key_placeholder: 'Paste the key',
+      optional: 'Optional',
+      replace: 'Replace key',
+      new_key: '{provider} needs its own key — the old one won’t work',
+      key_unreadable: 'The saved key can’t be read — enter it again',
+      model_hint: 'As shown in your provider account.',
+      model_hint_check: 'Verify it with Check.',
+      model_required: 'Enter a model',
+      address_required: 'Enter an address',
+      address_saved: 'Saved: {host}. Leave empty to keep it',
+      show_key: 'Show key',
+      hide_key: 'Hide key',
+      saving: 'Saving…',
+      photo: 'photos',
+      no_photo: 'no photos',
+      no_vision:
+        'This model doesn’t accept photos — photo recognition will be off; the goal assistant still works',
+      check: 'Check',
+      save: 'Save',
+      check_ok: 'Working — ready to save',
+      saved: 'Saved. The new model is already in use',
+      not_saved: 'Not saved: {reason}',
+      not_saved_body:
+        'You can save without a passing check — the status will show the error until it clears.',
+      save_anyway: 'Save anyway',
+      env_title: 'Settings come from .env and take priority',
+      env_body:
+        'To configure AI here, remove the AI_* variables and recreate the container.',
+      inactive: 'Settings saved here are inactive while AI_* variables are set',
+      changed: 'Settings were changed in another window. Reload the page',
+      reload: 'Reload',
+      turn_off: 'Turn off AI',
+      off_title: 'Turn off AI?',
+      off_body:
+        'Photo recognition and the goal assistant will turn off for everyone. The key will be deleted',
+      off_confirm: 'Turn off',
+      off_done: 'AI turned off',
     },
     privacy: {
       title: 'Where your data goes',

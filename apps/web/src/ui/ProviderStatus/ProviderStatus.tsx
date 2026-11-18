@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { ChevronDown, ExternalLink, RefreshCw, Sparkles } from 'lucide-react';
+import { ChevronDown, ExternalLink, Lock, Sparkles } from 'lucide-react';
 import {
   AI_PROVIDERS,
   type AdminAiStatus,
@@ -9,8 +9,7 @@ import {
 import { useT } from '../../i18n';
 import { Badge } from '../Badge/Badge';
 import { Banner } from '../Banner/Banner';
-import { Button } from '../Button/Button';
-import { List, ListRow } from '../List/List';
+import { List } from '../List/List';
 import './ProviderStatus.css';
 
 type Tone = 'ok' | 'err' | 'warn' | 'off';
@@ -38,11 +37,6 @@ export const AI_STATES: Record<
 
 export const README_URL =
   'https://github.com/mastekator/OpenCalorieTracker/blob/main/docs/SELF_HOSTING.md#configuration';
-const ENV_VARS = `AI_PROVIDER=google
-AI_MODEL=gemini-3.8-flash
-AI_API_KEY=…
-# openai-compatible:
-AI_BASE_URL=http://…`;
 
 /** The state's badge for the settings row. */
 export function AiStateBadge({ state }: { state: AiProviderState }) {
@@ -115,11 +109,6 @@ export function PrivacyCard({ status }: { status: AdminAiStatus }) {
             )}
           </p>
         )}
-        {configured && status.provider === 'google' && (
-          <Banner tone="warning" title={t('ai.gemini.title')}>
-            {t('ai.gemini.body')}
-          </Banner>
-        )}
         {configured && name && policy && (
           <a
             className="provider__link"
@@ -136,45 +125,25 @@ export function PrivacyCard({ status }: { status: AdminAiStatus }) {
   );
 }
 
-/** What to set when no provider is configured. */
-export function EnvBlock() {
-  const { t } = useT();
-  return (
-    <section className="provider__env">
-      <h2 className="list__title">{t('ai.off.how')}</h2>
-      <p className="provider__muted">{t('ai.off.env')}</p>
-      <pre className="provider__code">{ENV_VARS}</pre>
-      <a
-        className="provider__link"
-        href={README_URL}
-        target="_blank"
-        rel="noreferrer"
-      >
-        {t('ai.off.readme')}
-        <ExternalLink aria-hidden="true" />
-      </a>
-    </section>
-  );
-}
-
 type Props = {
   status: AdminAiStatus;
-  checking?: boolean;
-  onCheck: () => void;
+  /** The settings form and its buttons, under the state. */
+  children?: ReactNode;
+  /** Under «Where your data goes», e.g. «Turn off AI». */
+  side?: ReactNode;
 };
 
-/** Screen «AI provider» (OCT-25 §5, D.2): state, model and key, check, privacy. */
-export function ProviderStatus({ status, checking = false, onCheck }: Props) {
+/** Screen «AI provider» (OCT-25 §5, OCT-248): state, then the form; privacy on the side. */
+export function ProviderStatus({ status, children, side }: Props) {
   const { t, locale } = useT();
   const { state } = status;
   const off = state === 'not_configured';
   const { tone, banner } = AI_STATES[state];
-  const name = off
-    ? t('ai.off.name')
-    : (status.providerName ??
-      (status.provider === 'openai-compatible'
-        ? t('ai.compatible')
-        : status.provider));
+  const name =
+    status.providerName ??
+    (status.provider === 'openai-compatible'
+      ? t('ai.compatible')
+      : (status.provider ?? t('ai.off.name')));
   const when =
     status.checkedAt !== null &&
     new Intl.DateTimeFormat(locale, {
@@ -189,82 +158,63 @@ export function ProviderStatus({ status, checking = false, onCheck }: Props) {
   ]
     .filter(Boolean)
     .join('\n');
-  const details = detailText && <Details>{detailText}</Details>;
-  // A 404 from an own server is as often a wrong AI_BASE_URL path as a wrong model.
+  // Saved from this screen: no AI_* to fix and nothing to restart (OCT-248 §5).
+  const admin = status.source === 'admin';
   const bannerBody =
-    state === 'model_not_found' && status.provider === 'openai-compatible'
-      ? 'ai.banner.model_not_found.body_compatible'
-      : (`ai.banner.${state as Failure}.body` as const);
+    admin && (state === 'auth_error' || state === 'model_not_found')
+      ? (`ai.banner.${state}.body_admin` as const)
+      : state === 'model_not_found' && status.provider === 'openai-compatible'
+        ? 'ai.banner.model_not_found.body_compatible'
+        : (`ai.banner.${state as Failure}.body` as const);
 
   return (
     <div className="provider">
       <div className="provider__main">
-        <div className="provider__head">
-          <span className={`provider__icon provider__icon--${tone}`}>
-            <Sparkles aria-hidden="true" />
-          </span>
-          <span className="provider__name">
-            <h2>{name}</h2>
-            <StatusLine state={state} />
-          </span>
-        </div>
-        {when && state !== 'unknown' && (
-          <p className="provider__muted">
-            {t(state === 'ok' ? 'ai.checked' : 'ai.last', { when })}
-          </p>
+        {/* First on the screen: nothing below can be changed here (OCT-248 3.3). */}
+        {status.source === 'env' && (
+          <Banner tone="notice" icon={<Lock />} title={t('ai.form.env_title')}>
+            {t('ai.form.env_body')}
+          </Banner>
         )}
-        {off ? (
-          <>
-            <p>{t('ai.off.body')}</p>
-            <EnvBlock />
-          </>
-        ) : (
-          <>
-            {banner && (
-              <Banner
-                tone={banner}
-                title={t(`ai.banner.${state as Failure}.title`)}
-              >
-                {t(bannerBody, {
-                  model: status.model ?? '',
-                  count: status.details?.timeoutSec ?? '',
-                })}
-              </Banner>
-            )}
-            {details}
-            <List>
-              {status.baseUrlHost && (
-                <ListRow
-                  value={
-                    <span className="provider__mono">{status.baseUrlHost}</span>
-                  }
-                >
-                  {t('ai.address')}
-                </ListRow>
-              )}
+        <section className="provider__state" aria-label={t('ai.status_label')}>
+          <div className="provider__head">
+            <span className={`provider__icon provider__icon--${tone}`}>
+              <Sparkles aria-hidden="true" />
+            </span>
+            <span className="provider__name">
+              <h2>{name}</h2>
               {status.model && (
-                <ListRow
-                  value={<span className="provider__mono">{status.model}</span>}
-                >
-                  {t('ai.model')}
-                </ListRow>
+                <span className="provider__mono provider__muted">
+                  {status.model}
+                </span>
               )}
-              <ListRow value={t(status.keySet ? 'ai.key_set' : 'ai.key_unset')}>
-                {t('ai.key')}
-              </ListRow>
-            </List>
-            <div className="provider__check">
-              <Button variant="tonal" loading={checking} onClick={onCheck}>
-                {!checking && <RefreshCw aria-hidden="true" />}
-                {t(checking ? 'ai.checking' : 'ai.check')}
-              </Button>
-              <p className="provider__muted">{t('ai.check_note')}</p>
-            </div>
-          </>
+            </span>
+          </div>
+          <StatusLine state={state} />
+          {off && <p className="provider__muted">{t('ai.off.body')}</p>}
+          {when && state !== 'unknown' && (
+            <p className="provider__muted">
+              {t(state === 'ok' ? 'ai.checked' : 'ai.last', { when })}
+            </p>
+          )}
+        </section>
+        {banner && (
+          <Banner
+            tone={banner}
+            title={t(`ai.banner.${state as Failure}.title`)}
+          >
+            {t(bannerBody, {
+              model: status.model ?? '',
+              count: status.details?.timeoutSec ?? '',
+            })}
+          </Banner>
         )}
+        {detailText && <Details>{detailText}</Details>}
+        {children}
       </div>
       <div className="provider__side">
         <PrivacyCard status={status} />
+        {side}
       </div>
     </div>
   );

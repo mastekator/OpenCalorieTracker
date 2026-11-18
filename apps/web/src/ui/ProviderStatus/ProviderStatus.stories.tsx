@@ -26,7 +26,7 @@ const error = (
 const meta = {
   title: 'UI/ProviderStatus',
   component: ProviderStatus,
-  args: { status: gemini, onCheck: () => {} },
+  args: { status: gemini },
   decorators: [
     (Story) => (
       <div className="screen__body">
@@ -40,11 +40,9 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 const dark = { globals: { theme: 'dark' } };
 
-/** 5.1 Working; Gemini always carries the free-tier warning. */
+/** 5.1 Working. The form under the state: UI/AiSettingsForm. */
 export const Ok: Story = {};
 export const OkDark: Story = { ...dark };
-export const Checking: Story = { args: { checking: true } };
-export const CheckingDark: Story = { ...Checking, ...dark };
 /** 5.2 Key rejected, with «Details». */
 export const AuthError: Story = {
   args: {
@@ -113,7 +111,7 @@ export const Unknown: Story = {
   args: { status: { ...gemini, state: 'unknown', checkedAt: null } },
 };
 export const UnknownDark: Story = { ...Unknown, ...dark };
-/** 5.3 Not set up: grey, env block, no check button. */
+/** 5.3 Not set up: grey, nothing is sent. */
 export const NotConfigured: Story = {
   args: {
     status: {
