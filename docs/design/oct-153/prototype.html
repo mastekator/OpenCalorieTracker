@@ -600,6 +600,18 @@ body{padding:var(--space-10) var(--space-8)}
 .wnote.jmp .icon{color:var(--color-warning)}
 .wnote b{font-weight:600;font-variant-numeric:tabular-nums}
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.dsub{font-size:var(--text-footnote-size);font-weight:600;color:var(--color-text-secondary);margin-top:var(--space-2)}
+.drow{display:flex;flex-direction:column;justify-content:center;align-items:stretch;text-align:left;gap:2px;min-height:var(--tap-min);padding:var(--space-2) 0;border-top:1px solid var(--color-separator);font-variant-numeric:tabular-nums}
+.dsub+.drow{border-top:0}
+.drow .l1{display:flex;align-items:baseline;gap:var(--space-2);font-size:var(--text-subhead-size)}
+.drow .l1 .n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.drow .l1 .k{white-space:nowrap}
+.drow .l1 .icon{flex:none;align-self:center;color:var(--color-text-secondary)}
+.drow .l2{font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.dfav{display:flex;flex-direction:column;text-align:left;gap:2px;padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);background:var(--color-accent-soft);font-variant-numeric:tabular-nums}
+.dfav .kk{display:flex;align-items:center;gap:var(--space-1);font-size:var(--text-footnote-size);font-weight:600;color:var(--color-accent)}
+.dfav .n{font-size:var(--text-headline-size);font-weight:600}
+.dfav .l2{font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
 .wstates{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:var(--space-4);max-width:1000px}
 .wstates .card{background:var(--color-surface)}
 .wst{display:flex;flex-direction:column;gap:var(--space-2);min-width:0}
@@ -622,7 +634,7 @@ body{padding:var(--space-10) var(--space-8)}
 .cell.rep .main .sub{font-variant-numeric:tabular-nums}
 
 /* share image (PNG 1080 × 1920, shown at 1/3) — always light, see doc */
-.png{width:360px;height:640px;border-radius:var(--radius-md);overflow:hidden;outline:1px solid var(--color-separator);background:#F8FAF9;color:#18211D;display:flex;flex-direction:column;gap:10px;padding:18px 18px 14px;font-family:var(--font-sans)}
+.png{width:360px;height:640px;border-radius:var(--radius-md);overflow:hidden;outline:1px solid var(--color-separator);background:#F8FAF9;color:#18211D;display:flex;flex-direction:column;gap:8px;padding:18px 18px 14px;font-family:var(--font-sans)}
 .png.light-vars{--color-bg:#F8FAF9;--color-surface:#FFFFFF;--color-surface-2:#F1F4F2;--color-separator:#E7ECEA;--color-border-strong:#7C8782;--color-text:#18211D;--color-text-secondary:#5A6661;--color-text-disabled:#7F8A85;--color-accent:#13784A;--color-on-accent:#FFFFFF;--color-accent-soft:#E5F5EC;--color-warning:#8A5A00;--color-warning-soft:#FFF4DB}
 .png .p-k{font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-accent)}
 .png .p-t{font-size:22px;font-weight:700;letter-spacing:var(--tracking-tight);line-height:1.1}
@@ -768,6 +780,11 @@ body{padding:var(--space-10) var(--space-8)}
   <h2 class="doc-h2">2W · Вес: все выводы и пустые случаи</h2>
   <p class="t-sub muted" style="max-width:70ch;margin-bottom:var(--space-4)">План — темп из цели профиля. По плану — 75–125% плана; медленнее — меньше 75% в ту же сторону; быстрее — больше 125% (больше 1% веса в неделю — предупреждение); против плана — тренд в обратную сторону больше 0,1 кг/нед. Цель «держать вес» — держится, если тренд в пределах ±0,5 кг за месяц. Тренд — с 3 взвешиваний на отрезке от 7 дней.</p>
   <div class="wstates" id="weight-row"></div>
+</section>
+<section class="doc-section" id="dishes">
+  <h2 class="doc-h2">2D · Блюда: пустые и частные случаи</h2>
+  <p class="t-sub muted" style="max-width:70ch;margin-bottom:var(--space-4)">Одинаковые блюда — по названию без учёта регистра и пробелов по краям. «Частые» — по числу раз, при равенстве — по сумме ккал. «Любимое» — первое из частых, если было 3 раза и больше. «Больше всего ккал» — до 3 блюд из встречавшихся 2+ раз. В картинку и текст «Поделиться» уходят 3 частых блюда.</p>
+  <div class="wstates" id="dishes-row"></div>
 </section>
 <section class="doc-section" id="list">
   <h2 class="doc-h2">3 · «Мои отчёты»</h2>
@@ -992,7 +1009,7 @@ const genMsg = (ic, cls, title, body) => `<section class="ai-card" aria-label="�
 const WHAT = `<section class="ai-card" aria-label="Что было"><div class="ai-h">Что было</div><ul class="ai-list">
 <li><span>В среднем <b>2 181 ккал</b> в день при норме 2 100; за месяц <b>61 070 из 65 100 ккал</b>.</span></li>
 <li><span><b>Все 5 суббот</b> выше нормы — в среднем на <b>640 ккал</b>; воскресенья — в 3 из 4.</span></li>
-<li><span>Самая ровная полоса — <b>6 дней в норме подряд</b>, 18–23 октября.</span></li>
+<li><span>Чаще всего — <b>овсянка на молоке</b>, 18 раз. Больше всего ккал после неё — <b>пицца и паста карбонара</b>: по 4 раза, вместе <b>6 400 ккал</b>.</span></li>
 <li><span>Ужин — <b>850 ккал</b>, это <b>39%</b> дня; обед — 690.</span></li>
 <li><span>Белки <b>92 г</b> при норме 120, жиры <b>90 г</b> при норме 70.</span></li>
 <li><span>Вес по тренду <b>−0,8 кг</b> — вдвое медленнее плана (−1,7). По дневнику ждали <b>−1,5 кг</b>: часть еды, похоже, не попала в записи — чаще всего это выходные.</span></li></ul></section>`;
@@ -1000,7 +1017,7 @@ const TRY = (by=true) => `<section class="ai-card" aria-label="Что попро
 <li><span>Субботы в среднем <b>+640 ккал</b>. Решите заранее, где будет главный приём, а два других сделайте полегче.</span></li>
 <li><span>Перенесите около <b>200 ккал</b> ужина в обед — например, гарнир: ужин станет ~650 ккал.</span></li>
 <li><span>Добавьте <b>25–30 г белка</b> в день: творог к завтраку или куриная грудка к обеду.</span></li>
-<li><span>Жиры выше нормы на <b>20 г</b> в день — посмотрите соусы и масло в частых блюдах.</span></li>
+<li><span>Паста карбонара — <b>4 раза по 780 ккал</b>, <b>210 ккал/100 г</b>. Добавьте овощей в ту же тарелку, а пасты положите меньше — порция останется большой, а плотность станет ниже.</span></li>
 <li><span>В субботу и воскресенье записывайте всё, включая перекусы, и взвешивайтесь <b>2–3 раза в неделю</b> утром — тогда станет видно, где теряется разница.</span></li></ol>
 ${by?`<div class="ai-by"><span>Текст: Ollama, llama3.1 · 1 нояб.</span><span class="act" role="button">${I('refresh','sm')}Сформировать заново</span></div>`:''}</section>`;
 
@@ -1013,7 +1030,23 @@ const MACROS = card(`<div class="sum-line"><span class="t-headline">БЖУ в с
 const lrow = (l, r, cls='') => `<div class="list-row" role="button"><span>${l}</span><span class="r"><span class="${cls}">${r}</span>${I('chev-r','sm')}</span></div>`;
 const ABOVE = card(`<div class="sum-line"><span class="t-headline">Дни выше нормы</span><span class="avg-note">8 дн.</span></div><div>${[['Сб, 3 окт.',2650],['Вс, 4 окт.',2480],['Сб, 10 окт.',2720],['Вс, 11 окт.',2390],['Сб, 17 окт.',2900],['Сб, 24 окт.',2810]].map(([d,k])=>lrow(d,`${fmt(k)} ккал <span class="over">+${fmt(k-N)}</span>`)).join('')}<div class="unch" role="button" aria-expanded="false">Ещё 2 дня${I('chev-d','sm')}</div></div>`,'Дни выше нормы');
 const frow2 = (n, c, k) => `<div class="list-row"><span>${n}</span><span class="muted num">${c} раз · ${fmt(k)} ккал</span></div>`;
-const FREQ = card(`<div class="sum-line"><span class="t-headline">Частые блюда</span><span class="avg-note">раз · ккал за месяц</span></div><div>${frow2('Кофе с молоком',26,1560)}${frow2('Овсянка на молоке',14,4060)}${frow2('Гречка с грибами',9,2070)}${frow2('Куриная грудка гриль',8,1984)}${frow2('Творог 5%',7,840)}<div class="unch" role="button" aria-expanded="false">Ещё 5 блюд${I('chev-d','sm')}</div></div><div class="sum-line" style="margin-top:var(--space-2)"><span class="t-headline">Самые калорийные</span><span class="avg-note">сумма за месяц</span></div><div>${frow2('Овсянка на молоке',14,4060)}${frow2('Пицца маргарита',4,3280)}${frow2('Паста карбонара',3,2340)}</div>`,'Частые блюда');
+/* dishes (server, AC-2.5): same name ignoring case; density = kcal per 100 g of the entry */
+const times = c => { const t=c%10, h=c%100; return `${c} ${t>=2&&t<=4&&(h<12||h>14)?'раза':'раз'}`; };
+const drow = (n, c, por, dens, sum, bold=false) => `<div class="drow" role="button" aria-label="${n}: ${times(c)}, ${por} ккал за порцию${dens?`, ${dens} ккал на 100 г`:''}, ${fmt(sum)} ккал за период"><span class="l1"><span class="n">${n}</span><span class="k">${bold?`<b>${fmt(sum)}</b>`:fmt(sum)} ккал</span>${I('chev-r','sm')}</span><span class="l2">${times(c)} · ${por} ккал за порцию${dens?` · ${dens} ккал/100 г`:''}</span></div>`;
+const DFAV = `<div class="dfav" role="button" aria-label="Любимое блюдо: овсянка на молоке, 18 раз"><span class="kk">${I('check','sm')}Любимое</span><span class="n">Овсянка на молоке</span><span class="l2">18 раз · 290 ккал за порцию · 116 ккал/100 г</span></div>`;
+const DFREQ = `<div class="dsub">Частые</div>${drow('Овсянка на молоке',18,290,116,5220)}${drow('Кофе с молоком',16,60,24,960)}${drow('Гречка с грибами',9,230,105,2070)}<div class="unch" role="button" aria-expanded="false">Показать все · 10${I('chev-d','sm')}</div>`;
+const DTOP = `<div class="dsub">Больше всего ккал</div>${drow('Овсянка на молоке',18,290,116,5220,true)}${drow('Пицца маргарита',4,820,250,3280,true)}${drow('Паста карбонара',4,780,210,3120,true)}<span class="t-foot muted">Из блюд, что были 2 раза и больше: если менять, то начать с них. ккал/100 г — калорийная плотность: чем она ниже, тем больше еды за те же ккал.</span>`;
+const DISHES = card(`<div class="sum-line"><span class="t-headline">Блюда за период</span><span class="avg-note">за месяц</span></div>${DFAV}<div>${DFREQ}</div><div>${DTOP}</div>`,'Блюда за период');
+const dstate = (title, body) => `<figure class="wst">${card(`<div class="sum-line"><span class="t-headline">Блюда за период</span></div>${body}`,title)}<figcaption class="t-foot muted"><b>${title}.</b></figcaption></figure>`;
+const DSTATES = [
+  dstate('Неделя: любимого ещё нет', `<div>${`<div class="dsub">Частые</div>${drow('Овсянка на молоке',2,290,116,580)}${drow('Борщ',2,240,48,480)}${drow('Кофе с молоком',2,60,24,120)}`}</div><div>${`<div class="dsub">Больше всего ккал</div>${drow('Овсянка на молоке',2,290,116,580,true)}${drow('Борщ',2,240,48,480,true)}`}</div><span class="t-foot muted">«Любимое» — с 3 раз: за эту неделю ни одно блюдо столько не набрало, плашки нет.</span>`),
+  dstate('Почти ничего не повторялось', `<div><div class="dsub">Частые</div>${drow('Паста карбонара',2,780,210,1560)}${drow('Салат цезарь',1,420,180,420)}${drow('Сырники',1,380,230,380)}</div><span class="t-foot muted">E-2.4: меньше 2 повторяющихся блюд — только «Частые», без «Любимого» и «Больше всего ккал».</span>`),
+  dstate('Блюдо без граммов', `<div><div class="dsub">Частые</div>${drow('Овсянка на молоке',18,290,116,5220)}${drow('Обед в столовой',6,650,0,3900)}</div><span class="t-foot muted">Записано вручную без граммов — плотность не показываем, остальное как обычно.</span>`),
+].join('');
+const dishSheet = `<div class="scrim"></div><div class="sheet" role="dialog" aria-labelledby="dh"><div class="grab"></div><div class="sheet-head"><b class="t-headline" id="dh">Паста карбонара</b><span class="x" aria-label="Закрыть">${I('x')}</span></div>
+<div class="stat-grid">${stat('За месяц','3 120','ккал','4 раза')}${stat('Порция','780','ккал','210 ккал/100 г')}</div>
+<div>${[['Сб, 3 окт.','Ужин',820],['Сб, 10 окт.','Ужин',760],['Чт, 15 окт.','Обед',740],['Сб, 24 окт.','Ужин',800]].map(([d,m,k])=>lrow(`${d} <span class="muted">· ${m}</span>`,`${k} ккал`)).join('')}</div>
+<span class="t-foot muted">Касание дня — открыть его в дневнике.</span></div>`;
 const MEALS = card(`<div class="sum-line"><span class="t-headline">По приёмам пищи</span><span class="avg-note">в среднем за день</span></div><div>${[['Завтрак',430,20],['Обед',690,32],['Ужин',850,39],['Перекус',211,10]].map(([n,k,p])=>`<div class="list-row"><span>${n}</span><span class="num"><b>${k}</b> <span class="muted">ккал · ${p}%</span></span></div>`).join('')}</div><span class="t-foot muted">Больше всего ккал — с 19 до 22 ч. Поздние перекусы (00:00–03:59): 4 раза, в среднем 320 ккал.</span>`,'По приёмам пищи');
 const GAPS = card(`<div class="sum-line"><span class="t-headline">Нет данных: 3 дн.</span></div><span class="t-sub muted">7, 26, 27 окт. — без записей. Это не 0 ккал: в средние эти дни не входят.</span>`,'Нет данных');
 /* weight (server): trend = EMA from OCT-209; plan = pace of the goal (OCT-28 norm agent) */
@@ -1069,7 +1102,8 @@ function report({part=0, top='', extra='', kcalNote='', sel=-1, tip='', nav=null
     `<div class="pad stack">${WHAT}${TRY()}</div>`,
     `<div class="pad stack">${KCAL(kcalNote)}${WEIGHT}${MACROS}${ABOVE}</div>`,
     `<div class="pad stack">${WEIGHT}</div>`,
-    `<div class="pad stack">${FREQ}${MEALS}${GAPS}${DISC}</div>`,
+    `<div class="pad stack">${MEALS}${GAPS}${DISC}</div>`,
+    `<div class="pad stack">${DISHES}</div>`,
   ];
   return `${navbar}${top}<div class="content rep">${parts[part]}</div>${barShare}${extra}`;
 }
@@ -1121,13 +1155,16 @@ document.getElementById('report-row').innerHTML = [
   frame('2.2','«Что было» и «Что попробовать»','Два блока текста модели (AC-3.1): «Что было» — пункты с числами жирным, «Что попробовать» — нумерованные шаги в кружках. Внизу — «Текст: провайдер, модель» и «Сформировать заново» (AC-3.7): заменяет только текст.', report({part:1})),
   frame('2.3','Числа','Калории (AC-2.2): среднее, итог против бюджета 2 100 × 31, дни выше/ниже на 10%+. БЖУ (AC-2.3): граммы против нормы, доля в ккал против доли нормы; перекос > 20% — подпись «меньше/больше нормы» со стрелкой. Под калориями — вес (2.8). Дни выше нормы (AC-2.4) — касание открывает день в дневнике.', report({part:2})),
   frame('2.8','Вес за период','Есть взвешивания в периоде — карточка «Вес» сразу под калориями. График: точки взвешиваний, линия тренда (как на экране «Вес»), пунктир — план по цели; скачок обведён. Вывод в шапке: по плану / медленнее / быстрее / против плана / вес держится. Ниже — сверка с калориями: сколько ждали по дневнику и сколько вышло по тренду. Скачок > 1 кг за 1–3 дня — отдельной строкой «скорее вода и соль». Числа и вывод считает сервер, ИИ объясняет их в «Что было» и «Что попробовать». В картинку и текст «Поделиться» вес не попадает.', report({part:3})),
-  frame('2.4','Блюда, приёмы пищи, пропуски','Частые блюда — 5 + «Ещё», самые калорийные — 3 (AC-2.5). Приёмы пищи — ккал и доля дня, поздние перекусы отдельной строкой (AC-2.6). Дни без записей — отдельной карточкой «это не 0 ккал» (AC-2.7). Последним — дисклеймер (AC-3.6).', report({part:4})),
+  frame('2.9','Блюда за период','После «Дней выше нормы» — карточка блюд (AC-2.5). Сверху плашка «Любимое» — самое частое блюдо, с 3 раз. «Частые» — 3 строки и «Показать все · 10» (раскрывает список на месте). «Больше всего ккал» — 3 блюда из повторявшихся, с наибольшей суммой за период (сумма жирным). В каждой строке: сколько раз, ккал за порцию и плотность в ккал/100 г; без граммов плотности нет. Цвета и оценок «плохое блюдо» нет. Касание блюда — лист с днями (2.10). Совет по 1–2 блюдам — в «Что попробовать» (2.2).', report({part:5})),
+  frame('2.10','Касание блюда','Лист: сумма за период, порция и плотность, ниже дни, когда блюдо было, с приёмом пищи и ккал. Касание дня — день в дневнике. На десктопе — тот же список в диалоге.', report({part:5, extra:dishSheet})),
+  frame('2.4','Приёмы пищи, пропуски','Ниже блюд. Приёмы пищи — ккал и доля дня, поздние перекусы отдельной строкой (AC-2.6). Дни без записей — отдельной карточкой «это не 0 ккал» (AC-2.7). Последним — дисклеймер (AC-3.6).', report({part:4})),
   frame('2.5','Касание дня','Подсказка над днём: дата, ккал, «на 800 выше нормы» и «Открыть день ›» — второе касание ведёт в дневник (AC-2.10). VoiceOver: каждый день — кнопка «Сб, 17 октября: выше нормы, 2 900 ккал».', report({sel:16, tip:dayTip})),
   frame('2.6','Дневник изменился, норма менялась','AC-4.3: если записи периода поправили после отчёта — баннер «Дневник изменился после отчёта · Сформировать заново» над шапкой. AC-2.9: если норма в периоде менялась, в карточке калорий вместо «по 28 дн.» — «Сравнение с текущей нормой».', report({part:2, top:staleBanner, kcalNote:'Сравнение с текущей нормой'})),
   frame('2.7','Норма не задана','E-2.1: календарь в 2 состояния — «есть записи» / «нет данных», с ккал в подсказке. Сравнений с нормой и стрелок перекоса нет; над календарём — плашка «Задать норму» как на «Сегодня». Шаги модели — без цифр нормы.', `${repNav('', back('Мои отчёты'))}<div class="content rep">${head('Отчёт · сформирован 1 нояб.','Октябрь 2026','31 день · 28 с записями · 3 без данных')}<div class="pad stack"><div class="invite">${I('target')}<span>Задайте норму — сравним с ней</span><span class="go">Задать</span></div>${card(OCT_PLAIN,'Календарь периода')}${card(`<div class="sum-line"><span class="t-headline">Калории</span><span class="avg-note">по 28 дн. с записями</span></div><div class="stat-grid">${stat('В среднем в день','2 181','ккал')}${stat('За месяц','61 070','ккал')}</div>`)}</div></div>${barShare}`),
 ].join('');
 
 document.getElementById('weight-row').innerHTML = WSTATES;
+document.getElementById('dishes-row').innerHTML = DSTATES;
 
 /* 3 · my reports */
 const repCell = (t, sub, {busy=false, badge=''}={}) => `<div class="cell ic rep" role="button"><span class="lead-ic round">${busy?'<span class="spinner" style="width:16px;height:16px"></span>':I('report','sm')}</span><span class="main"><span>${t}</span><span class="sub">${sub}</span>${badge?`<span>${badge}</span>`:''}</span>${I('chev-r','sm').replace('class="icon','class="icon chev')}</div>`;
@@ -1144,8 +1181,8 @@ document.getElementById('list-row').innerHTML = [
 ].join('');
 
 /* 4 · share */
-const pngCal = calendar(OCT).replace('class="cal"','class="cal" style="gap:5px"');
-const PNG = `<div class="png light-vars" role="img" aria-label="Картинка отчёта за октябрь 2026"><span class="p-k">Отчёт за период</span><span class="p-t">Октябрь 2026</span><span class="p-m">31 день · 28 с записями · норма 2 100 ккал</span>${pngCal}<div class="p-stats"><div><span>В среднем</span><b>2 181</b></div><div><span>За месяц</span><b>61 070</b></div><div><span>Б / Ж / У, г</span><b>92/90/228</b></div></div><div class="p-sec"><h4>Что было</h4><ul><li>В среднем 2 181 ккал в день при норме 2 100.</li><li>Все 5 суббот выше нормы — в среднем на 640 ккал.</li><li>6 дней в норме подряд, 18–23 октября.</li><li>Ужин — 850 ккал, 39% дня.</li></ul></div><div class="p-sec"><h4>Что попробовать</h4><ol><li>Субботы +640 ккал: решите заранее, где главный приём.</li><li>Перенесите ~200 ккал ужина в обед.</li><li>Добавьте 25–30 г белка в день.</li><li>Жиры +20 г в день — посмотрите соусы и масло.</li></ol></div><div class="p-foot"><span>Не медицинский совет. Нормы ориентировочные.</span><span class="brand"><span class="mark">${I('plate')}</span>OpenCalorieTracker</span></div></div>`;
+const pngCal = calendar(OCT).replace('class="cal"','class="cal" style="gap:3px"');
+const PNG = `<div class="png light-vars" role="img" aria-label="Картинка отчёта за октябрь 2026"><span class="p-k">Отчёт за период</span><span class="p-t">Октябрь 2026</span><span class="p-m">31 день · 28 с записями · норма 2 100 ккал</span>${pngCal}<div class="p-stats"><div><span>В среднем</span><b>2 181</b></div><div><span>За месяц</span><b>61 070</b></div><div><span>Б / Ж / У, г</span><b>92/90/228</b></div></div><div class="p-sec"><h4>Что было</h4><ul><li>В среднем 2 181 ккал в день при норме 2 100.</li><li>Все 5 суббот выше нормы — в среднем на 640 ккал.</li><li>Ужин — 850 ккал, 39% дня.</li></ul></div><div class="p-sec"><span style="font-size:8.5px"><b>Частые блюда:</b> Овсянка на молоке ×18 · Кофе с молоком ×16 · Гречка с грибами ×9</span></div><div class="p-sec"><h4>Что попробовать</h4><ol><li>Субботы +640 ккал: решите заранее, где главный приём.</li><li>Перенесите ~200 ккал ужина в обед.</li><li>В карбонару — больше овощей, меньше пасты.</li></ol></div><div class="p-foot"><span>Не медицинский совет. Нормы ориентировочные.</span><span class="brand"><span class="mark">${I('plate')}</span>OpenCalorieTracker</span></div></div>`;
 const TXT = `Отчёт за период: октябрь 2026
 31 день · 28 с записями · норма 2 100 ккал
 
@@ -1156,22 +1193,27 @@ const TXT = `Отчёт за период: октябрь 2026
 Что было
 • В среднем 2 181 ккал в день при норме 2 100.
 • Все 5 суббот выше нормы — в среднем на 640 ккал.
-• 6 дней в норме подряд, 18–23 октября.
 • Ужин — 850 ккал, 39% дня.
 • Белки 92 г при норме 120, жиры 90 г при 70.
+• Чаще всего — овсянка на молоке, 18 раз.
+
+Частые блюда
+• Овсянка на молоке — 18 раз, 290 ккал за порцию
+• Кофе с молоком — 16 раз, 60 ккал
+• Гречка с грибами — 9 раз, 230 ккал
 
 Что попробовать
 1. Субботы +640 ккал: решите заранее, где главный приём.
 2. Перенесите ~200 ккал ужина в обед.
 3. Добавьте 25–30 г белка в день.
-4. Жиры +20 г в день — посмотрите соусы и масло.
+4. Карбонара 4 раза по 780 ккал: больше овощей, меньше пасты.
 
 Не медицинский совет. Нормы ориентировочные.
 — OpenCalorieTracker`;
 const iosShare = `<div class="scrim"></div><div class="ios-share" aria-label="Системное меню «Поделиться» (iOS)"><span class="proto-tag">системное меню iOS</span><div class="hd"><span class="pv">${PNG.replace('class="png','style="transform:scale(.122);transform-origin:0 0" class="png')}</span><div class="stack-sm"><b class="t-headline">Отчёт за октябрь 2026</b><span class="t-foot muted">Картинка PNG и текст</span></div></div><div class="apps"><span><i></i>AirDrop</span><span><i></i>Сообщения</span><span><i></i>Почта</span><span><i></i>Telegram</span></div><div class="acts"><div>Скопировать${I('copy','sm')}</div><div>Сохранить изображение${I('download','sm')}</div></div></div>`;
 document.getElementById('share-row').innerHTML = [
   frame('4.1','Системное меню','Касание «Поделиться» сразу открывает системное меню (Web Share, AC-4.5) с картинкой и тем же отчётом текстом: 2 касания до отправки. Строка «Отчёт увидит тот, кому вы его отправите» стоит над кнопкой всегда — без лишнего диалога. Работает без ИИ (числа) и офлайн для открытого отчёта (AC-4.7).', report({extra:iosShare})),
-  `<figure class="frame"><div style="display:grid;place-items:center">${PNG}</div><figcaption><b>4.2 Картинка PNG.</b> 1080 × 1920 (9:16 — для мессенджеров и сторис), здесь 1/3. Всегда светлая — читается в любом чате и при печати. Шапка, календарь с легендой, 3 главных числа, «Что было» и «Что попробовать» (до 4 пунктов, длинные обрезаются по фразе), дисклеймер и название приложения. Без имени, email, фото и профиля (AC-4.6).</figcaption></figure>`,
+  `<figure class="frame"><div style="display:grid;place-items:center">${PNG}</div><figcaption><b>4.2 Картинка PNG.</b> 1080 × 1920 (9:16 — для мессенджеров и сторис), здесь 1/3. Всегда светлая — читается в любом чате и при печати. Шапка, календарь с легендой, 3 главных числа, «Что было» (до 3 пунктов), 3 частых блюда, «Что попробовать» (до 3 пунктов, длинные обрезаются по фразе), дисклеймер и название приложения. Без имени, email, фото, профиля и веса (AC-4.6).</figcaption></figure>`,
   `<figure class="frame"><pre class="txtshare">${TXT}</pre><figcaption><b>4.3 Текст.</b> Тот же отчёт простым текстом — уходит вместе с картинкой и копируется кнопкой «Скопировать текст» на десктопе. Без ИИ — без блоков «Что было» и «Что попробовать».</figcaption></figure>`,
 ].join('');
 
@@ -1180,7 +1222,7 @@ const sideR = on => `<aside class="side"><div class="brand"><span class="mark">$
 document.getElementById('desk-row').innerHTML = `<figure class="frame wide"><div class="desk"><div class="chrome"><i></i><i></i><i></i><span class="url">calories.home.lan/reports/2026-10</span></div><div class="body">${sideR('Неделя')}<main class="main-area"><div class="inner">
 <div class="desk-title"><div><span class="link t-sub">${'‹ Мои отчёты'}</span><div class="large-title">Октябрь 2026<span class="date">Сформирован 1 нояб. · 31 день · 28 с записями · 3 без данных</span></div></div><div class="rep-actions"><button class="btn btn-tonal btn-sm">${I('download','sm')}Скачать картинку</button><button class="btn btn-tonal btn-sm">${I('copy','sm')}Скопировать текст</button></div></div>
 <div class="rep-cols"><div class="stack">${card(calendar(OCT)+SERIES_OCT,'Календарь периода')}${WHAT}</div><div class="stack">${TRY()}${KCAL()}</div></div>
-<span class="share-row">${I('lock','sm')}Отчёт увидит тот, кому вы его отправите</span></div></main></div></div><figcaption><b>D.1 Десктоп.</b> Отчёт — страница в основной области: слева календарь, серии и «Что было», справа «Что попробовать» и числа (дальше — БЖУ, дни выше нормы, блюда, приёмы пищи, пропуски, дисклеймер). В браузере без системного меню вместо «Поделиться» — «Скачать картинку» и «Скопировать текст» (AC-4.5); есть Web Share (Safari на Mac) — одна кнопка «Поделиться». Выбор своего периода — центрированный диалог <code>--dialog-max-width</code>, календарь дня — подсказка по наведению и фокусу.</figcaption></figure>`;
+<span class="share-row">${I('lock','sm')}Отчёт увидит тот, кому вы его отправите</span></div></main></div></div><figcaption><b>D.1 Десктоп.</b> Отчёт — страница в основной области: слева календарь, серии и «Что было», справа «Что попробовать» и числа (дальше — вес, БЖУ, дни выше нормы, блюда за период, приёмы пищи, пропуски, дисклеймер). В браузере без системного меню вместо «Поделиться» — «Скачать картинку» и «Скопировать текст» (AC-4.5); есть Web Share (Safari на Mac) — одна кнопка «Поделиться». Выбор своего периода — центрированный диалог <code>--dialog-max-width</code>, календарь дня — подсказка по наведению и фокусу.</figcaption></figure>`;
 document.querySelectorAll('.phone').forEach(p=>{p.insertAdjacentHTML('afterbegin','<div class="status"><span>9:41</span></div><div class="island"></div>');p.insertAdjacentHTML('beforeend','<div class="home-ind"></div>');});
 const only = new URLSearchParams(location.search).get('section');
 if(only) document.querySelectorAll('.doc-section').forEach(s=>{ if(s.id!==only) s.remove(); });
