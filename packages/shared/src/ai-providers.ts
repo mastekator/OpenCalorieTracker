@@ -75,6 +75,7 @@ const aiDraftFields = {
     Object.keys(AI_PROVIDERS) as [AiProviderId, ...AiProviderId[]],
   ),
   model: z.string().trim().min(1).max(200),
+  /** Left out for openai-compatible: the saved address is kept if the provider stays the same. */
   baseUrl: z
     .url({ protocol: /^https?$/ })
     .max(500)
@@ -82,36 +83,27 @@ const aiDraftFields = {
   /** Left out: the saved key is kept if the provider stays the same. */
   apiKey: z.string().trim().min(1).max(1000).optional(),
 };
-const needsBaseUrl = (d: { provider: AiProviderId; baseUrl?: string }) =>
-  d.provider !== 'openai-compatible' || !!d.baseUrl;
-const baseUrlIssue = { path: ['baseUrl'], message: 'Required' };
 
 /** POST /api/admin/ai/check body: settings checked without saving (ADR-0018 §4). */
-export const aiDraftSchema = z
-  .object(aiDraftFields)
-  .refine(needsBaseUrl, baseUrlIssue);
+export const aiDraftSchema = z.object(aiDraftFields);
 export type AiDraft = z.infer<typeof aiDraftSchema>;
 
 /** PUT /api/admin/ai/settings body (ADR-0018 §5). */
-export const saveAiSettingsRequestSchema = z
-  .object({
-    ...aiDraftFields,
-    /** Save without the check; the state is then unknown. */
-    force: z.boolean().optional(),
-    /** rev from GET /api/admin/ai; null when nothing is saved yet. */
-    rev: z.number().int().nullable(),
-  })
-  .refine(needsBaseUrl, baseUrlIssue);
+export const saveAiSettingsRequestSchema = z.object({
+  ...aiDraftFields,
+  /** Save without the check; the state is then unknown. */
+  force: z.boolean().optional(),
+  /** rev from GET /api/admin/ai; null when nothing is saved yet. */
+  rev: z.number().int().nullable(),
+});
 export type SaveAiSettingsRequest = z.infer<typeof saveAiSettingsRequestSchema>;
 
 /** POST /api/admin/ai/models body: without apiKey the saved key of the same provider (ADR-0018 §4). */
-export const aiModelsRequestSchema = z
-  .object({
-    provider: aiDraftFields.provider,
-    baseUrl: aiDraftFields.baseUrl,
-    apiKey: aiDraftFields.apiKey,
-  })
-  .refine(needsBaseUrl, baseUrlIssue);
+export const aiModelsRequestSchema = z.object({
+  provider: aiDraftFields.provider,
+  baseUrl: aiDraftFields.baseUrl,
+  apiKey: aiDraftFields.apiKey,
+});
 export type AiModelsRequest = z.infer<typeof aiModelsRequestSchema>;
 
 /** One model of the provider's list; vision null when the provider does not say. */

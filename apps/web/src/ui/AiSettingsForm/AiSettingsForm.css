@@ -1,0 +1,99 @@
+.ai-form,
+.ai-form__check,
+.ai-form__stack {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.ai-form__check {
+  gap: var(--space-2);
+  text-align: center;
+}
+
+.ai-form__check .button svg {
+  width: var(--space-4);
+  height: var(--space-4);
+}
+
+.ai-form__note {
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+  color: var(--color-text-secondary);
+}
+
+/* Two equal buttons in their own column, never stretched across the desktop (OCT-248 6.1). */
+.ai-form__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.ai-form__field {
+  padding: var(--space-3) var(--space-4);
+}
+
+.ai-form__model {
+  position: relative;
+}
+
+/* The photo label sits on the label line, at the row's end. */
+.ai-form__model > .badge {
+  position: absolute;
+  inset-block-start: var(--space-3);
+  inset-inline-end: var(--space-4);
+}
+
+.ai-form__model .field__input,
+.ai-form__mono {
+  font-family: var(--font-mono);
+}
+
+.ai-form__mono {
+  font-size: var(--text-footnote-size);
+}
+
+.ai-form__lock {
+  width: var(--space-4);
+  height: var(--space-4);
+}
+
+.ai-form__replace {
+  font-family: inherit;
+  font-size: var(--text-subhead-size);
+  font-weight: 600;
+}
+
+.ai-form__replace::before {
+  content: none;
+}
+
+/* Icon and text, never colour alone (OCT-248 2.4). */
+.ai-form__msg {
+  display: flex;
+  gap: var(--space-2);
+  padding-inline: var(--space-4);
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+  color: var(--color-text-secondary);
+}
+
+.ai-form__msg svg {
+  flex: none;
+  width: var(--space-4);
+  height: var(--space-4);
+}
+
+.ai-form__msg--warn svg {
+  color: var(--color-warning);
+}
+
+.ai-form__radio {
+  flex: none;
+  width: var(--icon-size);
+  color: var(--color-accent);
+}
+
+.ai-form__radio .lucide {
+  width: var(--icon-size);
+  height: var(--icon-size);
+}

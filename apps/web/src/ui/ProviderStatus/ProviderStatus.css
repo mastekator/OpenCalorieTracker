@@ -1,6 +1,5 @@
 .provider,
 .provider__main,
-.provider__env,
 .provider__details {
   display: grid;
   gap: var(--space-3);
@@ -16,6 +15,14 @@
   .provider {
     grid-template-columns: 1fr 1fr;
   }
+}
+
+.provider__state {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
 }
 
 .provider__head {
@@ -162,17 +169,6 @@
 
 .provider__summary[aria-expanded='true'] svg {
   rotate: 180deg;
-}
-
-.provider__check {
-  display: grid;
-  gap: var(--space-2);
-  text-align: center;
-}
-
-.provider__check .button svg {
-  width: var(--space-4);
-  height: var(--space-4);
 }
 
 .provider__card {

@@ -158,21 +158,25 @@ export function adminRoutes({ config, db, ai, secrets }: AppDeps) {
     if (config.ai.provider) throw new ApiError(409, 'ai_env_managed');
   };
 
-  /** Without apiKey the saved key is kept if the provider stays (AC-1.5). */
-  const draftKey = (draft: Pick<AiDraft, 'provider' | 'apiKey'>) => {
+  /** Without apiKey or baseUrl the saved one is kept if the provider stays (AC-1.5): the admin sees only the host. */
+  const draftConnection = (
+    draft: Pick<AiDraft, 'provider' | 'apiKey' | 'baseUrl'>,
+  ) => {
     const saved = savedAiRow(db, secrets);
-    const apiKey =
-      draft.apiKey ??
-      (saved?.provider === draft.provider ? saved.apiKey : undefined);
-    if (!apiKey && draft.provider !== 'openai-compatible')
-      throw new ApiError(400, 'ai_key_required');
-    return apiKey;
+    const same = saved?.provider === draft.provider;
+    const apiKey = draft.apiKey ?? (same ? saved.apiKey : undefined);
+    const compatible = draft.provider === 'openai-compatible';
+    const baseUrl = compatible
+      ? (draft.baseUrl ?? (same ? saved.baseUrl : undefined))
+      : draft.baseUrl;
+    if (compatible && !baseUrl) throw new ApiError(400, 'validation_failed');
+    if (!apiKey && !compatible) throw new ApiError(400, 'ai_key_required');
+    return { apiKey, baseUrl };
   };
   const draftSettings = (draft: AiDraft): AiSettings => ({
     provider: draft.provider,
     model: draft.model,
-    apiKey: draftKey(draft),
-    baseUrl: draft.baseUrl,
+    ...draftConnection(draft),
     source: 'admin',
   });
 
@@ -275,9 +279,9 @@ export function adminRoutes({ config, db, ai, secrets }: AppDeps) {
         validate('json', aiModelsRequestSchema),
         async (c) => {
           const draft = c.req.valid('json');
-          const apiKey = draftKey(draft);
+          const { apiKey, baseUrl } = draftConnection(draft);
           try {
-            const models = await listModels({ ...draft, apiKey });
+            const models = await listModels({ ...draft, apiKey, baseUrl });
             return c.json({ models } satisfies AiModelsResponse);
           } catch (err) {
             const timedOut = (err as Error)?.name === 'TimeoutError';
