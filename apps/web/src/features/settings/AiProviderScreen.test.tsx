@@ -546,6 +546,9 @@ describe('AiProviderScreen: settings form', () => {
     type('Address', 'http://other:11434/v1');
     expect(field('API key').value).toBe('');
     expect(screen.queryByRole('button', { name: 'Replace key' })).toBeNull();
+    screen.getByText(
+      'The saved key only goes to ollama:11434. If the new address needs a key, enter it',
+    );
   });
 
   it('the eye in the key field says «key»', async () => {

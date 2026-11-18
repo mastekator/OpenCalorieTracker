@@ -203,7 +203,9 @@ export function AiSettingsForm({
         hint={
           status.provider && draft.provider !== status.provider && !compatible
             ? t('ai.form.new_key', { provider: providerName(draft.provider) })
-            : undefined
+            : savedAddress && status.keySet && draft.baseUrl.trim()
+              ? t('ai.form.new_address_key', { host: savedAddress })
+              : undefined
         }
       />
     </li>

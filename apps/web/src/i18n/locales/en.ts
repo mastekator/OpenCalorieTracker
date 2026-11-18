@@ -980,6 +980,8 @@ export const en = {
       optional: 'Optional',
       replace: 'Replace key',
       new_key: '{provider} needs its own key — the old one won’t work',
+      new_address_key:
+        'The saved key only goes to {host}. If the new address needs a key, enter it',
       key_unreadable: 'The saved key can’t be read — enter it again',
       model_required: 'Enter a model',
       address_required: 'Enter an address',
