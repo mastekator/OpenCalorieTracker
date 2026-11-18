@@ -993,6 +993,7 @@ const ru: DeepPartial<typeof en> = {
         compatible: 'Ollama, LM Studio и др. — свой адрес',
       },
       address_placeholder: 'http://192.168.1.20:11434/v1',
+      address_unchanged: 'Без изменений',
       key: 'Ключ API',
       key_set: 'Задан',
       key_last4: 'Задан · …{last4}',

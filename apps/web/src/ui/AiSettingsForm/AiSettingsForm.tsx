@@ -219,7 +219,11 @@ export function AiSettingsForm({
                   inputMode="url"
                   autoComplete="off"
                   spellCheck={false}
-                  placeholder={t('ai.form.address_placeholder')}
+                  placeholder={t(
+                    savedAddress
+                      ? 'ai.form.address_unchanged'
+                      : 'ai.form.address_placeholder',
+                  )}
                   hint={
                     savedAddress
                       ? t('ai.form.address_saved', { host: savedAddress })

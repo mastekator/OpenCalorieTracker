@@ -970,6 +970,7 @@ export const en = {
         compatible: 'Ollama, LM Studio and others — your own address',
       },
       address_placeholder: 'http://192.168.1.20:11434/v1',
+      address_unchanged: 'Unchanged',
       key: 'API key',
       key_set: 'Set',
       key_last4: 'Set · …{last4}',

@@ -492,6 +492,7 @@ describe('AiProviderScreen: settings form', () => {
       await screen.findByText('Saved: ollama:11434. Leave empty to keep it'),
     ).toBeTruthy();
     expect(field('Address').value).toBe('');
+    expect(field('Address').placeholder).toBe('Unchanged');
     type('Model', 'qwen2.5vl');
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     await screen.findByText('Saved. The new model is already in use');
