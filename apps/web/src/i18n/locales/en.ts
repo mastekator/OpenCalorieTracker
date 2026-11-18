@@ -1085,7 +1085,7 @@ export const en = {
       empty: 'empty',
       waiting: 'waiting',
       not_run: 'not run',
-      kcal: '{min}–{max}\u00a0kcal',
+      kcal: '{min}\u2060–\u2060{max}\u00a0kcal',
       got_kcal: '{kcal}\u00a0kcal',
       sec: '{sec}\u00a0s',
       level: { exact: 'exact', approx: 'approx.' },

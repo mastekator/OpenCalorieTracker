@@ -1,6 +1,8 @@
 import { Check, X } from 'lucide-react';
 import type { AiTestPhoto } from '@oct/shared';
 import { useT } from '../../i18n';
+import { en } from '../../i18n/locales/en';
+import type { Key } from '../../i18n/translate';
 import { Badge } from '../Badge/Badge';
 import '../Button/Button.css';
 import './TestPhotoList.css';
@@ -48,6 +50,9 @@ export function TestPhotoList({ photos, running = false }: Props) {
     ? photos.findIndex((p) => p.result === 'pending')
     : -1;
   const num = (n: number) => n.toLocaleString(locale);
+  // A code this client has no text for shows as a dash, not the generic error.
+  const errorText = (code: string) =>
+    code in en.errors ? t(`errors.${code}` as Key) : '—';
   const level = (exact: boolean) =>
     t(exact ? 'ai.test.level.exact' : 'ai.test.level.approx');
 
@@ -81,7 +86,7 @@ export function TestPhotoList({ photos, running = false }: Props) {
                   <span className="test-photos__line">
                     <b>{t('ai.test.got')}:</b>{' '}
                     {p.result.startsWith('error ')
-                      ? p.result.slice('error '.length)
+                      ? errorText(p.result.slice('error '.length))
                       : p.got === '(none)' || p.kcal === undefined
                         ? t('ai.test.empty')
                         : `${t('ai.test.got_kcal', { kcal: num(p.kcal) })} · ${level(levels.every((l) => l === 'exact'))}`}

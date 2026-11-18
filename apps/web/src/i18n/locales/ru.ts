@@ -1122,7 +1122,7 @@ const ru: DeepPartial<typeof en> = {
       empty: 'пусто',
       waiting: 'ждёт',
       not_run: 'не запускалось',
-      kcal: '{min}–{max}\u00a0ккал',
+      kcal: '{min}\u2060–\u2060{max}\u00a0ккал',
       got_kcal: '{kcal}\u00a0ккал',
       sec: '{sec}\u00a0с',
       level: { exact: 'точно', approx: 'примерно' },
