@@ -167,9 +167,7 @@ describe('«What should I fix?» on the edit screen (OCT-261)', () => {
     await setup();
     type('there is chicken');
     expect(
-      screen.getByText(
-        'Needs a connection — we’ll send it when you’re online',
-      ),
+      screen.getByText('Needs a connection — we’ll send it when you’re online'),
     ).toBeTruthy();
     expect(document.querySelector('.meal-edit__note')).toBeNull();
     expect(button('Refine')!.disabled).toBe(true);
