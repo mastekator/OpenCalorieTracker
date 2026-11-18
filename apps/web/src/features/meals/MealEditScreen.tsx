@@ -953,7 +953,7 @@ export function MealEditScreen({
                   </span>
                 ))}
               </p>
-              {onRecalc && !offer && (
+              {onRecalc && !offer && !canAgain && (
                 <span className="meal-edit__recalc">
                   <Button variant="plain" onClick={startRecalc} disabled={busy}>
                     <Sparkle
