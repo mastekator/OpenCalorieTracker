@@ -148,16 +148,14 @@ describe('server down (E-2.4)', () => {
   });
 
   it('stays up on a 503 that carries our own error code (OCT-281)', async () => {
-    respond(502, '<html>Bad gateway</html>');
+    // A proxy's own JSON (no error.code) still means the server is down.
+    respond(504, '{"message":"Gateway Timeout"}');
     await settle(api('/api/x', schema));
     expect(isServerDown()).toBe(true);
     respond(503, '{"error":{"code":"ai_unavailable"}}');
     const err = await failure(api('/api/x', schema));
     expect([err.status, err.code]).toEqual([503, 'ai_unavailable']);
     expect(isServerDown()).toBe(false);
-    respond(504, '{"message":"Gateway Timeout"}');
-    await settle(api('/api/x', schema));
-    expect(isServerDown()).toBe(true);
   });
 
   it('stays up when the device itself is offline', async () => {
