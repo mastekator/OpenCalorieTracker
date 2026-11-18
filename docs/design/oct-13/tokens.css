@@ -66,7 +66,9 @@
   --heat-cell-size: 12px;       /* OCT-184: day cell of the year activity map (phone; tap area = selected-day row below) */
   --heat-cell-size-wide: 14px;  /* OCT-184: same, desktop */
   --heat-gap: 3px;
-  --milestone-node-size: 40px;  /* OCT-184: medal node on the milestones path */
+  --medal-size-sm: 44px;        /* OCT-184: medal in the toast and the «Награды» block */
+  --medal-size-md: 64px;        /* OCT-184: medal in the «Все награды» grid */
+  --medal-size-lg: 144px;       /* OCT-184: medal in the award card */
   --duration-toast: 5000ms;     /* OCT-184: non-blocking milestone toast stays this long */
   --icon-size: 24px;  --icon-size-sm: 20px;  --icon-stroke: 1.75;
   --content-max-width: 560px;   /* phone-like column: auth, settings, tablet/narrow window */
@@ -136,6 +138,23 @@
   --color-heat-1: #C3E7D1;
   --color-heat-2: #6CC497;
   --color-heat-3: #13784A;
+  /* OCT-184 award medals: metal = rarity (same in both themes — it's "metal"), enamel = category (deeper in dark).
+     Medal SVGs read these via style="…var(--medal-*, #fallback)"; locked silhouettes use theme surfaces. */
+  --medal-bronze-hi: #F3CFA6;   --medal-bronze-base: #C98A52;   --medal-bronze-deep: #8C5426;
+  --medal-silver-hi: #FBFCFD;   --medal-silver-base: #C3CBD3;   --medal-silver-deep: #66727E;
+  --medal-gold-hi: #FFEDB0;     --medal-gold-base: #E6B543;     --medal-gold-deep: #9A6E10;
+  --medal-platinum-hi: #F4F2FF; --medal-platinum-base: #BDB8E8; --medal-platinum-deep: #5F58A6;
+  --medal-plaque-text: #FFFFFF; /* number on the plaque, on *-deep (≥ 4.5:1) */
+  --medal-enamel-path: #E3F4E8;     --medal-ink-path: #22704A;
+  --medal-enamel-streak: #FFE9DA;   --medal-ink-streak: #A8410A;
+  --medal-enamel-days: #E4EEFC;     --medal-ink-days: #23589E;
+  --medal-enamel-months: #F0E7FB;   --medal-ink-months: #6A3FA3;
+  --medal-enamel-photo: #FCE6EE;    --medal-ink-photo: #A3325E;
+  --medal-enamel-accuracy: #DFF3F1; --medal-ink-accuracy: #186E66;
+  --medal-enamel-secret: #2D2848;   --medal-ink-secret: #F3E3A6;
+  --medal-shine: rgb(255 255 255 / 0.55);
+  --medal-locked-fill: var(--color-surface-2);
+  --medal-locked-line: var(--color-border-strong);
 
   /* OCT-33: dish illustrations (flat, decorative). Shown on a round "plate" tile so they never pass for a photo */
   --illo-tile: #F6F0E4;   /* round substrate behind every illustration */
@@ -203,6 +222,15 @@
     --tabbar-bg: rgb(14 17 16 / 0.86);
     --color-hover: rgb(238 243 240 / 0.06);
     --theme-color: #0E1110;
+    /* OCT-184 medals */
+    --medal-enamel-path: #1E3A2A;     --medal-ink-path: #8FD9AE;
+    --medal-enamel-streak: #3D2414;   --medal-ink-streak: #FFB27A;
+    --medal-enamel-days: #1B2A44;     --medal-ink-days: #9EC3F5;
+    --medal-enamel-months: #2E2142;   --medal-ink-months: #CDAFF2;
+    --medal-enamel-photo: #3D1D2A;    --medal-ink-photo: #F2A4C0;
+    --medal-enamel-accuracy: #153532; --medal-ink-accuracy: #86D9CF;
+    --medal-enamel-secret: #191530;
+    --medal-shine: rgb(255 255 255 / 0.35);
   }
 }
 :root[data-theme="dark"] {
@@ -252,6 +280,15 @@
   --tabbar-bg: rgb(14 17 16 / 0.86);
   --color-hover: rgb(238 243 240 / 0.06);
   --theme-color: #0E1110;
+  /* OCT-184 medals */
+  --medal-enamel-path: #1E3A2A;     --medal-ink-path: #8FD9AE;
+  --medal-enamel-streak: #3D2414;   --medal-ink-streak: #FFB27A;
+  --medal-enamel-days: #1B2A44;     --medal-ink-days: #9EC3F5;
+  --medal-enamel-months: #2E2142;   --medal-ink-months: #CDAFF2;
+  --medal-enamel-photo: #3D1D2A;    --medal-ink-photo: #F2A4C0;
+  --medal-enamel-accuracy: #153532; --medal-ink-accuracy: #86D9CF;
+  --medal-enamel-secret: #191530;
+  --medal-shine: rgb(255 255 255 / 0.35);
   color-scheme: dark;
 }
 :root[data-theme="light"] { color-scheme: light; }

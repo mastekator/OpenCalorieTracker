@@ -3,9 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>OCT-184 · Streaks, milestones and challenges</title>
+<title>OCT-184 · Streaks, awards and challenges</title>
 <link rel="stylesheet" href="../oct-13/tokens.css">
 <script src="../preview-bar.js"></script>
+<script src="medals.js"></script>
 <style>
 /* Base components = ../oct-13 + ../oct-16 prototypes (same spec) */
 /* ===== Prototype canvas (not part of the app) ===== */
@@ -808,6 +809,57 @@ body{padding:var(--space-10) var(--space-8)}
 .rule i{width:var(--chat-avatar-size);height:var(--chat-avatar-size);border-radius:50%;display:grid;place-items:center}
 .rule i.a{background:var(--color-accent-soft);color:var(--color-accent)} .rule i.f{background:var(--color-freeze-soft);color:var(--color-freeze)} .rule i.s{background:var(--color-streak-soft);color:var(--color-streak)}
 
+/* ===== OCT-184 r2: awards (medals from medals.js; sizes --medal-size-*) ===== */
+.medal{display:block;width:100%;height:100%;overflow:visible}
+.aw-recent{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-1)}
+.aw-tile{display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center;padding:var(--space-2) var(--space-1);border-radius:var(--radius-md);min-height:var(--tap-min);position:relative;cursor:pointer}
+.aw-tile:hover{background:var(--color-hover)}
+.aw-tile .m{width:var(--medal-size-md);height:var(--medal-size-md);margin-bottom:var(--space-1)}
+.aw-tile .nm{font-size:var(--text-footnote-size);font-weight:600;line-height:var(--text-footnote-lh)}
+.aw-tile .sub{font-size:var(--text-caption-size);color:var(--color-text-secondary);font-variant-numeric:tabular-nums}
+.aw-tile.lock .nm{color:var(--color-text-secondary);font-weight:500}
+.aw-tile .badge.new{position:absolute;top:2px;right:2px}
+.aw-next{display:grid;grid-template-columns:var(--medal-size-sm) 1fr auto;gap:var(--space-1) var(--space-3);align-items:center;min-height:var(--tap-min)}
+.aw-next .m{width:var(--medal-size-sm);height:var(--medal-size-sm);grid-row:span 2}
+.aw-next .nm{font-size:var(--text-subhead-size);display:flex;flex-direction:column;gap:2px}
+.aw-next .nm span{font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.aw-next .v{font-size:var(--text-footnote-size);color:var(--color-text-secondary);font-variant-numeric:tabular-nums;align-self:start}
+.aw-next .pbar{height:6px;grid-column:2 / 4}
+.aw-more{display:flex;align-items:center;justify-content:space-between;min-height:var(--tap-min);color:var(--color-accent);font-weight:600;font-size:var(--text-body-size);margin-bottom:calc(-1 * var(--space-2))}
+.aw-sum{display:flex;flex-direction:column;gap:var(--space-2)}
+.aw-sum .big{display:flex;align-items:baseline;gap:var(--space-2)}
+.aw-cat{display:flex;flex-direction:column;gap:var(--space-1)}
+.aw-cat-h{display:flex;justify-content:space-between;align-items:baseline;padding:0 var(--space-1)}
+.aw-cat-h .r{font-size:var(--text-footnote-size);color:var(--color-text-secondary);font-variant-numeric:tabular-nums}
+.aw-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-1)}
+.desk .aw-grid{grid-template-columns:repeat(8,1fr)}
+.aw-card{align-items:center;text-align:center;gap:var(--space-3)}
+.aw-card .sheet-head{align-self:stretch}
+.aw-card .m{width:var(--medal-size-lg);height:var(--medal-size-lg);margin:calc(-1 * var(--space-6)) 0 var(--space-1)}
+.aw-card .rule-t{font-size:var(--text-body-size);line-height:var(--text-body-lh);max-width:30ch}
+.aw-card .aw-hint{font-size:var(--text-body-size);font-style:italic;color:var(--color-text);max-width:30ch}
+.aw-card .prog{align-self:stretch;display:flex;flex-direction:column;gap:var(--space-2);font-size:var(--text-footnote-size);color:var(--color-text-secondary);font-variant-numeric:tabular-nums}
+.aw-card .prog .pbar{height:8px}
+.aw-earned{display:inline-flex;align-items:center;gap:var(--space-1);font-size:var(--text-subhead-size);color:var(--color-accent);font-weight:600}
+.rar{display:inline-flex;align-items:center;gap:6px;font-size:var(--text-footnote-size);font-weight:600;padding:3px 10px;border-radius:var(--radius-full);background:var(--color-surface-2);color:var(--color-text-secondary)}
+.rar i{width:10px;height:10px;border-radius:50%;flex:none}
+.rar i.bronze{background:var(--medal-bronze-base)} .rar i.silver{background:var(--medal-silver-base)} .rar i.gold{background:var(--medal-gold-base)} .rar i.platinum{background:var(--medal-platinum-base)}
+.mtoast .m{width:var(--medal-size-sm);height:var(--medal-size-sm);flex:none}
+.mtoast .stack3{display:flex;flex:none} .mtoast .stack3 .m{width:36px;height:36px} .mtoast .stack3 .m+.m{margin-left:-14px}
+.st-entry .badge.new{margin-left:auto}
+/* catalog sheet (doc page, not app) */
+.cat-sheet{background:var(--color-surface);border-radius:var(--radius-lg);outline:1px solid var(--color-separator);padding:var(--space-6);display:flex;flex-direction:column;gap:var(--space-6);max-width:1240px}
+.cat-sheet h3{font-size:var(--text-headline-size);font-weight:600;display:flex;gap:var(--space-2);align-items:baseline}
+.cat-sheet h3 span{font-size:var(--text-footnote-size);font-weight:400;color:var(--color-text-secondary)}
+.cat-row{display:grid;grid-template-columns:repeat(6,1fr);gap:var(--space-4)}
+.cat-row figure{display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center}
+.cat-row figure .m{width:112px;height:112px;margin-bottom:var(--space-2)}
+.cat-row figure b{font-size:var(--text-subhead-size)} .cat-row figure span{font-size:var(--text-caption-size);color:var(--color-text-secondary)}
+.anat{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-4)}
+.anat figure{display:flex;flex-direction:column;align-items:center;gap:var(--space-1);font-size:var(--text-footnote-size);color:var(--color-text-secondary);text-align:center}
+.anat figure .m{width:88px;height:88px}
+.sizes{display:flex;align-items:end;gap:var(--space-6)}
+
 /* desktop */
 .st-cols{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-6);align-items:start}
 .desk .main-area{overflow:auto}
@@ -906,16 +958,24 @@ body{padding:var(--space-10) var(--space-8)}
   <symbol id="i-droplet" viewBox="0 0 24 24"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></symbol>
   <symbol id="i-weight" viewBox="0 0 24 24"><circle cx="12" cy="5" r="3"/><path d="M6.5 8a2 2 0 0 0-1.905 1.46L2.1 18.5A2 2 0 0 0 4 21h16a2 2 0 0 0 1.925-2.54L19.4 9.5A2 2 0 0 0 17.48 8Z"/></symbol>
 </svg>
-<h1 class="doc-h1">OCT-184 · Серии, отметки и челленджи</h1>
-<p class="doc-lead">Этап 2 эпика OCT-180 по документу «Продукт OCT-180» (номера AC и E — оттуда). Токены OCT-13 + новые цвета серии, заморозки и карты (помечены OCT-184 в tokens.css); компоненты OCT-16, OCT-19, OCT-22, OCT-147, OCT-153. iPhone 14/15, 390 × 844 pt. Пример: сегодня четверг, 19 ноября 2026; серия 6 недель, лучшая — 9, засчитано недель всего — 9. Ни один экран не говорит о ккал, норме и весе.</p>
+<h1 class="doc-h1">OCT-184 · Серии, награды и челленджи</h1>
+<p class="doc-lead">Этап 2 эпика OCT-180 по документу «Продукт OCT-180» (номера AC и E — оттуда). Токены OCT-13 + новые цвета серии, заморозки и карты (помечены OCT-184 в tokens.css); компоненты OCT-16, OCT-19, OCT-22, OCT-147, OCT-153. iPhone 14/15, 390 × 844 pt. Пример: сегодня четверг, 19 ноября 2026; серия 6 недель, лучшая — 9, засчитано недель всего — 31; получено 17 наград из 32. Ни один экран не говорит о ккал, норме и весе.</p>
 
 <section class="doc-section" id="entry">
   <h2 class="doc-h2">1 · Где живёт: вкладка «Неделя» и поздравление</h2>
   <div class="row" id="entry-row"></div>
 </section>
 <section class="doc-section" id="main">
-  <h2 class="doc-h2">2 · Экран «Серии и отметки»</h2>
+  <h2 class="doc-h2">2 · Экран «Серии и награды»</h2>
   <div class="row" id="main-row"></div>
+</section>
+<section class="doc-section" id="awards">
+  <h2 class="doc-h2">5 · Награды: «Все награды» и карточка</h2>
+  <div class="row" id="awards-row"></div>
+</section>
+<section class="doc-section" id="medals">
+  <h2 class="doc-h2">6 · Медали: все 32 и как они устроены</h2>
+  <div class="row" id="medals-row"></div>
 </section>
 <section class="doc-section" id="states">
   <h2 class="doc-h2">3 · Состояния: новичок, новая серия, заморозка, офлайн, загрузка, выключено</h2>
@@ -1307,15 +1367,47 @@ function challenges(rows=[['days_20',14],['full_week',7,'15 ноября'],['pho
 }
 const HIST = [['Октябрь 2026',2,'20 дней с дневником, 20 приёмов по фото'],['Сентябрь 2026',3,'Все три'],['Август 2026',1,'Заполнить профиль и норму']];
 const history = (rows=HIST) => `<section class="card" aria-label="Прошлые месяцы"><div class="c-h"><span class="t-headline">Прошлые месяцы</span></div><div class="hist">${rows.map(([m,d,s])=>`<div class="hm"><span>${m}</span><span class="dots" aria-label="Выполнено ${d} из 3"><span class="t-sub muted num" style="margin-right:var(--space-1)">Выполнено ${d} из 3</span>${[0,1,2].map(i=>`<i class="${i<d?'':'no'}"></i>`).join('')}</span><span class="sub">${s}</span></div>`).join('')}</div><button class="btn btn-plain" style="min-height:var(--tap-min);margin-bottom:calc(-1 * var(--space-2))">Все месяцы</button></section>`;
-const MS = [1,4,12,26,52,104];
-function milestones(total=9, got={1:'9 августа',4:'4 октября'}, fresh=0){
-  const next = MS.find(w=>w>total);
-  const rows = MS.map(w=>{
-    if (got[w]) return `<div class="ms got" role="listitem" aria-label="${w} нед. с дневником: получена ${got[w]}"><span class="node">${I('award','sm')}</span><span class="nm">${w} нед. с дневником${w===fresh?'<span class="badge new">Новая</span>':''}</span><span class="sub">Получена ${got[w]}</span></div>`;
-    if (w===next) return `<div class="ms next" role="listitem" aria-label="${w} нед. с дневником: ${total} из ${w} недель"><span class="node">${w}</span><span class="nm">${w} нед. с дневником</span>${bar(total,w)}<span class="sub">${total} из ${w} недель</span></div>`;
-    return `<div class="ms lock" role="listitem" aria-label="${w} нед. с дневником: ещё не получена"><span class="node">${w}</span><span class="nm">${w} нед. с дневником</span></div>`;
-  }).join('');
-  return `<section class="card" aria-label="Отметки"><div class="c-h"><span class="t-headline">Отметки</span><span class="r">${Object.keys(got).length} из 6</span></div><div class="path" role="list">${rows}</div><span class="t-foot muted">Считаются все засчитанные недели, не только подряд. Полученная отметка остаётся навсегда.</span></section>`;
+const MD = OCTMedals, AWL = MD.AWARDS;
+const RAR = k => MD.RARITY[MD.BY[k].rar];
+/* example user: 31 weeks counted in total, best streak 9, 241 days logged, AI with photo set up */
+const GOT = {weeks_1:'16 февраля',weeks_4:'16 марта',weeks_12:'25 мая',weeks_26:'14 сентября',streak_2:'23 февраля',streak_8:'4 мая',days_1:'9 февраля',days_30:'24 марта',days_100:'12 июня',challenge_1:'20 февраля',month_3of3:'30 сентября',month_full:'31 августа',photo_1:'9 февраля',photo_100:'2 июля',grams_25:'5 мая',secret_freeze:'16 ноября',secret_backfill:'8 апреля'};
+const PROG = {weeks_52:31,weeks_104:31,streak_16:9,streak_26:9,streak_52:9,days_365:241,days_1000:241,month_3of3_x6:1,photo_500:214,grams_250:61,manual_25:18};
+const md = (k, st='got', lab='') => `<span class="m">${MD.medal(k,{state:st, label:lab})}</span>`;
+const awLabel = (k, got, prog) => { const a = MD.BY[k];
+  if (got[k]) return `${a.ru}, ${RAR(k)[1].toLowerCase()}, получена ${got[k]}`;
+  if (a.cat==='secret') return 'Секретная награда, не получена';
+  return `${a.ru}, ${RAR(k)[1].toLowerCase()}, ${prog[k]||0} из ${a.of}`; };
+function awTile(k, got=GOT, prog=PROG, fresh=''){
+  const a = MD.BY[k], g = got[k], sec = a.cat==='secret' && !g;
+  const sub = g ? `Получена ${g.replace(' ','&nbsp;')}` : sec ? '' : a.of>1 ? `${prog[k]||0} из ${a.of}` : 'Ещё нет';
+  return `<div class="aw-tile ${g?'':'lock'}" role="button" aria-label="${awLabel(k,got,prog)}${k===fresh?', новая':''}">${md(k, g?'got':sec?'secret':'locked')}<span class="nm">${sec?'Секретная':a.ru}</span>${sub?`<span class="sub">${sub}</span>`:''}${k===fresh?'<span class="badge new">Новая</span>':''}</div>`;
+}
+function awardsBlock({got=GOT, prog=PROG, fresh='secret_freeze', recent=['secret_freeze','month_3of3','weeks_26'], next='manual_25', total=32}={}){
+  const a = MD.BY[next], d = prog[next]||0, n = Object.keys(got).length;
+  const rec = recent.length ? `<div class="aw-recent" role="list" aria-label="Последние полученные">${recent.map(k=>awTile(k,got,prog,fresh)).join('')}</div><div class="hr"></div>`
+    : `<p class="t-sub muted">Первая награда — за первую запись. Награды дают только за записи, не за калории.</p>`;
+  const nx = `<div class="aw-next" role="button" aria-label="Следующая: ${awLabel(next,got,prog)}">${md(next,'locked')}<span class="nm"><span>Следующая</span>${a.ru}</span><span class="v">${a.of>1?`${d} из ${a.of}`:''}</span>${a.of>1?bar(d,a.of):`<span class="t-foot muted" style="grid-column:2 / 4">${a.ruleRu}</span>`}</div>`;
+  return `<section class="card" aria-label="Награды"><div class="c-h"><span class="t-headline">Награды</span><span class="r">Получено ${n} из ${total}</span></div>${rec}${nx}<div class="aw-more" role="button">Все награды${I('chev-r','sm')}</div></section>`;
+}
+function allAwards({got=GOT, prog=PROG, fresh='secret_freeze', photo=true, desk=false}={}){
+  const cats = MD.CATS.filter(c=>photo || c[0]!=='photo');
+  const total = AWL.filter(a=>photo || a.cat!=='photo').length, n = Object.keys(got).length;
+  const sum = `<section class="card aw-sum" aria-label="Получено ${n} из ${total}"><div class="big"><span class="display sm num">${n}</span><span class="t-sub muted">из ${total} получено</span></div>${bar(n,total)}<span class="t-foot muted">Награды — только за записи, не за калории. Полученная награда остаётся навсегда.</span></section>`;
+  const groups = cats.map(([c,ru])=>{ const list = AWL.filter(a=>a.cat===c), g = list.filter(a=>got[a.key]).length;
+    return `<section class="aw-cat" aria-label="${ru}"><div class="aw-cat-h"><span class="t-headline">${ru}</span><span class="r">${c==='secret'?`Секретные: ${g} из ${list.length}`:`${g} из ${list.length}`}</span></div><div class="aw-grid" role="list">${list.map(a=>awTile(a.key,got,prog,fresh)).join('')}</div></section>`; }).join('');
+  return {sum, groups};
+}
+function awScreen(o={}, extra=''){ const {sum, groups} = allAwards(o);
+  return `<div class="navbar">${back('Серии')}<div class="title">Все награды</div><div></div></div><div class="content"><div class="pad stack">${sum}${groups}</div></div>${tabbar('Неделя')}${extra}`; }
+function awCard(k, {got=GOT, prog=PROG, desk=false}={}){
+  const a = MD.BY[k], g = got[k], sec = a.cat==='secret' && !g, [metal, rru] = RAR(k);
+  const catRu = MD.CATS.find(c=>c[0]===a.cat)[1];
+  const body = sec
+    ? `${md(k,'secret','Секретная награда, не получена')}<b class="t-title" id="ah">Секретная награда</b><span class="rar">Секретные</span><p class="aw-hint">«${a.hint[0]}»</p><span class="t-foot muted">Название и условие откроются, когда награда будет получена.</span>`
+    : `${md(k, g?'got':'locked', awLabel(k,got,prog))}<b class="t-title" id="ah">${a.ru}</b><span class="rar"><i class="${metal}"></i>${rru} · ${catRu}</span><p class="rule-t">${a.ruleRu}</p>${g?`<span class="aw-earned">${I('check','sm')}Получена ${g.replace(' ','&nbsp;')}</span>`:`<div class="prog">${bar(prog[k]||0,a.of)}<span>${prog[k]||0} из ${a.of}</span></div>`}`;
+  const head = `<div class="sheet-head"><span></span><span class="x" aria-label="Закрыть">${I('x')}</span></div>`;
+  return desk ? `<div class="scrim"></div><div class="dialog aw-card" role="dialog" aria-labelledby="ah">${head}${body}</div>`
+    : `<div class="scrim"></div><div class="sheet aw-card" role="dialog" aria-labelledby="ah"><div class="grab"></div>${head}${body}</div>`;
 }
 
 /* year map: Mon 1 Dec 2025 … Sun 22 Nov 2026, today Thu 19 Nov; first entry 9 Feb 2026 */
@@ -1349,49 +1441,72 @@ function heat({wide=false, first, sel=Date.UTC(2026,10,19), legend=true, note=''
 }
 const heatEmpty = `<section class="card" aria-label="Записи за год"><div class="c-h"><span class="t-headline">Записи за год</span></div><div class="state compact" style="padding:var(--space-4) 0"><p class="t-sub muted">Здесь появится год ваших записей — по клетке на день.</p></div></section>`;
 
-const stNav = (title='Серии и отметки', info=true) => `<div class="navbar">${back()}<div class="title">${title}</div>${info?`<span class="ib" role="button" aria-label="Как считается серия">${I('info')}</span>`:'<div></div>'}</div>`;
-function streakScreen({top='', notice='', h=hero(), fr=freezes(), ch=challenges(), ms=milestones(), map=heat(), hist=history(), extra=''}={}){
+const stNav = (title='Серии и награды', info=true) => `<div class="navbar">${back()}<div class="title">${title}</div>${info?`<span class="ib" role="button" aria-label="Как считается серия">${I('info')}</span>`:'<div></div>'}</div>`;
+function streakScreen({top='', notice='', h=hero(), fr=freezes(), ch=challenges(), ms=awardsBlock(), map=heat(), hist=history(), extra=''}={}){
   return `${stNav()}${top}<div class="content"><div class="pad stack">${notice}${h}${fr}${ch}${ms}${map}${hist}</div></div>${tabbar('Неделя')}${extra}`;
 }
 
 /* entry on the Week tab */
-const entry = ({t='6 нед. подряд', s='3 из 5 дней на этой неделе', log=[1,1,0,1,0,0,0], off=false}={}) => `<a class="st-entry" role="button" aria-label="Серии и отметки: ${t}, ${s}"><span class="flame ${off?'off':''}">${I('flame')}</span><span class="main"><b>${t}</b><span>${s}</span></span><span class="chev">${I('chev-r','sm')}</span></a>`;
-const weekWithStreak = () => weekScreen({sub:'16–22 ноября', ch: chart(wk([1850,2380,null,1240,null,null,null],16,3),{})}).replace('<div class="pad stack"><div class="seg"', `<div class="pad stack">${entry()}<div class="seg"`);
+const entry = ({t='6 нед. подряд', s='3 из 5 дней на этой неделе', log=[1,1,0,1,0,0,0], off=false, fresh=0}={}) => `<a class="st-entry" role="button" aria-label="Серии и награды: ${t}, ${s}${fresh?`, новых наград: ${fresh}`:''}"><span class="flame ${off?'off':''}">${I('flame')}</span><span class="main"><b>${t}</b><span>${s}</span></span>${fresh?`<span class="badge new">${fresh} новых</span>`:''}<span class="chev">${I('chev-r','sm')}</span></a>`;
+const weekWithStreak = (e={}) => weekScreen({sub:'16–22 ноября', ch: chart(wk([1850,2380,null,1240,null,null,null],16,3),{})}).replace('<div class="pad stack"><div class="seg"', `<div class="pad stack">${entry(e)}<div class="seg"`);
 
 /* milestone toast (+ mascot variant) */
 const BUDDY = `<span class="buddy" aria-hidden="true"><svg viewBox="0 0 100 120"><path class="sprout-s" d="M50 12c0-5 1-8 4-10"/><path class="sprout" d="M54 4c3-4 9-5 12-3-2 4-8 6-12 3z"/><path class="limb" d="M16 66 6 50M84 66l10-16"/><path class="spark" d="M8 30l2 5 5 2-5 2-2 5-2-5-5-2 5-2zM92 26l1.6 4 4 1.6-4 1.6-1.6 4-1.6-4-4-1.6 4-1.6z"/><path class="shell" d="M50 12c18 0 29 10 32 25 2 10 1 18 3 28 3 14 2 30-8 40-8 8-17 11-27 11s-19-3-27-11C13 95 12 79 15 65c2-10 1-18 3-28C21 22 32 12 50 12z"/><path class="face" d="M37 52q4-5 8 0M55 52q4-5 8 0"/><path class="face" d="M42 62q8 8 16 0"/><circle class="medal" cx="50" cy="90" r="13"/><text class="medal-t" x="50" y="95" text-anchor="middle">4</text></svg></span>`;
-const mToast = (mascot=false) => `<div class="mtoast ${mascot?'mascot':''}" role="status" aria-live="polite">${mascot?BUDDY:`<span class="node">${I('award','sm')}</span>`}<span class="main"><b>Новая отметка: 4&nbsp;нед. с&nbsp;дневником</b>${mascot?'<span>Месяц с дневником — отличный темп!</span>':''}</span><span class="act" role="button">Посмотреть</span></div>`;
+const BUDDY_M = BUDDY.replace(/<circle class="medal"[^>]*\/><text[^>]*>4<\/text>/, MD.medal('weeks_4').replace('<svg ','<svg x="31" y="70" width="38" height="38" '));
+const mToast = (mascot=false) => `<div class="mtoast ${mascot?'mascot':''}" role="status" aria-live="polite">${mascot?BUDDY_M:md('weeks_4')}<span class="main"><b>Новая награда: Месяц с&nbsp;дневником</b>${mascot?'<span>Месяц с дневником — отличный темп!</span>':'<span>Обычная · 4 засчитанные недели</span>'}</span><span class="act" role="button">Посмотреть</span></div>`;
+const mToastMany = `<div class="mtoast" role="status" aria-live="polite"><span class="stack3" aria-hidden="true">${md('weeks_4')}${md('days_30')}${md('streak_2')}</span><span class="main"><b>Новых наград: 3</b></span><span class="act" role="button">Все награды</span></div>`;
+const savedMany = () => todayScreen({meals: mealsGroup(M.lunch.replace('class="cell','class="cell new')+M.bf), extra: mToastMany}).replace('четверг, 13 ноября','четверг, 19 ноября');
 const savedToday = (mascot=false) => todayScreen({meals: mealsGroup(M.lunch.replace('class="cell','class="cell new')+M.bf), extra: mToast(mascot)}).replace('четверг, 13 ноября','четверг, 19 ноября');
 
 /* rule sheet */
 const RULES = `<div class="scrim"></div><div class="sheet" role="dialog" aria-labelledby="rh"><div class="grab"></div><div class="sheet-head"><b class="t-headline" id="rh">Как считается серия</b><span class="x" aria-label="Закрыть">${I('x')}</span></div>
 <div class="rule"><i class="s">${I('flame','xs')}</i><span>Неделя засчитывается, если записать еду хотя бы в 5 днях из 7 (Пн–Вс). Сколько съедено — не важно. Серия — засчитанные недели подряд.</span></div>
 <div class="rule"><i class="f">${I('snow','xs')}</i><span>Заморозка сохраняет серию, если неделя не набралась. Даётся за каждые 4 недели подряд, хранится до 2. Тратится сама.</span></div>
-<div class="rule"><i class="a">${I('award','xs')}</i><span>Отметки — за недели с дневником всего, не подряд. Полученная отметка остаётся навсегда.</span></div>
+<div class="rule"><i class="a">${I('award','xs')}</i><span>Награды — только за записи, не за калории: недели и дни с дневником, челленджи, фото и точные граммы. Полученная награда остаётся навсегда.</span></div>
 <p class="t-foot muted">Считаются только дни с записями — не калории. Выключить можно в Настройках.</p><button class="btn btn-tonal">Понятно</button></div>`;
 
 /* ---------- 1 · entry ---------- */
 document.getElementById('entry-row').innerHTML = [
   frame('1.1','Вход: вкладка «Неделя»','Новой вкладки нет — в таббаре 4 раздела и камера, шестой не поместится, а серии — про ритм недель, это место «Недели». Строка серии стоит первой, над переключателем «Неделя / Месяц»: не зависит от периода на графике. Касание всей строки — экран 2.1. Функция выключена — строки нет, «Неделя» как в MVP.', weekWithStreak()),
-  frame('1.2','Поздравление после сохранения','Неделя стала засчитанной и принесла отметку — после «Сохранить» на «Сегодня» снизу всплывает плашка (AC-3.4). Не модальная: не забирает фокус и касания, сама уходит через 5 с, смахивается вниз. «Посмотреть» — экран 2.1 с меткой «Новая». Один раз на отметку; пропустили — метка «Новая» ждёт на экране серий. VoiceOver читает её как статус. Без конфетти; при «Уменьшить движение» — без подъёма.', savedToday(false)),
-  frame('1.3','То же с маскотом','Маскот включён в Настройках (OCT-27) — он сам выглядывает из плашки, радуется и держит медаль с числом недель. Одна фраза от него — тёплая, без ккал. Плашка той же высоты, текст тот же. Маскот выключен — вариант 1.2.', savedToday(true)),
+  frame('1.2','Поздравление после сохранения','Запись принесла награду — после «Сохранить» на «Сегодня» снизу всплывает плашка (AC-3.4). Не модальная: не забирает фокус и касания, сама уходит через 5 с, смахивается вниз. «Посмотреть» — экран 2.1 с меткой «Новая». Один раз на награду; пропустили — метка «Новая» ждёт на экране серий. VoiceOver читает её как статус. Без конфетти; при «Уменьшить движение» — без подъёма.', savedToday(false)),
+  frame('1.3','То же с маскотом','Маскот включён в Настройках (OCT-27) — он сам выглядывает из плашки, радуется и держит ту самую медаль. Одна фраза от него — тёплая, без ккал. Плашка той же высоты, текст тот же. Маскот выключен — вариант 1.2.', savedToday(true)),
+  frame('1.4','Несколько наград сразу','Одна запись принесла сразу несколько наград — одна плашка «Новых наград: 3» с медалями внахлёст и «Все награды» (AC-3.4). Плашек по очереди нет.', savedMany()),
+  frame('1.5','Награды задним числом','Функция только что включена (или импорт, или в каталоге появилась награда, которая уже заработана): плашек нет вовсе, на строке серии — метка «3 новых», в «Наградах» у медалей метка «Новая» (AC-3.5). Метка уходит, когда человек открыл экран.', weekWithStreak({fresh:3})),
 ].join('');
 
 /* ---------- 2 · main ---------- */
 document.getElementById('main-row').innerHTML = [
-  tall('2.1','Экран целиком','Порядок — от «сейчас» к «всегда»: серия и эта неделя → заморозки → челленджи месяца → отметки → карта года → прошлые месяцы. Серия: огонёк, «6 нед. подряд», лучшая серия; 7 кружков этой недели (галочка — есть записи, кольцо — сегодня, пунктир — впереди) и «3 из 5». Ниже «тропа» последних 10 недель: засчитана (заливка + галочка), заморожена (лёд + снежинка), не набралась (пустой пунктир, без креста и красного), эта неделя заполняется снизу. Цвет всегда с формой и подписью. Касание клетки карты выделяет день и пишет его строкой внизу, «Открыть» — день в Дневнике (AC-5.3). Карта открывается прокрученной к сегодня; дни до первой записи не рисуются (E-5.1).', streakScreen({ms: milestones(9,{1:'9 августа',4:'4 октября'},4)})),
-  frame('2.2','«Как считается серия»','Кнопка ⓘ в навбаре открывает лист с тремя правилами (неделя, заморозка, отметки) и строкой «только дни с записями — не калории». Закрывается «Понятно», смахиванием, Esc.', streakScreen({extra: RULES})),
+  tall('2.1','Экран целиком','Порядок — от «сейчас» к «всегда»: серия и эта неделя → заморозки → челленджи месяца → награды → карта года → прошлые месяцы. Серия: огонёк, «6 нед. подряд», лучшая серия; 7 кружков этой недели (галочка — есть записи, кольцо — сегодня, пунктир — впереди) и «3 из 5». Ниже «тропа» последних 10 недель: засчитана (заливка + галочка), заморожена (лёд + снежинка), не набралась (пустой пунктир, без креста и красного), эта неделя заполняется снизу. Цвет всегда с формой и подписью. Касание клетки карты выделяет день и пишет его строкой внизу, «Открыть» — день в Дневнике (AC-5.3). Карта открывается прокрученной к сегодня; дни до первой записи не рисуются (E-5.1).', streakScreen()),
+  frame('2.2','«Как считается серия»','Кнопка ⓘ в навбаре открывает лист с тремя правилами (неделя, заморозка, награды) и строкой «только дни с записями — не калории». Закрывается «Понятно», смахиванием, Esc.', streakScreen({extra: RULES})),
 ].join('');
+
+/* ---------- 5 · awards ---------- */
+document.getElementById('awards-row').innerHTML = [
+  tall('5.1','«Все награды»','Из блока «Награды» → «Все награды» (push, назад — «Серии»). Сверху — итог «17 из 32 получено» с полосой и правилом одной строкой. Ниже 7 категорий в порядке каталога, в каждой — сетка по 3: полученная — цветная медаль, название, дата; ещё не полученная — серый пунктирный силуэт той же формы, название и «31 из 52»; секретная — силуэт-звезда с «?» и подписью «Секретная», без названия, условия и редкости (AC-3.8). Секретные — последней группой, «Секретные: 2 из 6» (AC-3.11). Нет ИИ с фото и нет полученных фото-наград — группы «Фото» нет, счётчик «из 29» (AC-3.10). Касание медали — карточка 5.2–5.5. VoiceOver: «Полгода, эпическая, получена 14 сентября».', awScreen()),
+  frame('5.2','Карточка: получена','Лист снизу (на десктопе — диалог, D.2). Медаль крупно (144 pt), название, редкость словом + металл точкой + категория, условие одной фразой, «✓ Получена 14 сентября» (AC-3.9). Закрывается ✕, смахиванием, Esc.', awScreen({}, awCard('weeks_26'))),
+  frame('5.3','Карточка: ещё впереди','Та же карточка, медаль — серым силуэтом; вместо даты — полоса и «18 из 25». Условие видно заранее: так понятно, что делать.', awScreen({}, awCard('manual_25'))),
+  frame('5.4','Секретная, не получена','Только «?» в силуэте, «Секретная награда» и подсказка одной фразой в кавычках. Ни названия, ни условия, ни редкости — сюрприз остаётся сюрпризом.', awScreen({}, awCard('secret_comeback'))),
+  frame('5.5','Секретная, получена','После получения секретная показывается как обычная: медаль-звезда на ночной эмали, название, редкость, условие и дата.', awScreen({}, awCard('secret_freeze'))),
+].join('');
+
+/* ---------- 6 · medals catalog ---------- */
+(() => {
+  const cats = MD.CATS.map(([c,ru,en,shape])=>{ const list = AWL.filter(a=>a.cat===c);
+    return `<div><h3>${ru} <span>${({circle:'круг',hexagon:'шестигранник',squircle:'скруглённый квадрат',rosette:'розетка',diamond:'ромб',shield:'щит',star:'восьмиконечная звезда'})[shape]} · эмаль своего цвета</span></h3><div class="cat-row" style="margin-top:var(--space-3)">${list.map(a=>`<figure><span class="m">${MD.medal(a.key,{label:a.ru})}</span><b>${a.ru}</b><span>${RAR(a.key)[1]} · ${a.key}</span></figure>`).join('')}</div></div>`; }).join('');
+  const anat = `<div><h3>Редкость — металл и знак на ободке <span>(не только цвет, AC-3.2)</span></h3><div class="anat" style="margin-top:var(--space-3)">${[['days_30','Обычная — бронза, гладкий обод'],['days_100','Редкая — серебро, гравированная линия'],['days_365','Эпическая — золото, бусины по ободу'],['days_1000','Легендарная — платина, бусины и лучи']].map(([k,t])=>`<figure><span class="m">${MD.medal(k)}</span>${t}</figure>`).join('')}</div></div>`;
+  const states = `<div><h3>Состояния и размеры <span>144 карточка · 64 сетка · 44 плашка и блок</span></h3><div class="sizes" style="margin-top:var(--space-3)">${[['got',144],['got',64],['got',44],['locked',144],['locked',64],['locked',44],['secret',144],['secret',64],['secret',44]].map(([st,z],i)=>`<span style="width:${z}px;height:${z}px">${MD.medal(st==='secret'?'secret_birthday':'streak_16',{state:st})}</span>`).join('')}</div><p class="t-foot muted" style="margin-top:var(--space-3)">Получена · не получена (серый пунктирный силуэт той же формы, редкость видна) · секретная не получена (звезда с «?», редкость скрыта).</p></div>`;
+  document.getElementById('medals-row').innerHTML = `<div class="cat-sheet">${cats}${anat}${states}<p class="t-foot muted">Все медали — один генератор <b>medals.js</b> (рядом с прототипом): форма = категория, металл и ободок = редкость, символ и число — свои у каждой награды. Цвета — токены --medal-* в tokens.css: металл одинаков в обеих темах, эмаль в тёмной темнее, силуэт берёт поверхности темы. Готовые файлы — <b>medals/&lt;key&gt;.svg</b> и <b>medals/&lt;key&gt;.locked.svg</b>.</p></div>`;
+})();
 
 /* ---------- 3 · states ---------- */
 const offB = `<div class="offline-bar" role="status">${I('wifi-off','sm')}Нет сети — считаем по записям на этом устройстве</div>`;
 const skel = (h) => `<section class="card" aria-hidden="true"><div class="skel" style="width:55%;height:22px"></div><div class="skel" style="width:85%"></div><div class="skel" style="width:70%;height:${h}px"></div></section>`;
-const DISABLED = `${stNav('Серии и отметки', false)}<div class="content"><div class="state" style="margin-top:var(--space-12)"><span class="s-ic">${I('flame')}</span><b class="t-headline">Серии и отметки выключены</b><p class="t-sub muted">Считаются только дни с записями — не калории. Включите — сразу появится вся история, ничего не потеряется.</p><button class="btn btn-tonal btn-sm">Включить</button></div></div>${tabbar('Неделя')}`;
+const DISABLED = `${stNav('Серии и награды', false)}<div class="content"><div class="state" style="margin-top:var(--space-12)"><span class="s-ic">${I('flame')}</span><b class="t-headline">Серии и награды выключены</b><p class="t-sub muted">Считаются только дни с записями — не калории. Включите — сразу появится вся история, ничего не потеряется.</p><button class="btn btn-tonal btn-sm">Включить</button></div></div>${tabbar('Неделя')}`;
 document.getElementById('states-row').innerHTML = [
-  frame('3.1','Новичок: записей ещё нет','Ничего не «ноль»: «Серия начнётся с первой засчитанной недели», 7 кружков недели, без тропы. Первая заморозка уже есть — «Первая — в подарок» (AC-2.1). Ближайшая отметка — 1 неделя. Без ИИ челленджи с фото не выпадают (E-4.1): здесь профиль, 20 дней, 5 блюд вручную. Карта — одной строкой.', streakScreen({h: hero({empty:true, log:[0,0,0,0,null,null,null], d:0, noTrail:true}), fr: freezes(1,0,'Первая — в подарок'), ch: challenges([['profile',0],['days_20',0],['manual_macros_5',0]]), ms: milestones(0,{}), map: heatEmpty, hist: ''})),
-  frame('3.2','Новая серия','Неделя не набралась, заморозок не было — «Новая серия начинается на этой неделе», лучшая серия остаётся (AC-1.5). На тропе это пустой пунктир, без креста и красного. Отметки не пропали: считаются недели всего.', streakScreen({h: hero({restart:true, log:[1,0,1,1,null,null,null], ws:['ok','ok','ok','ok','ok','ok','ok','sh','sh','cur:3']}), fr: freezes(0,4)})),
+  frame('3.1','Новичок: записей ещё нет','Ничего не «ноль»: «Серия начнётся с первой засчитанной недели», 7 кружков недели, без тропы. Первая заморозка уже есть — «Первая — в подарок» (AC-2.1). Следующая награда — «Первая запись». Без ИИ челленджи с фото не выпадают (E-4.1): здесь профиль, 20 дней, 5 блюд вручную. Карта — одной строкой.', streakScreen({h: hero({empty:true, log:[0,0,0,0,null,null,null], d:0, noTrail:true}), fr: freezes(1,0,'Первая — в подарок'), ch: challenges([['profile',0],['days_20',0],['manual_macros_5',0]]), ms: awardsBlock({got:{}, prog:{}, recent:[], next:'days_1', fresh:''}), map: heatEmpty, hist: ''})),
+  frame('3.2','Новая серия','Неделя не набралась, заморозок не было — «Новая серия начинается на этой неделе», лучшая серия остаётся (AC-1.5). На тропе это пустой пунктир, без креста и красного. Награды не пропали: полученная остаётся навсегда.', streakScreen({h: hero({restart:true, log:[1,0,1,1,null,null,null], ws:['ok','ok','ok','ok','ok','ok','ok','sh','sh','cur:3']}), fr: freezes(0,4)})),
   frame('3.3','Неделя заморожена','Прошлая неделя закончилась на 3 днях — заморозка потратилась сама (AC-2.2), серия на месте. Сверху — нейтральная плашка «Неделя заморожена — серия сохранена» (закрывается ✕, показывается один раз). На тропе — ледяная неделя со снежинкой.', streakScreen({notice:`<div class="banner freeze" role="status">${I('snow')}<div><div class="b-title">Неделя заморожена — серия сохранена</div>9–15 ноября: 3 дня с записями. Заморозок осталось: 0 из 2.</div><span class="close" aria-label="Закрыть">${I('x','sm')}</span></div>`, h: hero({ws:['ok','sh','ok','ok','ok','ok','ok','ok','fz','cur:3']}), fr: freezes(0,4)})),
-  frame('3.4','Офлайн','Серия, неделя, отметки и челленджи считаются по записям на устройстве; запись офлайн сразу двигает прогресс (AC-6.4). Если локальная копия короче года, карта показывает последнее известное состояние с подписью, когда обновлялась.', streakScreen({top: offB, map: heat({note:'<span class="t-foot muted">Карта — на 12 ноября. Обновится, когда появится сеть.</span>'})})),
+  frame('3.4','Офлайн','Серия, неделя, награды и челленджи считаются по записям на устройстве; запись офлайн сразу двигает прогресс (AC-6.4). Если локальная копия короче года, карта показывает последнее известное состояние с подписью, когда обновлялась.', streakScreen({top: offB, map: heat({note:'<span class="t-foot muted">Карта — на 12 ноября. Обновится, когда появится сеть.</span>'})})),
   frame('3.5','Загрузка','Первое открытие на новом устройстве, пока история не пришла: скелетоны карточек без чисел — не «0 недель», чтобы не пугать. Обычно доли секунды; дальше — локальная копия.', `${stNav()}<div class="content"><div class="pad stack">${skel(36)}${skel(30)}${skel(80)}</div></div>${tabbar('Неделя')}`),
   frame('3.6','Выключено','Функция выключена, а человек пришёл по ссылке или закладке (на десктопе). Объяснение одной фразой и «Включить». Во всех других местах серий просто нет (AC-6.1).', DISABLED),
 ].join('');
@@ -1400,22 +1515,26 @@ document.getElementById('states-row').innerHTML = [
 const flameIc = `<span class="lead-ic" style="background:var(--color-streak-soft);color:var(--color-streak)">${I('flame','sm')}</span>`;
 const settings = (on=true) => `<div class="navbar">${back('Профиль')}<div class="title">Настройки</div><div></div></div><div class="content"><div class="pad">
   <div class="group-h">Вид</div><div class="group">${cell('Тема','<span class="val">Как в системе</span>'+chev)}${cell('Язык','<span class="val">Русский</span>'+chev)}${cell('Маскот',sw(true))}</div>
-  <div class="group-h">Дополнительно</div><div class="group">${cell('Серии и отметки',sw(on),{ic:flameIc})}${cell('Вода и напитки',sw(false),{ic:`<span class="lead-ic" style="background:var(--color-water-soft);color:var(--color-water)">${I('droplet','sm')}</span>`})}</div>
-  <div class="group-f">Считаются только дни с записями — не калории. ${on?'Выключите — серии, отметки и поздравления исчезнут, история сохранится.':'Включите — сразу появится вся история.'}</div>
+  <div class="group-h">Дополнительно</div><div class="group">${cell('Серии и награды',sw(on),{ic:flameIc})}${cell('Вода и напитки',sw(false),{ic:`<span class="lead-ic" style="background:var(--color-water-soft);color:var(--color-water)">${I('droplet','sm')}</span>`})}</div>
+  <div class="group-f">Считаются только дни с записями — не калории. ${on?'Выключите — серии, награды и поздравления исчезнут, история сохранится.':'Включите — сразу появится вся история.'}</div>
 </div></div>${tabbar('Профиль')}`;
 document.getElementById('settings-row').innerHTML = [
-  frame('4.1','Выключатель','Настройки → «Дополнительно» → «Серии и отметки», свой у каждого пользователя (AC-6.1). По умолчанию включено; если по дате рождения меньше 18 — выключено, подросток может включить сам (AC-6.2). Подсказка под группой меняется по состоянию.', settings(true)),
+  frame('4.1','Выключатель','Настройки → «Дополнительно» → «Серии и награды», свой у каждого пользователя (AC-6.1). По умолчанию включено; если по дате рождения меньше 18 — выключено, подросток может включить сам (AC-6.2). Подсказка под группой меняется по состоянию.', settings(true)),
   frame('4.2','Выключено','Ничего не удаляется: включение сразу показывает всю историю (AC-6.3).', settings(false)),
 ].join('');
 
 /* ---------- D · desktop ---------- */
 const sideS = on => `<aside class="side"><div class="brand"><span class="mark">${I('plate','sm')}</span>OpenCalorieTracker</div><button class="btn btn-primary">${I('camera','sm')}Добавить еду</button>${[['home','Сегодня'],['book','Дневник'],['chart','Неделя'],['user','Профиль']].map(([ic,l])=>`<span class="nav-i ${l===on?'on':''}">${I(ic)}${l}</span>`).join('')}<div class="foot"><span class="nav-i">${I('settings')}Настройки</span></div></aside>`;
 document.getElementById('desk-row').innerHTML = `<figure class="frame wide"><div class="desk tall"><div class="chrome"><i></i><i></i><i></i><span class="url">calories.home.lan/week/streaks</span></div><div class="body">${sideS('Неделя')}<main class="main-area"><div class="inner">
-<div class="title-row"><div><span class="link t-sub">‹ Неделя</span><div class="large-title">Серии и отметки</div></div><button class="btn btn-plain btn-sm" style="width:auto">${I('info','sm')}Как считается серия</button></div>
+<div class="title-row"><div><span class="link t-sub">‹ Неделя</span><div class="large-title">Серии и награды</div></div><button class="btn btn-plain btn-sm" style="width:auto">${I('info','sm')}Как считается серия</button></div>
 ${heat({wide:true})}
-<div class="st-cols"><div class="stack">${hero()}${freezes()}${challenges()}</div><div class="stack">${milestones()}${history()}</div></div>
-</div></main></div></div><figcaption><b>D.1 Десктоп.</b> Вход — та же строка серии вверху «Недели». Страница в основной области: сверху карта года целиком (53 недели, клетка 14 px, без прокрутки), ниже две колонки — слева серия, заморозки, челленджи; справа отметки и прошлые месяцы. Наведение на клетку = выбор дня (строка под картой), клавиатура: Tab на карту, стрелки ←→↑↓ по дням, Enter — открыть день. Правила — диалог по кнопке «Как считается серия». Поздравление — плашка внизу по центру (как тост десктопа).</figcaption></figure>`;
+<div class="st-cols"><div class="stack">${hero()}${freezes()}${challenges()}</div><div class="stack">${awardsBlock()}${history()}</div></div>
+</div></main></div></div><figcaption><b>D.1 Десктоп.</b> Вход — та же строка серии вверху «Недели». Страница в основной области: сверху карта года целиком (53 недели, клетка 14 px, без прокрутки), ниже две колонки — слева серия, заморозки, челленджи; справа награды и прошлые месяцы. Наведение на клетку = выбор дня (строка под картой), клавиатура: Tab на карту, стрелки ←→↑↓ по дням, Enter — открыть день. Правила — диалог по кнопке «Как считается серия». Поздравление — плашка внизу по центру (как тост десктопа).</figcaption></figure>`;
 
+(() => { const {sum, groups} = allAwards();
+document.getElementById('desk-row').insertAdjacentHTML('beforeend', `<figure class="frame wide"><div class="desk tall"><div class="chrome"><i></i><i></i><i></i><span class="url">calories.home.lan/week/streaks/awards</span></div><div class="body">${sideS('Неделя')}<main class="main-area"><div class="inner">
+<div class="title-row"><div><span class="link t-sub">‹ Серии и награды</span><div class="large-title">Все награды</div></div></div>
+<div class="stack">${sum}${groups}</div></div></main>${awCard('streak_16',{desk:true})}</div></div><figcaption><b>D.2 Десктоп: «Все награды» и карточка.</b> Сетка по 8 в ряд, те же группы. Касание или Enter на медали — диалог по центру (ширина диалога из токенов), Esc и клик мимо закрывают, фокус возвращается на медаль. Медали в сетке — кнопки, Tab идёт по ним в порядке каталога.</figcaption></figure>`); })();
 /* scroll every map to today */
 document.querySelectorAll('[data-end]').forEach(e=>e.scrollLeft=e.scrollWidth);
 document.querySelectorAll('.phone').forEach(p=>{p.insertAdjacentHTML('afterbegin','<div class="status"><span>9:41</span></div><div class="island"></div>');p.insertAdjacentHTML('beforeend','<div class="home-ind"></div>');});
