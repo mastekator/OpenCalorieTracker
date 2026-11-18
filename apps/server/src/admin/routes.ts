@@ -233,7 +233,11 @@ export function adminRoutes({ config, db, ai, secrets }: AppDeps) {
     const active = ai.current()?.settings;
     const saved = active?.source === 'env' ? active : savedAiRow(db, secrets);
     const same = saved?.provider === draft.provider;
-    const apiKey = draft.apiKey ?? (same ? saved.apiKey : undefined);
+    const host = (url: string | undefined) => url?.trim().replace(/\/+$/, '');
+    // A saved or env key goes only to its own address, never to a new one from the draft.
+    const keyFits =
+      same && (!draft.baseUrl || host(draft.baseUrl) === host(saved.baseUrl));
+    const apiKey = draft.apiKey ?? (keyFits ? saved.apiKey : undefined);
     const compatible = draft.provider === 'openai-compatible';
     const baseUrl = compatible
       ? (draft.baseUrl ?? (same ? saved.baseUrl : undefined))
