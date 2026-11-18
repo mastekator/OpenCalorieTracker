@@ -7,6 +7,7 @@ import {
   applyRefine,
   fixedOf,
   itemOf,
+  requestDishes,
   toRequest,
   toRow,
   toRows,
@@ -71,6 +72,41 @@ describe('toRequest', () => {
         fixed: ['name', 'grams', 'nutrients'],
       },
     ]);
+  });
+});
+
+describe('requestDishes', () => {
+  const edited = (): Row => ({ ...porridge(), shown: 100, fixed: ['grams'] });
+  const answered = (): Row => ({
+    ...toRow(dish('Chicken', 80, 150)),
+    fixed: ['name', 'grams', 'nutrients'],
+  });
+
+  it('«Recognize again» sends no AI dish, edited or answered; manual and «last time» go whole (OCT-289)', () => {
+    const rows = [edited(), bread(), answered(), porridge(), usual()];
+    expect(requestDishes('again', rows)).toEqual([
+      {
+        id: 'd1',
+        ...dish('Bread', 40, 100),
+        fixed: ['name', 'grams', 'nutrients'],
+      },
+      {
+        id: 'd2',
+        ...dish('Soup', 300, 150),
+        fixed: ['name', 'grams', 'nutrients'],
+      },
+    ]);
+  });
+
+  it('«Recognize again» with only AI dishes sends an empty list', () => {
+    expect(requestDishes('again', [edited(), answered(), porridge()])).toEqual(
+      [],
+    );
+  });
+
+  it('«Refine» sends every dish', () => {
+    const rows = [edited(), bread(), porridge()];
+    expect(requestDishes('refine', rows)).toEqual(toRequest(rows));
   });
 });
 

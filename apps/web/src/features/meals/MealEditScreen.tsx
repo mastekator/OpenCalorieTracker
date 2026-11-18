@@ -87,6 +87,7 @@ import {
   applyRefine,
   itemOf,
   previousSchema,
+  requestDishes,
   toRequest,
   toRow,
   toRows,
@@ -805,7 +806,7 @@ export function MealEditScreen({
       mode: 'again',
       photoId: serverPhoto,
       text: refineText.trim(),
-      dishes: toRequest(rows),
+      dishes: requestDishes('again', rows),
     });
   const refineErrorBanner = refineError && (
     <RefineError
@@ -813,7 +814,10 @@ export function MealEditScreen({
       // The list may have changed since: send it as it is now, `ref` points into it.
       onRetry={() =>
         lastRefine.current &&
-        void sendRefine({ ...lastRefine.current, dishes: toRequest(rows) })
+        void sendRefine({
+          ...lastRefine.current,
+          dishes: requestDishes(lastRefine.current.mode, rows),
+        })
       }
     />
   );
