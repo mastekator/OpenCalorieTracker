@@ -785,14 +785,16 @@ body{padding:var(--space-10) var(--space-8)}
 .st-entry .mini i.on{background:var(--color-accent)}
 .st-entry .chev{color:var(--color-text-secondary)}
 
-/* milestone toast: non-blocking, above the tab bar, 5 s, never takes focus */
-.mtoast{position:absolute;left:var(--screen-gutter);right:var(--screen-gutter);bottom:calc(34px + var(--tabbar-height) + var(--space-3));z-index:var(--z-toast);display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-3) var(--space-3) var(--space-4);border-radius:var(--radius-lg);background:var(--color-surface);box-shadow:var(--shadow-toast);outline:1px solid var(--color-separator);animation:rise var(--duration-slow) var(--ease-out) both}
+/* award banner: top, like a system notification; swipe up to dismiss, 5 s, never takes focus */
+.mtoast{position:absolute;left:var(--space-2);right:var(--space-2);top:calc(54px + var(--space-1));z-index:var(--z-toast);display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-3) var(--space-4) var(--space-4);border-radius:var(--radius-lg);background:var(--color-surface);box-shadow:var(--shadow-toast);outline:1px solid var(--color-separator);animation:drop var(--duration-slow) var(--ease-out) both}
+.mtoast::after{content:"";position:absolute;left:50%;bottom:var(--space-1);translate:-50% 0;width:36px;height:4px;border-radius:var(--radius-full);background:var(--color-separator)}
 .mtoast .node{width:var(--milestone-node-size);height:var(--milestone-node-size);border-radius:50%;display:grid;place-items:center;background:var(--color-accent);color:var(--color-on-accent);flex:none}
 .mtoast .main{flex:1;display:flex;flex-direction:column;gap:2px;font-size:var(--text-subhead-size)}
 .mtoast .main b{font-weight:600}
 .mtoast .main span{font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
 .mtoast .act{color:var(--color-accent);font-weight:600;min-height:var(--tap-min);display:flex;align-items:center;padding:0 var(--space-1);white-space:nowrap;font-size:var(--text-subhead-size)}
 @keyframes rise{from{translate:0 16px;opacity:0}}
+@keyframes drop{from{translate:0 -16px;opacity:0}}
 @media (prefers-reduced-motion: reduce){.mtoast{animation:none}}
 
 /* rule sheet */
@@ -1457,7 +1459,7 @@ const RULES = `<div class="scrim"></div><div class="sheet" role="dialog" aria-la
 /* ---------- 1 · entry ---------- */
 document.getElementById('entry-row').innerHTML = [
   frame('1.1','Вход: вкладка «Неделя»','Новой вкладки нет — в таббаре 4 раздела и камера, шестой не поместится, а серии — про ритм недель, это место «Недели». Строка серии стоит первой, над переключателем «Неделя / Месяц»: не зависит от периода на графике. Касание всей строки — экран 2.1. Функция выключена — строки нет, «Неделя» как в MVP.', weekWithStreak()),
-  frame('1.2','Поздравление после сохранения','Запись принесла награду — после «Сохранить» на «Сегодня» снизу всплывает плашка (AC-3.4). Не модальная: не забирает фокус и касания, сама уходит через 5 с, смахивается вниз. «Посмотреть» — экран 2.1 с меткой «Новая». Один раз на награду; пропустили — метка «Новая» ждёт на экране серий. VoiceOver читает её как статус. Без конфетти; при «Уменьшить движение» — без подъёма. Ничего не перекрывает: новая запись — наверху списка, а пока плашка видна, у списка снизу появляется отступ на её высоту — последнюю строку можно докрутить над плашкой.', savedToday()),
+  frame('1.2','Поздравление после сохранения','Запись принесла награду — после «Сохранить» на «Сегодня» сверху выезжает плашка, как системное уведомление (AC-3.4). Сверху она закрывает только заголовок экрана, а не записи и не панель вкладок. Не модальная: не забирает фокус и касания, смахивается вверх (полоска-хваталка внизу подсказывает жест), сама уходит через 5 с; касание плашки или «Посмотреть» — экран 2.1 с меткой «Новая». Один раз на награду; пропустили — метка «Новая» ждёт на экране серий. VoiceOver читает её как статус; закрыть без жеста — действие VoiceOver «Закрыть». Без конфетти; при «Уменьшить движение» — без выезда.', savedToday()),
   frame('1.3','Несколько наград сразу','Одна запись принесла сразу несколько наград — одна плашка «Новых наград: 3» с медалями внахлёст и «Все награды» (AC-3.4). Плашек по очереди нет.', savedMany()),
   frame('1.4','Награды задним числом','Функция только что включена (или импорт, или в каталоге появилась награда, которая уже заработана): плашек нет вовсе, на строке серии — метка «3 новых», в «Наградах» у медалей метка «Новая» (AC-3.5). Метка уходит, когда человек открыл экран.', weekWithStreak({fresh:3})),
 ].join('');
