@@ -84,7 +84,11 @@ export function AiSettingsForm({
   const { t } = useT();
   const [sheet, setSheet] = useState(false);
   const keyRef = useRef<HTMLInputElement>(null);
+  const addressRef = useRef<HTMLInputElement>(null);
+  const modelRef = useRef<HTMLInputElement>(null);
   const focusKey = useRef(false);
+  // Set by a tap on Check or Save with an empty required field: its error shows until it is filled.
+  const [tried, setTried] = useState(false);
   // After the sheet's cleanup returns focus to its opener (OCT-248 1.3).
   useEffect(() => {
     if (!focusKey.current) return;
@@ -104,7 +108,18 @@ export function AiSettingsForm({
     (status.state === 'ok' || status.state === 'no_vision')
       ? status.state
       : null;
-  const ready = !!draft.model.trim() && (!compatible || !!draft.baseUrl.trim());
+  // The server keeps the saved address when the field is left empty (only its host comes back).
+  const savedAddress =
+    status.provider === 'openai-compatible' ? status.baseUrlHost : null;
+  const addressEmpty = compatible && !draft.baseUrl.trim() && !savedAddress;
+  const modelEmpty = !draft.model.trim();
+
+  /** Buttons stay active: a tap with an empty required field says what is missing and goes there. */
+  const guarded = (action: () => void) => () => {
+    if (!addressEmpty && !modelEmpty) return action();
+    setTried(true);
+    (addressEmpty ? addressRef : modelRef).current?.focus();
+  };
 
   function pick(provider: AiProviderId) {
     setSheet(false);
@@ -129,6 +144,7 @@ export function AiSettingsForm({
     <li className="list__item ai-form__field">
       <Field
         ref={keyRef}
+        revealLabels={[t('ai.form.show_key'), t('ai.form.hide_key')]}
         label={t('ai.form.key')}
         type="password"
         autoComplete="off"
@@ -197,15 +213,22 @@ export function AiSettingsForm({
             ) : (
               <li className="list__item ai-form__field">
                 <Field
+                  ref={addressRef}
                   label={t('ai.address')}
                   type="url"
                   inputMode="url"
                   autoComplete="off"
                   spellCheck={false}
-                  placeholder={
-                    status.baseUrlHost
-                      ? `http://${status.baseUrlHost}/v1`
-                      : t('ai.form.address_placeholder')
+                  placeholder={t('ai.form.address_placeholder')}
+                  hint={
+                    savedAddress
+                      ? t('ai.form.address_saved', { host: savedAddress })
+                      : undefined
+                  }
+                  error={
+                    tried && addressEmpty
+                      ? t('ai.form.address_required')
+                      : undefined
                   }
                   value={draft.baseUrl}
                   onChange={(event) =>
@@ -228,11 +251,19 @@ export function AiSettingsForm({
             // shortcut: a plain name field; the provider's list comes with OCT-276.
             <li className="list__item ai-form__field ai-form__model">
               <Field
+                ref={modelRef}
                 label={t('ai.model')}
                 autoComplete="off"
                 autoCapitalize="off"
                 spellCheck={false}
-                hint={t('ai.form.model_hint')}
+                hint={
+                  dirty
+                    ? `${t('ai.form.model_hint')} ${t('ai.form.model_hint_check')}`
+                    : t('ai.form.model_hint')
+                }
+                error={
+                  tried && modelEmpty ? t('ai.form.model_required') : undefined
+                }
                 value={draft.model}
                 onChange={(event) => onChange({ model: event.target.value })}
               />
@@ -302,7 +333,7 @@ export function AiSettingsForm({
               disabled={busy === 'check'}
               onClick={onSaveAnyway}
             >
-              {t(busy === 'save' ? 'ai.checking' : 'ai.form.save_anyway')}
+              {t(busy === 'save' ? 'ai.form.saving' : 'ai.form.save_anyway')}
             </Button>
             <Button
               variant="plain"
@@ -319,15 +350,15 @@ export function AiSettingsForm({
           <Button
             variant="tonal"
             loading={busy === 'check'}
-            disabled={!ready || busy === 'save'}
-            onClick={onCheck}
+            disabled={busy === 'save'}
+            onClick={guarded(onCheck)}
           >
             {t(busy === 'check' ? 'ai.checking' : 'ai.form.check')}
           </Button>
           <Button
             loading={busy === 'save'}
-            disabled={!ready || busy === 'check'}
-            onClick={onSave}
+            disabled={busy === 'check'}
+            onClick={guarded(onSave)}
           >
             {t(busy === 'save' ? 'ai.checking' : 'ai.form.save')}
           </Button>

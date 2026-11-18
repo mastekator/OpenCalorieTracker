@@ -454,6 +454,69 @@ describe('AiProviderScreen: settings form', () => {
     expect(screen.queryByText('Gemini free tier')).toBeNull();
   });
 
+  it('first setup: buttons stay active, a tap names and focuses the empty field', async () => {
+    const calls = server(() => [off]);
+    await wrap(<AiProviderScreen />);
+    fireEvent.click(await screen.findByRole('button', { name: /Provider/ }));
+    fireEvent.click(screen.getByRole('radio', { name: /Ollama|compatible/i }));
+    const save = screen.getByRole('button', {
+      name: 'Save',
+    }) as HTMLButtonElement;
+    expect(save.disabled).toBe(false);
+    fireEvent.click(save);
+    expect(screen.getByText('Enter an address')).toBeTruthy();
+    expect(screen.getByText('Enter a model')).toBeTruthy();
+    expect(document.activeElement).toBe(field('Address'));
+    type('Address', 'http://ollama:11434/v1');
+    expect(screen.queryByText('Enter an address')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Check' }));
+    expect(document.activeElement).toBe(field('Model'));
+    expect(calls.every((c) => c.method === 'GET')).toBe(true);
+  });
+
+  it('own server: a model change alone saves without the address', async () => {
+    const ollama: AdminAiStatus = {
+      ...saved,
+      provider: 'openai-compatible',
+      providerName: null,
+      model: 'llava',
+      keySet: false,
+      keyLast4: null,
+      baseUrlHost: 'ollama:11434',
+    };
+    const calls = server(({ method }) =>
+      method === 'PUT' ? [{ ...ollama, model: 'qwen2.5vl', rev: 4 }] : [ollama],
+    );
+    await wrap(<AiProviderScreen />);
+    expect(
+      await screen.findByText('Saved: ollama:11434. Leave empty to keep it'),
+    ).toBeTruthy();
+    expect(field('Address').value).toBe('');
+    type('Model', 'qwen2.5vl');
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await screen.findByText('Saved. The new model is already in use');
+    expect(calls.at(-1)?.body).toEqual({
+      provider: 'openai-compatible',
+      model: 'qwen2.5vl',
+      rev: 3,
+    });
+  });
+
+  it('the model hint asks for Check only on an edited form; the eye says «key»', async () => {
+    server(() => [saved]);
+    await wrap(<AiProviderScreen />);
+    await screen.findByText('Set · …a3F9');
+    expect(screen.getByText('As shown in your provider account.')).toBeTruthy();
+    type('Model', 'gemini-3.8-pro');
+    expect(
+      screen.getByText(
+        'As shown in your provider account. Verify it with Check.',
+      ),
+    ).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Replace key' }));
+    expect(screen.getByRole('button', { name: 'Show key' })).toBeTruthy();
+  });
+
   it('a draft check that fails shows the state, nothing is saved', async () => {
     const calls = server(({ method }) =>
       method === 'POST'

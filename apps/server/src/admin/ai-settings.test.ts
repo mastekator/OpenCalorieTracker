@@ -190,6 +190,30 @@ describe('PUT /api/admin/ai/settings', () => {
       keySet: false,
       keyLast4: null,
     });
+    // Only the host comes back, so a model change without the address keeps the saved one.
+    const kept = await t.put({
+      ...local,
+      model: 'qwen2.5vl',
+      force: true,
+      rev: 1,
+    });
+    expect(await kept.json()).toMatchObject({
+      model: 'qwen2.5vl',
+      baseUrlHost: 'ollama:11434',
+    });
+    expect(
+      (
+        await t.put({
+          ...local,
+          provider: 'openai',
+          apiKey: KEY,
+          force: true,
+          rev: 2,
+        })
+      ).status,
+    ).toBe(200);
+    // Another provider in between: nothing saved for openai-compatible to keep.
+    expect((await t.put({ ...local, force: true, rev: 3 })).status).toBe(400);
   });
 });
 

@@ -29,7 +29,7 @@ const codeOf = (err: unknown): ClientErrorCode =>
 
 const draftOf = (s: AdminAiStatus | null): AiDraftState => ({
   provider: (s?.provider as AiProviderId | null) ?? 'google',
-  // Only the host comes back (ADR-0018), so an own server's address is typed again to change it.
+  // Only the host comes back (ADR-0013): an empty field keeps the saved address.
   baseUrl: '',
   apiKey: '',
   model: s?.model ?? '',
@@ -115,8 +115,10 @@ export function AiProviderScreen() {
   const body = {
     provider: draft.provider,
     model: draft.model.trim(),
+    // Left out: the server keeps the saved address of the same provider.
     baseUrl:
-      draft.provider === 'openai-compatible' ? draft.baseUrl.trim() : undefined,
+      (draft.provider === 'openai-compatible' && draft.baseUrl.trim()) ||
+      undefined,
     // Left out: the server keeps the saved key of the same provider.
     apiKey: draft.apiKey.trim() || undefined,
   };
