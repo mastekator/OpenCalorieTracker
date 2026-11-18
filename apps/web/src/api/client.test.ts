@@ -155,6 +155,9 @@ describe('server down (E-2.4)', () => {
     const err = await failure(api('/api/x', schema));
     expect([err.status, err.code]).toEqual([503, 'ai_unavailable']);
     expect(isServerDown()).toBe(false);
+    respond(504, '{"message":"Gateway Timeout"}');
+    await settle(api('/api/x', schema));
+    expect(isServerDown()).toBe(true);
   });
 
   it('stays up when the device itself is offline', async () => {
