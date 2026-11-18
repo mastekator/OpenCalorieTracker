@@ -471,11 +471,6 @@ body{padding:var(--space-10) var(--space-8)}
 .w-fig .shell{fill:none;stroke:var(--color-border-strong);stroke-width:2}
 .w-fig .empty{fill:var(--color-surface-2)}
 .w-fig .wv{fill:var(--color-water)}
-.w-fig .face{fill:none;stroke:var(--color-text);stroke-width:2.4;stroke-linecap:round}
-.w-fig .eye{fill:var(--color-text)}
-.w-fig .limb{fill:none;stroke:var(--color-border-strong);stroke-width:3;stroke-linecap:round}
-.w-fig .sprout{fill:var(--color-accent)}
-.w-fig .sprout-s{fill:none;stroke:var(--color-accent);stroke-width:2.4;stroke-linecap:round}
 .w-fig .spark{fill:var(--color-water)}
 .w-sum{flex:1;min-width:0;display:flex;flex-direction:column;gap:var(--space-1);min-height:var(--tap-min);border-radius:var(--radius-md)}
 .w-sum .lbl{display:flex;align-items:center;gap:var(--space-1)}
@@ -627,7 +622,7 @@ body{padding:var(--space-10) var(--space-8)}
 <div id="sprite" hidden></div>
 
 <h1 class="doc-h1">OCT-147 · Вода и напитки</h1>
-<p class="doc-lead">Этап дизайна для «Продукт OCT-30» (эпик OCT-134). Компоненты OCT-13, 16, 19, 22, 33. Новые токены: <code>--color-water</code>, <code>--color-water-soft</code>, <code>--water-figure-size</code>, <code>--drink-tile-size</code>, <code>--duration-fill</code>. Три новые иллюстрации в набор OCT-33: кофе с молоком, газировка, кефир. iPhone 14/15, 390 × 844 pt. <b>Фигура — заглушка:</b> персонажа маскота ещё не нарисовали (OCT-27), механика наполнения та же для финальной фигуры. Пример: цель 2 000 мл (ориентир), норма 2 100 ккал, чт 13 ноября.</p>
+<p class="doc-lead">Этап дизайна для «Продукт OCT-30» (эпик OCT-134). Компоненты OCT-13, 16, 19, 22, 33. Новые токены: <code>--color-water</code>, <code>--color-water-soft</code>, <code>--water-figure-size</code>, <code>--drink-tile-size</code>, <code>--duration-fill</code>. Три новые иллюстрации в набор OCT-33: кофе с молоком, газировка, кефир. iPhone 14/15, 390 × 844 pt. <b>Фигура — нейтральный стакан-заглушка:</b> персонажа маскота ещё нет (OCT-27); когда он появится, наполняться будет он, механика та же. Пример: цель 2 000 мл (ориентир), норма 2 100 ккал, чт 13 ноября.</p>
 
 <section class="doc-section" id="today">
   <h2 class="doc-h2">1 · Карточка «Вода» на «Сегодня»</h2>
@@ -678,23 +673,17 @@ const DR = {
 const ROW = ['water','latte','tea','coffee','juice','milk','soda','kefir','mylatte'];
 const kc = (d, v) => Math.round(DR[d].k * v / 100);
 
-/* ---------- water figure: stand-in silhouette, filled from the bottom ---------- */
+/* ---------- water figure: neutral glass stand-in until the mascot (OCT-27) exists ---------- */
 let uid = 0;
-const BODY = 'M50 12c18 0 29 10 32 25 2 10 1 18 3 28 3 14 2 30-8 40-8 8-17 11-27 11s-19-3-27-11C13 95 12 79 15 65c2-10 1-18 3-28C21 22 32 12 50 12z';
+const BODY = 'M18 14h64l-7 96q-1 6-7 6H32q-6 0-7-6z';
 function figure(pct, {happy=false, live=false}={}){
   const id = `wclip${uid++}`;
-  const y = 116 - Math.min(100, pct) * 1.04; // body spans y 12…116
-  const face = happy
-    ? `<path class="face" d="M37 55q4-5 8 0M55 55q4-5 8 0"/><path class="face" d="M42 65q8 8 16 0"/>`
-    : `<circle class="eye" cx="41" cy="54" r="3.4"/><circle class="eye" cx="59" cy="54" r="3.4"/><path class="face" d="M45 64q5 4 10 0"/>`;
-  const limbs = happy
-    ? `<path class="limb" d="M16 66 6 50M84 66l10-16"/><path class="spark" d="M8 30l2 5 5 2-5 2-2 5-2-5-5-2 5-2zM92 26l1.6 4 4 1.6-4 1.6-1.6 4-1.6-4-4-1.6 4-1.6z"/>`
-    : `<path class="limb" d="M15 74l-7 9M85 74l7 9"/>`;
+  const y = 116 - Math.min(100, pct) * 1.02; // glass spans y 14…116
+  const spark = happy ? `<path class="spark" d="M8 30l2 5 5 2-5 2-2 5-2-5-5-2 5-2zM92 22l1.6 4 4 1.6-4 1.6-1.6 4-1.6-4-4-1.6 4-1.6z"/>` : '';
   return `<div class="w-fig" aria-hidden="true"><svg viewBox="0 0 100 120"><defs><clipPath id="${id}"><path d="${BODY}"/></clipPath></defs>
-    <path class="sprout-s" d="M50 12c0-5 1-8 4-10"/><path class="sprout" d="M54 4c3-4 9-5 12-3-2 4-8 6-12 3z"/>
-    ${limbs}
+    ${spark}
     <g clip-path="url(#${id})"><rect class="empty" width="100" height="120"/><g class="lvl" ${live?'data-lvl':''} style="transform:translateY(${y}px)"><path class="wv" d="M-10 0q7.5-4 15 0t15 0 15 0 15 0 15 0 15 0 15 0 15 0V140H-10z"/></g></g>
-    <path class="shell" d="${BODY}"/>${face}</svg></div>`;
+    <path class="shell" d="${BODY}"/></svg></div>`;
 }
 
 /* ---------- Water card ---------- */
@@ -756,7 +745,7 @@ document.getElementById('today-row').innerHTML = [
     today({scroll:SC, card:waterCard({lift:'latte'}), extra:`<div class="ctx-scrim"></div>${ctxMenu('latte',{x:70,y:520})}`})),
   frame('1.3','После отметки','«+250 мл · Кофе с молоком · 98 ккал» с «Отменить» на 5 с (AC-3.8). Отмена убирает именно эту запись и её ккал, даже если она ещё в очереди. Пять касаний подряд — пять уведомлений сменяют друг друга, каждое отменяет своё (E-3.1). Ккал напитка уже в остатке выше (AC-3.4).',
     today({scroll:SC, card:waterCard({ml:1000}), extra:toast('+250 мл · Кофе с молоком · 98 ккал')})),
-  frame('1.4','Цель выполнена','Фигура налита до краёв, руки вверх, искры — один раз за день, при первом достижении (AC-2.3). Плашка «Цель выполнена» остаётся до конца дня. Больше цели — фигура полная, «130% цели», без предупреждений (E-3.2). Вечером без цели — ничего грустного: просто уровень.',
+  frame('1.4','Цель выполнена','Стакан налит до краёв, искры — один раз за день, при первом достижении (AC-2.3). Плашка «Цель выполнена» остаётся до конца дня. Больше цели — фигура полная, «130% цели», без предупреждений (E-3.2). Вечером без цели — ничего грустного: просто уровень.',
     today({scroll:SC, card:waterCard({ml:2000})})),
   frame('1.5','Маскот выключен','Вместо фигуры — полоса <code>--color-water</code> под суммой (AC-2.4). Всё остальное то же. Так же выглядит карточка, если картинка фигуры не загрузилась: без фигуры прогресс не виден, поэтому полоса, а не пустое место.',
     today({scroll:SC, card:waterCard({ml:1250, mascot:false})})),
