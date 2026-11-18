@@ -1173,6 +1173,17 @@ const ru: DeepPartial<typeof en> = {
     time: 'Время',
     offline_note:
       'Сохраним на этом устройстве и отправим, когда появится сеть.',
+    question: {
+      not_sure: 'ИИ сомневается:',
+      guess: '{option}, предположение ИИ',
+      something_else: 'Другое…',
+      count: {
+        one: 'Оценка ИИ · {count} вопрос ниже',
+        few: 'Оценка ИИ · {count} вопроса ниже',
+        many: 'Оценка ИИ · {count} вопросов ниже',
+        other: 'Оценка ИИ · {count} вопроса ниже',
+      },
+    },
     refine: {
       label: 'Что поправить?',
       placeholder: 'Что поправить? Например: «это тыква», «в лапше ещё курица»',
@@ -1184,6 +1195,7 @@ const ru: DeepPartial<typeof en> = {
       busy: 'Уточняем…',
       slow: 'Дольше обычного…',
       updated: 'Список обновлён',
+      answered: 'Ответ учтён',
       undo: 'Отменить',
       removed: 'Убрано: {names}',
       offline: 'Нужна сеть',

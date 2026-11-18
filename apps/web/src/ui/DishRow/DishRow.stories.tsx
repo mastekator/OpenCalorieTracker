@@ -2,6 +2,7 @@ import { useState, type ComponentProps } from 'react';
 import { fn } from 'storybook/test';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { scaleItem, type Units } from '@oct/shared';
+import { AiQuestion } from '../AiQuestion/AiQuestion';
 import { DishRow, type DishRowDish } from './DishRow';
 
 const rice = {
@@ -20,12 +21,14 @@ function Demo({
   onDelete,
   onIllustration,
   mark,
+  children,
 }: {
   dish: DishRowDish;
   units: Units;
   onDelete?: () => void;
   onIllustration?: () => void;
   mark?: ComponentProps<typeof DishRow>['mark'];
+  children?: ComponentProps<typeof DishRow>['children'];
 }) {
   const [row, setRow] = useState(dish);
   const original = { ...dish, grams: dish.grams ?? 1 };
@@ -44,7 +47,9 @@ function Demo({
       onDelete={onDelete}
       onIllustration={onIllustration}
       mark={mark}
-    />
+    >
+      {children}
+    </DishRow>
   );
 }
 
@@ -166,5 +171,25 @@ export const MarkRenamed: Story = {
 };
 export const MarkRenamedDark: Story = {
   ...MarkRenamed,
+  globals: { theme: 'dark' },
+};
+/** An answer chip (OCT-234 H.2): same weight, other numbers — «was» shows the old kcal; the question under the weight. */
+export const MarkKcalWithQuestion: Story = {
+  args: {
+    mark: { kind: 'changed', name: rice.name, grams: 150, kcal: 420 },
+    children: (
+      <AiQuestion
+        text="What’s in it?"
+        options={[{ label: 'Oil' }, { label: 'No oil' }]}
+        guess={0}
+        chosen={1}
+        onChoose={fn()}
+        onOther={fn()}
+      />
+    ),
+  },
+};
+export const MarkKcalWithQuestionDark: Story = {
+  ...MarkKcalWithQuestion,
   globals: { theme: 'dark' },
 };

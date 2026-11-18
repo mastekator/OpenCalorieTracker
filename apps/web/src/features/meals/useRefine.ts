@@ -101,5 +101,8 @@ export function useRefine<S>() {
     return undoTo?.snapshot ?? null;
   };
 
-  return { sessionId, state, run, cancel, undo, canUndo: !!undoTo };
+  /** A local step (an answer chip): «Undo» brings `snapshot` back, no request (ADR-0020 §4). */
+  const remember = (snapshot: S) => setUndoTo({ snapshot });
+
+  return { sessionId, state, run, cancel, undo, remember, canUndo: !!undoTo };
 }

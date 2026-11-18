@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { CirclePlus, Pencil, Trash2 } from 'lucide-react';
 import {
   gToOz,
@@ -38,8 +39,12 @@ type Props = {
   onDelete?: () => void;
   /** Tap on the illustration: the «Dish picture» sheet (OCT-33 4.1); none: decorative only. */
   onIllustration?: () => void;
-  /** After «Refine» / «Recognize again» (OCT-234 C): «new», or «changed, was …» with the old name or weight. */
-  mark?: { kind: 'new' } | { kind: 'changed'; name: string; grams: number };
+  /** After «Refine» / «Recognize again» / an answer (OCT-234 C, H): «new», or «changed, was …» with the old name, weight or kcal. */
+  mark?:
+    | { kind: 'new' }
+    | { kind: 'changed'; name: string; grams: number; kcal?: number };
+  /** Under the row's weight: the AI's question (OCT-234 H). */
+  children?: ReactNode;
 };
 
 /** One dish on the edit screen: name and kcal, source badge and macros, weight stepper, delete. */
@@ -51,6 +56,7 @@ export function DishRow({
   onDelete,
   onIllustration,
   mark,
+  children,
 }: Props) {
   const { t, num, locale } = useT();
   const was =
@@ -58,9 +64,11 @@ export function DishRow({
       ? null
       : mark.name !== dish.name
         ? mark.name
-        : units === 'us'
-          ? `${new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(gToOz(mark.grams))}\u00a0${t('unit.oz')}`
-          : `${num(mark.grams)}\u00a0${t('unit.g')}`;
+        : mark.grams === dish.grams && mark.kcal !== undefined
+          ? t('meal.kcal', { n: num(mark.kcal) })
+          : units === 'us'
+            ? `${new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(gToOz(mark.grams))}\u00a0${t('unit.oz')}`
+            : `${num(mark.grams)}\u00a0${t('unit.g')}`;
   const { offset, dragging, remove, bind, confirm } = useSwipeDelete(onDelete);
   return (
     <div
@@ -147,6 +155,7 @@ export function DishRow({
             <Pencil aria-hidden="true" />
           </button>
         </div>
+        {children && <div className="dish-row__extra">{children}</div>}
       </div>
       {onDelete && (
         // Always in the DOM: the screen reader's «Delete» and the keyboard reach it without a swipe.

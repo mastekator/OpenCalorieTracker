@@ -26,8 +26,13 @@ type Props = {
   note?: ReactNode;
   /** An error banner above the field; the text stays (AC-2.8). */
   error?: ReactNode;
-  /** After a successful step: the strip with «Undo» (OCT-234 C). */
-  result?: { kcalDelta: number; removed: string[]; onUndo: () => void };
+  /** After a successful step: the strip with «Undo» (OCT-234 C); `answered`: an answer chip (H.2). */
+  result?: {
+    kcalDelta: number;
+    removed: string[];
+    onUndo: () => void;
+    answered?: boolean;
+  };
 };
 
 /** «What should I fix?» above Save on the edit screen (OCT-234 A–D, ADR-0020 §9). */
@@ -88,7 +93,11 @@ export function RefineBar({
           <Check aria-hidden="true" className="refine__result-icon" />
           <p className="refine__result-text">
             <span className="refine__result-title">
-              {t('edit.refine.updated')}
+              {t(
+                result.answered
+                  ? 'edit.refine.answered'
+                  : 'edit.refine.updated',
+              )}
             </span>
             <span className="tabular-nums">
               {[

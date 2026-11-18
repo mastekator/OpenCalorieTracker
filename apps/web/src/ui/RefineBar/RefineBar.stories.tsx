@@ -149,6 +149,12 @@ const result = {
 } satisfies Partial<Props>;
 export const Result: Story = { args: result };
 export const ResultDark: Story = { args: result, globals: dark };
+/** OCT-234 H.2: an answer chip — «Answer applied» with «Undo». */
+const answered = {
+  result: { kcalDelta: -150, removed: [], onUndo: fn(), answered: true },
+} satisfies Partial<Props>;
+export const Answered: Story = { args: answered };
+export const AnsweredDark: Story = { args: answered, globals: dark };
 const added = {
   result: { kcalDelta: 48, removed: [], onUndo: fn() },
 } satisfies Partial<Props>;

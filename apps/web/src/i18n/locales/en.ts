@@ -1145,6 +1145,15 @@ export const en = {
     time: 'Time',
     offline_note:
       'We’ll save it on this device and send it once you’re back online.',
+    question: {
+      not_sure: 'Not sure:',
+      guess: '{option}, AI guess',
+      something_else: 'Other…',
+      count: {
+        one: 'AI estimate · {count} question below',
+        other: 'AI estimate · {count} questions below',
+      },
+    },
     refine: {
       label: 'What should I fix?',
       placeholder:
@@ -1157,6 +1166,7 @@ export const en = {
       busy: 'Refining…',
       slow: 'Taking longer than usual…',
       updated: 'List updated',
+      answered: 'Answer applied',
       undo: 'Undo',
       removed: 'Removed: {names}',
       offline: 'Needs a connection',

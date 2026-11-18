@@ -8,6 +8,7 @@ import { LeaveGuard } from '../../app/LeaveGuard';
 import { ToastProvider } from '../../ui/Toast/Toast';
 import { MealEditScreen } from './MealEditScreen';
 import { MEAL_EDIT_PATH } from './RecognitionScreen';
+import { QUESTION_CASES } from './questions.fixtures';
 
 type Props = ComponentProps<typeof MealEditScreen>;
 
@@ -387,3 +388,37 @@ const refineGone = {
 } satisfies Partial<Props>;
 export const RefinePhotoGone: Story = { args: refineGone };
 export const RefinePhotoGoneDark: Story = { args: refineGone, globals: dark };
+
+/** OCT-234 H.1: the AI's question under its dish, the guess checked, the count on the estimate line. */
+const questions = {
+  ...refineReady,
+  ...QUESTION_CASES.k1,
+} satisfies Partial<Props>;
+export const Questions: Story = { args: questions };
+export const QuestionsDark: Story = { args: questions, globals: dark };
+/** H.2: a tap on «Yogurt» — recounted at once, «Answer applied» with «Undo». */
+const answered: Story = {
+  args: questions,
+  play: async ({ canvas, userEvent }) =>
+    userEvent.click(await canvas.findByRole('radio', { name: 'Yogurt' })),
+};
+export const QuestionAnswered: Story = answered;
+export const QuestionAnsweredDark: Story = { ...answered, globals: dark };
+/** H.8: K4 and K5 offline — the options work, «Other…» says it needs a connection. */
+const offlineQuestions: Story = {
+  args: { ...refineReady, ...QUESTION_CASES.k4k5 },
+  beforeEach: () => {
+    Object.defineProperty(navigator, 'onLine', {
+      configurable: true,
+      get: () => false,
+    });
+    return () => {
+      delete (navigator as { onLine?: boolean }).onLine;
+    };
+  },
+};
+export const QuestionsOffline: Story = offlineQuestions;
+export const QuestionsOfflineDark: Story = {
+  ...offlineQuestions,
+  globals: dark,
+};
