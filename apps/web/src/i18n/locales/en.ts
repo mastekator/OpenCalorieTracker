@@ -1399,7 +1399,7 @@ export const en = {
       removed: 'Removed: {names}',
       offline: 'Needs a connection',
       offline_save:
-        'Needs a connection — we’ll send it once you’re back online',
+        'Needs a connection — we’ll send it when you’re online',
       queued:
         'The photo isn’t sent yet — you can refine with text once you’re online',
       gone: 'The photo is no longer stored',
