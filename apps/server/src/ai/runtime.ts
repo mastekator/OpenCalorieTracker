@@ -13,7 +13,8 @@ export interface ActiveAi {
  */
 export interface AiRuntime {
   current(): ActiveAi | null;
-  apply(settings: AiSettings | null): Promise<void>;
+  /** `model`: one already built for these settings (by the check before saving). */
+  apply(settings: AiSettings | null, model?: AiModel): Promise<void>;
 }
 
 export function createAiRuntime(initial: ActiveAi | null = null): AiRuntime {
@@ -21,11 +22,11 @@ export function createAiRuntime(initial: ActiveAi | null = null): AiRuntime {
   setActiveModel(active?.model ?? null);
   return {
     current: () => active,
-    async apply(settings) {
+    async apply(settings, built) {
       let model: AiModel | null = null;
       // Broken AI settings must not take the server down: it falls back to manual mode.
       try {
-        model = await createModel(settings);
+        model = built ?? (await createModel(settings));
       } catch (err) {
         console.error(
           `[setup] AI model could not be created (${(err as Error).name}); AI is off.`,

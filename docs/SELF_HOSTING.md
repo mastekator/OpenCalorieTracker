@@ -57,10 +57,14 @@ Open `PUBLIC_URL` and sign in with `ADMIN_EMAIL` and `ADMIN_PASSWORD`. The admin
 
 ### AI provider
 
-AI recognizes food on photos and runs the goal assistant. It is optional: without it, food is entered by hand. Set the `AI_*` variables in `.env` and run `docker compose up -d` again.
+AI recognizes food on photos and runs the goal assistant. It is optional: without it, food is entered by hand. Sign in as the admin and open **Settings → AI provider**: pick the provider, enter the model and the API key, and save. The app checks the settings with one tiny request before saving and switches to them at once, no restart needed.
 
-- **Cloud model:** `AI_PROVIDER` (`google`, `openai`, `anthropic` or `openrouter`), `AI_MODEL` and `AI_API_KEY` from the provider's console.
-- **Local model** (Ollama, LM Studio or any OpenAI-compatible server): `AI_PROVIDER=openai-compatible`, `AI_MODEL`, and `AI_BASE_URL`, e.g. `http://ollama:11434/v1` when Ollama runs in the same Compose project. `AI_API_KEY` only if the server asks for one.
+- **Cloud model:** Google Gemini, OpenAI, Anthropic or OpenRouter, with an API key from the provider's console.
+- **Local model** (Ollama, LM Studio or any OpenAI-compatible server): the server's URL, e.g. `http://ollama:11434/v1` when Ollama runs in the same Compose project. A key only if the server asks for one.
+
+The key is stored encrypted in the database with `data/secret.key`, created on the first start. Keep them together: a backup restored without its `secret.key` cannot decrypt the key, and AI stays off until you enter it again.
+
+**From `.env` instead.** If `AI_PROVIDER` is set in `.env`, the `AI_*` variables win as a whole: the screen shows them read-only and anything saved there is ignored until you remove them. Cloud: `AI_PROVIDER` (`google`, `openai`, `anthropic` or `openrouter`), `AI_MODEL` and `AI_API_KEY`. Local: `AI_PROVIDER=openai-compatible`, `AI_MODEL`, `AI_BASE_URL`, and `AI_API_KEY` only if needed. Run `docker compose up -d` again after a change.
 
 The model must read images. Which ones work well: [Tested models](MODELS.md).
 
@@ -95,7 +99,7 @@ Database migrations run on start. Back up first.
 
 ### Backup and restore
 
-Everything (database and photos) is in the `data` folder. Back it up with the container stopped, so the database is not copied in the middle of a write:
+Everything (database, photos and `secret.key`, which decrypts the saved AI key) is in the `data` folder. Treat a backup like a password. Back it up with the container stopped, so the database is not copied in the middle of a write:
 
 ```sh
 docker compose stop
@@ -148,7 +152,7 @@ All settings are environment variables. An empty value (`KEY=`) counts as not se
 | `AUTH_METHODS`     | `password,passkey`   | Enabled sign-in methods: `password`, `passkey` or both, comma-separated. See below before changing it.                                       |
 | `REGISTRATION`     | `invite`             | Who can sign up: `invite` (by admin invite link only) or `open`.                                                                             |
 | `TRUST_PROXY_HOPS` | `1`                  | How many reverse proxies stand in front of the server. See below.                                                                            |
-| `AI_PROVIDER`      | —                    | `google`, `openai`, `anthropic`, `openrouter` or `openai-compatible` (Ollama, LM Studio, etc.). Not set: no AI, food is entered manually.    |
+| `AI_PROVIDER`      | —                    | Optional; overrides the in-app AI settings. `google`, `openai`, `anthropic`, `openrouter` or `openai-compatible` (Ollama, LM Studio, etc.).  |
 | `AI_MODEL`         | —                    | Model id at that provider, e.g. `gemini-3.8-flash`. Required with `AI_PROVIDER`.                                                             |
 | `AI_API_KEY`       | —                    | API key of the provider. Never logged.                                                                                                       |
 | `AI_BASE_URL`      | —                    | Endpoint URL; required for `openai-compatible`, e.g. `http://ollama:11434/v1`.                                                               |

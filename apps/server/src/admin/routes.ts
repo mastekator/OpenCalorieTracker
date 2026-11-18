@@ -3,8 +3,12 @@ import { generateText } from 'ai';
 import { Hono } from 'hono';
 import {
   AI_PROVIDERS,
+  aiDraftSchema,
   createInviteRequestSchema,
+  saveAiSettingsRequestSchema,
   type AdminAiStatus,
+  type AiCheckResult,
+  type AiDraft,
   type AdminBlock,
   type AdminUser,
   type CreatedLinkResponse,
@@ -12,8 +16,20 @@ import {
 } from '@oct/shared';
 import { callModel, noVisionError, quickReasoning } from '../ai/common.js';
 import { readExpected, TEST_PHOTOS_DIR } from '../ai/model-test/compare.js';
-import { baseUrlHost, savedAiRow } from '../ai/settings.js';
-import { providerState, redactSecrets } from '../ai/status.js';
+import { createModel, type AiModel } from '../ai/model.js';
+import {
+  API_KEY_PURPOSE,
+  baseUrlHost,
+  savedAiRow,
+  type AiSettings,
+} from '../ai/settings.js';
+import {
+  aiResultOf,
+  providerState,
+  recordAiResult,
+  redactSecrets,
+  type AiResult,
+} from '../ai/status.js';
 import type { AppDeps } from '../app.js';
 import { DEVICE_FAILS, IP_FAILS } from '../auth/guard.js';
 import { createLink, LINK_TTL } from '../auth/invites.js';
@@ -49,6 +65,15 @@ export function adminRoutes({ config, db, ai, secrets }: AppDeps) {
     return n;
   };
 
+  const redacted = (details: AiResult['details'], apiKey: string | undefined) =>
+    details && {
+      details: {
+        status: details.status,
+        timeoutSec: details.timeoutSec,
+        message: details.message && redactSecrets(details.message, apiKey),
+      },
+    };
+
   const aiStatus = (): AdminAiStatus => {
     const { settings = null, model = null } = ai.current() ?? {};
     const saved = savedAiRow(db, secrets);
@@ -68,65 +93,176 @@ export function adminRoutes({ config, db, ai, secrets }: AppDeps) {
       rev: saved?.rev ?? null,
       state,
       checkedAt,
-      ...(details && {
-        details: {
-          status: details.status,
-          timeoutSec: details.timeoutSec,
-          message:
-            details.message && redactSecrets(details.message, settings?.apiKey),
-        },
-      }),
+      ...redacted(details, settings?.apiKey),
     };
   };
   // Counted from the start of a check, so a double click never reaches the provider twice.
   let lastCheck = -Infinity;
+  const throttleCheck = () => {
+    const wait = lastCheck + CHECK_INTERVAL_MS - Date.now();
+    if (wait > 0)
+      throw new ApiError(429, 'too_many_attempts', {
+        retryAfterSec: Math.ceil(wait / 1000),
+      });
+    lastCheck = Date.now();
+  };
+
+  // One tiny request with an image, so no_vision is told apart (ADR-0013). Records the global
+  // state only when `model` is the active one.
+  const runCheck = async (model: AiModel): Promise<AiResult> => {
+    let failure: AiResult | undefined;
+    try {
+      await callModel(
+        model,
+        {
+          op: 'check',
+          promptVersion: 0,
+          timeoutMs: CHECK_TIMEOUT_MS,
+          mapError: (err, timedOut, m) => {
+            failure = aiResultOf(err, timedOut ? CHECK_TIMEOUT_MS : undefined);
+            return noVisionError(err, timedOut, m);
+          },
+          logExtra: () => '',
+        },
+        (abortSignal) =>
+          generateText({
+            model,
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  { type: 'text', text: 'Reply OK.' },
+                  { type: 'file', data: PIXEL_PNG, mediaType: 'image/png' },
+                ],
+              },
+            ],
+            maxOutputTokens: CHECK_MAX_TOKENS,
+            maxRetries: 0,
+            reasoning: quickReasoning(model),
+            abortSignal,
+          }),
+      );
+    } catch (err) {
+      // A check that found a failure is not itself an error: the state says what failed.
+      if (!(err instanceof ApiError)) throw err;
+      // A schema mismatch still means the provider answered.
+      return failure ?? aiResultOf();
+    }
+    return aiResultOf();
+  };
+
+  const envManaged = () => {
+    if (config.ai.provider) throw new ApiError(409, 'ai_env_managed');
+  };
+
+  /** The draft as settings: without apiKey the saved key is kept if the provider stays (AC-1.5). */
+  const draftSettings = (draft: AiDraft): AiSettings => {
+    const saved = savedAiRow(db, secrets);
+    const apiKey =
+      draft.apiKey ??
+      (saved?.provider === draft.provider ? saved.apiKey : undefined);
+    if (!apiKey && draft.provider !== 'openai-compatible')
+      throw new ApiError(400, 'ai_key_required');
+    return {
+      provider: draft.provider,
+      model: draft.model,
+      apiKey,
+      baseUrl: draft.baseUrl,
+      source: 'admin',
+    };
+  };
 
   return (
     new Hono<AuthEnv & { Variables: { user: User } }>()
       .use('/admin/*', requireAdmin)
       .get('/admin/ai', (c) => c.json(aiStatus()))
-      // One tiny request with an image, so no_vision is told apart (ADR-0013).
+      // Without a body: the active model, its result becomes the global state. With a draft:
+      // nothing is saved or recorded (ADR-0018 §4).
       .post('/admin/ai/check', async (c) => {
-        const model = ai.current()?.model;
-        if (!model) throw new ApiError(409, 'ai_not_configured');
-        const wait = lastCheck + CHECK_INTERVAL_MS - Date.now();
-        if (wait > 0)
-          throw new ApiError(429, 'too_many_attempts', {
-            retryAfterSec: Math.ceil(wait / 1000),
-          });
-        lastCheck = Date.now();
-        try {
-          await callModel(
-            model,
-            {
-              op: 'check',
-              promptVersion: 0,
-              timeoutMs: CHECK_TIMEOUT_MS,
-              mapError: noVisionError,
-              logExtra: () => '',
-            },
-            (abortSignal) =>
-              generateText({
-                model,
-                messages: [
-                  {
-                    role: 'user',
-                    content: [
-                      { type: 'text', text: 'Reply OK.' },
-                      { type: 'file', data: PIXEL_PNG, mediaType: 'image/png' },
-                    ],
-                  },
-                ],
-                maxOutputTokens: CHECK_MAX_TOKENS,
-                maxRetries: 0,
-                reasoning: quickReasoning(model),
-                abortSignal,
-              }),
-          );
-        } catch (err) {
-          // A check that found a failure is not itself an error: the state says what failed.
-          if (!(err instanceof ApiError)) throw err;
+        const raw = await c.req.text();
+        if (!raw) {
+          const model = ai.current()?.model;
+          if (!model) throw new ApiError(409, 'ai_not_configured');
+          throttleCheck();
+          await runCheck(model);
+          return c.json(aiStatus());
         }
+        let body: unknown;
+        try {
+          body = JSON.parse(raw);
+        } catch {
+          throw new ApiError(400, 'validation_failed');
+        }
+        const parsed = aiDraftSchema.safeParse(body);
+        if (!parsed.success) throw new ApiError(400, 'validation_failed');
+        const settings = draftSettings(parsed.data);
+        throttleCheck();
+        const { state, checkedAt, details } = await runCheck(
+          (await createModel(settings))!,
+        );
+        return c.json({
+          state,
+          checkedAt,
+          ...redacted(details, settings.apiKey),
+        } satisfies AiCheckResult);
+      })
+      .put(
+        '/admin/ai/settings',
+        validate('json', saveAiSettingsRequestSchema),
+        async (c) => {
+          const { force, rev, ...draft } = c.req.valid('json');
+          envManaged();
+          const staleRev = () => {
+            if ((savedAiRow(db, secrets)?.rev ?? null) !== rev)
+              throw new ApiError(409, 'ai_settings_changed');
+          };
+          staleRev();
+          const settings = draftSettings(draft);
+          let checked: AiModel | undefined;
+          if (!force) {
+            throttleCheck();
+            const model = (await createModel(settings))!;
+            const { state, details } = await runCheck(model);
+            if (state !== 'ok')
+              throw new ApiError(422, 'ai_check_failed', {
+                state,
+                ...redacted(details, settings.apiKey),
+              });
+            checked = model;
+          }
+          // Another save may have landed while the check ran.
+          staleRev();
+          db.prepare(
+            `INSERT INTO ai_settings (id, provider, model, base_url, api_key_enc, api_key_last4, rev, updated_at, updated_by)
+             VALUES (1, @provider, @model, @baseUrl, @enc, @last4, @rev, @now, @by)
+             ON CONFLICT (id) DO UPDATE SET provider = @provider, model = @model, base_url = @baseUrl,
+               api_key_enc = @enc, api_key_last4 = @last4, rev = @rev, updated_at = @now, updated_by = @by`,
+          ).run({
+            provider: settings.provider,
+            model: settings.model,
+            baseUrl: settings.baseUrl ?? null,
+            enc: settings.apiKey
+              ? secrets.seal(settings.apiKey, API_KEY_PURPOSE)
+              : null,
+            last4: settings.apiKey?.slice(-4) ?? null,
+            rev: (rev ?? 0) + 1,
+            now: Date.now(),
+            by: c.var.user.id,
+          });
+          await ai.apply(settings, checked);
+          // apply() starts the new model at unknown; the check before saving already ran it (AC-1.4).
+          if (checked) recordAiResult(checked);
+          console.log(
+            `[info] AI settings changed by admin: provider ${settings.provider}, model ${settings.model}`,
+          );
+          return c.json(aiStatus());
+        },
+      )
+      .delete('/admin/ai/settings', async (c) => {
+        envManaged();
+        db.prepare('DELETE FROM ai_settings').run();
+        await ai.apply(null);
+        console.log('[info] AI turned off by admin');
         return c.json(aiStatus());
       })
       // Thumbnails for the model test table (ADR-0019): only names from expected.json, so no path tricks.
