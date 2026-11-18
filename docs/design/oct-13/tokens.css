@@ -62,6 +62,12 @@
   --weight-point-r: 3px;        /* OCT-189: weigh-in dot on the chart (tap area is the nearest-point column) */
   --weight-trend-width: 2.5px;  /* OCT-189: trend line stroke */
   --weight-point-opacity: 0.45; /* OCT-189: raw weigh-ins are paler than the trend (AC-9.22) */
+  --trail-week-height: 36px;    /* OCT-184: one week pill in the streak trail */
+  --heat-cell-size: 12px;       /* OCT-184: day cell of the year activity map (phone; tap area = selected-day row below) */
+  --heat-cell-size-wide: 14px;  /* OCT-184: same, desktop */
+  --heat-gap: 3px;
+  --milestone-node-size: 40px;  /* OCT-184: medal node on the milestones path */
+  --duration-toast: 5000ms;     /* OCT-184: non-blocking milestone toast stays this long */
   --icon-size: 24px;  --icon-size-sm: 20px;  --icon-stroke: 1.75;
   --content-max-width: 560px;   /* phone-like column: auth, settings, tablet/narrow window */
   /* Desktop (window ≥ 1024px; CSS vars can't be used in @media — keep 1024 in one place in code):
@@ -122,6 +128,14 @@
   /* OCT-189: weight diary — one neutral hue, never green/red by direction (AC-9.17) */
   --color-weight: #6B4FA0;
   --color-weight-soft: #F1ECF8;
+  /* OCT-184 streaks: warm flame (never "bad"), icy freeze, activity map = one green, 3 steps */
+  --color-streak: #B8480C;
+  --color-streak-soft: #FFEEE2;
+  --color-freeze: #1B6F8F;
+  --color-freeze-soft: #E2F2F7;
+  --color-heat-1: #C3E7D1;
+  --color-heat-2: #6CC497;
+  --color-heat-3: #13784A;
 
   /* OCT-33: dish illustrations (flat, decorative). Shown on a round "plate" tile so they never pass for a photo */
   --illo-tile: #F6F0E4;   /* round substrate behind every illustration */
@@ -171,6 +185,13 @@
     --color-water-soft: #13263A;
     --color-weight: #C2A8EE;
     --color-weight-soft: #2A2238;
+    --color-streak: #FF9E5E;
+    --color-streak-soft: #3A2214;
+    --color-freeze: #7FCDE6;
+    --color-freeze-soft: #12303A;
+    --color-heat-1: #1F4430;
+    --color-heat-2: #2F8355;
+    --color-heat-3: #5FD394;
     --illo-tile: #2B2721;
     --illo-plate: #4C524F;  --illo-white: #EEE8DC;  --illo-shade: rgb(0 0 0 / 0.28);
     --illo-red: #EE7564;    --illo-orange: #EFA654; --illo-yellow: #EECB62; --illo-pink: #E39B8F;
@@ -213,6 +234,13 @@
   --color-water-soft: #13263A;
   --color-weight: #C2A8EE;
   --color-weight-soft: #2A2238;
+  --color-streak: #FF9E5E;
+  --color-streak-soft: #3A2214;
+  --color-freeze: #7FCDE6;
+  --color-freeze-soft: #12303A;
+  --color-heat-1: #1F4430;
+  --color-heat-2: #2F8355;
+  --color-heat-3: #5FD394;
   --illo-tile: #2B2721;
   --illo-plate: #4C524F;  --illo-white: #EEE8DC;  --illo-shade: rgb(0 0 0 / 0.28);
   --illo-red: #EE7564;  --illo-orange: #EFA654; --illo-yellow: #EECB62; --illo-pink: #E39B8F;
