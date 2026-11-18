@@ -73,6 +73,8 @@ export const configResponseSchema = z.object({
   authMethods: z.array(authMethodSchema),
   registration: registrationSchema,
   setupError: setupErrorSchema.nullable(),
+  /** True only when the first-run wizard should create the admin (ADR-0021 §6). */
+  setupRequired: z.boolean(),
 });
 export type ConfigResponse = z.infer<typeof configResponseSchema>;
 

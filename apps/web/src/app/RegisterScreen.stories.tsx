@@ -14,6 +14,7 @@ const config: ConfigResponse = {
   authMethods: ['passkey', 'password'],
   registration: 'invite',
   setupError: null,
+  setupRequired: false,
 };
 const SAFARI =
   'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Version/17.0 Mobile/15E148 Safari/604.1';

@@ -17,6 +17,7 @@ const config = {
   authMethods: ['password'],
   registration: 'invite',
   setupError: null,
+  setupRequired: false,
 };
 
 function Child() {

@@ -11,6 +11,7 @@ const config: ConfigResponse = {
   authMethods: ['passkey', 'password'],
   registration: 'invite',
   setupError: null,
+  setupRequired: false,
 };
 
 /** Sign-in, OCT-13 §5 (mockups 1.1–1.9). Theme and language: toolbar; Dark and Desktop stories below. */

@@ -2,8 +2,10 @@ import { chmodSync, mkdtempSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import type { ConfigResponse } from '@oct/shared';
 import { dataDirWritable, loadConfig } from './config.js';
 import { createApp } from './app.js';
+import { migrate } from './db/migrate.js';
 import { parseIds } from './privileges.js';
 import { testApp } from './test/app.js';
 
@@ -68,8 +70,11 @@ describe('setupError (AC-7.1, AC-1.3)', () => {
     ).toBeNull();
   });
 
-  it('reports admin_missing on an empty database without ADMIN_EMAIL', async () => {
+  it('reports admin_missing only for ADMIN_PASSWORD without ADMIN_EMAIL', async () => {
     expect(await setupError({ ADMIN_EMAIL: undefined })).toBe('admin_missing');
+    expect(
+      await setupError({ ADMIN_EMAIL: undefined, ADMIN_PASSWORD: undefined }),
+    ).toBeNull();
   });
 
   it('reports admin_password_missing when password sign-in is on', async () => {
@@ -90,6 +95,51 @@ describe('setupError (AC-7.1, AC-1.3)', () => {
       setupError: string | null;
     };
     expect(body.setupError).toBeNull();
+  });
+});
+
+describe('setupRequired (ADR-0021 §1, §6, §9)', () => {
+  const wizardEnv = { ADMIN_EMAIL: undefined, ADMIN_PASSWORD: undefined };
+  const required = async (app: {
+    request: (p: string) => Promise<Response> | Response;
+  }) =>
+    ((await (await app.request('/api/config')).json()) as ConfigResponse)
+      .setupRequired;
+
+  it('is true on a healthy empty install without ADMIN_*', async () => {
+    expect(await required(testApp(wizardEnv).app)).toBe(true);
+  });
+
+  it.each([
+    ['a setup error', { ...wizardEnv, PUBLIC_URL: undefined }],
+    ['ADMIN_PASSWORD without ADMIN_EMAIL', { ADMIN_EMAIL: undefined }],
+    ['a config install', {}],
+    ['an invalid config install', { ADMIN_EMAIL: 'nope' }],
+  ])('is false with %s', async (_, env) => {
+    expect(await required(testApp(env).app)).toBe(false);
+  });
+
+  it('is false with an unwritable data dir', async () => {
+    const t = testApp(wizardEnv);
+    t.config.dataDirWritable = false;
+    expect(await required(createApp(t))).toBe(false);
+  });
+
+  it('is false once users exist, also on a v0.1.0 database', async () => {
+    const t = testApp(wizardEnv);
+    // A v0.1.0 database: an admin, migrations up to 0010, no setup_code table.
+    t.db
+      .prepare(
+        "INSERT INTO users (email, role, webauthn_user_id, created_at) VALUES ('a@b.c', 'admin', x'01', 0)",
+      )
+      .run();
+    t.db.exec('DROP TABLE setup_code');
+    t.db.pragma('user_version = 10');
+    migrate(t.db);
+    expect(t.db.prepare('SELECT COUNT(*) AS n FROM setup_code').get()).toEqual({
+      n: 0,
+    });
+    expect(await required(t.app)).toBe(false);
   });
 });
 

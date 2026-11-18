@@ -30,6 +30,7 @@ describe('GET /api/config', () => {
       authMethods: ['password', 'passkey'],
       registration: 'open',
       setupError: null,
+      setupRequired: false,
     });
   });
 

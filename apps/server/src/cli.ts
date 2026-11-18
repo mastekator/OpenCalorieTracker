@@ -6,9 +6,10 @@ import { resetAdminAccess } from './auth/admin.js';
 import { loadConfig } from './config.js';
 import { migrate } from './db/migrate.js';
 import { openDb } from './db/open.js';
+import { utcMinutes } from './setup/code.js';
 
 // Admin CLI (ADR-0003), run next to the live server: `node dist/cli.js reset-admin-access`.
-// Only the link goes to stdout, so it can be copied or piped; everything else goes to stderr.
+// Only the link (or the setup code) goes to stdout, so it can be copied or piped; everything else goes to stderr.
 const [command] = process.argv.slice(2);
 if (command !== 'reset-admin-access') {
   console.error('Usage: node dist/cli.js reset-admin-access');
@@ -25,11 +26,18 @@ if (!existsSync(file)) {
 const db = openDb(file);
 migrate(db);
 try {
-  const { cleared, url, expiresAt } = resetAdminAccess(config, db);
-  console.error(
-    `Lifted ${cleared} sign-in block(s). Admin recovery link, valid until ${new Date(expiresAt).toISOString()}:`,
-  );
-  console.log(url);
+  const result = resetAdminAccess(config, db);
+  if ('code' in result) {
+    console.error(
+      `Lifted ${result.cleared} sign-in block(s). Setup code, valid until ${utcMinutes(result.expiresAt)}; open ${config.publicUrl} to create the admin account:`,
+    );
+    console.log(result.code);
+  } else {
+    console.error(
+      `Lifted ${result.cleared} sign-in block(s). Admin recovery link, valid until ${new Date(result.expiresAt).toISOString()}:`,
+    );
+    console.log(result.url);
+  }
 } catch (err) {
   console.error(`Sign-in blocks lifted, but: ${(err as Error).message}`);
   process.exitCode = 1;
