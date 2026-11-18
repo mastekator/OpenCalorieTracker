@@ -104,6 +104,34 @@ export const saveAiSettingsRequestSchema = z
   .refine(needsBaseUrl, baseUrlIssue);
 export type SaveAiSettingsRequest = z.infer<typeof saveAiSettingsRequestSchema>;
 
+/** POST /api/admin/ai/models body: without apiKey the saved key of the same provider (ADR-0018 §4). */
+export const aiModelsRequestSchema = z
+  .object({
+    provider: aiDraftFields.provider,
+    baseUrl: aiDraftFields.baseUrl,
+    apiKey: aiDraftFields.apiKey,
+  })
+  .refine(needsBaseUrl, baseUrlIssue);
+export type AiModelsRequest = z.infer<typeof aiModelsRequestSchema>;
+
+/** One model of the provider's list; vision null when the provider does not say. */
+export const aiModelInfoSchema = z.object({
+  id: z.string(),
+  name: z.string().optional(),
+  vision: z.boolean().nullable(),
+  /** USD per 1M tokens; OpenRouter only. */
+  price: z
+    .object({ inputPerMTok: z.number(), outputPerMTok: z.number() })
+    .optional(),
+});
+export type AiModelInfo = z.infer<typeof aiModelInfoSchema>;
+
+/** POST /api/admin/ai/models response; a failure is 502 ai_models_failed with { state, details }. */
+export const aiModelsResponseSchema = z.object({
+  models: z.array(aiModelInfoSchema),
+});
+export type AiModelsResponse = z.infer<typeof aiModelsResponseSchema>;
+
 /** Result of a draft check; also the details of 422 ai_check_failed. */
 export const aiCheckResultSchema = adminAiStatusSchema.pick({
   state: true,

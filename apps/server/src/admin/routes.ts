@@ -4,11 +4,13 @@ import { Hono } from 'hono';
 import {
   AI_PROVIDERS,
   aiDraftSchema,
+  aiModelsRequestSchema,
   createInviteRequestSchema,
   saveAiSettingsRequestSchema,
   type AdminAiStatus,
   type AiCheckResult,
   type AiDraft,
+  type AiModelsResponse,
   type AdminBlock,
   type AdminUser,
   type CreatedLinkResponse,
@@ -17,6 +19,7 @@ import {
 import { callModel, noVisionError, quickReasoning } from '../ai/common.js';
 import { readExpected, TEST_PHOTOS_DIR } from '../ai/model-test/compare.js';
 import { createModel, type AiModel } from '../ai/model.js';
+import { listModels, MODELS_TIMEOUT_MS } from '../ai/models.js';
 import {
   API_KEY_PURPOSE,
   baseUrlHost,
@@ -155,22 +158,23 @@ export function adminRoutes({ config, db, ai, secrets }: AppDeps) {
     if (config.ai.provider) throw new ApiError(409, 'ai_env_managed');
   };
 
-  /** The draft as settings: without apiKey the saved key is kept if the provider stays (AC-1.5). */
-  const draftSettings = (draft: AiDraft): AiSettings => {
+  /** Without apiKey the saved key is kept if the provider stays (AC-1.5). */
+  const draftKey = (draft: Pick<AiDraft, 'provider' | 'apiKey'>) => {
     const saved = savedAiRow(db, secrets);
     const apiKey =
       draft.apiKey ??
       (saved?.provider === draft.provider ? saved.apiKey : undefined);
     if (!apiKey && draft.provider !== 'openai-compatible')
       throw new ApiError(400, 'ai_key_required');
-    return {
-      provider: draft.provider,
-      model: draft.model,
-      apiKey,
-      baseUrl: draft.baseUrl,
-      source: 'admin',
-    };
+    return apiKey;
   };
+  const draftSettings = (draft: AiDraft): AiSettings => ({
+    provider: draft.provider,
+    model: draft.model,
+    apiKey: draftKey(draft),
+    baseUrl: draft.baseUrl,
+    source: 'admin',
+  });
 
   return (
     new Hono<AuthEnv & { Variables: { user: User } }>()
@@ -265,6 +269,29 @@ export function adminRoutes({ config, db, ai, secrets }: AppDeps) {
         console.log('[info] AI turned off by admin');
         return c.json(aiStatus());
       })
+      // No throttle and no global state: listing models costs nothing and changes nothing.
+      .post(
+        '/admin/ai/models',
+        validate('json', aiModelsRequestSchema),
+        async (c) => {
+          const draft = c.req.valid('json');
+          const apiKey = draftKey(draft);
+          try {
+            const models = await listModels({ ...draft, apiKey });
+            return c.json({ models } satisfies AiModelsResponse);
+          } catch (err) {
+            const timedOut = (err as Error)?.name === 'TimeoutError';
+            const { state, details } = aiResultOf(
+              err,
+              timedOut ? MODELS_TIMEOUT_MS : undefined,
+            );
+            throw new ApiError(502, 'ai_models_failed', {
+              state,
+              ...redacted(details, apiKey),
+            });
+          }
+        },
+      )
       // Thumbnails for the model test table (ADR-0019): only names from expected.json, so no path tricks.
       .get('/admin/ai/test-photos/:file', async (c) => {
         const file = c.req.param('file');

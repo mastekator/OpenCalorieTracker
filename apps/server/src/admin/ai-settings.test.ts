@@ -48,6 +48,7 @@ const setup = async (env: Record<string, string> = {}) => {
     put: req('PUT', '/settings'),
     del: req('DELETE', '/settings'),
     check: req('POST', '/check'),
+    models: req('POST', '/models'),
     get,
     row,
   };
@@ -271,5 +272,104 @@ describe('access', () => {
     expect((await t.del(undefined, user)).status).toBe(403);
     expect((await t.check(draft, user)).status).toBe(403);
     expect(createModel).not.toHaveBeenCalled();
+  });
+});
+
+describe('POST /api/admin/ai/models', () => {
+  const stubFetch = (impl: () => Promise<Response>) => {
+    const fn = vi.fn(impl);
+    vi.stubGlobal('fetch', fn);
+    return fn;
+  };
+  const okList = () =>
+    Promise.resolve(Response.json({ data: [{ id: 'gpt-x' }] }));
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('lists with the saved key of the same provider, needs one for another', async () => {
+    const t = await setup();
+    vi.mocked(createModel).mockResolvedValue(mockModel('OK'));
+    await t.put({ ...draft, rev: null });
+    const fn = stubFetch(okList);
+    const res = await t.models({ provider: 'openai' });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      models: [{ id: 'gpt-x', vision: null }],
+    });
+    expect(fn.mock.calls[0]).toMatchObject([
+      'https://api.openai.com/v1/models',
+      { headers: { Authorization: `Bearer ${KEY}` } },
+    ]);
+    const other = await t.models({ provider: 'anthropic' });
+    expect(other.status).toBe(400);
+    expect(await other.json()).toEqual({ error: { code: 'ai_key_required' } });
+  });
+
+  it('works while AI_* is set in env, without the check throttle', async () => {
+    const t = await setup({
+      AI_PROVIDER: 'google',
+      AI_MODEL: 'g',
+      AI_API_KEY: 'k',
+    });
+    stubFetch(okList);
+    for (let i = 0; i < 2; i++)
+      expect((await t.models({ provider: 'openai', apiKey: KEY })).status).toBe(
+        200,
+      );
+  });
+
+  it('401 is auth_error without the provider body', async () => {
+    const t = await setup();
+    stubFetch(async () => new Response(`no such key ${KEY}`, { status: 401 }));
+    const res = await t.models({ provider: 'openai', apiKey: KEY });
+    expect(res.status).toBe(502);
+    expect(await res.json()).toEqual({
+      error: {
+        code: 'ai_models_failed',
+        details: {
+          state: 'auth_error',
+          details: { status: 401, message: 'HTTP 401' },
+        },
+      },
+    });
+  });
+
+  it('a network error is unavailable with the key cut out', async () => {
+    const t = await setup();
+    stubFetch(() => Promise.reject(new TypeError(`fetch failed for ${KEY}`)));
+    const res = await t.models({ provider: 'openai', apiKey: KEY });
+    const text = await res.text();
+    expect(res.status).toBe(502);
+    expect(text).not.toContain(KEY);
+    expect(JSON.parse(text).error.details).toEqual({
+      state: 'unavailable',
+      details: { message: 'fetch failed for [redacted]' },
+    });
+  });
+
+  it('a timeout is timeout', async () => {
+    const t = await setup();
+    stubFetch(() =>
+      Promise.reject(
+        new DOMException('aborted due to timeout', 'TimeoutError'),
+      ),
+    );
+    const res = await t.models({ provider: 'openai', apiKey: KEY });
+    expect((await res.json()).error.details).toEqual({
+      state: 'timeout',
+      details: { timeoutSec: 15 },
+    });
+  });
+
+  it('is 403 for a non-admin and 400 for openai-compatible without baseUrl', async () => {
+    const t = await setup();
+    const fn = stubFetch(okList);
+    const user = await t.signIn('b@example.com');
+    expect(
+      (await t.models({ provider: 'openai', apiKey: KEY }, user)).status,
+    ).toBe(403);
+    expect((await t.models({ provider: 'openai-compatible' })).status).toBe(
+      400,
+    );
+    expect(fn).not.toHaveBeenCalled();
   });
 });

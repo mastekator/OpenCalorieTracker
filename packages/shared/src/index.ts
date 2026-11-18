@@ -36,6 +36,7 @@ export type ErrorCode =
   | 'ai_settings_changed'
   | 'ai_key_required'
   | 'ai_check_failed'
+  | 'ai_models_failed'
   | 'photo_too_large'
   | 'photo_invalid'
   | 'client_outdated'
