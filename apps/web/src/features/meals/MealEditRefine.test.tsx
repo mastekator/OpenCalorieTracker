@@ -231,6 +231,18 @@ describe('«What should I fix?» on the edit screen (OCT-261)', () => {
     expect(calls[1]!.body.sessionId).toBe(calls[0]!.body.sessionId);
   });
 
+  it('«Try again» sends the list as it is now: `ref` points into the current list', async () => {
+    await setup();
+    await refine('there is chicken', failure(503, 'ai_unavailable'));
+    fireEvent.change(
+      screen.getByRole('textbox', { name: 'Weight of Fried egg' }),
+      { target: { value: '60' } },
+    );
+    fireEvent.click(button('Try again')!);
+    await waitFor(() => expect(calls).toHaveLength(2));
+    expect(calls[1]!.body.dishes[1]!.grams).toBe(60);
+  });
+
   it('photo_expired: «Recognize again» goes, «The photo is no longer stored»', async () => {
     await setup();
     fireEvent.click(button('Recognize again')!);

@@ -750,7 +750,11 @@ export function MealEditScreen({
   const refineErrorBanner = refineError && (
     <RefineError
       code={refineError}
-      onRetry={() => lastRefine.current && void sendRefine(lastRefine.current)}
+      // The list may have changed since: send it as it is now, `ref` points into it.
+      onRetry={() =>
+        lastRefine.current &&
+        void sendRefine({ ...lastRefine.current, dishes: toRequest(rows) })
+      }
     />
   );
   const startRecalc = () => onRecalc?.({ rows, mealType, when });
