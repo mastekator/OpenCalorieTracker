@@ -8,7 +8,8 @@
     "build": "tsc && cp -r src/db/migrations dist/db/ && cp src/auth/common-passwords.txt dist/auth/",
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
-    "check-model": "tsx --conditions=development scripts/check-model.ts"
+    "check-model": "tsx --conditions=development scripts/check-model.ts",
+    "check-refine": "tsx --conditions=development scripts/check-refine.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.104",
