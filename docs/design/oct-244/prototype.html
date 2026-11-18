@@ -274,7 +274,6 @@ code,.mono{font-family:var(--font-mono)}
 .cmd code{flex:1;min-width:0;white-space:pre-wrap;font-size:var(--text-footnote-size);padding:var(--space-2) 0}
 .cmd .cp{width:var(--tap-min);height:var(--tap-min);flex:none;display:grid;place-items:center;color:var(--color-accent)}
 .cmd .cp .icon{width:var(--icon-size-sm);height:var(--icon-size-sm)}
-.path{font-weight:500;color:var(--color-text)}
 .logline{font-family:var(--font-mono);color:var(--color-text-secondary);overflow-wrap:anywhere}
 .logline mark{background:var(--color-selection);color:var(--color-text);border-radius:2px;padding:0 2px}
 .ext{display:inline-flex;align-items:center;gap:var(--space-1);min-height:var(--tap-min);color:var(--color-accent);font-weight:600;font-size:var(--text-subhead-size)}
@@ -431,7 +430,7 @@ const S = {
     h1:'Добро пожаловать в OpenCalorieTracker', lead1:'Введите код установки — он напечатан в журнале контейнера',
     codeL:'Код установки', where:'Где найти журнал?',
     dockerT:'Docker Compose', dockerS:'В папке с docker-compose.yml:',
-    synoT:'Synology', synoP:'Container Manager → Контейнер → opencalorietracker → Журнал',
+    synoT:'Панель управления сервером', synoP:'Если контейнеры запускаются через веб-панель, откройте в ней контейнер opencalorietracker и его журнал (Log, Logs)',
     looks:'Строка в журнале:', docs:'Установка — в документации', copy:'Скопировать команду',
     stranger:'Код видит только тот, кто управляет сервером. Если вы не устанавливали это приложение — просто закройте страницу',
     cont:'Продолжить', checking:'Проверяем…', wrong:'Код не подошёл. Проверьте журнал контейнера', short:'В коде 8 символов: XXXX-XXXX',
@@ -462,7 +461,7 @@ const S = {
     h1:'Welcome to OpenCalorieTracker', lead1:'Enter the setup code — it’s printed in the container log',
     codeL:'Setup code', where:'Where’s the log?',
     dockerT:'Docker Compose', dockerS:'In the folder with docker-compose.yml:',
-    synoT:'Synology', synoP:'Container Manager → Container → opencalorietracker → Log',
+    synoT:'Server control panel', synoP:'If you run containers from a web panel, open the opencalorietracker container there and view its log',
     looks:'The log line:', docs:'Installation guide', copy:'Copy command',
     stranger:'Only whoever runs the server can see the code. If you didn’t install this app, just close the page',
     cont:'Continue', checking:'Checking…', wrong:'That code didn’t work. Check the container log', short:'The code has 8 characters: XXXX-XXXX',
@@ -507,7 +506,7 @@ const codeField = (o={}) => `<div class="field"><label>${T.codeL}</label><div cl
 const disc = open => `<span class="disc" role="button" aria-expanded="${!!open}">${T.where}${I('chev-d')}</span>${open ? how() : ''}`;
 const how = () => `<div class="how">
   <div class="k"><b>${T.dockerT}</b><span class="muted">${T.dockerS}</span>${cmd(CMD.logs)}</div>
-  <div class="k"><b>${T.synoT}</b><span class="path">${T.synoP}</span></div>
+  <div class="k"><b>${T.synoT}</b><span class="muted">${T.synoP}</span></div>
   <div class="k"><span class="muted">${T.looks}</span><span class="logline">Setup code: <mark>K7QM-3XRP</mark> (valid until 2026-11-19 14:05 UTC)</span><a class="ext">${T.docs}${I('ext')}</a></div></div>`;
 const stranger = () => `<p class="stranger">${I('shield')}<span>${T.stranger}</span></p>`;
 const btn = (txt, o={}) => o.busy ? `<button class="btn btn-primary" disabled aria-busy="true"><span class="spinner"></span>${txt}</button>` : o.dis ? `<button class="btn" disabled>${o.icon ? I(o.icon) : ''}${txt}</button>` : `<button class="btn btn-primary">${o.icon ? I(o.icon) : ''}${txt}</button>`;
