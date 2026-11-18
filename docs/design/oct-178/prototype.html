@@ -1,0 +1,888 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OCT-178 · Per-user AI: settings, own key, ChatGPT subscription, consent, device switch</title>
+<link rel="stylesheet" href="../oct-13/tokens.css">
+<script src="../preview-bar.js"></script>
+<style>
+/* Base components = ../oct-13 + ../oct-16 prototypes (same spec) */
+/* ===== Prototype canvas (not part of the app) ===== */
+*{box-sizing:border-box;margin:0}
+html{background:var(--color-bg);color:var(--color-text);font-family:var(--font-sans);-webkit-font-smoothing:antialiased}
+::selection{background:var(--color-selection)}
+body{padding:var(--space-10) var(--space-8)}
+.doc-h1{font-size:var(--text-large-title-size);line-height:var(--text-large-title-lh);font-weight:700;letter-spacing:var(--tracking-tight)}
+.doc-lead{font-size:var(--text-subhead-size);color:var(--color-text-secondary);max-width:70ch;margin-top:var(--space-2)}
+.doc-section{margin-top:var(--space-12)}
+.doc-h2{font-size:var(--text-title-size);font-weight:600;margin-bottom:var(--space-2)}
+.row{display:flex;flex-wrap:wrap;gap:var(--space-8);align-items:flex-start;margin-top:var(--space-6)}
+.frame{display:flex;flex-direction:column;gap:var(--space-3);width:390px}
+.frame>figcaption{font-size:var(--text-footnote-size);color:var(--color-text-secondary);line-height:var(--text-footnote-lh)}
+.frame>figcaption b{color:var(--color-text);font-weight:600}
+
+/* ===== Device chrome (prototype only) ===== */
+.phone{position:relative;width:390px;height:844px;border-radius:48px;overflow:hidden;background:var(--color-bg);outline:1px solid var(--color-separator);display:flex;flex-direction:column}
+.status{height:54px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 32px 0 40px;font-size:var(--text-body-size);font-weight:600}
+.status::after{content:"";width:68px;height:12px;border-radius:var(--radius-full);background:currentColor;opacity:.85;-webkit-mask:linear-gradient(90deg,#000 0 30%,transparent 30% 38%,#000 38% 62%,transparent 62% 70%,#000 70%)}
+.island{position:absolute;top:11px;left:50%;translate:-50% 0;width:124px;height:36px;border-radius:var(--radius-full);background:#000;z-index:100}
+.home-ind{position:absolute;bottom:8px;left:50%;translate:-50% 0;width:134px;height:5px;border-radius:var(--radius-full);background:var(--color-text);z-index:100}
+
+/* ===== App components (tokens only) ===== */
+.icon{width:var(--icon-size);height:var(--icon-size);flex:none;fill:none;stroke:currentColor;stroke-width:var(--icon-stroke);stroke-linecap:round;stroke-linejoin:round}
+.icon.sm{width:var(--icon-size-sm);height:var(--icon-size-sm)}
+.scroll{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.navbar{height:var(--navbar-height);flex:none;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 var(--space-2)}
+.navbar .title{font-size:var(--text-headline-size);font-weight:600}
+.navbar .back{display:flex;align-items:center;gap:2px;color:var(--color-accent);font-size:var(--text-body-size);min-height:var(--tap-min);padding-right:var(--space-2)}
+.navbar .act{justify-self:end;color:var(--color-accent);font-size:var(--text-body-size);min-height:var(--tap-min);display:flex;align-items:center;padding:0 var(--space-2)}
+.large-title{font-size:var(--text-large-title-size);line-height:var(--text-large-title-lh);font-weight:700;letter-spacing:var(--tracking-tight);padding:var(--space-1) var(--screen-gutter) var(--space-2)}
+.pad{padding:0 var(--screen-gutter)}
+.stack{display:flex;flex-direction:column;gap:var(--space-4)}
+.stack-sm{display:flex;flex-direction:column;gap:var(--space-2)}
+.grow{flex:1}
+.bottom{padding:var(--space-4) var(--screen-gutter) calc(34px + var(--space-2));display:flex;flex-direction:column;gap:var(--space-3)}
+.t-title{font-size:var(--text-title-size);line-height:var(--text-title-lh);font-weight:600}
+.t-headline{font-size:var(--text-headline-size);line-height:var(--text-headline-lh);font-weight:600}
+.t-body{font-size:var(--text-body-size);line-height:var(--text-body-lh)}
+.t-sub{font-size:var(--text-subhead-size);line-height:var(--text-subhead-lh)}
+.t-foot{font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh)}
+.t-cap{font-size:var(--text-caption-size);line-height:var(--text-caption-lh);font-weight:500}
+.muted{color:var(--color-text-secondary)}
+.center{text-align:center}
+.num{font-variant-numeric:tabular-nums}
+
+/* brand */
+.brand{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-headline-size);font-weight:600}
+.brand .mark{width:32px;height:32px;border-radius:var(--radius-sm);background:var(--color-accent);color:var(--color-on-accent);display:grid;place-items:center}
+
+/* buttons */
+.btn{appearance:none;border:0;font:inherit;width:100%;min-height:var(--control-height-lg);border-radius:var(--radius-md);font-size:var(--text-headline-size);font-weight:600;display:flex;align-items:center;justify-content:center;gap:var(--space-2);padding:0 var(--space-4);cursor:pointer;transition:transform var(--duration-fast) var(--ease-out),background var(--duration-fast) var(--ease-out)}
+.btn:active{transform:scale(var(--press-scale))}
+.btn:focus-visible{outline:2px solid var(--color-focus-ring);outline-offset:2px}
+.btn-primary{background:var(--color-accent);color:var(--color-on-accent)}
+.btn-primary.pressed{background:var(--color-accent-pressed)}
+.btn-tonal{background:var(--color-accent-soft);color:var(--color-accent)}
+.btn-plain{background:transparent;color:var(--color-accent);min-height:var(--tap-min)}
+.btn-danger{background:var(--color-danger);color:var(--color-on-danger)}
+.btn-danger-plain{background:transparent;color:var(--color-danger);min-height:var(--tap-min)}
+.btn[disabled],.btn.disabled{background:var(--color-surface-2);color:var(--color-text-disabled);cursor:default}
+.btn-plain.disabled{background:transparent}
+.btn-sm{min-height:var(--control-height);width:auto;font-size:var(--text-subhead-size);padding:0 var(--space-4)}
+.link{color:var(--color-accent);font-weight:500;text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px}
+.spinner{width:20px;height:20px;border-radius:50%;border:2px solid currentColor;border-right-color:transparent;animation:spin 800ms linear infinite}
+@keyframes spin{to{rotate:360deg}}
+
+/* fields */
+.field{display:flex;flex-direction:column;gap:var(--space-2)}
+.field label{font-size:var(--text-subhead-size);font-weight:500}
+.input{display:flex;align-items:center;gap:var(--space-2);min-height:var(--control-height-lg);padding:0 var(--space-4);border-radius:var(--radius-md);background:var(--color-surface);border:1px solid var(--color-border-strong);font-size:var(--text-body-size)}
+.input .ph{color:var(--color-text-secondary)}
+.input .val{flex:1}
+.input .trail{color:var(--color-text-secondary);display:grid;place-items:center;width:var(--tap-min);height:var(--tap-min);margin-right:calc(-1 * var(--space-3))}
+.input.focus{border-color:var(--color-accent);box-shadow:inset 0 0 0 1px var(--color-accent)}
+.input.caret .val::after{content:"";display:inline-block;width:2px;height:1.1em;background:var(--color-accent);vertical-align:-3px;margin-left:1px}
+.input.error{border-color:var(--color-danger);box-shadow:inset 0 0 0 1px var(--color-danger)}
+.input.locked{background:var(--color-surface-2);border-color:transparent;color:var(--color-text-secondary)}
+.field .msg{display:flex;gap:var(--space-1);align-items:flex-start;font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);color:var(--color-text-secondary)}
+.field .msg.err{color:var(--color-danger)}
+.rules{list-style:none;padding:0;display:grid;gap:var(--space-1);font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh)}
+.rules li{display:flex;gap:var(--space-2);align-items:center;color:var(--color-text-secondary)}
+.rules li.ok{color:var(--color-accent)}
+.rules li.bad{color:var(--color-danger)}
+
+/* segmented */
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;padding:2px;border-radius:var(--radius-md);background:var(--color-surface-2);min-height:var(--control-height)}
+.seg span{display:grid;place-items:center;border-radius:calc(var(--radius-md) - 2px);font-size:var(--text-subhead-size);font-weight:500;color:var(--color-text-secondary)}
+.seg span.on{background:var(--color-surface);color:var(--color-text);font-weight:600;box-shadow:0 1px 3px rgb(0 0 0 / .12)}
+
+/* grouped lists */
+.group-h{font-size:var(--text-footnote-size);color:var(--color-text-secondary);padding:0 var(--space-4) var(--space-2);margin-top:var(--space-6)}
+.group{background:var(--color-surface);border-radius:var(--radius-md);overflow:hidden}
+.group-f{font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);color:var(--color-text-secondary);padding:var(--space-2) var(--space-4) 0}
+.cell{display:flex;align-items:center;gap:var(--space-3);min-height:var(--control-height);padding:var(--space-3) var(--space-4);position:relative;font-size:var(--text-body-size)}
+.cell+.cell::before{content:"";position:absolute;top:0;right:0;left:var(--space-4);border-top:1px solid var(--color-separator)}
+.cell.ic+.cell::before,.cell.ic+.cell.ic::before{left:calc(var(--space-4) + 30px + var(--space-3))}
+.cell .lead-ic{width:30px;height:30px;border-radius:var(--radius-sm);display:grid;place-items:center;background:var(--color-accent-soft);color:var(--color-accent);flex:none}
+.cell .lead-ic.danger{background:var(--color-danger-soft);color:var(--color-danger)}
+.cell .main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.cell .main .sub{font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.cell .val{color:var(--color-text-secondary)}
+.cell .chev{color:var(--color-text-secondary)}
+.cell.danger{color:var(--color-danger)}
+.cell.accent{color:var(--color-accent)}
+.cell.dis{color:var(--color-text-disabled)}
+.badge{font-size:var(--text-caption-size);font-weight:600;padding:2px var(--space-2);border-radius:var(--radius-sm);background:var(--color-surface-2);color:var(--color-text-secondary);white-space:nowrap}
+.badge.ok{background:var(--color-accent-soft);color:var(--color-accent)}
+.badge.warn{background:var(--color-warning-soft);color:var(--color-warning)}
+.badge.err{background:var(--color-danger-soft);color:var(--color-danger)}
+
+/* banners */
+.banner{display:flex;gap:var(--space-3);align-items:flex-start;padding:var(--space-3) var(--space-4);border-radius:var(--radius-lg);font-size:var(--text-subhead-size);line-height:var(--text-subhead-lh)}
+.banner .b-title{font-weight:600}
+.banner.notice{background:var(--color-notice)}
+.banner.warning{background:var(--color-warning-soft)}
+.banner.warning .icon{color:var(--color-warning)}
+.banner.danger{background:var(--color-danger-soft)}
+.banner.danger .icon{color:var(--color-danger)}
+.banner.accent{background:var(--color-accent-soft)}
+.banner.accent .icon{color:var(--color-accent)}
+.banner .close{margin:-10px -12px -10px auto;width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;color:var(--color-text-secondary);flex:none}
+.offline-bar{display:flex;gap:var(--space-2);align-items:center;justify-content:center;min-height:32px;padding:var(--space-1) var(--space-4);background:var(--color-notice);font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+
+/* divider "или" */
+.or{display:flex;align-items:center;gap:var(--space-3);font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.or::before,.or::after{content:"";flex:1;border-top:1px solid var(--color-separator)}
+
+/* overlays */
+.scrim{position:absolute;inset:0;background:var(--color-scrim);z-index:var(--z-sheet)}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:var(--z-sheet);background:var(--color-surface);border-radius:var(--radius-xl) var(--radius-xl) 0 0;box-shadow:var(--shadow-sheet);padding:var(--space-2) var(--screen-gutter) calc(34px + var(--space-4));display:flex;flex-direction:column;gap:var(--space-4)}
+.sheet .grab{width:36px;height:5px;border-radius:var(--radius-full);background:var(--color-separator);margin:0 auto var(--space-1)}
+.sheet .sheet-head{display:flex;align-items:center;justify-content:space-between}
+.sheet .x{width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;margin-right:calc(-1 * var(--space-3));color:var(--color-text-secondary)}
+.sheet .inset{background:var(--color-surface-2)}
+.alert{position:absolute;left:50%;top:50%;translate:-50% -50%;width:300px;z-index:var(--z-alert);background:var(--color-surface);border-radius:var(--radius-lg);padding:var(--space-5) var(--space-4) var(--space-4);display:flex;flex-direction:column;gap:var(--space-2);text-align:center;box-shadow:var(--shadow-toast)}
+.alert .btns{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-2);margin-top:var(--space-3)}
+.alert .btns.col{grid-template-columns:1fr}
+.toast{position:absolute;left:var(--screen-gutter);right:var(--screen-gutter);bottom:calc(34px + var(--tabbar-height) + var(--space-3));z-index:var(--z-toast);display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);background:var(--color-text);color:var(--color-bg);box-shadow:var(--shadow-toast);font-size:var(--text-subhead-size)}
+.toast .act{margin-left:auto;font-weight:600;min-height:var(--tap-min);display:flex;align-items:center}
+
+/* state blocks */
+.state{display:flex;flex-direction:column;align-items:center;text-align:center;gap:var(--space-2);padding:var(--space-8) var(--space-6)}
+.state .s-ic{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;background:var(--color-surface-2);color:var(--color-text-secondary);margin-bottom:var(--space-2)}
+.state .s-ic.danger{background:var(--color-danger-soft);color:var(--color-danger)}
+.state .s-ic.warning{background:var(--color-warning-soft);color:var(--color-warning)}
+.state p{max-width:30ch}
+.state .btn{margin-top:var(--space-3)}
+.skel{background:var(--color-surface-2);border-radius:var(--radius-sm);height:14px;position:relative;overflow:hidden}
+.skel::after{content:"";position:absolute;inset:0;translate:-100% 0;background:linear-gradient(90deg,transparent,var(--color-surface),transparent);animation:shimmer 1.4s var(--ease-in-out) infinite}
+@keyframes shimmer{to{translate:100% 0}}
+
+/* tab bar */
+.tabbar{position:absolute;left:0;right:0;bottom:0;z-index:var(--z-tabbar);height:calc(var(--tabbar-height) + 34px);padding-bottom:34px;background:var(--tabbar-bg);-webkit-backdrop-filter:var(--tabbar-blur);backdrop-filter:var(--tabbar-blur);border-top:1px solid var(--color-separator);display:grid;grid-template-columns:repeat(5,1fr);align-items:center}
+.tab{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:var(--text-tab-size);font-weight:var(--text-tab-weight);color:var(--color-text-secondary);min-height:var(--tabbar-height);justify-content:center}
+.tab.on{color:var(--color-accent)}
+.cam{justify-self:center;width:var(--camera-button-size);height:var(--camera-button-size);border-radius:50%;background:var(--color-accent);color:var(--color-on-accent);display:grid;place-items:center;box-shadow:var(--shadow-camera);translate:0 -14px}
+.cam .icon{width:30px;height:30px}
+
+/* swatches (docs only) */
+.sw-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-2)}
+.sw{border-radius:var(--radius-md);overflow:hidden;background:var(--color-surface);font-size:var(--text-caption-size);outline:1px solid var(--color-separator)}
+.sw i{display:block;height:44px}
+.sw div{padding:var(--space-2);line-height:1.3}
+.sheetdoc{width:390px;background:var(--color-surface);border-radius:var(--radius-lg);padding:var(--space-5);display:flex;flex-direction:column;gap:var(--space-4);outline:1px solid var(--color-separator)}
+.sheetdoc h3{font-size:var(--text-headline-size)}
+.doc-note{font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.navmap{width:820px;background:var(--color-surface);border-radius:var(--radius-lg);padding:var(--space-6);outline:1px solid var(--color-separator);display:grid;grid-template-columns:repeat(5,1fr);gap:var(--space-3);font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh)}
+.navmap .col{display:flex;flex-direction:column;gap:var(--space-2)}
+.navmap .nd{padding:var(--space-2) var(--space-3);border-radius:var(--radius-sm);background:var(--color-surface-2)}
+.navmap .nd.tab{background:var(--color-accent-soft);color:var(--color-accent);font-weight:600;align-items:flex-start;font-size:var(--text-footnote-size)}
+.navmap .nd.modal{outline:1px dashed var(--color-border-strong);background:transparent}
+.navmap .arrow{color:var(--color-text-secondary);text-align:center}
+
+/* ===== Desktop (≥ 1024px) — section 6 ===== */
+.frame.wide{width:1280px}
+.desk{position:relative;width:1280px;height:800px;border-radius:var(--radius-lg);overflow:hidden;background:var(--color-bg);outline:1px solid var(--color-separator);display:flex;flex-direction:column}
+.desk .chrome{height:36px;flex:none;display:flex;align-items:center;gap:var(--space-2);padding:0 var(--space-4);background:var(--color-surface-2);border-bottom:1px solid var(--color-separator);font-size:var(--text-caption-size);color:var(--color-text-secondary)}
+.desk .chrome i{width:12px;height:12px;border-radius:50%;background:var(--color-separator)}
+.desk .chrome .url{margin-left:var(--space-6);padding:var(--space-1) var(--space-3);border-radius:var(--radius-sm);background:var(--color-surface)}
+.desk .body{flex:1;display:flex;min-height:0}
+.side{width:var(--sidebar-width);flex:none;display:flex;flex-direction:column;gap:var(--space-1);padding:var(--space-6) var(--space-4);border-right:1px solid var(--color-separator)}
+.side .brand{padding:0 var(--space-3) var(--space-6)}
+.side .btn{margin-bottom:var(--space-4)}
+.nav-i{display:flex;align-items:center;gap:var(--space-3);min-height:var(--tap-min);padding:0 var(--space-3);border-radius:var(--radius-md);font-size:var(--text-body-size);color:var(--color-text)}
+.nav-i .icon{color:var(--color-text-secondary)}
+.nav-i.hover{background:var(--color-hover)}
+.nav-i.on{background:var(--color-accent-soft);color:var(--color-accent);font-weight:600}
+.nav-i.on .icon{color:var(--color-accent)}
+.side .foot{margin-top:auto;display:flex;flex-direction:column;gap:var(--space-1)}
+.side .who{padding:var(--space-2) var(--space-3);font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.main-area{flex:1;overflow:hidden;padding:var(--space-8) var(--desktop-gutter)}
+.main-area .inner{max-width:var(--content-max-width-wide);margin:0 auto;display:flex;flex-direction:column;gap:var(--space-6)}
+.main-area .large-title{padding:0}
+.cols{display:grid;grid-template-columns:3fr 2fr;gap:var(--space-6)}
+.drop{display:flex;flex-direction:column;align-items:center;gap:var(--space-2);padding:var(--space-8);border:2px dashed var(--color-border-strong);border-radius:var(--radius-lg);color:var(--color-text-secondary);text-align:center;font-size:var(--text-subhead-size)}
+.auth-desk{flex:1;display:grid;place-items:center}
+.auth-card{width:var(--content-max-width);background:var(--color-surface);border-radius:var(--radius-lg);padding:var(--space-10);box-shadow:var(--shadow-toast)}
+.dialog{position:absolute;left:50%;top:50%;translate:-50% -50%;width:var(--dialog-max-width);z-index:var(--z-sheet);background:var(--color-surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-toast);padding:var(--space-6);display:flex;flex-direction:column;gap:var(--space-4)}
+.dialog .sheet-head{display:flex;align-items:center;justify-content:space-between}
+.dialog .x{width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;margin-right:calc(-1 * var(--space-3));color:var(--color-text-secondary)}
+.kbd{font-size:var(--text-caption-size);padding:1px var(--space-1);border-radius:var(--radius-sm);outline:1px solid var(--color-separator);color:var(--color-text-secondary)}
+.toast.desk-toast{left:50%;right:auto;translate:-50% 0;bottom:var(--space-6);width:auto;max-width:var(--dialog-max-width)}
+
+/* ===== OCT-16 additions (tokens only; prototype-only bits marked) ===== */
+.frame.sm{width:390px}
+.phone .content{flex:1;overflow:hidden;display:flex;flex-direction:column;gap:var(--space-4);padding-bottom:var(--space-4)}
+.navbar .x-btn{width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;color:var(--color-text-secondary)}
+.navbar .txt-btn{color:var(--color-accent);font-size:var(--text-body-size);min-height:var(--tap-min);display:flex;align-items:center;padding:0 var(--space-2)}
+.bottom.bar{background:var(--color-bg);border-top:1px solid var(--color-separator);margin-top:auto}
+.foot-note{display:flex;gap:var(--space-2);align-items:flex-start;font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);color:var(--color-text-secondary)}
+.foot-note .icon{color:var(--color-accent)}
+
+/* photo (user content) */
+.photo{display:block;width:100%;height:var(--photo-preview-height);border-radius:var(--radius-lg);overflow:hidden;position:relative;background:var(--color-surface-2)}
+.photo svg{width:100%;height:100%;display:block}
+.photo.scan::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgb(255 255 255 / .28) 50%,transparent 70%);translate:-100% 0;animation:sweep 1.8s var(--ease-in-out) infinite}
+@keyframes sweep{to{translate:100% 0}}
+.photo.dim{height:calc(var(--photo-preview-height) * .6)}
+.thumb{width:var(--thumb-size);height:var(--thumb-size);border-radius:var(--radius-md);overflow:hidden;flex:none;background:var(--color-surface-2)}
+.thumb svg{width:100%;height:100%;display:block}
+.thumb.add{display:grid;place-items:center;color:var(--color-accent);background:var(--color-accent-soft);font-size:var(--text-caption-size);font-weight:600;text-align:center;align-content:center;gap:2px}
+
+/* totals header */
+.totals{display:flex;gap:var(--space-4);align-items:center}
+.kcal-big{display:flex;align-items:baseline;gap:var(--space-1)}
+.kcal-big b{font-size:var(--text-large-title-size);line-height:var(--text-large-title-lh);font-weight:700;letter-spacing:var(--tracking-tight);font-variant-numeric:tabular-nums}
+.macros{display:flex;gap:var(--space-3);font-size:var(--text-footnote-size);color:var(--color-text-secondary);font-variant-numeric:tabular-nums}
+.macros span{display:flex;align-items:center;gap:var(--space-1)}
+.macros i{width:var(--space-2);height:var(--space-2);border-radius:var(--radius-full)}
+.m-p{background:var(--color-protein)} .m-f{background:var(--color-fat)} .m-c{background:var(--color-carbs)}
+
+
+/* ===== OCT-248: AI provider settings and model test (tokens only) ===== */
+/* Mirrors the app token in apps/web/src/styles/tokens.css (not in the OCT-13 prototype tokens). */
+:root{--font-mono:ui-monospace,SFMono-Regular,Menlo,monospace}
+.lang-bar{display:inline-flex}
+code,.mono{font-family:var(--font-mono)}
+.mono{font-size:var(--text-subhead-size);overflow-wrap:anywhere}
+.phone.tall{height:auto;min-height:844px}
+.phone.tall .content{overflow:visible;padding-bottom:calc(34px + var(--space-6))}
+.pcard{background:var(--color-surface);border-radius:var(--radius-lg);padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-3)}
+.pcard h3{font-size:var(--text-headline-size);line-height:var(--text-headline-lh);font-weight:600}
+.phead{display:flex;align-items:center;gap:var(--space-3)}
+.picon{display:grid;place-items:center;flex:none;width:var(--tap-min);height:var(--tap-min);border-radius:var(--radius-md);background:var(--color-accent-soft);color:var(--color-accent)}
+.picon.err{background:var(--color-danger-soft);color:var(--color-danger)}
+.picon.warn{background:var(--color-warning-soft);color:var(--color-warning)}
+.picon.off{background:var(--color-surface-2);color:var(--color-text-secondary)}
+.pname{display:flex;flex-direction:column;gap:2px;min-width:0}
+.pname b{font-size:var(--text-title-size);line-height:var(--text-title-lh);font-weight:600}
+/* status line: shape repeats colour (circle ok, diamond error, triangle warning, ring off) — as in the app */
+.sline{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-subhead-size);line-height:var(--text-subhead-lh);font-weight:600}
+.sline i{flex:none;width:var(--space-2);height:var(--space-2);border-radius:var(--radius-full);background:currentColor}
+.sline.ok{color:var(--color-accent)}
+.sline.err{color:var(--color-danger)} .sline.err i{border-radius:1px;rotate:45deg}
+.sline.warn{color:var(--color-warning)} .sline.warn i{border-radius:0;clip-path:polygon(50% 0,100% 100%,0 100%)}
+.sline.off{color:var(--color-text-secondary)} .sline.off i{background:transparent;border:2px solid currentColor}
+.sline .t-foot{font-weight:400;color:var(--color-text-secondary)}
+.cell .end{margin-left:auto;display:flex;align-items:center;gap:var(--space-2);color:var(--color-text-secondary);flex:none}
+.cell .main .sub.mono{font-size:var(--text-footnote-size);color:var(--color-text)}
+.cell.ro .main .sub{color:var(--color-text-secondary)}
+.cell.col{flex-direction:column;align-items:stretch;gap:var(--space-2)}
+.cell.col .input{min-height:var(--control-height);background:var(--color-bg)}
+.cell.col .input.locked{background:var(--color-surface-2)}
+.cell .btn-plain.btn-sm{padding:0;margin-right:calc(-1 * var(--space-1))}
+.cell.pick{min-height:var(--tap-min)}
+.cell .radio{width:22px;height:22px;flex:none;border-radius:var(--radius-full);border:2px solid var(--color-border-strong)}
+.cell .radio.on{border:6px solid var(--color-accent)}
+.cell .main.mono{display:block;flex:1}
+.cell mark{background:var(--color-selection);color:inherit;border-radius:2px}
+.grp-msg{display:flex;gap:var(--space-2);align-items:flex-start;font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);color:var(--color-text-secondary);padding:var(--space-2) var(--space-4) 0}
+.grp-msg .icon{width:var(--icon-size-sm);height:var(--icon-size-sm);flex:none}
+.grp-msg.warn .icon{color:var(--color-warning)}
+.grp-msg.err{color:var(--color-danger)}
+.btn-row{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3)}
+.sect-h{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3)}
+.sect-h .group-h{margin:0;padding:0}
+.prog{height:var(--progress-height);border-radius:var(--radius-full);background:var(--color-surface-2);overflow:hidden}
+.prog i{display:block;height:100%;background:var(--color-accent);border-radius:inherit}
+.prog-h{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3)}
+.trows{display:flex;flex-direction:column}
+.trow{display:flex;gap:var(--space-3);align-items:flex-start;padding:var(--space-3) 0;position:relative}
+.trow+.trow::before{content:"";position:absolute;top:0;right:0;left:calc(var(--meal-thumb-size) + var(--space-3));border-top:1px solid var(--color-separator)}
+.trow .thumb{width:var(--meal-thumb-size);height:var(--meal-thumb-size);border-radius:var(--radius-sm)}
+.trow .main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.trow .nm{font-size:var(--text-subhead-size);line-height:var(--text-subhead-lh);font-weight:600}
+.trow .ln{font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);color:var(--color-text-secondary);font-variant-numeric:tabular-nums}
+.trow .ln .badge{display:inline-flex;margin-top:2px}
+.trow .ln b{font-weight:500;color:var(--color-text)}
+.trow .rs{display:flex;flex-direction:column;align-items:flex-end;gap:var(--space-1);flex:none;font-size:var(--text-footnote-size);color:var(--color-text-secondary);font-variant-numeric:tabular-nums}
+.trow.wait .nm{color:var(--color-text-secondary);font-weight:500}
+.badge .icon{width:12px;height:12px}
+.res{display:flex;align-items:baseline;gap:var(--space-2);flex-wrap:wrap}
+.res b{font-size:var(--text-large-title-size);line-height:var(--text-large-title-lh);font-weight:700;letter-spacing:var(--tracking-tight);font-variant-numeric:tabular-nums}
+.res span{font-size:var(--text-headline-size);font-weight:600}
+.metrics{font-size:var(--text-subhead-size);line-height:var(--text-subhead-lh);font-variant-numeric:tabular-nums}
+.meta{font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);color:var(--color-text-secondary)}
+.acts{display:flex;flex-direction:column;gap:var(--space-2)}
+/* comparison, phone */
+.run{display:flex;flex-direction:column;gap:var(--space-1);padding:var(--space-3) var(--space-4);position:relative}
+.run+.run::before{content:"";position:absolute;top:0;right:0;left:var(--space-4);border-top:1px solid var(--color-separator)}
+.run-top,.run-sub{display:flex;justify-content:space-between;align-items:baseline;gap:var(--space-3)}
+.run-top .mono{font-size:var(--text-subhead-size);font-weight:600;min-width:0}
+.run-top .sc{font-size:var(--text-title-size);font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.run.best .sc{color:var(--color-accent)}
+.run.part .sc{color:var(--color-text-secondary)}
+.run-sub{font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);color:var(--color-text-secondary);font-variant-numeric:tabular-nums}
+.run-sub .r{white-space:nowrap}
+.run-tags{display:flex;gap:var(--space-2);align-items:center}
+.run.open{background:var(--color-hover)}
+.run .more-acts{display:flex;flex-wrap:wrap;gap:var(--space-2);margin-top:var(--space-2)}
+.dots{display:flex;gap:var(--space-2);align-items:center;margin-top:var(--space-1)}
+.dots i{width:var(--space-3);height:var(--space-3);border-radius:var(--radius-full);background:var(--color-accent)}
+.dots i.f{background:var(--color-danger);border-radius:2px;rotate:45deg;scale:.85}
+.dots i.s{background:transparent;border:2px solid var(--color-border-strong)}
+/* model sheet */
+.sheet.full{top:calc(54px + var(--space-2));gap:var(--space-3);padding-bottom:0}
+.search{display:flex;align-items:center;gap:var(--space-2);min-height:var(--control-height);padding:0 var(--space-3);border-radius:var(--radius-md);background:var(--color-surface-2);color:var(--color-text-secondary);font-size:var(--text-body-size)}
+.search .val{color:var(--color-text);flex:1}
+.search.focus{box-shadow:inset 0 0 0 2px var(--color-accent)}
+.mlist{flex:1;overflow:hidden;display:flex;flex-direction:column;gap:var(--space-1);margin:0 calc(-1 * var(--screen-gutter));padding:0 var(--screen-gutter)}
+.mlist .group-h{margin-top:var(--space-3)}
+.sheet-foot{border-top:1px solid var(--color-separator);margin:0 calc(-1 * var(--screen-gutter));padding:var(--space-2) var(--screen-gutter) calc(34px + var(--space-2));background:var(--color-surface)}
+.icon-btn{width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;color:var(--color-accent);flex:none}
+.sel-text{padding:var(--space-3);border-radius:var(--radius-md);background:var(--color-surface-2);font-family:var(--font-mono);font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);user-select:all;overflow-wrap:anywhere;outline:2px solid var(--color-accent);outline-offset:-2px}
+/* desktop */
+.desk .cols.even{grid-template-columns:1fr 1fr;align-items:start}
+.desk .stack>.group-h{padding-left:0}
+.tbl{width:100%;border-collapse:collapse;font-size:var(--text-subhead-size);line-height:var(--text-subhead-lh);font-variant-numeric:tabular-nums}
+.tbl th{text-align:left;font-size:var(--text-footnote-size);font-weight:500;color:var(--color-text-secondary);padding:var(--space-2) var(--space-3);border-bottom:1px solid var(--color-separator);white-space:nowrap}
+.tbl td{padding:var(--space-3);border-bottom:1px solid var(--color-separator);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:0}
+.tbl td.n,.tbl th.n{text-align:right}
+.tbl .sub{display:block;font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.tbl tr.hover td{background:var(--color-hover)}
+.tbl tr.best .sc{color:var(--color-accent);font-weight:700}
+.tbl .thumb{width:var(--meal-thumb-size);height:var(--meal-thumb-size);border-radius:var(--radius-sm)}
+.tbl .ra{display:flex;gap:var(--space-1);justify-content:flex-end;color:var(--color-text-secondary)}
+.tbl .ra span{width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;border-radius:var(--radius-sm)}
+.tbl .ra span.on{background:var(--color-surface-2);color:var(--color-text)}
+.btn-sm{white-space:nowrap}
+.desk .pcard.wide{padding:var(--space-5)}
+/* docs */
+.spec{max-width:1000px;font-size:var(--text-subhead-size);line-height:var(--text-subhead-lh);display:flex;flex-direction:column;gap:var(--space-2)}
+.spec h3{font-size:var(--text-headline-size);margin-top:var(--space-4)}
+.spec li{margin-left:var(--space-5)}
+.copy{border-collapse:collapse;max-width:1200px;font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);margin-top:var(--space-4)}
+.copy th,.copy td{border:1px solid var(--color-separator);padding:var(--space-2) var(--space-3);text-align:left;vertical-align:top}
+.copy th{background:var(--color-surface-2);font-weight:600}
+.copy td:first-child{color:var(--color-text-secondary);white-space:nowrap}
+.copy tr.new td:first-child::after{content:" ●";color:var(--color-accent)}
+
+/* ===== OCT-178: per-user AI (tokens only) ===== */
+.switch{width:var(--switch-width);height:var(--switch-height);border-radius:var(--radius-full);background:var(--color-border-strong);position:relative;flex:none;margin-left:auto}
+.switch::after{content:"";position:absolute;top:2px;left:2px;width:calc(var(--switch-height) - 4px);height:calc(var(--switch-height) - 4px);border-radius:50%;background:var(--color-surface);box-shadow:0 2px 4px rgb(0 0 0 / .2)}
+.switch.on{background:var(--color-accent)}
+.switch.on::after{translate:calc(var(--switch-width) - var(--switch-height)) 0}
+.switch.locked{opacity:.45}
+.cell .stat{display:flex;flex-direction:column;gap:var(--space-1);flex:1;min-width:0}
+.where{display:flex;gap:var(--space-2);align-items:flex-start;font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);color:var(--color-text-secondary)}
+.where .icon{width:var(--icon-size-sm);height:var(--icon-size-sm);flex:none;margin-top:1px}
+.kv{display:flex;flex-direction:column;border-radius:var(--radius-md);background:var(--color-surface-2)}
+.kv .r{display:flex;gap:var(--space-3);padding:var(--space-3) var(--space-4);position:relative;font-size:var(--text-subhead-size);line-height:var(--text-subhead-lh)}
+.kv .r+.r::before{content:"";position:absolute;top:0;right:0;left:var(--space-4);border-top:1px solid var(--color-separator)}
+.kv .k{flex:none;width:96px;color:var(--color-text-secondary)}
+.kv .v{flex:1;min-width:0}
+.kv .v small{display:block;font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.dimmed{opacity:.5;pointer-events:none}
+.steps{list-style:none;padding:0;display:flex;flex-direction:column;gap:var(--space-3);counter-reset:s}
+.steps li{display:flex;gap:var(--space-3);align-items:flex-start;font-size:var(--text-subhead-size);line-height:var(--text-subhead-lh);counter-increment:s}
+.steps li::before{content:counter(s);flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:var(--color-accent-soft);color:var(--color-accent);font-size:var(--text-caption-size);font-weight:700}
+.code-big{font-family:var(--font-mono);font-size:var(--text-title-size);font-weight:600;letter-spacing:.08em;padding:var(--space-3);border-radius:var(--radius-md);background:var(--color-surface-2);text-align:center}
+.draft{font-size:var(--text-caption-size);font-weight:600;color:var(--color-warning);text-transform:uppercase;letter-spacing:.04em}
+.pill{display:inline-flex;align-items:center;gap:var(--space-2);min-height:var(--tap-min);padding:0 var(--space-4);border-radius:var(--radius-full);font-size:var(--text-footnote-size);background:var(--color-surface-2);color:var(--color-text-secondary)}
+.pill .link{font-weight:600}
+.viewfinder{flex:1;position:relative;background:#000;display:flex;flex-direction:column;justify-content:space-between;align-items:center;padding:var(--space-4) 0 calc(34px + var(--space-6))}
+.viewfinder .shot{position:absolute;inset:60px 0 170px;opacity:.9}
+.viewfinder .shot svg{width:100%;height:100%}
+.viewfinder .pill{position:relative;background:rgb(0 0 0 / .55);color:#fff}
+.viewfinder .pill .link{color:#fff}
+.viewfinder .shutter{position:relative;width:72px;height:72px;border-radius:50%;border:4px solid #fff;background:rgb(255 255 255 / .9);box-shadow:inset 0 0 0 3px #000}
+.bubble{max-width:85%;padding:var(--space-3) var(--space-4);border-radius:var(--radius-lg);font-size:var(--text-body-size);line-height:var(--text-body-lh)}
+.bubble.user{align-self:flex-end;background:var(--color-accent);color:var(--color-on-accent)}
+.bubble.bot{align-self:flex-start;background:var(--color-surface)}
+.daycap{display:flex;gap:var(--space-2);align-items:center;font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.daycap .icon{width:var(--icon-size-sm);height:var(--icon-size-sm)}
+.mealrow{display:flex;gap:var(--space-3);align-items:center;padding:var(--space-3) var(--space-4);background:var(--color-surface);border-radius:var(--radius-md)}
+.mealrow .thumb{width:var(--meal-thumb-size);height:var(--meal-thumb-size);border-radius:var(--radius-sm)}
+</style></head><body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-key" viewBox="0 0 24 24"><path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"/><circle cx="16.5" cy="7.5" r=".5"/></symbol>
+  <symbol id="i-chev-r" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="i-chev-l" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+  <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 2v13"/><path d="m16 6-4-4-4 4"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-camera" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></symbol>
+  <symbol id="i-wifi-off" viewBox="0 0 24 24"><path d="M12 20h.01"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/><path d="M5 12.859a10 10 0 0 1 5.17-2.69"/><path d="M19 12.859a10 10 0 0 0-2.007-1.523"/><path d="M2 8.82a15 15 0 0 1 4.177-2.643"/><path d="M22 8.82a15 15 0 0 0-11.288-3.764"/><path d="m2 2 20 20"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
+  <symbol id="i-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></symbol>
+  <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+  <symbol id="i-user-plus" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6"/><path d="M22 11h-6"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></symbol>
+  <symbol id="i-plate" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/></symbol>
+</svg>
+<!-- Extra icons for OCT-16 (Lucide geometry; lucide-react names in the doc) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></symbol>
+  <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/></symbol>
+  <symbol id="i-retake" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></symbol>
+  <symbol id="i-history" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></symbol>
+  <symbol id="i-gauge" viewBox="0 0 24 24"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></symbol>
+  <symbol id="i-cloud-off" viewBox="0 0 24 24"><path d="m2 2 20 20"/><path d="M5.782 5.782A7 7 0 0 0 9 19h8.5a4.5 4.5 0 0 0 1.307-.193"/><path d="M21.532 16.5A4.5 4.5 0 0 0 17.5 10h-1.79A7.008 7.008 0 0 0 10 5.07"/></symbol>
+  <symbol id="i-search-x" viewBox="0 0 24 24"><path d="m13.5 8.5-5 5"/><path d="m8.5 8.5 5 5"/><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m17 8-5-5-5 5"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></symbol>
+  <!-- Prototype-only stand-in for the user's photo (real app shows the actual photo) -->
+  <symbol id="ph-food" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice">
+    <rect width="400" height="300" fill="#7a6552"/><rect width="400" height="300" fill="url(#wood)" opacity=".35"/>
+    <ellipse cx="200" cy="160" rx="150" ry="118" fill="#e9e5dc"/><ellipse cx="200" cy="160" rx="118" ry="92" fill="#f5f2ea"/>
+    <path d="M110 150c10-40 60-52 90-40 20 8 22 40 6 58-22 24-74 22-90 6-8-8-9-16-6-24z" fill="#8a5b37"/>
+    <g fill="#6e4528"><circle cx="135" cy="140" r="5"/><circle cx="160" cy="128" r="4"/><circle cx="180" cy="150" r="5"/><circle cx="150" cy="160" r="4"/></g>
+    <path d="M210 110c30-18 76-10 88 10 10 18-6 40-40 44-30 4-56-6-58-24-1-12 2-22 10-30z" fill="#d9a86a"/>
+    <path d="M222 122l60 6M220 138l66 4M226 152l52 2" stroke="#b5803f" stroke-width="5" stroke-linecap="round"/>
+    <ellipse cx="236" cy="210" rx="28" ry="20" fill="#fbfaf5"/><circle cx="236" cy="210" r="11" fill="#f2b632"/>
+    <ellipse cx="282" cy="196" rx="26" ry="19" fill="#fbfaf5"/><circle cx="282" cy="196" r="10" fill="#f2b632"/>
+    <ellipse cx="160" cy="212" rx="24" ry="14" fill="#f4eedb"/>
+    <defs><pattern id="wood" width="40" height="300" patternUnits="userSpaceOnUse"><path d="M0 0v300M20 0v300" stroke="#5a4636" stroke-width="2"/></pattern></defs>
+  </symbol>
+</svg>
+<!-- Extra icons for OCT-19 (Lucide geometry; lucide-react names in the doc) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-calendar" viewBox="0 0 24 24"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></symbol>
+  <symbol id="i-chev-d" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></symbol>
+  <symbol id="i-utensils" viewBox="0 0 24 24"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 3 2h3Zm0 0v7"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></symbol>
+  <symbol id="i-moon-star" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+  <symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol>
+</svg>
+<!-- Extra icons for OCT-189 (Lucide geometry; lucide-react names in the doc) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-scale" viewBox="0 0 24 24"><circle cx="12" cy="5" r="3"/><path d="M6.5 8a2 2 0 0 0-1.905 1.46L2.1 18.5A2 2 0 0 0 4 21h16a2 2 0 0 0 1.925-2.54L19.4 9.5A2 2 0 0 0 17.48 8Z"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></symbol>
+  <symbol id="i-party" viewBox="0 0 24 24"><path d="M5.8 11.3 2 22l10.7-3.79"/><path d="M4 3h.01"/><path d="M22 8h.01"/><path d="M15 2h.01"/><path d="M22 20h.01"/><path d="m22 2-2.24.75a2.9 2.9 0 0 0-1.96 3.12c.1.86-.57 1.63-1.45 1.63h-.38c-.86 0-1.6.6-1.76 1.44L14 10"/><path d="m22 13-.82-.33c-.86-.34-1.82.2-1.98 1.11c-.11.7-.72 1.22-1.43 1.22H17"/><path d="m11 2 .33.82c.34.86-.2 1.82-1.11 1.98C9.52 4.9 9 5.52 9 6.23V7"/><path d="M11 13c1.93 1.93 2.83 4.17 2 5-.83.83-3.07-.07-5-2-1.93-1.93-2.83-4.17-2-5 .83-.83 3.07.07 5 2Z"/></symbol>
+  <symbol id="i-move" viewBox="0 0 24 24"><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></symbol>
+</svg>
+<!-- Extra icons for OCT-248 (Lucide geometry: search, square, flask-conical, power, external-link, triangle-alert, eye-off, server) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+  <symbol id="i-square" viewBox="0 0 24 24"><rect width="14" height="14" x="5" y="5" rx="2"/></symbol>
+  <symbol id="i-flask" viewBox="0 0 24 24"><path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2"/><path d="M8.5 2h7"/><path d="M7 16h10"/></symbol>
+  <symbol id="i-power" viewBox="0 0 24 24"><path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 1 1-12.77.04"/></symbol>
+  <symbol id="i-ext" viewBox="0 0 24 24"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
+  <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/></symbol>
+</svg>
+<!-- Extra icons for OCT-178 (Lucide geometry: server, smartphone, hand, file-text, message-circle, ban, log-in) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-server" viewBox="0 0 24 24"><rect width="20" height="8" x="2" y="2" rx="2"/><rect width="20" height="8" x="2" y="14" rx="2"/><path d="M6 6h.01"/><path d="M6 18h.01"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><rect width="14" height="20" x="5" y="2" rx="2"/><path d="M12 18h.01"/></symbol>
+  <symbol id="i-msg" viewBox="0 0 24 24"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></symbol>
+  <symbol id="i-ban" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></symbol>
+  <symbol id="i-login" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="m10 17 5-5-5-5"/><path d="M15 12H3"/></symbol>
+</svg>
+<div id="doc"></div>
+<script type="module">
+const NB = ' ';
+const KEY = 'oct-preview-lang';
+let lang = new URLSearchParams(location.search).get('lang');
+try { lang = lang || localStorage.getItem(KEY); } catch (e) {}
+lang = lang === 'en' ? 'en' : 'ru';
+
+const S = {
+  ru: {
+    settings:'Настройки', ai:'ИИ', admin:'ИИ-провайдер', addFood:'Добавить еду', tabs:['Сегодня','Дневник','Неделя','Профиль'],
+    /* user screen */
+    device:'На этом устройстве', deviceSw:'ИИ на этом устройстве',
+    deviceNote:'Выключите — с этого устройства ничего не уйдёт провайдерам ИИ, еду вводите вручную. Другие устройства не меняются.',
+    deviceNoteWeb:'Хранится в этом браузере и сбросится, если очистить данные сайта.',
+    deviceOffBanner:'ИИ выключен на этом устройстве', deviceOffBody:'Отсюда ничего не уходит провайдерам. Источник и согласия ниже действуют на других ваших устройствах.',
+    how:'Как работает ИИ', srcServer:'Через сервер', srcKey:'Свой API-ключ', srcSub:'Моя подписка ChatGPT',
+    srcServerSub:p=>`${p} · настроил администратор`, srcServerSubAdm:'ChatGPT (подписка администратора)', srcServerNone:'На сервере ИИ не настроен — ручной ввод',
+    srcKeySub:'Запросы оплачиваете вы', srcSubSub:'Plus или Pro — из лимита вашей подписки',
+    ok:'Работает', checked:w=>`Проверено · ${w}`, min5:'5 мин назад', now:'только что', notChecked:'Ещё не проверялось',
+    check:'Проверить', checking:'Проверяем…', save:'Сохранить', cancel:'Отмена',
+    keyGroup:'Ваш ключ', provider:'Провайдер', key:'Ключ API', keySet:l=>`…${l}`, replace:'Заменить ключ', keyPh:'Вставьте ключ', model:'Модель', address:'Адрес',
+    saveNote:'«Сохранить» сначала проверит ключ. Ключ, который не прошёл проверку, не сохраняем.',
+    whereServer:'Ключ хранится на сервере в зашифрованном виде. Администратор его не видит. Запросы идут через сервер.',
+    wherePhone:'Ключ хранится на этом телефоне. Запросы идут с телефона напрямую к провайдеру — на сервер ключ не попадает.',
+    whereOther:'На других устройствах ключ нужно добавить отдельно.',
+    delKey:'Удалить ключ', delKeyQ:'Удалить ключ?', delKeyBody:'ИИ снова будет работать через сервер. Ключ удалится с этого устройства и с сервера.', delBtn:'Удалить',
+    keyBad:'Ключ не подходит', keyBadBody:'Провайдер не принял ключ. Проверьте его в кабинете провайдера или замените.',
+    notSavedKey:'Не сохранено: провайдер не принял ключ', notSavedKeyBody:'Проверьте, что ключ скопирован целиком и у него есть доступ к модели.',
+    subGroup:'Подписка ChatGPT', subConnect:'Подключить ChatGPT', subNot:'Не подключена', subNotBody:'Войдите в свой аккаунт ChatGPT — распознавание пойдёт из лимита вашей подписки. Лимит общий с ChatGPT и Codex.',
+    subOk:'Подключена', account:'Аккаунт', since:'Вход', subOff:'Отключить подписку', subUsage:'Лимит для приложений — в настройках ChatGPT',
+    consents:'Согласия', revoke:'Отозвать', viaServer:'Через сервер', viaPhone:'Напрямую с этого телефона', sinceD:d=>`с ${d}`,
+    local:h=>`Локальная модель ${h}`, localSub:'Данные не покидают вашу сеть',
+    consentsNote:'Уже отправленные данные отозвать нельзя — они у провайдера по его правилам.',
+    consentsEmpty:'Вы пока никому не разрешали передачу данных. Спросим перед первым обращением к ИИ.',
+    revokeQ:p=>`Отозвать согласие для ${p}?`, revokeBody:'ИИ перестанет отправлять туда ваши данные. При следующем фото спросим снова. Уже отправленное останется у провайдера.', revokeBtn:'Отозвать',
+    revoked:'Согласие отозвано',
+    adminOff:'Администратор отключил свои ключи', adminOffBody:'Ваш ключ удалён. ИИ работает через сервер — при первом обращении спросим согласие.',
+    offline:'Нет сети', offlineBody:'Настройки видны, но сохранить ключ, подключить подписку или отозвать согласие можно только с сетью. Выключатель на устройстве работает и так.',
+    needNet:'Нужна сеть',
+    /* consent */
+    cTitle:p=>`Отправлять данные в ${p}?`, cLead:'Для распознавания ИИ нужно передать данные внешнему сервису. Решите сами — без ИИ всё тоже работает.',
+    cWho:'Кому', cRoute:'Как', cWhat:'Что уйдёт',
+    cRouteServer:h=>`Через сервер установки`, cRouteServerSub:h=>h,
+    cRoutePhone:'Напрямую с этого телефона', cRoutePhoneSub:'Ваш ключ, сервер установки не участвует',
+    cWhatPhoto:'Фото еды', cWhatPhotoSub:'Без геолокации и данных камеры',
+    cWhatAgent:'Ваши ответы в диалоге нормы', cWhatAgentSub:'Возраст, рост, вес, активность, цель',
+    cAfter:'Дальше так же: всё, что вы отправляете ИИ, уходит этому сервису этим путём. Отозвать — в Настройках → ИИ.',
+    policy:p=>`Политика данных ${p}`, allow:'Разрешить', notNow:'Не сейчас',
+    gemTitle:'Бесплатный тариф Gemini', gemBody:'Google может использовать запросы для улучшения своих продуктов.',
+    manualTitle:'Новый приём пищи', manualNote:'Без распознавания. Фото прикреплено — распознать можно позже.', recognize:'Распознать', addDish:'Добавить блюдо',
+    formAgent:'Заполнить форму',
+    /* admin */
+    conn:'Подключение', compat:'OpenAI-совместимый', subProv:'Подписка ChatGPT', subProvHint:'Plus или Pro — вход в аккаунт, без ключа',
+    provHint:{google:'Есть бесплатный тариф', openai:'', anthropic:'', openrouter:'Сотни моделей разных компаний', compat:'Ollama, LM Studio и др. — свой адрес'},
+    admNot:'Подписка ChatGPT: не подключена', admNotBody:'Войдите в ChatGPT аккаунтом с Plus или Pro. Пока не подключено, ИИ сервера не работает — все вводят еду вручную.',
+    shareTitle:'Лимит один на всех', shareBody:'Запросы всех, кто пользуется ИИ через сервер, расходуют лимит вашей подписки — общий с ChatGPT и Codex.',
+    signIn:'Войти в ChatGPT', signInAgain:'Войти заново', checkNow:'Проверить сейчас', disconnect:'Отключить подписку',
+    disconnectQ:'Отключить подписку?', disconnectBody:'ИИ сервера перестанет работать: все будут вводить еду вручную, пока вы не войдёте снова или не выберете другого провайдера.',
+    expired:'Вход в ChatGPT истёк', expiredBody:'Войдите заново. Пока пользователи вводят еду вручную.',
+    limit:'Лимит подписки исчерпан', limitBody:'Распознавание вернётся, когда лимит обновится. Пока пользователи вводят еду вручную.',
+    stepsTitle:'Вход в ChatGPT', draft:'Набросок — точный поток решает ADR',
+    step1:'Откройте ссылку на любом устройстве и войдите в ChatGPT', step2:'Введите код', step3:'Разрешите доступ приложению «OpenCalorieTracker»', step4:'Вернитесь сюда — экран обновится сам',
+    copyLink:'Скопировать ссылку', waiting:'Ждём подтверждения…',
+    users:'Пользователи', allowKeys:'Разрешить свой API-ключ', allowKeysNote:'Каждый сможет подключить свой ключ в Настройках → ИИ. Запросы с ним оплачивает владелец ключа.',
+    allowKeysEnv:'Задано в .env (AI_USER_KEYS)',
+    forbidQ:'Запретить свои ключи?', forbidBody:n=>`Ключи ${n} пользователей удалятся, они перейдут на ИИ сервера.`, forbidBtn:'Запретить',
+    privacy:'Куда уходят данные', privSub:'Фото еды и сообщения агента нормы тех, кто пользуется ИИ через сервер, отправляются <b>OpenAI</b> (ChatGPT) от вашего аккаунта. Фото без EXIF и геолокации. Каждый пользователь сначала даёт согласие.',
+    /* errors */
+    eKeyBad:'Ваш ключ не подходит', eKeyBadBody:'Проверьте его в Настройках → ИИ. Пока добавьте блюда вручную — фото прикреплено.',
+    eKeyQuota:'Лимит вашего ключа исчерпан', eKeyQuotaBody:'Когда лимит обновится, нажмите «Распознать». Пока — вручную, фото прикреплено.',
+    eSubQuota:'Лимит вашей подписки ChatGPT исчерпан', eSubQuotaBody:'Когда лимит обновится, нажмите «Распознать». Пока — вручную, фото прикреплено.',
+    eSubExp:'Вход в ChatGPT истёк', eSubExpBody:'Подключите ChatGPT снова в Настройках → ИИ.',
+    eServer:'ИИ сервера недоступен', eServerBody:'Запишите вручную — фото прикреплено.',
+    eServerAdmin:'ИИ сервера доступен только администратору',
+    toSettings:'Настройки ИИ', reconnect:'Подключить снова',
+    agentBad:'Ваш ключ не подходит — не могу ответить. Проверьте ключ в Настройках → ИИ или заполните норму формой.',
+    agentQuota:'Лимит вашей подписки ChatGPT исчерпан. Продолжим, когда он обновится, — или заполните норму формой.',
+    agentTitle:'Агент нормы', agentMsg:'Мне 34, рост 172, вешу 70', agentHi:'Привет! Расскажите о себе: возраст, рост, вес.',
+    offCap:'ИИ выключен на этом устройстве', offCapLink:'Настройки',
+    today:'Сегодня', todayDate:'Ср, 18 ноября', breakfast:'Завтрак · 8:40', bfDish:'Сырники со сметаной', kcal:'ккал',
+    noDishes:'Блюд пока нет', manualOnly:'Фото без распознавания',
+    rowAi:'ИИ', rowAiSub:{server:'Через сервер · Google Gemini', key:'Свой ключ · OpenAI', off:'Выключен на этом устройстве'},
+  },
+  en: {
+    settings:'Settings', ai:'AI', admin:'AI provider', addFood:'Add food', tabs:['Today','Diary','Week','Profile'],
+    device:'On this device', deviceSw:'AI on this device',
+    deviceNote:'Turn it off and nothing from this device goes to AI providers — you log food manually. Your other devices don’t change.',
+    deviceNoteWeb:'Stored in this browser and reset if you clear site data.',
+    deviceOffBanner:'AI is off on this device', deviceOffBody:'Nothing is sent to providers from here. The source and consents below still apply on your other devices.',
+    how:'How AI works', srcServer:'Through the server', srcKey:'My own API key', srcSub:'My ChatGPT subscription',
+    srcServerSub:p=>`${p} · set up by the admin`, srcServerSubAdm:'ChatGPT (admin’s subscription)', srcServerNone:'No AI on the server — manual entry',
+    srcKeySub:'You pay for the requests', srcSubSub:'Plus or Pro — uses your subscription limit',
+    ok:'Working', checked:w=>`Checked · ${w}`, min5:'5 min ago', now:'just now', notChecked:'Not checked yet',
+    check:'Check', checking:'Checking…', save:'Save', cancel:'Cancel',
+    keyGroup:'Your key', provider:'Provider', key:'API key', keySet:l=>`…${l}`, replace:'Replace key', keyPh:'Paste the key', model:'Model', address:'Address',
+    saveNote:'Save checks the key first. A key that fails the check isn’t saved.',
+    whereServer:'The key is stored encrypted on the server. The admin can’t see it. Requests go through the server.',
+    wherePhone:'The key is stored on this phone. Requests go straight from the phone to the provider — the key never reaches the server.',
+    whereOther:'On your other devices, add the key separately.',
+    delKey:'Delete key', delKeyQ:'Delete the key?', delKeyBody:'AI will work through the server again. The key will be removed from this device and the server.', delBtn:'Delete',
+    keyBad:'Key doesn’t work', keyBadBody:'The provider rejected the key. Check it in your provider account or replace it.',
+    notSavedKey:'Not saved: the provider rejected the key', notSavedKeyBody:'Make sure you copied the whole key and it has access to the model.',
+    subGroup:'ChatGPT subscription', subConnect:'Connect ChatGPT', subNot:'Not connected', subNotBody:'Sign in to your ChatGPT account — recognition will use your subscription limit, shared with ChatGPT and Codex.',
+    subOk:'Connected', account:'Account', since:'Signed in', subOff:'Disconnect subscription', subUsage:'App usage limit — in ChatGPT settings',
+    consents:'Consents', revoke:'Revoke', viaServer:'Through the server', viaPhone:'Directly from this phone', sinceD:d=>`since ${d}`,
+    local:h=>`Local model ${h}`, localSub:'Your data stays on your network',
+    consentsNote:'Data already sent can’t be taken back — the provider keeps it under its own rules.',
+    consentsEmpty:'You haven’t allowed any provider yet. We’ll ask before the first AI request.',
+    revokeQ:p=>`Revoke consent for ${p}?`, revokeBody:'AI will stop sending your data there. We’ll ask again on your next photo. Data already sent stays with the provider.', revokeBtn:'Revoke',
+    revoked:'Consent revoked',
+    adminOff:'The admin turned off personal keys', adminOffBody:'Your key was deleted. AI now works through the server — we’ll ask for consent on first use.',
+    offline:'No connection', offlineBody:'You can see the settings, but saving a key, connecting a subscription or revoking consent needs a connection. The device switch works offline.',
+    needNet:'Needs a connection',
+    cTitle:p=>`Send data to ${p}?`, cLead:'AI recognition needs to send data to an outside service. It’s up to you — everything works without AI too.',
+    cWho:'To', cRoute:'How', cWhat:'What’s sent',
+    cRouteServer:h=>`Through your server`, cRouteServerSub:h=>h,
+    cRoutePhone:'Directly from this phone', cRoutePhoneSub:'Your key; your server isn’t involved',
+    cWhatPhoto:'Food photo', cWhatPhotoSub:'No location or camera data',
+    cWhatAgent:'Your answers in the goal chat', cWhatAgentSub:'Age, height, weight, activity, goal',
+    cAfter:'From now on, whatever you send to AI goes to this service this way. Revoke in Settings → AI.',
+    policy:p=>`${p} data policy`, allow:'Allow', notNow:'Not now',
+    gemTitle:'Gemini free tier', gemBody:'Google may use requests to improve its products.',
+    manualTitle:'New meal', manualNote:'Not recognized. The photo is attached — you can recognize it later.', recognize:'Recognize', addDish:'Add dish',
+    formAgent:'Fill in the form',
+    conn:'Connection', compat:'OpenAI-compatible', subProv:'ChatGPT subscription', subProvHint:'Plus or Pro — sign in, no key needed',
+    provHint:{google:'Has a free tier', openai:'', anthropic:'', openrouter:'Hundreds of models from many companies', compat:'Ollama, LM Studio and others — your own address'},
+    admNot:'ChatGPT subscription: not connected', admNotBody:'Sign in to ChatGPT with a Plus or Pro account. Until then, server AI is off — everyone logs food manually.',
+    shareTitle:'One limit for everyone', shareBody:'Requests from everyone using AI through the server use your subscription limit — shared with ChatGPT and Codex.',
+    signIn:'Sign in to ChatGPT', signInAgain:'Sign in again', checkNow:'Check now', disconnect:'Disconnect subscription',
+    disconnectQ:'Disconnect the subscription?', disconnectBody:'Server AI will stop working: everyone logs food manually until you sign in again or choose another provider.',
+    expired:'ChatGPT sign-in expired', expiredBody:'Sign in again. Until then, people log food manually.',
+    limit:'Subscription limit reached', limitBody:'Recognition comes back when the limit resets. Until then, people log food manually.',
+    stepsTitle:'Sign in to ChatGPT', draft:'Sketch — the exact flow is up to the ADR',
+    step1:'Open the link on any device and sign in to ChatGPT', step2:'Enter the code', step3:'Allow access for “OpenCalorieTracker”', step4:'Come back here — this screen updates by itself',
+    copyLink:'Copy link', waiting:'Waiting for confirmation…',
+    users:'Users', allowKeys:'Allow personal API keys', allowKeysNote:'Anyone can add their own key in Settings → AI. The key’s owner pays for its requests.',
+    allowKeysEnv:'Set in .env (AI_USER_KEYS)',
+    forbidQ:'Turn off personal keys?', forbidBody:n=>`Keys of ${n} people will be deleted; they’ll switch to server AI.`, forbidBtn:'Turn off',
+    privacy:'Where your data goes', privSub:'Food photos and goal chat messages of everyone using AI through the server are sent to <b>OpenAI</b> (ChatGPT) from your account. Photos have no EXIF or location. Each person gives consent first.',
+    eKeyBad:'Your key doesn’t work', eKeyBadBody:'Check it in Settings → AI. For now, add dishes manually — the photo is attached.',
+    eKeyQuota:'Your key’s limit is used up', eKeyQuotaBody:'When it resets, tap Recognize. For now, log manually — the photo is attached.',
+    eSubQuota:'Your ChatGPT subscription limit is used up', eSubQuotaBody:'When it resets, tap Recognize. For now, log manually — the photo is attached.',
+    eSubExp:'ChatGPT sign-in expired', eSubExpBody:'Connect ChatGPT again in Settings → AI.',
+    eServer:'Server AI is unavailable', eServerBody:'Log it manually — the photo is attached.',
+    eServerAdmin:'Server AI is only available to the admin',
+    toSettings:'AI settings', reconnect:'Connect again',
+    agentBad:'Your key doesn’t work, so I can’t reply. Check the key in Settings → AI, or set your goal with the form.',
+    agentQuota:'Your ChatGPT subscription limit is used up. We can continue when it resets — or set your goal with the form.',
+    agentTitle:'Goal assistant', agentMsg:'I’m 34, 172 cm, 70 kg', agentHi:'Hi! Tell me about yourself: age, height, weight.',
+    offCap:'AI is off on this device', offCapLink:'Settings',
+    today:'Today', todayDate:'Wed, Nov 18', breakfast:'Breakfast · 8:40', bfDish:'Cottage cheese pancakes', kcal:'kcal',
+    noDishes:'No dishes yet', manualOnly:'Photo, not recognized',
+    rowAi:'AI', rowAiSub:{server:'Through the server · Google Gemini', key:'Own key · OpenAI', off:'Off on this device'},
+  },
+};
+let T = S[lang];
+const I = (id, cls='') => `<svg class="icon ${cls}" aria-hidden="true"><use href="#i-${id}"/></svg>`;
+const D = () => lang === 'ru' ? `18${NB}нояб.` : `Nov${NB}18`;
+const SB = (dark) => `<div class="island"></div><div class="status" ${dark ? 'style="background:#000;color:#fff"' : ''}><span>9:41</span></div>`;
+const navb = (back, title, act='') => `<div class="navbar"><span class="back">${I('chev-l')}${back}</span><span class="title">${title}</span>${act ? `<span class="act">${act}</span>` : '<span></span>'}</div>`;
+const phone = (inner, cap, o={}) => `<figure class="frame"><div class="phone ${o.tall ? 'tall' : ''}">${SB()}${o.nav ?? navb(T.settings, T.ai)}${o.top || ''}<div class="content"><div class="pad stack">${inner}</div></div>${o.over || ''}<div class="home-ind"></div></div><figcaption>${cap}</figcaption></figure>`;
+const scrim = '<div class="scrim"></div>';
+const alertBox = (title, body, btns) => `${scrim}<div class="alert" role="alertdialog"><b class="t-headline">${title}</b><p class="t-sub">${body}</p><div class="btns col">${btns}</div></div>`;
+const toast = (txt, act) => `<div class="toast" role="status" style="bottom:calc(34px + var(--space-3))"><span>${txt}</span>${act ? `<span class="act">${act}</span>` : ''}</div>`;
+const gh = t => `<div class="group-h">${t}</div>`;
+const gf = t => `<p class="group-f">${t}</p>`;
+const sline = (tone, text, foot) => `<span class="sline ${tone}"><i></i>${text}${foot ? ` <span class="t-foot">· ${foot}</span>` : ''}</span>`;
+const banner = (tone, ic, title, body, extra='') => `<div class="banner ${tone}">${I(ic)}<div style="flex:1"><div class="b-title">${title}</div>${body}${extra}</div></div>`;
+const ext = t => `<span class="link" style="display:inline-flex;gap:var(--space-1);align-items:center">${t}${I('ext','sm')}</span>`;
+
+/* ---------- user screen blocks ---------- */
+const device = (on = true, web = true) => `<div>${gh(T.device)}<div class="group"><div class="cell" role="switch" aria-checked="${on}"><span class="main">${T.deviceSw}</span><span class="switch ${on ? 'on' : ''}"></span></div></div>${gf(T.deviceNote + (web ? ' ' + T.deviceNoteWeb : ''))}</div>`;
+function sources(sel, o = {}){
+  const opts = [
+    ['server', T.srcServer, o.serverSub || T.srcServerSub('Google Gemini')],
+    ...(o.noKey ? [] : [['key', T.srcKey, T.srcKeySub]]),
+    ...(o.noSub ? [] : [['sub', T.srcSub, T.srcSubSub]]),
+  ];
+  return `<div>${gh(T.how)}<div class="group" role="radiogroup" aria-label="${T.how}">${opts.map(([id, n, sub]) => `<div class="cell pick" role="radio" aria-checked="${id === sel}"><span class="radio ${id === sel ? 'on' : ''}"></span><span class="main">${n}<span class="sub">${sub}</span></span></div>${id === sel && o.status ? `<div class="cell" style="padding-left:calc(var(--space-4) + 22px + var(--space-3))"><span class="stat">${o.status}</span>${o.checkBtn === false ? '' : `<button class="btn btn-plain btn-sm">${T.check}</button>`}</div>` : ''}`).join('')}</div>${o.after || ''}</div>`;
+}
+const stOk = (w = T.min5) => `${sline('ok', T.ok)}<span class="t-foot muted">${T.checked(w)}</span>`;
+const consents = (o = {}) => {
+  if (o.empty) return `<div>${gh(T.consents)}<div class="group"><div class="cell"><span class="main muted t-sub">${T.consentsEmpty}</span></div></div></div>`;
+  const rows = (o.rows || [['Google Gemini', T.viaServer, 'server']]).map(([p, via, ic]) => `<div class="cell ic"><span class="lead-ic">${I(ic,'sm')}</span><span class="main">${p}<span class="sub">${via} · ${T.sinceD(D())}</span></span><button class="btn btn-plain btn-sm ${o.off ? 'disabled' : ''}">${T.revoke}</button></div>`).join('');
+  const loc = o.local ? `<div class="cell ic"><span class="lead-ic">${I('home','sm')}</span><span class="main">${T.local('192.168.1.20')}<span class="sub">${T.localSub}</span></span></div>` : '';
+  return `<div>${gh(T.consents)}<div class="group">${rows}${loc}</div>${gf(T.consentsNote)}</div>`;
+};
+function keyGroup(o = {}){
+  const prov = `<div class="cell" role="button"><span class="main">${T.provider}<span class="sub">${o.prov || 'OpenAI'}</span></span><span class="end">${I('chev-r','sm')}</span></div>`;
+  const key = o.edit
+    ? `<div class="cell col field"><label class="t-sub">${T.key}</label><div class="input ${o.err ? 'error' : 'focus caret'}"><span class="val">••••••••••••••••••••</span><span class="trail" role="button" aria-label="Show key">${I('eye')}</span></div></div>`
+    : `<div class="cell"><span class="main">${T.key}<span class="sub mono">${T.keySet(o.last4 || 'k7Qz')}</span></span><button class="btn btn-plain btn-sm">${T.replace}</button></div>`;
+  const model = `<div class="cell" role="button"><span class="main">${T.model}<span class="sub mono">${o.model || 'gpt-5.2-mini'}</span></span><span class="end"><span class="badge ok">${lang === 'ru' ? 'фото' : 'photos'}</span>${I('chev-r','sm')}</span></div>`;
+  const where = `<div class="cell"><span class="where">${I(o.phone ? 'phone' : 'lock')}<span>${o.phone ? T.wherePhone : T.whereServer} ${T.whereOther}</span></span></div>`;
+  return `<div>${gh(T.keyGroup)}<div class="group">${prov}${key}${model}${o.edit ? '' : where}</div>${o.msg || ''}</div>`;
+}
+const delRow = (t = T.delKey) => `<div class="group"><div class="cell danger" role="button">${I('trash','sm')}<span class="main">${t}</span></div></div>`;
+const saveBtns = (busy) => busy
+  ? `<div class="stack-sm"><div class="btn-row"><button class="btn btn-tonal disabled">${T.cancel}</button><button class="btn btn-primary" aria-busy="true"><span class="spinner"></span>${T.checking}</button></div></div>`
+  : `<div class="stack-sm"><div class="btn-row"><button class="btn btn-tonal">${T.cancel}</button><button class="btn btn-primary">${T.save}</button></div><p class="t-foot muted center">${T.saveNote}</p></div>`;
+function subGroup(state){
+  if (state === 'not') return `<div>${gh(T.subGroup)}<section class="pcard">${sline('off', T.subNot)}<p class="t-sub muted">${T.subNotBody}</p><button class="btn btn-primary">${I('login','sm')}${T.subConnect}</button></section></div>`;
+  if (state === 'exp') return `<div>${gh(T.subGroup)}<section class="pcard">${sline('err', T.eSubExp)}<p class="t-sub muted">${T.eSubExpBody}</p><button class="btn btn-primary">${I('login','sm')}${T.reconnect}</button></section></div>`;
+  return `<div>${gh(T.subGroup)}<div class="group"><div class="cell"><span class="main">${T.account}<span class="sub">anna@example.com</span></span></div><div class="cell"><span class="main">${T.since}<span class="sub">${D()} 2026</span></span></div><div class="cell"><span class="where">${I('lock')}<span>${T.whereServer.replace(lang === 'ru' ? 'Ключ хранится' : 'The key is stored', lang === 'ru' ? 'Доступ хранится' : 'Access is stored')}</span></span></div><div class="cell">${ext(T.subUsage)}</div></div></div>`;
+}
+
+/* ---------- consent sheet ---------- */
+function consentSheet(o = {}){
+  const p = o.prov || 'Google Gemini';
+  const route = o.phone ? [T.cRoutePhone, T.cRoutePhoneSub, 'phone'] : [T.cRouteServer(), 'calories.home.lan', 'server'];
+  const what = o.agent ? [T.cWhatAgent, T.cWhatAgentSub] : [T.cWhatPhoto, T.cWhatPhotoSub];
+  const body = `<div class="phead"><span class="picon">${I('spark')}</span><b class="t-title">${T.cTitle(p)}</b></div>
+    <p class="t-sub muted">${T.cLead}</p>
+    <div class="kv"><div class="r"><span class="k">${T.cWho}</span><span class="v">${p}</span></div><div class="r"><span class="k">${T.cRoute}</span><span class="v">${route[0]}<small class="${o.phone ? '' : 'mono'}">${route[1]}</small></span></div><div class="r"><span class="k">${T.cWhat}</span><span class="v">${what[0]}<small>${what[1]}</small></span></div></div>
+    ${p === 'Google Gemini' ? banner('warning', 'warn', T.gemTitle, T.gemBody) : ''}
+    <p class="t-foot muted">${T.cAfter}</p>
+    ${ext(T.policy(p))}`;
+  const btns = `<div class="stack-sm"><button class="btn btn-primary">${T.allow}</button><button class="btn btn-plain">${T.notNow}</button></div>`;
+  if (o.desk) return `${scrim}<div class="dialog" role="dialog" aria-modal="true" aria-label="${T.cTitle(p)}">${body}<div style="display:flex;gap:var(--space-3);justify-content:flex-end"><button class="btn btn-plain btn-sm">${T.notNow}</button><button class="btn btn-primary btn-sm">${T.allow}</button></div></div>`;
+  return `${scrim}<div class="sheet" role="dialog" aria-modal="true" aria-label="${T.cTitle(p)}"><div class="grab"></div>${body}${btns}</div>`;
+}
+
+/* ---------- review / manual screen with photo ---------- */
+const reviewNav = () => `<div class="navbar"><span class="x-btn" role="button" aria-label="${T.cancel}">${I('x')}</span><span class="title">${T.manualTitle}</span><span class="act">${T.save}</span></div>`;
+const photo = () => `<div class="photo dim"><svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><use href="#ph-food"/></svg></div>`;
+const manual = (bn) => `${photo()}${bn}<div class="group"><div class="cell accent" role="button">${I('plus','sm')}<span class="main">${T.addDish}</span></div></div>`;
+const manualPlain = () => manual(`<div class="banner notice">${I('image')}<div style="flex:1">${T.manualNote}<div style="margin-top:var(--space-2)"><button class="btn btn-tonal btn-sm">${I('spark','sm')}${T.recognize}</button></div></div></div>`);
+const errReview = (tone, title, body, act) => manual(banner(tone, tone === 'danger' ? 'alert' : 'warn', title, body, `<div style="display:flex;gap:var(--space-2);margin-top:var(--space-2);flex-wrap:wrap">${act}</div>`));
+
+/* ---------- admin blocks ---------- */
+const admCard = (tone, text, body, model) => `<section class="pcard" aria-label="AI status"><div class="phead"><span class="picon ${tone}">${I('spark')}</span><span class="pname"><b>${T.subProv}</b>${model ? `<span class="mono muted">${model}</span>` : ''}</span></div>${sline(tone, text)}${body ? `<p class="t-sub muted">${body}</p>` : ''}</section>`;
+const admConn = (o = {}) => `<div>${gh(T.conn)}<div class="group"><div class="cell" role="button"><span class="main">${T.provider}<span class="sub">${T.subProv}</span></span><span class="end">${I('chev-r','sm')}</span></div>${o.signed ? `<div class="cell"><span class="main">${T.account}<span class="sub">admin@example.com</span></span></div><div class="cell"><span class="main">${T.since}<span class="sub">${D()} 2026</span></span></div><div class="cell" role="button"><span class="main">${T.model}<span class="sub mono">gpt-5.2</span></span><span class="end"><span class="badge ok">${lang === 'ru' ? 'фото' : 'photos'}</span>${I('chev-r','sm')}</span></div>` : ''}</div></div>`;
+const shareWarn = () => banner('warning', 'users', T.shareTitle, T.shareBody, `<div style="margin-top:var(--space-2)">${ext(T.subUsage)}</div>`);
+const usersGrp = (on = true, env) => `<div>${gh(T.users)}<div class="group"><div class="cell" role="switch" aria-checked="${on}"><span class="main">${T.allowKeys}${env ? `<span class="sub">${T.allowKeysEnv}</span>` : ''}</span><span class="switch ${on ? 'on' : ''} ${env ? 'locked' : ''}"></span></div></div>${gf(T.allowKeysNote)}</div>`;
+const admPriv = () => `<div>${gh(T.privacy)}<div class="pcard t-sub"><p>${T.privSub}</p>${ext(T.policy('OpenAI'))}</div></div>`;
+const provSheet = () => `${scrim}<div class="sheet" role="dialog" aria-label="${T.provider}"><div class="grab"></div><div class="sheet-head"><b class="t-headline">${T.provider}</b><span class="x" role="button" aria-label="${T.cancel}">${I('x')}</span></div><div class="group inset" role="radiogroup">${[['Google Gemini','google'],['OpenAI','openai'],[T.subProv,'sub',true],['Anthropic','anthropic'],['OpenRouter','openrouter'],[T.compat,'compat']].map(([n, id, on]) => { const h = id === 'sub' ? T.subProvHint : T.provHint[id]; return `<div class="cell pick" role="radio" aria-checked="${!!on}"><span class="radio ${on ? 'on' : ''}"></span><span class="main">${n}${h ? `<span class="sub">${h}</span>` : ''}</span></div>`; }).join('')}</div></div>`;
+const stepsSheet = () => `${scrim}<div class="sheet" role="dialog" aria-label="${T.stepsTitle}"><div class="grab"></div><div class="sheet-head"><b class="t-headline">${T.stepsTitle}</b><span class="x" role="button" aria-label="${T.cancel}">${I('x')}</span></div><span class="draft">${T.draft}</span><ol class="steps"><li><span>${T.step1}<br><span class="mono" style="color:var(--color-accent)">auth.openai.com/device</span></span></li><li><span style="flex:1;display:flex;flex-direction:column;gap:var(--space-2)">${T.step2}<span class="code-big" aria-label="A B C D – 1 2 3 4">ABCD-1234</span></span></li><li>${T.step3}</li><li>${T.step4}</li></ol><button class="btn btn-tonal">${I('copy','sm')}${T.copyLink}</button><div class="daycap" style="justify-content:center" aria-live="polite"><span class="spinner" style="width:14px;height:14px"></span>${T.waiting}</div></div>`;
+const admNav = () => navb(T.settings, T.admin);
+
+/* ---------- other screens ---------- */
+const camera = () => `<figure class="frame"><div class="phone" style="background:#000">${SB(true)}<div class="viewfinder"><div class="shot"><svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><use href="#ph-food"/></svg></div><span class="pill" role="status">${I('power','sm')}${T.offCap} · <span class="link">${T.offCapLink}</span></span><span class="shutter" role="button" aria-label="Take photo"></span></div><div class="home-ind" style="background:#fff"></div></div><figcaption><b>4.4 Съёмка, ИИ выключен на устройстве</b> (AC-D.2, D.4). Плашка над видоискателем, не перекрывает кадр. После снимка сразу ручной ввод с фото (как 2.3, но без «Распознать»). «Настройки» ведёт в Настройки → ИИ.</figcaption></figure>`;
+const todayOff = () => phone(`<div class="daycap">${I('power')}<span>${T.offCap} · <span class="link">${T.offCapLink}</span></span></div><div class="t-headline">${T.breakfast}</div><div class="mealrow"><span class="thumb"><svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><use href="#ph-food"/></svg></span><span class="main" style="flex:1;display:flex;flex-direction:column;gap:2px"><span class="t-sub" style="font-weight:600">${T.manualOnly}</span><span class="t-foot muted">${T.noDishes}</span></span></div>`, `<b>4.5 «Сегодня», ИИ выключен на устройстве.</b> Одна строка footnote под датой — вместо пустоты там, где раньше было «Распознать». У записи с фото без блюд «Распознать» скрыт (AC-D.2). Та же строка в дневнике за день.`, {nav:`<div class="large-title">${T.today}<div class="t-sub muted" style="font-weight:400">${T.todayDate}</div></div>`});
+const agent = (msg) => phone(`<div class="bubble bot">${T.agentHi}</div><div class="bubble user">${T.agentMsg}</div><div class="banner danger">${I('alert')}<div style="flex:1">${msg}<div style="display:flex;gap:var(--space-2);margin-top:var(--space-2);flex-wrap:wrap"><button class="btn btn-tonal btn-sm">${T.formAgent}</button><button class="btn btn-plain btn-sm" style="padding:0 var(--space-2)">${T.toSettings}</button></div></div></div>`, `<b>4.3b Агент нормы, свой ключ не подошёл.</b> Ответа нет, плашка вместо пузыря бота: «Заполнить форму» (главное) и «Настройки ИИ». Лимит подписки: «${T.agentQuota}»`, {nav:navb(lang === 'ru' ? 'Профиль' : 'Profile', T.agentTitle)});
+
+/* ---------- desktop ---------- */
+const side = () => `<aside class="side"><div class="brand"><span class="mark">${I('plate','sm')}</span>OpenCalorieTracker</div><button class="btn btn-primary btn-sm" style="width:100%">${I('camera','sm')}${T.addFood}</button>${[['home',0],['book',1],['chart',2],['user',3]].map(([ic, i]) => `<span class="nav-i">${I(ic)}${T.tabs[i]}</span>`).join('')}<div class="foot"><span class="nav-i on">${I('settings')}${T.settings}</span></div></aside>`;
+const desk = (inner, cap, over='', url='calories.home.lan/settings/ai') => `<figure class="frame wide"><div class="desk" style="height:auto;min-height:800px"><div class="chrome"><i></i><i></i><i></i><span class="url">${url}</span></div><div class="body">${side()}<div class="main-area"><div class="inner">${inner}</div></div></div>${over}</div><figcaption>${cap}</figcaption></figure>`;
+
+/* ---------- page ---------- */
+function render(){
+  T = S[lang];
+  document.documentElement.lang = lang;
+  document.getElementById('doc').innerHTML = `
+<h1 class="doc-h1">OCT-178 · ИИ на пользователя</h1>
+<p class="doc-lead">Новый раздел «Настройки → ИИ» у каждого пользователя: выключатель на устройстве, источник ИИ (через сервер, свой ключ, своя подписка ChatGPT) и согласия. Перед первой отправкой данных — окно согласия. У админа на экране «ИИ-провайдер» — подписка ChatGPT и выключатель «Разрешить свой API-ключ». Основа — «Продукт OCT-176» (номера AC и E оттуда), формы — из OCT-248. Тексты RU/EN — переключатель «Язык» вверху.</p>
+
+<section class="doc-section" id="user">
+  <h2 class="doc-h2">1 · Настройки → ИИ</h2>
+  <p class="doc-lead">Вход — строка «ИИ» в группе «Приложение» (заменяет «Распознавание фото» из OCT-25) с подписью текущего источника: «${T.rowAiSub.server}», «${T.rowAiSub.key}» или «${T.rowAiSub.off}». Порядок сверху вниз: устройство → источник → его настройки → согласия. Состояние источника — строкой под выбранным вариантом, тем же StatusLine, что у админа.</p>
+  <div class="row">
+    ${phone(`${device()}${sources('server', {status:stOk()})}${consents({local:false})}`, `<b>1.1 По умолчанию.</b> ИИ включён, «Через сервер» (AC-A.1), одно согласие. «Отозвать» — 1.9. Пункт «Моя подписка ChatGPT» есть, только если ADR нашёл поток (AC-B2.4); пока его нет — пункта нет совсем, не «скоро».`)}
+    ${phone(`${device()}${sources('key')}${keyGroup({edit:true})}${saveBtns()}`, `<b>1.2 Свой ключ, первое подключение.</b> Выбрали «Свой API-ключ» — ниже форма из OCT-248: провайдер (те же 5), ключ, модель (рекомендованная выбрана сама). «Сохранить» = проверка + сохранение (AC-A.2). Пока не сохранено, работает прежний источник.`, {tall:true})}
+    ${phone(`${device()}${sources('key', {status:stOk(T.now)})}${keyGroup()}${delRow()}${consents({rows:[['OpenAI', T.viaServer, 'server']]})}`, `<b>1.3 Ключ сохранён (веб).</b> Только «…k7Qz» (AC-A.4). Подпись «где хранится» — всегда видна (AC-A.5). Новое согласие — уже на OpenAI через сервер: провайдер сменился (AC-C.4). «Удалить ключ» — 1.10.`, {tall:true, over:toast(lang === 'ru' ? 'Ключ сохранён. ИИ работает через ваш ключ' : 'Key saved. AI now uses your key')})}
+    ${phone(`${device(true, false)}${sources('key', {status:stOk()})}${keyGroup({phone:true})}${delRow()}${consents({rows:[['OpenAI', T.viaPhone, 'phone'], ['Google Gemini', T.viaServer, 'server']]})}`, `<b>1.4 То же в мобильном приложении.</b> Подпись — «Хранится на этом телефоне, запросы напрямую». Согласие «напрямую с этого телефона» — отдельная строка со значком телефона (AC-C.3). Подписи про браузер у выключателя нет.`, {tall:true, nav:navb(T.settings, T.ai)})}
+    ${phone(`${device()}${sources('key', {status:sline('err', T.keyBad), checkBtn:true})}${keyGroup({last4:'k7Qz'})}<p class="t-foot muted">${T.keyBadBody}</p>`, `<b>1.5 Ключ перестал работать.</b> Состояния — как у админа (ADR-0013): ромб + «Ключ не подходит», треугольник + «Лимит исчерпан», «Провайдер недоступен», «Модель не принимает фото», кольцо + «${T.notChecked}». Автоматически на сервер не переключаем (AC-A.7).`, {tall:true})}
+    ${phone(`${device()}${sources('key')}${keyGroup({edit:true, err:true, msg:''})}${banner('danger', 'alert', T.notSavedKey, T.notSavedKeyBody)}<div class="btn-row"><button class="btn btn-tonal">${T.cancel}</button><button class="btn btn-primary">${T.save}</button></div>`, `<b>1.6 Ключ не прошёл проверку.</b> В отличие от админа, «Сохранить всё равно» нет: невалидный ключ не сохраняется (AC-A.2). Поле ключа подсвечено, текст ошибки — словами ADR-0013.`, {tall:true})}
+    ${phone(`${device()}${sources('sub')}${subGroup('not')}${consents()}`, `<b>1.7 Своя подписка ChatGPT, не подключена</b> (B2, вторая волна). «Подключить ChatGPT» → шаги входа (3.3, тот же набросок) → возврат → 1.8.`)}
+    ${phone(`${device()}${sources('sub', {status:stOk(T.now)})}${subGroup('ok')}${delRow(T.subOff)}${consents({rows:[['OpenAI', T.viaServer, 'server']]})}`, `<b>1.8 Подписка подключена.</b> Аккаунт, дата входа, «где хранится доступ», ссылка на лимит в ChatGPT — только владельцу подписки (AC-B.2). «Отключить подписку» — подтверждение как 1.10.`, {tall:true})}
+    ${phone(`${device()}${sources('server', {status:stOk()})}${consents({local:true})}`, `<b>1.9 Отозвать согласие.</b> Подтверждение с честным текстом про уже отправленное (AC-C.5). После — тост «${T.revoked}», строка исчезает; при следующем фото — снова окно согласия. Локальная модель — строка без кнопки (AC-C.6).`, {over:alertBox(T.revokeQ('Google Gemini'), T.revokeBody, `<button class="btn btn-danger">${T.revokeBtn}</button><button class="btn btn-plain">${T.cancel}</button>`)})}
+    ${phone(`${device()}${sources('key', {status:stOk()})}${keyGroup()}${delRow()}`, `<b>1.10 Удалить ключ.</b> После — снова «Через сервер»; если согласия на провайдера сервера нет — спросим при первом фото.`, {over:alertBox(T.delKeyQ, T.delKeyBody, `<button class="btn btn-danger">${T.delBtn}</button><button class="btn btn-plain">${T.cancel}</button>`)})}
+  </div>
+</section>
+
+<section class="doc-section" id="user-states">
+  <h2 class="doc-h2">1b · Выключатель, запрет админа, офлайн</h2>
+  <div class="row">
+    ${phone(`${device(false)}${banner('notice', 'power', T.deviceOffBanner, T.deviceOffBody)}<div class="dimmed" aria-hidden="false">${sources('server', {status:stOk()})}${consents()}</div>`, `<b>1.11 ИИ выключен на этом устройстве</b> (AC-D.1). Хранится на устройстве. Остальное приглушено, но доступно — это настройки аккаунта для других устройств. Включение обратно ничего не спрашивает, кроме согласия, если его нет (AC-D.5).`)}
+    ${phone(`${banner('notice', 'info', T.adminOff, T.adminOffBody)}${device()}${sources('server', {noKey:true, noSub:true, status:sline('off', T.notChecked)})}${consents({empty:true})}`, `<b>1.12 Админ запретил свои ключи</b> (AC-A.8, E-1). Плашка показывается один раз, до закрытия; пункта «Свой API-ключ» больше нет. Если у админа нет ИИ: «Через сервер» с подписью «${T.srcServerNone}».`)}
+    ${phone(`${device()}${sources('server', {serverSub:T.srcServerSubAdm, status:stOk()})}${consents({rows:[['OpenAI', T.viaServer, 'server']]})}`, `<b>1.13 Сервер на подписке админа</b> (AC-B1.7). Пользователь видит «ChatGPT (подписка администратора)», аккаунт админа — нет. Если Terms не разрешают делить подписку (AC-B1.8) — у не-админа строка «${T.eServerAdmin}» и ручной режим.`)}
+    ${phone(`${device()}${sources('key', {status:stOk(), checkBtn:false})}${keyGroup()}${delRow()}`, `<b>1.14 Офлайн</b> (E-6). Сверху полоса OCT-25. Всё видно; «Проверить», «Заменить», «Удалить», «Отозвать», «Подключить» — при касании тост «${T.needNet}» (как OCT-25 3.6). Выключатель работает.`, {top:`<div class="offline-bar" role="status">${I('wifi-off','sm')}${lang === 'ru' ? 'Офлайн · всё сохраняется на телефоне' : 'Offline · everything is saved on this phone'}</div>`, over:toast(T.needNet)})}
+  </div>
+</section>
+
+<section class="doc-section" id="consent">
+  <h2 class="doc-h2">2 · Окно согласия</h2>
+  <p class="doc-lead">Лист снизу (на десктопе — диалог) перед первым обращением к ИИ с данными пользователя для пары «провайдер + маршрут» (AC-C.1). Три строки — кому, как, что уйдёт в этом действии. Свайп вниз и тап мимо = «Не сейчас». Локальной модели окно не показываем (AC-C.6). Проверка админа (1×1) окно не вызывает (AC-C.10).</p>
+  <div class="row">
+    ${phone(`${photo()}`, `<b>2.1 Первое фото, ИИ через сервер, Gemini.</b> Появляется после снимка, до распознавания. Предупреждение о бесплатном тарифе — только для Gemini. «Разрешить» → сразу распознаём. Касается и тех, кто пользовался ИИ до обновления, включая админа (AC-C.7).`, {nav:reviewNav(), over:consentSheet()})}
+    ${phone(`${photo()}`, `<b>2.2 Мобильное приложение, свой ключ OpenAI.</b> «Напрямую с этого телефона» и «сервер установки не участвует». Ссылка на политику — внешняя, в браузере.`, {nav:reviewNav(), over:consentSheet({prov:'OpenAI', phone:true})})}
+    ${phone(`<div class="bubble bot">${T.agentHi}</div>`, `<b>2.3 Агент нормы.</b> Тот же лист, «что уйдёт» — ответы в диалоге. Появляется при нажатии «Пройти с агентом», до первого сообщения. Для операций этапа 2 (добавки, отчёт, рецепты) — своя строка «что уйдёт» (итоги дней и т. п.).`, {nav:navb(lang === 'ru' ? 'Профиль' : 'Profile', T.agentTitle), over:consentSheet({agent:true, prov:'OpenAI'})})}
+    ${phone(manualPlain(), `<b>2.4 «Не сейчас».</b> Экран ручного ввода с прикреплённым фото (AC-C.2), без тоста и без напоминаний. «Распознать» в плашке — снова окно согласия. Агент нормы → сразу форма нормы. Так же выглядит офлайн-фото без согласия (AC-C.8).`, {nav:reviewNav()})}
+  </div>
+</section>
+
+<section class="doc-section" id="admin">
+  <h2 class="doc-h2">3 · ИИ-провайдер у админа: подписка ChatGPT и свои ключи</h2>
+  <p class="doc-lead">Экран OCT-248 без изменений в структуре. «Подписка ChatGPT» — шестой провайдер в шторке. Вместо строк «Ключ API» — аккаунт и дата входа. Новая группа «Пользователи» с выключателем — над «Куда уходят данные», у любого провайдера.</p>
+  <div class="row">
+    ${phone(`${admCard('off', T.subNot)}${admConn()}`, `<b>3.1 Выбор провайдера.</b> «Подписка ChatGPT» сразу после OpenAI, подсказка «без ключа» (AC-B1.1).`, {nav:admNav(), over:provSheet()})}
+    ${phone(`${admCard('off', T.subNot, T.admNotBody)}${admConn()}${shareWarn()}<button class="btn btn-primary">${I('login','sm')}${T.signIn}</button>${usersGrp()}`, `<b>3.2 Не подключена</b> (AC-B1.3). Предупреждение «лимит один на всех» — до входа, жёлтым, со ссылкой на лимит для приложений в ChatGPT (S-B2). Пока не подключена — у всех ручной режим.`, {nav:admNav(), tall:true})}
+    ${phone(`${admCard('off', T.subNot)}${admConn()}`, `<b>3.3 Шаги входа — набросок с плейсхолдером.</b> Показан вариант «код на другом устройстве», он не требует SSH. Если ADR OCT-179 выберет другой поток (команда в контейнере, вставка адреса), меняется только содержимое листа: шаги, код или команда в --font-mono. Экран обновляется сам после входа.`, {nav:admNav(), over:stepsSheet()})}
+    ${phone(`${admCard('ok', T.ok, '', 'gpt-5.2')}${admConn({signed:true})}<button class="btn btn-tonal">${I('refresh','sm')}${T.checkNow}</button><div class="group"><div class="cell accent" role="button">${I('login','sm')}<span class="main">${T.signInAgain}</span></div><div class="cell danger" role="button">${I('power','sm')}<span class="main">${T.disconnect}</span></div></div>${shareWarn()}${usersGrp()}${admPriv()}`, `<b>3.4 Подключена</b> (AC-B1.4). Аккаунт (если OpenAI его отдаёт), дата входа, модель из списка (OCT-248). «Отключить подписку» — подтверждение «${T.disconnectQ}». Тест модели OCT-248 работает так же.`, {nav:admNav(), tall:true})}
+    ${phone(`${admCard('err', T.expired, '', 'gpt-5.2')}${banner('danger', 'alert', T.expired, T.expiredBody)}<button class="btn btn-primary">${I('login','sm')}${T.signInAgain}</button>${admConn({signed:true})}`, `<b>3.5 Вход истёк</b> (AC-B1.6, E-10). Ромб + текст. Главная кнопка — «Войти заново», над формой. У пользователей «через сервер» — «${T.eServer}».`, {nav:admNav()})}
+    ${phone(`${admCard('warn', T.limit, '', 'gpt-5.2')}${banner('warning', 'warn', T.limit, T.limitBody, `<div style="margin-top:var(--space-2)">${ext(T.subUsage)}</div>`)}${admConn({signed:true})}`, `<b>3.6 Лимит исчерпан</b> (AC-B.1, 429 usage limit). Без повторов и без переключения. Ссылка на лимит в ChatGPT — владельцу подписки, т. е. админу.`, {nav:admNav()})}
+    ${phone(`${usersGrp()}${admPriv()}`, `<b>3.7 Запретить свои ключи</b> (AC-A.8). Подтверждение — только если у кого-то уже есть ключи, иначе переключается сразу. Задано в .env — выключатель с замком и подписью «${T.allowKeysEnv}».`, {nav:admNav(), over:alertBox(T.forbidQ, T.forbidBody(2), `<button class="btn btn-danger">${T.forbidBtn}</button><button class="btn btn-plain">${T.cancel}</button>`)})}
+  </div>
+</section>
+
+<section class="doc-section" id="errors">
+  <h2 class="doc-h2">4 · Ошибки на распознавании и в агенте, «ИИ выключен»</h2>
+  <p class="doc-lead">Ошибка своего ключа или подписки говорит про <b>его</b> ключ и ведёт в Настройки → ИИ, а не «к администратору» (AC-A.7, AC-B2.5). Везде — ручной ввод с прикреплённым фото, «Распознать» позже, как при quota_exceeded в OCT-16.</p>
+  <div class="row">
+    ${phone(errReview('danger', T.eKeyBad, T.eKeyBadBody, `<button class="btn btn-tonal btn-sm">${T.toSettings}</button>`), `<b>4.1 Свой ключ не подошёл.</b> Красная плашка между фото и блюдами, кнопка «Настройки ИИ». Лимит своего ключа — жёлтая: «${T.eKeyQuota}» / «${T.eKeyQuotaBody}» + «Распознать».`, {nav:reviewNav()})}
+    ${phone(errReview('warning', T.eSubQuota, T.eSubQuotaBody, `<button class="btn btn-tonal btn-sm">${I('spark','sm')}${T.recognize}</button>${ext(lang === 'ru' ? 'Лимит в ChatGPT' : 'Limit in ChatGPT')}`), `<b>4.2 Лимит своей подписки.</b> Без повторов (AC-B.1). Ссылка на лимит — потому что это его аккаунт. Истёк вход: «${T.eSubExp}» / «${T.eSubExpBody}» + «${T.reconnect}».`, {nav:reviewNav()})}
+    ${phone(errReview('danger', T.eServer, T.eServerBody, `<button class="btn btn-tonal btn-sm">${I('spark','sm')}${T.recognize}</button>`), `<b>4.3 ИИ сервера недоступен</b> (подписка админа истекла или лимит). Пользователю не показываем причину админа и ссылок на ChatGPT. Ничего не настраивать — только «Распознать» позже.`, {nav:reviewNav()})}
+    ${agent(T.agentBad)}
+    ${camera()}
+    ${todayOff()}
+  </div>
+</section>
+
+<section class="doc-section" id="desktop">
+  <h2 class="doc-h2">5 · Десктоп (≥ 1024 px)</h2>
+  <p class="doc-lead">Настройки → ИИ — две колонки: слева устройство, источник и его форма, справа согласия. Окно согласия — центрированный диалог --dialog-max-width, кнопки справа: «Не сейчас» и «Разрешить». Esc = «Не сейчас», фокус при открытии — на «Разрешить», возвращается на кнопку, которая вызвала действие.</p>
+  <div class="row">
+    ${desk(`<div class="large-title">${T.ai}</div><div class="cols even"><div class="stack">${device()}${sources('key', {status:stOk()})}${keyGroup()}${delRow()}</div><div class="stack">${consents({rows:[['OpenAI', T.viaServer, 'server'], ['Google Gemini', T.viaServer, 'server']], local:true})}</div></div>`, `<b>5.1 Настройки → ИИ, свой ключ.</b> Колонки независимы по высоте. Тот же порядок, что на телефоне, при чтении сверху вниз и слева направо.`)}
+    ${desk(`<div class="large-title">${T.today}</div><div class="drop">${I('upload')}${lang === 'ru' ? 'Перетащите фото еды сюда' : 'Drop a food photo here'}</div>`, `<b>5.2 Согласие при первом фото на десктопе.</b> Перетащили фото → диалог. «Не сейчас» → правка с прикреплённым фото (2.4).`, consentSheet({desk:true}), 'calories.home.lan/')}
+  </div>
+</section>
+
+<section class="doc-section" id="spec">
+  <h2 class="doc-h2">6 · Поведение и спецификация</h2>
+  <div class="spec">
+    <h3>Экран «ИИ»</h3>
+    <ul>
+      <li>Маршрут /settings/ai-source (у админа /settings/ai остаётся экраном провайдера сервера). Строка «ИИ» в группе «Приложение» с подписью источника.</li>
+      <li>Выбор источника применяется сразу для «Через сервер»; для «Свой API-ключ» и «Моя подписка ChatGPT» — только после успешного «Сохранить» / входа. До этого работает прежний источник, радио показывает выбор, а строка состояния — «${T.notChecked}».</li>
+      <li>Загрузка: до 300 мс ничего, дальше скелет групп. Ошибка загрузки — ScreenState с «Повторить».</li>
+      <li>Выключатель устройства — localStorage (PWA) / хранилище приложения; не синхронизируется. Состояние читается до первого обращения к ИИ на любом экране.</li>
+    </ul>
+    <h3>Согласие</h3>
+    <ul>
+      <li>Лист — role=dialog, aria-modal, заголовок — aria-labelledby; фокус на «Разрешить». Кнопки ≥ 44 pt, «Разрешить» — primary, «Не сейчас» — plain (равнозначный выбор, не «тёмный паттерн»: нет отметки «больше не спрашивать», нет таймера).</li>
+      <li>Строки «Кому / Как / Что уйдёт» — dl (dt/dd). Хост сервера — --font-mono.</li>
+      <li>Если согласие нужно для операции из очереди (офлайн-фото) — окно не всплывает само: запись сохраняется как ручная с фото, окно — по «Распознать» (AC-C.8).</li>
+    </ul>
+    <h3>Ошибки</h3>
+    <ul>
+      <li>Плашка ошибки — role=alert один раз, фокус не переносим. Ошибка = значок + цвет + текст.</li>
+      <li>Разделение текстов по источнику: свой ключ → «ваш ключ», своя подписка → «ваша подписка» + ссылка на лимит, через сервер → «ИИ сервера», без причин и ссылок админа.</li>
+    </ul>
+    <h3>Доступность</h3>
+    <ul>
+      <li>Источник — radiogroup; строка состояния под выбранным — aria-describedby этого radio. Выключатель — role=switch с подписью строки.</li>
+      <li>Приглушённый блок при выключенном ИИ остаётся доступен (opacity, без aria-hidden и disabled) — это настройки для других устройств.</li>
+      <li>Код входа ChatGPT VoiceOver читает по символам (aria-label с пробелами).</li>
+    </ul>
+    <h3>Токены и компоненты</h3>
+    <ul>
+      <li>Новых токенов нет: --switch-width/-height, --color-accent/-soft, --color-danger/-soft, --color-warning/-soft, --color-notice, --font-mono, --dialog-max-width, --tap-min, --radius-*, --space-*.</li>
+      <li>Компоненты: существующие StatusLine, Banner, List/ListRow, Switch, Button, Sheet, ConfirmDialog, Toast, ScreenState, Badge, ProviderForm (OCT-248). Новые: AiSourceScreen, ConsentSheet (sheet / dialog по ширине), ConsentsList, ChatGptSignInSheet, DeviceAiOffNote (строка 4.4 / 4.5).</li>
+      <li>Иконки lucide: power, server, smartphone, lock, house, log-in, users, sparkle, triangle-alert, circle-alert, external-link, trash-2, copy.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="doc-section" id="copy">
+  <h2 class="doc-h2">7 · Тексты RU / EN</h2>
+  <p class="doc-lead">Все новые строки дизайна. Ключи i18n — на усмотрение разработчика, ниже — по месту.</p>
+  ${copyTable()}
+</section>`;
+}
+function copyTable(){
+  const keys = ['deviceSw','deviceNote','deviceNoteWeb','deviceOffBanner','deviceOffBody','how','srcServer','srcKey','srcSub','srcServerSub','srcServerSubAdm','srcServerNone','srcKeySub','srcSubSub','notChecked','saveNote','whereServer','wherePhone','whereOther','delKey','delKeyQ','delKeyBody','keyBad','keyBadBody','notSavedKey','notSavedKeyBody','subNot','subNotBody','subConnect','subOff','subUsage','consents','revoke','viaServer','viaPhone','local','localSub','consentsNote','consentsEmpty','revokeQ','revokeBody','revoked','adminOff','adminOffBody','offlineBody','needNet',
+    'cTitle','cLead','cWho','cRoute','cWhat','cRoutePhone','cRoutePhoneSub','cWhatPhoto','cWhatPhotoSub','cWhatAgent','cWhatAgentSub','cAfter','allow','notNow','manualNote','recognize',
+    'subProv','subProvHint','admNot','admNotBody','shareTitle','shareBody','signIn','signInAgain','disconnect','disconnectQ','disconnectBody','expired','expiredBody','limit','limitBody','step1','step2','step3','step4','copyLink','waiting','allowKeys','allowKeysNote','allowKeysEnv','forbidQ','forbidBody','privSub',
+    'eKeyBad','eKeyBadBody','eKeyQuota','eKeyQuotaBody','eSubQuota','eSubQuotaBody','eSubExp','eSubExpBody','eServer','eServerBody','eServerAdmin','toSettings','reconnect','agentBad','agentQuota','offCap'];
+  const v = (L, k) => { const x = S[L][k]; return typeof x === 'function' ? x(k === 'forbidBody' ? 'N' : '{x}') : x; };
+  return `<table class="copy"><thead><tr><th>Строка</th><th>RU</th><th>EN</th></tr></thead><tbody>${keys.map(k => `<tr class="new"><td>${k}</td><td>${v('ru', k)}</td><td>${v('en', k)}</td></tr>`).join('')}</tbody></table>`;
+}
+render();
+
+/* language switch in the preview bar (prototype only) */
+function langBar(){
+  const pv = document.querySelector('.pv-bar');
+  if (!pv || pv.querySelector('.lang-bar')) return;
+  pv.insertAdjacentHTML('beforeend', `<span style="margin-left:var(--space-4)">Язык</span><div class="pv-seg lang-bar">${['ru','en'].map(l => `<button type="button" data-l="${l}" aria-pressed="${l === lang}">${l.toUpperCase()}</button>`).join('')}</div>`);
+  pv.querySelectorAll('.lang-bar button').forEach(b => b.addEventListener('click', () => {
+    lang = b.dataset.l; try { localStorage.setItem(KEY, lang); } catch (e) {}
+    pv.querySelectorAll('.lang-bar button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    render();
+  }));
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', langBar); else langBar();
+</script>
+</body></html>
