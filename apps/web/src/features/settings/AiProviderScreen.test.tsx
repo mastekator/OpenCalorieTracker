@@ -46,6 +46,7 @@ const gemini: AdminAiStatus = {
   keyUnreadable: false,
   savedInactive: false,
   rev: null,
+  refineLimit: null,
   state: 'ok',
   checkedAt: Date.now(),
 };
@@ -368,8 +369,10 @@ describe('AiProviderScreen: settings form', () => {
         'Settings saved here are inactive while AI_* variables are set',
       ),
     ).toBeTruthy();
-    expect(screen.queryAllByRole('textbox')).toHaveLength(0);
-    expect(document.querySelector('input')).toBeNull();
+    // Only the refine limit, which env does not set (ADR-0020 §6).
+    expect(screen.getAllByRole('textbox')).toEqual([
+      field('Refinements per meal per visit'),
+    ]);
     expect(screen.queryByRole('button', { name: 'Save' })).toBeNull();
     expect(screen.queryByRole('button', { name: /Turn off AI/ })).toBeNull();
     expect(screen.queryByRole('button', { name: /Provider/ })).toBeNull();
@@ -672,5 +675,60 @@ describe('AiProviderScreen: settings form', () => {
       method: 'DELETE',
       url: '/api/admin/ai/settings',
     });
+  });
+
+  it('refine limit: saved on blur, also with env; only 1..50, empty is no limit', async () => {
+    const calls = server((c) =>
+      c.method === 'PUT'
+        ? [
+            {
+              ...gemini,
+              refineLimit: (c.body as { limit: number | null }).limit,
+            },
+          ]
+        : [gemini],
+    );
+    await wrap(<AiProviderScreen />);
+    await screen.findByText('Settings come from .env and take priority');
+    const name = 'Refinements per meal per visit';
+    expect(
+      screen.getByText(
+        'How many times one meal can be refined or recognized again while it is open. Empty — no limit.',
+      ),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole('heading', { name: 'AI refinements' }),
+    ).toBeTruthy();
+    for (const bad of ['0', '51', '2.5', 'x']) {
+      type(name, bad);
+      fireEvent.blur(field(name));
+      expect(
+        screen.getByText('A whole number from 1 to 50, or empty'),
+      ).toBeTruthy();
+      expect(field(name).getAttribute('aria-invalid')).toBe('true');
+    }
+    expect(calls.filter((c) => c.method === 'PUT')).toHaveLength(0);
+
+    type(name, ' 3 ');
+    fireEvent.blur(field(name));
+    expect(await screen.findByText('Refinement limit saved')).toBeTruthy();
+    // Unchanged: no second request.
+    fireEvent.blur(field(name));
+    type(name, '');
+    fireEvent.submit(field(name).form!);
+    await waitFor(() =>
+      expect(calls.filter((c) => c.method === 'PUT')).toEqual([
+        {
+          method: 'PUT',
+          url: '/api/admin/ai/refine-limit',
+          body: { limit: 3 },
+        },
+        {
+          method: 'PUT',
+          url: '/api/admin/ai/refine-limit',
+          body: { limit: null },
+        },
+      ]),
+    );
   });
 });

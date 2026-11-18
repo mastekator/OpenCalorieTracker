@@ -4,6 +4,8 @@ import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import type { ErrorBody, ErrorCode } from '@oct/shared';
 
 export class ApiError extends Error {
+  /** The AI call ran out of time; a refinement still counts toward the limit (ADR-0020 §6). */
+  timedOut?: boolean;
   constructor(
     readonly status: ContentfulStatusCode,
     readonly code: ErrorCode,

@@ -51,6 +51,7 @@ const geminiStatus: AiStatus = {
   interview: 'ready',
   providerName: 'Google Gemini',
   baseUrlHost: null,
+  refineLimit: null,
 };
 
 /** Answers GET /api/account/passkeys with `list`, /api/admin/ai with a quota state, /api/ai/status with Gemini; anything else succeeds empty. */
@@ -73,6 +74,7 @@ const serve = (list: Passkey[]) => () => {
               keyUnreadable: false,
               savedInactive: false,
               rev: null,
+              refineLimit: 3,
               state: 'quota_exceeded',
               checkedAt: Date.now(),
             })
@@ -175,6 +177,28 @@ export const AdminOfflineSaved: Story = {
   render: () => settings(admin),
 };
 export const AdminOfflineSavedDark: Story = { ...AdminOfflineSaved, ...dark };
+/** AI provider from env with the refine limit field (ADR-0020 §6): the only field env leaves editable. */
+export const AiProviderLimit: Story = {
+  beforeEach: serve([]),
+  render: () => <AiProviderScreen />,
+};
+export const AiProviderLimitDark: Story = { ...AiProviderLimit, ...dark };
+/** The limit field with a value out of 1..50: the error under it. */
+export const AiProviderLimitInvalid: Story = {
+  ...AiProviderLimit,
+  play: async ({ canvas, userEvent }) => {
+    const field = await canvas.findByRole('textbox', {
+      name: 'Refinements per meal per visit',
+    });
+    await userEvent.clear(field);
+    await userEvent.type(field, '80');
+    await userEvent.tab();
+  },
+};
+export const AiProviderLimitInvalidDark: Story = {
+  ...AiProviderLimitInvalid,
+  ...dark,
+};
 /** OCT-25 5.6: the AI provider screen offline shows no stale status. */
 export const AiProviderOffline: Story = {
   beforeEach: offline,

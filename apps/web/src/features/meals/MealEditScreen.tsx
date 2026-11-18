@@ -7,6 +7,7 @@ import {
 } from 'react';
 import { Redirect, useLocation, useSearch } from 'wouter';
 import {
+  Ban,
   Calendar,
   Camera,
   Clock,
@@ -786,16 +787,19 @@ export function MealEditScreen({
   const canRefine = !!recognition && recognition !== 'not_configured';
   const vision = recognition === 'ready' && !noVision;
   const canAgain = canRefine && vision && !!serverPhoto;
-  const refineOff = !online || working;
+  const refineOff = !online || working || refine.limitReached;
   const asked = rows.filter(
     (r) => r.question && r.question.chosen === undefined,
   ).length;
   // «Other…» needs a request: offline or at the limit it says why (OCT-234 H.8).
   const otherOff = !online
     ? t('edit.refine.offline')
-    : refineError === 'ai_quota_exceeded' || refineError === 'too_many_attempts'
-      ? t('edit.refine.err.quota.title')
-      : undefined;
+    : refine.limitReached
+      ? t('edit.refine.limit')
+      : refineError === 'ai_quota_exceeded' ||
+          refineError === 'too_many_attempts'
+        ? t('edit.refine.err.quota.title')
+        : undefined;
   const again = () =>
     void sendRefine({
       mode: 'again',
@@ -1171,7 +1175,7 @@ export function MealEditScreen({
                 working ? (refine.state.status as 'busy' | 'slow') : undefined
               }
               onCancel={refine.cancel}
-              disabled={!online}
+              disabled={!online || refine.limitReached}
               note={
                 !online ? (
                   queued ? (
@@ -1185,6 +1189,11 @@ export function MealEditScreen({
                       {t('edit.refine.offline')}
                     </>
                   )
+                ) : refine.limitReached ? (
+                  <>
+                    <Ban aria-hidden="true" />
+                    {t('edit.refine.limit')}
+                  </>
                 ) : photoGone ? (
                   <>
                     <ImageOff aria-hidden="true" />

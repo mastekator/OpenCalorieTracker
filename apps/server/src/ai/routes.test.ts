@@ -52,6 +52,7 @@ describe('GET /api/ai/status', () => {
       interview: 'not_configured',
       providerName: null,
       baseUrlHost: null,
+      refineLimit: null,
     });
     await cleanup!();
     expect(await (await setup(mockModel())).status()).toEqual({
@@ -59,6 +60,7 @@ describe('GET /api/ai/status', () => {
       interview: 'ready',
       providerName: null,
       baseUrlHost: null,
+      refineLimit: null,
     });
   });
 

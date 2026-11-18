@@ -99,3 +99,11 @@ export function getAiSettings(
 export function baseUrlHost(settings: { baseUrl?: string } | null) {
   return settings?.baseUrl ? (URL.parse(settings.baseUrl)?.host ?? null) : null;
 }
+
+/** Refinements per meal per edit session (ADR-0020 §6); null means no limit. */
+export function refineLimit(db: Database) {
+  const row = db
+    .prepare('SELECT refine_per_session AS n FROM ai_limits')
+    .get() as { n: number | null } | undefined;
+  return row?.n ?? null;
+}

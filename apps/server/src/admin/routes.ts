@@ -8,6 +8,7 @@ import {
   aiTestRunSummarySchema,
   aiTestStartRequestSchema,
   createInviteRequestSchema,
+  refineLimitRequestSchema,
   saveAiSettingsRequestSchema,
   type AdminAiStatus,
   type AiCheckResult,
@@ -29,6 +30,7 @@ import { listModels, MODELS_TIMEOUT_MS } from '../ai/models.js';
 import {
   API_KEY_PURPOSE,
   baseUrlHost,
+  refineLimit,
   savedAiRow,
   type AiSettings,
 } from '../ai/settings.js';
@@ -158,6 +160,7 @@ export function adminRoutes({ config, db, ai, secrets }: AppDeps) {
       keyUnreadable: !!saved?.keyUnreadable,
       savedInactive: settings?.source === 'env' && !!saved,
       rev: saved?.rev ?? null,
+      refineLimit: refineLimit(db),
       state,
       checkedAt,
       ...redacted(details, settings?.apiKey),
@@ -339,6 +342,19 @@ export function adminRoutes({ config, db, ai, secrets }: AppDeps) {
         console.log('[info] AI turned off by admin');
         return c.json(aiStatus());
       })
+      // Not envManaged(): the limit lives apart from AI_* and is set either way (ADR-0020 §6).
+      .put(
+        '/admin/ai/refine-limit',
+        validate('json', refineLimitRequestSchema),
+        (c) => {
+          const { limit } = c.req.valid('json');
+          db.prepare(
+            `INSERT INTO ai_limits (id, refine_per_session) VALUES (1, ?)
+             ON CONFLICT (id) DO UPDATE SET refine_per_session = excluded.refine_per_session`,
+          ).run(limit);
+          return c.json(aiStatus());
+        },
+      )
       // No throttle and no global state: listing models costs nothing and changes nothing.
       .post(
         '/admin/ai/models',

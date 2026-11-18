@@ -355,6 +355,7 @@ describe('Offline (4.8)', () => {
       interview: 'ready',
       providerName: 'Google Gemini',
       baseUrlHost: null,
+      refineLimit: null,
     });
     await wrap(
       screenOf({ ...admin, id: user.id, passwordFromConfig: false }),
@@ -395,6 +396,7 @@ describe('Offline (4.8)', () => {
       interview: 'ready',
       providerName: 'Google Gemini',
       baseUrlHost: null,
+      refineLimit: null,
     });
     await wrap(screenOf(), true);
     expect(
@@ -416,6 +418,7 @@ describe('Offline (4.8)', () => {
       interview: 'not_configured',
       providerName: null,
       baseUrlHost: null,
+      refineLimit: null,
     });
     await wrap(screenOf(), true);
     expect(
@@ -428,6 +431,7 @@ describe('Offline (4.8)', () => {
       interview: 'ready',
       providerName: null,
       baseUrlHost: '192.168.1.20:11434',
+      refineLimit: null,
     });
     await wrap(screenOf(), true);
     expect(

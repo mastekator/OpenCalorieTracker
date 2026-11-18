@@ -55,6 +55,8 @@ export const aiStatusSchema = z.object({
   providerName: z.string().nullable(),
   /** Set for an OpenAI-compatible server only (ADR-0013). */
   baseUrlHost: z.string().nullable(),
+  /** Refinements per meal per edit session; null without a limit (ADR-0020 §6). */
+  refineLimit: z.number().int().nullable(),
 });
 export type AiStatus = z.infer<typeof aiStatusSchema>;
 export type RecognitionStatus = AiStatus['recognition'];

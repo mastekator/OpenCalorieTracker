@@ -57,6 +57,8 @@ export const adminAiStatusSchema = z.object({
   savedInactive: z.boolean(),
   /** Version of the saved row for optimistic writes; null without one. */
   rev: z.number().nullable(),
+  /** Refinements per meal per edit session; null without a limit. Set even with AI_* in env. */
+  refineLimit: z.number().int().nullable(),
   state: aiProviderStateSchema,
   checkedAt: z.number().nullable(),
   /** Provider's status code and message with secrets cut out, up to 500 chars; the timeout that ran out. */
@@ -83,6 +85,12 @@ const aiDraftFields = {
   /** Left out: the saved key is kept if the provider stays the same. */
   apiKey: z.string().trim().min(1).max(1000).optional(),
 };
+
+/** PUT /api/admin/ai/refine-limit body (ADR-0020 §6): null removes the limit. */
+export const refineLimitRequestSchema = z.object({
+  limit: z.number().int().min(1).max(50).nullable(),
+});
+export type RefineLimitRequest = z.infer<typeof refineLimitRequestSchema>;
 
 /** POST /api/admin/ai/check body: settings checked without saving (ADR-0018 §4). */
 export const aiDraftSchema = z.object(aiDraftFields);

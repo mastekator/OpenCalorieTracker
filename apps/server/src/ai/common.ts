@@ -113,6 +113,7 @@ export async function callModel<T>(
       mapError?.(err, timedOut, model) ?? toApiError(err, timedOut);
     // The model test tells a bad key from a flaky provider by it; onError never sends it.
     apiError.cause ??= err;
+    if (timedOut) apiError.timedOut = true;
     result = apiError.code;
     throw apiError;
   } finally {
