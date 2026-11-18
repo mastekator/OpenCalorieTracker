@@ -54,6 +54,8 @@
   --water-figure-size: 120px;   /* OCT-147: water mascot / bar column on the Water card (phone) */
   --drink-tile-size: 56px;      /* OCT-147: round drink tile in the drinks row (hit area = tile + label) */
   --duration-fill: 1200ms;      /* OCT-147: water level rise after a tap (≤ 1.5 s, product AC-2.2) */
+  --duration-wave: 5s;          /* OCT-147: one loop of the idle surface wave in the glass */
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1); /* OCT-147: level overshoots a little, like real water */
   --icon-size: 24px;  --icon-size-sm: 20px;  --icon-stroke: 1.75;
   --content-max-width: 560px;   /* phone-like column: auth, settings, tablet/narrow window */
   /* Desktop (window ≥ 1024px; CSS vars can't be used in @media — keep 1024 in one place in code):
@@ -111,6 +113,7 @@
   /* OCT-147: water (graphics & text, ≥ 4.5:1 on surface) */
   --color-water: #1F78C8;
   --color-water-soft: #E8F2FB;
+  --color-glass-highlight: rgb(255 255 255 / 0.75); /* OCT-147: glint on the water glass */
 
   /* OCT-33: dish illustrations (flat, decorative). Shown on a round "plate" tile so they never pass for a photo */
   --illo-tile: #F6F0E4;   /* round substrate behind every illustration */
@@ -158,6 +161,8 @@
     --color-carbs: #5ECFC6;
     --color-water: #6DB6F2;
     --color-water-soft: #13263A;
+  --color-glass-highlight: rgb(255 255 255 / 0.22);
+    --color-glass-highlight: rgb(255 255 255 / 0.22);
     --illo-tile: #2B2721;
     --illo-plate: #4C524F;  --illo-white: #EEE8DC;  --illo-shade: rgb(0 0 0 / 0.28);
     --illo-red: #EE7564;    --illo-orange: #EFA654; --illo-yellow: #EECB62; --illo-pink: #E39B8F;
