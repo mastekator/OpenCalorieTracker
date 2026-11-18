@@ -766,10 +766,10 @@ function render(){
 <section class="doc-section" id="user-states">
   <h2 class="doc-h2">1b · Выключатель, запрет админа, офлайн</h2>
   <div class="row">
-    ${phone(`${device(false)}${banner('notice', 'power', T.deviceOffBanner, T.deviceOffBody)}<div class="dimmed" aria-hidden="false">${sources('server', {status:stOk()})}${consents()}</div>`, `<b>1.11 ИИ выключен на этом устройстве</b> (AC-D.1). Хранится на устройстве. Остальное приглушено, но доступно — это настройки аккаунта для других устройств. Включение обратно ничего не спрашивает, кроме согласия, если его нет (AC-D.5).`)}
+    ${phone(`${device(false)}${banner('notice', 'power', T.deviceOffBanner, T.deviceOffBody)}${sources('server', {status:stOk()})}${consents()}`, `<b>1.11 ИИ выключен на этом устройстве</b> (AC-D.1). Хранится на устройстве. Остальное не приглушаем (контраст AA) и оставляем доступным — это настройки аккаунта для других устройств; плашка объясняет. Включение обратно ничего не спрашивает, кроме согласия, если его нет (AC-D.5).`)}
     ${phone(`${banner('notice', 'info', T.adminOff, T.adminOffBody)}${device()}${sources('server', {noKey:true, noSub:true, status:sline('off', T.notChecked)})}${consents({empty:true})}`, `<b>1.12 Админ запретил свои ключи</b> (AC-A.8, E-1). Плашка показывается один раз, до закрытия; пункта «Свой API-ключ» больше нет. Если у админа нет ИИ: «Через сервер» с подписью «${T.srcServerNone}».`)}
     ${phone(`${device()}${sources('server', {serverSub:T.srcServerSubAdm, status:stOk()})}${consents({rows:[['OpenAI', T.viaServer, 'server']]})}`, `<b>1.13 Сервер на подписке админа</b> (AC-B1.7). Пользователь видит «ChatGPT (подписка администратора)», аккаунт админа — нет. Если Terms не разрешают делить подписку (AC-B1.8) — у не-админа строка «${T.eServerAdmin}» и ручной режим.`)}
-    ${phone(`${device()}${sources('key', {status:stOk(), checkBtn:false})}${keyGroup()}${delRow()}`, `<b>1.14 Офлайн</b> (E-6). Сверху полоса OCT-25. Всё видно; «Проверить», «Заменить», «Удалить», «Отозвать», «Подключить» — при касании тост «${T.needNet}» (как OCT-25 3.6). Выключатель работает.`, {top:`<div class="offline-bar" role="status">${I('wifi-off','sm')}${lang === 'ru' ? 'Офлайн · всё сохраняется на телефоне' : 'Offline · everything is saved on this phone'}</div>`, over:toast(T.needNet)})}
+    ${phone(`${device()}${sources('key', {status:stOk()})}${keyGroup()}${delRow()}`, `<b>1.14 Офлайн</b> (E-6). Сверху полоса OCT-25. Всё видно; «Проверить», «Заменить», «Удалить», «Отозвать», «Подключить» — при касании тост «${T.needNet}» (как OCT-25 3.6). Выключатель работает.`, {top:`<div class="offline-bar" role="status">${I('wifi-off','sm')}${lang === 'ru' ? 'Офлайн · всё сохраняется на телефоне' : 'Offline · everything is saved on this phone'}</div>`, over:toast(T.needNet)})}
   </div>
 </section>
 
@@ -844,7 +844,7 @@ function render(){
     <h3>Доступность</h3>
     <ul>
       <li>Источник — radiogroup; строка состояния под выбранным — aria-describedby этого radio. Выключатель — role=switch с подписью строки.</li>
-      <li>Приглушённый блок при выключенном ИИ остаётся доступен (opacity, без aria-hidden и disabled) — это настройки для других устройств.</li>
+      <li>При выключенном ИИ источник и согласия не приглушаются и не блокируются — это настройки для других устройств; объясняет плашка над ними.</li>
       <li>Код входа ChatGPT VoiceOver читает по символам (aria-label с пробелами).</li>
     </ul>
     <h3>Токены и компоненты</h3>
