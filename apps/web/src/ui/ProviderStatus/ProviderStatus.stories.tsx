@@ -13,6 +13,7 @@ const gemini: AdminAiStatus = {
   keyUnreadable: false,
   savedInactive: false,
   rev: null,
+  refineLimit: null,
   state: 'ok',
   checkedAt: Date.now() - 20 * 60_000,
 };

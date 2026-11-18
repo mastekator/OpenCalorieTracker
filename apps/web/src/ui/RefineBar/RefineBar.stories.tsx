@@ -1,7 +1,7 @@
 import { useState, type ComponentProps } from 'react';
 import { fn } from 'storybook/test';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { Clock, ImageOff, WifiOff } from 'lucide-react';
+import { Ban, Clock, ImageOff, WifiOff } from 'lucide-react';
 import { Banner } from '../Banner/Banner';
 import { RefineBar } from './RefineBar';
 
@@ -93,6 +93,19 @@ const gone = {
 } satisfies Partial<Props>;
 export const PhotoGone: Story = { args: gone };
 export const PhotoGoneDark: Story = { args: gone, globals: dark };
+/** ADR-0020 §6: the admin's limit for this visit is used up — the buttons wait. */
+const limit = {
+  value: 'one more thing',
+  disabled: true,
+  note: (
+    <>
+      <Ban aria-hidden="true" />
+      Refinement limit reached — edit by hand
+    </>
+  ),
+} satisfies Partial<Props>;
+export const LimitReached: Story = { args: limit };
+export const LimitReachedDark: Story = { args: limit, globals: dark };
 /** D.5: unavailable or timed out — «Try again». */
 const unavailable = {
   value: text,

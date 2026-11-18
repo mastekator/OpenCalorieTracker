@@ -444,6 +444,7 @@ describe('recalculation from the photo (OCT-62)', () => {
             interview: 'ready',
             providerName: null,
             baseUrlHost: null,
+            refineLimit: null,
           });
         }
         if (url === '/api/photos/p1/recognize') return recognize();

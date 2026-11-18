@@ -111,6 +111,7 @@ describe('ProfileScreen, AI configured but not answering (8.14)', () => {
               interview: 'unavailable',
               providerName: 'x',
               baseUrlHost: null,
+              refineLimit: null,
             })
           : Promise.reject(new TypeError('no server in this test')),
       ),
@@ -176,6 +177,7 @@ describe('ProfileScreen, goal applied in the chat (OCT-225)', () => {
             interview: 'ready',
             providerName: 'x',
             baseUrlHost: null,
+            refineLimit: null,
           });
         if (url === '/api/norm-agent')
           return Response.json({

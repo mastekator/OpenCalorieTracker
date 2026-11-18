@@ -1,9 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { rm } from 'node:fs/promises';
 import { MockLanguageModelV4 } from 'ai/test';
-import { afterEach, beforeEach, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { RefineRequest } from '@oct/shared';
 import { photoPath } from '../photos/store.js';
+import { REFINE_TIMEOUT_MS } from './refine.js';
 import { aiSetup, apiError, mockModel, reply } from '../test/ai.js';
 
 const egg = {
@@ -213,4 +214,103 @@ it('shares the one-call lock with recognize, survives a dropped client and serve
     left: null,
   });
   expect(model.doGenerateCalls).toHaveLength(2);
+});
+
+describe('refine limit per session', () => {
+  const setLimit = (t: Awaited<ReturnType<typeof setup>>, n: number | null) =>
+    t.db
+      .prepare(
+        'INSERT OR REPLACE INTO ai_limits (id, refine_per_session) VALUES (1, ?)',
+      )
+      .run(n);
+
+  it('with limit 2 refuses the third request with 429, then counts a new session afresh', async () => {
+    const model = mockModel(
+      ...Array.from({ length: 4 }, () => ({ dishes: [egg] })),
+    );
+    const t = await setup(model);
+    setLimit(t, 2);
+    const sessionId = randomUUID();
+    const lefts = [];
+    for (let i = 0; i < 2; i++)
+      lefts.push(
+        ((await (await t.refine({ sessionId })).json()) as { left: number })
+          .left,
+      );
+    expect(lefts).toEqual([1, 0]);
+    const third = await t.refine({ sessionId });
+    expect(third.status).toBe(429);
+    expect(await third.json()).toEqual({
+      error: { code: 'refine_limit_reached' },
+    });
+    expect(model.doGenerateCalls).toHaveLength(2);
+
+    const fresh = await t.refine({ sessionId: randomUUID() });
+    expect(await fresh.json()).toMatchObject({ left: 1 });
+  });
+
+  it('does not count provider errors or empty results; a retried requestId is served without a second charge', async () => {
+    const model = mockModel(
+      apiError(500, 'boom'),
+      { dishes: [] },
+      { dishes: [egg] },
+    );
+    const t = await setup(model);
+    setLimit(t, 1);
+    const sessionId = randomUUID();
+    expect((await t.refine({ sessionId })).status).toBe(503);
+    expect((await t.refine({ sessionId })).status).toBe(422);
+    const requestId = randomUUID();
+    expect(
+      await (await t.refine({ sessionId, requestId })).json(),
+    ).toMatchObject({ left: 0 });
+    // The same request again: from memory, not refused, still left 0.
+    const retry = await t.refine({ sessionId, requestId });
+    expect(retry.status).toBe(200);
+    expect(await retry.json()).toMatchObject({ left: 0 });
+    expect((await t.refine({ sessionId })).status).toBe(429);
+    expect(model.doGenerateCalls).toHaveLength(3);
+  });
+
+  it('counts a timeout once, even when the same requestId is retried after it', async () => {
+    let calls = 0;
+    const model = new MockLanguageModelV4({
+      doGenerate: ({ abortSignal }) => {
+        calls++;
+        if (calls > 1) return Promise.resolve(reply({ dishes: [egg] }));
+        return new Promise((_, reject) =>
+          abortSignal!.addEventListener('abort', () =>
+            reject(abortSignal!.reason),
+          ),
+        );
+      },
+    });
+    const t = await setup(model);
+    setLimit(t, 2);
+    const sessionId = randomUUID();
+    const requestId = randomUUID();
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      const pending = t.refine({ sessionId, requestId });
+      await vi.waitFor(() => expect(calls).toBe(1));
+      await vi.advanceTimersByTimeAsync(REFINE_TIMEOUT_MS);
+      expect((await pending).status).toBe(503);
+    } finally {
+      vi.useRealTimers();
+    }
+    // The retry of the timed-out request calls again but is not charged a second time.
+    expect(
+      await (await t.refine({ sessionId, requestId })).json(),
+    ).toMatchObject({ left: 1 });
+  });
+
+  it('is off by default, leaves recognize alone and is shown in /ai/status', async () => {
+    const model = mockModel({ dishes: [egg] }, { dishes: [egg] });
+    const t = await setup(model);
+    expect(await t.status()).toMatchObject({ refineLimit: null });
+    setLimit(t, 1);
+    expect(await t.status()).toMatchObject({ refineLimit: 1 });
+    expect((await t.recognize(await t.upload())).status).toBe(200);
+    expect(await (await t.refine()).json()).toMatchObject({ left: 0 });
+  });
 });

@@ -26,6 +26,8 @@ export function useRefine<S>() {
   const [sessionId] = useState(uuid);
   const [state, setState] = useState<RefineState>(IDLE);
   const [undoTo, setUndoTo] = useState<{ snapshot: S } | null>(null);
+  // Refinements left in this session from the last answer; null: no limit or not known yet (ADR-0020 §6).
+  const [left, setLeft] = useState<number | null>(null);
   const current = useRef<AbortController | null>(null);
 
   useEffect(() => () => current.current?.abort(), []);
@@ -79,10 +81,17 @@ export function useRefine<S>() {
       const res = await call();
       if (ctrl.signal.aborted) return null;
       setUndoTo({ snapshot });
+      setLeft(res.left);
       setState(IDLE);
       return res;
     } catch (err) {
       if (ctrl.signal.aborted) return null;
+      // Not an error to show: the screen says so under the field instead.
+      if (err instanceof ApiError && err.code === 'refine_limit_reached') {
+        setLeft(0);
+        setState(IDLE);
+        return null;
+      }
       // A client timeout (not an ApiError) reads as the AI being down, as on recognition.
       setState({
         status: 'error',
@@ -104,5 +113,14 @@ export function useRefine<S>() {
   /** A local step (an answer chip): «Undo» brings `snapshot` back, no request (ADR-0020 §4). */
   const remember = (snapshot: S) => setUndoTo({ snapshot });
 
-  return { sessionId, state, run, cancel, undo, remember, canUndo: !!undoTo };
+  return {
+    sessionId,
+    state,
+    run,
+    cancel,
+    undo,
+    remember,
+    canUndo: !!undoTo,
+    limitReached: left === 0,
+  };
 }

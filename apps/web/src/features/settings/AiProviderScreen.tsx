@@ -17,6 +17,7 @@ import {
 } from '../../ui/AiSettingsForm/AiSettingsForm';
 import { Button } from '../../ui/Button/Button';
 import { ConfirmDialog } from '../../ui/ConfirmDialog/ConfirmDialog';
+import { Field } from '../../ui/Field/Field';
 import { List, ListRow } from '../../ui/List/List';
 import { useOnline } from '../../ui/OfflineBar/OfflineBar';
 import { ProviderStatus } from '../../ui/ProviderStatus/ProviderStatus';
@@ -325,6 +326,7 @@ export function AiProviderScreen() {
           models={models}
           onLoadModels={() => void loadModels(draft)}
         />
+        <RefineLimitField status={status} onSaved={setStatus} />
       </ProviderStatus>
       <ConfirmDialog
         open={confirmOff}
@@ -335,5 +337,66 @@ export function AiProviderScreen() {
         onCancel={() => setConfirmOff(false)}
       />
     </>
+  );
+}
+
+/** Refinements per meal per edit session (ADR-0020 §6); saved on blur or Enter, also with AI_* in env. */
+function RefineLimitField({
+  status,
+  onSaved,
+}: {
+  status: AdminAiStatus;
+  onSaved: (next: AdminAiStatus) => void;
+}) {
+  const { t } = useT();
+  const toast = useToast();
+  const [value, setValue] = useState(String(status.refineLimit ?? ''));
+  const [error, setError] = useState<string>();
+
+  async function commit() {
+    const text = value.trim();
+    const limit = text === '' ? null : Number(text);
+    if (
+      limit !== null &&
+      !(Number.isInteger(limit) && limit >= 1 && limit <= 50)
+    )
+      return setError(t('ai.form.limit_invalid'));
+    setError(undefined);
+    if (limit === status.refineLimit) return;
+    try {
+      onSaved(
+        await api(`${AI_STATUS_PATH}/refine-limit`, adminAiStatusSchema, {
+          method: 'PUT',
+          body: { limit },
+        }),
+      );
+      toast({ text: t('ai.form.limit_saved') });
+    } catch (err) {
+      toast({ text: t(`errors.${codeOf(err)}`) });
+    }
+  }
+
+  return (
+    <form
+      className="list"
+      onSubmit={(e) => {
+        e.preventDefault();
+        void commit();
+      }}
+    >
+      <h2 className="list__title">{t('ai.form.limit_title')}</h2>
+      <Field
+        label={t('ai.form.limit')}
+        hint={t('ai.form.limit_hint')}
+        error={error}
+        inputMode="numeric"
+        value={value}
+        onChange={(e) => {
+          setValue(e.target.value);
+          setError(undefined);
+        }}
+        onBlur={() => void commit()}
+      />
+    </form>
   );
 }

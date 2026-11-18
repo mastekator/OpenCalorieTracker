@@ -15,6 +15,7 @@ const saved: AdminAiStatus = {
   keyUnreadable: false,
   savedInactive: false,
   rev: 3,
+  refineLimit: null,
   state: 'ok',
   checkedAt: Date.now() - 5 * 60_000,
 };

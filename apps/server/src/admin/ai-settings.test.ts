@@ -49,6 +49,7 @@ const setup = async (env: Record<string, string> = {}) => {
     del: req('DELETE', '/settings'),
     check: req('POST', '/check'),
     models: req('POST', '/models'),
+    limit: req('PUT', '/refine-limit'),
     get,
     row,
   };
@@ -296,6 +297,33 @@ describe('access', () => {
     expect((await t.del(undefined, user)).status).toBe(403);
     expect((await t.check(draft, user)).status).toBe(403);
     expect(createModel).not.toHaveBeenCalled();
+  });
+});
+
+describe('PUT /api/admin/ai/refine-limit', () => {
+  it('sets and clears the limit, also while AI_* are set; only 1..50', async () => {
+    const t = await setup({
+      AI_PROVIDER: 'openai',
+      AI_MODEL: 'gpt-x',
+      AI_API_KEY: KEY,
+    });
+    expect(await t.get()).toMatchObject({ refineLimit: null });
+    const res = await t.limit({ limit: 5 });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ refineLimit: 5 });
+    expect(await (await t.limit({ limit: null })).json()).toMatchObject({
+      refineLimit: null,
+    });
+    for (const limit of [0, 51, 2.5, '3'])
+      expect((await t.limit({ limit })).status).toBe(400);
+    expect(await t.get()).toMatchObject({ refineLimit: null });
+  });
+
+  it('is 403 for a non-admin', async () => {
+    const t = await setup();
+    const user = await t.signIn('b@example.com');
+    expect((await t.limit({ limit: 3 }, user)).status).toBe(403);
+    expect(await t.get()).toMatchObject({ refineLimit: null });
   });
 });
 
