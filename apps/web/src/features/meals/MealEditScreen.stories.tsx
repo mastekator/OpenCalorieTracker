@@ -299,7 +299,7 @@ const recalcOffer = {
 } satisfies Partial<Props>;
 export const RecalcBanner: Story = { args: recalcOffer };
 export const RecalcBannerDark: Story = { args: recalcOffer, globals: dark };
-/** No banner: «Recalculate from photo» under the totals (OCT-62 design). */
+/** No banner, no «Recognize again»: «Recalculate from photo» under the totals (OCT-62 design). */
 const recalcAction = {
   ...recalcOffer,
   meal: { ...recalcOffer.meal, recalcOffer: false },
@@ -312,6 +312,25 @@ export const RecalcActionDesktop: Story = {
 };
 export const RecalcActionDesktopDark: Story = {
   args: recalcAction,
+  globals: { viewport: { value: 'desktop' }, theme: 'dark' },
+};
+
+/** OCT-273: «Recognize again» is there, so no «Recalculate from photo» under the totals. */
+const recalcHidden = {
+  ...recalcAction,
+  recognition: 'ready',
+} satisfies Partial<Props>;
+export const RecalcHiddenByAgain: Story = { args: recalcHidden };
+export const RecalcHiddenByAgainDark: Story = {
+  args: recalcHidden,
+  globals: dark,
+};
+export const RecalcHiddenByAgainDesktop: Story = {
+  args: recalcHidden,
+  globals: { viewport: { value: 'desktop' } },
+};
+export const RecalcHiddenByAgainDesktopDark: Story = {
+  args: recalcHidden,
   globals: { viewport: { value: 'desktop' }, theme: 'dark' },
 };
 
