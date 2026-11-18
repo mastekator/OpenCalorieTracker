@@ -88,19 +88,23 @@ export async function api<T>(
     if (navigator.onLine) setServerDown(true);
     throw new ApiError(0, 'network');
   }
-  // A proxy answers for the app when it is down; any other answer is the server's own.
-  setServerDown([502, 503, 504].includes(res.status));
 
   let data: unknown;
+  let readable = true;
   try {
     data = res.status === 204 ? undefined : await res.json();
   } catch {
-    throw new ApiError(res.status, 'internal');
+    readable = false;
   }
+  const error = (data as { error?: { code?: unknown; details?: unknown } })
+    ?.error;
+  // A proxy answers for the app when it is down; our own JSON error (e.g. 503 ai_unavailable) means the server is up.
+  setServerDown(
+    [502, 503, 504].includes(res.status) && typeof error?.code !== 'string',
+  );
+  if (!readable) throw new ApiError(res.status, 'internal');
 
   if (!res.ok) {
-    const error = (data as { error?: { code?: unknown; details?: unknown } })
-      ?.error;
     if (error?.code === 'client_outdated') onOutdated();
     if (error?.code === 'unauthenticated' && path !== ME_PATH)
       onUnauthenticated();
