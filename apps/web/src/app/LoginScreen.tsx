@@ -20,7 +20,7 @@ import {
   type ConfigResponse,
   type SetupError,
 } from '@oct/shared';
-import { api, ApiError, type ClientErrorCode } from '../api/client';
+import { api } from '../api/client';
 import { useT } from '../i18n';
 import { Banner } from '../ui/Banner/Banner';
 import { Button } from '../ui/Button/Button';
@@ -30,6 +30,7 @@ import { README_URL } from '../ui/ProviderStatus/ProviderStatus';
 import { ScreenState } from '../ui/ScreenState/ScreenState';
 import { Sheet } from '../ui/Sheet/Sheet';
 import { Mark } from '../ui/Mark/Mark';
+import { noticeOf, useNotice, type Notice } from './notice';
 import './LoginScreen.css';
 
 export type LoginLayout =
@@ -54,36 +55,6 @@ export function loginLayout(
     password: config.authMethods.includes('password'),
     register: config.registration === 'open',
   };
-}
-
-/** The banner: password ones (`password`, timeout, blocked) sit above the fields, the rest on top. */
-export type Notice =
-  | { kind: 'expired' }
-  | { kind: 'error'; code: ClientErrorCode; password?: true }
-  | { kind: 'timeout'; until: number }
-  | { kind: 'blocked' }
-  | { kind: 'no_passkey' }
-  | { kind: 'revoked' };
-
-function noticeOf(err: unknown, fallback: ClientErrorCode): Notice {
-  if (!(err instanceof ApiError)) return { kind: 'error', code: fallback };
-  switch (err.code) {
-    case 'too_many_attempts': {
-      const sec = (err.details as { retryAfterSec?: unknown } | undefined)
-        ?.retryAfterSec;
-      return {
-        kind: 'timeout',
-        until: Date.now() + (typeof sec === 'number' ? sec : 60) * 1000,
-      };
-    }
-    case 'device_blocked':
-    case 'ip_blocked':
-      return { kind: 'blocked' };
-    case 'passkey_unknown':
-      return { kind: 'revoked' };
-    default:
-      return { kind: 'error', code: err.code };
-  }
 }
 
 const optionsSchema = z.object({
@@ -123,32 +94,15 @@ export function LoginScreen({
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState<'password' | 'passkey' | null>(null);
-  const [notice, setNotice] = useState<Notice | null>(initialNotice ?? null);
-  const [now, setNow] = useState(Date.now);
+  const { notice: shown, minutes, show } = useNotice(initialNotice ?? null);
   const [sheet, setSheet] = useState<'forgot' | 'lost' | null>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
 
   const form = layout.kind === 'form' ? layout : null;
   const withForm = !!form?.password;
 
-  // The timeout banner counts down once a minute and goes away when the timeout ends.
-  const timeoutLeft = notice?.kind === 'timeout' ? notice.until - now : 0;
-  useEffect(() => {
-    if (timeoutLeft <= 0) return;
-    const id = setTimeout(
-      () => setNow(Date.now()),
-      timeoutLeft % 60_000 || 60_000,
-    );
-    return () => clearTimeout(id);
-  }, [timeoutLeft]);
-  const shown = notice?.kind === 'timeout' && timeoutLeft <= 0 ? null : notice;
   const timedOut = shown?.kind === 'timeout';
   const blocked = shown?.kind === 'blocked';
-
-  const show = (next: Notice) => {
-    setNow(Date.now());
-    setNotice(next);
-  };
 
   async function passkey(autofill: boolean, alive = () => true) {
     if (!autofill) {
@@ -202,7 +156,7 @@ export function LoginScreen({
     event.preventDefault();
     if (!online || timedOut) return;
     setBusy('password');
-    setNotice(null);
+    show(null);
     try {
       await api('/api/auth/login', meResponseSchema, {
         method: 'POST',
@@ -272,7 +226,7 @@ export function LoginScreen({
   const banner = online && shown && (
     <NoticeBanner
       notice={shown}
-      minutes={Math.ceil(timeoutLeft / 60_000)}
+      minutes={minutes}
       queued={queued}
       withPassword={withForm}
       withPasskey={withPasskey}

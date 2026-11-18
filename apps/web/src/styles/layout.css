@@ -138,7 +138,8 @@
   }
 
   /* The card has no full-height page to push the passkey-only button against. */
-  .auth-layout .login {
+  .auth-layout .login,
+  .auth-layout .setup {
     min-height: 0;
   }
 
