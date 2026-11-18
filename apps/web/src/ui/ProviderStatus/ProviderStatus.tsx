@@ -131,10 +131,12 @@ type Props = {
   children?: ReactNode;
   /** Under «Where your data goes», e.g. «Turn off AI». */
   side?: ReactNode;
+  /** «Model test»: after the form on a phone, above the side column on a desktop (OCT-248 6.1). */
+  test?: ReactNode;
 };
 
 /** Screen «AI provider» (OCT-25 §5, OCT-248): state, then the form; privacy on the side. */
-export function ProviderStatus({ status, children, side }: Props) {
+export function ProviderStatus({ status, children, side, test }: Props) {
   const { t, locale } = useT();
   const { state } = status;
   const off = state === 'not_configured';
@@ -213,6 +215,7 @@ export function ProviderStatus({ status, children, side }: Props) {
         {children}
       </div>
       <div className="provider__side">
+        {test}
         <PrivacyCard status={status} />
         {side}
       </div>

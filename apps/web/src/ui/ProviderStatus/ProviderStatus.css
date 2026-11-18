@@ -1,5 +1,6 @@
 .provider,
 .provider__main,
+.provider__side,
 .provider__details {
   display: grid;
   gap: var(--space-3);

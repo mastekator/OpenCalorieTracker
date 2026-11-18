@@ -76,6 +76,8 @@ type Props = {
   models: ModelsState;
   /** Fetch the list for the draft (sheet opened without one, «Refresh list», key field left). */
   onLoadModels: () => void;
+  /** False in the «Another model for the test» sheet: no check or save there. */
+  actions?: boolean;
 };
 
 const detailsOf = (r: AiCheckResult) =>
@@ -102,6 +104,7 @@ export function AiSettingsForm({
   onReload,
   models,
   onLoadModels,
+  actions = true,
 }: Props) {
   const { t } = useT();
   const [sheet, setSheet] = useState(false);
@@ -374,7 +377,7 @@ export function AiSettingsForm({
       )}
       {checked && detailsOf(checked) && <Details>{detailsOf(checked)}</Details>}
 
-      {failed ? (
+      {!actions ? null : failed ? (
         <>
           <Banner
             tone="danger"

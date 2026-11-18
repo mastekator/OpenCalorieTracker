@@ -1,0 +1,129 @@
+.model-test {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.model-test p {
+  margin: 0;
+}
+
+.model-test__head {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.model-test__head h2 {
+  margin: 0;
+  font-size: var(--text-headline-size);
+  line-height: var(--text-headline-lh);
+  font-weight: 600;
+}
+
+.model-test__head p,
+.model-test__metrics {
+  font-size: var(--text-subhead-size);
+  line-height: var(--text-subhead-lh);
+  color: var(--color-text-secondary);
+}
+
+.model-test__metrics {
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.model-test__target,
+.model-test__meta {
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.model-test__mono {
+  font-family: var(--font-mono);
+  color: var(--color-text);
+}
+
+/* Settings from .env: a row that opens the sheet, at least a tap high. */
+.model-test__target--button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: var(--tap-min);
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-lh);
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.model-test__target--button > span {
+  display: grid;
+  min-width: 0;
+}
+
+.model-test__target--button svg {
+  flex: none;
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.model-test__sub {
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+  color: var(--color-text-secondary);
+}
+
+.model-test__progress {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.model-test__count {
+  font-size: var(--text-headline-size);
+  line-height: var(--text-headline-lh);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.model-test__summary {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.model-test__result {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.model-test__result b {
+  font-size: var(--text-large-title-size);
+  line-height: var(--text-large-title-lh);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+  font-variant-numeric: tabular-nums;
+}
+
+.model-test__result span {
+  font-size: var(--text-headline-size);
+  font-weight: 600;
+}
+
+.model-test__actions {
+  display: grid;
+  gap: var(--space-2);
+}
