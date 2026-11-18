@@ -378,11 +378,13 @@ function RefineLimitField({
 
   return (
     <form
+      className="list"
       onSubmit={(e) => {
         e.preventDefault();
         void commit();
       }}
     >
+      <h2 className="list__title">{t('ai.form.limit_title')}</h2>
       <Field
         label={t('ai.form.limit')}
         hint={t('ai.form.limit_hint')}

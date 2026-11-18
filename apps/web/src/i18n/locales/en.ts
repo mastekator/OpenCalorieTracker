@@ -1011,7 +1011,9 @@ export const en = {
       off_confirm: 'Turn off',
       off_done: 'AI turned off',
       limit: 'Refinements per meal per visit',
-      limit_hint: 'Empty — no limit',
+      limit_title: 'AI refinements',
+      limit_hint:
+        'How many times one meal can be refined or recognized again while it is open. Empty — no limit.',
       limit_invalid: 'A whole number from 1 to 50, or empty',
       limit_saved: 'Refinement limit saved',
     },

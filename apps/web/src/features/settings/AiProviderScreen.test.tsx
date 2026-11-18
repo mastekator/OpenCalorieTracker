@@ -691,7 +691,14 @@ describe('AiProviderScreen: settings form', () => {
     await wrap(<AiProviderScreen />);
     await screen.findByText('Settings come from .env and take priority');
     const name = 'Refinements per meal per visit';
-    expect(screen.getByText('Empty — no limit')).toBeTruthy();
+    expect(
+      screen.getByText(
+        'How many times one meal can be refined or recognized again while it is open. Empty — no limit.',
+      ),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole('heading', { name: 'AI refinements' }),
+    ).toBeTruthy();
     for (const bad of ['0', '51', '2.5', 'x']) {
       type(name, bad);
       fireEvent.blur(field(name));
