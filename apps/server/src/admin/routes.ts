@@ -10,7 +10,7 @@ import {
   type Invite,
 } from '@oct/shared';
 import { callModel, noVisionError, quickReasoning } from '../ai/common.js';
-import { baseUrlHost, getAiSettings } from '../ai/settings.js';
+import { baseUrlHost, savedAiRow } from '../ai/settings.js';
 import { providerState, redactSecrets } from '../ai/status.js';
 import type { AppDeps } from '../app.js';
 import { DEVICE_FAILS, IP_FAILS } from '../auth/guard.js';
@@ -36,7 +36,7 @@ const deviceName = (ua: string | null) => {
 };
 
 /** Admin-only API (ADR-0003); everything under /api/admin answers 403 to other users (AC-2.8). */
-export function adminRoutes({ config, db, model = null }: AppDeps) {
+export function adminRoutes({ config, db, ai, secrets }: AppDeps) {
   const publicUrl = () => {
     if (!config.publicUrl) throw new ApiError(409, 'not_configured');
     return config.publicUrl;
@@ -47,16 +47,23 @@ export function adminRoutes({ config, db, model = null }: AppDeps) {
     return n;
   };
 
-  const settings = model ? getAiSettings(config) : null;
   const aiStatus = (): AdminAiStatus => {
+    const { settings = null, model = null } = ai.current() ?? {};
+    const saved = savedAiRow(db, secrets);
+    // An unreadable saved key: nothing is active, the screen shows what was saved (E-2).
+    const shown = settings ?? (saved?.keyUnreadable ? saved : null);
     const { state, checkedAt, details } = providerState(model);
     return {
-      provider: settings?.provider ?? null,
-      providerName: settings ? AI_PROVIDERS[settings.provider].name : null,
-      model: settings?.model ?? null,
+      provider: shown?.provider ?? null,
+      providerName: shown ? AI_PROVIDERS[shown.provider].name : null,
+      model: shown?.model ?? null,
       keySet: !!settings?.apiKey,
-      baseUrlHost: baseUrlHost(settings),
+      baseUrlHost: baseUrlHost(shown),
       source: settings?.source ?? null,
+      keyLast4: settings?.source === 'env' ? null : (saved?.keyLast4 ?? null),
+      keyUnreadable: !!saved?.keyUnreadable,
+      savedInactive: settings?.source === 'env' && !!saved,
+      rev: saved?.rev ?? null,
       state,
       checkedAt,
       ...(details && {
@@ -78,6 +85,7 @@ export function adminRoutes({ config, db, model = null }: AppDeps) {
       .get('/admin/ai', (c) => c.json(aiStatus()))
       // One tiny request with an image, so no_vision is told apart (ADR-0013).
       .post('/admin/ai/check', async (c) => {
+        const model = ai.current()?.model;
         if (!model) throw new ApiError(409, 'ai_not_configured');
         const wait = lastCheck + CHECK_INTERVAL_MS - Date.now();
         if (wait > 0)

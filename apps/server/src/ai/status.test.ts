@@ -5,25 +5,28 @@ import { MockLanguageModelV4 } from 'ai/test';
 import { callModel, quickReasoning } from './common.js';
 import {
   interviewStatus,
+  markNoVision,
   providerState,
+  recognitionStatus,
   recordAiResult,
   redactSecrets,
-  resetAiStatus,
+  setActiveModel,
 } from './status.js';
 
 const KEY = 'sk-secret-123';
 
+const active = mockModel();
 beforeEach(() => {
   vi.spyOn(console, 'log').mockImplementation(() => {});
+  setActiveModel(active);
 });
 afterEach(() => {
   vi.restoreAllMocks();
-  resetAiStatus();
 });
 
 describe('provider state (ADR-0013)', () => {
   it('starts unknown in a new process and is not_configured without a model (E-6.1)', () => {
-    expect(providerState(mockModel())).toEqual({
+    expect(providerState(active)).toEqual({
       state: 'unknown',
       checkedAt: null,
     });
@@ -46,14 +49,25 @@ describe('provider state (ADR-0013)', () => {
     ],
     [apiError(400, 'model does not support image input'), 'no_vision', 'ready'],
   ])('records %s as %s, interview %s', (err, state, interview) => {
-    recordAiResult(err);
-    expect(providerState(mockModel()).state).toBe(state);
-    expect(interviewStatus(mockModel())).toBe(interview);
+    recordAiResult(active, err);
+    expect(providerState(active).state).toBe(state);
+    expect(interviewStatus(active)).toBe(interview);
+  });
+
+  it('ignores results and no-vision of a model that is not active (ADR-0018 §3)', () => {
+    const old = mockModel();
+    recordAiResult(active);
+    recordAiResult(old, apiError(401, 'bad key'));
+    markNoVision(old);
+    expect(providerState(active).state).toBe('ok');
+    expect(recognitionStatus(active)).toBe('ready');
+    setActiveModel(old);
+    expect(providerState(old).state).toBe('unknown');
   });
 
   it('keeps the status code and message of a failure', () => {
-    recordAiResult(apiError(401, 'bad key'));
-    expect(providerState(mockModel())).toMatchObject({
+    recordAiResult(active, apiError(401, 'bad key'));
+    expect(providerState(active)).toMatchObject({
       checkedAt: expect.any(Number),
       details: { status: 401, message: 'provider says bad key' },
     });
@@ -62,9 +76,9 @@ describe('provider state (ADR-0013)', () => {
 
 describe('callModel records the result', () => {
   const opts = { op: 't', promptVersion: 1, logExtra: () => '' };
+  const model = active;
 
   it('ok on success, the error state on failure', async () => {
-    const model = mockModel();
     await callModel(model, { ...opts, timeoutMs: 1000 }, async () => 1);
     expect(providerState(model).state).toBe('ok');
     await expect(
@@ -77,7 +91,6 @@ describe('callModel records the result', () => {
 
   it('timeout with its seconds when the call runs out of time', async () => {
     vi.useFakeTimers();
-    const model = mockModel();
     const call = callModel(
       model,
       { ...opts, timeoutMs: 1000 },
@@ -98,7 +111,6 @@ describe('callModel records the result', () => {
   });
 
   it('nothing on a client abort or a schema mismatch', async () => {
-    const model = mockModel();
     const client = new AbortController();
     client.abort();
     await expect(

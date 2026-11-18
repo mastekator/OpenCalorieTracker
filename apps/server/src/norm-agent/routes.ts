@@ -31,7 +31,7 @@ interface DraftRow {
 }
 
 /** The norm agent dialog of the current user (ADR-0015 §5). State is per app instance. */
-export function normAgentRoutes({ db, model = null }: AppDeps) {
+export function normAgentRoutes({ db, ai }: AppDeps) {
   // Users with a model turn in flight: one at a time, and no edit/apply/delete under it.
   const running = new Set<number>();
   const idle = (userId: number) => {
@@ -114,6 +114,7 @@ export function normAgentRoutes({ db, model = null }: AppDeps) {
           ('text' in body && row.user_turns >= MAX_USER_TURNS)
         )
           throw new ApiError(409, 'agent_closed');
+        const model = ai.current()?.model;
         if (!model) throw new ApiError(409, 'ai_not_configured');
 
         const added: ChatMessage[] = [];

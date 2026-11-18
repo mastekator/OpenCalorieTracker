@@ -69,6 +69,10 @@ const serve = (list: Passkey[]) => () => {
               keySet: true,
               baseUrlHost: null,
               source: 'env',
+              keyLast4: null,
+              keyUnreadable: false,
+              savedInactive: false,
+              rev: null,
               state: 'quota_exceeded',
               checkedAt: Date.now(),
             })

@@ -562,7 +562,7 @@ describe('my passkeys', () => {
     const { createApp } = await import('../app.js');
     const { loadConfig } = await import('../config.js');
     const off = createApp({
-      db: t.db,
+      ...t,
       config: loadConfig({
         PUBLIC_URL: 'http://localhost:3000',
         ADMIN_EMAIL: ADMIN,
