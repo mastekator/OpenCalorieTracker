@@ -43,6 +43,7 @@ for (const exp of expected) {
       got: got.dishes.map((d) => d.name).join(', ') || '(none)',
       kcal: totalKcal(got),
       levels: got.dishes.map((d) => confidenceLevel(d.confidence)).join(','),
+      questions: got.questions.length,
       result: miss ?? 'ok',
     };
   } catch (err) {
