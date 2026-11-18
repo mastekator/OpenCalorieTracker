@@ -1,4 +1,9 @@
-import { generateText, Output } from 'ai';
+import {
+  generateText,
+  NoObjectGeneratedError,
+  Output,
+  type LanguageModelUsage,
+} from 'ai';
 import {
   recognitionSchema,
   round1,
@@ -19,6 +24,12 @@ import { QUESTIONS_PROMPT, sanitizeQuestions } from './questions.js';
 export const RECOGNIZE_PROMPT_VERSION = 2;
 export const RECOGNIZE_TIMEOUT_MS = 60_000;
 
+/** Tokens of one recognition, every attempt summed. */
+export interface TokenUsage {
+  inputTokens: number;
+  outputTokens: number;
+}
+
 export function recognizePrompt(locale: string) {
   return `You estimate nutrition from a meal photo.
 List every separate dish or food item visible. Identical items on different plates are separate entries.
@@ -35,44 +46,62 @@ ${QUESTIONS_PROMPT}`;
 /**
  * Recognizes the dishes on a JPEG photo (ADR-0007). One silent retry on a schema mismatch,
  * 60 s for the whole operation. Provider failures become ApiError; aborting `signal`
- * rethrows the abort error as is.
+ * rethrows the abort error as is. `onUsage` gets the tokens of all attempts, failed ones included.
  */
 export async function recognizeMeal(
   model: AiModel,
   jpeg: Uint8Array,
   locale: string,
   signal?: AbortSignal,
+  onUsage?: (usage: TokenUsage) => void,
 ): Promise<Recognition & { questions: AiQuestion[] }> {
-  return callModel(
-    model,
-    {
-      op: 'recognize',
-      promptVersion: RECOGNIZE_PROMPT_VERSION,
-      timeoutMs: RECOGNIZE_TIMEOUT_MS,
-      signal,
-      mapError: noVisionError,
-      logExtra: (r) =>
-        `dishes=${r?.dishes.length ?? 0} questions=${r?.questions.length ?? 0}`,
-    },
-    async (abortSignal) => {
-      const { output } = await generateText({
-        model,
-        system: recognizePrompt(locale),
-        messages: [
-          {
-            role: 'user',
-            content: [{ type: 'file', data: jpeg, mediaType: 'image/jpeg' }],
-          },
-        ],
-        output: Output.object({ schema: recognitionSchema }),
-        maxRetries: 0,
-        reasoning: quickReasoning(model),
-        abortSignal,
-      });
-      const dishes = output.dishes.map(sanitizeDish);
-      return { dishes, questions: sanitizeQuestions(output.questions, dishes) };
-    },
-  );
+  const total: TokenUsage = { inputTokens: 0, outputTokens: 0 };
+  const add = (u: LanguageModelUsage | undefined) => {
+    total.inputTokens += u?.inputTokens ?? 0;
+    total.outputTokens += u?.outputTokens ?? 0;
+  };
+  try {
+    return await callModel(
+      model,
+      {
+        op: 'recognize',
+        promptVersion: RECOGNIZE_PROMPT_VERSION,
+        timeoutMs: RECOGNIZE_TIMEOUT_MS,
+        signal,
+        mapError: noVisionError,
+        logExtra: (r) =>
+          `dishes=${r?.dishes.length ?? 0} questions=${r?.questions.length ?? 0}`,
+      },
+      async (abortSignal) => {
+        const result = await generateText({
+          model,
+          system: recognizePrompt(locale),
+          messages: [
+            {
+              role: 'user',
+              content: [{ type: 'file', data: jpeg, mediaType: 'image/jpeg' }],
+            },
+          ],
+          output: Output.object({ schema: recognitionSchema }),
+          maxRetries: 0,
+          reasoning: quickReasoning(model),
+          abortSignal,
+        }).catch((err: unknown) => {
+          // A schema mismatch still spent tokens.
+          if (NoObjectGeneratedError.isInstance(err)) add(err.usage);
+          throw err;
+        });
+        add(result.usage);
+        const dishes = result.output.dishes.map(sanitizeDish);
+        return {
+          dishes,
+          questions: sanitizeQuestions(result.output.questions, dishes),
+        };
+      },
+    );
+  } finally {
+    onUsage?.(total);
+  }
 }
 
 /**

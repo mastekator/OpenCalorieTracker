@@ -136,3 +136,36 @@ describe('POST /api/admin/ai/check', () => {
     expect((await t.check()).status).toBe(200);
   });
 });
+
+describe('GET /api/admin/ai/test-photos/:file', () => {
+  const photo = (
+    t: { app: { request: typeof fetch } },
+    cookie: string,
+    file: string,
+  ) =>
+    t.app.request(`/api/admin/ai/test-photos/${file}`, { headers: { cookie } });
+
+  it('serves a test photo to the admin as JPEG', async () => {
+    const t = await setup(null, {} as typeof ENV);
+    const res = await photo(t, t.cookie, 'banana.jpg');
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-type')).toBe('image/jpeg');
+    expect(new Uint8Array(await res.arrayBuffer()).slice(0, 2)).toEqual(
+      new Uint8Array([0xff, 0xd8]),
+    );
+  });
+
+  it('is 404 outside expected.json and 403 for a non-admin', async () => {
+    const t = await setup(null, {} as typeof ENV);
+    for (const file of [
+      'expected.json',
+      'README.md',
+      '..%2Fpackage.json',
+      '..%2F..%2Fpackage.json',
+      'nope.jpg',
+    ])
+      expect((await photo(t, t.cookie, file)).status, file).toBe(404);
+    const user = await t.signIn('b@example.com');
+    expect((await photo(t, user, 'banana.jpg')).status).toBe(403);
+  });
+});

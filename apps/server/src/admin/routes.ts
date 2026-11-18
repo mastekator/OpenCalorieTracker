@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import { generateText } from 'ai';
 import { Hono } from 'hono';
 import {
@@ -10,6 +11,7 @@ import {
   type Invite,
 } from '@oct/shared';
 import { callModel, noVisionError, quickReasoning } from '../ai/common.js';
+import { readExpected, TEST_PHOTOS_DIR } from '../ai/model-test/compare.js';
 import { baseUrlHost, savedAiRow } from '../ai/settings.js';
 import { providerState, redactSecrets } from '../ai/status.js';
 import type { AppDeps } from '../app.js';
@@ -126,6 +128,17 @@ export function adminRoutes({ config, db, ai, secrets }: AppDeps) {
           if (!(err instanceof ApiError)) throw err;
         }
         return c.json(aiStatus());
+      })
+      // Thumbnails for the model test table (ADR-0019): only names from expected.json, so no path tricks.
+      .get('/admin/ai/test-photos/:file', async (c) => {
+        const file = c.req.param('file');
+        if (!(await readExpected()).some((e) => e.file === file))
+          throw new ApiError(404, 'not_found');
+        const data = await readFile(new URL(file, TEST_PHOTOS_DIR));
+        return c.body(new Uint8Array(data), 200, {
+          'Content-Type': 'image/jpeg',
+          'Cache-Control': 'private, max-age=86400',
+        });
       })
       .get('/admin/invites', (c) => {
         const now = Date.now();

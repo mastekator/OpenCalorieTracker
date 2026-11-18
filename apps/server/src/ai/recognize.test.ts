@@ -101,21 +101,33 @@ describe('recognizeMeal', () => {
   it('retries once on a schema mismatch', async () => {
     vi.spyOn(console, 'log').mockImplementation(() => {});
     const model = mockModel({ dishes: 'nope' }, { dishes: [egg] });
-    await expect(recognizeMeal(model, jpeg, 'en')).resolves.toEqual({
+    const onUsage = vi.fn();
+    await expect(
+      recognizeMeal(model, jpeg, 'en', undefined, onUsage),
+    ).resolves.toEqual({
       dishes: [egg],
       questions: [],
     });
     expect(model.doGenerateCalls).toHaveLength(2);
+    // Each mocked attempt spends 1 input and 1 output token.
+    expect(onUsage).toHaveBeenCalledExactlyOnceWith({
+      inputTokens: 2,
+      outputTokens: 2,
+    });
   });
 
   it('fails with ai_invalid_response after two mismatches', async () => {
     vi.spyOn(console, 'log').mockImplementation(() => {});
     const model = mockModel({ dishes: 'nope' }, { foo: 1 });
-    await expect(recognizeMeal(model, jpeg, 'en')).rejects.toMatchObject({
+    const onUsage = vi.fn();
+    await expect(
+      recognizeMeal(model, jpeg, 'en', undefined, onUsage),
+    ).rejects.toMatchObject({
       status: 502,
       code: 'ai_invalid_response',
     });
     expect(model.doGenerateCalls).toHaveLength(2);
+    expect(onUsage).toHaveBeenCalledWith({ inputTokens: 2, outputTokens: 2 });
     expect(logs()[0]).toMatch(/result=ai_invalid_response/);
   });
 

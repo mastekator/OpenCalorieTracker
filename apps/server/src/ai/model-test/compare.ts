@@ -1,4 +1,11 @@
+import { readFile } from 'node:fs/promises';
 import { confidenceLevel, type Recognition } from '@oct/shared';
+
+/** apps/server/test-photos: same depth from src/ and dist/, copied into the image (ADR-0019). */
+export const TEST_PHOTOS_DIR = new URL(
+  '../../../test-photos/',
+  import.meta.url,
+);
 
 export type Expected =
   | {
@@ -29,3 +36,25 @@ export function compare(expected: Expected, got: Recognition): string | null {
 
 export const totalKcal = (r: Recognition) =>
   Math.round(r.dishes.reduce((sum, d) => sum + d.kcal, 0));
+
+export async function readExpected(): Promise<Expected[]> {
+  return JSON.parse(
+    await readFile(new URL('expected.json', TEST_PHOTOS_DIR), 'utf8'),
+  ) as Expected[];
+}
+
+/** What the photo expects, for the report: `egg, egg; 150-300 kcal; exact`. */
+export const expectedText = (e: Expected) =>
+  'empty' in e
+    ? '(none)'
+    : `${e.dishes.join(', ')}; ${e.kcal.join('-')} kcal; ${e.level}`;
+
+/** One photo's columns of a model test, from a recognition. */
+export function checkPhoto(expected: Expected, got: Recognition) {
+  return {
+    got: got.dishes.map((d) => d.name).join(', ') || '(none)',
+    kcal: totalKcal(got),
+    levels: got.dishes.map((d) => confidenceLevel(d.confidence)).join(','),
+    result: compare(expected, got) ?? 'ok',
+  };
+}
