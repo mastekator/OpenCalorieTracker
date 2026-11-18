@@ -467,3 +467,18 @@ export const QuestionsOfflineDark: Story = {
   ...offlineQuestions,
   globals: dark,
 };
+/** OCT-283: answered offline — one «Needs a connection» line under the field, the chips stay above the footer. */
+const answeredOffline: Story = {
+  args: questions,
+  beforeEach: offlineQuestions.beforeEach,
+  play: answered.play,
+};
+export const QuestionAnsweredOffline: Story = answeredOffline;
+export const QuestionAnsweredOfflineDark: Story = {
+  ...answeredOffline,
+  globals: dark,
+};
+export const QuestionAnsweredOfflineRu: Story = {
+  ...answeredOffline,
+  globals: { locale: 'ru' },
+};
