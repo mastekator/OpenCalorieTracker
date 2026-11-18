@@ -576,6 +576,33 @@ body{padding:var(--space-10) var(--space-8)}
 .share-row{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
 .skew{display:inline-flex;align-items:center;gap:2px;font-size:var(--text-footnote-size);color:var(--color-warning);font-weight:600}
 .skew .icon{width:14px;height:14px}
+/* weight block (tokens from OCT-189 weight screen) */
+.verdict{display:inline-flex;align-items:center;gap:var(--space-1);font-size:var(--text-footnote-size);font-weight:600;padding:2px var(--space-2);border-radius:var(--radius-full);white-space:nowrap}
+.verdict .icon{width:14px;height:14px}
+.verdict.ok{background:var(--color-accent-soft);color:var(--color-accent)}
+.verdict.slow{background:var(--color-notice);color:var(--color-text)}
+.verdict.warn{background:var(--color-warning-soft);color:var(--color-warning)}
+.wchart{width:100%;height:auto;display:block;overflow:visible}
+.wchart .pt{fill:var(--color-weight);opacity:var(--weight-point-opacity)}
+.wchart .tr{fill:none;stroke:var(--color-weight);stroke-width:var(--weight-trend-width);stroke-linecap:round;stroke-linejoin:round}
+.wchart .plan{fill:none;stroke:var(--color-text-secondary);stroke-width:1.5;stroke-dasharray:4 4}
+.wchart .grid{stroke:var(--color-separator);stroke-width:1}
+.wchart .jump{fill:none;stroke:var(--color-warning);stroke-width:1.5}
+.wchart text{font-size:var(--text-caption-size);fill:var(--color-text-secondary);font-variant-numeric:tabular-nums}
+.wlegend{display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-4);font-size:var(--text-caption-size);color:var(--color-text-secondary)}
+.wlegend span{display:inline-flex;align-items:center;gap:var(--space-1)}
+.wlegend i{display:inline-block;width:14px;height:0;border-top:var(--weight-trend-width) solid var(--color-weight)}
+.wlegend i.dot{width:6px;height:6px;border:0;border-radius:50%;background:var(--color-weight);opacity:var(--weight-point-opacity)}
+.wlegend i.plan{border-top:1.5px dashed var(--color-text-secondary)}
+.wlegend i.jump{width:8px;height:8px;border:1.5px solid var(--color-warning);border-radius:50%}
+.wnote{display:flex;gap:var(--space-2);align-items:flex-start;font-size:var(--text-subhead-size);line-height:var(--text-subhead-lh);padding-top:var(--space-3);border-top:1px solid var(--color-separator)}
+.wnote .icon{flex:none;margin-top:2px;color:var(--color-text-secondary)}
+.wnote.jmp .icon{color:var(--color-warning)}
+.wnote b{font-weight:600;font-variant-numeric:tabular-nums}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.wstates{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:var(--space-4);max-width:1000px}
+.wstates .card{background:var(--color-surface)}
+.wst{display:flex;flex-direction:column;gap:var(--space-2);min-width:0}
 .list-row{display:flex;justify-content:space-between;align-items:center;gap:var(--space-3);min-height:var(--tap-min);border-top:1px solid var(--color-separator);font-size:var(--text-subhead-size);font-variant-numeric:tabular-nums}
 .list-row:first-of-type{border-top:0}
 .list-row .r{display:flex;align-items:center;gap:var(--space-2);white-space:nowrap}
@@ -736,6 +763,11 @@ body{padding:var(--space-10) var(--space-8)}
 <section class="doc-section" id="report">
   <h2 class="doc-h2">2 · Готовый отчёт</h2>
   <div class="row" id="report-row"></div>
+</section>
+<section class="doc-section" id="weight">
+  <h2 class="doc-h2">2W · Вес: все выводы и пустые случаи</h2>
+  <p class="t-sub muted" style="max-width:70ch;margin-bottom:var(--space-4)">План — темп из цели профиля. По плану — 75–125% плана; медленнее — меньше 75% в ту же сторону; быстрее — больше 125% (больше 1% веса в неделю — предупреждение); против плана — тренд в обратную сторону больше 0,1 кг/нед. Цель «держать вес» — держится, если тренд в пределах ±0,5 кг за месяц. Тренд — с 3 взвешиваний на отрезке от 7 дней.</p>
+  <div class="wstates" id="weight-row"></div>
 </section>
 <section class="doc-section" id="list">
   <h2 class="doc-h2">3 · «Мои отчёты»</h2>
@@ -951,8 +983,8 @@ const head = (kicker, title, meta) => `<div class="rep-head">${kicker?`<span cla
 const card = (inner, label='') => `<section class="card"${label?` aria-label="${label}"`:''}>${inner}</section>`;
 
 /* AI block — before generation */
-const SENT = `<div class="sent">${I('lock','sm')}<span>Провайдеру уйдут итоги по дням и названия частых блюд — без фото, имени и email.</span></div>`;
-const genCard = ({profile=true, note=''}={}) => `<section class="ai-card" aria-label="Разбор от ИИ"><div class="ai-h">${I('spark')}Что было и что попробовать</div><p class="t-sub muted">ИИ напишет короткий разбор и 2–5 шагов на следующий период. Числа считает приложение — модель их не меняет.</p>${SENT}<div class="gen-row" role="switch" aria-checked="${profile}"><span class="grow">Учитывать профиль <span class="muted t-sub">(возраст, пол, рост, вес)</span></span><span class="switch ${profile?'on':''}"></span></div>${note}</section>`;
+const SENT = `<div class="sent">${I('lock','sm')}<span>Провайдеру уйдут итоги по дням, названия частых блюд и вес по тренду — без фото, имени и email.</span></div>`;
+const genCard = ({profile=true, note=''}={}) => `<section class="ai-card" aria-label="Разбор от ИИ"><div class="ai-h">${I('spark')}Что было и что попробовать</div><p class="t-sub muted">ИИ напишет короткий разбор и 2–5 шагов на следующий период. Числа считает приложение — модель их не меняет.</p>${SENT}<div class="gen-row" role="switch" aria-checked="${profile}"><span class="grow">Учитывать профиль <span class="muted t-sub">(возраст, пол, рост, вес и цель)</span></span><span class="switch ${profile?'on':''}"></span></div>${note}</section>`;
 const genBusy = `<section class="ai-card" aria-label="Разбор от ИИ" aria-busy="true"><div class="gen-progress" role="status"><span class="spinner"></span>Пишем разбор…</div><div class="skel-lines"><div class="skel" style="width:92%"></div><div class="skel" style="width:78%"></div><div class="skel" style="width:85%"></div><div class="skel" style="width:60%"></div></div><p class="t-foot muted">Обычно до минуты. Можно уйти с экрана — отчёт появится в «Моих отчётах».</p></section>`;
 const genMsg = (ic, cls, title, body) => `<section class="ai-card" aria-label="Разбор от ИИ"><div class="ai-h">${I('spark')}Что было и что попробовать</div><div class="banner ${cls}" role="status">${I(ic)}<div><div class="b-title">${title}</div>${body}</div></div></section>`;
 
@@ -962,12 +994,14 @@ const WHAT = `<section class="ai-card" aria-label="Что было"><div class="
 <li><span><b>Все 5 суббот</b> выше нормы — в среднем на <b>640 ккал</b>; воскресенья — в 3 из 4.</span></li>
 <li><span>Самая ровная полоса — <b>6 дней в норме подряд</b>, 18–23 октября.</span></li>
 <li><span>Ужин — <b>850 ккал</b>, это <b>39%</b> дня; обед — 690.</span></li>
-<li><span>Белки <b>92 г</b> при норме 120, жиры <b>90 г</b> при норме 70.</span></li></ul></section>`;
+<li><span>Белки <b>92 г</b> при норме 120, жиры <b>90 г</b> при норме 70.</span></li>
+<li><span>Вес по тренду <b>−0,8 кг</b> — вдвое медленнее плана (−1,7). По дневнику ждали <b>−1,5 кг</b>: часть еды, похоже, не попала в записи — чаще всего это выходные.</span></li></ul></section>`;
 const TRY = (by=true) => `<section class="ai-card" aria-label="Что попробовать"><div class="ai-h">Что попробовать</div><ol class="ai-steps">
 <li><span>Субботы в среднем <b>+640 ккал</b>. Решите заранее, где будет главный приём, а два других сделайте полегче.</span></li>
 <li><span>Перенесите около <b>200 ккал</b> ужина в обед — например, гарнир: ужин станет ~650 ккал.</span></li>
 <li><span>Добавьте <b>25–30 г белка</b> в день: творог к завтраку или куриная грудка к обеду.</span></li>
-<li><span>Жиры выше нормы на <b>20 г</b> в день — посмотрите соусы и масло в частых блюдах.</span></li></ol>
+<li><span>Жиры выше нормы на <b>20 г</b> в день — посмотрите соусы и масло в частых блюдах.</span></li>
+<li><span>В субботу и воскресенье записывайте всё, включая перекусы, и взвешивайтесь <b>2–3 раза в неделю</b> утром — тогда станет видно, где теряется разница.</span></li></ol>
 ${by?`<div class="ai-by"><span>Текст: Ollama, llama3.1 · 1 нояб.</span><span class="act" role="button">${I('refresh','sm')}Сформировать заново</span></div>`:''}</section>`;
 
 /* numbers (server) */
@@ -982,6 +1016,41 @@ const frow2 = (n, c, k) => `<div class="list-row"><span>${n}</span><span class="
 const FREQ = card(`<div class="sum-line"><span class="t-headline">Частые блюда</span><span class="avg-note">раз · ккал за месяц</span></div><div>${frow2('Кофе с молоком',26,1560)}${frow2('Овсянка на молоке',14,4060)}${frow2('Гречка с грибами',9,2070)}${frow2('Куриная грудка гриль',8,1984)}${frow2('Творог 5%',7,840)}<div class="unch" role="button" aria-expanded="false">Ещё 5 блюд${I('chev-d','sm')}</div></div><div class="sum-line" style="margin-top:var(--space-2)"><span class="t-headline">Самые калорийные</span><span class="avg-note">сумма за месяц</span></div><div>${frow2('Овсянка на молоке',14,4060)}${frow2('Пицца маргарита',4,3280)}${frow2('Паста карбонара',3,2340)}</div>`,'Частые блюда');
 const MEALS = card(`<div class="sum-line"><span class="t-headline">По приёмам пищи</span><span class="avg-note">в среднем за день</span></div><div>${[['Завтрак',430,20],['Обед',690,32],['Ужин',850,39],['Перекус',211,10]].map(([n,k,p])=>`<div class="list-row"><span>${n}</span><span class="num"><b>${k}</b> <span class="muted">ккал · ${p}%</span></span></div>`).join('')}</div><span class="t-foot muted">Больше всего ккал — с 19 до 22 ч. Поздние перекусы (00:00–03:59): 4 раза, в среднем 320 ккал.</span>`,'По приёмам пищи');
 const GAPS = card(`<div class="sum-line"><span class="t-headline">Нет данных: 3 дн.</span></div><span class="t-sub muted">7, 26, 27 окт. — без записей. Это не 0 ккал: в средние эти дни не входят.</span>`,'Нет данных');
+/* weight (server): trend = EMA from OCT-209; plan = pace of the goal (OCT-28 norm agent) */
+const WPTS = [[1,81.2],[5,82.4],[9,81.0],[14,80.8],[19,80.5],[24,80.9],[29,80.3]];
+const WTR = [[1,81.3],[5,81.4],[9,81.25],[14,81.1],[19,80.9],[24,80.8],[31,80.5]];
+const wchart = ({pts=WPTS, tr=WTR, plan=[81.3,79.6], jump=5, lo=79.4, hi=82.8, days=31}={}) => {
+  const W=320, H=128, R=40, x=d=>8+(d-1)*(W-R-16)/(days-1), y=v=>8+(hi-v)*(H-28)/(hi-lo);
+  const ticks=[82,81,80].filter(v=>v>lo&&v<hi);
+  const grid=ticks.map(v=>`<line class="grid" x1="0" x2="${W-R}" y1="${y(v)}" y2="${y(v)}"/><text x="${W-R+6}" y="${y(v)+4}">${String(v)}</text>`).join('');
+  const dl=[1,10,20,days].map(d=>`<text x="${x(d)}" y="${H-2}" text-anchor="middle">${d}</text>`).join('');
+  const pl=plan?`<line class="plan" x1="${x(1)}" y1="${y(plan[0])}" x2="${x(days)}" y2="${y(plan[1])}"/>`:'';
+  const t=tr?`<polyline class="tr" points="${tr.map(([d,v])=>`${x(d)},${y(v)}`).join(' ')}"/>`:'';
+  const p=pts.map(([d,v])=>`<circle class="pt" cx="${x(d)}" cy="${y(v)}" r="3"/>`).join('');
+  const j=jump?(()=>{const [d,v]=pts.find(q=>q[0]===jump);return `<circle class="jump" cx="${x(d)}" cy="${y(v)}" r="7"/>`;})():'';
+  return `<svg class="wchart" viewBox="0 0 ${W} ${H}" aria-hidden="true">${grid}${pl}${t}${p}${j}${dl}</svg>`;
+};
+const VERD = {ok:['ok','check','по плану'], slow:['slow','down','медленнее плана'], fast:['warn','alert','быстрее плана'], against:['warn','up','против плана'], hold:['ok','check','вес держится']};
+const verdict = k => { const [c,i,t]=VERD[k]; return `<span class="verdict ${c}">${I(i)}${t}</span>`; };
+const wleg = (plan=true, jump=true) => `<div class="wlegend"><span><i class="dot"></i>взвешивания</span><span><i></i>тренд</span>${plan?'<span><i class="plan"></i>план</span>':''}${jump?'<span><i class="jump"></i>скачок</span>':''}</div>`;
+const WEIGHT = card(`<div class="sum-line"><span class="t-headline">Вес</span>${verdict('slow')}</div>
+<p class="sr-only">График веса за октябрь: 7 взвешиваний, по тренду с 81,3 до 80,5 кг, минус 0,8. План минус 1,7 кг. Медленнее плана.</p>
+${wchart()}${wleg()}
+<div class="stat-grid">${stat('По тренду','−0,8','кг','81,3 → 80,5')}${stat('Темп','−0,2','кг/нед.','план −0,4')}</div>
+<div class="wnote">${I('report','sm')}<span>По калориям ждали <b>−1,5 кг</b>: план −1,7 и ещё +81 ккал в день к норме. По тренду <b>−0,8</b> — разница около <b>190 ккал в день</b> не видна в дневнике.</span></div>
+<div class="wnote jmp">${I('alert','sm')}<span><b>+1,2 кг</b> 5 окт., на следующий день после субботы — скорее вода и соль: тренд сдвинулся на 0,1 кг.</span></div>
+<span class="t-foot muted">7 взвешиваний · цель 73 кг, похудеть · 1 кг ≈ 7 700 ккал. Вес за день скачет от воды и соли, поэтому сравниваем тренд.</span>
+<div class="list-row" role="button"><span>Открыть вес</span><span class="r">${I('chev-r','sm')}</span></div>`,'Вес');
+const wstate = (title, k, body, extra='') => card(`<div class="sum-line"><span class="t-headline">Вес</span>${k?verdict(k):''}</div>${body}${extra}`,title);
+const WSTATES = [
+  ['По плану','ok',`${wchart({pts:[[1,81.2],[8,80.6],[15,80.4],[22,79.9],[29,79.6]],tr:[[1,81.3],[8,80.9],[15,80.5],[22,80.1],[31,79.6]],jump:0,lo:79,hi:82})}<div class="stat-grid">${stat('По тренду','−1,7','кг','81,3 → 79,6')}${stat('Темп','−0,4','кг/нед.','план −0,4')}</div><span class="t-foot muted">«По плану» — темп от 75 до 125% плана.</span>`],
+  ['Быстрее плана','fast',`<div class="stat-grid">${stat('По тренду','−4,1','кг','81,3 → 77,2')}${stat('Темп','−0,9','кг/нед.','план −0,4')}</div><div class="wnote jmp">${I('alert','sm')}<span>Больше 1% веса в неделю — вместе с жиром уходят мышцы. Проверьте, все ли приёмы пищи в дневнике.</span></div>`],
+  ['Против плана','against',`<div class="stat-grid">${stat('По тренду','+0,9','кг','81,3 → 82,2')}${stat('Темп','+0,2','кг/нед.','план −0,4')}</div><div class="wnote">${I('report','sm')}<span>В среднем <b>+260 ккал</b> в день к норме — это около <b>+1,0 кг</b> за месяц, вес идёт за калориями.</span></div>`],
+  ['Цель — держать вес','hold',`<div class="stat-grid">${stat('По тренду','+0,2','кг','74,1 → 74,3')}${stat('Темп','+0,05','кг/нед.','держать ±0,1')}</div><span class="t-foot muted">«Держится» — тренд в пределах ±0,5 кг за месяц.</span>`],
+  ['Цель не задана','',`<div class="stat-grid">${stat('По тренду','−0,8','кг','81,3 → 80,5')}${stat('Темп','−0,2','кг/нед.')}</div><div class="invite">${I('target')}<span>Задайте цель — сравним с планом</span><span class="go">Задать</span></div>`],
+  ['Мало взвешиваний','',`<p class="t-sub">2 взвешивания: 81,2 кг 3 окт. и 80,6 кг 24 окт.</p><span class="t-foot muted">Тренд и вывод — с 3 взвешиваний, между первым и последним хотя бы 7 дней.</span>`,`<button class="btn btn-tonal btn-sm">${I('plus','sm')}Записать вес</button>`],
+  ['Нет взвешиваний','',`<p class="t-sub muted">За октябрь взвешиваний нет — без них не понять, работает ли план.</p>`,`<button class="btn btn-tonal btn-sm">${I('plus','sm')}Записать вес</button>`],
+].map(([t,k,b,e=''])=>`<figure class="wst">${wstate(t,k,b,e)}<figcaption class="t-foot muted"><b>${t}.</b></figcaption></figure>`).join('');
 const DISC = `<p class="disclaimer">${I('alert','sm')}Не медицинский совет. Нормы ориентировочные.</p>`;
 
 /* sticky bottom bars */
@@ -998,7 +1067,8 @@ function report({part=0, top='', extra='', kcalNote='', sel=-1, tip='', nav=null
   const parts = [
     `${head('Отчёт · сформирован 1 нояб.','Октябрь 2026','31 день · 28 с записями · 3 без данных')}<div class="pad stack">${card(calendar(OCT,{sel,tip})+SERIES_OCT,'Календарь периода')}${WHAT}</div>`,
     `<div class="pad stack">${WHAT}${TRY()}</div>`,
-    `<div class="pad stack">${KCAL(kcalNote)}${MACROS}${ABOVE}</div>`,
+    `<div class="pad stack">${KCAL(kcalNote)}${WEIGHT}${MACROS}${ABOVE}</div>`,
+    `<div class="pad stack">${WEIGHT}</div>`,
     `<div class="pad stack">${FREQ}${MEALS}${GAPS}${DISC}</div>`,
   ];
   return `${navbar}${top}<div class="content rep">${parts[part]}</div>${barShare}${extra}`;
@@ -1049,12 +1119,15 @@ const OCT_PLAIN = calendar(OCT,{norm:0});
 document.getElementById('report-row').innerHTML = [
   frame('2.1','Отчёт: шапка и календарь','Снимок (AC-4.3): «сформирован 1 нояб.» в шапке. Календарь первым (AC-2.10): 4 состояния — заливка + значок + легенда, не только цвет. «В норме» — мягкий зелёный, «выше» — тёплый со штриховкой, как на графике недели, «ниже» — нейтральный серый, «нет данных» — пунктир. Ниже — серии (AC-2.11) теми же значками. «Поделиться» всегда внизу, над ней строка «Отчёт увидит тот, кому вы его отправите» (AC-4.6).', report()),
   frame('2.2','«Что было» и «Что попробовать»','Два блока текста модели (AC-3.1): «Что было» — пункты с числами жирным, «Что попробовать» — нумерованные шаги в кружках. Внизу — «Текст: провайдер, модель» и «Сформировать заново» (AC-3.7): заменяет только текст.', report({part:1})),
-  frame('2.3','Числа','Калории (AC-2.2): среднее, итог против бюджета 2 100 × 31, дни выше/ниже на 10%+. БЖУ (AC-2.3): граммы против нормы, доля в ккал против доли нормы; перекос > 20% — подпись «меньше/больше нормы» со стрелкой. Дни выше нормы (AC-2.4) — касание открывает день в дневнике.', report({part:2})),
-  frame('2.4','Блюда, приёмы пищи, пропуски','Частые блюда — 5 + «Ещё», самые калорийные — 3 (AC-2.5). Приёмы пищи — ккал и доля дня, поздние перекусы отдельной строкой (AC-2.6). Дни без записей — отдельной карточкой «это не 0 ккал» (AC-2.7). Последним — дисклеймер (AC-3.6).', report({part:3})),
+  frame('2.3','Числа','Калории (AC-2.2): среднее, итог против бюджета 2 100 × 31, дни выше/ниже на 10%+. БЖУ (AC-2.3): граммы против нормы, доля в ккал против доли нормы; перекос > 20% — подпись «меньше/больше нормы» со стрелкой. Под калориями — вес (2.8). Дни выше нормы (AC-2.4) — касание открывает день в дневнике.', report({part:2})),
+  frame('2.8','Вес за период','Есть взвешивания в периоде — карточка «Вес» сразу под калориями. График: точки взвешиваний, линия тренда (как на экране «Вес»), пунктир — план по цели; скачок обведён. Вывод в шапке: по плану / медленнее / быстрее / против плана / вес держится. Ниже — сверка с калориями: сколько ждали по дневнику и сколько вышло по тренду. Скачок > 1 кг за 1–3 дня — отдельной строкой «скорее вода и соль». Числа и вывод считает сервер, ИИ объясняет их в «Что было» и «Что попробовать». В картинку и текст «Поделиться» вес не попадает.', report({part:3})),
+  frame('2.4','Блюда, приёмы пищи, пропуски','Частые блюда — 5 + «Ещё», самые калорийные — 3 (AC-2.5). Приёмы пищи — ккал и доля дня, поздние перекусы отдельной строкой (AC-2.6). Дни без записей — отдельной карточкой «это не 0 ккал» (AC-2.7). Последним — дисклеймер (AC-3.6).', report({part:4})),
   frame('2.5','Касание дня','Подсказка над днём: дата, ккал, «на 800 выше нормы» и «Открыть день ›» — второе касание ведёт в дневник (AC-2.10). VoiceOver: каждый день — кнопка «Сб, 17 октября: выше нормы, 2 900 ккал».', report({sel:16, tip:dayTip})),
   frame('2.6','Дневник изменился, норма менялась','AC-4.3: если записи периода поправили после отчёта — баннер «Дневник изменился после отчёта · Сформировать заново» над шапкой. AC-2.9: если норма в периоде менялась, в карточке калорий вместо «по 28 дн.» — «Сравнение с текущей нормой».', report({part:2, top:staleBanner, kcalNote:'Сравнение с текущей нормой'})),
   frame('2.7','Норма не задана','E-2.1: календарь в 2 состояния — «есть записи» / «нет данных», с ккал в подсказке. Сравнений с нормой и стрелок перекоса нет; над календарём — плашка «Задать норму» как на «Сегодня». Шаги модели — без цифр нормы.', `${repNav('', back('Мои отчёты'))}<div class="content rep">${head('Отчёт · сформирован 1 нояб.','Октябрь 2026','31 день · 28 с записями · 3 без данных')}<div class="pad stack"><div class="invite">${I('target')}<span>Задайте норму — сравним с ней</span><span class="go">Задать</span></div>${card(OCT_PLAIN,'Календарь периода')}${card(`<div class="sum-line"><span class="t-headline">Калории</span><span class="avg-note">по 28 дн. с записями</span></div><div class="stat-grid">${stat('В среднем в день','2 181','ккал')}${stat('За месяц','61 070','ккал')}</div>`)}</div></div>${barShare}`),
 ].join('');
+
+document.getElementById('weight-row').innerHTML = WSTATES;
 
 /* 3 · my reports */
 const repCell = (t, sub, {busy=false, badge=''}={}) => `<div class="cell ic rep" role="button"><span class="lead-ic round">${busy?'<span class="spinner" style="width:16px;height:16px"></span>':I('report','sm')}</span><span class="main"><span>${t}</span><span class="sub">${sub}</span>${badge?`<span>${badge}</span>`:''}</span>${I('chev-r','sm').replace('class="icon','class="icon chev')}</div>`;

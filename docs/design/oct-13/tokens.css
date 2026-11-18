@@ -49,6 +49,19 @@
   --switch-height: 31px;
   --chat-avatar-size: 28px;     /* OCT-22: agent mark in chat, step numbers in «Как считается» */
   --chat-bubble-max-width: 80%; /* OCT-22: user message width in chat */
+  --dish-illo-size: 40px;       /* OCT-33: dish illustration in edit rows (hit area stays 44) */
+  --illo-pick-size: 64px;       /* OCT-33: tile in the illustration picker grid */
+  --water-figure-size: 120px;   /* OCT-147: water mascot / bar column on the Water card (phone) */
+  --drink-tile-size: 56px;      /* OCT-147: round drink tile in the drinks row (hit area = tile + label) */
+  --duration-fill: 1200ms;      /* OCT-147: water level rise after a tap (≤ 1.5 s, product AC-2.2) */
+  --dose-mark-size: 28px;       /* OCT-144: intake ring / check on a supplement row (hit area = whole row) */
+  --weight-spark-width: 128px;  /* OCT-189: mini chart on the Weight card (Today) */
+  --weight-spark-height: 56px;
+  --weight-ruler-height: 64px;  /* OCT-189: swipe ruler in the weigh-in sheet, 0.1 kg = 1 tick */
+  --weight-tick-gap: 10px;      /* OCT-189: distance between 0.1 kg ticks */
+  --weight-point-r: 3px;        /* OCT-189: weigh-in dot on the chart (tap area is the nearest-point column) */
+  --weight-trend-width: 2.5px;  /* OCT-189: trend line stroke */
+  --weight-point-opacity: 0.45; /* OCT-189: raw weigh-ins are paler than the trend (AC-9.22) */
   --icon-size: 24px;  --icon-size-sm: 20px;  --icon-stroke: 1.75;
   --content-max-width: 560px;   /* phone-like column: auth, settings, tablet/narrow window */
   /* Desktop (window ≥ 1024px; CSS vars can't be used in @media — keep 1024 in one place in code):
@@ -103,6 +116,19 @@
   --color-protein: #4766C4;
   --color-fat: #B36F00;
   --color-carbs: #16847E;
+  /* OCT-147: water (graphics & text, ≥ 4.5:1 on surface) */
+  --color-water: #1F78C8;
+  --color-water-soft: #E8F2FB;
+  /* OCT-189: weight diary — one neutral hue, never green/red by direction (AC-9.17) */
+  --color-weight: #6B4FA0;
+  --color-weight-soft: #F1ECF8;
+
+  /* OCT-33: dish illustrations (flat, decorative). Shown on a round "plate" tile so they never pass for a photo */
+  --illo-tile: #F6F0E4;   /* round substrate behind every illustration */
+  --illo-plate: #C9D3CF;  --illo-white: #FFFFFF;  --illo-shade: rgb(60 40 20 / 0.12);
+  --illo-red: #E05A47;    --illo-orange: #F09A3A; --illo-yellow: #F6C945; --illo-pink: #F2A193;
+  --illo-green: #6DB563;  --illo-leaf: #2F8A4E;   --illo-blue: #7DB3E3;
+  --illo-tan: #DDA15E;    --illo-brown: #9A5B32;  --illo-cocoa: #5C3A28;
 
   --shadow-sheet: 0 -4px 24px rgb(24 33 29 / 0.06);
   --shadow-toast: 0 6px 20px rgb(24 33 29 / 0.10);
@@ -141,6 +167,15 @@
     --color-protein: #93ABF2;
     --color-fat: #EBB45C;
     --color-carbs: #5ECFC6;
+    --color-water: #6DB6F2;
+    --color-water-soft: #13263A;
+    --color-weight: #C2A8EE;
+    --color-weight-soft: #2A2238;
+    --illo-tile: #2B2721;
+    --illo-plate: #4C524F;  --illo-white: #EEE8DC;  --illo-shade: rgb(0 0 0 / 0.28);
+    --illo-red: #EE7564;    --illo-orange: #EFA654; --illo-yellow: #EECB62; --illo-pink: #E39B8F;
+    --illo-green: #7CC472;  --illo-leaf: #4FAA6C;   --illo-blue: #86B9E4;
+    --illo-tan: #D29E66;    --illo-brown: #B27A52;  --illo-cocoa: #7A5440;
     --shadow-sheet: 0 -8px 32px rgb(0 0 0 / 0.5);
     --shadow-toast: 0 8px 24px rgb(0 0 0 / 0.5);
     --shadow-camera: 0 6px 16px rgb(0 0 0 / 0.5);
@@ -174,6 +209,15 @@
   --color-protein: #93ABF2;
   --color-fat: #EBB45C;
   --color-carbs: #5ECFC6;
+  --color-water: #6DB6F2;
+  --color-water-soft: #13263A;
+  --color-weight: #C2A8EE;
+  --color-weight-soft: #2A2238;
+  --illo-tile: #2B2721;
+  --illo-plate: #4C524F;  --illo-white: #EEE8DC;  --illo-shade: rgb(0 0 0 / 0.28);
+  --illo-red: #EE7564;  --illo-orange: #EFA654; --illo-yellow: #EECB62; --illo-pink: #E39B8F;
+  --illo-green: #7CC472;  --illo-leaf: #4FAA6C;   --illo-blue: #86B9E4;
+  --illo-tan: #D29E66;  --illo-brown: #B27A52;  --illo-cocoa: #7A5440;
   --shadow-sheet: 0 -8px 32px rgb(0 0 0 / 0.5);
   --shadow-toast: 0 8px 24px rgb(0 0 0 / 0.5);
   --shadow-camera: 0 6px 16px rgb(0 0 0 / 0.5);
@@ -185,5 +229,5 @@
 :root[data-theme="light"] { color-scheme: light; }
 
 @media (prefers-reduced-motion: reduce) {
-  :root { --duration-fast: 0ms; --duration-base: 0ms; --duration-slow: 0ms; --press-scale: 1; }
+  :root { --duration-fast: 0ms; --duration-base: 0ms; --duration-slow: 0ms; --press-scale: 1; --duration-fill: 0ms; }
 }
