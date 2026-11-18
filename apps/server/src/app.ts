@@ -21,7 +21,7 @@ import { photoRoutes } from './photos/routes.js';
 import { profileRoutes } from './profile/routes.js';
 import { syncRoutes } from './sync/routes.js';
 import { weightRoutes } from './weight/routes.js';
-import { setupErrors, type Config } from './config.js';
+import { setupErrors, setupMode, type Config } from './config.js';
 import { apiVersion } from './http/apiVersion.js';
 import { appVersion as version } from './version.js';
 import { ApiError, onError } from './http/errors.js';
@@ -89,6 +89,7 @@ export function createApp(deps: AppDeps) {
       authMethods: config.authMethods,
       registration: config.registration,
       setupError: setupErrors(config, db)[0] ?? null,
+      setupRequired: setupMode(config, db) === 'wizard',
     } satisfies ConfigResponse),
   );
   // Unknown API routes must 404, not fall through to the SPA's index.html.

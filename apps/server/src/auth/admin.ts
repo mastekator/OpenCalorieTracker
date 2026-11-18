@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import type { Database } from 'better-sqlite3';
-import { setupErrors, type Config } from '../config.js';
+import { setupErrors, setupMode, type Config } from '../config.js';
+import { newSetupCode, setupCodeBanner } from '../setup/code.js';
 import { ADMIN_SETUP_TTL, createLink } from './invites.js';
 import { hashPassword, verifyPassword } from './password.js';
 
@@ -11,6 +12,17 @@ import { hashPassword, verifyPassword } from './password.js';
 export async function ensureAdmin(config: Config, db: Database) {
   await seedOrCheckAdmin(config, db);
   adminSetupLink(config, db);
+  setupCode(config, db);
+}
+
+/** ADR-0021 §2: a fresh setup code on every start in wizard mode; none once an admin exists. */
+function setupCode(config: Config, db: Database) {
+  if (setupMode(config, db) !== 'wizard') {
+    db.prepare('DELETE FROM setup_code').run();
+    return;
+  }
+  const { code, expiresAt } = newSetupCode(db);
+  console.log(setupCodeBanner(code, expiresAt, config.publicUrl!));
 }
 
 /**
@@ -43,7 +55,12 @@ async function seedOrCheckAdmin(config: Config, db: Database) {
   const hasUsers = db.prepare('SELECT 1 FROM users LIMIT 1').get();
   if (!hasUsers) {
     // Invalid admin env is reported via setupErrors by the caller and on the sign-in screen.
-    if (setupErrors(config, db).some((e) => e.startsWith('admin_'))) return;
+    // Without ADMIN_EMAIL the wizard creates the admin; never seed one with a NULL email.
+    if (
+      !config.adminEmail ||
+      setupErrors(config, db).some((e) => e.startsWith('admin_'))
+    )
+      return;
     const password =
       config.authMethods.includes('password') && config.adminPassword
         ? await hashPassword(config.adminPassword)
@@ -108,13 +125,21 @@ async function seedOrCheckAdmin(config: Config, db: Database) {
 
 /**
  * E-6.2, `cli.js reset-admin-access`: lifts every sign-in block and timeout, then issues a fresh
- * 24-hour admin recovery link. Blocks are lifted even when the link cannot be made.
+ * 24-hour admin recovery link, or in wizard mode a fresh setup code (ADR-0021 §8).
+ * Blocks are lifted even when neither can be made.
  */
-export function resetAdminAccess(config: Config, db: Database) {
+export function resetAdminAccess(
+  config: Config,
+  db: Database,
+):
+  | { cleared: number; url: string; expiresAt: number }
+  | { cleared: number; code: string; expiresAt: number } {
   const cleared = db.prepare('DELETE FROM login_guards').run().changes;
   const admin = db
     .prepare("SELECT id FROM users WHERE role = 'admin'")
     .get() as { id: number } | undefined;
+  if (!admin && setupMode(config, db) === 'wizard')
+    return { cleared, ...newSetupCode(db) };
   if (!admin) throw new Error('The database has no admin.');
   if (!config.publicUrl)
     throw new Error('PUBLIC_URL is missing or invalid; cannot build the link.');

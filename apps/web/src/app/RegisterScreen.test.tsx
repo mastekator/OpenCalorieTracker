@@ -21,6 +21,7 @@ const config: ConfigResponse = {
   authMethods: ['passkey', 'password'],
   registration: 'invite',
   setupError: null,
+  setupRequired: false,
 };
 const me: MeResponse = {
   id: 2,

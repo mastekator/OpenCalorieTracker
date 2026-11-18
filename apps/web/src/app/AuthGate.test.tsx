@@ -37,6 +37,7 @@ const config = {
   authMethods: ['password'],
   registration: 'invite',
   setupError: null,
+  setupRequired: false,
 };
 
 const emptySync = { rev: 0, more: false, meals: [], deletedMealClientIds: [] };

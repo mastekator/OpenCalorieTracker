@@ -480,7 +480,11 @@ describe('reset-admin-access (E-6.2)', () => {
       undefined,
       admin,
     );
-    const { cleared, url, expiresAt } = resetAdminAccess(config, db);
+    const { cleared, url, expiresAt } = resetAdminAccess(config, db) as {
+      cleared: number;
+      url: string;
+      expiresAt: number;
+    };
     expect(cleared).toBe(2);
     expect(db.prepare('SELECT COUNT(*) AS n FROM login_guards').get()).toEqual({
       n: 0,

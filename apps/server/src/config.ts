@@ -120,8 +120,12 @@ export function setupErrors(config: Config, db: Database): SetupError[] {
   // The admin from env is only used to seed an empty database.
   if (!db.prepare('SELECT 1 FROM users LIMIT 1').get()) {
     const { adminEmail: email, adminPassword: password } = config;
-    if (!email) errors.push('admin_missing');
-    else if (!emailSchema.safeParse(email).success) {
+    // Without ADMIN_EMAIL the setup wizard creates the admin, unless env started a config install.
+    if (!email) {
+      if (password) errors.push('admin_missing');
+      return errors;
+    }
+    if (!emailSchema.safeParse(email).success) {
       errors.push('admin_email_invalid');
     }
     if (config.authMethods.includes('password')) {
@@ -135,6 +139,18 @@ export function setupErrors(config: Config, db: Database): SetupError[] {
     }
   }
   return errors;
+}
+
+/**
+ * ADR-0021 §1: the first-run wizard runs only on a healthy install with an empty database
+ * and no ADMIN_EMAIL; anything else is a setup error, a config install or normal work.
+ */
+export function setupMode(config: Config, db: Database): 'wizard' | null {
+  return !config.adminEmail &&
+    !setupErrors(config, db).length &&
+    !db.prepare('SELECT 1 FROM users LIMIT 1').get()
+    ? 'wizard'
+    : null;
 }
 
 /** Creates `dir` if needed and proves this process can write it and the database in it. */
@@ -157,7 +173,8 @@ export const setupErrorMessages: Record<SetupError, string> = {
     'DATA_DIR is not writable for this user; set PUID/PGID to the owner of the data folder or fix its permissions.',
   public_url_invalid:
     'PUBLIC_URL must be the origin users open, e.g. https://food.example.com (https required except for localhost, no path).',
-  admin_missing: 'ADMIN_EMAIL is not set and the database has no users yet.',
+  admin_missing:
+    'ADMIN_PASSWORD is set but ADMIN_EMAIL is not; set both for an unattended install or remove ADMIN_PASSWORD to use the setup wizard.',
   admin_email_invalid: 'ADMIN_EMAIL is not a valid email address.',
   admin_password_missing:
     'ADMIN_PASSWORD is not set, but password sign-in is enabled and the database has no users yet.',

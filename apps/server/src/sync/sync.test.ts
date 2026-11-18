@@ -341,7 +341,9 @@ describe('GET /api/sync', () => {
       )
       .run(userId, Date.now());
     // Replay 0009 (and the migrations after it) over a profile saved before it existed.
-    t.db.exec('DROP TABLE weighings; DROP TABLE ai_settings');
+    t.db.exec(
+      'DROP TABLE weighings; DROP TABLE ai_settings; DROP TABLE setup_code',
+    );
     t.db.pragma('user_version = 8');
     migrate(t.db);
     const rev = t.db
