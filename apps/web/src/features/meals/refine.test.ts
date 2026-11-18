@@ -223,6 +223,16 @@ describe('questions', () => {
     expect(answer(pumpkin, set.id, 2).rows[0]!.shown).toBe(100);
   });
 
+  it("a guess with other grams than the dish's still takes the tapped option's weight", () => {
+    const [q] = k2.questions;
+    const off = {
+      ...q!,
+      options: q!.options.map((o, i) => (i ? o : { ...o, grams: 230 })),
+    };
+    const [row] = toRows(k2.dishes, [off]);
+    expect(answer([row!], row!.id, 1).rows[0]!.shown).toBe(220);
+  });
+
   it('another name drops the picture picked for the old one', () => {
     const [row] = toRows(k2.dishes, k2.questions);
     const picked: Row = {

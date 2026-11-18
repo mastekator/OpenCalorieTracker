@@ -209,11 +209,9 @@ export function answer(rows: Row[], id: string, option: number): Applied {
     const o = row.question?.options[option];
     if (row.id !== id || !o) return row;
     const { name, grams, kcal, proteinG, fatG, carbsG } = o;
-    // Moved off the checked option's weight: the user's weight, not the AI's.
+    // Moved off the dish's own weight: the user's, not the AI's (the guess's grams may differ).
     const q = row.question!;
-    const keep =
-      row.grams !== null &&
-      row.shown !== round1(q.options[q.chosen ?? q.guess]!.grams);
+    const keep = row.grams !== null && row.shown !== round1(row.original.grams);
     const g = keep ? row.shown : round1(grams);
     marks[row.id] = changedMark(row);
     return {
