@@ -12,8 +12,10 @@ import {
   Clock,
   ImageOff,
   Plus,
+  RefreshCw,
   Sparkle,
   UtensilsCrossed,
+  WifiOff,
   X,
 } from 'lucide-react';
 import { z } from 'zod';
@@ -29,10 +31,11 @@ import {
   type IllustrationId,
   type MealType,
   type RecognizedDish,
+  type RecognitionStatus,
   type Units,
   uuid,
 } from '@oct/shared';
-import { api, ApiError } from '../../api/client';
+import { api, ApiError, type ClientErrorCode } from '../../api/client';
 import {
   useAiStatus,
   useDb,
@@ -51,6 +54,7 @@ import { useT } from '../../i18n';
 import { useBarVariant } from '../../app/connection';
 import { useSession } from '../../app/SessionContext';
 import { useDirty } from '../../app/dirty';
+import { Badge } from '../../ui/Badge/Badge';
 import { Banner } from '../../ui/Banner/Banner';
 import { Button } from '../../ui/Button/Button';
 import { DishRow } from '../../ui/DishRow/DishRow';
@@ -64,6 +68,7 @@ import {
 import { MealTypeSegment } from '../../ui/MealTypeSegment/MealTypeSegment';
 import { NavBar } from '../../ui/NavBar/NavBar';
 import { OfflineBar, useOnline } from '../../ui/OfflineBar/OfflineBar';
+import { RefineBar } from '../../ui/RefineBar/RefineBar';
 import { ScreenState } from '../../ui/ScreenState/ScreenState';
 import { Segment } from '../../ui/Segment/Segment';
 import { useToast } from '../../ui/Toast/Toast';
@@ -74,14 +79,19 @@ import { MEAL_NEW_PATH, useCapture } from './CaptureContext';
 import { RecognitionScreen, type MealEditState } from './RecognitionScreen';
 import { ImageDecodeError, prepareImage } from './prepareImage';
 import {
+  applyAgain,
+  applyRefine,
   itemOf,
   previousSchema,
+  toRequest,
   toRow,
   withFixed,
+  type Applied,
   type Dish,
   type Previous,
   type Row,
 } from './refine';
+import { useRefine, type RefineInput } from './useRefine';
 import './MealEditScreen.css';
 
 /** Why the manual sheet opened (MealEditState); set: no AI dishes came. */
@@ -179,6 +189,8 @@ type Props = {
   onRecalc?: (draft: Draft) => void;
   /** «Not now» on the «AI is back» banner. */
   onDismissRecalc?: () => void;
+  /** GET /api/ai/status: «What should I fix?» shows unless AI is not set up (ADR-0020 §5). */
+  recognition?: RecognitionStatus;
 };
 
 /** Screen 4 (design OCT-16 §3, E.2): dishes, weights with live totals, meal type, save. */
@@ -201,6 +213,7 @@ export function MealEditScreen({
   recalc,
   onRecalc,
   onDismissRecalc,
+  recognition,
 }: Props) {
   const { t, num, locale } = useT();
   const online = useOnline();
@@ -272,6 +285,22 @@ export function MealEditScreen({
   const capture = useCapture();
   // Pending history lookups by key; a new one with the same key cancels the old (AC-11.6).
   const lookups = useRef(new Map<string, AbortController>());
+  // «Refine» / «Recognize again» (ADR-0020 §9); «Undo» brings back the list and `recalced`.
+  const refine = useRefine<{ rows: Row[]; recalced: boolean }>();
+  const [refineText, setRefineText] = useState('');
+  // The last step's marks, «Removed» and kcal shift; gone with the next edit (OCT-234 C.2).
+  const [applied, setApplied] = useState<Applied | null>(null);
+  const lastRefine = useRef<RefineInput>(null);
+  const [photoGone, setPhotoGone] = useState(!!meal?.photo && !meal.photo.full);
+  const [noVision, setNoVision] = useState(false);
+  const refineError =
+    refine.state.status === 'error' ? refine.state.code : null;
+  useEffect(() => {
+    if (refineError === 'photo_expired') setPhotoGone(true);
+    if (refineError === 'ai_no_vision') setNoVision(true);
+  }, [refineError]);
+  const working =
+    refine.state.status === 'busy' || refine.state.status === 'slow';
 
   /** The hint is optional (AC-11.3): errors and offline show nothing. */
   function findPrevious(key: string, wanted: Lookup[], ms = 0) {
@@ -340,7 +369,8 @@ export function MealEditScreen({
   };
   const dirty = changed.items || changed.mealType || changed.when;
 
-  const setGrams = (index: number, grams: number | null) =>
+  const setGrams = (index: number, grams: number | null) => {
+    setApplied(null);
     setRows((rs) =>
       rs.map((r, i) =>
         i === index
@@ -353,6 +383,7 @@ export function MealEditScreen({
           : r,
       ),
     );
+  };
 
   // Removed and put back in place by «Undo» (4.5); after leaving the screen «Undo» does nothing.
   const remove = (id: string) => {
@@ -361,6 +392,7 @@ export function MealEditScreen({
     if (!row) return;
     // Next row, else the previous one; with none left the empty state takes focus.
     focusRow.current = (rows[index + 1] ?? rows[index - 1])?.id ?? null;
+    setApplied(null);
     setRows((rs) => rs.filter((r) => r.id !== id));
     toast({
       text: t('edit.deleted', { dish: row.original.name }),
@@ -379,6 +411,7 @@ export function MealEditScreen({
     setEditing(null);
     const row = rows.find((r) => r.id === id);
     const renamed = !!row && name !== row.original.name;
+    setApplied(null);
     setRows((rs) =>
       rs.map((r) =>
         r.id === id
@@ -427,6 +460,7 @@ export function MealEditScreen({
     setAdding(false);
     const row = toRow(dish, 'manual');
     focusRow.current = row.id;
+    setApplied(null);
     setRows((rs) => [...rs, row]);
     findPrevious(row.id, [lookupOf(row)], LOOKUP_DELAY_MS);
   };
@@ -443,6 +477,7 @@ export function MealEditScreen({
   const applyPrevious = (row: Row, prev: Previous) => {
     const { grams, kcal, proteinG, fatG, carbsG } = prev;
     focusRow.current = row.id;
+    setApplied(null);
     setRows((rs) =>
       rs.map((r) =>
         r.id === row.id
@@ -517,6 +552,33 @@ export function MealEditScreen({
     },
     [photoUrl],
   );
+
+  async function sendRefine(input: RefineInput) {
+    lastRefine.current = input;
+    setApplied(null);
+    const before = rows;
+    const res = await refine.run(input, { rows, recalced });
+    if (!res) return;
+    const next = (input.mode === 'again' ? applyAgain : applyRefine)(
+      before,
+      res.dishes,
+    );
+    setRows(next.rows);
+    setApplied(next);
+    // Saved with the current model on its AI dishes, like a recalculation (AC-4.3).
+    setRecalced(true);
+    setRefineText('');
+    // Hints work for the dishes the AI added or changed too (AC-3.5).
+    const fresh = next.rows.filter((r) => next.marks[r.id]).slice(0, 20);
+    if (fresh.length) findPrevious('refine', fresh.map(lookupOf));
+  }
+  const undoRefine = () => {
+    const before = refine.undo();
+    if (!before) return;
+    setRows(before.rows);
+    setRecalced(before.recalced);
+    setApplied(null);
+  };
 
   /** Only what changed; nothing changed: null, and nothing is queued. */
   function patchOf(): Omit<MealPatch, 'editedAt'> | null {
@@ -670,6 +732,31 @@ export function MealEditScreen({
   const busy = status === 'saving';
   const editingRow = rows.find((r) => r.id === editing);
   const offer = !!meal?.recalcOffer && !!onRecalc && !recalced;
+  // A photo the server keeps: a slot photo too (AC-4.1); a queued one is not there yet.
+  const serverPhoto =
+    photo && 'id' in photo && !photoGone ? photo.id : undefined;
+  const queued = !!photo && 'blob' in photo;
+  const canRefine = !!recognition && recognition !== 'not_configured';
+  const vision = recognition === 'ready' && !noVision;
+  const canAgain = canRefine && vision && !!serverPhoto;
+  const refineOff = !online || working;
+  const again = () =>
+    void sendRefine({
+      mode: 'again',
+      photoId: serverPhoto,
+      text: refineText.trim(),
+      dishes: toRequest(rows),
+    });
+  const refineErrorBanner = refineError && (
+    <RefineError
+      code={refineError}
+      // The list may have changed since: send it as it is now, `ref` points into it.
+      onRetry={() =>
+        lastRefine.current &&
+        void sendRefine({ ...lastRefine.current, dishes: toRequest(rows) })
+      }
+    />
+  );
   const startRecalc = () => onRecalc?.({ rows, mealType, when });
   const pickingRow = rows.find((r) => r.id === picking);
   // A saved meal takes no photo in PATCH; a meal with a photo has one (AC-4.3).
@@ -780,6 +867,14 @@ export function MealEditScreen({
               <p className="meal-edit__kcal">
                 {num(total('kcal'))}{' '}
                 <span className="meal-edit__unit">{t('today.kcal')}</span>
+                {applied && Math.round(applied.kcalDelta) !== 0 && (
+                  <span className="meal-edit__delta">
+                    <Badge tone="ok">
+                      {applied.kcalDelta > 0 ? '+' : '−'}
+                      {num(Math.abs(applied.kcalDelta))}
+                    </Badge>
+                  </span>
+                )}
               </p>
               <p className="meal-edit__macros">
                 {(
@@ -815,6 +910,20 @@ export function MealEditScreen({
                 <Sparkle aria-hidden="true" />
                 {t('edit.estimate')}
               </p>
+            )}
+            {canAgain && (
+              // A.1: one tap, no hint needed; the hint goes along when typed.
+              <span className="meal-edit__again">
+                <Button
+                  variant="tonal"
+                  small
+                  disabled={refineOff}
+                  onClick={again}
+                >
+                  <RefreshCw aria-hidden="true" />
+                  {t('edit.refine.again')}
+                </Button>
+              </span>
             )}
           </aside>
           <div className="meal-edit__main">
@@ -896,7 +1005,12 @@ export function MealEditScreen({
               </label>
             )}
             {rows.length > 0 ? (
-              <ul className="meal-edit__list">
+              // Locked while the AI works: its answer would overwrite an edit (AC-5.2).
+              <ul
+                className="meal-edit__list"
+                inert={working}
+                aria-busy={working || undefined}
+              >
                 {rows.map((row, i) => {
                   const item = items[i]!;
                   return (
@@ -913,6 +1027,7 @@ export function MealEditScreen({
                         onEdit={() => setEditing(row.id)}
                         onDelete={() => remove(row.id)}
                         onIllustration={() => setPicking(row.id)}
+                        mark={applied?.marks[row.id]}
                       />
                       {row.previous && (
                         <HistoryHint
@@ -952,7 +1067,11 @@ export function MealEditScreen({
               <p className="meal-edit__empty">{t('edit.empty_manual')}</p>
             )}
             {(rows.length > 0 || dishes.length === 0) && (
-              <Button variant="plain" onClick={() => setAdding(true)}>
+              <Button
+                variant="plain"
+                disabled={working}
+                onClick={() => setAdding(true)}
+              >
                 <Plus aria-hidden="true" className="meal-edit__add-icon" />
                 {t('edit.add_manual')}
               </Button>
@@ -960,6 +1079,61 @@ export function MealEditScreen({
           </div>
         </div>
         <footer className="meal-edit__footer">
+          {canRefine && (
+            <RefineBar
+              value={refineText}
+              onChange={(v) => {
+                setRefineText(v);
+                // D.5: the banner goes once the text is edited.
+                if (refineError) refine.cancel();
+              }}
+              textOnly={!serverPhoto}
+              onRefine={() =>
+                void sendRefine({
+                  mode: 'refine',
+                  ...(vision && serverPhoto && { photoId: serverPhoto }),
+                  text: refineText.trim(),
+                  dishes: toRequest(rows),
+                })
+              }
+              onAgain={canAgain ? again : undefined}
+              busy={
+                working ? (refine.state.status as 'busy' | 'slow') : undefined
+              }
+              onCancel={refine.cancel}
+              disabled={!online}
+              note={
+                !online ? (
+                  queued ? (
+                    <>
+                      <Clock aria-hidden="true" />
+                      {t('edit.refine.queued')}
+                    </>
+                  ) : (
+                    <>
+                      <WifiOff aria-hidden="true" />
+                      {t('edit.refine.offline')}
+                    </>
+                  )
+                ) : photoGone ? (
+                  <>
+                    <ImageOff aria-hidden="true" />
+                    {t('edit.refine.gone')}
+                  </>
+                ) : undefined
+              }
+              error={refineErrorBanner}
+              result={
+                applied && refine.canUndo
+                  ? {
+                      kcalDelta: applied.kcalDelta,
+                      removed: applied.removed,
+                      onUndo: undoRefine,
+                    }
+                  : undefined
+              }
+            />
+          )}
           {!online && (
             <p className="meal-edit__note">{t('edit.offline_note')}</p>
           )}
@@ -977,7 +1151,7 @@ export function MealEditScreen({
             ) : (
               <Button
                 onClick={() => void save()}
-                disabled={!valid}
+                disabled={!valid || working}
                 loading={busy}
               >
                 {t(
@@ -1058,6 +1232,48 @@ export function MealEditScreen({
   );
 }
 
+/** Errors of POST /api/ai/refine (product OCT-232 §6): the list and the text stay. */
+function RefineError({
+  code,
+  onRetry,
+}: {
+  code: ClientErrorCode;
+  onRetry: () => void;
+}) {
+  const { t } = useT();
+  switch (code) {
+    case 'ai_quota_exceeded':
+    case 'too_many_attempts':
+      return (
+        <Banner tone="warning" title={t('edit.refine.err.quota.title')}>
+          {t('edit.refine.err.quota.body')}
+        </Banner>
+      );
+    case 'ai_invalid_response':
+      return <Banner tone="warning" title={t('edit.refine.err.invalid')} />;
+    case 'ai_empty_result':
+      return <Banner tone="warning" title={t('edit.refine.err.empty')} />;
+    case 'ai_no_vision':
+      return <Banner title={t('edit.refine.err.no_vision')} />;
+    case 'photo_expired':
+      return <Banner title={t('edit.refine.gone')} />;
+    default:
+      return (
+        <Banner
+          tone="danger"
+          title={t('edit.refine.err.unavailable.title')}
+          actions={
+            <button type="button" onClick={onRetry}>
+              {t('common.retry')}
+            </button>
+          }
+        >
+          {t('edit.refine.err.unavailable.body')}
+        </Banner>
+      );
+  }
+}
+
 /**
  * MEAL_EDIT_PATH: dishes come in `history.state` from the recognition screen. After a
  * reload the state is gone: recognize the same photo again, the server answers from cache.
@@ -1076,6 +1292,7 @@ export function MealEditRoute() {
   const day = diaryDay(params.get('date') ?? today, today);
   const date = day === today ? undefined : day;
   const [state] = useState(() => history.state as MealEditState | null);
+  const ai = useAiStatus();
   if (!state && photoId)
     return <Redirect to={`${MEAL_NEW_PATH}?${search}`} replace />;
   return (
@@ -1083,6 +1300,7 @@ export function MealEditRoute() {
       dishes={state && 'dishes' in state ? state.dishes : []}
       manual={state && 'manual' in state ? state.manual : undefined}
       photoId={photoId}
+      recognition={ai.status?.recognition}
       date={date}
       units={settings?.units ?? user?.units ?? 'metric'}
       choices={choices}
@@ -1115,8 +1333,8 @@ export function MealEditExisting({ clientId }: { clientId: string }) {
   const undo = useUndoDelete();
   const toast = useToast();
   const [, navigate] = useLocation();
-  // Only a meal with its full photo can be recalculated: no request for the others.
-  const ai = useAiStatus(!!meal?.photo?.full);
+  // «What should I fix?» works without a photo too (AC-4.2).
+  const ai = useAiStatus();
   const online = useOnline();
   const [recalc] = useState(() => recalcState());
   if (meal === undefined) return null; // the local copy answers within a frame
@@ -1135,6 +1353,7 @@ export function MealEditExisting({ clientId }: { clientId: string }) {
       meal={meal}
       refused={refused}
       recalc={recalc}
+      recognition={ai.status?.recognition}
       onRecalc={
         canRecalc
           ? (draft) =>

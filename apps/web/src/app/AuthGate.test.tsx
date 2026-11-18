@@ -54,6 +54,14 @@ function serve(session: object | null, offline = false) {
       if (session && path === ME_PATH) return Response.json(session);
       if (session && path.startsWith('/api/sync'))
         return Response.json(emptySync);
+      // The edit screen asks for «What should I fix?» (OCT-261).
+      if (session && path === '/api/ai/status')
+        return Response.json({
+          recognition: 'not_configured',
+          interview: 'not_configured',
+          providerName: null,
+          baseUrlHost: null,
+        });
       return Response.json(
         { error: { code: 'unauthenticated' } },
         { status: 401 },

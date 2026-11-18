@@ -1145,6 +1145,40 @@ export const en = {
     time: 'Time',
     offline_note:
       'We’ll save it on this device and send it once you’re back online.',
+    refine: {
+      label: 'What should I fix?',
+      placeholder:
+        'What should I fix? E.g. “it’s pumpkin”, “there’s chicken in the noodles”',
+      placeholder_text:
+        'What did you eat or what should I fix? E.g. “60 g oatmeal with a banana”',
+      left: '{n} left',
+      refine: 'Refine',
+      again: 'Recognize again',
+      busy: 'Refining…',
+      slow: 'Taking longer than usual…',
+      updated: 'List updated',
+      undo: 'Undo',
+      removed: 'Removed: {names}',
+      offline: 'Needs a connection',
+      queued:
+        'The photo isn’t sent yet — you can refine with text once you’re online',
+      gone: 'The photo is no longer stored',
+      mark: { new: 'new', changed: 'changed', was: 'was {what}' },
+      err: {
+        unavailable: {
+          title: 'AI is unavailable right now',
+          body: 'The list is unchanged. Try again later or edit by hand.',
+        },
+        quota: {
+          title: 'AI request limit reached. Try again later',
+          body: 'The list is unchanged.',
+        },
+        invalid: 'Couldn’t refine — try wording it differently',
+        empty: 'AI removed every dish — the list is unchanged',
+        no_vision:
+          'The current model can’t read photos — Refine works with text.',
+      },
+    },
   },
   diary: {
     today_btn: 'Today',

@@ -340,3 +340,26 @@
   outline: var(--focus-ring-width) solid var(--color-focus-ring);
   outline-offset: var(--focus-ring-offset);
 }
+
+/* The kcal shift after «Refine» beside the total (OCT-234 C.1). */
+.meal-edit__delta {
+  display: inline-block;
+  margin-inline-start: var(--space-2);
+  vertical-align: middle;
+}
+
+/* A.1: «Recognize again» on the AI estimate line, one tap. */
+.meal-edit__again {
+  grid-column: 1 / -1;
+  justify-self: start;
+}
+
+.meal-edit__again .lucide {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+  stroke-width: var(--icon-stroke);
+}
+
+.meal-edit__list[inert] {
+  opacity: 0.6;
+}

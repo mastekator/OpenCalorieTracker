@@ -313,3 +313,77 @@ export const RecalcActionDesktopDark: Story = {
   args: recalcAction,
   globals: { viewport: { value: 'desktop' }, theme: 'dark' },
 };
+
+/** OCT-234 A.1: AI ready, a photo on the server — the field above Save, «Recognize again» on the estimate line. */
+const refineReady = { recognition: 'ready', photoId } satisfies Partial<Props>;
+export const Refine: Story = { args: refineReady };
+export const RefineDark: Story = { args: refineReady, globals: dark };
+export const RefineDesktop: Story = {
+  args: refineReady,
+  globals: { viewport: { value: 'desktop' } },
+};
+/** C.1: after «Refine» — marks on the dishes, the kcal shift, «List updated» with «Undo». */
+const refineResult: Story = {
+  args: refineReady,
+  beforeEach: () => {
+    const real = window.fetch;
+    window.fetch = async (input, init) =>
+      String(input) === '/api/ai/refine'
+        ? Response.json({
+            dishes: [
+              { ...dishes[0]!, grams: 200, kcal: 220, ref: 'd1' },
+              { ...dishes[1]!, ref: 'd2' },
+              {
+                name: 'Fried egg',
+                grams: 50,
+                kcal: 98,
+                proteinG: 7,
+                fatG: 8,
+                carbsG: 0,
+                confidence: 0.9,
+                ref: null,
+              },
+            ],
+            questions: [],
+            left: null,
+          })
+        : real(input, init);
+    return () => {
+      window.fetch = real;
+    };
+  },
+  play: async ({ canvas, userEvent }) => {
+    // The dictionary loads async: find, not get.
+    await userEvent.type(
+      await canvas.findByRole('textbox', { name: 'What should I fix?' }),
+      'more buckwheat, an egg, no salad',
+    );
+    await userEvent.click(canvas.getByRole('button', { name: 'Refine' }));
+  },
+};
+export const RefineResult: Story = refineResult;
+export const RefineResultDark: Story = { ...refineResult, globals: dark };
+/** D.2: the model reads no photos — no «Recognize again», «Refine» goes as text. */
+const refineNoVision = {
+  recognition: 'no_vision',
+  photoId,
+} satisfies Partial<Props>;
+export const RefineNoVision: Story = { args: refineNoVision };
+export const RefineNoVisionDark: Story = {
+  args: refineNoVision,
+  globals: dark,
+};
+/** D.11: a manual entry without a photo — «What did you eat or what should I fix?». */
+const refineText = {
+  recognition: 'ready',
+  dishes: [],
+} satisfies Partial<Props>;
+export const RefineText: Story = { args: refineText };
+export const RefineTextDark: Story = { args: refineText, globals: dark };
+/** D.10: a saved meal whose photo is gone — text only, the reason under the field. */
+const refineGone = {
+  ...brokenPhoto,
+  recognition: 'ready',
+} satisfies Partial<Props>;
+export const RefinePhotoGone: Story = { args: refineGone };
+export const RefinePhotoGoneDark: Story = { args: refineGone, globals: dark };
