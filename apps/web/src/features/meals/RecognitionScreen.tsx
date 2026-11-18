@@ -33,7 +33,7 @@ export const TIMEOUT_MS = 65_000;
 const hidden = () => document.visibilityState === 'hidden';
 
 /** Resolves once the page is visible and online (back from the background / network). */
-function whenBack(signal: AbortSignal) {
+export function whenBack(signal: AbortSignal) {
   return new Promise<void>((resolve) => {
     const check = () => {
       if (hidden() || !navigator.onLine) return;
