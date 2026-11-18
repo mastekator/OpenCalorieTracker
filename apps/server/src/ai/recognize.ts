@@ -2,6 +2,7 @@ import { generateText, Output } from 'ai';
 import {
   recognitionSchema,
   round1,
+  type AiQuestion,
   type Recognition,
   type RecognizedDish,
 } from '@oct/shared';
@@ -12,9 +13,10 @@ import {
   quickReasoning,
 } from './common.js';
 import type { AiModel } from './model.js';
+import { QUESTIONS_PROMPT, sanitizeQuestions } from './questions.js';
 
 /** Bump on every prompt change; it is logged with each call. */
-export const RECOGNIZE_PROMPT_VERSION = 1;
+export const RECOGNIZE_PROMPT_VERSION = 2;
 export const RECOGNIZE_TIMEOUT_MS = 60_000;
 
 export function recognizePrompt(locale: string) {
@@ -26,7 +28,8 @@ Confidence is 0..1:
 - 0.95 or higher only for countable, unambiguous single items (eggs, a banana, a packaged yogurt, a slice of bread);
 - mixed dishes, sauces and oil: at most 0.9;
 - blurry, dark or partial photos: below 0.5.
-If there is no food on the photo, return an empty list.`;
+If there is no food on the photo, return an empty list.
+${QUESTIONS_PROMPT}`;
 }
 
 /**
@@ -39,7 +42,7 @@ export async function recognizeMeal(
   jpeg: Uint8Array,
   locale: string,
   signal?: AbortSignal,
-): Promise<Recognition> {
+): Promise<Recognition & { questions: AiQuestion[] }> {
   return callModel(
     model,
     {
@@ -48,7 +51,8 @@ export async function recognizeMeal(
       timeoutMs: RECOGNIZE_TIMEOUT_MS,
       signal,
       mapError: noVisionError,
-      logExtra: (r) => `dishes=${r?.dishes.length ?? 0}`,
+      logExtra: (r) =>
+        `dishes=${r?.dishes.length ?? 0} questions=${r?.questions.length ?? 0}`,
     },
     async (abortSignal) => {
       const { output } = await generateText({
@@ -65,7 +69,8 @@ export async function recognizeMeal(
         reasoning: quickReasoning(model),
         abortSignal,
       });
-      return { dishes: output.dishes.map(sanitizeDish) };
+      const dishes = output.dishes.map(sanitizeDish);
+      return { dishes, questions: sanitizeQuestions(output.questions, dishes) };
     },
   );
 }

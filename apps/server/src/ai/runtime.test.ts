@@ -49,7 +49,7 @@ it('apply(): new requests use the new model, the one in flight ends on the old, 
   const other = await t.signIn('b@example.com');
   const res = await t.recognize(await t.upload(other), other);
   expect(res.status).toBe(200);
-  expect(await res.json()).toEqual({ dishes: [egg] });
+  expect(await res.json()).toEqual({ dishes: [egg], questions: [] });
   expect(b.doGenerateCalls).toHaveLength(1);
 
   release();

@@ -13,12 +13,38 @@ export const recognizedDishSchema = z.object({
   fatG: z.number(),
   carbsG: z.number(),
   confidence: z.number(),
+  /** Refine mode only: id of the input dish this one replaces, null for a new dish (ADR-0020 §3). */
+  ref: z.string().nullable().optional(),
 });
 export type RecognizedDish = z.infer<typeof recognizedDishSchema>;
 
-/** An empty `dishes` list is a valid "no food on the photo" answer. */
+/**
+ * A question about one dish with ready answers (ADR-0020 §4). `dish` and `guess` are indexes into
+ * the answer's dishes and `options`. No length or count limits here, as with dishes: the server drops
+ * bad questions after the schema.
+ */
+export const aiQuestionSchema = z.object({
+  dish: z.number(),
+  text: z.string(),
+  guess: z.number(),
+  options: z.array(
+    z.object({
+      label: z.string(),
+      name: z.string(),
+      grams: z.number(),
+      kcal: z.number(),
+      proteinG: z.number(),
+      fatG: z.number(),
+      carbsG: z.number(),
+    }),
+  ),
+});
+export type AiQuestion = z.infer<typeof aiQuestionSchema>;
+
+/** An empty `dishes` list is a valid "no food on the photo" answer. The server always sends `questions`. */
 export const recognitionSchema = z.object({
   dishes: z.array(recognizedDishSchema).max(20),
+  questions: z.array(aiQuestionSchema).optional(),
 });
 export type Recognition = z.infer<typeof recognitionSchema>;
 

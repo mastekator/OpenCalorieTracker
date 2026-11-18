@@ -73,7 +73,7 @@ describe('POST /api/photos/:id/recognize', () => {
     const t = await setup(mockModel({ dishes: [{ ...egg, grams: 50.4 }] }));
     const res = await t.recognize(await t.upload());
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ dishes: [egg] });
+    expect(await res.json()).toEqual({ dishes: [egg], questions: [] });
   });
 
   it('is 409 ai_not_configured without a model (AC-6.6)', async () => {
@@ -141,7 +141,10 @@ describe('POST /api/photos/:id/recognize', () => {
     const joined = t.recognize(a);
     release();
     expect((await first).status).toBe(200);
-    expect(await (await joined).json()).toEqual({ dishes: [egg] });
+    expect(await (await joined).json()).toEqual({
+      dishes: [egg],
+      questions: [],
+    });
     expect(model.doGenerateCalls).toHaveLength(1);
     // The lock is released once the call is done.
     expect((await t.recognize(b)).status).toBe(200);
@@ -160,7 +163,34 @@ describe('POST /api/photos/:id/recognize', () => {
     release();
     const retry = await t.recognize(id);
     expect(retry.status).toBe(200);
-    expect(await retry.json()).toEqual({ dishes: [egg] });
+    expect(await retry.json()).toEqual({ dishes: [egg], questions: [] });
+    expect(model.doGenerateCalls).toHaveLength(1);
+  });
+
+  it('returns the questions, also from the cache (ADR-0020 §2)', async () => {
+    const boiled = {
+      name: 'Boiled egg',
+      grams: 50,
+      kcal: 78,
+      proteinG: 6.3,
+      fatG: 5.3,
+      carbsG: 0.6,
+    };
+    const question = {
+      dish: 0,
+      text: 'How is it cooked?',
+      guess: 0,
+      options: [
+        { ...boiled, label: 'Boiled' },
+        { ...boiled, label: 'Fried', name: 'Fried egg', kcal: 140 },
+      ],
+    };
+    const model = mockModel({ dishes: [egg], questions: [question] });
+    const t = await setup(model);
+    const id = await t.upload();
+    const expected = { dishes: [egg], questions: [question] };
+    expect(await (await t.recognize(id)).json()).toEqual(expected);
+    expect(await (await t.recognize(id)).json()).toEqual(expected);
     expect(model.doGenerateCalls).toHaveLength(1);
   });
 
