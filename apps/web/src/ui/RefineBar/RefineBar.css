@@ -58,6 +58,11 @@
   flex: 1 1 auto;
 }
 
+/* Narrower padding keeps both labels on one line in RU at 375 px. */
+.refine__actions > .button {
+  padding-inline: var(--space-3);
+}
+
 .refine__actions .lucide,
 .refine__busy .lucide,
 .refine__undo .lucide {
