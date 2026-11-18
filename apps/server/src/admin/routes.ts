@@ -56,7 +56,6 @@ const CHECK_MAX_TOKENS = 16;
 const PIXEL_PNG =
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
 
-// passkeyName falls back to "Passkey", which says nothing about a blocked device.
 interface TestRunRow {
   id: number;
   provider: AiTestRun['provider'];
@@ -106,6 +105,7 @@ function testRun(r: TestRunRow): AiTestRun {
     : run;
 }
 
+// passkeyName falls back to "Passkey", which says nothing about a blocked device.
 const deviceName = (ua: string | null) => {
   const name = ua ? passkeyName(ua) : 'Passkey';
   return name === 'Passkey' ? ua : name;

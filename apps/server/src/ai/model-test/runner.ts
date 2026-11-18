@@ -114,6 +114,8 @@ export function createModelTestRunner(db: Database) {
 
     /** Throws 409 ai_test_running or 429 too_many_attempts; returns the new run id at once. */
     async start(settings: AiSettings, model: AiModel) {
+      // The only await, before the checks: from them to `current = ...` nothing yields, so two starts can't race.
+      const photos = await pendingPhotos();
       // Before the limit: a refused start spends no attempt.
       if (current)
         throw new ApiError(409, 'ai_test_running', { id: current.id });
@@ -125,7 +127,6 @@ export function createModelTestRunner(db: Database) {
         });
       starts.push(now);
 
-      const photos = await pendingPhotos();
       const id = Number(
         db
           .prepare(
