@@ -306,7 +306,12 @@ describe('AuthGate', () => {
       name: 'First sign-in needs a connection',
     });
     serve(null);
-    act(() => void window.dispatchEvent(new Event('online')));
+    // BootState subscribes to `online` in an effect after the heading commits;
+    // repeat the event until the fresh fetch mock sees the retry.
+    await vi.waitFor(() => {
+      act(() => void window.dispatchEvent(new Event('online')));
+      expect(vi.mocked(fetch)).toHaveBeenCalled();
+    });
     expect(
       await screen.findByRole('heading', { name: 'Sign in' }),
     ).toBeTruthy();
