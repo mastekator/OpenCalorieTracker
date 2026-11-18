@@ -1,0 +1,216 @@
+import { randomUUID } from 'node:crypto';
+import { rm } from 'node:fs/promises';
+import { MockLanguageModelV4 } from 'ai/test';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
+import type { RefineRequest } from '@oct/shared';
+import { photoPath } from '../photos/store.js';
+import { aiSetup, apiError, mockModel, reply } from '../test/ai.js';
+
+const egg = {
+  name: 'Egg',
+  grams: 50,
+  kcal: 78,
+  proteinG: 6.3,
+  fatG: 5.3,
+  carbsG: 0.6,
+  confidence: 0.96,
+};
+const dishIn = { id: 'd1', ...egg, confidence: undefined, fixed: [] };
+
+let cleanup: (() => Promise<void>) | undefined;
+async function setup(model: Parameters<typeof aiSetup>[0]) {
+  const t = await aiSetup(model);
+  cleanup = t.cleanup;
+  const refine = (
+    over: Partial<RefineRequest> = {},
+    as = t.cookie,
+    signal?: AbortSignal,
+  ) =>
+    t.app.request('/api/ai/refine', {
+      method: 'POST',
+      headers: {
+        cookie: as,
+        origin: 'http://localhost:3000',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        mode: 'refine',
+        requestId: randomUUID(),
+        sessionId: randomUUID(),
+        text: 'it was 100 g',
+        dishes: [dishIn],
+        ...over,
+      }),
+      signal,
+    });
+  const expire = async (id: string) => {
+    const { id: userId } = t.db
+      .prepare('SELECT id FROM users WHERE email = ?')
+      .get('admin@example.com') as { id: number };
+    await rm(photoPath(t.dataDir, userId, id, 'full')!);
+  };
+  return { ...t, refine, expire };
+}
+
+const sentPhoto = (model: MockLanguageModelV4, call: number) =>
+  JSON.stringify(model.doGenerateCalls[call]!.prompt).includes('"type":"file"');
+
+beforeEach(() => {
+  vi.spyOn(console, 'log').mockImplementation(() => {});
+});
+afterEach(async () => {
+  vi.restoreAllMocks();
+  await cleanup?.();
+  cleanup = undefined;
+});
+
+it('refines by text and with the photo, answering left: null', async () => {
+  const model = mockModel(
+    { dishes: [{ ...egg, grams: 100, ref: 'd1' }] },
+    { dishes: [{ ...egg, ref: 'd1' }] },
+  );
+  const t = await setup(model);
+  const res = await t.refine();
+  expect(res.status).toBe(200);
+  expect(await res.json()).toMatchObject({
+    dishes: [{ name: 'Egg', grams: 100, ref: 'd1' }],
+    questions: [],
+    left: null,
+  });
+  expect(sentPhoto(model, 0)).toBe(false);
+
+  expect((await t.refine({ photoId: await t.upload() })).status).toBe(200);
+  expect(sentPhoto(model, 1)).toBe(true);
+});
+
+it('recognizes again with the photo; it needs a photoId', async () => {
+  const model = mockModel({ dishes: [egg] });
+  const t = await setup(model);
+  const bad = await t.refine({ mode: 'again', text: '' });
+  expect(bad.status).toBe(400);
+  expect(await bad.json()).toMatchObject({
+    error: { code: 'validation_failed' },
+  });
+
+  const res = await t.refine({
+    mode: 'again',
+    text: '',
+    photoId: await t.upload(),
+  });
+  expect(res.status).toBe(200);
+  expect(await res.json()).toMatchObject({
+    dishes: [{ name: 'Egg' }],
+    left: null,
+  });
+  expect(sentPhoto(model, 0)).toBe(true);
+});
+
+it('with an expired photo: again is 410, refine goes by text', async () => {
+  const model = mockModel({ dishes: [egg] });
+  const t = await setup(model);
+  const id = await t.upload();
+  await t.expire(id);
+  const again = await t.refine({ mode: 'again', photoId: id });
+  expect(again.status).toBe(410);
+  expect(await again.json()).toEqual({ error: { code: 'photo_expired' } });
+
+  expect((await t.refine({ photoId: id })).status).toBe(200);
+  expect(model.doGenerateCalls).toHaveLength(1);
+  expect(sentPhoto(model, 0)).toBe(false);
+});
+
+it('learns no_vision from a refine with the photo, then refines by text and refuses again', async () => {
+  const model = mockModel(
+    apiError(400, 'this model does not support image input'),
+    { dishes: [egg] },
+  );
+  const t = await setup(model);
+  const id = await t.upload();
+  const first = await t.refine({ photoId: id });
+  expect(first.status).toBe(409);
+  expect(await first.json()).toEqual({ error: { code: 'ai_no_vision' } });
+
+  expect((await t.refine({ photoId: id })).status).toBe(200);
+  expect(sentPhoto(model, 1)).toBe(false);
+
+  const again = await t.refine({ mode: 'again', photoId: id });
+  expect(again.status).toBe(409);
+  expect(model.doGenerateCalls).toHaveLength(2);
+});
+
+it("is 404 for another user's or a missing photo in both modes", async () => {
+  const model = mockModel();
+  const t = await setup(model);
+  const id = await t.upload();
+  const other = await t.signIn('b@example.com');
+  for (const mode of ['again', 'refine'] as const) {
+    expect((await t.refine({ mode, photoId: id }, other)).status).toBe(404);
+    expect((await t.refine({ mode, photoId: 'A'.repeat(22) })).status).toBe(
+      404,
+    );
+  }
+  expect(model.doGenerateCalls).toHaveLength(0);
+});
+
+it('is 409 ai_not_configured without a model and 401 without a session', async () => {
+  const t = await setup(null);
+  const res = await t.refine();
+  expect(res.status).toBe(409);
+  expect(await res.json()).toEqual({ error: { code: 'ai_not_configured' } });
+  expect((await t.refine({}, '')).status).toBe(401);
+});
+
+it('is 422 ai_empty_result for an empty list and calls the model again on retry', async () => {
+  const model = mockModel({ dishes: [] }, { dishes: [egg] });
+  const t = await setup(model);
+  const requestId = randomUUID();
+  const res = await t.refine({ requestId });
+  expect(res.status).toBe(422);
+  expect(await res.json()).toEqual({ error: { code: 'ai_empty_result' } });
+  // The lock is released and the failure is not cached.
+  expect((await t.refine({ requestId })).status).toBe(200);
+  expect(model.doGenerateCalls).toHaveLength(2);
+});
+
+it('shares the one-call lock with recognize, survives a dropped client and serves the retry from memory', async () => {
+  // Each call waits for its own release.
+  const releases: (() => void)[] = [];
+  const gates = [0, 1].map(() => new Promise<void>((r) => releases.push(r)));
+  const signals: AbortSignal[] = [];
+  const model = new MockLanguageModelV4({
+    doGenerate: async ({ abortSignal }) => {
+      signals.push(abortSignal!);
+      await gates[signals.length - 1];
+      return reply({ dishes: [egg] });
+    },
+  });
+  const t = await setup(model);
+  const id = await t.upload();
+  const recognizing = t.recognize(id);
+  await vi.waitFor(() => expect(signals).toHaveLength(1));
+  const busy = await t.refine();
+  expect(busy.status).toBe(429);
+  expect(await busy.json()).toEqual({
+    error: { code: 'too_many_attempts', details: { retryAfterSec: 5 } },
+  });
+  releases[0]!();
+  expect((await recognizing).status).toBe(200);
+
+  const requestId = randomUUID();
+  const client = new AbortController();
+  void t.refine({ requestId }, t.cookie, client.signal).catch(() => {});
+  await vi.waitFor(() => expect(signals).toHaveLength(2));
+  client.abort();
+  expect(signals[1]!.aborted).toBe(false);
+  // A recognize while refine runs is refused too.
+  expect((await t.recognize(await t.upload())).status).toBe(429);
+
+  const retry = t.refine({ requestId });
+  releases[1]!();
+  expect((await retry).status).toBe(200);
+  expect(await (await retry).json()).toMatchObject({
+    dishes: [{ name: 'Egg' }],
+    left: null,
+  });
+  expect(model.doGenerateCalls).toHaveLength(2);
+});

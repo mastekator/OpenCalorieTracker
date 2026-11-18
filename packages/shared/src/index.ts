@@ -31,6 +31,7 @@ export type ErrorCode =
   | 'ai_quota_exceeded'
   | 'ai_unavailable'
   | 'ai_invalid_response'
+  | 'ai_empty_result'
   | 'photo_too_large'
   | 'photo_invalid'
   | 'client_outdated'
