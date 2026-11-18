@@ -304,8 +304,9 @@ export function MealEditScreen({
   const [applied, setApplied] = useState<
     (Applied & { answered?: boolean }) | null
   >(null);
-  // «Other…» tapped: the field takes focus once it has the dish's name (H.6).
-  const [otherAt, setOtherAt] = useState(0);
+  // Where focus goes once rendered: the field after «Other…» (H.6), the restored chip or the field after «Undo» (WCAG 2.4.3).
+  const [focusOn, setFocusOn] = useState<{ selector: string } | null>(null);
+  const answeredRow = useRef<string | null>(null);
   const lastRefine = useRef<RefineInput>(null);
   const [photoGone, setPhotoGone] = useState(!!meal?.photo && !meal.photo.full);
   const [noVision, setNoVision] = useState(false);
@@ -595,6 +596,7 @@ export function MealEditScreen({
   // Local, no request: works offline and costs no refinement (ADR-0020 §4).
   const answerRow = (row: Row, option: number) => {
     refine.remember({ rows, recalced });
+    answeredRow.current = row.id;
     const next = answer(rows, row.id, option);
     setRows(next.rows);
     setApplied({ ...next, answered: true });
@@ -602,17 +604,24 @@ export function MealEditScreen({
   const other = (row: Row) => {
     const prefix = `${row.original.name}: `;
     setRefineText((v) => (v.startsWith(prefix) ? v : prefix + v));
-    setOtherAt((n) => n + 1);
+    setFocusOn({ selector: '.refine__input' });
   };
   useEffect(() => {
-    if (!otherAt) return;
-    const field = document.querySelector<HTMLTextAreaElement>('.refine__input');
-    field?.focus();
-    field?.setSelectionRange(field.value.length, field.value.length);
-  }, [otherAt]);
+    if (!focusOn) return;
+    const el = document.querySelector<HTMLElement>(focusOn.selector);
+    el?.focus();
+    if (el instanceof HTMLTextAreaElement)
+      el.setSelectionRange(el.value.length, el.value.length);
+  }, [focusOn]);
   const undoRefine = () => {
     const before = refine.undo();
     if (!before) return;
+    // The «Undo» bar goes away: focus lands where the step was taken.
+    setFocusOn({
+      selector: applied?.answered
+        ? `[data-row="${answeredRow.current}"] [role="radio"][aria-checked="true"]`
+        : '.refine__input',
+    });
     setRows(before.rows);
     setRecalced(before.recalced);
     setApplied(null);

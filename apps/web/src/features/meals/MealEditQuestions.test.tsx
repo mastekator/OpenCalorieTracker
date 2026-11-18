@@ -151,6 +151,8 @@ describe('AI questions under a dish (OCT-262)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
     expect(names()[0]).toBe('Vegetable salad with mayo');
     expect(checked(group(SALAD))).toEqual(['Mayo']);
+    // The bar is gone: focus goes to the restored option, not <body>.
+    expect(document.activeElement?.textContent).toBe('Mayo');
     expect(total()).toContain('458');
   });
 

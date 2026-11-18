@@ -288,6 +288,7 @@ describe('«What should I fix?» on the edit screen (OCT-261)', () => {
     expect(field()).toHaveProperty('value', '');
     fireEvent.click(button('Undo')!);
     expect(names()).toEqual(before);
+    expect(document.activeElement).toBe(field());
     expect(total()).toBe(kcalBefore);
     expect(
       (
