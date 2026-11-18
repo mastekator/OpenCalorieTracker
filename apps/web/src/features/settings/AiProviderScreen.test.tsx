@@ -531,6 +531,26 @@ describe('AiProviderScreen: settings form', () => {
     });
   });
 
+  it('own server: a new address opens the key field, the saved key stays behind', async () => {
+    server(() => [
+      {
+        ...saved,
+        provider: 'openai-compatible',
+        providerName: null,
+        baseUrlHost: 'ollama:11434',
+      },
+    ]);
+    await wrap(<AiProviderScreen />);
+    await screen.findByRole('button', { name: 'Replace key' });
+    expect(screen.queryByLabelText('API key')).toBeNull();
+    type('Address', 'http://other:11434/v1');
+    expect(field('API key').value).toBe('');
+    expect(screen.queryByRole('button', { name: 'Replace key' })).toBeNull();
+    screen.getByText(
+      'The saved key only goes to ollama:11434. If the new address needs a key, enter it',
+    );
+  });
+
   it('the eye in the key field says «key»', async () => {
     server(() => [saved]);
     await wrap(<AiProviderScreen />);

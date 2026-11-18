@@ -53,7 +53,8 @@ function Screen({ draft: initial, ...args }: Args) {
         keyOpen={
           replacing ||
           draft.provider !== args.status.provider ||
-          !args.status.keySet
+          !args.status.keySet ||
+          !!draft.baseUrl.trim()
         }
         dirty={false}
         busy={null}
@@ -154,6 +155,30 @@ export const Compatible: Story = {
   },
 };
 export const CompatibleDark: Story = { ...Compatible, ...dark };
+/** Own server with a saved key and a new address: the key stays with the saved host. */
+export const CompatibleNewAddress: Story = {
+  args: {
+    dirty: true,
+    status: {
+      ...saved,
+      provider: 'openai-compatible',
+      providerName: null,
+      model: 'qwen3-vl:8b',
+      keyLast4: 'a3F9',
+      baseUrlHost: '192.168.1.20:11434',
+    },
+    draft: {
+      provider: 'openai-compatible',
+      baseUrl: 'http://10.0.0.5:1234/v1',
+      apiKey: '',
+      model: 'qwen3-vl:8b',
+    },
+  },
+};
+export const CompatibleNewAddressDark: Story = {
+  ...CompatibleNewAddress,
+  ...dark,
+};
 /** A draft check that didn't pass, with the provider's reply. */
 export const CheckFailed: Story = {
   args: {

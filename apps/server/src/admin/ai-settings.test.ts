@@ -23,8 +23,11 @@ let cleanup: (() => Promise<void>) | undefined;
 let log: ReturnType<typeof vi.spyOn>;
 let error: ReturnType<typeof vi.spyOn>;
 
-const setup = async (env: Record<string, string> = {}) => {
-  const t = await aiSetup(null, env);
+const setup = async (
+  env: Record<string, string> = {},
+  model: Parameters<typeof aiSetup>[0] = null,
+) => {
+  const t = await aiSetup(model, env);
   cleanup = t.cleanup;
   const req =
     (method: string, path: string) =>
@@ -423,5 +426,84 @@ describe('POST /api/admin/ai/models', () => {
       400,
     );
     expect(fn).not.toHaveBeenCalled();
+  });
+});
+
+describe('a saved key and a new address in the draft', () => {
+  const LOCAL = 'http://llm.local:11434/v1';
+  const local = { provider: 'openai-compatible', model: 'llava' };
+  const authOf = (fn: ReturnType<typeof vi.fn>, i: number) =>
+    (fn.mock.calls[i]![1] as { headers: Record<string, string> }).headers
+      .Authorization;
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('sends the saved key only to its own address, saves none for a new one', async () => {
+    const t = await setup();
+    vi.mocked(createModel).mockResolvedValue(mockModel());
+    await t.put({
+      ...local,
+      baseUrl: LOCAL,
+      apiKey: KEY,
+      force: true,
+      rev: null,
+    });
+    const fn = vi.fn(async () => Response.json({ data: [] }));
+    vi.stubGlobal('fetch', fn);
+    for (const baseUrl of [
+      undefined,
+      LOCAL,
+      `${LOCAL}/`,
+      'http://evil.example/v1',
+    ])
+      expect(
+        (await t.models({ provider: local.provider, baseUrl })).status,
+      ).toBe(200);
+    expect([0, 1, 2, 3].map((i) => authOf(fn, i))).toEqual([
+      `Bearer ${KEY}`,
+      `Bearer ${KEY}`,
+      `Bearer ${KEY}`,
+      undefined,
+    ]);
+    const moved = await t.put({
+      ...local,
+      baseUrl: 'http://evil.example/v1',
+      force: true,
+      rev: 1,
+    });
+    expect(await moved.json()).toMatchObject({ keySet: false, keyLast4: null });
+    expect(t.row()).toMatchObject({ api_key_last4: null });
+  });
+
+  it('never sends the env key to a new address, nor shows it in details', async () => {
+    const ENV_KEY = 'sk-env-SECRET-7';
+    const t = await setup(
+      {
+        AI_PROVIDER: 'openai-compatible',
+        AI_MODEL: 'llava',
+        AI_BASE_URL: LOCAL,
+        AI_API_KEY: ENV_KEY,
+      },
+      mockModel('OK'),
+    );
+    const fn = vi.fn(async () => new Response(ENV_KEY, { status: 401 }));
+    vi.stubGlobal('fetch', fn);
+    await t.models({ provider: local.provider });
+    expect(authOf(fn, 0)).toBe(`Bearer ${ENV_KEY}`);
+    const res = await t.models({
+      provider: local.provider,
+      baseUrl: 'http://evil.example/v1',
+    });
+    expect(authOf(fn, 1)).toBeUndefined();
+    expect(await res.text()).not.toContain(ENV_KEY);
+    vi.mocked(createModel).mockResolvedValue(mockModel('OK'));
+    const check = await t.check({
+      ...local,
+      baseUrl: 'http://evil.example/v1',
+    });
+    expect(await check.text()).not.toContain(ENV_KEY);
+    expect(vi.mocked(createModel).mock.calls.at(-1)![0]).toMatchObject({
+      baseUrl: 'http://evil.example/v1',
+      apiKey: undefined,
+    });
   });
 });
