@@ -23,8 +23,8 @@ const nine = () => Array.from({ length: 9 }, () => meal);
 
 let cleanup: (() => Promise<void>) | undefined;
 
-const setup = async () => {
-  const t = await aiSetup(null);
+const setup = async (...args: Parameters<typeof aiSetup>) => {
+  const t = await aiSetup(args[0] ?? null, args[1]);
   cleanup = t.cleanup;
   const req = (
     method: string,
@@ -98,6 +98,17 @@ describe('model test', () => {
     ]);
     expect(list[0]).not.toHaveProperty('photos');
     expect(list[0]).not.toHaveProperty('modelsMdRow');
+  });
+
+  it('under AI_* in env, tests the current model with the env key', async () => {
+    const env = { AI_PROVIDER: 'google', AI_MODEL: 'g', AI_API_KEY: 'env-key' };
+    const t = await setup(mockModel(...nine()), env);
+    const run = await t.finished(
+      await t.startId({ provider: 'google', model: 'g' }),
+    );
+    expect(run.status).toBe('done');
+    // The active model itself, not a temporary one (AC-2.13).
+    expect(createModel).not.toHaveBeenCalled();
   });
 
   it('prices an OpenRouter run from its model list', async () => {

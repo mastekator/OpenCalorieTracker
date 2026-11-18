@@ -229,7 +229,9 @@ export function adminRoutes({ config, db, ai, secrets }: AppDeps) {
   const draftConnection = (
     draft: Pick<AiDraft, 'provider' | 'apiKey' | 'baseUrl'>,
   ) => {
-    const saved = savedAiRow(db, secrets);
+    // Under AI_* in env the saved row does nothing: the env key stands in (AC-0.2, test the current model).
+    const active = ai.current()?.settings;
+    const saved = active?.source === 'env' ? active : savedAiRow(db, secrets);
     const same = saved?.provider === draft.provider;
     const apiKey = draft.apiKey ?? (same ? saved.apiKey : undefined);
     const compatible = draft.provider === 'openai-compatible';

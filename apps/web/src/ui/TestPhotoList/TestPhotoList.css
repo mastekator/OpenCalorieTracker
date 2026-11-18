@@ -1,0 +1,86 @@
+.test-photos {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.test-photos__row {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+}
+
+/* The separator starts after the thumbnail, as in grouped lists. */
+.test-photos__row + .test-photos__row::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: calc(var(--meal-thumb-size) + var(--space-3));
+  border-top: 1px solid var(--color-separator);
+}
+
+.test-photos__thumb {
+  flex: none;
+  width: var(--meal-thumb-size);
+  height: var(--meal-thumb-size);
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  background: var(--color-surface-2);
+}
+
+.test-photos__main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.test-photos__name {
+  font-size: var(--text-subhead-size);
+  line-height: var(--text-subhead-lh);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.test-photos__row--wait .test-photos__name {
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.test-photos__line {
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.test-photos__line b {
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+/* Icon at the badge's text size. */
+.test-photos__line .badge svg {
+  width: 1em;
+  height: 1em;
+}
+
+.test-photos__end {
+  flex: none;
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.test-photos__spinner {
+  display: block;
+  color: var(--color-accent);
+}
