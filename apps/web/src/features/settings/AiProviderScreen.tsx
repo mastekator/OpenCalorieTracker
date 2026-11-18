@@ -112,8 +112,12 @@ export function AiProviderScreen() {
       draft.model !== (status.model ?? '') ||
       !!draft.apiKey ||
       !!draft.baseUrl);
+  // A new address never gets the saved key (OCT-278), so its own key may be needed.
   const keyOpen =
-    replacing || draft.provider !== status.provider || !status.keySet;
+    replacing ||
+    draft.provider !== status.provider ||
+    !status.keySet ||
+    !!draft.baseUrl.trim();
   const body = draftBody(draft);
 
   function change(patch: Partial<AiDraftState>) {

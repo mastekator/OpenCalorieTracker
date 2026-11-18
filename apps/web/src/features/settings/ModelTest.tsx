@@ -231,7 +231,10 @@ export function ModelTest({ status, draft, dirty, onFinished }: Props) {
                 resetModels();
             }}
             keyOpen={
-              replacing || other.provider !== status.provider || !status.keySet
+              replacing ||
+              other.provider !== status.provider ||
+              !status.keySet ||
+              !!other.baseUrl.trim()
             }
             onReplaceKey={() => setReplacing(true)}
             dirty={false}
