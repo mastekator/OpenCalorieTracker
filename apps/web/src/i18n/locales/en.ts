@@ -1225,6 +1225,7 @@ export const en = {
     ai_quota_exceeded: 'The AI provider’s limit is reached. Try later',
     ai_unavailable: 'The AI provider is unavailable. Try later',
     ai_invalid_response: 'The AI returned an unreadable answer. Try again',
+    ai_empty_result: 'The AI removed every dish — the list is unchanged',
     photo_too_large: 'The photo is too large',
     photo_invalid: 'This file isn’t a photo we can read',
     client_outdated: 'The app has been updated. Please save again',
