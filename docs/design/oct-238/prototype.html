@@ -627,6 +627,20 @@ code{font-family:var(--font-mono);font-size:.92em}
 /* skeleton */
 .msec .skel-row{display:flex;gap:var(--space-3);align-items:center;padding:var(--space-2) var(--space-4) var(--space-3)}
 /* meal-time scale (docs only) */
+.mband{display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-4)}
+.mband .bar{display:flex;height:var(--space-8);border-radius:var(--radius-md);overflow:hidden;font-size:var(--text-caption-size)}
+.mband .bar span{display:flex;align-items:center;justify-content:center;border-right:2px solid var(--color-surface);color:var(--color-text);overflow:hidden;white-space:nowrap}
+.mband .bar span:last-child{border-right:0}
+.mband .ax{position:relative;height:var(--space-4);font-size:var(--text-caption-size);color:var(--color-text-secondary);font-variant-numeric:tabular-nums}
+.mband .ax i{position:absolute;translate:-50% 0;font-style:normal}
+.mband .ax i:first-child{translate:0 0}.mband .ax i:last-child{translate:-100% 0}
+.b-b{background:var(--color-accent-soft)}.b-l{background:var(--color-notice)}.b-d{background:var(--color-warning-soft)}.b-s{background:var(--color-surface-2);color:var(--color-text-secondary)}
+.cell.bnd{gap:var(--space-2)}
+.cell.bnd .dot{width:var(--space-1);align-self:stretch;margin:var(--space-1) 0;border-radius:var(--radius-full);flex:none}
+.cell.bnd .dot.b-s{background:var(--color-border-strong)}
+.cell.bnd .main .sub{font-variant-numeric:tabular-nums}
+.cell.bnd .tv{min-width:calc(var(--space-12) + var(--space-2));text-align:center;font-variant-numeric:tabular-nums;font-weight:600}
+.cell.bnd .tv.ch{color:var(--color-accent)}
 .scale{width:1000px;display:flex;flex-direction:column;gap:var(--space-3);background:var(--color-surface);border-radius:var(--radius-lg);padding:var(--space-6);outline:1px solid var(--color-separator)}
 .scale .lbl{font-size:var(--text-subhead-size);font-weight:600}
 .scale .bar{position:relative;display:flex;height:var(--control-height);border-radius:var(--radius-md);overflow:hidden;font-size:var(--text-footnote-size)}
@@ -741,6 +755,7 @@ const S = {
     drop:'Перетащите фото еды сюда', dropOr:'или', addFood:'Добавить еду', logout:'Выйти',
     settings:'Настройки', view:'Вид', theme:'Тема', system:'Как в системе', langL:'Язык', langV:'Русский', units:'Система мер', metric:'Метрическая', mascot:'Маскот',
     groupBy:'Группировать по приёмам', groupOn:'«Сегодня» и дневник делят записи на завтрак, обед, ужин и перекус с итогами по каждому.', groupOff:'Записи идут одним списком по времени, приём указан в строке.',
+    mealTimes:'Время приёмов', mealsGroup:'Приёмы пищи', mtFoot:'Новая запись получает приём по времени, когда вы поели. У уже записанного приём не меняется.', from:'с', late:'Поздний перекус', reset:'Вернуть как было', earlier:'раньше', later:'позже', bandAria:'Сутки: завтрак, обед, перекус, ужин, поздний перекус',
     nEntries:n=>`${n} ${n % 10 === 1 && n % 100 !== 11 ? 'запись' : [2,3,4].includes(n % 10) && ![12,13,14].includes(n % 100) ? 'записи' : 'записей'}`, emptyDay:'Пока ничего не съедено',
   },
   en: {
@@ -759,6 +774,7 @@ const S = {
     leftN:n=>`${n} left`, tabs:['Today','Diary','Week','Profile'], cam:'Take a photo of food',
     drop:'Drop a food photo here', dropOr:'or', addFood:'Add food', logout:'Sign out',
     settings:'Settings', view:'Appearance', theme:'Theme', system:'System', langL:'Language', langV:'English', units:'Units', metric:'Metric', mascot:'Mascot',
+    mealTimes:'Meal times', mealsGroup:'Meals', mtFoot:'A new entry gets its meal from the time you ate. Meals already logged keep theirs.', from:'from', late:'Late snack', reset:'Reset to default', earlier:'earlier', later:'later', bandAria:'Day: breakfast, lunch, snack, dinner, late snack',
     groupBy:'Group by meal', groupOn:'Today and the diary split entries into breakfast, lunch, dinner and snack, with totals for each.', groupOff:'Entries show as one list by time, with the meal in each row.',
     nEntries:n=>`${n} ${n === 1 ? 'entry' : 'entries'}`, emptyDay:'Nothing eaten yet',
   },
@@ -824,9 +840,29 @@ function flatList(day, o={}){
 const cell = (main, right, sub='') => `<div class="cell"><span class="main"><span>${main}</span>${sub ? `<span class="sub">${sub}</span>` : ''}</span>${right}</div>`;
 const sw = (on, label) => `<span class="switch ${on ? 'on' : ''}" role="switch" aria-checked="${on}" aria-label="${label}"></span>`;
 const chevR = `<span class="chev">${I('chev-r','sm')}</span>`;
-const settingsPhone = on => `<div class="large-title">${T.settings}</div><div class="content"><div class="pad">
-  <div class="group-h">${T.view}</div><div class="group">${cell(T.theme, `<span class="val">${T.system}</span>${chevR}`)}${cell(T.langL, `<span class="val">${T.langV}</span>${chevR}`)}${cell(T.units, `<span class="val">${T.metric}</span>${chevR}`)}${cell(T.mascot, sw(true, T.mascot))}${cell(T.groupBy, sw(on, T.groupBy))}</div>
+const settingsPhone = (on, b=DEF_B) => `<div class="large-title">${T.settings}</div><div class="content"><div class="pad">
+  <div class="group-h">${T.view}</div><div class="group">${cell(T.theme, `<span class="val">${T.system}</span>${chevR}`)}${cell(T.langL, `<span class="val">${T.langV}</span>${chevR}`)}${cell(T.units, `<span class="val">${T.metric}</span>${chevR}`)}${cell(T.mascot, sw(true, T.mascot))}</div>
+  <div class="group-h">${T.mealsGroup}</div><div class="group">${cell(T.groupBy, sw(on, T.groupBy))}${cell(T.mealTimes, chevR, bandShort(b))}</div>
   <div class="group-f">${on ? T.groupOn : T.groupOff}</div></div></div>${tabbar(3)}`;
+const DEF_B = [5, 11, 15, 18, 22];
+const hm = x => clock(Math.floor(x), Math.round(x % 1 * 60));
+const bandShort = b => b.map(x => String(Math.floor(x)).padStart(2, '0') + (x % 1 ? ':30' : '')).join(' · ');
+function mealBand(b){
+  const [br, lu, sn, di, la] = b, ty = T.type;
+  const segs = [[0,br,'s',''],[br,lu,'b',ty.breakfast],[lu,sn,'l',ty.lunch],[sn,di,'s',ty.snack],[di,la,'d',ty.dinner],[la,24,'s','']];
+  return `<div class="mband" role="img" aria-label="${T.bandAria}"><div class="bar">${segs.map(([a, z, c, t]) => `<span class="b-${c}" style="width:${(z - a) / 24 * 100}%">${z - a >= 4 ? t : ''}</span>`).join('')}</div><div class="ax">${[0,6,12,18,24].map(h => `<i style="left:${h / 24 * 100}%">${String(h).padStart(2, '0')}</i>`).join('')}</div></div>`;
+}
+function mealTimesPhone(b){
+  const rows = [['breakfast','b'],['lunch','l'],['snack','s'],['dinner','d'],['late','s']];
+  const lim = i => [i ? b[i - 1] + 1 : 3, i < 4 ? b[i + 1] - 1 : 24];  // min 1 h per meal; breakfast never before 03:00
+  const changed = b.some((x, i) => x !== DEF_B[i]);
+  const cells = rows.map(([k, c], i) => { const nm = k === 'late' ? T.late : T.type[k], [lo, hi] = lim(i), end = b[(i + 1) % 5];
+    return `<div class="cell bnd"><i class="dot b-${c}"></i><span class="main"><span>${nm}</span><span class="sub">${hm(b[i])} – ${hm(end)}</span></span><span class="step ${b[i] - .5 < lo ? 'dis' : ''}" role="button" aria-label="${nm}, ${T.earlier}">${I('minus','sm')}</span><span class="tv ${b[i] !== DEF_B[i] ? 'ch' : ''}" aria-label="${nm} ${T.from} ${hm(b[i])}">${hm(b[i])}</span><span class="step ${b[i] + .5 > hi ? 'dis' : ''}" role="button" aria-label="${nm}, ${T.later}">${I('plus','sm')}</span></div>`; }).join('');
+  return `<div class="navbar"><span class="back">${I('chev-l')}${T.settings}</span><span class="title">${T.mealTimes}</span><span></span></div><div class="content"><div class="pad stack">
+  <div class="group">${mealBand(b)}</div>
+  <div><div class="group">${cells}</div><div class="group-f">${T.mtFoot}</div></div>
+  <div class="group"><div class="cell ${changed ? 'accent' : 'dis'}" role="button" ${changed ? '' : 'aria-disabled="true"'}><span class="main">${T.reset}</span></div></div></div></div>${tabbar(3)}`;
+}
 const skeleton = () => `<div class="meals" aria-busy="true">${[2, 1].map(n => `<div class="msec"><div class="msec-h"><div class="skel" style="width:40%;height:18px"></div><div class="skel" style="width:30%"></div></div>${Array.from({length:n}, () => `<div class="skel-row"><div class="skel" style="width:var(--meal-thumb-size);height:var(--meal-thumb-size)"></div><div class="stack-sm grow"><div class="skel" style="width:70%"></div><div class="skel" style="width:25%"></div></div></div>`).join('')}</div>`).join('')}</div>`;
 const tabbar = (on=0) => { const t = (ic, i) => `<span class="tab ${i === on ? 'on' : ''}">${I(ic)}${T.tabs[i]}</span>`; return `<nav class="tabbar">${t('home',0)}${t('book',1)}<span class="cam" aria-label="${T.cam}">${I('camera')}</span>${t('chart',2)}${t('user',3)}</nav>`; };
 const titleT = () => `<div class="large-title">${T.today}<span class="date">${T.date}</span></div>`;
@@ -910,10 +946,12 @@ function render(){
 
 <section class="doc-section" id="setting">
   <h2 class="doc-h2">6 · Настройка «Группировать по приёмам»</h2>
-  <p class="doc-lead">Группировку можно выключить: Профиль → Настройки → Вид. По умолчанию включена. Настройка одна на «Сегодня», дневник и компьютер, хранится в профиле пользователя и приходит на все устройства. Переключение мгновенное, данные не меняются: тип у записей остаётся, его видно в строке.</p>
+  <p class="doc-lead">Группировку можно выключить: Профиль → Настройки → Приёмы пищи. По умолчанию включена. Там же — время приёмов (6.6–6.7). Настройка одна на «Сегодня», дневник и компьютер, хранится в профиле пользователя и приходит на все устройства. Переключение мгновенное, данные не меняются: тип у записей остаётся, его видно в строке.</p>
   <div class="row">
-    ${phone(settingsPhone(true), `<b>6.1 Включено (по умолчанию).</b> Строка с переключателем в группе «Вид», под группой — что он делает.`)}
+    ${phone(settingsPhone(true), `<b>6.1 Включено (по умолчанию).</b> Своя группа «Приёмы пищи»: переключатель и «Время приёмов» (6.6), под группой — что делает переключатель.`)}
     ${phone(settingsPhone(false), `<b>6.2 Выключено.</b> Подпись меняется: что будет вместо секций.`)}
+    ${phone(mealTimesPhone(DEF_B), `<b>6.6 «Время приёмов».</b> Строка «Время приёмов» в группе «Приёмы пищи», под ней — границы «05 · 11 · 15 · 18 · 22». Внутри — та же полоса суток из раздела 5, под ней пять приёмов (полоска слева — цвет на полосе): у каждого начало, диапазон и кнопки −/+ по 30${NB}мин (44${NB}pt). Работает и при выключенной группировке: от границ зависит приём новой записи.`)}
+    ${phone(mealTimesPhone([5, 11, 15, 19, 23]), `<b>6.7 Изменено.</b> Ужин с 19:00, поздний перекус с 23:00: полоса и диапазоны соседей меняются сразу, сохраняется без кнопки. Изменённое время — акцентом, «Вернуть как было» активна. Приём не короче 1${NB}ч: у упора кнопка гаснет (тут «+» у позднего перекуса). Завтрак — не раньше 03:00.`)}
     ${phone(todayPhone({day:DAY, scroll:330, o:{flatMode:true}}), `<b>6.3 «Сегодня» без группировки.</b> Один список по времени, как до OCT-238: подпись «Приёмы пищи · 6 записей», во второй строке — тип и время («Ужин · 17:10»). Без итогов по приёмам и пустых строк «+ Добавить». Свайп — «Перенести» и «Удалить», как в 2.1.`)}
     ${phone(todayPhone({day:{}, scroll:0, o:{flatMode:true}}), `<b>6.4 Пустой день без группировки.</b> Прежняя заглушка «Пока ничего не съедено».`)}
     ${phone(diaryPhone({day:DAY_Y, scroll:170, o:{flatMode:true}}), `<b>6.5 Дневник без группировки.</b> Тот же список по времени; на компьютере — так же, перетаскивание выключено, «Перенести» на строке остаётся.`)}
@@ -931,6 +969,7 @@ function render(){
     <li>Компьютер: кнопки на строке по образцу корзины (<code>--tap-min</code>, <code>--color-hover</code>), «Перенести» открывает тот же список поповером. Перетаскивание — HTML5 DnD или pointer events только при <code>(pointer: fine)</code>; цель — пунктир 2${NB}px <code>--color-accent</code> + <code>--color-accent-soft</code>. Esc отменяет.</li>
     <li>VoiceOver: скрытый <code>h2</code> «Приёмы пищи»; каждая секция — <code>&lt;section aria-labelledby&gt;</code> с <code>h3</code> «Ужин, 508 ккал»; у строки БЖУ — полная подпись «белки 29 г, жиры 37 г, углеводы 16 г». Строка: «Моти, 17:10, 190 ккал»; кнопки: «Перенести «Моти» в другой приём», «Удалить «Моти»»; пустой приём: «Добавить завтрак». Перетаскивание — только для мыши, у клавиатуры и VoiceOver есть кнопка «Перенести».</li>
     <li>Настройка <code>groupByMeal</code> (boolean, по умолчанию <code>true</code>) — в настройках пользователя на сервере, рядом с маскотом; переключатель — существующий <code>Switch</code> в группе «Вид». При <code>false</code> — прежний плоский список (один <code>MealRow</code> на всё, вторая строка «Тип · время»), прежние заглушки пустого дня, без перетаскивания.</li>
+    <li>Время приёмов <code>mealBoundaries</code> — пять чисел в минутах от полуночи, по умолчанию <code>[300, 660, 900, 1080, 1320]</code> (05 · 11 · 15 · 18 · 22), в настройках пользователя рядом с <code>groupByMeal</code>; <code>mealTypeAt</code> читает их вместо констант. Шаг 30${NB}мин, приём не короче 60${NB}мин, первая граница ≥ 03:00, последняя ≤ 24:00. Меняет только тип по умолчанию у новых записей (и время по умолчанию в «+ Добавить» — середина окна); старые записи не трогаем. Сохранение на каждое касание, офлайн — через outbox. На компьютере — тот же экран в области настроек.</li>
     <li>Удалено (при включённой группировке): заглушки «Пока ничего не съедено» (Сегодня) и «Записей нет» (дневник), подпись «N приёмов пищи». Тип в строке записи не дублируется.</li>
   </ul>
 </section>
@@ -973,6 +1012,10 @@ function copyTable(){
     ['Настройки, переключатель', R.groupBy, E.groupBy],
     ['Подпись, включено', R.groupOn, E.groupOn],
     ['Подпись, выключено', R.groupOff, E.groupOff],
+    ['Настройки, время приёмов', `${R.mealsGroup} · ${R.mealTimes} · 05 · 11 · 15 · 18 · 22`, `${E.mealsGroup} · ${E.mealTimes} · 05 · 11 · 15 · 18 · 22`],
+    ['Время приёмов, подпись', R.mtFoot, E.mtFoot],
+    ['Время приёмов, строки', `${R.type.breakfast} · 05:00 – 11:00 · ${R.late} · ${R.reset}`, `${E.type.breakfast} · 5:00 AM – 11:00 AM · ${E.late} · ${E.reset}`],
+    ['VoiceOver, кнопки −/+', `${R.type.dinner}, ${R.earlier} · ${R.type.dinner}, ${R.later}`, `${E.type.dinner}, ${E.earlier} · ${E.type.dinner}, ${E.later}`],
     ['Без группировки', `${R.meals} · ${R.nEntries(6)} · Ужин · 17:10 · ${R.emptyDay}`, `${E.meals} · ${E.nEntries(6)} · Dinner · 5:10 PM · ${E.emptyDay}`],
   ];
   return `<table class="copy"><thead><tr><th>Где</th><th>RU</th><th>EN</th></tr></thead><tbody>${C.map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join('')}</tbody></table>`;
