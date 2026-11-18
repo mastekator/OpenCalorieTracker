@@ -139,3 +139,67 @@ export const aiCheckResultSchema = adminAiStatusSchema.pick({
   details: true,
 });
 export type AiCheckResult = z.infer<typeof aiCheckResultSchema>;
+
+/** POST /api/admin/ai/tests body: the form's draft, as for a check (ADR-0019 §3). */
+export const aiTestStartRequestSchema = aiDraftSchema;
+
+export const aiTestStatusSchema = z.enum([
+  'running',
+  'done',
+  'stopped',
+  'interrupted',
+]);
+export type AiTestStatus = z.infer<typeof aiTestStatusSchema>;
+
+/** Why a run stopped before its last photo: a provider error that fails every photo, or the admin. */
+export const aiTestStopReasonSchema = z.enum([
+  'auth_error',
+  'model_not_found',
+  'quota_exceeded',
+  'user',
+]);
+export type AiTestStopReason = z.infer<typeof aiTestStopReasonSchema>;
+
+/** One test photo; result is 'ok', the miss, `error <code>`, 'pending' while running or 'not_run'. */
+export const aiTestPhotoSchema = z.object({
+  file: z.string(),
+  expected: z.string(),
+  got: z.string().optional(),
+  kcal: z.number().optional(),
+  levels: z.string().optional(),
+  /** Questions the model asked about the dishes. */
+  questions: z.number().optional(),
+  ms: z.number().optional(),
+  result: z.string(),
+});
+export type AiTestPhoto = z.infer<typeof aiTestPhotoSchema>;
+
+/** One row of GET /api/admin/ai/tests, newest first; never a key or an address. */
+export const aiTestRunSummarySchema = z.object({
+  id: z.number(),
+  provider: aiDraftFields.provider,
+  model: z.string(),
+  status: aiTestStatusSchema,
+  stopReason: aiTestStopReasonSchema.nullable(),
+  appVersion: z.string(),
+  promptVersion: z.number(),
+  startedAt: z.number(),
+  finishedAt: z.number().nullable(),
+  inputTokens: z.number().nullable(),
+  outputTokens: z.number().nullable(),
+  /** OpenRouter only: its price times the tokens. */
+  costUsd: z.number().nullable(),
+  passed: z.number(),
+  total: z.number(),
+  /** Average over the photos that got an answer or an error. */
+  msPerPhoto: z.number().nullable(),
+});
+export type AiTestRunSummary = z.infer<typeof aiTestRunSummarySchema>;
+
+/** GET /api/admin/ai/tests/:id; modelsMdRow and report only when done (ADR-0019 §5). */
+export const aiTestRunSchema = aiTestRunSummarySchema.extend({
+  photos: z.array(aiTestPhotoSchema),
+  modelsMdRow: z.string().optional(),
+  report: z.string().optional(),
+});
+export type AiTestRun = z.infer<typeof aiTestRunSchema>;

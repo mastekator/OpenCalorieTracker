@@ -1277,6 +1277,7 @@ export const en = {
     ai_key_required: 'Enter the API key for this provider',
     ai_check_failed: 'The check failed — settings not saved',
     ai_models_failed: 'Couldn’t load the model list',
+    ai_test_running: 'A model test is already running',
     photo_too_large: 'The photo is too large',
     photo_invalid: 'This file isn’t a photo we can read',
     client_outdated: 'The app has been updated. Please save again',
