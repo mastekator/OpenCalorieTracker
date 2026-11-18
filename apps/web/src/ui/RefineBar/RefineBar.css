@@ -1,0 +1,136 @@
+.refine {
+  display: grid;
+  gap: var(--space-2);
+}
+
+/* A field like ui/Field, one line that grows to four (OCT-234 A.2). */
+.refine__field {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  min-height: var(--control-height-lg);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  cursor: text;
+}
+
+.refine__field:focus-within {
+  border-color: var(--color-accent);
+  box-shadow: inset 0 0 0 1px var(--color-accent);
+}
+
+.refine__icon {
+  flex: none;
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+  margin-block: 2px;
+  stroke-width: var(--icon-stroke);
+  color: var(--color-accent);
+}
+
+.refine__input {
+  flex: 1;
+  min-width: 0;
+  max-height: 4lh;
+  padding: 0;
+  border: none;
+  background: transparent;
+  outline: none; /* the box shows focus */
+  font: inherit;
+  color: inherit;
+  resize: none;
+  field-sizing: content;
+}
+
+.refine__input::placeholder {
+  color: var(--color-text-secondary);
+}
+
+.refine__actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+/* One row even at 375 px in RU (OCT-234 A.2). */
+.refine__actions > * {
+  flex: 1 1 auto;
+}
+
+/* Narrower padding keeps both labels on one line in RU at 375 px. */
+.refine__actions > .button {
+  padding-inline: var(--space-3);
+}
+
+.refine__actions .lucide,
+.refine__busy .lucide,
+.refine__undo .lucide {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+  stroke-width: var(--icon-stroke);
+}
+
+.refine__note {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+  color: var(--color-text-secondary);
+}
+
+.refine__note .lucide {
+  flex: none;
+  width: var(--icon-xs);
+  height: var(--icon-xs);
+}
+
+/* «Refining…» takes the field's place: the list above is locked (AC-5.2). */
+.refine__busy {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--control-height-lg);
+  padding-inline: var(--space-4) var(--space-1);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+}
+
+.refine__busy-text {
+  flex: 1;
+  color: var(--color-text-secondary);
+}
+
+.refine__result {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-1) var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+}
+
+.refine__result-icon {
+  flex: none;
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+  stroke-width: var(--icon-stroke);
+  color: var(--color-accent);
+}
+
+.refine__result-text {
+  flex: 1;
+  display: grid;
+  min-width: 0;
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+  color: var(--color-text-secondary);
+}
+
+.refine__result-title {
+  font-size: var(--text-subhead-size);
+  line-height: var(--text-subhead-lh);
+  font-weight: var(--text-headline-weight);
+  color: var(--color-text);
+}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ComponentProps } from 'react';
 import { fn } from 'storybook/test';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { scaleItem, type Units } from '@oct/shared';
@@ -19,11 +19,13 @@ function Demo({
   units,
   onDelete,
   onIllustration,
+  mark,
 }: {
   dish: DishRowDish;
   units: Units;
   onDelete?: () => void;
   onIllustration?: () => void;
+  mark?: ComponentProps<typeof DishRow>['mark'];
 }) {
   const [row, setRow] = useState(dish);
   const original = { ...dish, grams: dish.grams ?? 1 };
@@ -41,6 +43,7 @@ function Demo({
       onEdit={() => {}}
       onDelete={onDelete}
       onIllustration={onIllustration}
+      mark={mark}
     />
   );
 }
@@ -142,4 +145,26 @@ export const IllustrationLongName: Story = {
 export const IllustrationDesktop: Story = {
   ...Illustration,
   globals: { viewport: { value: 'desktop' } },
+};
+/** After «Refine» (OCT-234 C.1): a new dish — accent-soft row and a filled «new». */
+export const MarkNew: Story = { args: { mark: { kind: 'new' } } };
+export const MarkNewDark: Story = { ...MarkNew, globals: { theme: 'dark' } };
+/** A changed dish: outlined «changed» and the weight it had. */
+export const MarkChanged: Story = {
+  args: { mark: { kind: 'changed', name: rice.name, grams: 300 } },
+};
+export const MarkChangedDark: Story = {
+  ...MarkChanged,
+  globals: { theme: 'dark' },
+};
+/** Renamed by the AI: «was» shows the old name. */
+export const MarkRenamed: Story = {
+  args: {
+    mark: { kind: 'changed', name: 'Sweet potato', grams: 150 },
+    dish: { ...rice, source: 'ai', confidence: 0.6, illustration: 'grains' },
+  },
+};
+export const MarkRenamedDark: Story = {
+  ...MarkRenamed,
+  globals: { theme: 'dark' },
 };
