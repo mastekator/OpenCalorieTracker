@@ -164,7 +164,8 @@ describe('last sign-in method (AC-6.2)', () => {
         onDone={async () => {}}
       />,
     );
-    const del = screen.getByRole('button', { name: 'Delete passkey' });
+    // The sheet opens (showModal) in an effect after the commit; wait for it.
+    const del = await screen.findByRole('button', { name: 'Delete passkey' });
     expect((del as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getByText('This is your only way to sign in')).toBeTruthy();
   });
@@ -178,7 +179,8 @@ describe('last sign-in method (AC-6.2)', () => {
         onDone={async () => {}}
       />,
     );
-    const del = screen.getByRole('button', { name: 'Delete passkey' });
+    // The sheet opens (showModal) in an effect after the commit; wait for it.
+    const del = await screen.findByRole('button', { name: 'Delete passkey' });
     expect((del as HTMLButtonElement).disabled).toBe(false);
     expect(screen.queryByText('This is your only way to sign in')).toBeNull();
   });
