@@ -57,7 +57,7 @@ for (const exp of await readExpected()) {
       tokens.inputTokens += u.inputTokens;
       tokens.outputTokens += u.outputTokens;
     });
-    row = checkPhoto(exp, got);
+    row = { ...checkPhoto(exp, got), questions: got.questions.length };
   } catch (err) {
     errors++;
     row = { result: `error ${(err as { code?: string }).code ?? err}` };

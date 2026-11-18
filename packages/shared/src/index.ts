@@ -73,6 +73,7 @@ export type ConfigResponse = z.infer<typeof configResponseSchema>;
 export * from './auth.js';
 export * from './units.js';
 export * from './recognition.js';
+export * from './refine.js';
 export * from './ai-providers.js';
 export * from './meals.js';
 export * from './nutrition.js';

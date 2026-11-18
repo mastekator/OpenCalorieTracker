@@ -82,10 +82,11 @@ describe('recognizeMeal', () => {
     const model = mockModel({ dishes: [egg] });
     await expect(recognizeMeal(model, jpeg, 'en')).resolves.toEqual({
       dishes: [egg],
+      questions: [],
     });
     expect(logs()).toEqual([
       expect.stringMatching(
-        /^ai\.recognize provider=mock model=vision-1 prompt=1 ms=\d+ dishes=1 result=ok$/,
+        /^ai\.recognize provider=mock model=vision-1 prompt=2 ms=\d+ dishes=1 questions=0 result=ok$/,
       ),
     ]);
   });
@@ -94,7 +95,7 @@ describe('recognizeMeal', () => {
     vi.spyOn(console, 'log').mockImplementation(() => {});
     await expect(
       recognizeMeal(mockModel({ dishes: [] }), jpeg, 'en'),
-    ).resolves.toEqual({ dishes: [] });
+    ).resolves.toEqual({ dishes: [], questions: [] });
   });
 
   it('retries once on a schema mismatch', async () => {
@@ -105,6 +106,7 @@ describe('recognizeMeal', () => {
       recognizeMeal(model, jpeg, 'en', undefined, onUsage),
     ).resolves.toEqual({
       dishes: [egg],
+      questions: [],
     });
     expect(model.doGenerateCalls).toHaveLength(2);
     // Each mocked attempt spends 1 input and 1 output token.
