@@ -914,6 +914,11 @@ body{padding:var(--space-10) var(--space-8)}
   <h2 class="doc-h2">7 · ИИ-помощник: разбор текста, «Сделать легче», «Придумать из того, что есть»</h2>
   <div class="row" id="ai-row"></div>
 </section>
+<section class="doc-section" id="modules">
+  <h2 class="doc-h2">9 · Разделы можно выключить в настройках</h2>
+  <p class="doc-lead">Запрос владельца: кому раздел не нужен — выключает его, и раздел исчезает отовсюду. Настройка у каждого пользователя своя. Данные не удаляются: включили снова — всё на месте, поэтому подтверждения нет.</p>
+  <div class="row" id="modules-row"></div>
+</section>
 <section class="doc-section" id="desktop">
   <h2 class="doc-h2">D · Десктоп ≥ 1024 px</h2>
   <div class="row" id="desk-row"></div>
@@ -1360,6 +1365,22 @@ document.getElementById('ai-row').innerHTML = [
 
 /* D · desktop */
 const sideK = on => `<aside class="side"><div class="brand"><span class="mark">${I('plate','sm')}</span>OpenCalorieTracker</div><button class="btn btn-primary">${I('camera','sm')}Добавить еду</button>${[['home','Сегодня'],['book','Дневник'],['chart','Неделя'],['chef','Кухня'],['user','Профиль']].map(([ic,l])=>`<span class="nav-i ${l===on?'on':''}">${I(ic)}${l}</span>`).join('')}<div class="foot"><span class="nav-i">${I('settings')}Настройки</span></div></aside>`;
+
+/* 9 · Modules on/off */
+const sw = (on) => `<span class="switch ${on?'on':''}" role="switch" aria-checked="${on}"></span>`;
+const mcell = (ic, t, sub, on) => `<div class="cell ic"><span class="lead-ic">${I(ic,'sm')}</span><span class="main"><span>${t}</span><span class="sub">${sub}</span></span>${sw(on)}</div>`;
+const settingsScr = (rec=true, fr=true, rep=true) => `${repNav('Настройки', back('Профиль'))}<div class="content"><div class="pad stack">
+  <div class="group"><div class="cell ic" role="button"><span class="lead-ic">${I('spark','sm')}</span><span class="main"><span>ИИ-провайдер</span></span><span class="val">настроен</span>${CH}</div></div>
+  <div><div class="sec-h"><span>Разделы</span></div><div class="group">${mcell('chef','Рецепты','порция из рецепта, «Приготовил»',rec)}${mcell('fridge','Холодильник','продукты, готовое, «Можно приготовить»',fr)}${mcell('report','Отчёты за период','неделя или месяц, картинка для врача',rep)}</div>
+  <p class="group-f">Выключенный раздел пропадает из меню и подсказок. Данные остаются: включите снова — всё на месте.</p></div></div></div>${tabbar('Профиль')}`;
+const profileOff = `<div class="large-title">Профиль</div><div class="content"><div class="pad stack">
+  <section class="card"><div class="sum-line"><span class="t-headline">Норма</span><span class="avg-note">${I('target','sm')}</span></div><div class="big"><span class="display sm num">2 100</span><span class="unit">ккал в день</span></div><span class="t-foot muted num">Б 120 · Ж 70 · У 240 г — как в OCT-22</span></section>
+  <div class="group"><div class="cell ic" role="button"><span class="lead-ic">${I('settings','sm')}</span><span class="main"><span>Настройки</span><span class="sub">Рецепты, холодильник, отчёты — включаются здесь</span></span>${CH}</div></div></div></div>${tabbar('Профиль')}`;
+document.getElementById('modules-row').innerHTML = [
+  frame('9.1','Настройки → «Разделы»','Три переключателя, по умолчанию включены: новый пользователь видит, что умеет приложение. Касание переключателя — сразу применяется, без «Сохранить». Офлайн переключатели недоступны, причина — в полосе OCT-25, как в 5.4.', settingsScr()),
+  frame('9.2','Всё выключено','«Кухни» и «Моих отчётов» в «Профиле» нет; на десктопе нет пункта «Кухня» в боковой панели. В подписи «Настроек» — где включить обратно, чтобы раздел не потерялся.', profileOff),
+  frame('9.3','Выключены «Рецепты»','«Вручную» — как до OCT-160: только поле названия, без «Мои рецепты»; распознавание не предлагает «Ваш рецепт». В «Кухне» — только холодильник, без сегмента и без «Приготовил»; готовое добавляется «+» → «Готовое блюдо». Выключен «Холодильник» — нет фильтра «Можно приготовить», списания, переключателя «Готовое — в холодильник» и блока «Готово дома». Выключены оба — нет «Кухни».', manual('', '<p class="group-f">Введите название блюда — подскажем из записанного раньше.</p>')),
+].join('');
 document.getElementById('desk-row').innerHTML = `<figure class="frame wide"><div class="desk"><div class="chrome"><i></i><i></i><i></i><span class="url">calories.home.lan/kitchen/recipes/plov</span></div><div class="body">${sideK('Кухня')}<main class="main-area"><div class="inner">
 <div class="desk-title"><div><span class="link t-sub">‹ Кухня</span><div class="large-title" style="padding:0">Плов домашний<span class="date">6 порций по 350 г · готовое 2 100 г · записывали вчера</span></div></div><div class="btn-row"><button class="btn btn-tonal btn-sm" style="width:auto">${I('pkg','sm')}Приготовил</button><button class="btn btn-tonal btn-sm" style="width:auto">${I('feather','sm')}Сделать легче</button><button class="btn btn-plain btn-sm" style="width:auto">${I('pencil','sm')}Изменить</button></div></div>
 <div class="kcols"><div class="stack"><div class="hero">${PHOTO}</div>${NUT}<button class="btn btn-primary">${I('plus','sm')}Записать порцию</button><button class="btn btn-tonal">${I('play','sm')}Готовлю</button></div>
