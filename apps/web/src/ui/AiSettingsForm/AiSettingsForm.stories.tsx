@@ -63,6 +63,8 @@ function Screen({ draft: initial, ...args }: Args) {
         onSave={noop}
         onSaveAnyway={noop}
         onReload={noop}
+        models={{ list: null, loading: false, error: null }}
+        onLoadModels={noop}
         {...args}
         draft={draft}
         onChange={(patch) => setDraft((d) => ({ ...d, ...patch }))}
@@ -229,3 +231,32 @@ export const Conflict: Story = {
   },
 };
 export const ConflictDark: Story = { ...Conflict, ...dark };
+/** 1.2 The key is typed: the list is on its way. */
+export const LoadingModels: Story = {
+  args: {
+    ...FirstConnection.args,
+    models: { list: null, loading: true, error: null },
+  },
+};
+export const LoadingModelsDark: Story = { ...LoadingModels, ...dark };
+/** 2.4 A model the list marks as photo-less: the label and the warning before saving. */
+export const PickedNoVision: Story = {
+  args: {
+    dirty: true,
+    models: {
+      list: [
+        { id: 'gemini-3.8-flash', vision: true },
+        { id: 'gemma-4-2b-it', vision: false },
+      ],
+      loading: false,
+      error: null,
+    },
+    draft: {
+      provider: 'google',
+      baseUrl: '',
+      apiKey: '',
+      model: 'gemma-4-2b-it',
+    },
+  },
+};
+export const PickedNoVisionDark: Story = { ...PickedNoVision, ...dark };

@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { CircleAlert, Power, WifiOff } from 'lucide-react';
 import {
   adminAiStatusSchema,
   aiCheckResultSchema,
+  aiModelsResponseSchema,
   type AdminAiStatus,
   type AiCheckResult,
   type AiProviderId,
@@ -12,6 +13,7 @@ import { useT } from '../../i18n';
 import {
   AiSettingsForm,
   type AiDraftState,
+  type ModelsState,
 } from '../../ui/AiSettingsForm/AiSettingsForm';
 import { Button } from '../../ui/Button/Button';
 import { ConfirmDialog } from '../../ui/ConfirmDialog/ConfirmDialog';
@@ -26,6 +28,43 @@ const SETTINGS_PATH = `${AI_STATUS_PATH}/settings`;
 
 const codeOf = (err: unknown): ClientErrorCode =>
   err instanceof ApiError ? err.code : 'internal';
+
+const NO_MODELS: ModelsState = { list: null, loading: false, error: null };
+// After the key is typed (OCT-248 1.2).
+const MODELS_DELAY_MS = 600;
+const REASONS = [
+  'auth_error',
+  'quota_exceeded',
+  'unavailable',
+  'timeout',
+] as const;
+type Reason =
+  (typeof REASONS)[number] | 'no_list' | 'key' | 'address' | 'failed';
+
+/** Provider, address and key of the draft: what the server needs besides the model. */
+const connectionOf = (d: AiDraftState) => ({
+  provider: d.provider,
+  // Left out: the server keeps the saved address of the same provider.
+  baseUrl:
+    (d.provider === 'openai-compatible' && d.baseUrl.trim()) || undefined,
+  // Left out: the server keeps the saved key of the same provider.
+  apiKey: d.apiKey.trim() || undefined,
+});
+
+/** Why the list did not come, as the tail of «Couldn't load the model list: …». */
+function modelsReason(err: unknown, provider: AiProviderId): Reason {
+  const code = codeOf(err);
+  const state = (err as ApiError).details as { state?: string } | undefined;
+  if (code === 'ai_models_failed' && state?.state) {
+    const known = REASONS.find((r) => r === state.state);
+    if (known) return known;
+    if (state.state === 'model_not_found') return 'no_list';
+  }
+  if (code === 'ai_key_required') return 'key';
+  if (code === 'validation_failed' && provider === 'openai-compatible')
+    return 'address';
+  return 'failed';
+}
 
 const draftOf = (s: AdminAiStatus | null): AiDraftState => ({
   provider: (s?.provider as AiProviderId | null) ?? 'google',
@@ -50,6 +89,42 @@ export function AiProviderScreen() {
   const [checked, setChecked] = useState<AiCheckResult | null>(null);
   const [conflict, setConflict] = useState(false);
   const [confirmOff, setConfirmOff] = useState(false);
+  const [models, setModels] = useState<ModelsState>(NO_MODELS);
+  // Only the answer to the latest request is shown: the draft may change meanwhile.
+  const modelsReq = useRef(0);
+
+  const loadModels = useCallback(
+    async (d: AiDraftState) => {
+      const id = ++modelsReq.current;
+      setModels({ ...NO_MODELS, loading: true });
+      try {
+        const { models: list } = await api(
+          `${AI_STATUS_PATH}/models`,
+          aiModelsResponseSchema,
+          { method: 'POST', body: connectionOf(d) },
+        );
+        if (id === modelsReq.current)
+          setModels({ list, loading: false, error: null });
+      } catch (err) {
+        if (id === modelsReq.current)
+          setModels({
+            list: null,
+            loading: false,
+            error: t('ai.models.failed', {
+              reason: t(`ai.models.reason.${modelsReason(err, d.provider)}`),
+            }),
+          });
+      }
+    },
+    [t],
+  );
+  // A typed key fetches the list once typing pauses; the key itself goes only to the server.
+  useEffect(() => {
+    if (!draft.apiKey.trim()) return;
+    const timer = setTimeout(() => void loadModels(draft), MODELS_DELAY_MS);
+    return () => clearTimeout(timer);
+    // The model is left out on purpose: picking one must not refetch the list.
+  }, [draft.apiKey, draft.baseUrl, draft.provider, loadModels]);
 
   /** The server's answer replaces the draft; the typed key is dropped from memory. */
   const show = useCallback((next: AdminAiStatus) => {
@@ -112,19 +187,15 @@ export function AiProviderScreen() {
       !!draft.baseUrl);
   const keyOpen =
     replacing || draft.provider !== status.provider || !status.keySet;
-  const body = {
-    provider: draft.provider,
-    model: draft.model.trim(),
-    // Left out: the server keeps the saved address of the same provider.
-    baseUrl:
-      (draft.provider === 'openai-compatible' && draft.baseUrl.trim()) ||
-      undefined,
-    // Left out: the server keeps the saved key of the same provider.
-    apiKey: draft.apiKey.trim() || undefined,
-  };
+  const body = { ...connectionOf(draft), model: draft.model.trim() };
 
   function change(patch: Partial<AiDraftState>) {
     setDraft((d) => ({ ...d, ...patch }));
+    // Another connection has its own list.
+    if ('provider' in patch || 'apiKey' in patch || 'baseUrl' in patch) {
+      modelsReq.current++;
+      setModels(NO_MODELS);
+    }
     setFailed(null);
     setChecked(null);
     setKeyError(undefined);
@@ -245,6 +316,8 @@ export function AiProviderScreen() {
           onSave={() => void save(false)}
           onSaveAnyway={() => void save(true)}
           onReload={() => void load()}
+          models={models}
+          onLoadModels={() => void loadModels(draft)}
         />
       </ProviderStatus>
       <ConfirmDialog

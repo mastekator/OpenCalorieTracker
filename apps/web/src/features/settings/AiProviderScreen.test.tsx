@@ -309,8 +309,18 @@ describe('AiProviderScreen: settings form', () => {
     rev: 3,
   };
   type Call = { method: string; url: string; body: unknown };
-  /** Answers by method; records every call with its JSON body. */
-  function server(answer: (call: Call) => [unknown, number?]) {
+  const list = {
+    models: [
+      { id: 'gemini-3.8-flash', vision: true },
+      { id: 'gemini-3.8-pro', vision: true },
+      { id: 'gemma-4-2b-it', vision: false },
+    ],
+  };
+  /** Answers by method, the model list separately; records every call with its JSON body. */
+  function server(
+    answer: (call: Call) => [unknown, number?],
+    models: [unknown, number?] = [list],
+  ) {
     const calls: Call[] = [];
     vi.stubGlobal(
       'fetch',
@@ -321,7 +331,9 @@ describe('AiProviderScreen: settings form', () => {
           body: init?.body ? JSON.parse(String(init.body)) : undefined,
         };
         calls.push(call);
-        const [body, code = 200] = answer(call);
+        const [body, code = 200] = url.endsWith('/models')
+          ? models
+          : answer(call);
         return Response.json(body, { status: code });
       }),
     );
@@ -331,6 +343,19 @@ describe('AiProviderScreen: settings form', () => {
     screen.getByLabelText(name) as HTMLInputElement;
   const type = (name: string, value: string) =>
     fireEvent.change(field(name), { target: { value } });
+  const modelRow = () => screen.getByRole('button', { name: /^Model/ });
+  /** Through the sheet's manual entry: works for any name. */
+  async function pickModel(name: string) {
+    fireEvent.click(modelRow());
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Enter the name manually' }),
+    );
+    type('Model name', name);
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+    await waitFor(() =>
+      expect(screen.queryByLabelText('Model name')).toBeNull(),
+    );
+  }
 
   it('env: read-only rows, no Save and no Turn off', async () => {
     server(() => [{ ...gemini, savedInactive: true, rev: 2 }]);
@@ -357,7 +382,7 @@ describe('AiProviderScreen: settings form', () => {
     await screen.findByText('Set · …a3F9');
     expect(screen.getByRole('button', { name: 'Check now' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Save' })).toBeNull();
-    type('Model', 'gemini-3.8-pro');
+    await pickModel('gemini-3.8-pro');
     expect(screen.queryByRole('button', { name: 'Check now' })).toBeNull();
     expect(screen.getByRole('button', { name: 'Check' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Save' })).toBeTruthy();
@@ -385,7 +410,7 @@ describe('AiProviderScreen: settings form', () => {
     );
     await wrap(<AiProviderScreen />);
     await screen.findByText('Set · …a3F9');
-    type('Model', 'gemini-3.8-pro');
+    await pickModel('gemini-3.8-pro');
     expect(screen.queryByRole('button', { name: 'Save anyway' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     expect(
@@ -397,7 +422,7 @@ describe('AiProviderScreen: settings form', () => {
       rev: 3,
     });
 
-    type('Model', 'gemini-3.8-pro ');
+    await pickModel('gemini-3.8-pro ');
     expect(screen.queryByRole('button', { name: 'Save anyway' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Save anyway' }));
@@ -429,7 +454,7 @@ describe('AiProviderScreen: settings form', () => {
     fireEvent.click(await screen.findByRole('button', { name: /Provider/ }));
     fireEvent.click(screen.getByRole('radio', { name: 'OpenAI' }));
     type('API key', key);
-    type('Model', 'gpt-5-mini');
+    await pickModel('gpt-5-mini');
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     await screen.findByText('Set · …9xQ2');
     expect(calls.at(-1)).toMatchObject({
@@ -447,7 +472,7 @@ describe('AiProviderScreen: settings form', () => {
     fireEvent.click(await screen.findByRole('button', { name: /Provider/ }));
     fireEvent.click(screen.getByRole('radio', { name: 'Anthropic' }));
     expect(field('API key').value).toBe('');
-    expect(field('Model').value).toBe('');
+    expect(modelRow().textContent).toContain('Choose a model');
     expect(
       screen.getByText('Anthropic needs its own key — the old one won’t work'),
     ).toBeTruthy();
@@ -470,7 +495,7 @@ describe('AiProviderScreen: settings form', () => {
     type('Address', 'http://ollama:11434/v1');
     expect(screen.queryByText('Enter an address')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Check' }));
-    expect(document.activeElement).toBe(field('Model'));
+    expect(document.activeElement).toBe(modelRow());
     expect(calls.every((c) => c.method === 'GET')).toBe(true);
   });
 
@@ -493,7 +518,7 @@ describe('AiProviderScreen: settings form', () => {
     ).toBeTruthy();
     expect(field('Address').value).toBe('');
     expect(field('Address').placeholder).toBe('Unchanged');
-    type('Model', 'qwen2.5vl');
+    await pickModel('qwen2.5vl');
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     await screen.findByText('Saved. The new model is already in use');
     expect(calls.at(-1)?.body).toEqual({
@@ -503,17 +528,10 @@ describe('AiProviderScreen: settings form', () => {
     });
   });
 
-  it('the model hint asks for Check only on an edited form; the eye says «key»', async () => {
+  it('the eye in the key field says «key»', async () => {
     server(() => [saved]);
     await wrap(<AiProviderScreen />);
     await screen.findByText('Set · …a3F9');
-    expect(screen.getByText('As shown in your provider account.')).toBeTruthy();
-    type('Model', 'gemini-3.8-pro');
-    expect(
-      screen.getByText(
-        'As shown in your provider account. Verify it with Check.',
-      ),
-    ).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Replace key' }));
     expect(screen.getByRole('button', { name: 'Show key' })).toBeTruthy();
   });
@@ -526,7 +544,7 @@ describe('AiProviderScreen: settings form', () => {
     );
     await wrap(<AiProviderScreen />);
     await screen.findByText('Set · …a3F9');
-    type('Model', 'gemini-9');
+    await pickModel('gemini-9');
     fireEvent.click(screen.getByRole('button', { name: 'Check' }));
     expect(await screen.findByText('Model not found')).toBeTruthy();
     expect(calls.at(-1)?.body).toEqual({
@@ -543,7 +561,7 @@ describe('AiProviderScreen: settings form', () => {
     );
     await wrap(<AiProviderScreen />);
     await screen.findByText('Set · …a3F9');
-    type('Model', 'gemini-3.8-pro');
+    await pickModel('gemini-3.8-pro');
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     expect(
       await screen.findByText(
@@ -551,8 +569,75 @@ describe('AiProviderScreen: settings form', () => {
       ),
     ).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Reload' }));
-    await waitFor(() => expect(field('Model').value).toBe(saved.model));
+    await waitFor(() => expect(modelRow().textContent).toContain(saved.model));
     expect(calls.at(-1)?.method).toBe('GET');
+  });
+
+  it('a typed key fetches the list after a pause and on leaving the field, never stored', async () => {
+    const key = 'sk-proj-secret-9xQ2';
+    const calls = server(() => [off]);
+    await wrap(<AiProviderScreen />);
+    fireEvent.click(await screen.findByRole('button', { name: /Provider/ }));
+    fireEvent.click(screen.getByRole('radio', { name: 'OpenAI' }));
+    type('API key', key);
+    const models = () => calls.filter((c) => c.url.endsWith('/models'));
+    expect(models()).toHaveLength(0);
+    await waitFor(() => expect(models()).toHaveLength(1));
+    expect(models()[0]).toMatchObject({
+      method: 'POST',
+      body: { provider: 'openai', apiKey: key },
+    });
+    fireEvent.blur(field('API key'));
+    expect(models()).toHaveLength(1);
+    type('API key', `${key}0`);
+    fireEvent.blur(field('API key'));
+    expect(models()).toHaveLength(2);
+    for (const storage of [localStorage, sessionStorage])
+      for (let i = 0; i < storage.length; i++)
+        expect(storage.getItem(storage.key(i)!)).not.toContain(key);
+    expect(JSON.stringify(history.state)).not.toContain(key);
+  });
+
+  it('picking from the list: the photo label and the warning come from it', async () => {
+    server(() => [saved]);
+    await wrap(<AiProviderScreen />);
+    fireEvent.click(await screen.findByRole('button', { name: /^Model/ }));
+    expect(
+      await screen.findByRole('radiogroup', { name: 'No photos' }),
+    ).toBeTruthy();
+    fireEvent.click(screen.getByRole('radio', { name: /gemma-4-2b-it/ }));
+    expect(modelRow().textContent).toContain('gemma-4-2b-itno photos');
+    expect(
+      screen.getByText(
+        'This model doesn’t accept photos — photo recognition will be off; the goal assistant still works',
+      ),
+    ).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Save' })).toBeTruthy();
+  });
+
+  it('the list fails: the reason and manual entry at once', async () => {
+    server(
+      () => [saved],
+      [
+        {
+          error: {
+            code: 'ai_models_failed',
+            details: { state: 'auth_error', details: { status: 401 } },
+          },
+        },
+        502,
+      ],
+    );
+    await wrap(<AiProviderScreen />);
+    fireEvent.click(await screen.findByRole('button', { name: /^Model/ }));
+    expect(
+      await screen.findByText(
+        'Couldn’t load the model list: the provider rejected the key. Enter the model name manually',
+      ),
+    ).toBeTruthy();
+    type('Model name', 'gemini-9');
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+    await waitFor(() => expect(modelRow().textContent).toContain('gemini-9'));
   });
 
   it('the saved key can’t be read: the key field says so', async () => {

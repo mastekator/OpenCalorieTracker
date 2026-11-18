@@ -1,9 +1,18 @@
-import { useEffect, useRef, useState } from 'react';
-import { Check, Info, Lock, RefreshCw, TriangleAlert } from 'lucide-react';
+import { useEffect, useId, useRef, useState } from 'react';
+import {
+  Check,
+  ChevronRight,
+  CircleAlert,
+  Info,
+  Lock,
+  RefreshCw,
+  TriangleAlert,
+} from 'lucide-react';
 import {
   AI_PROVIDERS,
   type AdminAiStatus,
   type AiCheckResult,
+  type AiModelInfo,
   type AiProviderId,
   type AiProviderState,
 } from '@oct/shared';
@@ -15,6 +24,7 @@ import { Field } from '../Field/Field';
 import { ListRow } from '../List/List';
 import '../List/List.css';
 import { AI_STATES, Details } from '../ProviderStatus/ProviderStatus';
+import { ModelSheet } from '../ModelSheet/ModelSheet';
 import { Sheet } from '../Sheet/Sheet';
 import './AiSettingsForm.css';
 
@@ -24,6 +34,13 @@ export type AiDraftState = {
   baseUrl: string;
   apiKey: string;
   model: string;
+};
+
+/** The provider's model list for the draft's connection; error is the reason in words. */
+export type ModelsState = {
+  list: AiModelInfo[] | null;
+  loading: boolean;
+  error: string | null;
 };
 
 const PROVIDERS = Object.keys(AI_PROVIDERS) as AiProviderId[];
@@ -56,6 +73,9 @@ type Props = {
   onSave: () => void;
   onSaveAnyway: () => void;
   onReload: () => void;
+  models: ModelsState;
+  /** Fetch the list for the draft (sheet opened without one, «Refresh list», key field left). */
+  onLoadModels: () => void;
 };
 
 const detailsOf = (r: AiCheckResult) =>
@@ -80,13 +100,17 @@ export function AiSettingsForm({
   onSave,
   onSaveAnyway,
   onReload,
+  models,
+  onLoadModels,
 }: Props) {
   const { t } = useT();
   const [sheet, setSheet] = useState(false);
+  const [modelSheet, setModelSheet] = useState(false);
   const keyRef = useRef<HTMLInputElement>(null);
   const addressRef = useRef<HTMLInputElement>(null);
-  const modelRef = useRef<HTMLInputElement>(null);
+  const modelRef = useRef<HTMLButtonElement>(null);
   const focusKey = useRef(false);
+  const modelErrId = useId();
   // Set by a tap on Check or Save with an empty required field: its error shows until it is filled.
   const [tried, setTried] = useState(false);
   // After the sheet's cleanup returns focus to its opener (OCT-248 1.3).
@@ -101,11 +125,17 @@ export function AiSettingsForm({
   const providerName = (id: AiProviderId) =>
     AI_PROVIDERS[id].name ?? t('ai.compatible');
   const lock = <Lock className="ai-form__lock" aria-hidden="true" />;
-  // Known only for the active model: the check sends an image (ADR-0013).
-  const vision: AiProviderState | null =
-    draft.provider === status.provider &&
-    draft.model === status.model &&
-    (status.state === 'ok' || status.state === 'no_vision')
+  // From the provider's list; else known only for the active model: the check sends an image (ADR-0013).
+  const listed = models.list?.find((m) => m.id === draft.model);
+  const vision: AiProviderState | null = listed
+    ? listed.vision === null
+      ? null
+      : listed.vision
+        ? 'ok'
+        : 'no_vision'
+    : draft.provider === status.provider &&
+        draft.model === status.model &&
+        (status.state === 'ok' || status.state === 'no_vision')
       ? status.state
       : null;
   // The server keeps the saved address when the field is left empty (only its host comes back).
@@ -154,6 +184,7 @@ export function AiSettingsForm({
         )}
         value={draft.apiKey}
         onChange={(event) => onChange({ apiKey: event.target.value })}
+        onBlur={() => draft.apiKey.trim() && !models.list && onLoadModels()}
         error={
           keyError ??
           (status.keyUnreadable && draft.provider === status.provider
@@ -252,33 +283,48 @@ export function AiSettingsForm({
               {t('ai.model')}
             </ListRow>
           ) : (
-            // shortcut: a plain name field; the provider's list comes with OCT-276.
-            <li className="list__item ai-form__field ai-form__model">
-              <Field
+            <li className="list__item">
+              <button
                 ref={modelRef}
-                label={t('ai.model')}
-                autoComplete="off"
-                autoCapitalize="off"
-                spellCheck={false}
-                hint={
-                  dirty
-                    ? `${t('ai.form.model_hint')} ${t('ai.form.model_hint_check')}`
-                    : t('ai.form.model_hint')
-                }
-                error={
-                  tried && modelEmpty ? t('ai.form.model_required') : undefined
-                }
-                value={draft.model}
-                onChange={(event) => onChange({ model: event.target.value })}
-              />
-              {vision && (
-                <Badge tone={vision === 'ok' ? 'ok' : 'neutral'}>
-                  {t(vision === 'ok' ? 'ai.form.photo' : 'ai.form.no_photo')}
-                </Badge>
-              )}
+                type="button"
+                className="list-row list-row--interactive"
+                aria-describedby={modelEmpty && tried ? modelErrId : undefined}
+                onClick={() => {
+                  setModelSheet(true);
+                  if (!models.list && !models.loading && !models.error)
+                    onLoadModels();
+                }}
+              >
+                <span className="list-row__label">
+                  {t('ai.model')}
+                  <span className="list-row__description ai-form__mono">
+                    {draft.model ||
+                      t(
+                        models.loading
+                          ? 'ai.models.loading'
+                          : 'ai.models.choose',
+                      )}
+                  </span>
+                </span>
+                {vision && (
+                  <Badge tone={vision === 'ok' ? 'ok' : 'neutral'}>
+                    {t(vision === 'ok' ? 'ai.form.photo' : 'ai.form.no_photo')}
+                  </Badge>
+                )}
+                <ChevronRight
+                  className="list-row__chevron"
+                  aria-hidden="true"
+                />
+              </button>
             </li>
           )}
         </ul>
+        {tried && modelEmpty && !env && (
+          <p id={modelErrId} className="ai-form__msg ai-form__msg--error">
+            <CircleAlert aria-hidden="true" />
+            {t('ai.form.model_required')}
+          </p>
+        )}
         {vision === 'no_vision' && (
           <p className="ai-form__msg ai-form__msg--warn">
             <TriangleAlert aria-hidden="true" />
@@ -377,6 +423,19 @@ export function AiSettingsForm({
         </div>
       )}
 
+      <ModelSheet
+        open={modelSheet}
+        onClose={() => setModelSheet(false)}
+        models={models.list}
+        loading={models.loading}
+        error={models.error}
+        value={draft.model}
+        onRefresh={onLoadModels}
+        onPick={(model) => {
+          setModelSheet(false);
+          onChange({ model });
+        }}
+      />
       <Sheet
         open={sheet}
         onClose={() => setSheet(false)}
