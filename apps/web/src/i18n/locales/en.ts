@@ -1226,6 +1226,12 @@ export const en = {
     ai_unavailable: 'The AI provider is unavailable. Try later',
     ai_invalid_response: 'The AI returned an unreadable answer. Try again',
     ai_empty_result: 'The AI removed every dish — the list is unchanged',
+    ai_env_managed:
+      'AI is set in the server environment (AI_*); change it there',
+    ai_settings_changed:
+      'Someone else changed the AI settings. Reload and try again',
+    ai_key_required: 'Enter the API key for this provider',
+    ai_check_failed: 'The check failed — settings not saved',
     photo_too_large: 'The photo is too large',
     photo_invalid: 'This file isn’t a photo we can read',
     client_outdated: 'The app has been updated. Please save again',

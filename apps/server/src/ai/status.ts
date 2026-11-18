@@ -26,7 +26,7 @@ export function isNoVision(err: unknown) {
   );
 }
 
-interface AiResult {
+export interface AiResult {
   state: AiProviderState;
   checkedAt: number | null;
   /** Raw provider text: pass through redactSecrets before it leaves the server. */
@@ -43,30 +43,17 @@ export function setActiveModel(model: AiModel | null) {
   vision = true;
 }
 
-/**
- * Called after every provider call: no error on success, the error on failure; timeoutMs when
- * the call ran out of time. A late result of a replaced model is dropped.
- */
-export function recordAiResult(
-  model: AiModel,
-  err?: unknown,
-  timeoutMs?: number,
-) {
-  if (model !== active) return;
-  if (err === undefined) {
-    last = { state: 'ok', checkedAt: Date.now() };
-    return;
-  }
-  if (timeoutMs) {
-    last = {
+/** The state a provider call ended in: no error on success; timeoutMs when it ran out of time. */
+export function aiResultOf(err?: unknown, timeoutMs?: number): AiResult {
+  if (err === undefined) return { state: 'ok', checkedAt: Date.now() };
+  if (timeoutMs)
+    return {
       state: 'timeout',
       checkedAt: Date.now(),
       details: { timeoutSec: Math.round(timeoutMs / 1000) },
     };
-    return;
-  }
   const status = APICallError.isInstance(err) ? err.statusCode : undefined;
-  last = {
+  return {
     state:
       status === 401 || status === 403
         ? 'auth_error'
@@ -81,6 +68,18 @@ export function recordAiResult(
     checkedAt: Date.now(),
     details: { status, message: (err as Error)?.message },
   };
+}
+
+/**
+ * Called after every provider call with the arguments of aiResultOf. A late result of a
+ * replaced model is dropped.
+ */
+export function recordAiResult(
+  model: AiModel,
+  err?: unknown,
+  timeoutMs?: number,
+) {
+  if (model === active) last = aiResultOf(err, timeoutMs);
 }
 
 export function providerState(model: AiModel | null): AiResult {
