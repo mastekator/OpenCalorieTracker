@@ -137,7 +137,11 @@ export function RefineBar({
                   ? 'edit.refine.busy_again'
                   : 'edit.refine.busy',
             )}
-            {text && <span className="refine__query">«{text}»</span>}
+            {text && (
+              <span className="refine__query">
+                {t('edit.refine.query', { text })}
+              </span>
+            )}
           </span>
           <Button ref={cancelRef} variant="plain" small onClick={onCancel}>
             {t('common.cancel')}

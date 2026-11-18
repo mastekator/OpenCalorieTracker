@@ -39,7 +39,7 @@ describe('RefineBar while a request runs (OCT-282)', () => {
   it('shows the sent text under the indicator, none for an empty one', async () => {
     const { rerender } = render(bar({ busy: 'busy', value: '  more rice ' }));
     expect((await screen.findByRole('status')).textContent).toContain(
-      '«more rice»',
+      '“more rice”',
     );
     rerender(bar({ busy: 'busy', value: ' ' }));
     expect(document.querySelector('.refine__query')).toBeNull();

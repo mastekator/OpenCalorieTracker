@@ -182,7 +182,7 @@ describe('«What should I fix?» on the edit screen (OCT-261)', () => {
       await waitFor(() => expect(calls).toHaveLength(1));
       const busy = document.querySelector<HTMLElement>('.refine__busy')!;
       expect(within(busy).getByText(busyText)).toBeTruthy();
-      expect(busy.textContent).toContain('«there is chicken»');
+      expect(busy.textContent).toContain('“there is chicken”');
       const cancel = within(busy).getByRole('button', { name: 'Cancel' });
       expect(document.activeElement).toBe(cancel);
       fireEvent.click(cancel);
