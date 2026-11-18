@@ -130,6 +130,13 @@ export const toRequest = (rows: Row[]): RefineDishIn[] =>
     fixed: fixedOf(row),
   }));
 
+/** What «Recognize again» keeps: a manual or «Same as last time» dish (AC-1.5). */
+const keptOnAgain = (row: Row) => row.source !== 'ai';
+
+/** «Recognize again» sends only the dishes it keeps, or the AI's own edited ones would vanish. */
+export const requestDishes = (mode: 'refine' | 'again', rows: Row[]) =>
+  toRequest(mode === 'again' ? rows.filter(keptOnAgain) : rows);
+
 /** «new», or «changed, was …» with the dish's previous name, weight and kcal. */
 export type Mark =
   | { kind: 'new' }
@@ -300,8 +307,8 @@ export function applyAgain(
   dishes: RecognizedDish[],
   questions?: AiQuestion[],
 ): Applied {
-  const kept = rows.filter((r) => r.source !== 'ai').map(unasked);
-  const oldAi = rows.filter((r) => r.source === 'ai');
+  const kept = rows.filter(keptOnAgain).map(unasked);
+  const oldAi = rows.filter((r) => !keptOnAgain(r));
   const marks: Applied['marks'] = {};
   const next = dishes.map((dish) => {
     const row = aiRow(dish);

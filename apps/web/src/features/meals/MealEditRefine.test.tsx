@@ -400,11 +400,27 @@ describe('«What should I fix?» on the edit screen (OCT-261)', () => {
       photoId: 'p1',
       text: 'it is pumpkin',
     });
+    expect(calls[0]!.body.dishes.map((d) => d.name)).toEqual(['Rye bread']);
     await act(async () =>
       calls[0]!.settle(answer([{ ...egg, grams: 60, kcal: 118 }, chicken])),
     );
     expect(names()).toEqual(['Rye bread', 'Fried egg', 'Chicken']);
     expect(screen.getByText(/Removed: Mie goreng/)).toBeTruthy();
+  });
+
+  it('«Recognize again» and its «Try again» send no AI dish, an edited one neither (OCT-289)', async () => {
+    await setup();
+    fireEvent.change(
+      screen.getByRole('textbox', { name: 'Weight of Fried egg' }),
+      { target: { value: '60' } },
+    );
+    fireEvent.click(button('Recognize again')!);
+    await waitFor(() => expect(calls).toHaveLength(1));
+    expect(calls[0]!.body.dishes).toEqual([]);
+    await act(async () => calls[0]!.settle(failure(503, 'ai_unavailable')));
+    fireEvent.click(button('Try again')!);
+    await waitFor(() => expect(calls).toHaveLength(2));
+    expect(calls[1]!.body).toMatchObject({ mode: 'again', dishes: [] });
   });
 
   it('Save after «Refine»: the changed dish goes as AI, the text never goes', async () => {
