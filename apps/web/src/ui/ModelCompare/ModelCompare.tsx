@@ -95,10 +95,11 @@ export function ModelCompare({
             const done = r.status === 'done';
             const open = openId === r.id;
             const day = date.format(r.startedAt);
+            const price = cost(r);
             return (
               <li
                 key={r.id}
-                className={`compare__item${best === r.id ? ' compare__item--best' : ''}`}
+                className={`compare__item${best === r.id ? ' compare__item--best' : ''}${done ? '' : ' compare__item--part'}`}
               >
                 <div className="compare__row">
                   <div className="compare__name">
@@ -122,7 +123,10 @@ export function ModelCompare({
                   <span className="compare__passed compare__num">
                     {r.passed}/{r.total}
                   </span>
-                  <span className="compare__metrics">
+                  {/* Nothing measured: a phone shows one «—», not «— · —». */}
+                  <span
+                    className={`compare__metrics${r.msPerPhoto === null && price === '—' ? ' compare__metrics--empty' : ''}`}
+                  >
                     <span className="compare__num">
                       {r.msPerPhoto === null
                         ? '—'
@@ -132,7 +136,7 @@ export function ModelCompare({
                             }),
                           })}
                     </span>
-                    <span>{cost(r)}</span>
+                    <span>{price}</span>
                   </span>
                   <span className="compare__date">{day}</span>
                   <span className="compare__actions">

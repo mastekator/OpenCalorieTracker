@@ -37,15 +37,51 @@
   border-top: 1px solid var(--color-separator);
 }
 
-/* Phone (4.6): model and N/9 on top, provider · date and metrics below. */
+/* Phone (4.6): model and N/9 on the first line, provider · date · tag and metrics
+   on the second; flex lets each line split its own width. */
 .compare__row {
   position: relative;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
   column-gap: var(--space-3);
   row-gap: 2px;
   padding: var(--space-3) 0;
+}
+
+/* order lines the items up on a phone only: on a desktop it would reorder the grid. */
+@media (max-width: 1023.98px) {
+  .compare__mono {
+    order: 1;
+  }
+
+  .compare__passed {
+    order: 2;
+  }
+
+  .compare__sub {
+    order: 4;
+  }
+
+  .compare__model > :not(.compare__mono) {
+    order: 5;
+  }
+
+  .compare__metrics {
+    order: 6;
+    margin-left: auto;
+  }
+
+  .compare__actions {
+    order: 7;
+  }
+}
+
+/* The line break between the two lines. */
+.compare__row::before {
+  content: '';
+  order: 3;
+  flex-basis: 100%;
 }
 
 .compare__row--head,
@@ -53,20 +89,14 @@
   display: none;
 }
 
-.compare__name {
-  display: grid;
-  min-width: 0;
-}
-
+.compare__name,
 .compare__model {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-1) var(--space-2);
-  min-width: 0;
+  display: contents;
 }
 
 .compare__mono {
+  flex: 1 1 0;
+  min-width: 0;
   font-family: var(--font-mono);
   font-weight: 600;
   overflow-wrap: anywhere;
@@ -81,7 +111,6 @@
 }
 
 .compare__passed {
-  justify-self: end;
   font-size: var(--text-title-size);
   line-height: var(--text-title-lh);
   font-weight: 700;
@@ -91,24 +120,26 @@
   color: var(--color-accent);
 }
 
+/* Stopped or interrupted: the score covers only the photos sent. */
+.compare__item--part .compare__passed {
+  color: var(--color-text-secondary);
+}
+
 .compare__num {
   font-variant-numeric: tabular-nums;
 }
 
 .compare__metrics {
-  grid-column: 2;
-  grid-row: 2;
   display: flex;
   gap: var(--space-1);
-  justify-self: end;
+}
+
+.compare__metrics--empty > :last-child {
+  display: none;
 }
 
 .compare__metrics > * + *::before {
   content: '· ';
-}
-
-.compare__name {
-  grid-row: 1 / span 2;
 }
 
 .compare__icon {
@@ -168,6 +199,7 @@
 
 @media (min-width: 1024px) {
   .compare__row {
+    display: grid;
     grid-template-columns:
       minmax(0, 1fr) 4.5rem 7rem minmax(9rem, 12rem) 5.5rem
       calc(3 * var(--tap-min));
@@ -185,8 +217,24 @@
     color: var(--color-text-secondary);
   }
 
+  .compare__row::before {
+    content: none;
+  }
+
   .compare__name {
-    grid-row: auto;
+    display: grid;
+  }
+
+  .compare__model {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-1) var(--space-2);
+    min-width: 0;
+  }
+
+  .compare__mono {
+    flex: 0 1 auto;
   }
 
   .compare__num {
@@ -208,6 +256,10 @@
 
   .compare__metrics > * + *::before {
     content: none;
+  }
+
+  .compare__metrics--empty > :last-child {
+    display: block;
   }
 
   .compare__date {
