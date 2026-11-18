@@ -86,6 +86,8 @@ describe('POST /api/photos/:id/recognize', () => {
   it.each([
     [apiError(429, 'quota text from provider'), 429, 'ai_quota_exceeded'],
     [apiError(500, 'stack trace from provider'), 503, 'ai_unavailable'],
+    // The cause the model test reads stays on the server.
+    [apiError(401, 'bad key from provider'), 503, 'ai_unavailable'],
     [{ dishes: 'nope' }, 502, 'ai_invalid_response'],
   ])(
     'maps a provider failure to %#: %i %s without its text (AC-6.1, AC-6.2)',

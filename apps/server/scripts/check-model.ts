@@ -1,19 +1,10 @@
 // Runs the test photos through recognizeMeal with the provider from env (ADR-0007, ADR-0019). Manual, not in CI.
-import { readFile } from 'node:fs/promises';
-import {
-  checkPhoto,
-  expectedText,
-  readExpected,
-  TEST_PHOTOS_DIR,
-} from '../src/ai/model-test/compare.js';
 import {
   reportMarkdown,
   type ModelTestRun,
 } from '../src/ai/model-test/format.js';
-import {
-  recognizeMeal,
-  RECOGNIZE_PROMPT_VERSION,
-} from '../src/ai/recognize.js';
+import { pendingPhotos, testPhotos } from '../src/ai/model-test/runner.js';
+import { RECOGNIZE_PROMPT_VERSION } from '../src/ai/recognize.js';
 import { appVersion } from '../src/version.js';
 import { fail, modelFromEnv } from './model-from-env.js';
 
@@ -26,36 +17,22 @@ const run: ModelTestRun = {
   appVersion,
   promptVersion: RECOGNIZE_PROMPT_VERSION,
   startedAt: Date.now(),
-  photos: [],
+  photos: await pendingPhotos(),
 };
 const tokens = { inputTokens: 0, outputTokens: 0 };
-let errors = 0;
-for (const exp of await readExpected()) {
-  const jpeg = await readFile(new URL(exp.file, TEST_PHOTOS_DIR));
-  const started = Date.now();
-  let row;
-  try {
-    const got = await recognizeMeal(model, jpeg, 'en', undefined, (u) => {
-      tokens.inputTokens += u.inputTokens;
-      tokens.outputTokens += u.outputTokens;
-    });
-    row = { ...checkPhoto(exp, got), questions: got.questions.length };
-  } catch (err) {
-    errors++;
-    row = { result: `error ${(err as { code?: string }).code ?? err}` };
-  }
-  run.photos.push({
-    file: exp.file,
-    expected: expectedText(exp),
-    ...row,
-    ms: Date.now() - started,
-  });
-}
+const stopped = await testPhotos(model, run.photos, {
+  apiKey: settings.apiKey,
+  onUsage: (u) => {
+    tokens.inputTokens += u.inputTokens;
+    tokens.outputTokens += u.outputTokens;
+  },
+});
+for (const p of run.photos) if (p.result === 'pending') p.result = 'not_run';
 
 console.table(run.photos);
 console.log(`\n${reportMarkdown({ ...run, ...tokens })}`);
-if (errors === run.photos.length)
+if (stopped || run.photos.every((p) => p.result.startsWith('error')))
   fail(
     'check-model',
-    'every photo failed; check the model name, key and base URL.',
+    `${stopped ? `stopped early (${stopped})` : 'every photo failed'}; check the model name, key and base URL.`,
   );

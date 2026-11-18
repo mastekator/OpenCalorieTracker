@@ -1,14 +1,7 @@
+import type { AiTestPhoto } from '@oct/shared';
+
 /** One photo of a model test run; the `photos` JSON of ai_test_runs (ADR-0019). */
-export interface ModelTestPhoto {
-  file: string;
-  expected: string;
-  got?: string;
-  kcal?: number;
-  levels?: string;
-  ms?: number;
-  /** 'ok', the miss from compare, `error <code>` or 'not_run'. */
-  result: string;
-}
+export type ModelTestPhoto = AiTestPhoto;
 
 /** A model test run, named after the ai_test_runs columns (ADR-0019). Holds no key or URL. */
 export interface ModelTestRun {
