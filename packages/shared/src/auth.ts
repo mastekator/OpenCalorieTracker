@@ -165,7 +165,33 @@ export type PasskeyRecoverOptionsRequest = z.infer<
   typeof passkeyRecoverOptionsRequestSchema
 >;
 
-/** `options` goes to the browser's WebAuthn call as is; `challengeId` comes back with its answer. */
+/**
+ * The setup code as typed (ADR-0021 §3); the server normalizes it. A missing code is a wrong
+ * one, so it counts as a failed attempt instead of a validation error.
+ */
+const setupCodeInput = z.string().max(64).default('');
+
+export const setupCodeRequestSchema = z.object({ code: setupCodeInput });
+export type SetupCodeRequest = z.input<typeof setupCodeRequestSchema>;
+
+/** Creates the first admin in the setup wizard; the code is sent again with it (ADR-0021 §4). */
+export const setupAdminRequestSchema = z.object({
+  code: setupCodeInput,
+  email: emailSchema,
+  name: z.string().trim().max(100).optional(),
+  password: passwordInput,
+  locale: localeSchema.optional(),
+});
+export type SetupAdminRequest = z.input<typeof setupAdminRequestSchema>;
+
+export const setupPasskeyOptionsRequestSchema = setupAdminRequestSchema.omit({
+  password: true,
+});
+export type SetupPasskeyOptionsRequest = z.input<
+  typeof setupPasskeyOptionsRequestSchema
+>;
+
+/** `options` goes to the browser's WebAuthn call as is;`challengeId` comes back with its answer. */
 export interface PasskeyOptionsResponse {
   challengeId: string;
   options: unknown;

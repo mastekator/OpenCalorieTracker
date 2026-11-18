@@ -1370,6 +1370,12 @@ export const en = {
     agent_not_ready: 'Finish the dialog up to the summary first',
     agent_closed: 'This dialog is closed. Use the form or start over',
     cannot_delete_self: 'You cannot delete your own account here',
+    setup_code_invalid: 'Wrong setup code',
+    setup_code_expired:
+      'The setup code has expired. Restart the container for a new one',
+    setup_code_burned:
+      'The setup code no longer works. Restart the container for a new one',
+    setup_done: 'Setup is already complete. Sign in',
     internal: 'Something went wrong. Try again',
     network: 'Can’t reach the server. Check your connection',
   } satisfies Record<ClientErrorCode, string>,

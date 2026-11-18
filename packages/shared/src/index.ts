@@ -47,6 +47,10 @@ export type ErrorCode =
   | 'agent_not_ready'
   | 'agent_closed'
   | 'cannot_delete_self'
+  | 'setup_code_invalid'
+  | 'setup_code_expired'
+  | 'setup_code_burned'
+  | 'setup_done'
   | 'internal';
 
 export interface ErrorBody {
