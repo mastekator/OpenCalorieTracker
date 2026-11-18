@@ -50,9 +50,12 @@
 
 .refine__actions {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
   gap: var(--space-2);
+}
+
+/* One row even at 375 px in RU (OCT-234 A.2). */
+.refine__actions > * {
+  flex: 1 1 auto;
 }
 
 .refine__actions .lucide,

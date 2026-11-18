@@ -1,4 +1,4 @@
-import { useId, useState, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { ArrowUp, Check, RefreshCw, Sparkle, Undo2 } from 'lucide-react';
 import { useT } from '../../i18n';
 import { Button } from '../Button/Button';
@@ -46,7 +46,28 @@ export function RefineBar({
 }: Props) {
   const { t, num } = useT();
   const [focused, setFocused] = useState(false);
+  // The textarea unmounts while busy, so its blur never fires (OCT-234 C.1: back to one line).
+  if (busy && focused) setFocused(false);
   const noteId = useId();
+  const fieldRef = useRef<HTMLTextAreaElement>(null);
+  const resultRef = useRef<HTMLDivElement>(null);
+  const resultKey = result
+    ? `${result.kcalDelta}|${result.removed.join()}`
+    : '';
+  const keyAtStart = useRef<string | null>(null);
+  // Focus would fall to <body> with the unmounted field (WCAG 2.4.3):
+  // a new result → its strip, cancel or error → back to the field.
+  useEffect(() => {
+    if (busy) {
+      keyAtStart.current ??= resultKey;
+      return;
+    }
+    if (keyAtStart.current === null) return;
+    const before = keyAtStart.current;
+    keyAtStart.current = null;
+    const fresh = !error && resultKey && resultKey !== before;
+    (fresh ? resultRef : fieldRef).current?.focus();
+  }, [busy, resultKey, error]);
   const text = value.trim();
   // A.1: one line until used; the buttons show once there is something to send or explain.
   const open = focused || !!value || !!error;
@@ -58,7 +79,12 @@ export function RefineBar({
   return (
     <div className="refine">
       {result && (
-        <div className="refine__result" role="status">
+        <div
+          ref={resultRef}
+          className="refine__result"
+          role="status"
+          tabIndex={-1}
+        >
           <Check aria-hidden="true" className="refine__result-icon" />
           <p className="refine__result-text">
             <span className="refine__result-title">
@@ -100,6 +126,7 @@ export function RefineBar({
           <label className="refine__field">
             <Sparkle aria-hidden="true" className="refine__icon" />
             <textarea
+              ref={fieldRef}
               className="refine__input"
               rows={1}
               maxLength={REFINE_TEXT_MAX}
