@@ -27,6 +27,7 @@ import {
   draftOf,
   useModels,
 } from './aiDraft';
+import { ModelCompare } from './ModelCompare';
 import { ModelTest } from './ModelTest';
 
 export { AI_STATUS_PATH };
@@ -48,6 +49,8 @@ export function AiProviderScreen() {
   const [checked, setChecked] = useState<AiCheckResult | null>(null);
   const [conflict, setConflict] = useState(false);
   const [confirmOff, setConfirmOff] = useState(false);
+  const [testsRev, setTestsRev] = useState(0);
+  const nextTestsRev = useCallback(() => setTestsRev((n) => n + 1), []);
   const { models, load: loadModels, reset: resetModels } = useModels(draft);
 
   /** The server's answer replaces the draft; the typed key is dropped from memory. */
@@ -209,7 +212,15 @@ export function AiProviderScreen() {
     <>
       <ProviderStatus
         status={status}
-        test={<ModelTest status={status} draft={draft} dirty={dirty} />}
+        test={
+          <ModelTest
+            status={status}
+            draft={draft}
+            dirty={dirty}
+            onFinished={nextTestsRev}
+          />
+        }
+        compare={<ModelCompare rev={testsRev} />}
         side={
           // A saved row, even with an unreadable key, can be removed; env settings cannot (E-10).
           !env &&

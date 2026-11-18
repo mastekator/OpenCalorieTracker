@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
 import {
   AI_PROVIDERS,
@@ -28,28 +28,68 @@ import {
   useModels,
 } from './aiDraft';
 
-const TESTS_PATH = `${AI_STATUS_PATH}/tests`;
+export const TESTS_PATH = `${AI_STATUS_PATH}/tests`;
 export const POLL_MS = 2000;
 export const MODELS_MD_URL =
   'https://github.com/mastekator/OpenCalorieTracker/blob/main/docs/MODELS.md';
+
+/** Copies a done run's MODELS.md row or report; where the browser refuses, the sheet to copy by hand. */
+export function useCopyRun() {
+  const { t } = useT();
+  const toast = useToast();
+  const [copy, setCopy] = useState<{ text: string; title: string } | null>(
+    null,
+  );
+
+  async function copyOut(run: AiTestRun, kind: 'row' | 'report') {
+    const text = kind === 'row' ? run.modelsMdRow : run.report;
+    if (!text) return;
+    if (await copyText(text))
+      toast(
+        kind === 'row'
+          ? {
+              text: t('ai.test.copied'),
+              action: {
+                label: t('ai.test.open'),
+                onClick: () => window.open(MODELS_MD_URL, '_blank', 'noopener'),
+              },
+            }
+          : { text: t('ai.test.copied_report') },
+      );
+    else
+      setCopy({
+        text,
+        title: t(kind === 'row' ? 'ai.test.sheet_row' : 'ai.test.sheet_report'),
+      });
+  }
+
+  const sheet = (
+    <CopySheet
+      text={copy?.text ?? null}
+      title={copy?.title ?? ''}
+      onClose={() => setCopy(null)}
+    />
+  );
+  return [copyOut, sheet] as const;
+}
 
 type Props = {
   status: AdminAiStatus;
   /** The screen's form: a run tests it as it is, saved or not (OCT-248 §4). */
   draft: AiDraftState;
   dirty: boolean;
+  /** A run left «running»: «Model comparison» reads its list again. */
+  onFinished?: () => void;
 };
 
 /** «Model test» block: starts a run on the server, follows it every 2 s, copies its MODELS.md row. */
-export function ModelTest({ status, draft, dirty }: Props) {
+export function ModelTest({ status, draft, dirty, onFinished }: Props) {
   const { t } = useT();
   const toast = useToast();
   const [run, setRun] = useState<AiTestRun | null>(null);
   const [confirm, setConfirm] = useState(false);
   const [starting, setStarting] = useState(false);
-  const [copy, setCopy] = useState<{ text: string; title: string } | null>(
-    null,
-  );
+  const [copyOut, copySheet] = useCopyRun();
   // «Another model for the test» under .env: its draft and key live only while the sheet is open.
   const [other, setOther] = useState<AiDraftState | null>(null);
   const [replacing, setReplacing] = useState(false);
@@ -74,6 +114,14 @@ export function ModelTest({ status, draft, dirty }: Props) {
       // Nothing to show is the idle block, not an error screen.
       .catch(() => {});
   }, [show]);
+
+  const wasRunning = useRef(false);
+  useEffect(() => {
+    if (!run) return;
+    const running = run.status === 'running';
+    if (wasRunning.current && !running) onFinished?.();
+    wasRunning.current = running;
+  }, [run, onFinished]);
 
   // One timer at a time; it stops with the run or the screen.
   const runningId = run?.status === 'running' ? run.id : null;
@@ -130,28 +178,6 @@ export function ModelTest({ status, draft, dirty }: Props) {
     }
   }
 
-  async function copyOut(kind: 'row' | 'report') {
-    const text = kind === 'row' ? run?.modelsMdRow : run?.report;
-    if (!text) return;
-    if (await copyText(text))
-      toast(
-        kind === 'row'
-          ? {
-              text: t('ai.test.copied'),
-              action: {
-                label: t('ai.test.open'),
-                onClick: () => window.open(MODELS_MD_URL, '_blank', 'noopener'),
-              },
-            }
-          : { text: t('ai.test.copied_report') },
-      );
-    else
-      setCopy({
-        text,
-        title: t(kind === 'row' ? 'ai.test.sheet_row' : 'ai.test.sheet_report'),
-      });
-  }
-
   function closeOther() {
     setOther(null);
     setReplacing(false);
@@ -175,7 +201,7 @@ export function ModelTest({ status, draft, dirty }: Props) {
         starting={starting && !other}
         onStart={() => setConfirm(true)}
         onStop={() => void stop()}
-        onCopy={(kind) => void copyOut(kind)}
+        onCopy={(kind) => run && void copyOut(run, kind)}
       />
       <Sheet
         open={other !== null}
@@ -236,11 +262,7 @@ export function ModelTest({ status, draft, dirty }: Props) {
         onConfirm={() => void start()}
         onCancel={() => setConfirm(false)}
       />
-      <CopySheet
-        text={copy?.text ?? null}
-        title={copy?.title ?? ''}
-        onClose={() => setCopy(null)}
-      />
+      {copySheet}
     </>
   );
 }

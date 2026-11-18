@@ -86,12 +86,17 @@ function serve(
   return fetch;
 }
 
-async function mount() {
+async function mount(onFinished?: () => void) {
   render(
     <I18nProvider>
       <ToastProvider>
         <div data-testid="ready">
-          <ModelTest status={status} draft={draft} dirty={false} />
+          <ModelTest
+            status={status}
+            draft={draft}
+            dirty={false}
+            onFinished={onFinished}
+          />
         </div>
       </ToastProvider>
     </I18nProvider>,
@@ -194,7 +199,8 @@ describe('Model test', () => {
       'GET /api/admin/ai/tests/7': () =>
         n++ === 0 ? first : Response.json(runOf({})),
     });
-    await mount();
+    const onFinished = vi.fn();
+    await mount(onFinished);
     await waitFor(() => expect(n).toBe(1));
     vi.useFakeTimers();
     await act(async () => {
@@ -208,7 +214,9 @@ describe('Model test', () => {
       fetch.mock.calls.filter(([url]) => url === '/api/admin/ai/tests/7')
         .length;
     expect(polls()).toBe(2);
+    expect(onFinished).toHaveBeenCalledTimes(1);
     await act(() => vi.advanceTimersByTimeAsync(POLL_MS * 3));
     expect(polls()).toBe(2);
+    expect(onFinished).toHaveBeenCalledTimes(1);
   });
 });

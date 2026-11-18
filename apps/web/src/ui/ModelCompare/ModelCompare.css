@@ -1,0 +1,335 @@
+.compare {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.compare p {
+  margin: 0;
+}
+
+.compare__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.compare__head h2 {
+  margin: 0;
+  font-size: var(--text-headline-size);
+  line-height: var(--text-headline-lh);
+  font-weight: 600;
+}
+
+.compare__card {
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.compare__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.compare__item + .compare__item {
+  border-top: 1px solid var(--color-separator);
+}
+
+/* Phone (4.6): model and N/9 on the first line, provider · date · tag and metrics
+   on the second; flex lets each line split its own width. */
+.compare__row {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--space-3);
+  row-gap: 2px;
+  padding: var(--space-3) 0;
+}
+
+/* order lines the items up on a phone only: on a desktop it would reorder the grid. */
+@media (max-width: 1023.98px) {
+  .compare__mono {
+    order: 1;
+  }
+
+  .compare__passed {
+    order: 2;
+  }
+
+  .compare__sub {
+    order: 4;
+  }
+
+  .compare__model > :not(.compare__mono) {
+    order: 5;
+  }
+
+  .compare__metrics {
+    order: 6;
+    margin-left: auto;
+  }
+
+  .compare__actions {
+    order: 7;
+  }
+}
+
+/* The line break between the two lines. */
+.compare__row::before {
+  content: '';
+  order: 3;
+  flex-basis: 100%;
+}
+
+.compare__row--head,
+.compare__date {
+  display: none;
+}
+
+.compare__name,
+.compare__model {
+  display: contents;
+}
+
+.compare__mono {
+  flex: 1 1 0;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.compare__sub,
+.compare__metrics,
+.compare__note {
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+  color: var(--color-text-secondary);
+}
+
+.compare__passed {
+  font-size: var(--text-title-size);
+  line-height: var(--text-title-lh);
+  font-weight: 700;
+}
+
+.compare__item--best .compare__passed {
+  color: var(--color-accent);
+}
+
+/* Stopped or interrupted: the score covers only the photos sent. */
+.compare__item--part .compare__passed {
+  color: var(--color-text-secondary);
+}
+
+.compare__num {
+  font-variant-numeric: tabular-nums;
+}
+
+.compare__metrics {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.compare__metrics--empty > :last-child {
+  display: none;
+}
+
+.compare__metrics > * + *::before {
+  content: '· ';
+}
+
+.compare__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--tap-min);
+  height: var(--tap-min);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.compare__icon svg {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+}
+
+.compare__desktop {
+  display: none;
+}
+
+.compare__toggle[aria-expanded='true'] svg {
+  transform: rotate(180deg);
+}
+
+/* Phone: the toggle has no place of its own and covers the card instead. */
+.compare__toggle {
+  position: absolute;
+  inset: 0;
+  width: auto;
+  height: auto;
+}
+
+.compare__toggle svg {
+  display: none;
+}
+
+.compare__details {
+  display: grid;
+  gap: var(--space-2);
+  padding-bottom: var(--space-3);
+}
+
+.compare__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.compare__note {
+  padding: 0 var(--space-1);
+}
+
+@media (min-width: 1024px) {
+  .compare__row {
+    display: grid;
+    grid-template-columns:
+      minmax(0, 1fr) 4.5rem 7rem minmax(9rem, 12rem) 5.5rem
+      calc(3 * var(--tap-min));
+    column-gap: var(--space-4);
+    row-gap: 0;
+    padding: var(--space-2) var(--space-3);
+    margin: 0 calc(-1 * var(--space-3));
+  }
+
+  .compare__row--head {
+    display: grid;
+    border-bottom: 1px solid var(--color-separator);
+    font-size: var(--text-caption-size);
+    line-height: var(--text-caption-lh);
+    color: var(--color-text-secondary);
+  }
+
+  .compare__row::before {
+    content: none;
+  }
+
+  .compare__name {
+    display: grid;
+  }
+
+  .compare__model {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-1) var(--space-2);
+    min-width: 0;
+  }
+
+  .compare__mono {
+    flex: 0 1 auto;
+  }
+
+  .compare__num {
+    text-align: right;
+  }
+
+  .compare__passed {
+    font-size: var(--text-body-size);
+    line-height: var(--text-body-lh);
+    font-weight: 600;
+  }
+
+  /* Desktop: time and cost are table cells of their own. */
+  .compare__metrics {
+    display: contents;
+    font-size: var(--text-body-size);
+    color: var(--color-text);
+  }
+
+  .compare__metrics > * + *::before {
+    content: none;
+  }
+
+  .compare__metrics--empty > :last-child {
+    display: block;
+  }
+
+  .compare__date {
+    display: block;
+  }
+
+  .compare__phone {
+    display: none;
+  }
+
+  .compare__desktop {
+    display: inline-flex;
+  }
+
+  .compare__actions {
+    display: grid;
+    grid-template-columns: repeat(3, var(--tap-min));
+  }
+
+  .compare__icon--copy {
+    grid-column: 1;
+  }
+
+  .compare__icon--delete {
+    grid-column: 2;
+  }
+
+  .compare__toggle {
+    position: static;
+    grid-column: 3;
+    width: var(--tap-min);
+    height: var(--tap-min);
+  }
+
+  .compare__toggle svg {
+    display: block;
+  }
+
+  .compare__item--best > .compare__row {
+    border-radius: var(--radius-md);
+    background: var(--color-surface-2);
+  }
+
+  .compare__details {
+    padding: 0 0 var(--space-4);
+  }
+}
+
+@media (hover: hover) {
+  .compare__icon:hover {
+    color: var(--color-text);
+  }
+
+  .compare__icon--delete:hover {
+    color: var(--color-danger);
+  }
+
+  .compare__row:not(.compare__row--head):hover {
+    border-radius: var(--radius-md);
+    background: var(--color-surface-2);
+  }
+}
+
+.compare__icon:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .compare__toggle svg {
+    transition: transform var(--duration-fast) var(--ease-out);
+  }
+}
