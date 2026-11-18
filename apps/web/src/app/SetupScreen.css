@@ -1,0 +1,177 @@
+/* First-run wizard (OCT-244): brand row and step bar on top, the step below, the button at the bottom. */
+.setup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-height: calc(100dvh - 2 * var(--space-6));
+}
+
+.setup__header {
+  display: grid;
+  gap: var(--space-4);
+  margin-bottom: var(--space-2);
+}
+
+.setup__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-subhead-size);
+  line-height: var(--text-subhead-lh);
+  font-weight: 600;
+}
+
+.setup__brand .button {
+  margin-inline-start: auto;
+}
+
+.setup__mark {
+  width: var(--icon-size);
+  height: var(--icon-size);
+}
+
+.setup__steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-1);
+}
+
+.setup__step {
+  height: var(--space-1);
+  border-radius: var(--radius-full);
+  background: var(--color-surface-2);
+}
+
+.setup__step--done {
+  background: var(--color-accent);
+}
+
+.setup__title {
+  font-size: var(--text-title-size);
+  line-height: var(--text-title-lh);
+  font-weight: var(--text-title-weight);
+}
+
+.setup__lead {
+  margin-top: calc(-1 * var(--space-2));
+  color: var(--color-text-secondary);
+  font-size: var(--text-subhead-size);
+  line-height: var(--text-subhead-lh);
+}
+
+.setup__form {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* The code reads like the log line: mono, centred, spaced. */
+.setup__code .field__input {
+  font-family: var(--font-mono);
+  font-size: var(--text-title-size);
+  letter-spacing: var(--tracking-code);
+  text-align: center;
+}
+
+.setup__help summary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: var(--tap-min);
+  color: var(--color-accent);
+  font-size: var(--text-subhead-size);
+  font-weight: 600;
+  list-style: none;
+  cursor: pointer;
+}
+
+.setup__help summary::-webkit-details-marker {
+  display: none;
+}
+
+.setup__chevron {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+}
+
+.setup__help[open] .setup__chevron {
+  transform: rotate(180deg);
+}
+
+.setup__help-body {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-2);
+  color: var(--color-text-secondary);
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+}
+
+.setup__help-body section {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.setup__help-body section + section {
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-separator);
+}
+
+.setup__help-body h2 {
+  color: var(--color-text);
+  font-size: var(--text-subhead-size);
+  font-weight: 600;
+}
+
+.setup__help-body .command-line {
+  background: var(--color-surface);
+}
+
+.setup__log {
+  font-family: var(--font-mono);
+}
+
+.setup__log mark {
+  border-radius: var(--radius-sm);
+  background: var(--color-accent-soft);
+  color: var(--color-text);
+}
+
+.setup__help-body a {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: var(--tap-min);
+  color: var(--color-accent);
+  font-size: var(--text-subhead-size);
+  font-weight: 600;
+}
+
+.setup__help-body a .lucide {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+}
+
+/* Down by the button on a phone, so a stranger reads it before anything else (1.1). */
+.setup__stranger {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: auto;
+  color: var(--color-text-secondary);
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+}
+
+.setup__stranger .lucide {
+  flex: none;
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+}
+
+.setup .banner .command-line {
+  background: var(--color-surface);
+}

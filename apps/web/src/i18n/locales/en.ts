@@ -67,6 +67,55 @@ export const en = {
     },
   },
   setup: {
+    wizard: {
+      steps: 'Step {n} of 3',
+      language: '{code} — switch to {lang}',
+      welcome: 'Welcome to OpenCalorieTracker',
+      lead: 'Enter the setup code — it’s printed in the container log',
+      code: 'Setup code',
+      continue: 'Continue',
+      checking: 'Checking…',
+      short: 'The code has 8 characters: XXXX-XXXX',
+      invalid: 'That code didn’t work. Check the container log',
+      stranger:
+        'Only whoever runs the server can see the code. If you didn’t install this app, just close the page',
+      where: 'Where’s the log?',
+      compose: 'Docker Compose',
+      compose_hint: 'In the folder with docker-compose.yml:',
+      panel: 'Server control panel',
+      panel_hint:
+        'If containers run from a web panel, open the opencalorietracker container there and its log (Log, Logs)',
+      log_line: 'Line in the log:',
+      docs: 'Installation — in the docs',
+      copy: 'Copy command',
+      copied: 'Command copied',
+      timeout: {
+        title: 'Too many attempts',
+        body: 'Code entry from this device reopens in {n} min.',
+      },
+      blocked: {
+        title: 'Code entry from this device is blocked',
+        body: 'Unblock it on the server — the command also prints a new code:',
+      },
+      new_code: 'Enter a new code',
+      expired: {
+        title: 'The code has expired',
+        body: 'Restart the container to get a new one in the log',
+      },
+      burned: {
+        title: 'Too many wrong attempts',
+        body: 'Restart the container to get a new code',
+      },
+      done: {
+        title: 'Setup is already complete — sign in',
+        body: 'The admin account already exists. If it wasn’t you, contact whoever runs the server.',
+        cta: 'Sign in',
+      },
+      admin: {
+        title: 'Admin account',
+        lead: 'You’ll invite others and look after this installation',
+      },
+    },
     wrong_origin: {
       title: 'Open the app at its address',
       body: 'Passkey sign-in only works at the address set during installation.',
