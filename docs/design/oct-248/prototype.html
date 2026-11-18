@@ -1,0 +1,831 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OCT-248 · AI provider settings and model test</title>
+<link rel="stylesheet" href="../oct-13/tokens.css">
+<script src="../preview-bar.js"></script>
+<style>
+/* Base components = ../oct-13 + ../oct-16 prototypes (same spec) */
+/* ===== Prototype canvas (not part of the app) ===== */
+*{box-sizing:border-box;margin:0}
+html{background:var(--color-bg);color:var(--color-text);font-family:var(--font-sans);-webkit-font-smoothing:antialiased}
+::selection{background:var(--color-selection)}
+body{padding:var(--space-10) var(--space-8)}
+.doc-h1{font-size:var(--text-large-title-size);line-height:var(--text-large-title-lh);font-weight:700;letter-spacing:var(--tracking-tight)}
+.doc-lead{font-size:var(--text-subhead-size);color:var(--color-text-secondary);max-width:70ch;margin-top:var(--space-2)}
+.doc-section{margin-top:var(--space-12)}
+.doc-h2{font-size:var(--text-title-size);font-weight:600;margin-bottom:var(--space-2)}
+.row{display:flex;flex-wrap:wrap;gap:var(--space-8);align-items:flex-start;margin-top:var(--space-6)}
+.frame{display:flex;flex-direction:column;gap:var(--space-3);width:390px}
+.frame>figcaption{font-size:var(--text-footnote-size);color:var(--color-text-secondary);line-height:var(--text-footnote-lh)}
+.frame>figcaption b{color:var(--color-text);font-weight:600}
+
+/* ===== Device chrome (prototype only) ===== */
+.phone{position:relative;width:390px;height:844px;border-radius:48px;overflow:hidden;background:var(--color-bg);outline:1px solid var(--color-separator);display:flex;flex-direction:column}
+.status{height:54px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 32px 0 40px;font-size:var(--text-body-size);font-weight:600}
+.status::after{content:"";width:68px;height:12px;border-radius:var(--radius-full);background:currentColor;opacity:.85;-webkit-mask:linear-gradient(90deg,#000 0 30%,transparent 30% 38%,#000 38% 62%,transparent 62% 70%,#000 70%)}
+.island{position:absolute;top:11px;left:50%;translate:-50% 0;width:124px;height:36px;border-radius:var(--radius-full);background:#000;z-index:100}
+.home-ind{position:absolute;bottom:8px;left:50%;translate:-50% 0;width:134px;height:5px;border-radius:var(--radius-full);background:var(--color-text);z-index:100}
+
+/* ===== App components (tokens only) ===== */
+.icon{width:var(--icon-size);height:var(--icon-size);flex:none;fill:none;stroke:currentColor;stroke-width:var(--icon-stroke);stroke-linecap:round;stroke-linejoin:round}
+.icon.sm{width:var(--icon-size-sm);height:var(--icon-size-sm)}
+.scroll{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.navbar{height:var(--navbar-height);flex:none;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 var(--space-2)}
+.navbar .title{font-size:var(--text-headline-size);font-weight:600}
+.navbar .back{display:flex;align-items:center;gap:2px;color:var(--color-accent);font-size:var(--text-body-size);min-height:var(--tap-min);padding-right:var(--space-2)}
+.navbar .act{justify-self:end;color:var(--color-accent);font-size:var(--text-body-size);min-height:var(--tap-min);display:flex;align-items:center;padding:0 var(--space-2)}
+.large-title{font-size:var(--text-large-title-size);line-height:var(--text-large-title-lh);font-weight:700;letter-spacing:var(--tracking-tight);padding:var(--space-1) var(--screen-gutter) var(--space-2)}
+.pad{padding:0 var(--screen-gutter)}
+.stack{display:flex;flex-direction:column;gap:var(--space-4)}
+.stack-sm{display:flex;flex-direction:column;gap:var(--space-2)}
+.grow{flex:1}
+.bottom{padding:var(--space-4) var(--screen-gutter) calc(34px + var(--space-2));display:flex;flex-direction:column;gap:var(--space-3)}
+.t-title{font-size:var(--text-title-size);line-height:var(--text-title-lh);font-weight:600}
+.t-headline{font-size:var(--text-headline-size);line-height:var(--text-headline-lh);font-weight:600}
+.t-body{font-size:var(--text-body-size);line-height:var(--text-body-lh)}
+.t-sub{font-size:var(--text-subhead-size);line-height:var(--text-subhead-lh)}
+.t-foot{font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh)}
+.t-cap{font-size:var(--text-caption-size);line-height:var(--text-caption-lh);font-weight:500}
+.muted{color:var(--color-text-secondary)}
+.center{text-align:center}
+.num{font-variant-numeric:tabular-nums}
+
+/* brand */
+.brand{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-headline-size);font-weight:600}
+.brand .mark{width:32px;height:32px;border-radius:var(--radius-sm);background:var(--color-accent);color:var(--color-on-accent);display:grid;place-items:center}
+
+/* buttons */
+.btn{appearance:none;border:0;font:inherit;width:100%;min-height:var(--control-height-lg);border-radius:var(--radius-md);font-size:var(--text-headline-size);font-weight:600;display:flex;align-items:center;justify-content:center;gap:var(--space-2);padding:0 var(--space-4);cursor:pointer;transition:transform var(--duration-fast) var(--ease-out),background var(--duration-fast) var(--ease-out)}
+.btn:active{transform:scale(var(--press-scale))}
+.btn:focus-visible{outline:2px solid var(--color-focus-ring);outline-offset:2px}
+.btn-primary{background:var(--color-accent);color:var(--color-on-accent)}
+.btn-primary.pressed{background:var(--color-accent-pressed)}
+.btn-tonal{background:var(--color-accent-soft);color:var(--color-accent)}
+.btn-plain{background:transparent;color:var(--color-accent);min-height:var(--tap-min)}
+.btn-danger{background:var(--color-danger);color:var(--color-on-danger)}
+.btn-danger-plain{background:transparent;color:var(--color-danger);min-height:var(--tap-min)}
+.btn[disabled],.btn.disabled{background:var(--color-surface-2);color:var(--color-text-disabled);cursor:default}
+.btn-plain.disabled{background:transparent}
+.btn-sm{min-height:var(--control-height);width:auto;font-size:var(--text-subhead-size);padding:0 var(--space-4)}
+.link{color:var(--color-accent);font-weight:500;text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px}
+.spinner{width:20px;height:20px;border-radius:50%;border:2px solid currentColor;border-right-color:transparent;animation:spin 800ms linear infinite}
+@keyframes spin{to{rotate:360deg}}
+
+/* fields */
+.field{display:flex;flex-direction:column;gap:var(--space-2)}
+.field label{font-size:var(--text-subhead-size);font-weight:500}
+.input{display:flex;align-items:center;gap:var(--space-2);min-height:var(--control-height-lg);padding:0 var(--space-4);border-radius:var(--radius-md);background:var(--color-surface);border:1px solid var(--color-border-strong);font-size:var(--text-body-size)}
+.input .ph{color:var(--color-text-secondary)}
+.input .val{flex:1}
+.input .trail{color:var(--color-text-secondary);display:grid;place-items:center;width:var(--tap-min);height:var(--tap-min);margin-right:calc(-1 * var(--space-3))}
+.input.focus{border-color:var(--color-accent);box-shadow:inset 0 0 0 1px var(--color-accent)}
+.input.caret .val::after{content:"";display:inline-block;width:2px;height:1.1em;background:var(--color-accent);vertical-align:-3px;margin-left:1px}
+.input.error{border-color:var(--color-danger);box-shadow:inset 0 0 0 1px var(--color-danger)}
+.input.locked{background:var(--color-surface-2);border-color:transparent;color:var(--color-text-secondary)}
+.field .msg{display:flex;gap:var(--space-1);align-items:flex-start;font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);color:var(--color-text-secondary)}
+.field .msg.err{color:var(--color-danger)}
+.rules{list-style:none;padding:0;display:grid;gap:var(--space-1);font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh)}
+.rules li{display:flex;gap:var(--space-2);align-items:center;color:var(--color-text-secondary)}
+.rules li.ok{color:var(--color-accent)}
+.rules li.bad{color:var(--color-danger)}
+
+/* segmented */
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;padding:2px;border-radius:var(--radius-md);background:var(--color-surface-2);min-height:var(--control-height)}
+.seg span{display:grid;place-items:center;border-radius:calc(var(--radius-md) - 2px);font-size:var(--text-subhead-size);font-weight:500;color:var(--color-text-secondary)}
+.seg span.on{background:var(--color-surface);color:var(--color-text);font-weight:600;box-shadow:0 1px 3px rgb(0 0 0 / .12)}
+
+/* grouped lists */
+.group-h{font-size:var(--text-footnote-size);color:var(--color-text-secondary);padding:0 var(--space-4) var(--space-2);margin-top:var(--space-6)}
+.group{background:var(--color-surface);border-radius:var(--radius-md);overflow:hidden}
+.group-f{font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);color:var(--color-text-secondary);padding:var(--space-2) var(--space-4) 0}
+.cell{display:flex;align-items:center;gap:var(--space-3);min-height:var(--control-height);padding:var(--space-3) var(--space-4);position:relative;font-size:var(--text-body-size)}
+.cell+.cell::before{content:"";position:absolute;top:0;right:0;left:var(--space-4);border-top:1px solid var(--color-separator)}
+.cell.ic+.cell::before,.cell.ic+.cell.ic::before{left:calc(var(--space-4) + 30px + var(--space-3))}
+.cell .lead-ic{width:30px;height:30px;border-radius:var(--radius-sm);display:grid;place-items:center;background:var(--color-accent-soft);color:var(--color-accent);flex:none}
+.cell .lead-ic.danger{background:var(--color-danger-soft);color:var(--color-danger)}
+.cell .main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.cell .main .sub{font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.cell .val{color:var(--color-text-secondary)}
+.cell .chev{color:var(--color-text-secondary)}
+.cell.danger{color:var(--color-danger)}
+.cell.accent{color:var(--color-accent)}
+.cell.dis{color:var(--color-text-disabled)}
+.badge{font-size:var(--text-caption-size);font-weight:600;padding:2px var(--space-2);border-radius:var(--radius-sm);background:var(--color-surface-2);color:var(--color-text-secondary);white-space:nowrap}
+.badge.ok{background:var(--color-accent-soft);color:var(--color-accent)}
+.badge.warn{background:var(--color-warning-soft);color:var(--color-warning)}
+.badge.err{background:var(--color-danger-soft);color:var(--color-danger)}
+
+/* banners */
+.banner{display:flex;gap:var(--space-3);align-items:flex-start;padding:var(--space-3) var(--space-4);border-radius:var(--radius-lg);font-size:var(--text-subhead-size);line-height:var(--text-subhead-lh)}
+.banner .b-title{font-weight:600}
+.banner.notice{background:var(--color-notice)}
+.banner.warning{background:var(--color-warning-soft)}
+.banner.warning .icon{color:var(--color-warning)}
+.banner.danger{background:var(--color-danger-soft)}
+.banner.danger .icon{color:var(--color-danger)}
+.banner.accent{background:var(--color-accent-soft)}
+.banner.accent .icon{color:var(--color-accent)}
+.banner .close{margin:-10px -12px -10px auto;width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;color:var(--color-text-secondary);flex:none}
+.offline-bar{display:flex;gap:var(--space-2);align-items:center;justify-content:center;min-height:32px;padding:var(--space-1) var(--space-4);background:var(--color-notice);font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+
+/* divider "или" */
+.or{display:flex;align-items:center;gap:var(--space-3);font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.or::before,.or::after{content:"";flex:1;border-top:1px solid var(--color-separator)}
+
+/* overlays */
+.scrim{position:absolute;inset:0;background:var(--color-scrim);z-index:var(--z-sheet)}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:var(--z-sheet);background:var(--color-surface);border-radius:var(--radius-xl) var(--radius-xl) 0 0;box-shadow:var(--shadow-sheet);padding:var(--space-2) var(--screen-gutter) calc(34px + var(--space-4));display:flex;flex-direction:column;gap:var(--space-4)}
+.sheet .grab{width:36px;height:5px;border-radius:var(--radius-full);background:var(--color-separator);margin:0 auto var(--space-1)}
+.sheet .sheet-head{display:flex;align-items:center;justify-content:space-between}
+.sheet .x{width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;margin-right:calc(-1 * var(--space-3));color:var(--color-text-secondary)}
+.sheet .inset{background:var(--color-surface-2)}
+.alert{position:absolute;left:50%;top:50%;translate:-50% -50%;width:300px;z-index:var(--z-alert);background:var(--color-surface);border-radius:var(--radius-lg);padding:var(--space-5) var(--space-4) var(--space-4);display:flex;flex-direction:column;gap:var(--space-2);text-align:center;box-shadow:var(--shadow-toast)}
+.alert .btns{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-2);margin-top:var(--space-3)}
+.alert .btns.col{grid-template-columns:1fr}
+.toast{position:absolute;left:var(--screen-gutter);right:var(--screen-gutter);bottom:calc(34px + var(--tabbar-height) + var(--space-3));z-index:var(--z-toast);display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);background:var(--color-text);color:var(--color-bg);box-shadow:var(--shadow-toast);font-size:var(--text-subhead-size)}
+.toast .act{margin-left:auto;font-weight:600;min-height:var(--tap-min);display:flex;align-items:center}
+
+/* state blocks */
+.state{display:flex;flex-direction:column;align-items:center;text-align:center;gap:var(--space-2);padding:var(--space-8) var(--space-6)}
+.state .s-ic{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;background:var(--color-surface-2);color:var(--color-text-secondary);margin-bottom:var(--space-2)}
+.state .s-ic.danger{background:var(--color-danger-soft);color:var(--color-danger)}
+.state .s-ic.warning{background:var(--color-warning-soft);color:var(--color-warning)}
+.state p{max-width:30ch}
+.state .btn{margin-top:var(--space-3)}
+.skel{background:var(--color-surface-2);border-radius:var(--radius-sm);height:14px;position:relative;overflow:hidden}
+.skel::after{content:"";position:absolute;inset:0;translate:-100% 0;background:linear-gradient(90deg,transparent,var(--color-surface),transparent);animation:shimmer 1.4s var(--ease-in-out) infinite}
+@keyframes shimmer{to{translate:100% 0}}
+
+/* tab bar */
+.tabbar{position:absolute;left:0;right:0;bottom:0;z-index:var(--z-tabbar);height:calc(var(--tabbar-height) + 34px);padding-bottom:34px;background:var(--tabbar-bg);-webkit-backdrop-filter:var(--tabbar-blur);backdrop-filter:var(--tabbar-blur);border-top:1px solid var(--color-separator);display:grid;grid-template-columns:repeat(5,1fr);align-items:center}
+.tab{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:var(--text-tab-size);font-weight:var(--text-tab-weight);color:var(--color-text-secondary);min-height:var(--tabbar-height);justify-content:center}
+.tab.on{color:var(--color-accent)}
+.cam{justify-self:center;width:var(--camera-button-size);height:var(--camera-button-size);border-radius:50%;background:var(--color-accent);color:var(--color-on-accent);display:grid;place-items:center;box-shadow:var(--shadow-camera);translate:0 -14px}
+.cam .icon{width:30px;height:30px}
+
+/* swatches (docs only) */
+.sw-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-2)}
+.sw{border-radius:var(--radius-md);overflow:hidden;background:var(--color-surface);font-size:var(--text-caption-size);outline:1px solid var(--color-separator)}
+.sw i{display:block;height:44px}
+.sw div{padding:var(--space-2);line-height:1.3}
+.sheetdoc{width:390px;background:var(--color-surface);border-radius:var(--radius-lg);padding:var(--space-5);display:flex;flex-direction:column;gap:var(--space-4);outline:1px solid var(--color-separator)}
+.sheetdoc h3{font-size:var(--text-headline-size)}
+.doc-note{font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.navmap{width:820px;background:var(--color-surface);border-radius:var(--radius-lg);padding:var(--space-6);outline:1px solid var(--color-separator);display:grid;grid-template-columns:repeat(5,1fr);gap:var(--space-3);font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh)}
+.navmap .col{display:flex;flex-direction:column;gap:var(--space-2)}
+.navmap .nd{padding:var(--space-2) var(--space-3);border-radius:var(--radius-sm);background:var(--color-surface-2)}
+.navmap .nd.tab{background:var(--color-accent-soft);color:var(--color-accent);font-weight:600;align-items:flex-start;font-size:var(--text-footnote-size)}
+.navmap .nd.modal{outline:1px dashed var(--color-border-strong);background:transparent}
+.navmap .arrow{color:var(--color-text-secondary);text-align:center}
+
+/* ===== Desktop (≥ 1024px) — section 6 ===== */
+.frame.wide{width:1280px}
+.desk{position:relative;width:1280px;height:800px;border-radius:var(--radius-lg);overflow:hidden;background:var(--color-bg);outline:1px solid var(--color-separator);display:flex;flex-direction:column}
+.desk .chrome{height:36px;flex:none;display:flex;align-items:center;gap:var(--space-2);padding:0 var(--space-4);background:var(--color-surface-2);border-bottom:1px solid var(--color-separator);font-size:var(--text-caption-size);color:var(--color-text-secondary)}
+.desk .chrome i{width:12px;height:12px;border-radius:50%;background:var(--color-separator)}
+.desk .chrome .url{margin-left:var(--space-6);padding:var(--space-1) var(--space-3);border-radius:var(--radius-sm);background:var(--color-surface)}
+.desk .body{flex:1;display:flex;min-height:0}
+.side{width:var(--sidebar-width);flex:none;display:flex;flex-direction:column;gap:var(--space-1);padding:var(--space-6) var(--space-4);border-right:1px solid var(--color-separator)}
+.side .brand{padding:0 var(--space-3) var(--space-6)}
+.side .btn{margin-bottom:var(--space-4)}
+.nav-i{display:flex;align-items:center;gap:var(--space-3);min-height:var(--tap-min);padding:0 var(--space-3);border-radius:var(--radius-md);font-size:var(--text-body-size);color:var(--color-text)}
+.nav-i .icon{color:var(--color-text-secondary)}
+.nav-i.hover{background:var(--color-hover)}
+.nav-i.on{background:var(--color-accent-soft);color:var(--color-accent);font-weight:600}
+.nav-i.on .icon{color:var(--color-accent)}
+.side .foot{margin-top:auto;display:flex;flex-direction:column;gap:var(--space-1)}
+.side .who{padding:var(--space-2) var(--space-3);font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.main-area{flex:1;overflow:hidden;padding:var(--space-8) var(--desktop-gutter)}
+.main-area .inner{max-width:var(--content-max-width-wide);margin:0 auto;display:flex;flex-direction:column;gap:var(--space-6)}
+.main-area .large-title{padding:0}
+.cols{display:grid;grid-template-columns:3fr 2fr;gap:var(--space-6)}
+.drop{display:flex;flex-direction:column;align-items:center;gap:var(--space-2);padding:var(--space-8);border:2px dashed var(--color-border-strong);border-radius:var(--radius-lg);color:var(--color-text-secondary);text-align:center;font-size:var(--text-subhead-size)}
+.auth-desk{flex:1;display:grid;place-items:center}
+.auth-card{width:var(--content-max-width);background:var(--color-surface);border-radius:var(--radius-lg);padding:var(--space-10);box-shadow:var(--shadow-toast)}
+.dialog{position:absolute;left:50%;top:50%;translate:-50% -50%;width:var(--dialog-max-width);z-index:var(--z-sheet);background:var(--color-surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-toast);padding:var(--space-6);display:flex;flex-direction:column;gap:var(--space-4)}
+.dialog .sheet-head{display:flex;align-items:center;justify-content:space-between}
+.dialog .x{width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;margin-right:calc(-1 * var(--space-3));color:var(--color-text-secondary)}
+.kbd{font-size:var(--text-caption-size);padding:1px var(--space-1);border-radius:var(--radius-sm);outline:1px solid var(--color-separator);color:var(--color-text-secondary)}
+.toast.desk-toast{left:50%;right:auto;translate:-50% 0;bottom:var(--space-6);width:auto;max-width:var(--dialog-max-width)}
+
+/* ===== OCT-16 additions (tokens only; prototype-only bits marked) ===== */
+.frame.sm{width:390px}
+.phone .content{flex:1;overflow:hidden;display:flex;flex-direction:column;gap:var(--space-4);padding-bottom:var(--space-4)}
+.navbar .x-btn{width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;color:var(--color-text-secondary)}
+.navbar .txt-btn{color:var(--color-accent);font-size:var(--text-body-size);min-height:var(--tap-min);display:flex;align-items:center;padding:0 var(--space-2)}
+.bottom.bar{background:var(--color-bg);border-top:1px solid var(--color-separator);margin-top:auto}
+.foot-note{display:flex;gap:var(--space-2);align-items:flex-start;font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);color:var(--color-text-secondary)}
+.foot-note .icon{color:var(--color-accent)}
+
+/* photo (user content) */
+.photo{display:block;width:100%;height:var(--photo-preview-height);border-radius:var(--radius-lg);overflow:hidden;position:relative;background:var(--color-surface-2)}
+.photo svg{width:100%;height:100%;display:block}
+.photo.scan::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgb(255 255 255 / .28) 50%,transparent 70%);translate:-100% 0;animation:sweep 1.8s var(--ease-in-out) infinite}
+@keyframes sweep{to{translate:100% 0}}
+.photo.dim{height:calc(var(--photo-preview-height) * .6)}
+.thumb{width:var(--thumb-size);height:var(--thumb-size);border-radius:var(--radius-md);overflow:hidden;flex:none;background:var(--color-surface-2)}
+.thumb svg{width:100%;height:100%;display:block}
+.thumb.add{display:grid;place-items:center;color:var(--color-accent);background:var(--color-accent-soft);font-size:var(--text-caption-size);font-weight:600;text-align:center;align-content:center;gap:2px}
+
+/* totals header */
+.totals{display:flex;gap:var(--space-4);align-items:center}
+.kcal-big{display:flex;align-items:baseline;gap:var(--space-1)}
+.kcal-big b{font-size:var(--text-large-title-size);line-height:var(--text-large-title-lh);font-weight:700;letter-spacing:var(--tracking-tight);font-variant-numeric:tabular-nums}
+.macros{display:flex;gap:var(--space-3);font-size:var(--text-footnote-size);color:var(--color-text-secondary);font-variant-numeric:tabular-nums}
+.macros span{display:flex;align-items:center;gap:var(--space-1)}
+.macros i{width:var(--space-2);height:var(--space-2);border-radius:var(--radius-full)}
+.m-p{background:var(--color-protein)} .m-f{background:var(--color-fat)} .m-c{background:var(--color-carbs)}
+
+
+/* ===== OCT-248: AI provider settings and model test (tokens only) ===== */
+/* Mirrors the app token in apps/web/src/styles/tokens.css (not in the OCT-13 prototype tokens). */
+:root{--font-mono:ui-monospace,SFMono-Regular,Menlo,monospace}
+.lang-bar{display:inline-flex}
+code,.mono{font-family:var(--font-mono)}
+.mono{font-size:var(--text-subhead-size);overflow-wrap:anywhere}
+.phone.tall{height:auto;min-height:844px}
+.phone.tall .content{overflow:visible;padding-bottom:calc(34px + var(--space-6))}
+.pcard{background:var(--color-surface);border-radius:var(--radius-lg);padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-3)}
+.pcard h3{font-size:var(--text-headline-size);line-height:var(--text-headline-lh);font-weight:600}
+.phead{display:flex;align-items:center;gap:var(--space-3)}
+.picon{display:grid;place-items:center;flex:none;width:var(--tap-min);height:var(--tap-min);border-radius:var(--radius-md);background:var(--color-accent-soft);color:var(--color-accent)}
+.picon.err{background:var(--color-danger-soft);color:var(--color-danger)}
+.picon.warn{background:var(--color-warning-soft);color:var(--color-warning)}
+.picon.off{background:var(--color-surface-2);color:var(--color-text-secondary)}
+.pname{display:flex;flex-direction:column;gap:2px;min-width:0}
+.pname b{font-size:var(--text-title-size);line-height:var(--text-title-lh);font-weight:600}
+/* status line: shape repeats colour (circle ok, diamond error, triangle warning, ring off) — as in the app */
+.sline{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-subhead-size);line-height:var(--text-subhead-lh);font-weight:600}
+.sline i{flex:none;width:var(--space-2);height:var(--space-2);border-radius:var(--radius-full);background:currentColor}
+.sline.ok{color:var(--color-accent)}
+.sline.err{color:var(--color-danger)} .sline.err i{border-radius:1px;rotate:45deg}
+.sline.warn{color:var(--color-warning)} .sline.warn i{border-radius:0;clip-path:polygon(50% 0,100% 100%,0 100%)}
+.sline.off{color:var(--color-text-secondary)} .sline.off i{background:transparent;border:2px solid currentColor}
+.sline .t-foot{font-weight:400;color:var(--color-text-secondary)}
+.cell .end{margin-left:auto;display:flex;align-items:center;gap:var(--space-2);color:var(--color-text-secondary);flex:none}
+.cell .main .sub.mono{font-size:var(--text-footnote-size);color:var(--color-text)}
+.cell.ro .main .sub{color:var(--color-text-secondary)}
+.cell.col{flex-direction:column;align-items:stretch;gap:var(--space-2)}
+.cell.col .input{min-height:var(--control-height);background:var(--color-bg)}
+.cell.col .input.locked{background:var(--color-surface-2)}
+.cell .btn-plain.btn-sm{padding:0;margin-right:calc(-1 * var(--space-1))}
+.cell.pick{min-height:var(--tap-min)}
+.cell .radio{width:22px;height:22px;flex:none;border-radius:var(--radius-full);border:2px solid var(--color-border-strong)}
+.cell .radio.on{border:6px solid var(--color-accent)}
+.cell .main.mono{display:block;flex:1}
+.cell mark{background:var(--color-selection);color:inherit;border-radius:2px}
+.grp-msg{display:flex;gap:var(--space-2);align-items:flex-start;font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);color:var(--color-text-secondary);padding:var(--space-2) var(--space-4) 0}
+.grp-msg .icon{width:var(--icon-size-sm);height:var(--icon-size-sm);flex:none}
+.grp-msg.warn .icon{color:var(--color-warning)}
+.grp-msg.err{color:var(--color-danger)}
+.btn-row{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3)}
+.sect-h{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3)}
+.sect-h .group-h{margin:0;padding:0}
+.prog{height:var(--progress-height);border-radius:var(--radius-full);background:var(--color-surface-2);overflow:hidden}
+.prog i{display:block;height:100%;background:var(--color-accent);border-radius:inherit}
+.prog-h{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3)}
+.trows{display:flex;flex-direction:column}
+.trow{display:flex;gap:var(--space-3);align-items:flex-start;padding:var(--space-3) 0;position:relative}
+.trow+.trow::before{content:"";position:absolute;top:0;right:0;left:calc(var(--meal-thumb-size) + var(--space-3));border-top:1px solid var(--color-separator)}
+.trow .thumb{width:var(--meal-thumb-size);height:var(--meal-thumb-size);border-radius:var(--radius-sm)}
+.trow .main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.trow .nm{font-size:var(--text-subhead-size);line-height:var(--text-subhead-lh);font-weight:600}
+.trow .ln{font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);color:var(--color-text-secondary);font-variant-numeric:tabular-nums}
+.trow .ln .badge{display:inline-flex;margin-top:2px}
+.trow .ln b{font-weight:500;color:var(--color-text)}
+.trow .rs{display:flex;flex-direction:column;align-items:flex-end;gap:var(--space-1);flex:none;font-size:var(--text-footnote-size);color:var(--color-text-secondary);font-variant-numeric:tabular-nums}
+.trow.wait .nm{color:var(--color-text-secondary);font-weight:500}
+.badge .icon{width:12px;height:12px}
+.res{display:flex;align-items:baseline;gap:var(--space-2);flex-wrap:wrap}
+.res b{font-size:var(--text-large-title-size);line-height:var(--text-large-title-lh);font-weight:700;letter-spacing:var(--tracking-tight);font-variant-numeric:tabular-nums}
+.res span{font-size:var(--text-headline-size);font-weight:600}
+.metrics{font-size:var(--text-subhead-size);line-height:var(--text-subhead-lh);font-variant-numeric:tabular-nums}
+.meta{font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);color:var(--color-text-secondary)}
+.acts{display:flex;flex-direction:column;gap:var(--space-2)}
+/* comparison, phone */
+.run{display:flex;flex-direction:column;gap:var(--space-1);padding:var(--space-3) var(--space-4);position:relative}
+.run+.run::before{content:"";position:absolute;top:0;right:0;left:var(--space-4);border-top:1px solid var(--color-separator)}
+.run-top,.run-sub{display:flex;justify-content:space-between;align-items:baseline;gap:var(--space-3)}
+.run-top .mono{font-size:var(--text-subhead-size);font-weight:600;min-width:0}
+.run-top .sc{font-size:var(--text-title-size);font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.run.best .sc{color:var(--color-accent)}
+.run.part .sc{color:var(--color-text-secondary)}
+.run-sub{font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);color:var(--color-text-secondary);font-variant-numeric:tabular-nums}
+.run-sub .r{white-space:nowrap}
+.run-tags{display:flex;gap:var(--space-2);align-items:center}
+.run.open{background:var(--color-hover)}
+.run .more-acts{display:flex;flex-wrap:wrap;gap:var(--space-2);margin-top:var(--space-2)}
+.dots{display:flex;gap:var(--space-2);align-items:center;margin-top:var(--space-1)}
+.dots i{width:var(--space-3);height:var(--space-3);border-radius:var(--radius-full);background:var(--color-accent)}
+.dots i.f{background:var(--color-danger);border-radius:2px;rotate:45deg;scale:.85}
+.dots i.s{background:transparent;border:2px solid var(--color-border-strong)}
+/* model sheet */
+.sheet.full{top:calc(54px + var(--space-2));gap:var(--space-3);padding-bottom:0}
+.search{display:flex;align-items:center;gap:var(--space-2);min-height:var(--control-height);padding:0 var(--space-3);border-radius:var(--radius-md);background:var(--color-surface-2);color:var(--color-text-secondary);font-size:var(--text-body-size)}
+.search .val{color:var(--color-text);flex:1}
+.search.focus{box-shadow:inset 0 0 0 2px var(--color-accent)}
+.mlist{flex:1;overflow:hidden;display:flex;flex-direction:column;gap:var(--space-1);margin:0 calc(-1 * var(--screen-gutter));padding:0 var(--screen-gutter)}
+.mlist .group-h{margin-top:var(--space-3)}
+.sheet-foot{border-top:1px solid var(--color-separator);margin:0 calc(-1 * var(--screen-gutter));padding:var(--space-2) var(--screen-gutter) calc(34px + var(--space-2));background:var(--color-surface)}
+.icon-btn{width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;color:var(--color-accent);flex:none}
+.sel-text{padding:var(--space-3);border-radius:var(--radius-md);background:var(--color-surface-2);font-family:var(--font-mono);font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);user-select:all;overflow-wrap:anywhere;outline:2px solid var(--color-accent);outline-offset:-2px}
+/* desktop */
+.desk .cols.even{grid-template-columns:1fr 1fr;align-items:start}
+.desk .stack>.group-h{padding-left:0}
+.tbl{width:100%;border-collapse:collapse;font-size:var(--text-subhead-size);line-height:var(--text-subhead-lh);font-variant-numeric:tabular-nums}
+.tbl th{text-align:left;font-size:var(--text-footnote-size);font-weight:500;color:var(--color-text-secondary);padding:var(--space-2) var(--space-3);border-bottom:1px solid var(--color-separator);white-space:nowrap}
+.tbl td{padding:var(--space-3);border-bottom:1px solid var(--color-separator);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:0}
+.tbl td.n,.tbl th.n{text-align:right}
+.tbl .sub{display:block;font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.tbl tr.hover td{background:var(--color-hover)}
+.tbl tr.best .sc{color:var(--color-accent);font-weight:700}
+.tbl .thumb{width:var(--meal-thumb-size);height:var(--meal-thumb-size);border-radius:var(--radius-sm)}
+.tbl .ra{display:flex;gap:var(--space-1);justify-content:flex-end;color:var(--color-text-secondary)}
+.tbl .ra span{width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;border-radius:var(--radius-sm)}
+.tbl .ra span.on{background:var(--color-surface-2);color:var(--color-text)}
+.btn-sm{white-space:nowrap}
+.desk .pcard.wide{padding:var(--space-5)}
+/* docs */
+.spec{max-width:1000px;font-size:var(--text-subhead-size);line-height:var(--text-subhead-lh);display:flex;flex-direction:column;gap:var(--space-2)}
+.spec h3{font-size:var(--text-headline-size);margin-top:var(--space-4)}
+.spec li{margin-left:var(--space-5)}
+.copy{border-collapse:collapse;max-width:1200px;font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);margin-top:var(--space-4)}
+.copy th,.copy td{border:1px solid var(--color-separator);padding:var(--space-2) var(--space-3);text-align:left;vertical-align:top}
+.copy th{background:var(--color-surface-2);font-weight:600}
+.copy td:first-child{color:var(--color-text-secondary);white-space:nowrap}
+.copy tr.new td:first-child::after{content:" ●";color:var(--color-accent)}
+</style></head><body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-key" viewBox="0 0 24 24"><path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"/><circle cx="16.5" cy="7.5" r=".5"/></symbol>
+  <symbol id="i-chev-r" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="i-chev-l" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+  <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 2v13"/><path d="m16 6-4-4-4 4"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-camera" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></symbol>
+  <symbol id="i-wifi-off" viewBox="0 0 24 24"><path d="M12 20h.01"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/><path d="M5 12.859a10 10 0 0 1 5.17-2.69"/><path d="M19 12.859a10 10 0 0 0-2.007-1.523"/><path d="M2 8.82a15 15 0 0 1 4.177-2.643"/><path d="M22 8.82a15 15 0 0 0-11.288-3.764"/><path d="m2 2 20 20"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
+  <symbol id="i-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></symbol>
+  <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+  <symbol id="i-user-plus" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6"/><path d="M22 11h-6"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></symbol>
+  <symbol id="i-plate" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/></symbol>
+</svg>
+<!-- Extra icons for OCT-16 (Lucide geometry; lucide-react names in the doc) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></symbol>
+  <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/></symbol>
+  <symbol id="i-retake" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></symbol>
+  <symbol id="i-history" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></symbol>
+  <symbol id="i-gauge" viewBox="0 0 24 24"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></symbol>
+  <symbol id="i-cloud-off" viewBox="0 0 24 24"><path d="m2 2 20 20"/><path d="M5.782 5.782A7 7 0 0 0 9 19h8.5a4.5 4.5 0 0 0 1.307-.193"/><path d="M21.532 16.5A4.5 4.5 0 0 0 17.5 10h-1.79A7.008 7.008 0 0 0 10 5.07"/></symbol>
+  <symbol id="i-search-x" viewBox="0 0 24 24"><path d="m13.5 8.5-5 5"/><path d="m8.5 8.5 5 5"/><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m17 8-5-5-5 5"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></symbol>
+  <!-- Prototype-only stand-in for the user's photo (real app shows the actual photo) -->
+  <symbol id="ph-food" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice">
+    <rect width="400" height="300" fill="#7a6552"/><rect width="400" height="300" fill="url(#wood)" opacity=".35"/>
+    <ellipse cx="200" cy="160" rx="150" ry="118" fill="#e9e5dc"/><ellipse cx="200" cy="160" rx="118" ry="92" fill="#f5f2ea"/>
+    <path d="M110 150c10-40 60-52 90-40 20 8 22 40 6 58-22 24-74 22-90 6-8-8-9-16-6-24z" fill="#8a5b37"/>
+    <g fill="#6e4528"><circle cx="135" cy="140" r="5"/><circle cx="160" cy="128" r="4"/><circle cx="180" cy="150" r="5"/><circle cx="150" cy="160" r="4"/></g>
+    <path d="M210 110c30-18 76-10 88 10 10 18-6 40-40 44-30 4-56-6-58-24-1-12 2-22 10-30z" fill="#d9a86a"/>
+    <path d="M222 122l60 6M220 138l66 4M226 152l52 2" stroke="#b5803f" stroke-width="5" stroke-linecap="round"/>
+    <ellipse cx="236" cy="210" rx="28" ry="20" fill="#fbfaf5"/><circle cx="236" cy="210" r="11" fill="#f2b632"/>
+    <ellipse cx="282" cy="196" rx="26" ry="19" fill="#fbfaf5"/><circle cx="282" cy="196" r="10" fill="#f2b632"/>
+    <ellipse cx="160" cy="212" rx="24" ry="14" fill="#f4eedb"/>
+    <defs><pattern id="wood" width="40" height="300" patternUnits="userSpaceOnUse"><path d="M0 0v300M20 0v300" stroke="#5a4636" stroke-width="2"/></pattern></defs>
+  </symbol>
+</svg>
+<!-- Extra icons for OCT-19 (Lucide geometry; lucide-react names in the doc) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-calendar" viewBox="0 0 24 24"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></symbol>
+  <symbol id="i-chev-d" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></symbol>
+  <symbol id="i-utensils" viewBox="0 0 24 24"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 3 2h3Zm0 0v7"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></symbol>
+  <symbol id="i-moon-star" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+  <symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol>
+</svg>
+<!-- Extra icons for OCT-189 (Lucide geometry; lucide-react names in the doc) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-scale" viewBox="0 0 24 24"><circle cx="12" cy="5" r="3"/><path d="M6.5 8a2 2 0 0 0-1.905 1.46L2.1 18.5A2 2 0 0 0 4 21h16a2 2 0 0 0 1.925-2.54L19.4 9.5A2 2 0 0 0 17.48 8Z"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></symbol>
+  <symbol id="i-party" viewBox="0 0 24 24"><path d="M5.8 11.3 2 22l10.7-3.79"/><path d="M4 3h.01"/><path d="M22 8h.01"/><path d="M15 2h.01"/><path d="M22 20h.01"/><path d="m22 2-2.24.75a2.9 2.9 0 0 0-1.96 3.12c.1.86-.57 1.63-1.45 1.63h-.38c-.86 0-1.6.6-1.76 1.44L14 10"/><path d="m22 13-.82-.33c-.86-.34-1.82.2-1.98 1.11c-.11.7-.72 1.22-1.43 1.22H17"/><path d="m11 2 .33.82c.34.86-.2 1.82-1.11 1.98C9.52 4.9 9 5.52 9 6.23V7"/><path d="M11 13c1.93 1.93 2.83 4.17 2 5-.83.83-3.07-.07-5-2-1.93-1.93-2.83-4.17-2-5 .83-.83 3.07.07 5 2Z"/></symbol>
+  <symbol id="i-move" viewBox="0 0 24 24"><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></symbol>
+</svg>
+<!-- Extra icons for OCT-248 (Lucide geometry: search, square, flask-conical, power, external-link, triangle-alert, eye-off, server) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+  <symbol id="i-square" viewBox="0 0 24 24"><rect width="14" height="14" x="5" y="5" rx="2"/></symbol>
+  <symbol id="i-flask" viewBox="0 0 24 24"><path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2"/><path d="M8.5 2h7"/><path d="M7 16h10"/></symbol>
+  <symbol id="i-power" viewBox="0 0 24 24"><path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 1 1-12.77.04"/></symbol>
+  <symbol id="i-ext" viewBox="0 0 24 24"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
+  <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/></symbol>
+</svg>
+<div id="doc"></div>
+<script type="module">
+const NB = ' ';
+const KEY = 'oct-preview-lang';
+let lang = new URLSearchParams(location.search).get('lang');
+try { lang = lang || localStorage.getItem(KEY); } catch (e) {}
+lang = lang === 'en' ? 'en' : 'ru';
+
+const S = {
+  ru: {
+    settings:'Настройки', screen:'ИИ-провайдер', addFood:'Добавить еду', tabs:['Сегодня','Дневник','Неделя','Профиль'],
+    statusAria:'Состояние ИИ', ok:'Работает', off:'ИИ не подключён', notConf:'Не настроен', offBody:'Распознавание фото и агент нормы выключены. Дневник, ручной ввод и норма работают.',
+    authErr:'Ошибка ключа или доступа', unavailable:'Провайдер недоступен', timeout:'Долгий ответ',
+    checked:w=>`По последнему запросу · ${w}`, min5:'5 мин назад', now:'только что',
+    conn:'Подключение', provider:'Провайдер', address:'Адрес', key:'Ключ API', keySet:l=>`Задан · …${l}`, replace:'Заменить ключ', keyPh:'Вставьте ключ',
+    optional:'Необязательно', model:'Модель', choose:'Выберите модель', loadingList:'Загружаем список моделей…',
+    photo:'фото', noPhoto:'без фото',
+    compat:'OpenAI-совместимый', provHint:{google:'Есть бесплатный тариф', openai:'', anthropic:'', openrouter:'Сотни моделей разных компаний', compat:'Ollama, LM Studio и др. — свой адрес'},
+    newKey:p=>`Для ${p} нужен свой ключ — старый не подходит`,
+    refresh:'Обновить список', manual:'Ввести имя вручную', search:'Поиск модели', done:'Готово', cancel:'Отмена',
+    count:n=>`${n} ${n % 10 === 1 && n % 100 !== 11 ? 'модель' : [2,3,4].includes(n % 10) && ![12,13,14].includes(n % 100) ? 'модели' : 'моделей'} · с фото вверху`,
+    found:n=>`Нашли ${n}`,
+    secPhoto:'Принимают фото', secUnknown:'Провайдер не сообщает', secNo:'Без фото',
+    nothing:q=>`Ничего не нашли по «${q}»`, manualQ:q=>`Ввести «${q}» вручную`,
+    listFail:r=>`Не удалось получить список моделей: ${r}. Введите имя модели вручную`, rKey:'провайдер не принял ключ', rDown:'провайдер не отвечает',
+    modelName:'Имя модели', manualNote:'Как в кабинете провайдера. Проверьте кнопкой «Проверить».',
+    noVision:'Модель не принимает фото — распознавание будет отключено, агент нормы работает',
+    gemTitle:'Бесплатный тариф Gemini', gemBody:'Google может использовать запросы для улучшения своих продуктов. Чтобы этого избежать — платный тариф, другой провайдер, локальная модель или работа без ИИ.',
+    checkNow:'Проверить сейчас', checkNote:'Отправит короткий тестовый запрос — это потратит немного квоты.',
+    check:'Проверить', save:'Сохранить', checking:'Проверяем…',
+    checkOk:s=>`Работает · ответ за ${s}${NB}с — можно сохранять`, saved:'Сохранено. Новая модель уже работает',
+    notSaved:r=>`Не сохранено: ${r}`, notSavedBody:'Можно сохранить без проверки — статус покажет ошибку, пока она не пройдёт.', saveAnyway:'Сохранить всё равно',
+    keyBad:'Сохранённый ключ не удаётся прочитать — введите его заново',
+    envTitle:'Настройки заданы в .env — они главнее', envBody:'Чтобы настраивать здесь, уберите переменные AI_* и пересоздайте контейнер.',
+    inactive:'Сохранённые здесь настройки не действуют, пока заданы AI_*',
+    other:'Настройки изменены в другом окне. Обновите страницу', reload:'Обновить',
+    turnOff:'Отключить ИИ', offQ:'Отключить ИИ?', offBodyQ:'Распознавание и агент нормы выключатся у всех. Ключ будет удалён', offBtn:'Отключить',
+    privacy:'Куда уходят данные', privBody:'Фото еды и сообщения агента нормы отправляются <b>Google Gemini</b> для обработки. Фото без EXIF и геолокации. Как данные хранятся и используются, решает провайдер.', policy:'Политика данных Google Gemini',
+    test:'Тест модели', testBody:'9 эталонных фото с известной калорийностью. Покажет, насколько точна и быстра модель',
+    target:'Тестируем', unsaved:'не сохранено', current:'текущая из .env', other4test:'Другая модель для теста',
+    testBtn:'Протестировать модель', testQ:'Протестировать модель?', testConfirm:'Тест отправит провайдеру 9 фото — 9 запросов распознавания. Это потратит квоту и может стоить денег. Фото — открытый эталонный набор, ваших данных в запросах нет',
+    run:'Запустить тест', progress:(n,t)=>`Фото ${n} из ${t}`, stop:'Остановить',
+    passed:(p,t)=>[`${p} из ${t}`,'прошло'], metrics:(s,c,tk)=>`${s}${NB}с на фото${c ? ` · ≈${NB}${c}` : ''} · ${tk} токенов`,
+    meta:'Google · gemini-3.5-flash-lite · 18 нояб. 2026 · OCT v0.2.0 · промпт 3',
+    stopped:r=>`Тест остановлен: ${r}`, stoppedBody:'Остальные фото не отправляли, чтобы не тратить квоту.', notRun:n=>`${n} не запускалось`,
+    interrupted:'Прерван перезапуском', interruptedBody:'Сервер перезапустился во время теста. Результат не засчитан — можно запустить снова.', again:'Запустить снова',
+    exp:'Ожидалось', got:'Получилось', empty:'пусто', waiting:'ждёт', notStarted:'не запускалось', kcal:'ккал', sec:'с',
+    lvl:{exact:'точно', mid:'примерно'},
+    okB:'ок', why:{range:'ккал вне диапазона', exact:'ждали «точно»', empty:'ждали пусто', err:'ошибка провайдера'},
+    copyRow:'Скопировать строку для MODELS.md', copyReport:'Скопировать полный отчёт',
+    copied:'Скопировано. Пришлите PR со строкой в docs/MODELS.md', open:'Открыть',
+    selTitle:'Строка для MODELS.md', selBody:'Браузер не дал скопировать автоматически (сайт открыт по http). Строка уже выделена — нажмите «Скопировать» в меню.',
+    already:'Тест уже идёт', limit:m=>`Слишком много тестов. Повторите через ${m}${NB}мин`,
+    compare:'Сравнение моделей', clear:'Очистить всё', del:'Удалить', best:'лучший', stoppedTag:'остановлен', kept:'Хранятся последние 20 прогонов. Строка для MODELS.md — только у полного прогона.',
+    clearQ:n=>`Удалить все ${n} прогонов?`, clearBody:'Результаты тестов пропадут из сравнения. Настройки ИИ не изменятся.',
+    cols:['Провайдер и модель','Прошло','Время на фото','Стоимость или токены','Дата',''],
+    pcols:['Фото','Ожидалось','Получилось','Время','Результат'],
+    offline:'Нет сети', offlineBody:'Администрирование доступно только при подключении к интернету.',
+    tok:'тыс.', thousand:n=>`${n}${NB}тыс.`,
+  },
+  en: {
+    settings:'Settings', screen:'AI provider', addFood:'Add food', tabs:['Today','Diary','Week','Profile'],
+    statusAria:'AI status', ok:'Working', off:'AI is not connected', notConf:'Not configured', offBody:'Photo recognition and the goal assistant are off. The diary, manual entry and goals work.',
+    authErr:'Key or access error', unavailable:'Provider unavailable', timeout:'Slow response',
+    checked:w=>`Based on the last request · ${w}`, min5:'5 min ago', now:'just now',
+    conn:'Connection', provider:'Provider', address:'Address', key:'API key', keySet:l=>`Set · …${l}`, replace:'Replace key', keyPh:'Paste the key',
+    optional:'Optional', model:'Model', choose:'Choose a model', loadingList:'Loading models…',
+    photo:'photos', noPhoto:'no photos',
+    compat:'OpenAI-compatible', provHint:{google:'Has a free tier', openai:'', anthropic:'', openrouter:'Hundreds of models from many companies', compat:'Ollama, LM Studio and others — your own address'},
+    newKey:p=>`${p} needs its own key — the old one won’t work`,
+    refresh:'Refresh list', manual:'Enter the name manually', search:'Search models', done:'Done', cancel:'Cancel',
+    count:n=>`${n} models · photo models first`, found:n=>`${n} found`,
+    secPhoto:'Accept photos', secUnknown:'Not reported by the provider', secNo:'No photos',
+    nothing:q=>`Nothing found for “${q}”`, manualQ:q=>`Enter “${q}” manually`,
+    listFail:r=>`Couldn’t load the model list: ${r}. Enter the model name manually`, rKey:'the provider rejected the key', rDown:'the provider isn’t responding',
+    modelName:'Model name', manualNote:'As shown in your provider account. Verify it with Check.',
+    noVision:'This model doesn’t accept photos — photo recognition will be off; the goal assistant still works',
+    gemTitle:'Gemini free tier', gemBody:'Google may use requests to improve its products. To avoid this, use a paid plan, another provider, a local model or no AI.',
+    checkNow:'Check now', checkNote:'Sends a short test request — uses a little quota.',
+    check:'Check', save:'Save', checking:'Checking…',
+    checkOk:s=>`Working · answered in ${s}${NB}s — ready to save`, saved:'Saved. The new model is already in use',
+    notSaved:r=>`Not saved: ${r}`, notSavedBody:'You can save without a passing check — the status will show the error until it clears.', saveAnyway:'Save anyway',
+    keyBad:'The saved key can’t be read — enter it again',
+    envTitle:'Settings come from .env and take priority', envBody:'To configure AI here, remove the AI_* variables and recreate the container.',
+    inactive:'Settings saved here are inactive while AI_* variables are set',
+    other:'Settings were changed in another window. Reload the page', reload:'Reload',
+    turnOff:'Turn off AI', offQ:'Turn off AI?', offBodyQ:'Photo recognition and the goal assistant will turn off for everyone. The key will be deleted', offBtn:'Turn off',
+    privacy:'Where your data goes', privBody:'Food photos and goal assistant messages are sent to <b>Google Gemini</b> for processing. Photos are stripped of EXIF and location. The provider decides how the data is stored and used.', policy:'Google Gemini data policy',
+    test:'Model test', testBody:'9 reference photos with known calories. Shows how accurate and fast the model is',
+    target:'Testing', unsaved:'not saved', current:'current, from .env', other4test:'Another model for the test',
+    testBtn:'Test model', testQ:'Test the model?', testConfirm:'The test sends 9 photos to the provider — 9 recognition requests. It uses quota and may cost money. The photos are an open reference set; none of your data is sent',
+    run:'Run test', progress:(n,t)=>`Photo ${n} of ${t}`, stop:'Stop',
+    passed:(p,t)=>[`${p} of ${t}`,'passed'], metrics:(s,c,tk)=>`${s}${NB}s per photo${c ? ` · ≈${NB}${c}` : ''} · ${tk} tokens`,
+    meta:'Google · gemini-3.5-flash-lite · Nov 18, 2026 · OCT v0.2.0 · prompt 3',
+    stopped:r=>`Test stopped: ${r}`, stoppedBody:'The remaining photos weren’t sent, to save quota.', notRun:n=>`${n} not run`,
+    interrupted:'Interrupted by a restart', interruptedBody:'The server restarted during the test. The result doesn’t count — you can run it again.', again:'Run again',
+    exp:'Expected', got:'Got', empty:'empty', waiting:'waiting', notStarted:'not run', kcal:'kcal', sec:'s',
+    lvl:{exact:'exact', mid:'approx.'},
+    okB:'ok', why:{range:'kcal out of range', exact:'expected exact', empty:'expected empty', err:'provider error'},
+    copyRow:'Copy row for MODELS.md', copyReport:'Copy full report',
+    copied:'Copied. Send a PR with this row to docs/MODELS.md', open:'Open',
+    selTitle:'Row for MODELS.md', selBody:'The browser didn’t allow copying automatically (the site is on http). The row is selected — tap Copy in the menu.',
+    already:'A test is already running', limit:m=>`Too many tests. Try again in ${m}${NB}min`,
+    compare:'Model comparison', clear:'Clear all', del:'Delete', best:'best', stoppedTag:'stopped', kept:'The last 20 runs are kept. The MODELS.md row is only for complete runs.',
+    clearQ:n=>`Delete all ${n} runs?`, clearBody:'Test results will disappear from the comparison. AI settings won’t change.',
+    cols:['Provider and model','Passed','Time per photo','Cost or tokens','Date',''],
+    pcols:['Photo','Expected','Got','Time','Result'],
+    offline:'No connection', offlineBody:'Administration is only available online.',
+    tok:'k', thousand:n=>`${n}k`,
+  },
+};
+let T = S[lang];
+const loc = () => lang === 'ru' ? 'ru-RU' : 'en-US';
+const dec = n => n.toLocaleString(loc(), {minimumFractionDigits:1, maximumFractionDigits:1});
+const money = n => '$' + n.toLocaleString(loc(), {minimumFractionDigits:3, maximumFractionDigits:3});
+const I = (id, cls='') => `<svg class="icon ${cls}" aria-hidden="true"><use href="#i-${id}"/></svg>`;
+/* Prototype-only stand-in for the reference photos (the app shows the real 9 photos) */
+const PH = (hue, gray) => `<svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true" style="filter:hue-rotate(${hue}deg)${gray ? ' grayscale(1)' : ''}"><use href="#ph-food"/></svg>`;
+
+/* The 9 reference photos (expected.json) and one realistic run */
+const P = [
+  {f:'banana.jpg',        d:'banana',                                r:[70,160],   l:'exact', k:105,  gl:'exact', t:2.8, ok:true},
+  {f:'eggs.jpg',          d:'egg × 3',                               r:[150,300],  l:'exact', k:234,  gl:'exact', t:3.9, ok:true},
+  {f:'bread-slice.jpg',   d:'rye bread slice',                       r:[50,180],   l:'exact', k:95,   gl:'mid',   t:3.4, ok:false, why:'exact'},
+  {f:'plov.jpg',          d:'plov',                                  r:[300,6000], l:'mid',   k:720,  gl:'mid',   t:4.6, ok:true},
+  {f:'salad.jpg',         d:'spinach and tuna salad with dressing',  r:[150,650],  l:'mid',   k:410,  gl:'mid',   t:4.2, ok:true},
+  {f:'spaghetti.jpg',     d:'spaghetti with tomato sauce and cheese',r:[300,1000], l:'mid',   k:640,  gl:'mid',   t:4.4, ok:true},
+  {f:'borscht.jpg',       d:'borscht with sour cream',               r:[100,450],  l:'mid',   k:280,  gl:'mid',   t:3.7, ok:true},
+  {f:'pilaf-and-meat.jpg',d:'pilaf, meat in cherry sauce',           r:[800,6000], l:'mid',   k:1150, gl:'mid',   t:5.3, ok:true},
+  {f:'chair.jpg',         d:'chair (not food)',                      empty:true,                               t:2.1, ok:true},
+];
+const fmtR = r => `${r[0].toLocaleString(loc()).replace(/\s/g, NB)}–${r[1].toLocaleString(loc()).replace(/\s/g, NB)}${NB}${T.kcal}`;
+const expTxt = p => p.empty ? T.empty : `${fmtR(p.r)} · ${T.lvl[p.l]}`;
+const gotTxt = p => p.empty ? T.empty : `${p.k.toLocaleString(loc()).replace(/\s/g, NB)}${NB}${T.kcal} · ${T.lvl[p.gl]}`;
+const okBadge = p => p.ok ? `<span class="badge ok">${I('check')}${T.okB}</span>` : `<span class="badge err">${I('x')}${T.why[p.why]}</span>`;
+const SB = `<div class="island"></div><div class="status"><span>9:41</span></div>`;
+const nav = () => `<div class="navbar"><span class="back">${I('chev-l')}${T.settings}</span><span class="title">${T.screen}</span><span></span></div>`;
+const phone = (inner, cap, o={}) => `<figure class="frame"><div class="phone ${o.tall ? 'tall' : ''}">${SB}${nav()}${o.top || ''}<div class="content"><div class="pad stack">${inner}</div></div>${o.over || ''}<div class="home-ind"></div></div><figcaption>${cap}</figcaption></figure>`;
+
+/* ---------- components ---------- */
+const statusCard = s => `<section class="pcard" aria-label="${T.statusAria}"><div class="phead"><span class="picon ${s.tone}">${I('spark')}</span><span class="pname"><b>${s.prov}</b>${s.model ? `<span class="mono muted">${s.model}</span>` : ''}</span></div><span class="sline ${s.tone}"><i></i>${s.text}</span>${s.body ? `<p class="t-sub muted">${s.body}</p>` : ''}${s.when ? `<span class="t-foot muted">${T.checked(s.when)}</span>` : ''}</section>`;
+const OKCARD = (w = T.min5) => statusCard({tone:'ok', prov:'Google Gemini', model:'gemini-3.5-flash-lite', text:T.ok, when:w});
+const badgeOf = b => b === 'photo' ? `<span class="badge ok">${T.photo}</span>` : b === 'no' ? `<span class="badge">${T.noPhoto}</span>` : '';
+function conn(o = {}){
+  const ro = o.ro, end = ro ? I('lock','sm') : I('chev-r','sm');
+  const prov = `<div class="cell ${ro ? 'ro' : ''}" ${ro ? '' : 'role="button"'}><span class="main">${T.provider}<span class="sub">${o.prov || 'Google Gemini'}</span></span><span class="end">${end}</span></div>`;
+  const addr = o.compat ? `<div class="cell col field"><label class="t-sub">${T.address}</label><div class="input ${o.ro ? 'locked' : ''}"><span class="val mono">http://192.168.1.20:11434/v1</span></div></div>` : '';
+  let key;
+  if (o.key === 'edit') key = `<div class="cell col field"><label class="t-sub">${T.key}</label><div class="input focus caret"><span class="val">••••••••••••••••••••</span><span class="trail" role="button" aria-label="Show key">${I('eye')}</span></div>${o.keyMsg ? `<span class="msg">${o.keyMsg}</span>` : ''}</div>`;
+  else if (o.key === 'empty') key = `<div class="cell col field"><label class="t-sub">${T.key}</label><div class="input ${o.keyErr ? 'error' : ''}"><span class="ph">${o.compat ? T.optional : T.keyPh}</span></div>${o.keyErr ? `<span class="msg err">${I('alert','sm')}${T.keyBad}</span>` : ''}</div>`;
+  else key = `<div class="cell ${ro ? 'ro' : ''}"><span class="main">${T.key}<span class="sub">${T.keySet(o.last4 || 'a3F9')}</span></span>${ro ? `<span class="end">${I('lock','sm')}</span>` : `<button class="btn btn-plain btn-sm">${T.replace}</button>`}</div>`;
+  const model = o.model === 'loading'
+    ? `<div class="cell"><span class="main">${T.model}<span class="sub" style="display:flex;gap:var(--space-2);align-items:center"><span class="spinner" style="width:14px;height:14px"></span>${T.loadingList}</span></span></div>`
+    : `<div class="cell ${ro ? 'ro' : ''}" ${ro ? '' : 'role="button"'}><span class="main">${T.model}<span class="sub mono">${o.model || 'gemini-3.5-flash-lite'}</span></span><span class="end">${badgeOf(o.badge ?? 'photo')}${end}</span></div>`;
+  return `<div><div class="group-h">${T.conn}</div><div class="group">${prov}${addr}${key}${model}</div>${o.msg || ''}</div>`;
+}
+const gem = () => `<div class="banner warning">${I('warn')}<div><div class="b-title">${T.gemTitle}</div>${T.gemBody}</div></div>`;
+const btnsClean = () => `<div class="stack-sm"><button class="btn btn-tonal">${I('refresh','sm')}${T.checkNow}</button><p class="t-foot muted center">${T.checkNote}</p></div>`;
+const btnsDirty = (st = '') => st === 'checking'
+  ? `<div class="btn-row"><button class="btn btn-tonal disabled">${T.check}</button><button class="btn btn-primary" aria-busy="true"><span class="spinner"></span>${T.checking}</button></div>`
+  : `<div class="btn-row"><button class="btn btn-tonal">${T.check}</button><button class="btn btn-primary">${T.save}</button></div>`;
+const privacy = () => `<div><div class="group-h">${T.privacy}</div><div class="pcard t-sub"><p>${T.privBody}</p><span class="link" style="display:inline-flex;gap:var(--space-1);align-items:center">${T.policy}${I('ext','sm')}</span></div></div>`;
+const offRow = () => `<div class="group" style="margin-top:var(--space-4)"><div class="cell danger" role="button">${I('power','sm')}<span class="main">${T.turnOff}</span></div></div>`;
+
+const testHead = () => `<div class="stack-sm"><h3>${T.test}</h3><p class="t-sub muted">${T.testBody}</p></div>`;
+const targetLine = (txt) => `<div class="t-foot muted">${T.target}: <span class="mono" style="color:var(--color-text);font-size:var(--text-footnote-size)">${txt}</span></div>`;
+const trow = (p, i, mode='done') => {
+  const th = `<span class="thumb">${PH(i * 37, p.empty)}</span>`;
+  if (mode === 'wait' || mode === 'skip') return `<div class="trow wait">${th}<span class="main"><span class="nm">${p.d}</span><span class="ln">${T.exp}: ${expTxt(p)}</span></span><span class="rs">${mode === 'wait' ? T.waiting : T.notStarted}</span></div>`;
+  if (mode === 'run') return `<div class="trow">${th}<span class="main"><span class="nm">${p.d}</span><span class="ln">${T.exp}: ${expTxt(p)}</span></span><span class="rs"><span class="spinner" style="width:16px;height:16px;color:var(--color-accent)"></span></span></div>`;
+  if (mode === 'err') return `<div class="trow">${th}<span class="main"><span class="nm">${p.d}</span><span class="ln">${T.exp}: ${expTxt(p)}</span><span class="ln"><b>${T.got}:</b> ${T.authErr}</span><span class="ln"><span class="badge err">${I("x")}${T.why.err}</span></span></span><span class="rs">${dec(0.6)}${NB}${T.sec}</span></div>`;
+  return `<div class="trow">${th}<span class="main"><span class="nm">${p.d}</span><span class="ln">${T.exp}: ${expTxt(p)}</span><span class="ln"><b>${T.got}:</b> ${gotTxt(p)}</span><span class="ln">${okBadge(p)}</span></span><span class="rs">${dec(p.t)}${NB}${T.sec}</span></div>`;
+};
+const testIdle = (tgt = `Google · gemini-3.5-flash-lite`) => `<section class="pcard">${testHead()}${targetLine(tgt)}<button class="btn btn-tonal">${I('flask','sm')}${T.testBtn}</button></section>`;
+const testRunning = n => `<section class="pcard">${testHead()}<div class="prog-h"><span class="t-headline num" aria-live="polite">${T.progress(n, 9)}</span><button class="btn btn-danger-plain btn-sm" style="padding:0">${I('square','sm')}${T.stop}</button></div><div class="prog" role="progressbar" aria-valuemin="0" aria-valuemax="9" aria-valuenow="${n - 1}"><i style="width:${(n - 1) / 9 * 100}%"></i></div>${targetLine('Google · gemini-3.5-flash-lite')}<div class="trows">${P.map((p, i) => trow(p, i, i < n - 1 ? 'done' : i === n - 1 ? 'run' : 'wait')).join('')}</div></section>`;
+const TOK = () => T.thousand(dec(13.2));
+const summary = () => `<div class="stack-sm"><div class="res"><b>${T.passed(8, 9)[0]}</b><span>${T.passed(8, 9)[1]}</span></div><span class="metrics">${T.metrics(dec(3.8), '', TOK())}</span><span class="meta">${T.meta}</span></div>`;
+const copyBtns = (row = true) => `<div class="acts">${row ? `<button class="btn btn-tonal">${T.copyRow}</button>` : ''}<button class="btn btn-plain">${I('copy','sm')}${T.copyReport}</button></div>`;
+const testResult = (rows = true) => `<section class="pcard">${testHead()}${summary()}${copyBtns()}${rows ? `<div class="trows">${P.map((p, i) => trow(p, i)).join('')}</div>` : ''}<button class="btn btn-plain">${I('flask','sm')}${T.testBtn}</button></section>`;
+const testStopped = () => `<section class="pcard">${testHead()}<div class="banner warning">${I('warn')}<div><div class="b-title">${T.stopped(T.authErr.toLowerCase())}</div>${T.stoppedBody}</div></div><div class="res"><b>${T.passed(0, 1)[0]}</b><span>${T.passed(0, 1)[1]}</span></div><span class="meta">${T.notRun(8)} · ${T.meta.replace(/ · OCT.*/, '')}</span>${copyBtns(false)}<div class="trows">${trow(P[0], 0, 'err')}${P.slice(1, 3).map((p, i) => trow(p, i + 1, 'skip')).join('')}</div></section>`;
+const testInterrupted = () => `<section class="pcard">${testHead()}<div class="banner notice">${I('history')}<div><div class="b-title">${T.interrupted}</div>${T.interruptedBody}</div></div>${targetLine('Google · gemini-3.5-flash-lite')}<button class="btn btn-tonal">${I('flask','sm')}${T.again}</button></section>`;
+
+const RUNS = [
+  {p:'Google', m:'gemini-3.5-flash-lite', n:8, t:3.8, tok:13.2, d:[18,'нояб.','Nov'], dots:'ooxoooooo'},
+  {p:'OpenRouter', m:'qwen/qwen3-vl-72b', n:7, t:6.1, cost:0.011, d:[18,'нояб.','Nov'], dots:'ooxoooxoo'},
+  {p:'OpenRouter', m:'google/gemini-3.8-flash', n:9, t:4.9, cost:0.006, d:[17,'нояб.','Nov'], dots:'ooooooooo', best:true},
+  {p:T => T.compat, m:'llava-next:13b', n:4, t:21.4, tok:11.8, d:[17,'нояб.','Nov'], dots:'oxxoxoxxo'},
+  {p:'Google', m:'gemini-3.8-pro', n:0, of:1, d:[16,'нояб.','Nov'], dots:'xssssssss', stopped:true},
+];
+const rp = r => typeof r.p === 'function' ? r.p(T) : r.p;
+const rdate = r => lang === 'ru' ? `${r.d[0]}${NB}${r.d[1]}` : `${r.d[2]}${NB}${r.d[0]}`;
+const rcost = r => r.cost ? `≈${NB}${money(r.cost)}` : r.tok ? `${T.thousand(dec(r.tok))} ${lang === 'ru' ? 'токенов' : 'tokens'}` : '—';
+const dots = r => `<span class="dots" role="img" aria-label="${r.dots.split('').map((c, i) => `${P[i].f}: ${c === 'o' ? T.okB : c === 'x' ? 'fail' : T.notStarted}`).join(', ')}">${r.dots.split('').map(c => `<i class="${c === 'x' ? 'f' : c === 's' ? 's' : ''}"></i>`).join('')}</span>`;
+function runRow(r, open){
+  const sc = r.stopped ? `${r.n}/${r.of}` : `${r.n}/9`;
+  const tags = r.best ? `<span class="badge ok">${T.best}</span>` : r.stopped ? `<span class="badge warn">${T.stoppedTag}</span>` : '';
+  return `<div class="run ${r.best ? 'best' : ''} ${r.stopped ? 'part' : ''} ${open ? 'open' : ''}" role="button" aria-expanded="${!!open}"><div class="run-top"><span class="mono">${r.m}</span><span class="sc">${sc}</span></div><div class="run-sub"><span class="run-tags">${rp(r)} · ${rdate(r)}${tags}</span><span class="r">${r.stopped ? '—' : `${dec(r.t)}${NB}${T.sec} · ${rcost(r)}`}</span></div>${open ? `${dots(r)}<div class="more-acts"><button class="btn btn-tonal btn-sm">${T.copyRow}</button><button class="btn btn-plain btn-sm">${T.copyReport}</button><button class="btn btn-danger-plain btn-sm">${I('trash','sm')}${T.del}</button></div>` : ''}</div>`;
+}
+const compare = (open = -1, n = RUNS.length) => `<div><div class="sect-h"><div class="group-h">${T.compare}</div><button class="btn btn-plain btn-sm" style="padding:0">${T.clear}</button></div><div class="group">${RUNS.slice(0, n).map((r, i) => runRow(r, i === open)).join('')}</div><p class="group-f">${T.kept}</p></div>`;
+
+/* overlays */
+const scrim = '<div class="scrim"></div>';
+const alertBox = (title, body, btns) => `${scrim}<div class="alert" role="alertdialog"><b class="t-headline">${title}</b><p class="t-sub">${body}</p><div class="btns col">${btns}</div></div>`;
+const toast = (txt, act) => `<div class="toast" role="status" style="bottom:calc(34px + var(--space-3))"><span>${txt}</span>${act ? `<span class="act">${act}</span>` : ''}</div>`;
+const provSheet = () => `${scrim}<div class="sheet" role="dialog" aria-label="${T.provider}"><div class="grab"></div><div class="sheet-head"><b class="t-headline">${T.provider}</b><span class="x" role="button" aria-label="${T.cancel}">${I('x')}</span></div><div class="group inset" role="radiogroup">${[['Google Gemini','google',true],['OpenAI','openai'],['Anthropic','anthropic'],['OpenRouter','openrouter'],[T.compat,'compat']].map(([n, id, on]) => `<div class="cell pick" role="radio" aria-checked="${!!on}"><span class="radio ${on ? 'on' : ''}"></span><span class="main">${n}${T.provHint[id] ? `<span class="sub">${T.provHint[id]}</span>` : ''}</span></div>`).join('')}</div></div>`;
+const mrow = (name, b, on, q) => `<div class="cell pick" role="radio" aria-checked="${!!on}"><span class="main mono" style="font-size:var(--text-subhead-size)">${q ? name.replace(q, `<mark>${q}</mark>`) : name}</span><span class="end">${badgeOf(b)}${on ? `<span style="color:var(--color-accent)">${I('check','sm')}</span>` : ''}</span></div>`;
+function modelSheet(kind){
+  const head = `<div class="grab"></div><div class="sheet-head"><b class="t-headline">${T.model}</b><span style="display:flex"><span class="icon-btn" role="button" aria-label="${T.refresh}" title="${T.refresh}">${I('refresh')}</span><span class="x" role="button" aria-label="${T.cancel}">${I('x')}</span></span></div>`;
+  let search = `<div class="search">${I('search','sm')}<span class="ph">${T.search}</span></div>`, body = '', foot = `<div class="sheet-foot"><button class="btn btn-plain">${I('pencil','sm')}${T.manual}</button></div>`;
+  if (kind === 'google') body = `<span class="t-foot muted">${T.count(9)}</span><div class="group inset">${mrow('gemini-3.5-flash-lite','photo',true)}${mrow('gemini-3.8-flash','photo')}${mrow('gemini-3.8-pro','photo')}${mrow('gemini-3.8-flash-image','photo')}${mrow('gemma-4-27b-it','photo')}</div><div class="group-h">${T.secNo}</div><div class="group inset">${mrow('gemma-4-2b-it','no')}${mrow('gemini-3.8-flash-tts','no')}</div>`;
+  if (kind === 'router'){
+    search = `<div class="search focus">${I('search','sm')}<span class="val">vl</span>${I('x','sm')}</div>`;
+    body = `<span class="t-foot muted">${T.found(23)} · ${T.count(347)}</span><div class="group-h" style="margin-top:0">${T.secPhoto}</div><div class="group inset">${mrow('qwen/qwen3-vl-72b','photo',true,'vl')}${mrow('qwen/qwen3-vl-32b','photo',false,'vl')}${mrow('qwen/qwen3-vl-8b','photo',false,'vl')}${mrow('zhipu/glm-5-vl','photo',false,'vl')}${mrow('mistral/pixtral-vl-large','photo',false,'vl')}</div><div class="group-h">${T.secUnknown}</div><div class="group inset">${mrow('nousresearch/hermes-vl-4','',false,'vl')}${mrow('community/vl-tiny-3b','',false,'vl')}</div>`;
+  }
+  if (kind === 'none'){
+    search = `<div class="search focus">${I('search','sm')}<span class="val">gpt-9-vision</span>${I('x','sm')}</div>`;
+    body = `<div class="state"><div class="s-ic">${I('search-x')}</div><b class="t-headline">${T.nothing('gpt-9-vision')}</b><button class="btn btn-tonal btn-sm">${I('pencil','sm')}${T.manualQ('gpt-9-vision')}</button></div>`;
+    foot = '';
+  }
+  if (kind === 'fail'){
+    search = '';
+    body = `<div class="banner danger">${I('alert')}<div>${T.listFail(T.rKey)}</div></div><div class="field"><label>${T.modelName}</label><div class="input focus caret"><span class="val mono">gemini-3.5-flash-lite</span></div><span class="msg">${T.manualNote}</span></div><button class="btn btn-primary">${T.done}</button><button class="btn btn-plain">${I('refresh','sm')}${T.refresh}</button>`;
+    foot = '';
+  }
+  return `${scrim}<div class="sheet full" role="dialog" aria-label="${T.model}">${head}${search}<div class="mlist">${body}</div>${foot}</div>`;
+}
+
+/* desktop */
+const side = () => `<aside class="side"><div class="brand"><span class="mark">${I('plate','sm')}</span>OpenCalorieTracker</div><button class="btn btn-primary btn-sm" style="width:100%">${I('camera','sm')}${T.addFood}</button>${[['home',0],['book',1],['chart',2],['user',3]].map(([ic, i]) => `<span class="nav-i">${I(ic)}${T.tabs[i]}</span>`).join('')}<div class="foot"><span class="nav-i on">${I('settings')}${T.settings}</span></div></aside>`;
+const desk = (inner, cap) => `<figure class="frame wide"><div class="desk" style="height:auto;min-height:800px"><div class="chrome"><i></i><i></i><i></i><span class="url">calories.home.lan/settings/ai</span></div><div class="body">${side()}<div class="main-area"><div class="inner">${inner}</div></div></div></div><figcaption>${cap}</figcaption></figure>`;
+const photoTable = () => `<table class="tbl"><thead><tr>${T.pcols.map((c, i) => `<th scope="col" class="${i === 3 ? 'n' : ''}">${c}</th>`).join('')}</tr></thead><tbody>${P.map((p, i) => `<tr><td><span style="display:flex;gap:var(--space-3);align-items:center"><span class="thumb">${PH(i * 37, p.empty)}</span><span>${p.d}<span class="sub">${p.f}</span></span></span></td><td>${expTxt(p)}</td><td>${gotTxt(p)}</td><td class="n">${dec(p.t)}${NB}${T.sec}</td><td>${okBadge(p)}</td></tr>`).join('')}</tbody></table>`;
+const runTable = () => `<table class="tbl"><thead><tr>${T.cols.map((c, i) => `<th scope="col" class="${[1,2].includes(i) ? 'n' : ''}">${c}</th>`).join('')}</tr></thead><tbody>${RUNS.map((r, i) => `<tr class="${r.best ? 'best' : ''} ${i === 2 ? 'hover' : ''}"><td><span class="mono" style="font-weight:600">${r.m}</span>${r.best ? ` <span class="badge ok">${T.best}</span>` : r.stopped ? ` <span class="badge warn">${T.stoppedTag}</span>` : ''}<span class="sub">${rp(r)}</span></td><td class="n sc">${r.stopped ? `${r.n}/${r.of}` : `${r.n}/9`}</td><td class="n">${r.stopped ? '—' : `${dec(r.t)}${NB}${T.sec}`}</td><td>${r.stopped ? '—' : rcost(r)}</td><td>${rdate(r)}</td><td><span class="ra">${r.stopped ? '' : `<span role="button" aria-label="${T.copyRow}" title="${T.copyRow}" class="${i === 2 ? 'on' : ''}">${I('copy','sm')}</span>`}<span role="button" aria-label="${T.del}" title="${T.del}">${I('trash','sm')}</span><span role="button" aria-expanded="false" aria-label="${T.pcols[0]}">${I('chev-d','sm')}</span></span></td></tr>`).join('')}</tbody></table>`;
+
+/* ---------- page ---------- */
+function render(){
+  T = S[lang];
+  document.documentElement.lang = lang;
+  const doc = document.getElementById('doc');
+  doc.innerHTML = `
+<h1 class="doc-h1">OCT-248 · Настройка ИИ в админке и тест модели</h1>
+<p class="doc-lead">Экран «ИИ-провайдер» (Настройки → Администрирование) из «только статус» становится местом, где админ подключает ИИ без .env: провайдер, ключ, модель из списка провайдера — и сразу проверяет модель на 9 эталонных фото. Порядок сверху вниз: состояние → подключение → кнопки → тест модели → сравнение моделей → куда уходят данные → «Отключить ИИ». Продукт: «Продукт OCT-246» в Docs, разделы 0–3 и 5. Тексты RU/EN — переключатель «Язык» вверху.</p>
+
+<section class="doc-section" id="form">
+  <h2 class="doc-h2">1 · Экран и форма</h2>
+  <p class="doc-lead">Форма живёт прямо на экране, без отдельного «режима правки». Пока ничего не меняли — одна кнопка «Проверить сейчас», как в v0.1. Изменили любое поле — появляются «Проверить» и «Сохранить» (сохранение само делает проверку). Провайдер и модель выбираются в шторках, ключ и адрес — прямо в строке.</p>
+  <div class="row">
+    ${phone(`${OKCARD()}${conn()}${gem()}${btnsClean()}${testIdle()}${compare(-1, 3)}${privacy()}${offRow()}`, `<b>1.1 Всё настроено, ничего не меняли.</b> Экран целиком (прокрутка). Ключ — только «Задан · …a3F9» и «Заменить ключ». Модель — моноширинным, с меткой «фото». Предупреждение о бесплатном тарифе Gemini переехало к форме (только для Google).`, {tall:true})}
+    ${phone(`${statusCard({tone:'off', prov:T.off, text:T.notConf, body:T.offBody})}${conn({key:'edit', model:'loading'})}${btnsDirty()}`, `<b>1.2 Первое подключение.</b> Выбран провайдер, ключ вставлен (поле в фокусе, «глаз» — показать). Список моделей запрашивается сам через 0,6 с после ввода ключа и при уходе из поля; пока грузится — строка «Загружаем список моделей…». Сюда ведёт карточка «Подключите ИИ» из мастера (OCT-242).`)}
+    ${phone(`${statusCard({tone:'off', prov:T.off, text:T.notConf})}${conn({key:'edit'})}`, `<b>1.3 Провайдер.</b> Шторка с пятью вариантами и короткой подсказкой. Сменили провайдера — ключ очищается, фокус в поле ключа, под ним «${T.newKey('OpenAI')}» (AC-1.7).`, {over:provSheet()})}
+    ${phone(`${OKCARD()}${conn()}`, `<b>1.4 Модель.</b> Шторка почти на весь экран: поиск, счётчик, сначала модели с фото, «Без фото» — отдельной группой ниже. Явно не подходящие (эмбеддинги, TTS) не показываем, если провайдер их помечает. «Обновить список» — иконка в шапке, «Ввести имя вручную» — всегда внизу.`, {over:modelSheet('google')})}
+    ${phone(`${OKCARD(T.now)}${conn({model:'gemini-3.8-flash'})}${btnsClean()}${testIdle('Google · gemini-3.8-flash')}`, `<b>1.5 Сохранено.</b> «Сохранить» → кнопка «Проверяем…» (обе кнопки заблокированы) → тост. Статус сразу показывает результат этой проверки, кнопки возвращаются к «Проверить сейчас».`, {over:toast(T.saved)})}
+  </div>
+</section>
+
+<section class="doc-section" id="models">
+  <h2 class="doc-h2">2 · Список моделей</h2>
+  <p class="doc-lead">Список получает сервер у провайдера по ключу из формы. Метка «фото» — зелёная, «без фото» — серая, у моделей, про которые провайдер молчит, метки нет. Ручной ввод доступен всегда.</p>
+  <div class="row">
+    ${phone(`${OKCARD()}${conn({prov:'OpenRouter', model:'qwen/qwen3-vl-72b'})}`, `<b>2.1 Длинный список (OpenRouter, 347 моделей).</b> Поиск по подстроке без учёта регистра, совпадение подсвечено. Список рисуется окном (видимые строки + запас), чтобы не тормозить на телефоне. Без запроса — сначала «Принимают фото», потом «Провайдер не сообщает», потом «Без фото».`, {over:modelSheet('router')})}
+    ${phone(`${OKCARD()}${conn()}`, `<b>2.2 Ничего не нашли.</b> Кнопка сразу подставляет запрос в ручной ввод — не нужно перепечатывать имя.`, {over:modelSheet('none')})}
+    ${phone(`${statusCard({tone:'off', prov:T.off, text:T.notConf})}${conn({key:'edit'})}`, `<b>2.3 Список не получен.</b> Причина — словами состояний ADR-0013 («провайдер не принял ключ», «провайдер не отвечает»). Поле имени модели уже открыто и в фокусе; «Обновить список» — повторить запрос.`, {over:modelSheet('fail')})}
+    ${phone(`${OKCARD()}${conn({model:'gemma-4-2b-it', badge:'no', msg:`<p class="grp-msg warn">${I('warn')}${T.noVision}</p>`})}${btnsDirty()}`, `<b>2.4 Модель без фото.</b> Выбрать можно; под группой — предупреждение (жёлтый треугольник + текст, не только цвет). После сохранения статус — «Модель не принимает изображения», как сейчас.`)}
+    ${phone(`${statusCard({tone:'ok', prov:T.compat, model:'qwen3-vl:8b', text:T.ok, when:T.min5})}${conn({prov:T.compat, compat:true, key:'empty', model:'qwen3-vl:8b', badge:''})}${btnsClean()}`, `<b>2.5 OpenAI-совместимый (Ollama).</b> Появляется поле «Адрес» (моноширинный, клавиатура URL). Ключ — «Необязательно». Список — из /models; если сервер его не отдаёт — 2.3. Метки фото чаще всего нет: проверить помогает тест модели.`)}
+  </div>
+</section>
+
+<section class="doc-section" id="states">
+  <h2 class="doc-h2">3 · Сохранение, ключ, .env</h2>
+  <div class="row">
+    ${phone(`${OKCARD()}${conn({model:'gemini-3.8-pro'})}<div class="banner danger">${I('alert')}<div><div class="b-title">${T.notSaved(T.rDown)}</div>${T.notSavedBody}</div></div><div class="stack-sm"><button class="btn btn-tonal">${T.saveAnyway}</button><button class="btn btn-plain">${T.check}</button></div>`, `<b>3.1 Проверка при сохранении не прошла.</b> Баннер над кнопками, вместо пары кнопок — «Сохранить всё равно» (тональная — не главное действие) и «Проверить». Причина — словами состояний ADR-0013/OCT-230; «Подробнее» с кодом провайдера — как в статусе. Поменяли поле — баннер исчезает.`)}
+    ${phone(`${statusCard({tone:'off', prov:'Google Gemini', model:'gemini-3.5-flash-lite', text:T.notConf})}${conn({key:'empty', keyErr:true})}${btnsDirty()}`, `<b>3.2 Сохранённый ключ не читается</b> (восстановили базу без ключа шифрования). ИИ выключен, провайдер и модель видны, поле ключа пустое с ошибкой. Вставили ключ → «Сохранить».`)}
+    ${phone(`<div class="banner notice">${I('lock')}<div><div class="b-title">${T.envTitle}</div>${T.envBody}</div></div>${OKCARD()}${conn({ro:true, last4:'Q7xd', msg:`<p class="grp-msg">${I('info')}${T.inactive}</p>`})}${btnsClean()}<section class="pcard">${testHead()}<div class="cell" role="button" style="padding:0;min-height:var(--tap-min)"><span class="main">${T.target}<span class="sub mono">gemini-3.5-flash-lite · ${T.current}</span></span><span class="end">${I('chev-r','sm')}</span></div><button class="btn btn-tonal">${I('flask','sm')}${T.testBtn}</button></section>`, `<b>3.3 Настройки из .env.</b> Плашка первой на экране. Поля серые с замком, «Сохранить» и «Отключить ИИ» нет. Строка «${T.inactive}» — только если в базе что-то сохранено. Тест работает: строка «Тестируем» открывает ту же форму в шторке «${T.other4test}» — ключ там вводится только для теста и не сохраняется.`, {tall:true})}
+    ${phone(`${privacy()}${offRow()}`, `<b>3.4 Отключить ИИ.</b> Красная строка последней на экране, подтверждение. После — экран 1.2 (ИИ не подключён) и тост «ИИ отключён».`, {over:alertBox(T.offQ, T.offBodyQ, `<button class="btn btn-danger">${T.offBtn}</button><button class="btn btn-plain">${T.cancel}</button>`)})}
+    ${phone(`<div class="banner warning">${I('warn')}<div style="flex:1">${T.other}<div><span class="link">${T.reload}</span></div></div></div>${OKCARD()}${conn({model:'gemini-3.8-flash'})}${btnsDirty()}`, `<b>3.5 Изменено в другом окне</b> (E-8). Сервер отвечает на «Сохранить» конфликтом, если настройки поменялись после открытия экрана. Ничего не перезаписываем молча: баннер и «Обновить».`)}
+  </div>
+</section>
+
+<section class="doc-section" id="test">
+  <h2 class="doc-h2">4 · Тест модели</h2>
+  <p class="doc-lead">Тестируется то, что сейчас в форме — сохранять не нужно, так модели сравниваются до выбора. Строка «Тестируем» показывает, что именно уйдёт провайдеру (с пометкой «не сохранено», если форма изменена). Тест идёт на сервере: экран можно закрыть, при возврате виден прогресс или итог.</p>
+  <div class="row">
+    ${phone(`${btnsClean()}${testIdle()}`, `<b>4.1 Подтверждение.</b> Без «Запустить тест» ни одно фото не уходит провайдеру (AC-2.14).`, {over:alertBox(T.testQ, T.testConfirm, `<button class="btn btn-primary">${T.run}</button><button class="btn btn-plain">${T.cancel}</button>`)})}
+    ${phone(testRunning(4), `<b>4.2 Идёт тест.</b> «Фото 4 из 9» + полоса, строки заполняются по мере готовности, текущая — со спиннером, остальные «ждёт». «Остановить» — сразу, без подтверждения: неотправленные фото станут «не запускалось». VoiceOver объявляет номер фото (aria-live polite).`)}
+    ${phone(testResult(), `<b>4.3 Итог.</b> Крупно «8 из 9 прошло», ниже время, стоимость (если провайдер отдаёт цену) или токены, затем провайдер · модель · дата · версии. Две кнопки копирования. По каждому фото: что ждали и что получили; провал — красная метка с причиной словами.`, {tall:true})}
+    ${phone(`${testResult(false)}`, `<b>4.4 Скопировано.</b> Тост с действием «Открыть» — docs/MODELS.md в новой вкладке.`, {over:toast(T.copied, T.open)})}
+    ${phone(testStopped(), `<b>4.5 Остановлен досрочно</b> (ключ не подошёл, модель не найдена, лимит). Жёлтый баннер с причиной, итог по отправленным, «не запускалось» для остальных. Строки для MODELS.md нет — только полный отчёт. Остановка кнопкой выглядит так же: «Тест остановлен: вы остановили тест».`)}
+    ${phone(`${testInterrupted()}${compare(-1, 2)}`, `<b>4.6 Прерван перезапуском.</b> В сравнение не идёт. Лимиты — тостами при нажатии на «Протестировать модель»: «${T.limit(12)}», а если тест уже запущен из другого окна — «${T.already}» и блок сразу показывает его прогресс (4.2).`, {over:toast(T.limit(12))})}
+  </div>
+</section>
+
+<section class="doc-section" id="compare">
+  <h2 class="doc-h2">5 · Сравнение моделей на телефоне</h2>
+  <p class="doc-lead">Таблица на 390 pt не помещается — каждый прогон становится строкой из двух линий: модель и счёт крупно, ниже провайдер, дата, время и цена. Лучший полный прогон — зелёный счёт и метка «лучший» (при равенстве — быстрее). Новые сверху.</p>
+  <div class="row">
+    ${phone(compare(2), `<b>5.1 Раскрыт прогон.</b> Касание по строке раскрывает её: 9 точек по фото (круг — прошло, ромб — нет, кольцо — не запускалось; у каждой подпись для VoiceOver), копирование и «Удалить» (без подтверждения, с тостом «Вернуть»). «Очистить всё» — с подтверждением «${T.clearQ(5)}».`)}
+    ${phone(testResult(false), `<b>5.2 Копирование по http.</b> На домашнем сервере без https браузер не даёт писать в буфер. Тогда — шторка с уже выделенной строкой: остаётся нажать «Скопировать» в системном меню.`, {over:`${scrim}<div class="sheet" role="dialog"><div class="grab"></div><div class="sheet-head"><b class="t-headline">${T.selTitle}</b><span class="x">${I('x')}</span></div><p class="t-sub muted">${T.selBody}</p><div class="sel-text">| google | gemini-3.5-flash-lite | 8/9 | 2026-11-18 | 3.8 s/photo; OCT v0.2.0, prompt 3 |</div><button class="btn btn-tonal">${T.done}</button></div>`})}
+  </div>
+</section>
+
+<section class="doc-section" id="desktop">
+  <h2 class="doc-h2">6 · Десктоп (≥ 1024 px)</h2>
+  <p class="doc-lead">Две колонки, как у статуса сейчас: слева состояние, форма, данные и «Отключить ИИ», справа тест модели. Под ними на всю ширину — «Сравнение моделей» настоящей таблицей. Результаты по фото — тоже таблицей.</p>
+  <div class="row">
+    ${desk(`<div class="large-title">${T.screen}</div><div class="cols even"><div class="stack">${OKCARD()}${conn({model:'gemini-3.8-flash'})}${btnsDirty()}${privacy()}${offRow()}</div><div class="stack"><div class="group-h" style="padding:0;margin-top:0">&nbsp;</div>${testRunning(6)}</div></div>`, `<b>6.1 Форма изменена, на той же модели идёт тест.</b> Колонки независимы по высоте. Кнопки формы — в своей колонке, не растягиваются на всю ширину.`)}
+    ${desk(`<div class="large-title">${T.screen}</div><section class="pcard wide"><div class="sect-h"><h3>${T.test}</h3><button class="btn btn-plain btn-sm">${I('flask','sm')}${T.testBtn}</button></div>${summary()}<div style="display:flex;gap:var(--space-2)"><button class="btn btn-tonal btn-sm">${I('copy','sm')}${T.copyRow}</button><button class="btn btn-plain btn-sm">${T.copyReport}</button></div>${photoTable()}</section><div><div class="sect-h"><h3 class="t-headline">${T.compare}</h3><button class="btn btn-plain btn-sm">${T.clear}</button></div><section class="pcard wide" style="margin-top:var(--space-2)">${runTable()}</section><p class="group-f" style="padding-left:0">${T.kept}</p></div>`, `<b>6.2 Итог теста и сравнение.</b> Действия строки сравнения — иконки с подписью (title + aria-label), видны всегда: копировать строку, удалить, раскрыть детали по фото (раскрывается под строкой той же таблицей, что 6.2 сверху). Наведение подсвечивает строку.`)}
+  </div>
+</section>
+
+<section class="doc-section" id="spec">
+  <h2 class="doc-h2">7 · Поведение и спецификация</h2>
+  <div class="spec">
+    <h3>Состояния экрана</h3>
+    <ul>
+      <li>Загрузка: до 300 мс ничего, дальше — скелет карточки и группы «Подключение». Офлайн — как сейчас: «${T.offline}. ${T.offlineBody}». Ошибка загрузки — ScreenState с «Повторить».</li>
+      <li>Форма «чистая» — «Проверить сейчас» (проверка сохранённой модели, обновляет статус). «Грязная» — «Проверить» (проверка формы, статус не трогает; результат строкой под кнопками: «${T.checkOk(dec(1.4))}» или баннер ошибки) и «Сохранить».</li>
+      <li>«Сохранить» = проверка + сохранение. Во время — спиннер «${T.checking}», обе кнопки заблокированы. Успех — тост «${T.saved}». Ошибка — 3.1.</li>
+      <li>Тексты баннеров ошибок в режиме «из экрана» не говорят про AI_API_KEY и перезапуск: «Проверьте ключ и доступ к модели в кабинете провайдера». В режиме .env остаются нынешние.</li>
+      <li>Не-админ этот экран не видит (как сейчас).</li>
+    </ul>
+    <h3>Поля</h3>
+    <ul>
+      <li>Ключ: input type=password, autocomplete=off, «глаз» показывает введённое (только пока ключ новый, сохранённый не показывается никогда). «Заменить ключ» → пустое поле в фокусе + «Отмена» вместо кнопки.</li>
+      <li>Адрес: inputmode=url, моноширинный, без автокапитализации и автокоррекции. Ошибка формата — под полем при уходе из поля.</li>
+      <li>Модель: шторка; на десктопе — поповер-комбобокс под строкой (role=combobox + listbox, стрелки, Enter, Esc), та же логика групп и поиска.</li>
+      <li>Метка «фото»/«без фото» в строке — текстом, не иконкой; VoiceOver читает «gemini-3.5-flash-lite, фото».</li>
+    </ul>
+    <h3>Тест</h3>
+    <ul>
+      <li>Состояния блока: ожидание → подтверждение → идёт → итог | остановлен | прерван. При открытии экрана блок берёт текущий прогон с сервера; идущий тест обновляется сам.</li>
+      <li>Причины провала по фото (словами, в отчёте — английские коды): ${Object.values(T.why).join(' · ')}.</li>
+      <li>Названия блюд в эталонах — английские (как в expected.json; тест идёт на английском, AC-2.3), в обоих языках интерфейса.</li>
+      <li>«Скопировать строку» — navigator.clipboard; без безопасного контекста (http в локальной сети) — шторка 5.2. Строка и отчёт — только английский.</li>
+      <li>Лучший прогон: максимум «прошло» среди полных, при равенстве — меньшее время на фото. Остановленные и прерванные не участвуют.</li>
+    </ul>
+    <h3>Доступность</h3>
+    <ul>
+      <li>Ни одно состояние не передаётся только цветом: статус — форма точки + текст, результат — метка с текстом, точки сравнения — форма + подписи.</li>
+      <li>Прогресс — role=progressbar с aria-valuenow; номер фото — aria-live=polite (не каждую строку). Итог теста объявляется один раз.</li>
+      <li>Все кнопки и строки — не меньше 44 pt; кнопки-иконки на десктопе с aria-label и title.</li>
+    </ul>
+    <h3>Токены</h3>
+    <ul>
+      <li>Новых токенов нет. Используются существующие: --color-accent/-soft, --color-danger/-soft, --color-warning/-soft, --color-notice, --color-selection (подсветка поиска), --font-mono (имена моделей, адрес, строка MODELS.md), --progress-height, --meal-thumb-size (миниатюры эталонов), --radius-*, --space-*, --tap-min.</li>
+      <li>Компоненты — существующие: StatusLine, Banner, List/ListRow, Button, Sheet, ConfirmDialog (stack), Toast, ScreenState, Badge.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="doc-section" id="copy">
+  <h2 class="doc-h2">8 · Тексты RU / EN</h2>
+  <p class="doc-lead">Черновик продукта (раздел 5) — без изменений. Ниже — только новое от дизайна (●) и уточнения.</p>
+  ${copyTable()}
+</section>`;
+}
+function copyTable(){
+  const rows = [
+    ['keyPh','Поле ключа'],['optional','Ключ OpenAI-совместимого'],['newKey','Сменили провайдера', 'OpenAI'],['loadingList','Список грузится'],
+    ['search','Поиск'],['count','Счётчик', 347],['found','Найдено', 23],['secPhoto','Группа'],['secUnknown','Группа'],['secNo','Группа'],['nothing','Пусто в поиске', 'gpt-9'],['manualQ','Кнопка', 'gpt-9'],
+    ['modelName','Ручной ввод'],['manualNote','Подсказка'],['checkOk','Проверка формы', '1,4'],['notSavedBody','Не сохранено, пояснение'],
+    ['other','Другое окно (E-8)'],['reload','Кнопка'],['offQ','Заголовок подтверждения'],['offBtn','Кнопка'],
+    ['target','Что тестируем'],['unsaved','Пометка'],['current','Режим .env'],['other4test','Шторка .env'],['testQ','Заголовок подтверждения'],
+    ['stoppedBody','Остановлен, пояснение'],['notRun','Счётчик', 8],['interruptedBody','Прерван, пояснение'],['again','Кнопка'],
+    ['exp','Префикс'],['got','Префикс'],['empty','«Не еда»'],['waiting','Строка ждёт'],['notStarted','Строка'],
+    ['okB','Метка'],['why','Причины'],['open','Действие тоста'],['selTitle','Шторка http'],['selBody','Пояснение'],
+    ['best','Метка'],['stoppedTag','Метка'],['kept','Подпись сравнения'],['clearQ','Подтверждение', 5],['clearBody','Пояснение'],
+  ];
+  const v = (L, k, a) => { const x = S[L][k]; return typeof x === 'function' ? x(a ?? '{x}') : typeof x === 'object' ? Object.values(x).join(' · ') : x; };
+  return `<table class="copy"><thead><tr><th>Где</th><th>RU</th><th>EN</th></tr></thead><tbody>${rows.map(([k, where, a]) => `<tr class="new"><td>${where}</td><td>${v('ru', k, a)}</td><td>${v('en', k, a)}</td></tr>`).join('')}<tr><td>Баннер auth_error, режим экрана</td><td>Проверьте ключ и доступ к модели в кабинете провайдера. Пока распознавание не работает, пользователи вводят еду вручную.</td><td>Check the key and model access in your provider account. Until recognition works, people enter food manually.</td></tr><tr><td>Баннер model_not_found, режим экрана</td><td>Модель {model} недоступна у провайдера — выберите другую из списка.</td><td>The model {model} isn’t available from the provider — choose another one from the list.</td></tr><tr><td>Остановка кнопкой</td><td>Тест остановлен: вы остановили тест</td><td>Test stopped: you stopped it</td></tr><tr><td>Тост после отключения</td><td>ИИ отключён</td><td>AI turned off</td></tr></tbody></table>`;
+}
+render();
+
+/* language switch in the preview bar (prototype only) */
+function langBar(){
+  const pv = document.querySelector('.pv-bar');
+  if (!pv || pv.querySelector('.lang-bar')) return;
+  pv.insertAdjacentHTML('beforeend', `<span style="margin-left:var(--space-4)">Язык</span><div class="pv-seg lang-bar">${['ru','en'].map(l => `<button type="button" data-l="${l}" aria-pressed="${l === lang}">${l.toUpperCase()}</button>`).join('')}</div>`);
+  pv.querySelectorAll('.lang-bar button').forEach(b => b.addEventListener('click', () => {
+    lang = b.dataset.l; try { localStorage.setItem(KEY, lang); } catch (e) {}
+    pv.querySelectorAll('.lang-bar button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    render();
+  }));
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', langBar); else langBar();
+</script>
+</body></html>
