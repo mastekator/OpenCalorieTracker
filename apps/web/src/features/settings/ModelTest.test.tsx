@@ -25,6 +25,7 @@ const status: AdminAiStatus = {
   rev: 1,
   state: 'ok',
   checkedAt: 0,
+  refineLimit: null,
 };
 const draft = {
   provider: 'google' as const,
