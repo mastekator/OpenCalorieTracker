@@ -64,6 +64,34 @@ export function checkSetupCode(
   return 'invalid';
 }
 
+/** The stored form of a code that checkSetupCode() accepted. */
+export const setupCodeHash = (input: string) =>
+  sha256(normalizeSetupCode(input) ?? '');
+
+/**
+ * Deletes the code inside the transaction that creates the admin, so of two requests with the
+ * right code only one gets `ok` (E-3.1). Anything else must roll that transaction back.
+ */
+export function consumeSetupCode(
+  db: Database,
+  hash: Buffer,
+  now = Date.now(),
+): Exclude<SetupCodeCheck, 'invalid'> {
+  if (db.prepare('SELECT 1 FROM users LIMIT 1').get()) return 'done';
+  const { changes } = db
+    .prepare(
+      'DELETE FROM setup_code WHERE id = 1 AND hash = ? AND fail_count < ? AND expires_at > ?',
+    )
+    .run(hash, SETUP_CODE_MAX_FAILS, now);
+  if (changes) return 'ok';
+  const row = db
+    .prepare('SELECT expires_at, fail_count FROM setup_code WHERE id = 1')
+    .get() as { expires_at: number; fail_count: number } | undefined;
+  if (!row || row.fail_count >= SETUP_CODE_MAX_FAILS) return 'burned';
+  // A live row with another hash: a restart or reset-admin-access replaced this code.
+  return 'expired';
+}
+
 /** `YYYY-MM-DD HH:MM UTC`, as the log and the CLI show it. */
 export const utcMinutes = (time: number) =>
   `${new Date(time).toISOString().slice(0, 16).replace('T', ' ')} UTC`;

@@ -19,6 +19,7 @@ import { illustrationRoutes } from './illustrations/routes.js';
 import { normAgentRoutes } from './norm-agent/routes.js';
 import { photoRoutes } from './photos/routes.js';
 import { profileRoutes } from './profile/routes.js';
+import { setupRoutes } from './setup/routes.js';
 import { syncRoutes } from './sync/routes.js';
 import { weightRoutes } from './weight/routes.js';
 import { setupErrors, setupMode, type Config } from './config.js';
@@ -68,6 +69,7 @@ export function createApp(deps: AppDeps) {
   app.use('/api/*', session(deps));
   app.route('/api', authRoutes(deps));
   app.route('/api', passkeyRoutes(deps));
+  app.route('/api', setupRoutes(deps));
   app.route('/api', adminRoutes(deps));
   app.route('/api', profileRoutes(deps));
   app.route('/api', accountRoutes(deps));

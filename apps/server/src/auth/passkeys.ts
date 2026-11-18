@@ -74,22 +74,13 @@ export function passkeyName(ua = '') {
 }
 
 /**
- * Passkey sign-in, registration, recovery and "My passkeys" (ADR-0003). Sign-in is outside the
- * brute-force guard (AC-5.10); users and passkeys are written only after the authenticator's
- * answer checks out, so a cancelled dialog leaves nothing behind (E-3.2).
+ * WebAuthn registration steps shared by the passkey routes and the setup wizard; `pending` is
+ * the caller's own challenge store, so a challenge only works at the endpoint that issued it.
  */
-export function passkeyRoutes(deps: AppDeps) {
-  const { config, db } = deps;
-  const {
-    passwordHash,
-    userById,
-    signedIn,
-    usableLink,
-    emailTaken,
-    assertAdminExists,
-  } = authHelpers(deps);
-  const passkeyOn = methodEnabled(config, 'passkey');
-  const pending = challengeStore<Pending>();
+export function passkeyHelpers<T>(
+  { config, db }: AppDeps,
+  pending: { put(value: T): string },
+) {
   const rpName = 'OpenCalorieTracker';
 
   const rp = () => {
@@ -99,28 +90,9 @@ export function passkeyRoutes(deps: AppDeps) {
 
   const failed = () => new ApiError(400, 'passkey_failed');
 
-  /** The options step's record; it is bound to its endpoint and to the signed-in user, if any. */
-  const take = <P extends Pending['purpose']>(id: string, purpose: P) => {
-    const entry = pending.take(id);
-    if (entry?.purpose !== purpose) throw failed();
-    return entry as Extract<Pending, { purpose: P }>;
-  };
-
-  const userPasskeys = (userId: number) =>
-    (
-      db
-        .prepare(
-          'SELECT credential_id, transports FROM passkeys WHERE user_id = ?',
-        )
-        .all(userId) as { credential_id: Buffer; transports: string | null }[]
-    ).map((p) => ({
-      id: p.credential_id.toString('base64url'),
-      transports: p.transports ? (JSON.parse(p.transports) as string[]) : [],
-    }));
-
   const registrationOptions = async (
     c: Context,
-    pend: (challenge: string) => Pending,
+    pend: (challenge: string) => T,
     user: { email: string; name?: string | null; webauthnUserId: Buffer },
     exclude: { id: string; transports: string[] }[] = [],
   ) => {
@@ -185,6 +157,49 @@ export function passkeyRoutes(deps: AppDeps) {
       throw err;
     }
   };
+
+  return { rp, failed, registrationOptions, verifyRegistration, insertPasskey };
+}
+
+/**
+ * Passkey sign-in, registration, recovery and "My passkeys" (ADR-0003). Sign-in is outside the
+ * brute-force guard (AC-5.10); users and passkeys are written only after the authenticator's
+ * answer checks out, so a cancelled dialog leaves nothing behind (E-3.2).
+ */
+export function passkeyRoutes(deps: AppDeps) {
+  const { config, db } = deps;
+  const {
+    passwordHash,
+    userById,
+    signedIn,
+    usableLink,
+    emailTaken,
+    assertAdminExists,
+  } = authHelpers(deps);
+  const passkeyOn = methodEnabled(config, 'passkey');
+  const pending = challengeStore<Pending>();
+
+  const { rp, failed, registrationOptions, verifyRegistration, insertPasskey } =
+    passkeyHelpers(deps, pending);
+
+  /** The options step's record; it is bound to its endpoint and to the signed-in user, if any. */
+  const take = <P extends Pending['purpose']>(id: string, purpose: P) => {
+    const entry = pending.take(id);
+    if (entry?.purpose !== purpose) throw failed();
+    return entry as Extract<Pending, { purpose: P }>;
+  };
+
+  const userPasskeys = (userId: number) =>
+    (
+      db
+        .prepare(
+          'SELECT credential_id, transports FROM passkeys WHERE user_id = ?',
+        )
+        .all(userId) as { credential_id: Buffer; transports: string | null }[]
+    ).map((p) => ({
+      id: p.credential_id.toString('base64url'),
+      transports: p.transports ? (JSON.parse(p.transports) as string[]) : [],
+    }));
 
   /** "This device" is the passkey the current session was opened or last extended with. */
   type Signed = { var: { user: User; sessionId?: number } };
