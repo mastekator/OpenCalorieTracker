@@ -43,6 +43,7 @@ import { ConfigProvider, useConfig } from './ConfigContext';
 import { LoginScreen } from './LoginScreen';
 import { safeNext } from './next';
 import { RegisterScreen, type RegisterKind } from './RegisterScreen';
+import { SetupScreen } from './SetupScreen';
 import { useSession } from './SessionContext';
 
 /** A screen inside the app: navbar and a content column (wide on Today, Diary, Week). */
@@ -344,6 +345,18 @@ function Register({ kind }: { kind: RegisterKind }) {
   );
 }
 
+/** The first-run wizard; once there is an admin, or with a setup error, sign-in takes over (OCT-242). */
+function Setup() {
+  const config = useConfig();
+  if (!config.setupRequired || config.setupError)
+    return <Redirect to="/login" replace />;
+  return (
+    <AuthLayout>
+      <SetupScreen config={config} />
+    </AuthLayout>
+  );
+}
+
 function SignedIn() {
   const { user } = useSession();
   return (
@@ -393,6 +406,11 @@ export function Routes() {
       <Route path="/recover">
         <ConfigProvider>
           <Register kind="recovery" />
+        </ConfigProvider>
+      </Route>
+      <Route path="/setup">
+        <ConfigProvider>
+          <Setup />
         </ConfigProvider>
       </Route>
       <Route path="/register">

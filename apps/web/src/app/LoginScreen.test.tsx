@@ -10,7 +10,8 @@ import {
 import * as webauthn from '@simplewebauthn/browser';
 import type { ConfigResponse } from '@oct/shared';
 import { I18nProvider, LOCALE_STORAGE_KEY } from '../i18n';
-import { loginLayout, LoginScreen, type Notice } from './LoginScreen';
+import { loginLayout, LoginScreen } from './LoginScreen';
+import type { Notice } from './notice';
 
 vi.mock('@simplewebauthn/browser', () => ({
   browserSupportsWebAuthn: vi.fn(() => true),

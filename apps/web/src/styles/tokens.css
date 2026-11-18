@@ -24,6 +24,7 @@
   --text-tab-size: 0.6875rem;     --text-tab-weight: 500;      /* 11, tab bar labels */
   --text-caption-size: 0.75rem;  --text-caption-lh: 1.33;     --text-caption-weight: 500; /* 12 */
   --tracking-tight: -0.02em;     /* large title & display only */
+  --tracking-code: 0.15em;       /* setup code: reads like the log line */
 
   /* ── Spacing (4pt grid) ── */
   --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;

@@ -1,0 +1,39 @@
+.command-line {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-inline-start: var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-2);
+  text-align: start;
+}
+
+.command-line__text {
+  flex: 1;
+  min-width: 0;
+  padding-block: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+  overflow-wrap: normal;
+  user-select: all;
+}
+
+.command-line__copy {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: var(--tap-min);
+  height: var(--tap-min);
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-accent);
+  cursor: pointer;
+}
+
+.command-line__copy .lucide {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+}

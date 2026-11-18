@@ -40,6 +40,9 @@ const config = {
   setupRequired: false,
 };
 
+/** Fields of /api/config a test changes; reset after each test. */
+let configPatch: Record<string, unknown> = {};
+
 const emptySync = { rev: 0, more: false, meals: [], deletedMealClientIds: [] };
 
 /**
@@ -51,7 +54,8 @@ function serve(session: object | null, offline = false) {
     'fetch',
     vi.fn(async (path: string) => {
       if (offline) throw new TypeError('Failed to fetch');
-      if (path === '/api/config') return Response.json(config);
+      if (path === '/api/config')
+        return Response.json({ ...config, ...configPatch });
       if (session && path === ME_PATH) return Response.json(session);
       if (session && path.startsWith('/api/sync'))
         return Response.json(emptySync);
@@ -92,6 +96,7 @@ const unauthorizedCall = () =>
 
 beforeEach(() => localStorage.setItem(LOCALE_STORAGE_KEY, 'en'));
 afterEach(async () => {
+  configPatch = {};
   cleanup();
   vi.unstubAllGlobals();
   await clearLocal(me.id);
@@ -185,6 +190,37 @@ describe('session expired with a queue (3.7)', () => {
     expect(
       screen.getByText('Your session expired. Please sign in again'),
     ).toBeTruthy();
+  });
+});
+
+describe('/setup (OCT-267)', () => {
+  it('shows the wizard while the installation waits for its admin', async () => {
+    configPatch = { setupRequired: true };
+    serve(null);
+    const location = renderAt('/setup');
+    expect(
+      await screen.findByRole('heading', {
+        name: 'Welcome to OpenCalorieTracker',
+      }),
+    ).toBeTruthy();
+    expect(location.history?.at(-1)).toBe('/setup');
+  });
+
+  it('sends to sign-in once there is an admin', async () => {
+    serve(null);
+    const location = renderAt('/setup');
+    expect(await screen.findByRole('button', { name: 'Sign in' })).toBeTruthy();
+    expect(location.history?.at(-1)).toBe('/login');
+  });
+
+  it('a setup error shows the error screen instead of the wizard', async () => {
+    configPatch = { setupRequired: true, setupError: 'public_url_invalid' };
+    serve(null);
+    renderAt('/setup');
+    expect(
+      await screen.findByRole('heading', { name: 'Installation isn’t set up' }),
+    ).toBeTruthy();
+    expect(screen.queryByLabelText('Setup code')).toBeNull();
   });
 });
 
@@ -341,7 +377,8 @@ describe('sign-out (4.6) and the offline flag', () => {
       vi.fn(async (path: string, init?: RequestInit) => {
         calls.push(`${init?.method ?? 'GET'} ${path}`);
         if (offline()) throw new TypeError('Failed to fetch');
-        if (path === '/api/config') return Response.json(config);
+        if (path === '/api/config')
+          return Response.json({ ...config, ...configPatch });
         if (path === '/api/auth/logout') {
           session = false;
           return new Response(null, { status: 204 });
