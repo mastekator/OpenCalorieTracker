@@ -14,6 +14,7 @@ import type {
   RefineRequest,
 } from '@oct/shared';
 import { I18nProvider, LOCALE_STORAGE_KEY } from '../../i18n';
+import { loadDict } from '../../i18n/translate';
 import { renderLoaded } from '../../test-utils';
 import { useLocation } from 'wouter';
 import { LeaveGuard } from '../../app/LeaveGuard';
@@ -161,13 +162,37 @@ describe('«What should I fix?» on the edit screen (OCT-261)', () => {
     expect(button('Recognize again')).toBeUndefined();
   });
 
-  it('offline: the field takes text, the buttons wait, «Needs a connection»', async () => {
+  it('offline: the field takes text, the buttons wait, one «Needs a connection» line (OCT-283)', async () => {
     vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
     await setup();
     type('there is chicken');
-    expect(screen.getByText('Needs a connection')).toBeTruthy();
+    expect(
+      screen.getByText(
+        'Needs a connection — we’ll send it once you’re back online',
+      ),
+    ).toBeTruthy();
+    expect(document.querySelector('.meal-edit__note')).toBeNull();
     expect(button('Refine')!.disabled).toBe(true);
     expect(button('Recognize again')!.disabled).toBe(true);
+  });
+
+  it('offline in Russian: the same one line', async () => {
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+    localStorage.setItem(LOCALE_STORAGE_KEY, 'ru');
+    await loadDict('ru');
+    await setup();
+    expect(
+      screen.getByText('Нужна сеть — отправим, когда появится'),
+    ).toBeTruthy();
+    expect(document.querySelector('.meal-edit__note')).toBeNull();
+  });
+
+  it('offline without AI: the save-on-device note stays the only hint', async () => {
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+    await setup({ recognition: 'not_configured' });
+    expect(document.querySelector('.meal-edit__note')!.textContent).toBe(
+      'We’ll save it on this device and send it once you’re back online.',
+    );
   });
 
   it('busy: the list, Save and the buttons are locked; slow after 10 s; «Cancel» drops a late answer (AC-6.2)', async () => {
