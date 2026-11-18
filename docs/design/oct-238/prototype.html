@@ -601,6 +601,10 @@ code{font-family:var(--font-mono);font-size:.92em}
 .mrow .ra span{width:var(--tap-min);height:var(--tap-min);border-radius:var(--radius-md);display:grid;place-items:center;background:var(--color-hover);color:var(--color-text-secondary)}
 .mrow .ra .tr{color:var(--color-danger)}
 .mrow.ghost{opacity:.35}
+/* grouping off: one card, entries by time */
+.flat-h{display:flex;justify-content:space-between;align-items:baseline;font-size:var(--text-footnote-size);color:var(--color-text-secondary);padding:0 var(--space-4)}
+.msec.flat .mrow:first-child::before{display:none}
+.flat-empty{padding:var(--space-6) var(--space-4);text-align:center;color:var(--color-text-secondary);font-size:var(--text-subhead-size)}
 /* phone swipe: two actions under the row */
 .mswipe{position:relative}
 .mswipe .mrow{translate:calc(-2 * var(--swipe-action-width)) 0;background:var(--color-surface);z-index:1}
@@ -735,6 +739,9 @@ const S = {
     diary:'Дневник', yesterday:'Вчера', yDate:'воскресенье, 15 ноября', addHere:'Добавить запись в этот день',
     leftN:n=>`осталось ${n}`, tabs:['Сегодня','Дневник','Неделя','Профиль'], cam:'Сфотографировать еду',
     drop:'Перетащите фото еды сюда', dropOr:'или', addFood:'Добавить еду', logout:'Выйти',
+    settings:'Настройки', view:'Вид', theme:'Тема', system:'Как в системе', langL:'Язык', langV:'Русский', units:'Система мер', metric:'Метрическая', mascot:'Маскот',
+    groupBy:'Группировать по приёмам', groupOn:'«Сегодня» и дневник делят записи на завтрак, обед, ужин и перекус с итогами по каждому.', groupOff:'Записи идут одним списком по времени, приём указан в строке.',
+    nEntries:n=>`${n} ${n % 10 === 1 && n % 100 !== 11 ? 'запись' : [2,3,4].includes(n % 10) && ![12,13,14].includes(n % 100) ? 'записи' : 'записей'}`, emptyDay:'Пока ничего не съедено',
   },
   en: {
     today:'Today', date:'Monday, November 16', left:'Left', kcal:'kcal', of:(a,b)=>`${a} of ${b} kcal`,
@@ -751,6 +758,9 @@ const S = {
     diary:'Diary', yesterday:'Yesterday', yDate:'Sunday, November 15', addHere:'Add an entry for this day',
     leftN:n=>`${n} left`, tabs:['Today','Diary','Week','Profile'], cam:'Take a photo of food',
     drop:'Drop a food photo here', dropOr:'or', addFood:'Add food', logout:'Sign out',
+    settings:'Settings', view:'Appearance', theme:'Theme', system:'System', langL:'Language', langV:'English', units:'Units', metric:'Metric', mascot:'Mascot',
+    groupBy:'Group by meal', groupOn:'Today and the diary split entries into breakfast, lunch, dinner and snack, with totals for each.', groupOff:'Entries show as one list by time, with the meal in each row.',
+    nEntries:n=>`${n} ${n === 1 ? 'entry' : 'entries'}`, emptyDay:'Nothing eaten yet',
   },
 };
 let T = S[lang];
@@ -791,7 +801,7 @@ function row(id, o={}){
   const cls = ['mrow', o.newId === id && 'new', o.hover === id && 'hover', o.ghost === id && 'ghost'].filter(Boolean).join(' ');
   const badge = o.queued === id ? `<span class="badge">${I('cloud-off')}${T.queued}</span>` : '';
   const acts = o.desk && o.hover === id ? `<span class="ra"><span role="button" aria-label="${T.moveAria(name(id))}" title="${T.move}">${I('move')}</span><span class="tr" role="button" aria-label="${T.delAria(name(id))}" title="${T.del}">${I('trash','sm')}</span></span>` : '';
-  const r = `<div class="${cls}" role="button" aria-label="${name(id)}, ${t}, ${fmt(d.k)} ${T.kcal}"><span class="thumb ${d.ph ? '' : 'ill'}">${d.ph ? PHOTO : I('utensils','sm')}</span><span class="main"><span class="d">${name(id)}</span><span class="tm">${t}${badge}</span></span><span class="kc">${fmt(d.k)} ${T.kcal}</span>${acts}</div>`;
+  const r = `<div class="${cls}" role="button" aria-label="${name(id)}, ${t}, ${fmt(d.k)} ${T.kcal}"><span class="thumb ${d.ph ? '' : 'ill'}">${d.ph ? PHOTO : I('utensils','sm')}</span><span class="main"><span class="d">${name(id)}</span><span class="tm">${o.flat ? `${T.type[o.flat[id]]} · ` : ''}${t}${badge}</span></span><span class="kc">${fmt(d.k)} ${T.kcal}</span>${acts}</div>`;
   if (o.swipe === id) return `<div class="mswipe"><div class="sw-acts" aria-hidden="true"><span class="mv">${I('move','sm')}${T.move}</span><span class="dl">${I('trash','sm')}${T.del}</span></div>${r}</div>`;
   return r;
 }
@@ -806,6 +816,17 @@ function sections(day, o={}){
   }).join('');
   return `<div class="meals"><h2 class="sr">${T.meals}</h2>${out}</div>`;
 }
+function flatList(day, o={}){
+  const typeOf = Object.fromEntries(Object.entries(day).flatMap(([t, ids]) => ids.map(id => [id, t])));
+  const ids = Object.keys(typeOf).sort((a, b) => (D[a].h * 60 + D[a].m) - (D[b].h * 60 + D[b].m));
+  return `<div class="meals"><h2 class="flat-h"><span>${T.meals}</span><span>${ids.length ? T.nEntries(ids.length) : ''}</span></h2><div class="msec flat">${ids.length ? ids.map(id => row(id, {...o, flat:typeOf})).join('') : `<div class="flat-empty">${T.emptyDay}</div>`}</div></div>`;
+}
+const cell = (main, right, sub='') => `<div class="cell"><span class="main"><span>${main}</span>${sub ? `<span class="sub">${sub}</span>` : ''}</span>${right}</div>`;
+const sw = (on, label) => `<span class="switch ${on ? 'on' : ''}" role="switch" aria-checked="${on}" aria-label="${label}"></span>`;
+const chevR = `<span class="chev">${I('chev-r','sm')}</span>`;
+const settingsPhone = on => `<div class="large-title">${T.settings}</div><div class="content"><div class="pad">
+  <div class="group-h">${T.view}</div><div class="group">${cell(T.theme, `<span class="val">${T.system}</span>${chevR}`)}${cell(T.langL, `<span class="val">${T.langV}</span>${chevR}`)}${cell(T.units, `<span class="val">${T.metric}</span>${chevR}`)}${cell(T.mascot, sw(true, T.mascot))}${cell(T.groupBy, sw(on, T.groupBy))}</div>
+  <div class="group-f">${on ? T.groupOn : T.groupOff}</div></div></div>${tabbar(3)}`;
 const skeleton = () => `<div class="meals" aria-busy="true">${[2, 1].map(n => `<div class="msec"><div class="msec-h"><div class="skel" style="width:40%;height:18px"></div><div class="skel" style="width:30%"></div></div>${Array.from({length:n}, () => `<div class="skel-row"><div class="skel" style="width:var(--meal-thumb-size);height:var(--meal-thumb-size)"></div><div class="stack-sm grow"><div class="skel" style="width:70%"></div><div class="skel" style="width:25%"></div></div></div>`).join('')}</div>`).join('')}</div>`;
 const tabbar = (on=0) => { const t = (ic, i) => `<span class="tab ${i === on ? 'on' : ''}">${I(ic)}${T.tabs[i]}</span>`; return `<nav class="tabbar">${t('home',0)}${t('book',1)}<span class="cam" aria-label="${T.cam}">${I('camera')}</span>${t('chart',2)}${t('user',3)}</nav>`; };
 const titleT = () => `<div class="large-title">${T.today}<span class="date">${T.date}</span></div>`;
@@ -818,12 +839,12 @@ const moveSheet = (id, cur) => `<div class="scrim"></div><div class="sheet">${sh
   ? `<div class="cell dis" role="radio" aria-checked="true" aria-disabled="true"><span class="main">${T.type[t]}</span><span class="val">${T.here}</span>${I('check','sm')}</div>`
   : `<div class="cell" role="radio" aria-checked="false"><span class="main">${T.type[t]}</span></div>`).join('')}</div></div>`;
 const phone = (inner, cap) => `<figure class="frame"><div class="phone">${inner}</div><figcaption>${cap}</figcaption></figure>`;
-const todayPhone = ({day, scroll=0, o={}, extra='', top='', loading=false}) => `${titleT()}${top}<div class="content"><div class="pad stack" style="margin-top:-${scroll}px">${loading ? '<div class="skel" style="height:calc(var(--space-12) * 5);border-radius:var(--radius-lg)"></div>' : kcalCard(dayTotal(day))}${quick()}${loading ? skeleton() : sections(day, o)}</div></div>${tabbar(0)}${extra}`;
+const todayPhone = ({day, scroll=0, o={}, extra='', top='', loading=false}) => `${titleT()}${top}<div class="content"><div class="pad stack" style="margin-top:-${scroll}px">${loading ? '<div class="skel" style="height:calc(var(--space-12) * 5);border-radius:var(--radius-lg)"></div>' : kcalCard(dayTotal(day))}${quick()}${loading ? skeleton() : o.flatMode ? flatList(day, o) : sections(day, o)}</div></div>${tabbar(0)}${extra}`;
 function dayTotalCard(e){
   return `<section class="card" aria-label="${T.yesterday}"><div class="sum-line"><span class="t-title num">${T.of(fmt(e.k), fmt(NORM.k))}</span><span class="rest">${T.leftN(fmt(NORM.k - e.k))}</span></div>${bar(e.k, NORM.k)}<div class="mac-grid">${[[T.prot,'p','p'],[T.fat,'f','f'],[T.carbs,'c','c']].map(([nm, cls, k]) => `<div class="mac"><span class="mac-h"><i class="m-${cls}"></i>${nm}</span><span class="mac-v">${fmt(e[k])}<small> / ${NORM[k]}${NB}${T.g}</small></span>${bar(e[k], NORM[k], cls)}</div>`).join('')}</div></section>`;
 }
 const pager = () => `<div class="pager"><span class="ib" role="button" aria-label="prev">${I('chev-l')}</span><span class="pick"><span class="t-headline">${T.yesterday}${I('chev-d')}</span><span class="t-foot muted">${T.yDate}</span></span><span class="ib" role="button" aria-label="next">${I('chev-r')}</span></div>`;
-const diaryPhone = ({day, scroll=0, o={}}) => `<div class="large-title">${T.diary}</div><div class="content"><div class="pad stack" style="margin-top:-${scroll}px">${pager()}${dayTotalCard(dayTotal(day))}${sections(day, o)}${Object.keys(day).length ? `<button class="btn btn-tonal">${T.addHere}</button>` : ''}</div></div>${tabbar(1)}`;
+const diaryPhone = ({day, scroll=0, o={}}) => `<div class="large-title">${T.diary}</div><div class="content"><div class="pad stack" style="margin-top:-${scroll}px">${pager()}${dayTotalCard(dayTotal(day))}${o.flatMode ? flatList(day, o) : sections(day, o)}${Object.keys(day).length ? `<button class="btn btn-tonal">${T.addHere}</button>` : ''}</div></div>${tabbar(1)}`;
 
 /* desktop */
 const side = on => `<aside class="side"><div class="brand"><span class="mark">${I('plate','sm')}</span>OpenCalorieTracker</div><button class="btn btn-primary btn-sm" style="width:100%">${I('camera','sm')}${T.addFood}</button>${[['home',0],['book',1],['chart',2],['user',3]].map(([ic, i]) => `<span class="nav-i ${i === on ? 'on' : ''}">${I(ic)}${T.tabs[i]}</span>`).join('')}</aside>`;
@@ -838,7 +859,7 @@ function render(){
   const doc = document.getElementById('doc');
   doc.innerHTML = `
 <h1 class="doc-h1">OCT-238 · Приёмы пищи на «Сегодня» и в дневнике</h1>
-<p class="doc-lead">Записи дня собраны в четыре секции в порядке дня — Завтрак, Обед, Ужин, Перекус. У секции в шапке итог ккал и БЖУ, внутри — записи по времени. Пустой приём — одна компактная строка «+ Добавить» с уже выбранным типом. Приём у записи меняется свайпом (кнопка «Перенести») или перетаскиванием на компьютере, без экрана правки. Новых токенов нет — только существующие из OCT-13/19. Пример — реальный день владельца из v0.1.0. Язык интерфейса переключается в панели сверху.</p>
+<p class="doc-lead">Записи дня собраны в четыре секции в порядке дня — Завтрак, Обед, Ужин, Перекус. У секции в шапке итог ккал и БЖУ, внутри — записи по времени. Пустой приём — одна компактная строка «+ Добавить» с уже выбранным типом. Приём у записи меняется свайпом (кнопка «Перенести») или перетаскиванием на компьютере, без экрана правки. Новых токенов нет — только существующие из OCT-13/19. Группировку можно выключить в настройках (раздел 6). Пример — реальный день владельца из v0.1.0. Язык интерфейса переключается в панели сверху.</p>
 
 <section class="doc-section" id="today">
   <h2 class="doc-h2">1 · «Сегодня»</h2>
@@ -887,8 +908,20 @@ function render(){
   <div class="row"><div class="scale">${scale()}</div></div>
 </section>
 
+<section class="doc-section" id="setting">
+  <h2 class="doc-h2">6 · Настройка «Группировать по приёмам»</h2>
+  <p class="doc-lead">Группировку можно выключить: Профиль → Настройки → Вид. По умолчанию включена. Настройка одна на «Сегодня», дневник и компьютер, хранится в профиле пользователя и приходит на все устройства. Переключение мгновенное, данные не меняются: тип у записей остаётся, его видно в строке.</p>
+  <div class="row">
+    ${phone(settingsPhone(true), `<b>6.1 Включено (по умолчанию).</b> Строка с переключателем в группе «Вид», под группой — что он делает.`)}
+    ${phone(settingsPhone(false), `<b>6.2 Выключено.</b> Подпись меняется: что будет вместо секций.`)}
+    ${phone(todayPhone({day:DAY, scroll:330, o:{flatMode:true}}), `<b>6.3 «Сегодня» без группировки.</b> Один список по времени, как до OCT-238: подпись «Приёмы пищи · 6 записей», во второй строке — тип и время («Ужин · 17:10»). Без итогов по приёмам и пустых строк «+ Добавить». Свайп — «Перенести» и «Удалить», как в 2.1.`)}
+    ${phone(todayPhone({day:{}, scroll:0, o:{flatMode:true}}), `<b>6.4 Пустой день без группировки.</b> Прежняя заглушка «Пока ничего не съедено».`)}
+    ${phone(diaryPhone({day:DAY_Y, scroll:170, o:{flatMode:true}}), `<b>6.5 Дневник без группировки.</b> Тот же список по времени; на компьютере — так же, перетаскивание выключено, «Перенести» на строке остаётся.`)}
+  </div>
+</section>
+
 <section class="doc-section" id="spec">
-  <h2 class="doc-h2">6 · Для разработки</h2>
+  <h2 class="doc-h2">7 · Для разработки</h2>
   <ul class="spec">
     <li>Порядок секций фиксированный: breakfast, lunch, dinner, snack. Внутри — по <code>eatenAt</code> от раннего к позднему (не по часам на циферблате: поздний перекус в 00:30, засчитанный во вчера, идёт после 16:00).</li>
     <li>Секция = карточка (<code>--color-surface</code>, <code>--radius-lg</code>), между секциями <code>--space-3</code>. Шапка: название и итог ккал — <code>--text-headline-*</code>; БЖУ — <code>--text-footnote-*</code>, <code>--color-text-secondary</code>, формат «Б 42 · Ж 29 · У 73 г» с неразрывными пробелами. Итоги — из тех же сумм, что карточка дня (сумма по записям, округление при выводе).</li>
@@ -897,12 +930,13 @@ function render(){
     <li>Свайп: две кнопки по <code>--swipe-action-width</code>; «Перенести» — <code>--color-accent</code> / <code>--color-on-accent</code>, «Удалить» — как сейчас. Полный свайп — удаление. Лист переноса — <code>Sheet</code> + <code>List</code>, текущий тип с галочкой и <code>aria-disabled</code>. После переноса — подсветка <code>meal-row--new</code> и тост с «Вернуть»; запись уходит через outbox, как правка.</li>
     <li>Компьютер: кнопки на строке по образцу корзины (<code>--tap-min</code>, <code>--color-hover</code>), «Перенести» открывает тот же список поповером. Перетаскивание — HTML5 DnD или pointer events только при <code>(pointer: fine)</code>; цель — пунктир 2${NB}px <code>--color-accent</code> + <code>--color-accent-soft</code>. Esc отменяет.</li>
     <li>VoiceOver: скрытый <code>h2</code> «Приёмы пищи»; каждая секция — <code>&lt;section aria-labelledby&gt;</code> с <code>h3</code> «Ужин, 508 ккал»; у строки БЖУ — полная подпись «белки 29 г, жиры 37 г, углеводы 16 г». Строка: «Моти, 17:10, 190 ккал»; кнопки: «Перенести «Моти» в другой приём», «Удалить «Моти»»; пустой приём: «Добавить завтрак». Перетаскивание — только для мыши, у клавиатуры и VoiceOver есть кнопка «Перенести».</li>
-    <li>Удалено: заглушки «Пока ничего не съедено» (Сегодня) и «Записей нет» (дневник), подпись «N приёмов пищи». Тип в строке записи не дублируется.</li>
+    <li>Настройка <code>groupByMeal</code> (boolean, по умолчанию <code>true</code>) — в настройках пользователя на сервере, рядом с маскотом; переключатель — существующий <code>Switch</code> в группе «Вид». При <code>false</code> — прежний плоский список (один <code>MealRow</code> на всё, вторая строка «Тип · время»), прежние заглушки пустого дня, без перетаскивания.</li>
+    <li>Удалено (при включённой группировке): заглушки «Пока ничего не съедено» (Сегодня) и «Записей нет» (дневник), подпись «N приёмов пищи». Тип в строке записи не дублируется.</li>
   </ul>
 </section>
 
 <section class="doc-section" id="copy">
-  <h2 class="doc-h2">7 · Тексты</h2>
+  <h2 class="doc-h2">8 · Тексты</h2>
   <div class="row">${copyTable()}</div>
 </section>`;
   document.querySelectorAll('.phone').forEach(p => { p.insertAdjacentHTML('afterbegin', '<div class="status"><span>9:41</span></div><div class="island"></div>'); p.insertAdjacentHTML('beforeend', '<div class="home-ind"></div>'); });
@@ -936,6 +970,10 @@ function copyTable(){
     ['VoiceOver, строка','Моти, 17:10, 190 ккал','Mochi, 5:10 PM, 190 kcal'],
     ['VoiceOver, кнопки', `${R.moveAria('Моти')} · ${R.delAria('Моти')} · Добавить завтрак`, `${E.moveAria('Mochi')} · ${E.delAria('Mochi')} · Add breakfast`],
     ['Скрытый заголовок', R.meals, E.meals],
+    ['Настройки, переключатель', R.groupBy, E.groupBy],
+    ['Подпись, включено', R.groupOn, E.groupOn],
+    ['Подпись, выключено', R.groupOff, E.groupOff],
+    ['Без группировки', `${R.meals} · ${R.nEntries(6)} · Ужин · 17:10 · ${R.emptyDay}`, `${E.meals} · ${E.nEntries(6)} · Dinner · 5:10 PM · ${E.emptyDay}`],
   ];
   return `<table class="copy"><thead><tr><th>Где</th><th>RU</th><th>EN</th></tr></thead><tbody>${C.map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join('')}</tbody></table>`;
 }
