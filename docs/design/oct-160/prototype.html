@@ -905,6 +905,11 @@ body{padding:var(--space-10) var(--space-8)}
   <h2 class="doc-h2">6 · «Приготовил»: списание с подтверждением и отмена</h2>
   <div class="row" id="cooked-row"></div>
 </section>
+<section class="doc-section" id="ready">
+  <h2 class="doc-h2">8 · Готовое блюдо: остаток в граммах, порция вычитается</h2>
+  <p class="doc-lead">Запрос владельца: приготовил салат → беру из готового, указываю граммы в тарелке → они вычитаются из салата, в «Сегодня» — салат с этими граммами. Меняет AC-4.6 («из холодильника ничего не списывается») — только для готового блюда; продукты по-прежнему списывает «Приготовил».</p>
+  <div class="row" id="ready-row"></div>
+</section>
 <section class="doc-section" id="ai">
   <h2 class="doc-h2">7 · ИИ-помощник: разбор текста, «Сделать легче», «Придумать из того, что есть»</h2>
   <div class="row" id="ai-row"></div>
@@ -1275,6 +1280,39 @@ document.getElementById('cooked-row').innerHTML = [
   frame('6.2','Проверка списания','Ингредиенты × N/порции ↔ продукты. Количество правится в строке. Перевод единиц подписан: шт↔г через вес штуки, г↔мл 1:1 (AC-8.5). Не нашли продукт — строка «не списываем», касание — выбрать. Есть меньше, чем нужно, — подсветка «останется 0 г», не минус (E-10.10). Без «Списать» ничего не меняется.', woScreen()),
   frame('6.3','Списано · Отменить','После «Списать» — назад на рецепт и тост «Списано 5 продуктов · Отменить» (6 с). AC-8.7.', recipe({bottom:barLog, extra:toast('Списано 5 продуктов','Отменить','pkg').replace('class="toast"','class="toast" style="bottom:calc(34px + var(--control-height-lg) + var(--space-8))"')})),
   frame('6.4','Готовка за 7 дней','Второй путь отмены (AC-8.7): «Холодильник» → «Готовка за 7 дней». Отмена — без подтверждения: её можно повторить списанием.', histScreen),
+].join('');
+
+/* 8 · Ready dish: leftover in grams, a portion subtracts from it */
+const RS = {n:'Салат с тунцом', img:'salad', k100:118, kp:236, por:4, pg:200};
+const RP = {...R.plov, n:'Плов домашний'};
+const readyCell = (r, left, sub, {warn=''}={}) => `<div class="cell rcell" role="button" aria-label="${r.n}, осталось ${left} г. Записать порцию">${rthumb(r,'sm')}<span class="main"><span class="t">${r.n}</span><span class="sub num">${sub}</span>${warn?`<span class="miss">${I('alert','sm')}${warn}</span>`:''}</span><span class="val num">${left} г</span><span class="step" aria-hidden="true">${I('plus')}</span></div>`;
+const READY_TODAY = `<div><div class="sec-h"><span>Готово дома</span><span>касание — записать порцию</span></div><div class="group">${readyCell(RS,'800','118 ккал/100 г · сегодня, 12:10')}${readyCell(RP,'1 050','166 ккал/100 г · вчера')}</div></div>`;
+const cookedReady = `<div class="scrim"></div><div class="sheet" role="dialog" aria-labelledby="crs"><div class="grab"></div><div class="sheet-head"><b class="t-headline" id="crs">Приготовил</b><span class="x" aria-label="Закрыть">${I('x')}</span></div>
+  <span class="t-sub muted">Сколько порций «Салата с тунцом»?</span>
+  <div class="qty"><span class="step" aria-label="Меньше">${I('minus')}</span><span class="qv"><b>4</b><small>порции · как в рецепте</small></span><span class="step" aria-label="Больше">${I('plus')}</span></div>
+  <div class="group inset"><div class="cell" style="background:transparent"><span class="main"><span>Готовое — в холодильник</span><span class="sub">чтобы записывать порции из него</span></span><span class="switch on" role="switch" aria-checked="true"></span></div><div class="kv" style="background:transparent"><span>Вес готового</span><span class="wv">800<small>г</small></span></div></div>
+  <p class="t-foot muted" style="margin-top:calc(-1 * var(--space-2))">Взвесьте миску без посуды — остаток будет точным. По рецепту — 800 г.</p>
+  <button class="btn btn-primary">Дальше</button></div>`;
+const readySheet = ({g='250', left='550', over=false}={}) => `<div class="scrim"></div><div class="sheet" role="dialog" aria-labelledby="rsh"><div class="grab"></div><div class="sheet-head"><span class="ph-h">${rthumb(RS,'sm')}<b class="t-headline" id="rsh">Салат с тунцом</b></span><span class="x" aria-label="Закрыть">${I('x')}</span></div>
+  <div class="qty"><span class="step" aria-label="Меньше на 10 г">${I('minus')}</span><span class="qv" aria-live="polite"><b>${g}</b><small>г в тарелке</small></span><span class="step" aria-label="Больше на 10 г">${I('plus')}</span></div>
+  <div class="chips">${['150','200','250','300'].map(x=>`<span class="chip sm ${x===g?'on':''}">${x} г</span>`).join('')}<span class="chip sm ${over?'':''}">Всё · 800 г</span></div>
+  <div class="res"><b>${over?'1 062':Math.round(+g*1.18)} ккал</b><span class="macros"><span><i class="m-p"></i>Б ${over?71:Math.round(+g*0.08)}</span><span><i class="m-f"></i>Ж ${over?59:Math.round(+g*0.066)}</span><span><i class="m-c"></i>У ${over?59:Math.round(+g*0.066)}</span></span></div>
+  ${over?`<span class="t-foot center" style="color:var(--color-warning)">${I('alert','sm')} Больше, чем осталось (800 г) — запишем 900 г, салат закончится</span>`:`<span class="t-foot muted center num">Осталось 800 г → останется <b>${left} г</b></span>`}
+  ${seg('Обед')}<button class="btn btn-primary">Записать в обед</button></div>`;
+const manualReady = `<div><div class="sec-h"><span>Готово дома</span><span>остаток</span></div><div class="group">${readyCell(RS,'800','118 ккал/100 г · сегодня').replace(/<span class="step"[^]*?<\/span><\/div>$/,'</div>')}${readyCell(RP,'1 050','166 ккал/100 г · вчера').replace(/<span class="step"[^]*?<\/span><\/div>$/,'</div>')}</div></div>`+RECENT;
+const saladDish = {n:'Салат с тунцом', g:250, k:295, p:20, f:17, c:17, conf:'ready'};
+BADGE.ready = `<span class="badge rcp">${I('fridge')}из готового</span>`;
+const readyNote = `<div class="foot-note">${I('fridge','sm')}<span>Вес меняет остаток салата: сейчас осталось 550 г. Удалите блюдо — 250 г вернутся.</span></div>`;
+const FR_READY = `<div><div class="sec-h"><span>Готовое</span><span>сверху, пока не съедено</span></div><div class="group">${readyCell(RS,'550','сегодня, 12:10 · 4 порции')}${readyCell(RP,'1 050','вчера · 3 порции')}${readyCell({n:'Борщ',img:'soup-borscht'},'700','4 дня назад',{warn:'Стоит 4 дня — проверьте'})}</div><p class="group-f">Закончилось — строка пропадает сама. Свайп влево — «Выбросить остаток».</p></div>`;
+const readyAct = `<div class="scrim"></div><div class="action-sheet" role="dialog" aria-label="Салат с тунцом, осталось 550 г"><div class="grp"><div class="it">${I('plus','sm')}Записать порцию</div><div class="it">${I('pencil','sm')}Изменить остаток</div><div class="it">${I('chef','sm')}Открыть рецепт</div><div class="it" style="color:var(--color-danger)">${I('trash','sm')}Выбросить остаток</div></div><div class="grp"><div class="it cancel">Отмена</div></div></div>`;
+document.getElementById('ready-row').innerHTML = [
+  frame('8.1','Приготовил → в холодильник','Тот же лист 6.1 плюс переключатель «Готовое — в холодильник» (включён) и вес готового. Дальше — проверка списания продуктов (6.2), если холодильник не пуст; иначе сразу «Готово». То же в конце «Готовлю» (4.2). Готовое без рецепта (купили, приготовили «на глаз») — «+» в холодильнике → «Готовое блюдо»: название, вес, ккал/100 г из истории.', recipe({extra:cookedReady}).replace(/Плов домашний<\/h2>/,'Салат с тунцом</h2>').replace('6 порций по 350 г · готовое 2 100 г · записывали вчера','4 порции по 200 г · готовое 800 г')),
+  frame('8.2','«Сегодня»: Готово дома','Пока в холодильнике есть готовое, на «Сегодня» под «Вручную» — блок «Готово дома»: блюдо, ккал/100 г, когда приготовлено, остаток. Касание строки — лист порции 8.3. Путь: касание → граммы → «Записать в обед» = 2–3 касания. Нет готового — блока нет.', todayScreen({meals:READY_TODAY+mealsGroup(M.bf)})),
+  frame('8.3','Сколько в тарелке','По умолчанию — порция рецепта (200 г) или граммы прошлой записи из этого блюда. Степпер по 10 г, быстрые значения и «Всё». Видно, сколько останется. Приём пищи — по времени. «Записать» сразу пишет в дневник, без экрана правки; тост «Салат с тунцом, 250 г — в обед · Отменить».', todayScreen({meals:READY_TODAY+mealsGroup(M.bf), extra:readySheet()})),
+  frame('8.4','Больше, чем осталось','Не запрещаем (весы врут, добавили ещё): пишем введённые граммы, остаток → 0, блюдо пропадает из «Готово дома». Предупреждение — текстом и значком.', todayScreen({meals:READY_TODAY+mealsGroup(M.bf), extra:readySheet({g:'900', over:true})})),
+  frame('8.5','«Вручную» и экран правки','Готовое — первым блоком в «Вручную» и в «+ Добавить блюдо» (над рецептами): если сфоткали тарелку, салат добавляется туда же. Распознали «салат» и он есть среди готового — подсказка «Из готового: Салат с тунцом» (как «Ваш рецепт», 3.5).', manual('', manualReady)),
+  frame('8.6','В приёме пищи','Блюдо с бейджем «из готового». Изменили вес — остаток пересчитался; удалили блюдо или приём — граммы вернулись. Ккал — снимок по рецепту на момент записи. Офлайн запись работает, остаток уменьшится при синхронизации.', editScreen({title:'Сегодня, 13:05', meal:'Обед', dishes:dish(saladDish), note:readyNote, totalsHtml:totals('295',20,17,17,rthumb(RS))})),
+  frame('8.7','Где видно, что приготовлено','«Кухня → Холодильник»: блок «Готовое» сверху — что есть, сколько осталось, когда приготовлено. Старше 3 дней — пометка текстом (без блокировки). Касание — действия: записать порцию, поправить остаток, выбросить.', kitchen('Холодильник', FR_READY+`<div class="group">${FRIDGE.slice(0,3).map(x=>fcell(x)).join('')}</div>`, {extra:readyAct})),
 ].join('');
 
 /* 7 · AI */
