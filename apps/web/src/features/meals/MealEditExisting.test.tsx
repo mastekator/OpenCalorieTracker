@@ -422,6 +422,8 @@ describe('recalculation from the photo (OCT-62)', () => {
     {
       recognition = 'ready',
       recognize = () => Response.json({ dishes: [porridge] }),
+      refine = () =>
+        Response.json({ error: { code: 'ai_no_vision' } }, { status: 409 }),
     } = {},
   ) {
     sent = [];
@@ -448,6 +450,7 @@ describe('recalculation from the photo (OCT-62)', () => {
           });
         }
         if (url === '/api/photos/p1/recognize') return recognize();
+        if (url === '/api/ai/refine') return refine();
         if (url === '/api/dishes/previous') return Response.json([null]);
         const page = {
           rev: 1,
@@ -534,13 +537,12 @@ describe('recalculation from the photo (OCT-62)', () => {
     expect(screen.getByText('The photo is no longer stored')).toBeTruthy();
   });
 
-  it('«Not now» drops the banner, patches the offer, the header action appears', async () => {
+  it('«Not now» drops the banner and patches the offer', async () => {
     await setup(withPhoto());
     expect(banner()).toBeTruthy();
     expect(recalcButton()).toBeNull(); // no duplicate while the banner is up
     fireEvent.click(button('Not now'));
     await waitFor(() => expect(banner()).toBeNull());
-    expect(recalcButton()).toBeTruthy();
     await waitFor(() =>
       expect(sent).toContainEqual(
         expect.objectContaining({
@@ -551,11 +553,28 @@ describe('recalculation from the photo (OCT-62)', () => {
     );
   });
 
-  it('keeps the draft; «Restore my numbers» brings it back as it was', async () => {
+  it('«Recognize again» shown: no «Recalculate from photo» (OCT-273)', async () => {
     await setup(withPhoto({ recalcOffer: false }));
+    expect(button('Recognize again')).toBeTruthy();
+    expect(recalcButton()).toBeNull();
+  });
+
+  it('no «Recognize again» (the model reads no photos): «Recalculate from photo» is back', async () => {
+    await setup(withPhoto({ recalcOffer: false }));
+    fireEvent.click(button('Recognize again'));
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('button', { name: 'Recognize again' }),
+      ).toBeNull(),
+    );
+    expect(recalcButton()).toBeTruthy();
+  });
+
+  it('keeps the draft; «Restore my numbers» brings it back as it was', async () => {
+    await setup(withPhoto());
     fireEvent.click(screen.getByRole('radio', { name: 'Lunch' }));
     fireEvent.change(weight(), { target: { value: '400' } });
-    fireEvent.click(recalcButton()!);
+    fireEvent.click(button('Recalculate'));
     expect(dialog()).toBeNull(); // the leave guard lets it through
     await screen.findByText('Porridge');
     expect(
