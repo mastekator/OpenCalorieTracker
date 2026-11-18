@@ -62,6 +62,7 @@ function serve(session: object | null, offline = false) {
           interview: 'not_configured',
           providerName: null,
           baseUrlHost: null,
+          refineLimit: null,
         });
       return Response.json(
         { error: { code: 'unauthenticated' } },

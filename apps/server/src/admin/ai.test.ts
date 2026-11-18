@@ -48,6 +48,7 @@ describe('GET /api/admin/ai', () => {
       keyUnreadable: false,
       savedInactive: false,
       rev: null,
+      refineLimit: null,
       state: 'unknown',
       checkedAt: null,
     });

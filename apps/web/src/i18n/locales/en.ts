@@ -1012,6 +1012,10 @@ export const en = {
         'Photo recognition and the goal assistant will turn off for everyone. The key will be deleted',
       off_confirm: 'Turn off',
       off_done: 'AI turned off',
+      limit: 'Refinements per meal per visit',
+      limit_hint: 'Empty — no limit',
+      limit_invalid: 'A whole number from 1 to 50, or empty',
+      limit_saved: 'Refinement limit saved',
     },
     privacy: {
       title: 'Where your data goes',
@@ -1224,6 +1228,7 @@ export const en = {
       queued:
         'The photo isn’t sent yet — you can refine with text once you’re online',
       gone: 'The photo is no longer stored',
+      limit: 'Refinement limit reached — edit by hand',
       mark: { new: 'new', changed: 'changed', was: 'was {what}' },
       err: {
         unavailable: {
@@ -1312,6 +1317,7 @@ export const en = {
     invite_expired: 'This link has expired',
     registration_failed: 'Could not create an account with these details',
     too_many_attempts: 'Too many attempts. Try again later',
+    refine_limit_reached: 'Refinement limit reached — edit by hand',
     device_blocked: 'Sign-in from this device is temporarily blocked',
     ip_blocked: 'Sign-in from this network is temporarily blocked',
     not_configured: 'This feature isn’t set up on the server',

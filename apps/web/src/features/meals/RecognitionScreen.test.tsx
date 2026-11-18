@@ -41,6 +41,7 @@ const statusOf = (recognition: string) =>
     interview: 'ready',
     providerName: null,
     baseUrlHost: null,
+    refineLimit: null,
   });
 
 /**

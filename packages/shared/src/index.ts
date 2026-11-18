@@ -23,6 +23,7 @@ export type ErrorCode =
   | 'invite_expired'
   | 'registration_failed'
   | 'too_many_attempts'
+  | 'refine_limit_reached'
   | 'device_blocked'
   | 'ip_blocked'
   | 'not_configured'

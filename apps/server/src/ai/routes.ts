@@ -14,17 +14,24 @@ import { validate } from '../http/validate.js';
 import { photoPath } from '../photos/store.js';
 import { recognizeMeal } from './recognize.js';
 import { refineMeal, type Refined } from './refine.js';
-import { baseUrlHost } from './settings.js';
+import { baseUrlHost, refineLimit } from './settings.js';
 import { interviewStatus, recognitionStatus } from './status.js';
 
 const RESULT_TTL_MS = 10 * 60_000;
+const SESSION_TTL_MS = 24 * 3600_000;
 
 /** AI status, photo recognition and refining (ADR-0007 "HTTP", ADR-0020 §5). State is per app instance. */
-export function aiRoutes({ config, ai }: AppDeps) {
+export function aiRoutes({ config, db, ai }: AppDeps) {
   // Successful and in-flight AI calls by "userId:photoId" or "userId:refine:requestId"; failures are dropped at once.
   const results = new Map<string, Promise<unknown>>();
   // Users with an AI call running now: one call per user at a time, recognize and refine alike.
   const running = new Set<number>();
+  // Refinements by "userId:sessionId" (ADR-0020 §6); `charged` keeps a retried requestId from counting twice.
+  // shortcut: in memory, a restart resets the counts; fine per ADR-0020 §6.
+  const sessions = new Map<
+    string,
+    { used: number; at: number; charged: Set<string> }
+  >();
 
   /** Joins a running or finished call first, so a retry after a dropped connection never gets 429. */
   const once = <T>(key: string, userId: number, run: () => Promise<T>) => {
@@ -55,6 +62,7 @@ export function aiRoutes({ config, ai }: AppDeps) {
           settings?.provider === 'openai-compatible'
             ? baseUrlHost(settings)
             : null,
+        refineLimit: refineLimit(db),
       } satisfies AiStatus);
     })
     .post('/photos/:id/recognize', requireUser, async (c) => {
@@ -86,11 +94,39 @@ export function aiRoutes({ config, ai }: AppDeps) {
         const model = ai.current()?.model ?? null;
         if (!model) throw new ApiError(409, 'ai_not_configured');
         const user = c.var.user;
-        const { mode, requestId, photoId, text, dishes } = c.req.valid('json');
+        const { mode, requestId, sessionId, photoId, text, dishes } =
+          c.req.valid('json');
         if (mode === 'again' && !photoId)
           throw new ApiError(400, 'validation_failed', [
             { path: ['photoId'], code: 'invalid_type' },
           ]);
+
+        const now = Date.now();
+        for (const [k, s] of sessions)
+          if (now - s.at > SESSION_TTL_MS) sessions.delete(k);
+        const sessionKey = `${user.id}:${sessionId}`;
+        const session = sessions.get(sessionKey) ?? {
+          used: 0,
+          at: now,
+          charged: new Set<string>(),
+        };
+        const key = `${user.id}:refine:${requestId}`;
+        const limit = refineLimit(db);
+        // A retry of a running, finished or charged request is never refused (it costs nothing).
+        if (
+          limit !== null &&
+          session.used >= limit &&
+          !results.has(key) &&
+          !session.charged.has(requestId)
+        )
+          throw new ApiError(429, 'refine_limit_reached');
+        const charge = () => {
+          if (session.charged.has(requestId)) return;
+          session.charged.add(requestId);
+          session.used++;
+          session.at = Date.now();
+          sessions.set(sessionKey, session);
+        };
 
         // Ownership before vision: another user's photo is 404 even when it would not be sent.
         let photo: { jpg: string; preview: string } | undefined;
@@ -113,35 +149,49 @@ export function aiRoutes({ config, ai }: AppDeps) {
         if (mode === 'again' && recognitionStatus(model) === 'no_vision')
           throw new ApiError(409, 'ai_no_vision');
 
-        const result = once<Refined>(
-          `${user.id}:refine:${requestId}`,
-          user.id,
-          async () => {
-            let jpeg: Uint8Array | undefined;
-            if (photo && mode === 'again')
-              jpeg = await readJpeg(photo.jpg, photo.preview);
-            // Refine sends the photo only when the model reads photos and it is still stored; else text only.
-            else if (photo && recognitionStatus(model) === 'ready')
-              jpeg = await readFile(photo.jpg).then(
-                (b) => new Uint8Array(b),
-                () => undefined,
-              );
-            const refined = await refineMeal(model, {
-              mode,
-              jpeg,
-              dishes,
-              text,
-              locale: user.locale,
-            });
-            // Thrown inside the call so an empty answer is never cached (ADR-0020 §5).
-            if (!refined.dishes.length)
-              throw new ApiError(422, 'ai_empty_result');
-            return refined;
-          },
+        const refine = async () => {
+          let jpeg: Uint8Array | undefined;
+          if (photo && mode === 'again')
+            jpeg = await readJpeg(photo.jpg, photo.preview);
+          // Refine sends the photo only when the model reads photos and it is still stored; else text only.
+          else if (photo && recognitionStatus(model) === 'ready')
+            jpeg = await readFile(photo.jpg).then(
+              (b) => new Uint8Array(b),
+              () => undefined,
+            );
+          const refined = await refineMeal(model, {
+            mode,
+            jpeg,
+            dishes,
+            text,
+            locale: user.locale,
+          });
+          // Thrown inside the call so an empty answer is never cached (ADR-0020 §5).
+          if (!refined.dishes.length)
+            throw new ApiError(422, 'ai_empty_result');
+          return refined;
+        };
+        const result = once<Refined>(key, user.id, () =>
+          refine().then(
+            (refined) => {
+              charge();
+              return refined;
+            },
+            (err: unknown) => {
+              // A timeout may still have cost the provider; other failures do not count.
+              if (err instanceof ApiError && err.timedOut) charge();
+              throw err;
+            },
+          ),
         );
+        const refined = await result;
         return c.json({
-          ...(await result),
-          left: null,
+          ...refined,
+          left:
+            limit === null
+              ? null
+              : // From the map: a retry of a call that charged meanwhile holds a stale copy.
+                Math.max(0, limit - (sessions.get(sessionKey)?.used ?? 0)),
         } satisfies RefineResponse);
       },
     );

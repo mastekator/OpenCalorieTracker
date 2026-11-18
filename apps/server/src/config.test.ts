@@ -133,7 +133,9 @@ describe('setupRequired (ADR-0021 §1, §6, §9)', () => {
         "INSERT INTO users (email, role, webauthn_user_id, created_at) VALUES ('a@b.c', 'admin', x'01', 0)",
       )
       .run();
-    t.db.exec('DROP TABLE setup_code; DROP TABLE ai_test_runs');
+    t.db.exec(
+      'DROP TABLE setup_code; DROP TABLE ai_test_runs; DROP TABLE ai_limits',
+    );
     t.db.pragma('user_version = 10');
     migrate(t.db);
     expect(t.db.prepare('SELECT COUNT(*) AS n FROM setup_code').get()).toEqual({

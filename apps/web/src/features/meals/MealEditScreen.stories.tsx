@@ -364,6 +364,32 @@ const refineResult: Story = {
 };
 export const RefineResult: Story = refineResult;
 export const RefineResultDark: Story = { ...refineResult, globals: dark };
+/** ADR-0020 §6: the refine limit is used up — the buttons wait, the list can still be edited by hand. */
+const refineLimit: Story = {
+  args: refineReady,
+  beforeEach: () => {
+    const real = window.fetch;
+    window.fetch = async (input, init) =>
+      String(input) === '/api/ai/refine'
+        ? Response.json(
+            { error: { code: 'refine_limit_reached' } },
+            { status: 429 },
+          )
+        : real(input, init);
+    return () => {
+      window.fetch = real;
+    };
+  },
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.type(
+      await canvas.findByRole('textbox', { name: 'What should I fix?' }),
+      'more buckwheat',
+    );
+    await userEvent.click(canvas.getByRole('button', { name: 'Refine' }));
+  },
+};
+export const RefineLimit: Story = refineLimit;
+export const RefineLimitDark: Story = { ...refineLimit, globals: dark };
 /** D.2: the model reads no photos — no «Recognize again», «Refine» goes as text. */
 const refineNoVision = {
   recognition: 'no_vision',

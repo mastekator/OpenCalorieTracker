@@ -254,6 +254,43 @@ describe('«What should I fix?» on the edit screen (OCT-261)', () => {
     ).toBeGreaterThan(0);
   });
 
+  it('refine_limit_reached: the buttons wait with «Refinement limit reached», no banner; edits by hand work (ADR-0020 §6)', async () => {
+    await setup();
+    await refine('there is chicken', failure(429, 'refine_limit_reached'));
+    expect(
+      screen.getByText('Refinement limit reached — edit by hand'),
+    ).toBeTruthy();
+    expect(screen.queryByRole('alert')).toBeNull();
+    type('one more');
+    expect(button('Refine')!.disabled).toBe(true);
+    for (const b of screen.getAllByRole('button', { name: 'Recognize again' }))
+      expect((b as HTMLButtonElement).disabled).toBe(true);
+    const weight = screen.getByRole('textbox', { name: 'Weight of Fried egg' });
+    fireEvent.change(weight, { target: { value: '100' } });
+    expect(weight).toHaveProperty('value', '100');
+    expect(total()).toContain('706');
+  });
+
+  it('left: 0 in an answer locks the next request the same way', async () => {
+    await setup();
+    await refine(
+      'there is chicken',
+      Response.json({
+        dishes: [
+          { ...noodles, ref: 'd1' },
+          { ...egg, ref: 'd2' },
+        ],
+        questions: [],
+        left: 0,
+      }),
+    );
+    type('one more');
+    expect(button('Refine')!.disabled).toBe(true);
+    expect(
+      screen.getByText('Refinement limit reached — edit by hand'),
+    ).toBeTruthy();
+  });
+
   it('«Refine»: marks, kcal shift, «Removed», a cleared field; «Undo» brings back exactly the list before', async () => {
     await setup();
     // A hand edit first: «Undo» must bring it back too (AC-3.3).
