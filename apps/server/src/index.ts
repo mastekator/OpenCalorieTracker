@@ -3,7 +3,7 @@ import './privileges.js';
 import { join } from 'node:path';
 import { serve } from '@hono/node-server';
 import { createApp } from './app.js';
-import { createModel, type AiModel } from './ai/model.js';
+import { createAiRuntime } from './ai/runtime.js';
 import { getAiSettings } from './ai/settings.js';
 import { ensureAdmin } from './auth/admin.js';
 import {
@@ -15,6 +15,7 @@ import {
 import { migrate } from './db/migrate.js';
 import { openDb } from './db/open.js';
 import { SWEEP_INTERVAL_MS, sweepPhotos } from './photos/sweep.js';
+import { loadSecrets } from './secrets.js';
 
 const config = loadConfig(process.env);
 config.dataDirWritable = dataDirWritable(config.dataDir);
@@ -34,15 +35,9 @@ for (const error of setupErrors(config, db)) {
   console.error(`[setup] ${error}: ${message}`);
 }
 
-// Broken AI settings must not take the server down: it falls back to manual mode.
-let model: AiModel | null = null;
-try {
-  model = await createModel(getAiSettings(config));
-} catch (err) {
-  console.error(
-    `[setup] AI model could not be created (${(err as Error).name}); AI is off.`,
-  );
-}
+const secrets = loadSecrets(config.dataDirWritable ? config.dataDir : null);
+const ai = createAiRuntime();
+await ai.apply(getAiSettings(config, db, secrets));
 
 // A failed sweep is retried next hour; it must not take the server down.
 const sweep = () =>
@@ -56,7 +51,7 @@ if (config.dataDirWritable) {
 
 serve(
   {
-    fetch: createApp({ config, db, model }).fetch,
+    fetch: createApp({ config, db, ai, secrets }).fetch,
     port: config.port,
     hostname: config.host,
   },

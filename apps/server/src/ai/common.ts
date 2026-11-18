@@ -29,9 +29,9 @@ export function toApiError(err: unknown, timedOut: boolean): ApiError {
 }
 
 /** mapError for calls that send an image: the model refused it (ADR-0007). */
-export function noVisionError(err: unknown, timedOut: boolean) {
+export function noVisionError(err: unknown, timedOut: boolean, model: AiModel) {
   if (timedOut || !isNoVision(err)) return undefined;
-  markNoVision();
+  markNoVision(model);
   return new ApiError(409, 'ai_no_vision');
 }
 
@@ -58,7 +58,11 @@ interface CallOptions<T> {
   timeoutMs: number;
   signal?: AbortSignal;
   /** Operation-specific error, checked before toApiError. */
-  mapError?: (err: unknown, timedOut: boolean) => ApiError | undefined;
+  mapError?: (
+    err: unknown,
+    timedOut: boolean,
+    model: AiModel,
+  ) => ApiError | undefined;
   /** Log fields before result=…; gets undefined on failure. */
   logExtra: (output: T | undefined) => string;
 }
@@ -87,7 +91,7 @@ export async function callModel<T>(
     for (let attempt = 1; ; attempt++) {
       try {
         output = await call(abortSignal);
-        recordAiResult();
+        recordAiResult(model);
         return output;
       } catch (err) {
         if (attempt === 1 && isSchemaError(err) && !abortSignal.aborted)
@@ -104,8 +108,9 @@ export async function callModel<T>(
     const timedOut = timeout.signal.aborted;
     // A schema mismatch means the provider answered: not a provider failure.
     if (!isSchemaError(err))
-      recordAiResult(err, timedOut ? timeoutMs : undefined);
-    const apiError = mapError?.(err, timedOut) ?? toApiError(err, timedOut);
+      recordAiResult(model, err, timedOut ? timeoutMs : undefined);
+    const apiError =
+      mapError?.(err, timedOut, model) ?? toApiError(err, timedOut);
     result = apiError.code;
     throw apiError;
   } finally {

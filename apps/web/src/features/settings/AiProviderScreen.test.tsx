@@ -42,6 +42,10 @@ const gemini: AdminAiStatus = {
   keySet: true,
   baseUrlHost: null,
   source: 'env',
+  keyLast4: null,
+  keyUnreadable: false,
+  savedInactive: false,
+  rev: null,
   state: 'ok',
   checkedAt: Date.now(),
 };

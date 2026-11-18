@@ -2,11 +2,13 @@ import { APICallError, UnsupportedFunctionalityError } from 'ai';
 import type { AiProviderState, AiStatus, RecognitionStatus } from '@oct/shared';
 import type { AiModel } from './model.js';
 
-// Learned from the first failed call (ADR-0007); kept until restart.
+// The model the app serves now (ADR-0018 §3); results of any other model are ignored.
+let active: AiModel | null = null;
+// Learned from the first failed call (ADR-0007); kept until the active model changes.
 let vision = true;
 
-export function markNoVision() {
-  vision = false;
+export function markNoVision(model: AiModel) {
+  if (model === active) vision = false;
 }
 
 export function recognitionStatus(model: AiModel | null): RecognitionStatus {
@@ -31,11 +33,26 @@ interface AiResult {
   details?: { status?: number; message?: string; timeoutSec?: number };
 }
 
-// The last real provider call since start (ADR-0013); a restart forgets it (E-6.1).
+// The last real provider call of the active model (ADR-0013); a restart forgets it (E-6.1).
 let last: AiResult | undefined;
 
-/** Called after every provider call: no argument on success, the error on failure; timeoutMs when the call ran out of time. */
-export function recordAiResult(err?: unknown, timeoutMs?: number) {
+/** Starts a fresh status and no-vision flag for the new active model (ADR-0018 §3). */
+export function setActiveModel(model: AiModel | null) {
+  active = model;
+  last = undefined;
+  vision = true;
+}
+
+/**
+ * Called after every provider call: no error on success, the error on failure; timeoutMs when
+ * the call ran out of time. A late result of a replaced model is dropped.
+ */
+export function recordAiResult(
+  model: AiModel,
+  err?: unknown,
+  timeoutMs?: number,
+) {
+  if (model !== active) return;
   if (err === undefined) {
     last = { state: 'ok', checkedAt: Date.now() };
     return;
@@ -64,11 +81,6 @@ export function recordAiResult(err?: unknown, timeoutMs?: number) {
     checkedAt: Date.now(),
     details: { status, message: (err as Error)?.message },
   };
-}
-
-/** Forgets the last result; settings changes (stage 2) and tests use it. */
-export function resetAiStatus() {
-  last = undefined;
 }
 
 export function providerState(model: AiModel | null): AiResult {

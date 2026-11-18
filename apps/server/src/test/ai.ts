@@ -81,10 +81,10 @@ export async function aiSetup(
   })
     .jpeg()
     .toBuffer();
-  const upload = async () => {
+  const upload = async (as = cookie) => {
     const res = await t.app.request('/api/photos', {
       method: 'POST',
-      headers: { 'content-type': 'image/jpeg', cookie },
+      headers: { 'content-type': 'image/jpeg', cookie: as },
       body: new Uint8Array(image),
     });
     return ((await res.json()) as { photoId: string }).photoId;

@@ -9,6 +9,10 @@ const gemini: AdminAiStatus = {
   keySet: true,
   baseUrlHost: null,
   source: 'env',
+  keyLast4: null,
+  keyUnreadable: false,
+  savedInactive: false,
+  rev: null,
   state: 'ok',
   checkedAt: Date.now() - 20 * 60_000,
 };
@@ -113,6 +117,7 @@ export const UnknownDark: Story = { ...Unknown, ...dark };
 export const NotConfigured: Story = {
   args: {
     status: {
+      ...gemini,
       provider: null,
       providerName: null,
       model: null,

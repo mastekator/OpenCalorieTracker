@@ -10,7 +10,7 @@ import {
   sanitizeDish,
 } from './recognize.js';
 import { getAiSettings } from './settings.js';
-import { recognitionStatus } from './status.js';
+import { recognitionStatus, setActiveModel } from './status.js';
 
 const jpeg = new Uint8Array([0xff, 0xd8, 0xff]);
 const egg = {
@@ -187,6 +187,7 @@ describe('recognizeMeal', () => {
     const model = mockModel(
       apiError(400, '{"error":"this model does not support image input"}'),
     );
+    setActiveModel(model);
     expect(recognitionStatus(model)).toBe('ready');
     await expect(recognizeMeal(model, jpeg, 'en')).rejects.toMatchObject({
       status: 409,

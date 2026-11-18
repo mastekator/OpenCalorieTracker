@@ -7,7 +7,7 @@ import { API_VERSION, type ConfigResponse } from '@oct/shared';
 import { accountRoutes } from './account/routes.js';
 import { adminRoutes } from './admin/routes.js';
 import { aiRoutes } from './ai/routes.js';
-import type { AiModel } from './ai/model.js';
+import type { AiRuntime } from './ai/runtime.js';
 import { authRoutes } from './auth/routes.js';
 import { device } from './auth/device.js';
 import { passkeyRoutes } from './auth/passkeys.js';
@@ -25,6 +25,7 @@ import { setupErrors, type Config } from './config.js';
 import { apiVersion } from './http/apiVersion.js';
 import { appVersion as version } from './version.js';
 import { ApiError, onError } from './http/errors.js';
+import type { Secrets } from './secrets.js';
 
 /** Cap for every /api/* body except photo upload; JSON bodies are read whole into memory. */
 export const MAX_JSON_BYTES = 64 * 1024;
@@ -38,8 +39,9 @@ const jsonLimit = bodyLimit({
 export interface AppDeps {
   config: Config;
   db: Database;
-  /** Null or absent: manual mode, no AI configured. */
-  model?: AiModel | null;
+  /** The active AI model; read ai.current() in each request, never once per route. */
+  ai: AiRuntime;
+  secrets: Secrets;
 }
 
 export function createApp(deps: AppDeps) {

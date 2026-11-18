@@ -13,7 +13,6 @@ import {
   type PreviousDishesResponse,
 } from '@oct/shared';
 import type { AppDeps } from '../app.js';
-import { getAiSettings } from '../ai/settings.js';
 import { requireUser, type AuthEnv } from '../auth/session.js';
 import { ApiError } from '../http/errors.js';
 import { validate } from '../http/validate.js';
@@ -52,7 +51,7 @@ export function checkWhen(
 }
 
 /** Create, read, edit and delete one's own meals (ADR-0009 "API", ADR-0010 for deletion). */
-export function mealRoutes({ config, db }: AppDeps) {
+export function mealRoutes({ config, db, ai }: AppDeps) {
   const findMeal = (userId: number, id: string) =>
     /^\d+$/.test(id)
       ? (db
@@ -64,10 +63,10 @@ export function mealRoutes({ config, db }: AppDeps) {
     mealId: number,
     items: MealItemInput[],
     // Provider and model come from the server, never from the client (AC-4.1).
-    ai: {
+    by: {
       provider: string | null;
       model: string | null;
-    } | null = getAiSettings(config),
+    } | null = ai.current()?.settings ?? null,
   ) => {
     const insert = db.prepare(
       `INSERT INTO meal_items (meal_id, position, name, name_key, grams, kcal, protein_g, fat_g,
@@ -87,8 +86,8 @@ export function mealRoutes({ config, db }: AppDeps) {
         i.fatG,
         i.carbsG,
         i.source,
-        isAi ? (ai?.provider ?? null) : null,
-        isAi ? (ai?.model ?? null) : null,
+        isAi ? (by?.provider ?? null) : null,
+        isAi ? (by?.model ?? null) : null,
         i.confidence ?? null,
         i.illustration ?? null,
       );
