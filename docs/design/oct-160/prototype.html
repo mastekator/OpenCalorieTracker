@@ -663,6 +663,7 @@ body{padding:var(--space-10) var(--space-8)}
 .chip{display:inline-flex;align-items:center;gap:var(--space-1);min-height:var(--tap-min);padding:0 var(--space-4);border-radius:var(--radius-full);background:var(--color-surface);border:1px solid var(--color-separator);font-size:var(--text-subhead-size);font-weight:500;color:var(--color-text)}
 .chip.on{background:var(--color-text);color:var(--color-bg);border-color:transparent}
 .chip.sm{min-height:var(--space-8);padding:0 var(--space-3);font-size:var(--text-footnote-size)}
+.over-note{display:flex;gap:var(--space-1);align-items:center;justify-content:center;color:var(--color-warning);text-align:left}
 .chip.miss{color:var(--color-warning);background:var(--color-warning-soft);border-color:transparent}
 
 /* recipe screen */
@@ -1302,7 +1303,7 @@ const readySheet = ({g='250', left='550', over=false}={}) => `<div class="scrim"
   <div class="qty"><span class="step" aria-label="Меньше на 10 г">${I('minus')}</span><span class="qv" aria-live="polite"><b>${g}</b><small>г в тарелке</small></span><span class="step" aria-label="Больше на 10 г">${I('plus')}</span></div>
   <div class="chips">${['150','200','250','300'].map(x=>`<span class="chip sm ${x===g?'on':''}">${x} г</span>`).join('')}<span class="chip sm ${over?'':''}">Всё · 800 г</span></div>
   <div class="res"><b>${over?'1 062':Math.round(+g*1.18)} ккал</b><span class="macros"><span><i class="m-p"></i>Б ${over?71:Math.round(+g*0.08)}</span><span><i class="m-f"></i>Ж ${over?59:Math.round(+g*0.066)}</span><span><i class="m-c"></i>У ${over?59:Math.round(+g*0.066)}</span></span></div>
-  ${over?`<span class="t-foot center" style="color:var(--color-warning)">${I('alert','sm')} Больше, чем осталось (800 г) — запишем 900 г, салат закончится</span>`:`<span class="t-foot muted center num">Осталось 800 г → останется <b>${left} г</b></span>`}
+  ${over?`<span class="t-foot over-note">${I('alert','sm')}<span>Больше, чем осталось (800 г) — запишем 900 г, салат закончится</span></span>`:`<span class="t-foot muted center num">Осталось 800 г → останется <b>${left} г</b></span>`}
   ${seg('Обед')}<button class="btn btn-primary">Записать в обед</button></div>`;
 const manualReady = `<div><div class="sec-h"><span>Готово дома</span><span>остаток</span></div><div class="group">${readyCell(RS,'800','118 ккал/100 г · сегодня').replace(/<span class="step"[^]*?<\/span><\/div>$/,'</div>')}${readyCell(RP,'1 050','166 ккал/100 г · вчера').replace(/<span class="step"[^]*?<\/span><\/div>$/,'</div>')}</div></div>`+RECENT;
 const saladDish = {n:'Салат с тунцом', g:250, k:295, p:20, f:17, c:17, conf:'ready'};
