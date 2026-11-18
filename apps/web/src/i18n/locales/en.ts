@@ -1343,6 +1343,7 @@ export const en = {
       refine: 'Refine',
       again: 'Recognize again',
       busy: 'Refining…',
+      busy_again: 'Recognizing again…',
       slow: 'Taking longer than usual…',
       updated: 'List updated',
       answered: 'Answer applied',

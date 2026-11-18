@@ -170,6 +170,26 @@ describe('«What should I fix?» on the edit screen (OCT-261)', () => {
     expect(button('Recognize again')!.disabled).toBe(true);
   });
 
+  it.each([
+    ['Refine', 'Refining…'],
+    ['Recognize again', 'Recognizing again…'],
+  ])(
+    '«%s»: «%s» with the sent text, focus on «Cancel», back to the field after cancel (OCT-282)',
+    async (start, busyText) => {
+      await setup();
+      type('there is chicken');
+      fireEvent.click(button(start)!);
+      await waitFor(() => expect(calls).toHaveLength(1));
+      const busy = document.querySelector<HTMLElement>('.refine__busy')!;
+      expect(within(busy).getByText(busyText)).toBeTruthy();
+      expect(busy.textContent).toContain('«there is chicken»');
+      const cancel = within(busy).getByRole('button', { name: 'Cancel' });
+      expect(document.activeElement).toBe(cancel);
+      fireEvent.click(cancel);
+      await waitFor(() => expect(document.activeElement).toBe(field()));
+    },
+  );
+
   it('busy: the list, Save and the buttons are locked; slow after 10 s; «Cancel» drops a late answer (AC-6.2)', async () => {
     await setup();
     type('there is chicken');
@@ -258,7 +278,9 @@ describe('«What should I fix?» on the edit screen (OCT-261)', () => {
     await setup();
     await refine('there is chicken', failure(429, 'refine_limit_reached'));
     expect(
-      screen.getByText('Refinement limit reached — edit by hand'),
+      screen
+        .getByText('Refinement limit reached — edit by hand')
+        .closest('[role="status"]'),
     ).toBeTruthy();
     expect(screen.queryByRole('alert')).toBeNull();
     type('one more');

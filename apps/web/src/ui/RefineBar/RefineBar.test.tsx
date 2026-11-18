@@ -20,6 +20,44 @@ const bar = (props: Partial<ComponentProps<typeof RefineBar>>) => (
   </I18nProvider>
 );
 
+describe('RefineBar while a request runs (OCT-282)', () => {
+  it('says «Refining…», «Recognizing again…» or «Taking longer…» by mode', async () => {
+    const { rerender } = render(bar({ busy: 'busy', mode: 'refine' }));
+    expect((await screen.findByRole('status')).textContent).toContain(
+      'Refining…',
+    );
+    rerender(bar({ busy: 'busy', mode: 'again' }));
+    expect(screen.getByRole('status').textContent).toContain(
+      'Recognizing again…',
+    );
+    rerender(bar({ busy: 'slow', mode: 'again' }));
+    expect(screen.getByRole('status').textContent).toContain(
+      'Taking longer than usual…',
+    );
+  });
+
+  it('shows the sent text under the indicator, none for an empty one', async () => {
+    const { rerender } = render(bar({ busy: 'busy', value: '  more rice ' }));
+    expect((await screen.findByRole('status')).textContent).toContain(
+      '«more rice»',
+    );
+    rerender(bar({ busy: 'busy', value: ' ' }));
+    expect(document.querySelector('.refine__query')).toBeNull();
+  });
+
+  it('moves focus to «Cancel» on start and keeps it there when slow', async () => {
+    const { rerender } = render(bar({ value: 'more rice' }));
+    (await screen.findByRole('textbox')).focus();
+    rerender(bar({ value: 'more rice', busy: 'busy' }));
+    const cancel = await screen.findByRole('button', { name: 'Cancel' });
+    expect(document.activeElement).toBe(cancel);
+    document.body.focus();
+    (document.activeElement as HTMLElement).blur();
+    rerender(bar({ value: 'more rice', busy: 'slow' }));
+    expect(document.activeElement).not.toBe(cancel);
+  });
+});
+
 describe('RefineBar focus after a request', () => {
   it('moves to the result strip after a new result', async () => {
     const { rerender } = render(bar({ busy: 'busy' }));

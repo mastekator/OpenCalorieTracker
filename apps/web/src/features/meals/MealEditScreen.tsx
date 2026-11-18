@@ -1174,6 +1174,7 @@ export function MealEditScreen({
               busy={
                 working ? (refine.state.status as 'busy' | 'slow') : undefined
               }
+              mode={lastRefine.current?.mode}
               onCancel={refine.cancel}
               disabled={!online || refine.limitReached}
               note={
@@ -1190,10 +1191,10 @@ export function MealEditScreen({
                     </>
                   )
                 ) : refine.limitReached ? (
-                  <>
+                  <span className="refine__note-status" role="status">
                     <Ban aria-hidden="true" />
                     {t('edit.refine.limit')}
-                  </>
+                  </span>
                 ) : photoGone ? (
                   <>
                     <ImageOff aria-hidden="true" />
