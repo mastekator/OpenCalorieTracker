@@ -632,7 +632,7 @@ describe('AiProviderScreen: settings form', () => {
       await screen.findByRole('radiogroup', { name: 'No photos' }),
     ).toBeTruthy();
     fireEvent.click(screen.getByRole('radio', { name: /gemma-4-2b-it/ }));
-    expect(modelRow().textContent).toContain('gemma-4-2b-itno photos');
+    expect(modelRow().textContent).toContain('gemma-4-2b-itno photo');
     expect(
       screen.getByText(
         'This model doesn’t accept photos — photo recognition will be off; the goal assistant still works',

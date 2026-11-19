@@ -40,6 +40,13 @@
   font-size: var(--text-footnote-size);
 }
 
+/* Spinner beside «Loading models…», as in OCT-248 1.2. */
+.ai-form__loading {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
 .ai-form__lock {
   width: var(--space-4);
   height: var(--space-4);
