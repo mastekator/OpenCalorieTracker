@@ -910,6 +910,9 @@ const ru: DeepPartial<typeof en> = {
     ok: 'Войти',
   },
   manual_dish: {
+    recipes_recent: 'Мои рецепты · недавние',
+    recipes: 'Мои рецепты',
+    recipe: 'рецепт',
     title: 'Блюдо вручную',
     name: 'Название',
     name_ph: 'Например, творог 5 %',
@@ -1381,6 +1384,11 @@ const ru: DeepPartial<typeof en> = {
       more: 'Больше на {step}',
       err_g: 'Вес от 1 до 5000 г',
       err_oz: 'Вес от 0,1 до 176,4 oz',
+    },
+    recipe: {
+      hint: 'Ваш рецепт: {name} · {k}\u00a0ккал/100\u00a0г',
+      apply: 'Взять из рецепта',
+      applied: 'Подставили рецепт',
     },
     history: {
       hint: 'Похоже на запись {date}: {weight} · {kcal}\u00a0ккал',

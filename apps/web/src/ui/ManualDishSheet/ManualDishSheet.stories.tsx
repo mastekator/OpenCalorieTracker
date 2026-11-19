@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { fireEvent, fn, within } from 'storybook/test';
-import type { Units } from '@oct/shared';
+import type { Recipe, Units } from '@oct/shared';
+import { PILAF, RECIPES } from '../../features/kitchen/fixtures';
 import { useT } from '../../i18n';
 import { Button } from '../Button/Button';
 import { BASIS_KEY, ManualDishSheet, type ManualDish } from './ManualDishSheet';
@@ -12,6 +13,8 @@ function Demo(props: {
   name?: string;
   title?: string;
   onAdd: (dish: ManualDish) => void;
+  recipes?: Recipe[];
+  onRecipe?: (recipe: Recipe) => void;
 }) {
   const { t } = useT();
   const [open, setOpen] = useState(true);
@@ -25,6 +28,8 @@ function Demo(props: {
           units={props.units}
           name={props.name}
           title={props.title}
+          recipes={props.recipes}
+          onRecipe={props.onRecipe}
           onAdd={(dish) => {
             props.onAdd(dish);
             setOpen(false);
@@ -117,4 +122,30 @@ export const Russian: Story = { globals: { locale: 'ru' } };
 /** From the recipe's ingredient search: the typed text is the name. */
 export const Prefilled: Story = {
   args: { name: 'Carrots', title: 'Ingredient, manually' },
+};
+
+/** Two recipes named alike: kcal per 100 g tells them apart (OCT-160 3.4). */
+const recipes: Recipe[] = [
+  ...RECIPES,
+  { ...PILAF, id: 9, cookedG: 2600, lastLoggedAt: '2026-11-17T12:00:00.000Z' },
+];
+const withRecipes = { recipes, onRecipe: fn() };
+const search = fill({ Name: 'pil' });
+/** «My recipes · recent» before typing: the 3 last logged. */
+export const Recipes: Story = { args: withRecipes };
+export const RecipesDark: Story = { args: withRecipes, globals: dark };
+/** Typing: matching recipes first, with the badge. */
+export const RecipesSearch: Story = { args: withRecipes, play: search };
+export const RecipesSearchDark: Story = {
+  args: withRecipes,
+  play: search,
+  globals: dark,
+};
+export const RecipesDesktop: Story = {
+  args: withRecipes,
+  globals: { viewport: { value: 'desktop' } },
+};
+export const RecipesRussian: Story = {
+  args: withRecipes,
+  globals: { locale: 'ru' },
 };

@@ -19,6 +19,7 @@ import { loadDict } from '../../i18n/translate';
 import { renderLoaded } from '../../test-utils';
 import { LeaveGuard } from '../../app/LeaveGuard';
 import { ToastProvider } from '../../ui/Toast/Toast';
+import { PILAF } from '../kitchen/fixtures';
 import { MealEditScreen } from './MealEditScreen';
 import { MEAL_EDIT_PATH, type MealEditState } from './RecognitionScreen';
 
@@ -972,5 +973,125 @@ describe('MealEditScreen: same as last time (4.3, OCT-61)', () => {
     expect(lookups(fetch).slice(1)).toEqual([
       { dishes: [{ name: 'Grechka', kcalPer100: 200 }] },
     ]);
+  });
+});
+
+describe('MealEditScreen: recipes (OCT-160 §5, ADR-0023 §5–6)', () => {
+  // 166.05 kcal per 100 g, 350 g per serving.
+  const pilaf = { ...PILAF, name: 'Buckwheat' };
+
+  async function open(props: Partial<Parameters<typeof MealEditScreen>[0]>) {
+    const onSave = vi.fn(async (input: MealInput) => void input);
+    await renderLoaded(
+      <I18nProvider>
+        <ToastProvider>
+          <MealEditScreen
+            dishes={[buckwheat, rice]}
+            units="metric"
+            onSave={onSave}
+            onClose={() => {}}
+            now={() => new Date(2026, 10, 15, 13, 24)}
+            recipes={[pilaf]}
+            {...props}
+          />
+        </ToastProvider>
+      </I18nProvider>,
+    );
+    await act(() => new Promise((r) => setTimeout(r, 10)));
+    return onSave;
+  }
+  const save = async () => {
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await act(async () => {});
+  };
+  const hint = () => screen.queryByText(/^Your recipe:/);
+
+  it('a dish named like a recipe gets «Your recipe» and no history lookup', async () => {
+    const fetch = historyApi({
+      Buckwheat: {
+        mealId: 7,
+        eatenAt: '2026-11-12T12:30:00.000Z',
+        grams: 200,
+        kcal: 380,
+        proteinG: 14,
+        fatG: 5,
+        carbsG: 70,
+        illustration: 'grains',
+      },
+    });
+    vi.stubGlobal('fetch', fetch);
+    await open({});
+    expect(hint()!.textContent).toBe('Your recipe: Buckwheat · 166 kcal/100 g');
+    expect(screen.queryByText(/^Looks like your entry from/)).toBeNull();
+    expect(lookups(fetch)).toEqual([
+      { dishes: [{ name: 'Rice', kcalPer100: 130 }] },
+    ]);
+  });
+
+  it('«Use the recipe» keeps the weight and takes the recipe per 100 g; «Undo» brings the estimate back', async () => {
+    const onSave = await open({});
+    fireEvent.click(screen.getByRole('button', { name: 'Use the recipe' }));
+    expect(hint()).toBeNull();
+    expect(screen.getByText('recipe')).toBeTruthy();
+    expect(await screen.findByText('Used your recipe')).toBeTruthy();
+    await save();
+    expect(onSave.mock.calls[0]![0].items[0]).toMatchObject({
+      name: 'Buckwheat',
+      grams: 150,
+      kcal: expect.closeTo(249.1, 1),
+      source: 'recipe',
+      recipeId: 1,
+    });
+
+    cleanup();
+    const again = await open({});
+    fireEvent.click(screen.getByRole('button', { name: 'Use the recipe' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Undo' }));
+    await save();
+    expect(again.mock.calls[0]![0].items[0]).toEqual({
+      ...buckwheat,
+      source: 'ai',
+    });
+  });
+
+  it('AC-4.5: «Manually» → recipe → «Add» → «Save», four taps', async () => {
+    const onSave = await open({ dishes: [], manual: 'user', recipes: [PILAF] });
+    expect(screen.getByText('My recipes · recent')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /^Homemade pilaf/ }));
+    fireEvent.click(
+      within(screen.getByRole('dialog', { name: 'Homemade pilaf' })).getByRole(
+        'button',
+        { name: 'Add' },
+      ),
+    );
+    await save();
+    expect(onSave.mock.calls[0]![0].items).toEqual([
+      expect.objectContaining({
+        name: 'Homemade pilaf',
+        grams: 350,
+        source: 'recipe',
+        recipeId: 1,
+      }),
+    ]);
+  });
+
+  it('a renamed recipe dish is a manual one, without the link', async () => {
+    const onSave = await open({ dishes: [], manual: 'user', recipes: [PILAF] });
+    fireEvent.click(screen.getByRole('button', { name: /^Homemade pilaf/ }));
+    fireEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', { name: 'Add' }),
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Edit Homemade pilaf' }),
+    );
+    const sheet = screen.getByRole('dialog');
+    fireEvent.change(within(sheet).getByRole('textbox', { name: 'Name' }), {
+      target: { value: 'Plov' },
+    });
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Done' }));
+    await save();
+    const item = onSave.mock.calls[0]![0].items[0]!;
+    expect(item).toMatchObject({ name: 'Plov', source: 'manual' });
+    expect(item).not.toHaveProperty('recipeId');
   });
 });
