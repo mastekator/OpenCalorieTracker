@@ -36,6 +36,7 @@ import {
   pendingCount,
   type MealStatus,
 } from './outbox';
+import { refreshMyProducts } from './products';
 import { photoIds, prefetchThumbs } from './thumbs';
 
 /** Exported for stories: a stub database shows queue states without IndexedDB. */
@@ -77,6 +78,7 @@ export function DataProvider({
         document.removeEventListener('visibilitychange', onVisible);
       try {
         await flush(d); // pulls at the end
+        await refreshMyProducts(d).catch(() => {});
         if (!closed)
           await prefetchThumbs(
             photoIds(await d.getAll('meals'), await d.getAll('recipes')),

@@ -929,6 +929,28 @@ export const en = {
     ok: 'Sign in',
   },
   manual_dish: {
+    barcode: {
+      label: 'Barcode',
+      ph: 'Digits under the barcode',
+      hint: 'Digits under the barcode — we’ll find the product and fill in the rest',
+      find: 'Find',
+      searching: 'Searching',
+      found: {
+        off: 'Found in Open Food Facts — check the weight.',
+        mine: 'Found your product — check the weight.',
+        local: 'Found on this phone — check the weight.',
+      },
+      not_found:
+        'Not in your products or Open Food Facts. Fill it in — we’ll remember the product with this barcode.',
+      off_down: 'Open Food Facts didn’t respond. Try again or fill it in.',
+      offline:
+        'Offline we only search products saved on this phone. Not here — fill it in.',
+      off_disabled:
+        'Not in your products. Open Food Facts lookup is off — you can turn it on in Integrations.',
+      off_blocked:
+        'Not in your products. Open Food Facts lookup is turned off by the admin.',
+      err: 'A barcode has 8 to 14 digits',
+    },
     recipes_footer: 'Or type a name — your recipes come first.',
     recipes_recent: 'My recipes · recent',
     recipes: 'My recipes',

@@ -1,4 +1,10 @@
-import { useId, useState, type InputHTMLAttributes, type Ref } from 'react';
+import {
+  useId,
+  useState,
+  type InputHTMLAttributes,
+  type ReactNode,
+  type Ref,
+} from 'react';
 import { CircleAlert, Eye, EyeOff, Lock } from 'lucide-react';
 import { useT } from '../../i18n';
 import './Field.css';
@@ -18,6 +24,8 @@ type Props = Omit<
   suffix?: string;
   /** Names of the show/hide button when the password field holds something else (an API key). */
   revealLabels?: [show: string, hide: string];
+  /** A button inside the box, after the value: «Find». */
+  action?: ReactNode;
   ref?: Ref<HTMLInputElement>;
 };
 
@@ -28,6 +36,7 @@ export function Field({
   locked = false,
   suffix,
   revealLabels,
+  action,
   type = 'text',
   ...rest
 }: Props) {
@@ -57,6 +66,7 @@ export function Field({
             {suffix}
           </span>
         )}
+        {action && <span className="field__end">{action}</span>}
         {locked && <Lock className="field__icon" aria-hidden="true" />}
         {isPassword && !locked && (
           <button

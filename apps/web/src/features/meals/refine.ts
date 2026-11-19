@@ -100,6 +100,7 @@ export const itemOf = (row: Row): MealItemInput => {
     ...(row.source === 'recipe' && row.recipeId && { recipeId: row.recipeId }),
     // A manual dish has no confidence (AC-3.9).
     ...(row.source === 'ai' && !row.fixed.length && { confidence }),
+    ...(row.original.barcode && { barcode: row.original.barcode }),
     // Only a hand-picked one is sent; the server matches the rest (ADR-0009).
     ...(row.original.illustration && {
       illustration: row.original.illustration,

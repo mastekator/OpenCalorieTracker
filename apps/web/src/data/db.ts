@@ -11,13 +11,14 @@ import type {
   MealPatch,
   MeResponse,
   PhotoRetention,
+  Product,
   ProfileResponse,
   Recipe,
   Weighing,
 } from '@oct/shared';
 
 /** Bump with a new `oldVersion` branch in `upgrade` when the stores change. */
-export const DB_VERSION = 3;
+export const DB_VERSION = 4;
 
 export interface OctDb extends DBSchema {
   meals: { key: string; value: Meal; indexes: { localDate: string } };
@@ -48,6 +49,8 @@ export interface OctDb extends DBSchema {
   weighings: { key: string; value: Weighing };
   /** Recipes, read-only offline (ADR-0023 §4). */
   recipes: { key: number; value: Recipe };
+  /** Products found by barcode and the user's own, for the offline lookup (ADR-0034 §7). */
+  products: { key: string; value: Product };
 }
 
 /**
@@ -101,6 +104,7 @@ export function openUserDb(userId: number) {
       if (oldVersion < 2)
         db.createObjectStore('weighings', { keyPath: 'date' });
       if (oldVersion < 3) db.createObjectStore('recipes', { keyPath: 'id' });
+      if (oldVersion < 4) db.createObjectStore('products', { keyPath: 'code' });
     },
     // Another tab (or clearLocal) deletes or upgrades the base: let it through.
     blocking(_current, _blocked, event) {

@@ -46,7 +46,7 @@ let configPatch: Record<string, unknown> = {};
 const emptySync = { rev: 0, more: false, meals: [], deletedMealClientIds: [] };
 
 /**
- * /api/config answers with `config`, /api/auth/me with `session` (null → 401), /api/sync with nothing new;
+ * /api/config answers with `config`, /api/auth/me with `session` (null → 401), /api/sync with nothing new, own products with none;
  * every other path answers 401. `offline` makes every request fail like a lost network.
  */
 function serve(session: object | null, offline = false) {
@@ -59,6 +59,8 @@ function serve(session: object | null, offline = false) {
       if (session && path === ME_PATH) return Response.json(session);
       if (session && path.startsWith('/api/sync'))
         return Response.json(emptySync);
+      if (session && path === '/api/products/mine')
+        return Response.json({ products: [] });
       // The edit screen asks for «What should I fix?» (OCT-261).
       if (session && path === '/api/ai/status')
         return Response.json({

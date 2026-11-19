@@ -59,6 +59,11 @@
   color: var(--color-text-secondary);
 }
 
+.field__end {
+  flex: none;
+  padding-inline-end: var(--space-1);
+}
+
 .field__input::placeholder {
   color: var(--color-text-secondary);
 }

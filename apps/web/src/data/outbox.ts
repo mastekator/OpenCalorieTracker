@@ -17,6 +17,7 @@ import {
 } from '@oct/shared';
 import { api, ApiError } from '../api/client';
 import { emitChange } from './changes';
+import { refreshMyProducts } from './products';
 import type { Choices, Db, Op, OctDb } from './db';
 import { followLatest, pull, settingsQueued, weighingsQueued } from './sync';
 
@@ -378,6 +379,12 @@ async function send(db: Db, s: State): Promise<boolean> {
   return true;
 }
 
+/** The server remembers a dish saved with a barcode as the user's product: bring it to this device. */
+const remembered = (db: Db, body: Pick<MealPatch, 'items'>) => {
+  if (body.items?.some((i) => i.barcode))
+    void refreshMyProducts(db).catch(() => {});
+};
+
 const mealSchema = z.custom<Meal>();
 const putSchema = z.custom<WeighingPutResponse>();
 const deleteSchema = z.custom<WeighingDeleteResponse>();
@@ -388,13 +395,14 @@ async function deliver(db: Db, op: Op) {
     case 'uploadPhoto':
       return upload(db, op);
     case 'createMeal':
-      return saved(
+      await saved(
         db,
         op,
         await api('/api/meals', mealSchema, { method: 'POST', body: op.body }),
       );
+      return remembered(db, op.body);
     case 'patchMeal':
-      return saved(
+      await saved(
         db,
         op,
         await api(`/api/meals/${op.id}`, mealSchema, {
@@ -402,6 +410,7 @@ async function deliver(db: Db, op: Op) {
           body: op.body,
         }),
       );
+      return remembered(db, op.body);
     case 'deleteMeal':
       await api(`/api/meals/${op.id}`, z.unknown(), { method: 'DELETE' });
       break;
