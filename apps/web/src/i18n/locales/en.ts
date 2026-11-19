@@ -1521,6 +1521,7 @@ export const en = {
   recipes: {
     new: 'New recipe',
     manual: 'Enter manually',
+    paste: 'Paste recipe text',
     add: 'Add a recipe',
     sort_note: 'Recently logged first.',
     per100: '{k}\u00a0kcal/100\u00a0g',
@@ -1563,6 +1564,19 @@ export const en = {
       body: 'Diary entries stay as they are. Recipe photos will be deleted.',
       ok: 'Delete',
       error: 'Couldn’t delete the recipe. Try again.',
+    },
+  },
+  paste: {
+    title: 'Recipe from text',
+    label: 'Recipe text',
+    no_links: 'We don’t open links — paste the text itself',
+    parse: 'Parse',
+    busy: 'Parsing the recipe…',
+    sent: 'Only this text goes to the provider — no photos or diary.',
+    manual: 'Fill in manually',
+    error: {
+      title: 'Couldn’t parse it',
+      body: 'The provider didn’t respond. Your text is still here — try again or fill in manually.',
     },
   },
   lighter: {
@@ -1706,6 +1720,12 @@ export const en = {
     step_up: 'Move up',
     step_down: 'Move down',
     step_delete: 'Delete step',
+    ai: {
+      title: 'AI draft',
+      body: 'Grams are estimates — please check. The app calculates kcal from ingredients.',
+      estimate: 'estimate',
+      zero: '“{q}” — couldn’t estimate, enter it or keep 0\u00a0g',
+    },
   },
   unsaved: {
     title: 'Recipe changes aren’t saved',

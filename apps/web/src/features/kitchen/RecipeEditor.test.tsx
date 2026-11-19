@@ -347,4 +347,68 @@ describe('RecipeEditor', () => {
       expect(screen.queryByRole('button', { name: 'Step' })).toBeNull();
     });
   });
+  describe('AI draft (OCT-160 §9, AC-6.4)', () => {
+    const salt = {
+      name: 'Salt',
+      grams: 0,
+      kcal: 0,
+      proteinG: 0,
+      fatG: 0,
+      carbsG: 0,
+      source: 'ai' as const,
+    };
+    const draft: RecipeInput = {
+      ...SALAD,
+      ingredients: [
+        ...SALAD.ingredients.map((i) => ({ ...i, source: 'ai' as const })),
+        salt,
+      ],
+    };
+    const zero = /^“Salt” — couldn’t estimate, enter it or keep 0.g$/;
+
+    it('shows the notice, «estimate» badges and marks the unsure 0 g row', async () => {
+      await view({ draft, ai: { unsure: [4] } });
+      expect(screen.getByText('AI draft')).toBeTruthy();
+      expect(screen.getAllByText('estimate')).toHaveLength(5);
+      expect(screen.getByText(zero)).toBeTruthy();
+    });
+
+    it('the mark follows its row when a row above is deleted', async () => {
+      await view({ draft, ai: { unsure: [4] } });
+      fireEvent.click(screen.getByRole('button', { name: /^Tomatoes/ }));
+      fireEvent.click(
+        await screen.findByRole('button', { name: 'Delete dish' }),
+      );
+      await waitFor(() =>
+        expect(screen.queryByRole('button', { name: /^Tomatoes/ })).toBeNull(),
+      );
+      expect(screen.getByText(zero)).toBeTruthy();
+    });
+
+    it('a grams edit clears the mark; nothing of it is saved', async () => {
+      const { onSave } = await view({ draft, ai: { unsure: [4] } });
+      fireEvent.change(grams('Salt'), { target: { value: '5' } });
+      fireEvent.change(grams('Salt'), { target: { value: '0' } });
+      expect(screen.queryByText(zero)).toBeNull();
+      save();
+      await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
+      const sent = onSave.mock.calls[0]![0];
+      expect(sent.ingredients[4]).toEqual(salt);
+      expect(Object.keys(sent).sort()).toEqual([
+        'cookedG',
+        'ingredients',
+        'name',
+        'note',
+        'photoId',
+        'servings',
+        'steps',
+      ]);
+    });
+
+    it('without `ai` there is no notice', async () => {
+      await view({ draft });
+      expect(screen.queryByText('AI draft')).toBeNull();
+      expect(screen.queryByText(zero)).toBeNull();
+    });
+  });
 });

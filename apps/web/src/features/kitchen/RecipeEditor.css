@@ -156,6 +156,18 @@
     align-items: start;
   }
 
+  .recipe-editor--ai {
+    grid-template-rows: auto auto auto 1fr;
+    grid-template-areas:
+      'ai ai'
+      'head totals'
+      'ingr yield'
+      'ingr more';
+  }
+
+  .recipe-editor__ai {
+    grid-area: ai;
+  }
   .recipe-editor__head {
     grid-area: head;
   }

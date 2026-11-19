@@ -36,3 +36,17 @@ export const InvalidDark: Story = {
 export const LongName: Story = {
   args: { name: 'Pork shoulder, boneless, trimmed of most of the fat' },
 };
+/** From an AI draft: grams are an estimate (OCT-160 §9). */
+export const Estimate: Story = { args: { estimate: true } };
+export const EstimateDark: Story = { args: { estimate: true }, globals: dark };
+/** The AI couldn't estimate it: 0 g, warning background and the reason. */
+export const Unsure: Story = {
+  args: {
+    name: 'Salt',
+    kcal: 0,
+    grams: '0',
+    estimate: true,
+    unsure: '“Salt” — couldn’t estimate, enter it or keep 0 g',
+  },
+};
+export const UnsureDark: Story = { ...Unsure, globals: dark };
