@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { Check, Copy } from 'lucide-react';
 import { useT } from '../../i18n';
 import './CommandLine.css';
@@ -9,7 +9,15 @@ export function CommandLine({ command }: { command: string }) {
   const [copied, setCopied] = useState(false);
   return (
     <div className="command-line">
-      <code className="command-line__text">{command}</code>
+      <code className="command-line__text">
+        {/* Words never break inside (at "-"); the plain spaces between keep the selection equal to the command. */}
+        {command.split(' ').map((word, i) => (
+          <Fragment key={i}>
+            {i > 0 && ' '}
+            <span className="command-line__word">{word}</span>
+          </Fragment>
+        ))}
+      </code>
       <button
         type="button"
         className="command-line__copy"

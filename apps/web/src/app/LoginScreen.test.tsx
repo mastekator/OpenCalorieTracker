@@ -373,7 +373,7 @@ describe('LoginScreen', () => {
   it.each([
     ['data_dir_not_writable', /^\/data isn’t writable/, false],
     ['public_url_invalid', /^PUBLIC_URL must be/, false],
-    ['admin_missing', /^ADMIN_EMAIL isn’t set/, false],
+    ['admin_missing', /^ADMIN_PASSWORD is set but ADMIN_EMAIL/, false],
     ['admin_email_invalid', /^ADMIN_EMAIL isn’t a valid/, true],
     ['admin_password_missing', /^ADMIN_PASSWORD isn’t set/, false],
     ['admin_password_invalid', /^ADMIN_PASSWORD doesn’t meet/, true],
