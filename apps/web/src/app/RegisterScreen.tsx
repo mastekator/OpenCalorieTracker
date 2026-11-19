@@ -36,7 +36,7 @@ import { PasswordRules } from '../ui/PasswordRules/PasswordRules';
 import { ScreenState } from '../ui/ScreenState/ScreenState';
 import { Segment } from '../ui/Segment/Segment';
 import { isInAppBrowser, LINK_ERRORS, linkProblem } from './link';
-import { isCancel } from './LoginScreen';
+import { isCancel, loginLayout } from './LoginScreen';
 import './LoginScreen.css';
 import './RegisterScreen.css';
 
@@ -204,26 +204,52 @@ const optionsSchema = z.object({
 
 type FieldName = 'email' | 'name' | 'password' | 'repeat';
 
-/** The form of 2.1/2.2/2.6/2.7; what was typed survives any server error (E-3.5). */
-function RegisterForm({
+/** The setup wizard's passkey outcome: cancelled (OCT-244 2.6) or failed (2.7). */
+export type PasskeyNotice = 'cancel' | 'failed';
+
+type FormProps = Pick<
+  Props,
+  'config' | 'token' | 'onSignedIn' | 'userAgent' | 'href'
+> & {
+  /** `setup`: the wizard's admin account (OCT-244 step 2); the frame and title are the wizard's. */
+  kind: RegisterKind | 'setup';
+  /** Fixed by the link; null for open registration and setup, where it is typed. */
+  email: string | null;
+  onLinkGone?: (status: LinkStatus) => void;
+  /** Setup only: the code accepted at step 1, sent again with the account (ADR-0021 §4). */
+  code?: string;
+  /** Setup only: true when the wizard took the error over (code gone, attempts). */
+  onSetupError?: (err: unknown) => boolean;
+  /** Props only for stories and tests. */
+  origin?: string;
+  passkeyNotice?: PasskeyNotice;
+};
+
+/** The form of 2.1/2.2/2.6/2.7 and the wizard's step 2; what was typed survives any server error (E-3.5). */
+export function RegisterForm({
   kind,
   config,
   token,
   email: lockedEmail,
   onSignedIn,
   onLinkGone,
+  code,
+  onSetupError,
   userAgent = navigator.userAgent,
   href = location.href,
-}: Props & {
-  /** Fixed by the link; null for open registration, where it is typed. */
-  email: string | null;
-  onLinkGone?: (status: LinkStatus) => void;
-}) {
+  origin = location.origin,
+  passkeyNotice,
+}: FormProps) {
   const { t, locale } = useT();
-  const inApp = kind !== 'open' && isInAppBrowser(userAgent);
+  const inApp =
+    (kind === 'invite' || kind === 'recovery') && isInAppBrowser(userAgent);
   const methods = config.authMethods;
+  // Passkeys only work at PUBLIC_URL: with both methods the wizard starts on password (OCT-244 2.8).
+  const away =
+    kind === 'setup' && loginLayout(config, origin).kind === 'wrong_origin';
   const [method, setMethod] = useState<AuthMethod>(
-    methods.includes('passkey') && !(inApp && methods.includes('password'))
+    methods.includes('passkey') &&
+      !((inApp || away) && methods.includes('password'))
       ? 'passkey'
       : 'password',
   );
@@ -237,11 +263,13 @@ function RegisterForm({
   const [error, setError] = useState<Key | null>(null);
   const [busy, setBusy] = useState(false);
   const [copy, setCopy] = useState<'done' | 'failed' | null>(null);
+  const [pk, setPk] = useState(passkeyNotice);
 
   const withPassword = method === 'password';
   const errors: Record<FieldName, Key | undefined> = {
     email:
-      kind === 'open' && !emailSchema.safeParse(email).success
+      (kind === 'open' || kind === 'setup') &&
+      !emailSchema.safeParse(email).success
         ? 'form.err.email'
         : undefined,
     name:
@@ -275,42 +303,53 @@ function RegisterForm({
       return;
     setBusy(true);
     setError(null);
-    const path = kind === 'recovery' ? 'recover' : 'register';
+    setPk(undefined);
+    const path =
+      kind === 'setup'
+        ? '/api/setup/admin'
+        : `/api/auth/${kind === 'recovery' ? 'recover' : 'register'}`;
     const body =
       kind === 'recovery'
         ? { token }
-        : {
-            token,
-            email: kind === 'open' ? email : undefined,
-            name: name.trim(),
-            locale,
-          };
+        : kind === 'setup'
+          ? { code, email, name: name.trim(), locale }
+          : {
+              token,
+              email: kind === 'open' ? email : undefined,
+              name: name.trim(),
+              locale,
+            };
     try {
       if (withPassword) {
-        await api(`/api/auth/${path}`, meResponseSchema, {
+        await api(path, meResponseSchema, {
           method: 'POST',
           body: { ...body, password },
         });
       } else {
         const { challengeId, options } = await api(
-          `/api/auth/${path}/passkey/options`,
+          `${path}/passkey/options`,
           optionsSchema,
           { method: 'POST', body },
         );
         const response = await startRegistration({ optionsJSON: options });
-        await api(`/api/auth/${path}/passkey/verify`, meResponseSchema, {
+        await api(`${path}/passkey/verify`, meResponseSchema, {
           method: 'POST',
           body: { challengeId, response },
         });
       }
       await onSignedIn();
     } catch (err) {
-      // Closing the system dialog is not an error (E-3.2).
-      if (isCancel(err)) return;
+      // Closing the system dialog is not an error (E-3.2); the wizard says no account was made yet.
+      if (isCancel(err)) {
+        if (kind === 'setup') setPk('cancel');
+        return;
+      }
+      if (onSetupError?.(err)) return;
       const code = err instanceof ApiError ? err.code : 'internal';
       if (code in LINK_ERRORS && onLinkGone)
         return onLinkGone(LINK_ERRORS[code as keyof typeof LINK_ERRORS]);
       if (code === 'password_too_common') setCommon(true);
+      else if (kind === 'setup' && !withPassword) setPk('failed');
       else
         setError(
           code === 'registration_failed' && kind === 'open'
@@ -341,6 +380,133 @@ function RegisterForm({
       : undefined;
   // 2.3 with password sign-in off: passkeys can't work here, only the way out is offered.
   const showForm = !(inApp && !methods.includes('password'));
+
+  const host = config.publicUrl ? new URL(config.publicUrl).host : '';
+
+  const form = showForm && (
+    <form className="register__form" onSubmit={submit} noValidate>
+      {kind !== 'recovery' && (
+        <Field
+          label={t('auth.email')}
+          type="email"
+          autoComplete="username"
+          locked={kind === 'invite'}
+          hint={
+            kind === 'setup'
+              ? undefined
+              : t(
+                  kind === 'invite'
+                    ? 'invite.email_locked_hint'
+                    : 'reg.open.email_hint',
+                )
+          }
+          placeholder={t('auth.email_ph')}
+          value={email}
+          error={shown('email')}
+          onChange={(e) => setEmail(e.target.value)}
+          onBlur={blur('email')}
+        />
+      )}
+      {kind !== 'recovery' && (
+        <Field
+          label={t('reg.name')}
+          placeholder={t('reg.name_ph')}
+          autoComplete="name"
+          value={name}
+          error={shown('name')}
+          onChange={(e) => setName(e.target.value)}
+          onBlur={blur('name')}
+        />
+      )}
+      {(both || hint) && (
+        <div className="field">
+          {both && (
+            <>
+              <span className="field__label" aria-hidden="true">
+                {t('reg.method.title')}
+              </span>
+              <Segment
+                label={t('reg.method.title')}
+                options={(['passkey', 'password'] as const).map((m) => ({
+                  value: m,
+                  label: methodLabel(m),
+                }))}
+                value={method}
+                onChange={setMethod}
+              />
+            </>
+          )}
+          {hint && !away && <p className="field__note">{hint}</p>}
+        </div>
+      )}
+      {away && (
+        <Banner
+          tone="warning"
+          icon={<Link2Off aria-hidden="true" />}
+          title={t('setup.wizard.admin.away_title')}
+        >
+          {t('setup.wizard.admin.away_body', { host })}
+        </Banner>
+      )}
+      {withPassword && (
+        <>
+          <div className="field">
+            <Field
+              label={methodLabel('password')}
+              type="password"
+              autoComplete="new-password"
+              value={password}
+              error={shown('password')}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setCommon(false);
+              }}
+              onBlur={blur('password')}
+            />
+            <PasswordRules
+              password={password}
+              email={email || undefined}
+              attempted={attempted || touched.includes('password')}
+            />
+          </div>
+          <Field
+            label={t('reg.password_repeat')}
+            type="password"
+            autoComplete="new-password"
+            value={repeat}
+            error={shown('repeat')}
+            onChange={(e) => setRepeat(e.target.value)}
+            onBlur={blur('repeat')}
+          />
+        </>
+      )}
+      {error && <Banner tone="danger">{t(error)}</Banner>}
+      {pk === 'cancel' && (
+        <Banner tone="notice">{t('setup.wizard.admin.pk_cancel')}</Banner>
+      )}
+      {pk === 'failed' && (
+        <Banner tone="danger" title={t('setup.wizard.admin.pk_failed')}>
+          {t(
+            methods.includes('password')
+              ? 'setup.wizard.admin.pk_failed_body'
+              : 'setup.wizard.admin.pk_failed_body_only',
+          )}
+        </Banner>
+      )}
+      <div className="register__submit">
+        {away && !withPassword && config.publicUrl ? (
+          <a className="button button--primary" href={config.publicUrl}>
+            {t('setup.wrong_origin.cta', { host })}
+          </a>
+        ) : (
+          <Button type="submit" loading={busy}>
+            {t(withPassword ? 'reg.create_account' : 'reg.create_passkey')}
+          </Button>
+        )}
+      </div>
+    </form>
+  );
+  if (kind === 'setup') return form;
 
   return (
     <div className="login">
@@ -385,98 +551,7 @@ function RegisterForm({
         </>
       )}
 
-      {showForm && (
-        <form className="register__form" onSubmit={submit} noValidate>
-          {kind !== 'recovery' && (
-            <Field
-              label={t('auth.email')}
-              type="email"
-              autoComplete="username"
-              locked={kind === 'invite'}
-              hint={t(
-                kind === 'invite'
-                  ? 'invite.email_locked_hint'
-                  : 'reg.open.email_hint',
-              )}
-              placeholder={t('auth.email_ph')}
-              value={email}
-              error={shown('email')}
-              onChange={(e) => setEmail(e.target.value)}
-              onBlur={blur('email')}
-            />
-          )}
-          {kind !== 'recovery' && (
-            <Field
-              label={t('reg.name')}
-              placeholder={t('reg.name_ph')}
-              autoComplete="name"
-              value={name}
-              error={shown('name')}
-              onChange={(e) => setName(e.target.value)}
-              onBlur={blur('name')}
-            />
-          )}
-          {(both || hint) && (
-            <div className="field">
-              {both && (
-                <>
-                  <span className="field__label" aria-hidden="true">
-                    {t('reg.method.title')}
-                  </span>
-                  <Segment
-                    label={t('reg.method.title')}
-                    options={(['passkey', 'password'] as const).map((m) => ({
-                      value: m,
-                      label: methodLabel(m),
-                    }))}
-                    value={method}
-                    onChange={setMethod}
-                  />
-                </>
-              )}
-              {hint && <p className="field__note">{hint}</p>}
-            </div>
-          )}
-          {withPassword && (
-            <>
-              <div className="field">
-                <Field
-                  label={methodLabel('password')}
-                  type="password"
-                  autoComplete="new-password"
-                  value={password}
-                  error={shown('password')}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    setCommon(false);
-                  }}
-                  onBlur={blur('password')}
-                />
-                <PasswordRules
-                  password={password}
-                  email={email || undefined}
-                  attempted={attempted || touched.includes('password')}
-                />
-              </div>
-              <Field
-                label={t('reg.password_repeat')}
-                type="password"
-                autoComplete="new-password"
-                value={repeat}
-                error={shown('repeat')}
-                onChange={(e) => setRepeat(e.target.value)}
-                onBlur={blur('repeat')}
-              />
-            </>
-          )}
-          {error && <Banner tone="danger">{t(error)}</Banner>}
-          <div className="register__submit">
-            <Button type="submit" loading={busy}>
-              {t(withPassword ? 'reg.create_account' : 'reg.create_passkey')}
-            </Button>
-          </div>
-        </form>
-      )}
+      {form}
     </div>
   );
 }

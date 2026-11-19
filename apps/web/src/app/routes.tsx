@@ -1,5 +1,6 @@
 import { Settings2 } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
+import type { ConfigResponse } from '@oct/shared';
 import { Redirect, Route, Switch, useLocation, useSearch } from 'wouter';
 import { openUserDb } from '../data/db';
 import { flush, pendingCount } from '../data/outbox';
@@ -255,15 +256,17 @@ function LoginForm({
   onSignedIn: () => Promise<void>;
   expired: boolean;
 }) {
+  const config = useConfig();
   const [queued, setQueued] = useState(0);
   // The expired user's queue waits on this device and goes out after sign-in (3.7).
   useEffect(() => {
     const last = getLastUser();
     if (expired && last) void pendingOf(last.id).then(setQueued, () => {});
   }, [expired]);
+  if (setupPending(config)) return <Redirect to="/setup" replace />;
   return (
     <LoginScreen
-      config={useConfig()}
+      config={config}
       onSignedIn={onSignedIn}
       notice={expired ? { kind: 'expired' } : undefined}
       queued={queued}
@@ -313,6 +316,8 @@ function Register({ kind }: { kind: RegisterKind }) {
     if (count > 0) setQueued(count);
     else await logout({ stay: true });
   }
+  // No admin yet: only the wizard can make an account (OCT-242 AC-3.1).
+  if (setupPending(config)) return <Redirect to="/setup" replace />;
   if (user && (done || kind === 'open')) return <Redirect to="/" replace />;
   if (kind === 'open' && config.registration !== 'open')
     return <Redirect to="/login" replace />;
@@ -345,14 +350,19 @@ function Register({ kind }: { kind: RegisterKind }) {
   );
 }
 
+/** No admin yet and nothing to fix in the configuration: the wizard instead of sign-in. */
+const setupPending = (config: ConfigResponse) =>
+  config.setupRequired && !config.setupError;
+
 /** The first-run wizard; once there is an admin, or with a setup error, sign-in takes over (OCT-242). */
 function Setup() {
   const config = useConfig();
-  if (!config.setupRequired || config.setupError)
-    return <Redirect to="/login" replace />;
+  const { signedIn } = useSession();
+  // The config is read once: after step 2 the wizard stays for step 3, a reload goes to the app.
+  if (!setupPending(config)) return <Redirect to="/login" replace />;
   return (
     <AuthLayout>
-      <SetupScreen config={config} />
+      <SetupScreen config={config} onSignedIn={signedIn} />
     </AuthLayout>
   );
 }
@@ -409,7 +419,8 @@ export function Routes() {
         </ConfigProvider>
       </Route>
       <Route path="/setup">
-        <ConfigProvider>
+        {/* Its own key: the config is read again on the way from or to another auth route. */}
+        <ConfigProvider key="setup">
           <Setup />
         </ConfigProvider>
       </Route>
