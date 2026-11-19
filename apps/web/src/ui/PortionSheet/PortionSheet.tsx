@@ -14,11 +14,13 @@ import { useT } from '../../i18n';
 import { Button } from '../Button/Button';
 import { MealTypeSegment } from '../MealTypeSegment/MealTypeSegment';
 import { Segment } from '../Segment/Segment';
+import { RecipeThumb } from '../RecipeThumb/RecipeThumb';
 import { Sheet } from '../Sheet/Sheet';
 import { usePressRepeat } from '../usePressRepeat';
 import { useWeight } from '../weightUnits';
 import { WeightStepper } from '../WeightStepper/WeightStepper';
 import '../WeightStepper/WeightStepper.css';
+import '../MacroStat/MacroStat.css';
 import './PortionSheet.css';
 
 const CHIPS = [
@@ -95,12 +97,9 @@ export function PortionSheet({
   );
 
   const item = grams === null ? null : recipePortion(recipe, grams);
+  // Rounded as shown, so the plural form matches the number: «1 serving», not «1 servings».
   const servings =
-    serving && grams !== null
-      ? new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(
-          grams / serving,
-        )
-      : null;
+    serving && grams !== null ? Math.round((grams / serving) * 10) / 10 : null;
   const openPicker = (event: MouseEvent<HTMLInputElement>) => {
     try {
       event.currentTarget.showPicker(); // desktop Chrome: a click alone only focuses
@@ -156,7 +155,12 @@ export function PortionSheet({
               <Minus aria-hidden="true" />
             </button>
             <span className="portion__count tabular-nums" aria-live="polite">
-              {t('portion.count', { n: servings ?? '—' })}
+              {servings === null
+                ? '—'
+                : t('portion.count', {
+                    n: new Intl.NumberFormat(locale).format(servings),
+                    count: servings,
+                  })}
             </span>
             <button
               type="button"
@@ -185,7 +189,7 @@ export function PortionSheet({
                 type="button"
                 className="portion__chip tabular-nums"
                 aria-pressed={grams === Math.round(n * serving)}
-                aria-label={t('portion.count', { n: label })}
+                aria-label={t('portion.count', { n: label, count: n })}
                 onClick={() => setGrams(Math.round(n * serving))}
               >
                 {label}
@@ -193,22 +197,38 @@ export function PortionSheet({
             ))}
           </div>
         )}
-        <p className="portion__total tabular-nums">
+        <div className="portion__total">
+          <RecipeThumb recipe={recipe} />
           {item ? (
-            <>
-              <b>{t('meal.kcal', { n: num(item.kcal) })}</b>
-              {' · '}
-              {t('edit.macros', {
-                p: num(item.proteinG),
-                f: num(item.fatG),
-                c: num(item.carbsG),
-              })}
-              {mode === 'servings' && ` · ${w.fmt(item.grams)}\u00a0${w.u}`}
-            </>
+            <div className="tabular-nums">
+              <p>
+                <b>{t('meal.kcal', { n: num(item.kcal) })}</b>
+                {mode === 'servings' && ` · ${w.fmt(item.grams)}\u00a0${w.u}`}
+              </p>
+              <p className="portion__macros">
+                {(
+                  [
+                    ['p', 'protein', item.proteinG],
+                    ['f', 'fat', item.fatG],
+                    ['c', 'carbs', item.carbsG],
+                  ] as const
+                ).map(([k, m, v]) => (
+                  <span key={k}>
+                    <i
+                      className={`macro__dot macro__dot--${m}`}
+                      aria-hidden="true"
+                    />
+                    {t(`recipe.nut.${k}`, {
+                      g: `${num(v)}\u00a0${t('macro.g')}`,
+                    })}
+                  </span>
+                ))}
+              </p>
+            </div>
           ) : (
-            '—'
+            <p>—</p>
           )}
-        </p>
+        </div>
         {log && (
           <>
             <MealTypeSegment value={mealType} onChange={setMealType} />

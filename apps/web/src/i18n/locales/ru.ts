@@ -1732,7 +1732,12 @@ const ru: DeepPartial<typeof en> = {
     servings: 'Порции',
     grams: 'Граммы',
     ounces: 'Унции',
-    count: '{n} порц.',
+    count: {
+      one: '{n} порция',
+      few: '{n} порции',
+      many: '{n} порций',
+      other: '{n} порции',
+    },
     less: 'Меньше на ½ порции',
     more: 'Больше на ½ порции',
     add: 'Добавить',
