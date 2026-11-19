@@ -179,6 +179,18 @@ describe('local write and merge', () => {
     ]);
   });
 
+  it('a photo attached to a saved meal shows in the local copy (OCT-126)', async () => {
+    await db.put('meals', { ...(await localMeal(A)), id: 5 });
+    await patchMeal(db, A, { photoId: 'p1' });
+    await settle();
+    const meal = await db.get('meals', A);
+    expect(meal?.photo).toEqual({ id: 'p1', full: true });
+    expect(meal).not.toHaveProperty('photoId');
+    expect(await ops()).toMatchObject([
+      { kind: 'patchMeal', id: 5, body: { photoId: 'p1' } },
+    ]);
+  });
+
   it('settings and illustration choices merge by key', async () => {
     await patchSettings(db, { theme: 'dark' });
     await settle();

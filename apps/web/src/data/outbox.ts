@@ -74,8 +74,10 @@ function withChange(
   change: Omit<MealPatch, 'editedAt'>,
   choices: Choices,
 ): Meal {
-  const { items, ...fields } = change;
+  const { items, photoId, ...fields } = change;
   const next = { ...meal, ...fields };
+  // The server sets `full` by the retention setting; the sync brings it.
+  if (photoId) next.photo = { id: photoId, full: true };
   if (!items) return next;
   next.items = items.map(({ illustration, confidence, ...item }) => ({
     ...item,

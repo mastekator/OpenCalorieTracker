@@ -6,6 +6,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react';
 import { Route, Router, Switch, useLocation } from 'wouter';
 import { memoryLocation } from 'wouter/memory-location';
@@ -27,6 +28,12 @@ import { ToastProvider } from '../../ui/Toast/Toast';
 import { localToday } from '../diary/day';
 import { UNDO_MS, UndoDeleteProvider } from '../diary/undoDelete';
 import { MealEditExisting, MealEditScreen, MealRecalc } from './MealEditScreen';
+
+// jsdom has no canvas: the photo is taken as is.
+vi.mock('./prepareImage', async (original) => ({
+  ...(await original<typeof import('./prepareImage')>()),
+  prepareImage: async (file: Blob) => file,
+}));
 
 type Patch = Omit<MealPatch, 'editedAt'> | null;
 
@@ -449,6 +456,8 @@ describe('recalculation from the photo (OCT-62)', () => {
             refineLimit: null,
           });
         }
+        if (url === '/api/photos')
+          return Response.json({ photoId: 'p1' }, { status: 201 });
         if (url === '/api/photos/p1/recognize') return recognize();
         if (url === '/api/ai/refine') return refine();
         if (url === '/api/dishes/previous') return Response.json([null]);
@@ -548,6 +557,57 @@ describe('recalculation from the photo (OCT-62)', () => {
         expect.objectContaining({
           method: 'PATCH',
           body: expect.objectContaining({ recalcOffer: false }),
+        }),
+      ),
+    );
+  });
+
+  it('a saved meal without a photo takes one online, attached by PATCH on save (OCT-126)', async () => {
+    const bare = withPhoto({ photo: null, recalcOffer: false });
+    const picture = () =>
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: 'Illustration: Grains & sides, change',
+        }),
+      );
+    await setup(bare);
+    const closeSheet = () =>
+      fireEvent.click(
+        within(screen.getByRole('dialog')).getByRole('button', {
+          name: 'Close',
+        }),
+      );
+    // Offline: no photo items (only online, OCT-126).
+    const offline = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+    act(() => void window.dispatchEvent(new Event('offline')));
+    picture();
+    expect(screen.queryByRole('button', { name: 'From library' })).toBeNull();
+    closeSheet();
+    offline.mockRestore();
+    act(() => void window.dispatchEvent(new Event('online')));
+
+    expect(
+      screen.queryByRole('button', { name: 'Recognize again' }),
+    ).toBeNull();
+    picture();
+    fireEvent.click(button('From library'));
+    fireEvent.change(screen.getByTestId('edit-photo'), {
+      target: { files: [new File(['jpeg'], 'a.jpg', { type: 'image/jpeg' })] },
+    });
+    await waitFor(() =>
+      expect(document.querySelector('img.meal-edit__thumb')).toBeTruthy(),
+    );
+    // The photo can be recognized right away; the picture sheet no longer offers one.
+    expect(button('Recognize again')).toBeTruthy();
+    picture();
+    expect(screen.queryByRole('button', { name: 'From library' })).toBeNull();
+    closeSheet();
+    fireEvent.click(button('Save'));
+    await waitFor(() =>
+      expect(sent).toContainEqual(
+        expect.objectContaining({
+          method: 'PATCH',
+          body: expect.objectContaining({ photoId: 'p1' }),
         }),
       ),
     );

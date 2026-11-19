@@ -387,6 +387,93 @@ describe('meals', () => {
     ).toBeNull();
   });
 
+  it('attaches a photo to a saved meal without one (OCT-126)', async () => {
+    const t = await setup();
+    const meal = (await (
+      await t.call(t.cookie, 'POST', '/meals', input())
+    ).json()) as Meal;
+    const path = `/meals/${meal.id}`;
+    const photoId = await t.upload(t.cookie);
+
+    expect(
+      (await t.call(t.cookie, 'PATCH', path, { photoId: 'A'.repeat(22) }))
+        .status,
+    ).toBe(404);
+    const other = await t.addUser('b@example.com');
+    const foreign = await t.upload(other);
+    expect(
+      (await t.call(t.cookie, 'PATCH', path, { photoId: foreign })).status,
+    ).toBe(404);
+
+    // Same eatenAt in the patch: the period counts once from the new time, not shifted again.
+    const res = await t.call(t.cookie, 'PATCH', path, {
+      photoId,
+      eatenAt: '2026-01-09T12:00:00.000Z',
+      tzOffsetMin: 180,
+      localDate: '2026-01-09',
+    });
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as Meal).photo).toEqual({
+      id: photoId,
+      full: true,
+    });
+    const expiry = () =>
+      t.db.prepare('SELECT photo_expires_at FROM meals').pluck().get();
+    expect(expiry()).toBe(
+      Date.parse('2026-01-09T12:00:00.000Z') + 30 * 86_400_000,
+    );
+
+    // A queue retry with the same id changes nothing.
+    expect((await t.call(t.cookie, 'PATCH', path, { photoId })).status).toBe(
+      200,
+    );
+    expect(expiry()).toBe(
+      Date.parse('2026-01-09T12:00:00.000Z') + 30 * 86_400_000,
+    );
+
+    // The meal already has a photo; the photo is taken by another meal.
+    const second = await t.upload(t.cookie);
+    const busy = await t.call(t.cookie, 'PATCH', path, { photoId: second });
+    expect(busy.status).toBe(409);
+    expect(await busy.json()).toEqual({ error: { code: 'photo_in_use' } });
+    const bare = (await (
+      await t.call(t.cookie, 'POST', '/meals', input())
+    ).json()) as Meal;
+    expect(
+      (await t.call(t.cookie, 'PATCH', `/meals/${bare.id}`, { photoId }))
+        .status,
+    ).toBe(409);
+  });
+
+  it('attaches only the preview with retention 0, and not on a stale edit', async () => {
+    const t = await setup();
+    t.db.prepare('UPDATE users SET photo_retention_days = 0').run();
+    const meal = (await (
+      await t.call(t.cookie, 'POST', '/meals', input())
+    ).json()) as Meal;
+    const path = `/meals/${meal.id}`;
+    await t.call(t.cookie, 'PATCH', path, { mealType: 'dinner' });
+
+    const stale = await t.upload(t.cookie);
+    await t.call(t.cookie, 'PATCH', path, { photoId: stale, editedAt: 1 });
+    expect(t.db.prepare('SELECT photo_id FROM meals').pluck().get()).toBeNull();
+
+    const photoId = await t.upload(t.cookie);
+    const res = (await (
+      await t.call(t.cookie, 'PATCH', path, { photoId })
+    ).json()) as Meal;
+    expect(res.photo).toEqual({ id: photoId, full: false });
+    expect(existsSync(photoPath(t.dataDir, t.adminId, photoId, 'full')!)).toBe(
+      false,
+    );
+    expect(
+      existsSync(photoPath(t.dataDir, t.adminId, photoId, 'preview')!),
+    ).toBe(true);
+    expect(
+      t.db.prepare('SELECT photo_expires_at FROM meals').pluck().get(),
+    ).toBeNull();
+  });
+
   it('deletes the meal with its photo files, idempotently (AC-10.5)', async () => {
     const t = await setup();
     const photoId = await t.upload(t.cookie);
