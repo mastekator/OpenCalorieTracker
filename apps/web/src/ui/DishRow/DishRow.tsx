@@ -65,7 +65,7 @@ export function DishRow({
       : mark.name !== dish.name
         ? mark.name
         : mark.grams === dish.grams && mark.kcal !== undefined
-          ? t('meal.kcal', { n: num(mark.kcal) })
+          ? t('meal.kcal', { n: num(mark.kcal) }).replace(' ', '\u00a0') // «was 420 kcal» never splits
           : units === 'us'
             ? `${new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(gToOz(mark.grams))}\u00a0${t('unit.oz')}`
             : `${num(mark.grams)}\u00a0${t('unit.g')}`;
@@ -134,18 +134,22 @@ export function DishRow({
             })}
           </span>
         </div>
-        {was && (
-          <p className="dish-row__was">
-            {t('edit.refine.mark.was', { what: was })}
-          </p>
-        )}
         <div className="dish-row__weight">
-          <WeightStepper
-            grams={dish.grams}
-            units={units}
-            label={t('edit.weight.label', { dish: dish.name })}
-            onChange={onGramsChange}
-          />
+          <div className="dish-row__weight-main">
+            <WeightStepper
+              grams={dish.grams}
+              units={units}
+              label={t('edit.weight.label', { dish: dish.name })}
+              onChange={onGramsChange}
+            />
+            {was && (
+              <p
+                className={`dish-row__was${mark?.kind === 'changed' && mark.name !== dish.name ? ' dish-row__was--name' : ''}`}
+              >
+                {t('edit.refine.mark.was', { what: was })}
+              </p>
+            )}
+          </div>
           <button
             type="button"
             className="dish-row__edit"

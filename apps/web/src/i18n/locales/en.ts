@@ -1326,8 +1326,7 @@ export const en = {
     },
     edit: 'Edit {dish}',
     title: '{day}, {time}',
-    estimate:
-      'AI estimate from the photo — check the weight. Calories and macros update automatically.',
+    estimate: 'AI estimate — check the weight.',
     delete: 'Delete',
     delete_dish: 'Delete {dish}',
     deleted: '{dish} deleted',

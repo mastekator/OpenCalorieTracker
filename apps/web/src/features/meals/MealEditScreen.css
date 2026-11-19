@@ -125,8 +125,18 @@
   width: auto;
 }
 
+.meal-edit__estimate-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-3);
+}
+
+/* The text wraps beside the button; under 7rem of room the button goes below. */
 .meal-edit__estimate {
-  grid-column: 1 / -1;
+  flex: 1 1 0;
+  min-width: 7rem;
   display: flex;
   gap: var(--space-2);
   font-size: var(--text-footnote-size);
@@ -222,8 +232,7 @@
     aspect-ratio: 1;
   }
 
-  .meal-edit__summary--photo .meal-edit__total,
-  .meal-edit__estimate {
+  .meal-edit__summary--photo .meal-edit__total {
     grid-column: auto;
   }
 
@@ -348,10 +357,9 @@
   vertical-align: middle;
 }
 
-/* A.1: «Recognize again» on the AI estimate line, one tap. */
+/* A.1: «Recognize again» on the AI estimate line, one tap; alone it keeps to the left. */
 .meal-edit__again {
-  grid-column: 1 / -1;
-  justify-self: start;
+  flex: none;
 }
 
 .meal-edit__again .lucide {

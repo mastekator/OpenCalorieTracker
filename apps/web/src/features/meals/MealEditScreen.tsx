@@ -788,6 +788,7 @@ export function MealEditScreen({
   const canRefine = !!recognition && recognition !== 'not_configured';
   const vision = recognition === 'ready' && !noVision;
   const canAgain = canRefine && vision && !!serverPhoto;
+  const aiRows = rows.some((r) => r.source === 'ai');
   const refineOff = !online || working || refine.limitReached;
   const asked = rows.filter(
     (r) => r.question && r.question.chosen === undefined,
@@ -969,28 +970,6 @@ export function MealEditScreen({
                 </span>
               )}
             </div>
-            {rows.some((r) => r.source === 'ai') && (
-              <p className="meal-edit__estimate">
-                <Sparkle aria-hidden="true" />
-                {asked
-                  ? t('edit.question.count', { count: asked })
-                  : t('edit.estimate')}
-              </p>
-            )}
-            {canAgain && (
-              // A.1: one tap, no hint needed; the hint goes along when typed.
-              <span className="meal-edit__again">
-                <Button
-                  variant="tonal"
-                  small
-                  disabled={refineOff}
-                  onClick={again}
-                >
-                  <RefreshCw aria-hidden="true" />
-                  {t('edit.refine.again')}
-                </Button>
-              </span>
-            )}
           </aside>
           <div className="meal-edit__main">
             <MealTypeSegment value={mealType} onChange={setMealType} />
@@ -1016,6 +995,33 @@ export function MealEditScreen({
                       }).replace(' ', '\u00a0'),
                     })}
                   </p>
+                )}
+              </div>
+            )}
+            {(aiRows || canAgain) && (
+              // A.1: one line under the meal type, the estimate and «Recognize again» side by side.
+              <div className="meal-edit__estimate-row">
+                {aiRows && (
+                  <p className="meal-edit__estimate">
+                    <Sparkle aria-hidden="true" />
+                    {asked
+                      ? t('edit.question.count', { count: asked })
+                      : t('edit.estimate')}
+                  </p>
+                )}
+                {canAgain && (
+                  // One tap, no hint needed; the hint goes along when typed.
+                  <span className="meal-edit__again">
+                    <Button
+                      variant="tonal"
+                      small
+                      disabled={refineOff}
+                      onClick={again}
+                    >
+                      <RefreshCw aria-hidden="true" />
+                      {t('edit.refine.again')}
+                    </Button>
+                  </span>
                 )}
               </div>
             )}

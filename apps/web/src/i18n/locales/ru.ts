@@ -1369,8 +1369,7 @@ const ru: DeepPartial<typeof en> = {
     },
     edit: 'Изменить: {dish}',
     title: '{day}, {time}',
-    estimate:
-      'Оценка ИИ по фото — проверьте вес. Ккал и БЖУ пересчитаются сами.',
+    estimate: 'Оценка ИИ — проверьте вес.',
     delete: 'Удалить',
     delete_dish: 'Удалить: {dish}',
     deleted: 'Удалено: {dish}',
