@@ -1,21 +1,28 @@
 import { useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
+import { ChefHat } from 'lucide-react';
 import {
   DISH_GRAMS,
   fromPer100,
   kcalFromMacros,
   macrosMismatch,
   ozToG,
+  per100,
   round1,
   type Nutrients,
+  type Recipe,
   type Units,
 } from '@oct/shared';
+import { matchRecipes } from '../../features/kitchen/matchRecipes';
 import { useT } from '../../i18n';
+import { Badge } from '../Badge/Badge';
 import { Banner } from '../Banner/Banner';
 import { Button } from '../Button/Button';
 import { Field } from '../Field/Field';
 import { parseDecimal } from '../FormList/FormList';
+import { List, ListRow } from '../List/List';
 import { Segment } from '../Segment/Segment';
+import { RecipeThumb } from '../RecipeThumb/RecipeThumb';
 import { Sheet } from '../Sheet/Sheet';
 import './ManualDishSheet.css';
 
@@ -46,6 +53,10 @@ type Props = {
   onAdd: (dish: ManualDish) => void;
   /** Close button, Esc, scrim, swipe down: the draft is dropped. */
   onClose: () => void;
+  /** The user's recipes: recent ones before typing, matches first while typing (OCT-160 3.4). */
+  recipes?: Recipe[];
+  /** A recipe tapped: the screen opens its portion sheet. */
+  onRecipe?: (recipe: Recipe) => void;
 };
 
 /** Screen 5 (OCT-16 §4): a dish entered by hand, per 100 g or per serving. The screen mounts it while open. */
@@ -55,6 +66,8 @@ export function ManualDishSheet({
   title,
   onAdd,
   onClose,
+  recipes = [],
+  onRecipe,
 }: Props) {
   const { t, num } = useT();
   const us = units === 'us';
@@ -75,6 +88,7 @@ export function ManualDishSheet({
   const refs = useRef<Partial<Record<Fields, HTMLInputElement | null>>>({});
 
   const name = text.name.trim();
+  const found = onRecipe ? matchRecipes(recipes, name) : [];
   const weight = parse(text.weight);
   const g = weight === null ? null : us ? ozToG(weight) : weight;
   const grams =
@@ -172,6 +186,36 @@ export function ManualDishSheet({
           maxLength={80}
           placeholder={t('manual_dish.name_ph')}
         />
+        {found.length > 0 && (
+          <List
+            title={t(
+              name ? 'manual_dish.recipes' : 'manual_dish.recipes_recent',
+            )}
+            footer={name ? undefined : t('manual_dish.recipes_footer')}
+          >
+            {found.map((r) => (
+              <ListRow
+                key={r.id}
+                icon={<RecipeThumb recipe={r} />}
+                // Same names differ by kcal per 100 g (OCT-160 3.4); the recent group's title already says «recipes».
+                description={
+                  <>
+                    {name && (
+                      <Badge>
+                        <ChefHat aria-hidden="true" />
+                        {t('manual_dish.recipe')}
+                      </Badge>
+                    )}{' '}
+                    {t('recipes.per100', { k: num(per100(r).kcal) })}
+                  </>
+                }
+                onClick={() => onRecipe?.(r)}
+              >
+                {r.name}
+              </ListRow>
+            ))}
+          </List>
+        )}
         <Field
           {...field('weight')}
           label={required(t('manual_dish.weight'))}

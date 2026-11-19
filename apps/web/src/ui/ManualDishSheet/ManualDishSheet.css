@@ -32,3 +32,9 @@
   font-size: var(--text-subhead-size);
   line-height: var(--text-subhead-lh);
 }
+
+/* Recipe rows: the thumb fills the ListRow icon tile, so separators stay aligned (OCT-160 3.4). */
+.manual-dish .list-row__icon {
+  --thumb-size: calc(var(--icon-size) * 1.25);
+  background: none;
+}

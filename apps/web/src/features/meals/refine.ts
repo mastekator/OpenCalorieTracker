@@ -12,6 +12,7 @@ import {
   type FixedField,
   type IllustrationId,
   type MealItemInput,
+  type Recipe,
   type RecognizedDish,
   type RefineDishIn,
 } from '@oct/shared';
@@ -57,6 +58,10 @@ export type Row = {
   fixed: FixedField[];
   /** A similar dish from the history: the hint under the row (4.3). */
   previous?: Previous;
+  /** A recipe named like the dish: «Your recipe», shown instead of `previous` (ADR-0023 §6). */
+  recipe?: Recipe;
+  /** The recipe a `source: 'recipe'` dish is a portion of. */
+  recipeId?: number;
   /** The AI's question about this dish (ADR-0020 §4); `chosen`: the option tapped, none yet. */
   question?: Question;
 };
@@ -91,6 +96,8 @@ export const itemOf = (row: Row): MealItemInput => {
     fatG,
     carbsG,
     source: row.source,
+    // The server takes a recipe link only on a recipe dish.
+    ...(row.source === 'recipe' && row.recipeId && { recipeId: row.recipeId }),
     // A manual dish has no confidence (AC-3.9).
     ...(row.source === 'ai' && !row.fixed.length && { confidence }),
     // Only a hand-picked one is sent; the server matches the rest (ADR-0009).
@@ -242,6 +249,7 @@ export function answer(rows: Row[], id: string, option: number): Applied {
       shown: g,
       fixed: ALL,
       previous: undefined,
+      recipe: undefined,
       question: { ...q, chosen: option },
     };
   });
