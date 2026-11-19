@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OCT-319 · Model test: all miss reasons, counts, old set</title>
+<link rel="stylesheet" href="../oct-13/tokens.css">
+<script src="../preview-bar.js"></script>
+<style>
+/* Prototype-only additions; the app values live in apps/web/src/styles/tokens.css. */
+:root {
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace; /* exists in the app tokens */
+  --test-thumb-w: 64px;  /* OCT-300: reference photo, 4:3 like the photos themselves */
+  --test-thumb-h: 48px;
+}
+body { margin: 0; padding: var(--space-10) var(--space-8); background: var(--color-bg); color: var(--color-text);
+  font: var(--text-body-size)/var(--text-body-lh) var(--font-sans); }
+.doc-h1 { margin: 0 0 var(--space-2); font-size: var(--text-title-size); line-height: var(--text-title-lh); }
+.doc-h2 { margin: var(--space-10) 0 var(--space-2); font-size: var(--text-headline-size); }
+.doc-lead { max-width: 72ch; margin: 0 0 var(--space-4); color: var(--color-text-secondary); font-size: var(--text-subhead-size); line-height: var(--text-subhead-lh); }
+.doc-list { max-width: 80ch; padding-left: var(--space-6); font-size: var(--text-subhead-size); line-height: var(--text-subhead-lh); }
+.doc-list li + li { margin-top: var(--space-2); }
+.doc-list code { font-family: var(--font-mono); font-size: .9em; }
+.frames { display: flex; flex-wrap: wrap; gap: var(--space-8); align-items: flex-start; }
+figure { margin: 0; }
+figcaption { max-width: 60ch; margin-top: var(--space-2); font-size: var(--text-footnote-size); line-height: var(--text-footnote-lh); color: var(--color-text-secondary); }
+.desk { width: 760px; padding: var(--space-6); border-radius: var(--radius-lg); background: var(--color-bg); outline: 1px solid var(--color-separator); }
+.phone { width: 390px; box-sizing: border-box; padding: var(--space-4); border-radius: 40px; background: var(--color-bg); outline: 1px solid var(--color-separator); }
+
+/* ---- the block (what changes vs v0.2.0) ---- */
+.compare { display: grid; gap: var(--space-2); }
+.compare__head { display: flex; align-items: center; justify-content: space-between; }
+.compare__head h2 { margin: 0; font-size: var(--text-headline-size); line-height: var(--text-headline-lh); font-weight: 600; }
+.plain { min-height: var(--tap-min); padding: 0 var(--space-2); border: 0; background: none; color: var(--color-accent); font: 500 var(--text-subhead-size) var(--font-sans); }
+.compare__card { padding: 0 var(--space-4); border-radius: var(--radius-lg); background: var(--color-surface); }
+.compare__list { margin: 0; padding: 0; list-style: none; }
+.compare__item + .compare__item { border-top: 1px solid var(--color-separator); }
+.compare__note { margin: 0; padding: 0 var(--space-1); font-size: var(--text-footnote-size); line-height: var(--text-footnote-lh); color: var(--color-text-secondary); }
+
+.row { position: relative; display: grid; align-items: center; column-gap: var(--space-3); padding: var(--space-3) 0; }
+.row--head { padding: var(--space-2) 0; border-bottom: 1px solid var(--color-separator); font-size: var(--text-caption-size); line-height: var(--text-caption-lh); color: var(--color-text-secondary); }
+.name { display: grid; gap: 2px; min-width: 0; }
+.model { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
+/* 1 · one line, never broken at a hyphen; the full name is in title and the accessible name */
+.mono { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+  font: 600 var(--text-subhead-size)/var(--text-subhead-lh) var(--font-mono); }
+.sub { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: var(--text-footnote-size); line-height: var(--text-footnote-lh); color: var(--color-text-secondary); }
+.num { font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.passed { font-weight: 600; }
+.best .passed { color: var(--color-accent); }
+.part .passed { color: var(--color-text-secondary); }
+.badge { flex: none; display: inline-flex; align-items: center; gap: 2px; padding: 2px var(--space-2); border-radius: var(--radius-sm);
+  font-size: var(--text-caption-size); line-height: var(--text-caption-lh); font-weight: 600; white-space: nowrap; }
+.badge svg { width: 1em; height: 1em; }
+.badge--ok { background: var(--color-accent-soft); color: var(--color-accent); }
+.badge--warn { background: var(--color-warning-soft); color: var(--color-warning); }
+.badge--neutral { background: var(--color-surface-2); color: var(--color-text-secondary); }
+.badge--err { background: var(--color-danger-soft); color: var(--color-danger); }
+.chev { display: inline-flex; align-items: center; justify-content: center; width: var(--tap-min); height: var(--tap-min); color: var(--color-text-secondary); }
+.chev svg { width: 20px; height: 20px; }
+.open .chev svg { transform: rotate(180deg); }
+.toggle { position: absolute; inset: 0; border: 0; background: none; cursor: pointer; border-radius: var(--radius-md); }
+
+/* desktop: 5 columns, the whole row opens the photos; copy and delete moved into the open row */
+.desk .row { grid-template-columns: minmax(12rem, 1fr) 4rem 5.5rem 9rem var(--tap-min); column-gap: var(--space-4);
+  margin: 0 calc(-1 * var(--space-3)); padding-left: var(--space-3); padding-right: 0; }
+.desk .best > .row { border-radius: var(--radius-md); background: var(--color-surface-2); }
+.desk .row--head { margin: 0; padding-left: 0; }
+/* phone: line 1 = model … N/9, line 2 = provider · date · tag … time · cost */
+.phone .row { grid-template-columns: minmax(0, 1fr) auto; row-gap: 2px; }
+.phone .sub { flex-wrap: wrap; row-gap: 2px; white-space: normal; overflow: visible; }
+.phone .btn--danger { margin-left: 0; }
+.phone .metrics { white-space: nowrap; font-size: var(--text-footnote-size); color: var(--color-text-secondary); }
+.phone .passed { font-size: var(--text-title-size); line-height: var(--text-title-lh); font-weight: 700; grid-row: 1 / span 2; grid-column: 2; align-self: center; }
+
+.details { display: grid; gap: var(--space-2); padding-bottom: var(--space-3); }
+.buttons { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.btn { display: inline-flex; align-items: center; gap: var(--space-1); min-height: 36px; padding: 0 var(--space-3); border: 0; border-radius: var(--radius-md);
+  font: 500 var(--text-subhead-size) var(--font-sans); background: none; color: var(--color-accent); }
+.btn svg { width: 16px; height: 16px; }
+.btn--tonal { background: var(--color-accent-soft); }
+.btn--danger { color: var(--color-danger); margin-left: auto; }
+
+/* 2 + 3 · photo rows */
+.tp { margin: 0; padding: 0; list-style: none; }
+.tp li { position: relative; display: flex; align-items: flex-start; gap: var(--space-3); padding: var(--space-3) 0; }
+.tp li + li::before { content: ''; position: absolute; top: 0; right: 0; left: calc(var(--test-thumb-w) + var(--space-3)); border-top: 1px solid var(--color-separator); }
+.tp img { flex: none; width: var(--test-thumb-w); height: var(--test-thumb-h); border-radius: var(--radius-sm); object-fit: cover; background: var(--color-surface-2); }
+.tp__main { display: grid; gap: 2px; flex: 1; min-width: 0; }
+.tp__name { font-size: var(--text-subhead-size); line-height: var(--text-subhead-lh); font-weight: 600; }
+.tp__line { font-size: var(--text-footnote-size); line-height: var(--text-footnote-lh); color: var(--color-text-secondary); font-variant-numeric: tabular-nums; }
+.tp__line b { font-weight: 500; color: var(--color-text); }
+.tp__got { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.tp__dish { color: var(--color-text); }
+.tp__end { flex: none; font-size: var(--text-footnote-size); color: var(--color-text-secondary); font-variant-numeric: tabular-nums; }
+.lang-bar { display: inline-flex; margin-left: var(--space-4); }
+.tp__ph { flex: none; width: var(--test-thumb-w); height: var(--test-thumb-h); border-radius: var(--radius-sm); background: var(--color-surface-2); }
+/* OCT-319 · a miss is a wrapping line, not a pill: several reasons do not fit a nowrap badge on 390 pt */
+.tp__why { display: flex; align-items: flex-start; gap: var(--space-1); font-size: var(--text-footnote-size); line-height: var(--text-footnote-lh); font-weight: 500; color: var(--color-danger); }
+.tp__why svg { flex: none; width: 1em; height: 1em; margin-top: .2em; }
+.old .passed { color: var(--color-text-secondary); font-weight: 500; }
+</style>
+</head>
+<body>
+<div id="doc"></div>
+<script>
+const NB = ' ';
+const KEY = 'oct-preview-lang';
+let lang = new URLSearchParams(location.search).get('lang');
+try { lang = lang || localStorage.getItem(KEY); } catch (e) {}
+lang = lang === 'en' ? 'en' : 'ru';
+
+const ICON = {
+  chev: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>',
+  copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="14" height="14" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>',
+  trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>',
+  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>',
+  x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>',
+};
+
+const S = {
+  ru: {
+    title: 'Сравнение моделей', clear: 'Очистить всё',
+    cols: ['Провайдер и модель', 'Прошло', 'Время на фото', 'Стоимость или токены'],
+    best: 'лучший', stopped: 'остановлен', interrupted: 'прерван', tokens: n => `${n}${NB}тыс. токенов`,
+    copyRow: 'Скопировать строку для MODELS.md', copyReport: 'Скопировать полный отчёт', del: 'Удалить', photos: 'Результаты по фото',
+    note: 'Хранятся последние 20 прогонов. Строка для MODELS.md — только у полного прогона.',
+    exp: 'Ожидалось', got: 'Получилось', empty: 'пусто', kcal: 'ккал', sec: 'с', notFood: 'Не еда',
+    lvl: { exact: 'точно', approx: 'примерно' }, ok: 'ок', per100: 'ккал/100' + NB + 'г', old: 'старый набор', err: 'Ошибка провайдера',
+    why: { not_recognized: d => `Не узнано: ${d.join(', ')}`, count: (d, e, g) => `${d}: ожидалось ${e}${NB}шт., получено ${g}`, kcal: 'Ккал вне диапазона', exact: 'Ждали «точно»', approx: 'Ждали «примерно»', empty: 'Ждали пусто', nothing: 'Ничего не нашла' },
+    dates: ['18 нояб.', '17 нояб.', '16 нояб.'], compat: 'Совместимый с OpenAI',
+    names: { banana: 'банан', eggs: 'яйца', noodles: 'лапша с крупуком, самбалом и ачаром', sausages: 'сосиски, упаковка', plov: 'плов на тарелке', err: 'суши, 6 нигири' },
+  },
+  en: {
+    title: 'Model comparison', clear: 'Clear all',
+    cols: ['Provider and model', 'Passed', 'Time per photo', 'Cost or tokens'],
+    best: 'best', stopped: 'stopped', interrupted: 'interrupted', tokens: n => `${n}K${NB}tokens`,
+    copyRow: 'Copy MODELS.md row', copyReport: 'Copy full report', del: 'Delete', photos: 'Results per photo',
+    note: 'The last 20 runs are kept. A MODELS.md row comes only from a complete run.',
+    exp: 'Expected', got: 'Got', empty: 'empty', kcal: 'kcal', sec: 's', notFood: 'Not food',
+    lvl: { exact: 'exact', approx: 'approx.' }, ok: 'ok', per100: 'kcal/100' + NB + 'g', old: 'old set', err: 'Provider error',
+    why: { not_recognized: d => `Not recognized: ${d.join(', ')}`, count: (d, e, g) => `${d}: expected ${e}, got ${g}`, kcal: 'Calories out of range', exact: 'Expected “exact”', approx: 'Expected “approx.”', empty: 'Expected empty', nothing: 'Nothing found' },
+    dates: ['Nov 18', 'Nov 17', 'Nov 16'], compat: 'OpenAI-compatible',
+    names: { banana: 'banana', eggs: 'eggs', noodles: 'noodles with krupuk, sambal and acar', sausages: 'sausages, package', plov: 'plov on a plate', err: 'sushi, 6 nigiri' },
+  },
+};
+let T = S[lang];
+const loc = () => lang === 'ru' ? 'ru-RU' : 'en-US';
+const dec = n => n.toLocaleString(loc(), { maximumFractionDigits: 1 });
+const n0 = n => n.toLocaleString(loc()).replace(/\s/g, NB);
+
+// Runs (OCT-248 6.2 fixtures + the owner's long names).
+const SET = 2, SIZE = 17;
+const RUNS = [
+  { id: 6, p: 'Google', m: 'gemini-3.5-flash-lite', passed: 9, total: 17, sec: 3.9, tok: 24.6, d: 0, set: 2 },
+  { id: 5, p: 'OpenRouter', m: 'qwen/qwen3-vl-72b', passed: 11, total: 17, sec: 6.0, usd: 0.02, d: 0, set: 2 },
+  { id: 7, p: 'OpenRouter', m: 'google/gemini-3.8-flash', passed: 14, total: 17, sec: 4.8, usd: 0.011, d: 0, set: 2, best: true },
+  { id: 4, p: 'OpenRouter', m: 'google/gemini-3.8-flash', passed: 9, total: 9, sec: 4.9, usd: 0.006, d: 1, set: 1 },
+  { id: 3, p: 'compat', m: 'meta-llama/llama-4-maverick-17b-128e-instruct', passed: 4, total: 9, sec: 21.4, tok: 11.8, d: 1, set: 1 },
+  { id: 2, p: 'Google', m: 'gemini-3.8-pro', passed: 0, total: 17, sec: null, d: 2, set: 2, st: 'stopped' },
+];
+// The opened run on set 2: misses come as codes (ADR-0033 §3), the screen words them.
+const PHOTOS = [
+  { f: 'banana', n: 'banana', exp: [['banana']], min: 85, max: 125, el: 'exact', got: 'Banana', k: 105, gl: 'exact', t: 2.8, misses: [] },
+  { f: 'eggs', n: 'eggs', exp: [['egg', 3]], min: 170, max: 260, el: 'exact', got: 'Chicken egg, raw', k: 78, gl: 'exact', t: 3.9,
+    misses: [{ code: 'count', dish: 'egg', expected: 3, got: 1 }, { code: 'kcal' }] },
+  { f: null, n: 'noodles', exp: [['noodle'], ['krupuk'], ['sambal'], ['acar'], ['egg'], ['vegetable']], min: 600, max: 1120, el: 'approx', got: 'Nasi goreng with chicken', k: 1340, gl: 'exact', t: 5.6,
+    misses: [{ code: 'not_recognized', dishes: ['noodle', 'krupuk', 'sambal', 'acar', 'egg', 'vegetable'] }, { code: 'kcal' }, { code: 'approx' }] },
+  { f: null, n: 'sausages', exp: [['sausage']], per100: true, min: 172, max: 316, el: 'exact', got: 'Pork sausages', k: 540, gl: 'exact', t: 3.4, misses: [] },
+  { f: 'plov', n: 'plov', exp: [['pilaf']], min: 420, max: 780, el: 'approx', got: 'Mutton Biryani', k: 690, gl: 'approx', t: 4.6,
+    misses: [{ code: 'not_recognized', dishes: ['pilaf'] }] },
+  { f: null, n: 'err', exp: [['salmon'], ['tuna'], ['yellowtail'], ['octopus'], ['tobiko'], ['tamago']], min: 230, max: 350, el: 'exact', error: true, t: 30.0 },
+  { f: 'chair', n: null, empty: true, t: 2.1, misses: [] },
+];
+
+const cost = r => r.usd != null ? `≈${NB}$${r.usd.toLocaleString(loc(), { maximumSignificantDigits: 2 })}` : r.tok ? T.tokens(dec(r.tok)) : '—';
+const time = r => r.sec == null ? '—' : `${dec(r.sec)}${NB}${T.sec}`;
+const prov = r => r.p === 'compat' ? T.compat : r.p;
+const tag = r => (r.set < SET ? `<span class="badge badge--neutral">${T.old}</span>` : '') + (r.best ? `<span class="badge badge--ok">${T.best}</span>` : r.st === 'stopped' ? `<span class="badge badge--warn">${T.stopped}</span>` : r.st === 'interrupted' ? `<span class="badge badge--neutral">${T.interrupted}</span>` : '');
+
+const reason = m => m.code === 'not_recognized' ? T.why.not_recognized(m.dishes) : m.code === 'count' ? T.why.count(m.dish, m.expected, m.got) : T.why[m.code];
+const dishes = e => e.map(([w, c]) => c ? `${w}${NB}×${NB}${c}` : w).join(', ');
+function photos() {
+  return `<ul class="tp">${PHOTOS.map(p => {
+    const name = p.n ? T.names[p.n] : T.notFood;
+    const exp = p.empty ? T.empty : `<span class="tp__dish">${dishes(p.exp)}</span> · ${n0(p.min)}⁠–⁠${n0(p.max)}${NB}${p.per100 ? T.per100 : T.kcal} · ${T.lvl[p.el]}`;
+    const got = p.empty ? T.empty : p.error ? '—' : `<span class="tp__dish">${p.got}</span> · ${n0(p.k)}${NB}${T.kcal} · ${T.lvl[p.gl]}`;
+    const res = p.error ? `<span class="tp__why">${ICON.x}<span>${T.err}</span></span>`
+      : !p.misses.length ? `<span class="badge badge--ok">${ICON.check}${T.ok}</span>`
+      : `<span class="tp__why">${ICON.x}<span>${p.misses.map(reason).join(' · ')}</span></span>`;
+    const img = p.f ? `<img src="photos/${p.f}.jpg" alt="">` : '<span class="tp__ph" aria-hidden="true"></span>';
+    return `<li>${img}<span class="tp__main"><span class="tp__name">${name}</span>
+      <span class="tp__line">${T.exp}: ${exp}</span>
+      <span class="tp__line tp__got" title="${p.got || ''}"><b>${T.got}:</b> ${got}</span>
+      <span class="tp__line">${res}</span></span><span class="tp__end">${dec(p.t)}${NB}${T.sec}</span></li>`;
+  }).join('')}</ul>`;
+}
+
+function details(r, desk) {
+  return `<div class="details"><div class="buttons">
+    <button class="btn btn--tonal">${ICON.copy}${T.copyRow}</button><button class="btn">${T.copyReport}</button>
+    <button class="btn btn--danger">${ICON.trash}${T.del}</button></div>${photos()}</div>`;
+}
+
+function block(desk, openId) {
+  const head = desk ? `<div class="row row--head" aria-hidden="true"><span>${T.cols[0]}</span><span class="num">${T.cols[1]}</span><span class="num">${T.cols[2]}</span><span class="num">${T.cols[3]}</span><span></span></div>` : '';
+  const items = RUNS.map(r => {
+    const open = r.id === openId;
+    const cls = `compare__item${r.best ? ' best' : ''}${r.st ? ' part' : ''}${r.set < SET ? ' old' : ''}${open ? ' open' : ''}`;
+    const name = `<span class="name"><span class="model"><span class="mono" title="${r.m}">${r.m}</span>${desk ? tag(r) : ''}</span>
+      <span class="sub">${prov(r)} · ${T.dates[r.d]}${desk ? '' : ''}</span></span>`;
+    const toggle = `<button class="toggle" aria-expanded="${open}" aria-label="${T.photos}: ${r.m}"></button>`;
+    const row = desk
+      ? `<div class="row">${name}<span class="num passed">${r.passed}/${r.total}</span><span class="num">${time(r)}</span><span class="num">${cost(r)}</span><span class="chev">${ICON.chev}</span>${toggle}</div>`
+      : `<div class="row"><span class="mono" title="${r.m}">${r.m}</span><span class="num passed">${r.passed}/${r.total}</span>
+          <span class="sub" style="display:flex;gap:var(--space-2);align-items:center">${prov(r)} · ${T.dates[r.d]} ${tag(r)}<span class="metrics">${r.sec == null && cost(r) === '—' ? '—' : `${time(r)} · ${cost(r)}`}</span></span>${toggle}</div>`;
+    return `<li class="${cls}">${row}${open ? details(r, desk) : ''}</li>`;
+  }).join('');
+  return `<section class="compare"><div class="compare__head"><h2>${T.title}</h2><button class="plain">${T.clear}</button></div>
+    <div class="compare__card">${head}<ul class="compare__list">${items}</ul></div><p class="compare__note">${T.note}</p></section>`;
+}
+
+function render() {
+  T = S[lang];
+  document.documentElement.lang = lang;
+  document.getElementById('doc').innerHTML = `
+<h1 class="doc-h1">OCT-319 · «Тест модели» и «Сравнение моделей»: все причины, ×N, старый набор</h1>
+<p class="doc-lead">Новых экранов нет — правка строки фото (общий TestPhotoList: и «Тест модели», и раскрытый прогон в «Сравнении») и метка прогонов старого набора. Пример — прогон gemini-3.5-flash-lite на наборе 2 (17 фото, показаны 7 характерных). Серые миниатюры — фото владельца, которых ещё нет в наборе. Язык — в панели сверху; названия блюд и ключевые слова не переводятся.</p>
+
+<section id="phone"><h2 class="doc-h2">1 · Телефон</h2>
+<div class="frames"><figure><div class="phone">${block(false, 6)}</div>
+<figcaption>Худший случай — лапша: шесть «не узнано», ккал и уровень — три причины, четыре строки на 390${NB}pt. Причины переносятся, не обрезаются: это главное, ради чего админ открыл прогон.</figcaption></figure></div></section>
+
+<section id="desktop"><h2 class="doc-h2">2 · Компьютер</h2>
+<div class="frames"><figure><div class="desk">${block(true, 6)}</div>
+<figcaption>Прогоны набора 1 подписаны «старый набор», «Прошло» у них вторичным цветом, «лучший» им не достаётся — даже 9/9 из старого набора. Лучший — 14/17 на текущем наборе.</figcaption></figure></div></section>
+
+<section id="spec"><h2 class="doc-h2">3 · Что поменять в коде</h2>
+<ol class="doc-list">
+<li><b>«Ожидалось».</b> «Ожидалось: <i>egg${NB}×${NB}3</i> · 170–260${NB}ккал · точно». Блюда — первые ключевые слова из <code>p.expected</code> (сервер: «egg ×3; 170–260 kcal; exact»), цветом основного текста, через запятую, количество — «${NB}×${NB}N» с неразрывными пробелами, как в «Получилось». Упаковка — «sausage · 172–316${NB}ккал/100${NB}г · точно» (EN «kcal/100${NB}g»). Строка не обрезается (это эталон, 6 блюд лапши — две строки). «Не еда» — «Ожидалось: пусто», как сейчас.</li>
+<li><b>«Результат» — не бейдж.</b> «ок» — прежний зелёный бейдж. Провал — строка цвета <code>--color-danger</code>, footnote 500, иконка ✕ слева, текст переносится (висячий отступ за иконкой), все причины из <code>misses</code> по порядку сервера через « · ». Ошибка провайдера — той же строкой «Ошибка провайдера» (код ошибки — как сейчас, в «Получилось»). Старые прогоны без <code>misses</code> — прежний <code>whyOf</code>, тексты ниже с заглавной.</li>
+<li><b>«Сравнение».</b> Прогон с <code>testSet</code> меньше текущего: нейтральный бейдж «старый набор» / «old set» (как «прерван»), перед меткой статуса; «N/M» — <code>--color-text-secondary</code>, 500; в <code>bestRunId</code> не участвует. На телефоне бейдж во второй строке, как остальные метки.</li>
+<li><b>Числа из набора.</b> «N/M» — из прогона (у старых 9, у новых 17). «9 фото» в описании и подтверждении — из размера текущего набора, тексты ниже.</li>
+<li><b>VoiceOver.</b> Иконка ✕ скрыта, строка причин читается целиком; перед ней — «Не прошло:» визуально скрытым текстом (<code>sr-only</code>), чтобы цвет не был единственным признаком.</li>
+</ol>
+
+<h2 class="doc-h2">4 · Тексты RU / EN</h2>
+<ol class="doc-list">
+<li><code>not_recognized</code> — «Не узнано: sambal, acar» / «Not recognized: sambal, acar» (все блюда одной причиной).</li>
+<li><code>count</code> — «egg: ожидалось 3${NB}шт., получено 1» / «egg: expected 3, got 1» (по причине на блюдо).</li>
+<li><code>kcal</code> — «Ккал вне диапазона» / «Calories out of range» (и для упаковки).</li>
+<li><code>exact</code> — «Ждали «точно»» / «Expected “exact”»; <code>approx</code> — «Ждали «примерно»» / «Expected “approx.”».</li>
+<li><code>empty</code> — «Ждали пусто» / «Expected empty»; <code>nothing</code> — «Ничего не нашла» / «Nothing found»; ошибка — «Ошибка провайдера» / «Provider error».</li>
+<li>Метка — «старый набор» / «old set»; скрытый префикс — «Не прошло:» / «Failed:».</li>
+<li>Описание: «{count} эталонных фото с известной калорийностью…» / «{count} reference photos with known calories…». Подтверждение: «Тест отправит провайдеру {count} фото — {count} {запрос/запроса/запросов} распознавания…» / «The test sends {count} photos to the provider — {count} recognition requests…» (плюрализация как у <code>tokens</code>).</li>
+</ol></section>`;
+  // RU/EN toggle in the preview bar
+  const bar = document.querySelector('.pv-bar');
+  if (bar && !bar.querySelector('.lang-bar')) {
+    const seg = document.createElement('div');
+    seg.className = 'pv-seg lang-bar';
+    seg.innerHTML = '<button data-l="ru">RU</button><button data-l="en">EN</button>';
+    seg.addEventListener('click', e => { const l = e.target.dataset.l; if (!l) return; lang = l; try { localStorage.setItem(KEY, l); } catch (er) {} render(); });
+    bar.appendChild(seg);
+  }
+  document.querySelectorAll('.lang-bar button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.l === lang)));
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', render); else render();
+</script>
+</body>
+</html>
