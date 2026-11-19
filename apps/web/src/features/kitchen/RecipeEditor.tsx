@@ -32,6 +32,7 @@ import { parseDecimal } from '../../ui/FormList/FormList';
 import { IngredientPickerSheet } from '../../ui/IngredientPickerSheet/IngredientPickerSheet';
 import { IngredientRow } from '../../ui/IngredientRow/IngredientRow';
 import { List, ListRow } from '../../ui/List/List';
+import { Banner } from '../../ui/Banner/Banner';
 import { ManualDishSheet } from '../../ui/ManualDishSheet/ManualDishSheet';
 import { NavBar } from '../../ui/NavBar/NavBar';
 import { Button } from '../../ui/Button/Button';
@@ -45,7 +46,10 @@ import '../../ui/WeightStepper/WeightStepper.css';
 import './RecipeEditor.css';
 
 /** `history.state` of /kitchen/new: a prefilled draft (from a meal, from text; 7/9, 8/9). */
-export type RecipeEditorState = { draft?: RecipeInput };
+export type RecipeEditorState = { draft?: RecipeInput; ai?: AiDraft };
+
+/** A draft from «Recipe from text»: indexes of `draft.ingredients` to check (AC-6.4); never saved. */
+type AiDraft = { unsure: number[] };
 
 const photoSchema = z.object({ photoId: z.string() });
 const MAX_SERVINGS = 100;
@@ -59,9 +63,7 @@ export function RecipeEditorScreen({ id }: { id?: string }) {
   const db = useDb();
   const online = useOnline();
   const [, navigate] = useLocation();
-  const [draft] = useState(
-    () => (history.state as RecipeEditorState | null)?.draft,
-  );
+  const [state] = useState(() => history.state as RecipeEditorState | null);
   // 0 is never a recipe id: a new recipe reads nothing.
   const recipe = useRecipe(Number(id ?? 0));
   const search = useCallback((q: string) => findHistoryDishes(db, q), [db]);
@@ -71,7 +73,8 @@ export function RecipeEditorScreen({ id }: { id?: string }) {
   return (
     <RecipeEditor
       recipe={recipe ?? undefined}
-      draft={draft}
+      draft={state?.draft}
+      ai={state?.ai}
       online={online}
       search={search}
       onSave={(input) => saveRecipe(db, input, recipe?.id)}
@@ -88,6 +91,8 @@ type Row = {
   base: Nutrients & { grams: number };
   /** The grams field as typed. */
   grams: string;
+  /** The AI couldn't estimate it; cleared by a grams edit. */
+  unsure?: boolean;
 };
 
 type Props = {
@@ -95,6 +100,8 @@ type Props = {
   recipe?: Recipe;
   /** A new recipe's prefilled fields. */
   draft?: RecipeInput;
+  /** The draft came from the AI: a notice, «estimate» badges, unsure rows marked. */
+  ai?: AiDraft;
   /** Offline «Save» is disabled (E-10.5, ADR-0023 §4). */
   online: boolean;
   search: (query: string) => Promise<HistoryDish[]>;
@@ -113,12 +120,16 @@ const gramsOf = (text: string) => {
 const text = (n: number) => String(n);
 
 let nextKey = 0;
-const rowOf = (i: RecipeInput['ingredients'][number]): Row => ({
+const rowOf = (
+  i: RecipeInput['ingredients'][number],
+  unsure?: boolean,
+): Row => ({
   key: nextKey++,
   name: i.name,
   source: i.source,
   base: i,
   grams: text(i.grams),
+  unsure,
 });
 
 type StepRow = { key: number; text: string; photoId: string | null };
@@ -131,6 +142,7 @@ const valuesOf = (r: Row, grams: number): Nutrients =>
 export function RecipeEditor({
   recipe,
   draft,
+  ai,
   online,
   search,
   onSave,
@@ -142,7 +154,8 @@ export function RecipeEditor({
   const [name, setName] = useState(start?.name ?? '');
   const [photoId, setPhotoId] = useState(start?.photoId ?? null);
   const [rows, setRows] = useState<Row[]>(
-    () => start?.ingredients.map(rowOf) ?? [],
+    () =>
+      start?.ingredients.map((i, n) => rowOf(i, ai?.unsure.includes(n))) ?? [],
   );
   const [cooked, setCooked] = useState(
     start?.cookedG == null ? '' : text(start.cookedG),
@@ -341,7 +354,16 @@ export function RecipeEditor({
           onClick: () => void save(true),
         }}
       />
-      <main className="screen__body recipe-editor">
+      <main
+        className={`screen__body recipe-editor${ai ? ' recipe-editor--ai' : ''}`}
+      >
+        {ai && (
+          <div className="recipe-editor__ai">
+            <Banner tone="accent" title={t('editor.ai.title')}>
+              {t('editor.ai.body')}
+            </Banner>
+          </div>
+        )}
         <div className="recipe-editor__head">
           <button
             type="button"
@@ -431,7 +453,15 @@ export function RecipeEditor({
                     ? t('editor.grams_err')
                     : undefined
                 }
-                onGramsChange={(grams) => setRow(row.key, { grams })}
+                estimate={row.source === 'ai'}
+                unsure={
+                  row.unsure && g === 0
+                    ? t('editor.ai.zero', { q: row.name })
+                    : undefined
+                }
+                onGramsChange={(grams) =>
+                  setRow(row.key, { grams, unsure: false })
+                }
                 onEdit={() => setSheet({ kind: 'edit', key: row.key })}
               />
             ))}
@@ -654,7 +684,7 @@ export function RecipeEditor({
           grams={gramsOf(editing.grams) ?? editing.base.grams}
           units="metric"
           onDone={(n, g) => {
-            setRow(editing.key, { name: n, grams: text(g) });
+            setRow(editing.key, { name: n, grams: text(g), unsure: false });
             setSheet(null);
           }}
           onDelete={() => {

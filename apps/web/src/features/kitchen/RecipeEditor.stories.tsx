@@ -83,3 +83,26 @@ export const DesktopDark: Story = {
   args: { recipe: PILAF },
   globals: { ...desktop, ...dark },
 };
+/** 7.2: a draft from «Recipe from text» — the AI notice, «estimate» badges, salt «to taste» at 0 g marked. */
+const AI_DRAFT = {
+  ...PILAF,
+  ingredients: [
+    ...PILAF.ingredients.map((i) => ({ ...i, source: 'ai' as const })),
+    {
+      name: 'Salt',
+      grams: 0,
+      kcal: 0,
+      proteinG: 0,
+      fatG: 0,
+      carbsG: 0,
+      source: 'ai' as const,
+    },
+  ],
+};
+const aiArgs = {
+  draft: AI_DRAFT,
+  ai: { unsure: [PILAF.ingredients.length] },
+};
+export const AiDraft: Story = { args: aiArgs };
+export const AiDraftDark: Story = { args: aiArgs, globals: dark };
+export const AiDraftDesktop: Story = { args: aiArgs, globals: desktop };
