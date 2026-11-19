@@ -299,6 +299,7 @@ it('the recipe card has «Cook» only when the recipe has steps', async () => {
           recipe={recipe}
           today="2026-11-19"
           online
+          lighter={false}
           onDelete={async () => {}}
         />
       </I18nProvider>,

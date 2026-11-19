@@ -21,6 +21,7 @@ const view = (props: Partial<Parameters<typeof RecipeView>[0]> = {}) => {
         recipe={PILAF}
         today="2026-11-19"
         online
+        lighter
         onDelete={onDelete}
         {...props}
       />
@@ -66,6 +67,28 @@ describe('RecipeView', () => {
     fireEvent.click(screen.getByRole('button', { name: 'More' }));
     const del = await screen.findByRole('button', { name: 'Delete recipe' });
     expect((del as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('«Make it lighter»: the row and the «⋯» item with AI, none without', async () => {
+    const { result } = view();
+    await result;
+    expect(
+      screen
+        .getByRole('link', { name: /Make it lighter/ })
+        .getAttribute('href'),
+    ).toBe('/kitchen/1/lighter');
+    fireEvent.click(screen.getByRole('button', { name: 'More' }));
+    expect(
+      await screen.findByRole('button', { name: 'Make it lighter' }),
+    ).toBeTruthy();
+    cleanup();
+    await view({ lighter: false }).result;
+    expect(screen.queryByText('Make it lighter')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'More' }));
+    await screen.findByRole('button', { name: 'Delete recipe' });
+    expect(
+      screen.queryByRole('button', { name: 'Make it lighter' }),
+    ).toBeNull();
   });
 
   it('a step photo that fails to load is left out', async () => {

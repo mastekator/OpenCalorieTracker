@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Ellipsis, Play } from 'lucide-react';
+import { Ellipsis, Feather, Play } from 'lucide-react';
 import { Link, Redirect, useLocation } from 'wouter';
 import {
   matchIllustration,
@@ -7,7 +7,12 @@ import {
   servingG,
   type Recipe,
 } from '@oct/shared';
-import { deleteRecipe, useDb, useRecipe } from '../../data/DataContext';
+import {
+  deleteRecipe,
+  useAiStatus,
+  useDb,
+  useRecipe,
+} from '../../data/DataContext';
 import { thumbUrl } from '../../data/thumbs';
 import { useT } from '../../i18n';
 import { Button } from '../../ui/Button/Button';
@@ -28,6 +33,7 @@ export function RecipeScreen({ id }: { id: string }) {
   const db = useDb();
   const recipe = useRecipe(Number(id));
   const online = useOnline();
+  const ai = useAiStatus();
   const today = useToday();
   const [, navigate] = useLocation();
   const toast = useToast();
@@ -39,6 +45,9 @@ export function RecipeScreen({ id }: { id: string }) {
       recipe={recipe}
       today={today}
       online={online}
+      lighter={
+        online && !!ai.status && ai.status.recognition !== 'not_configured'
+      }
       onDelete={async () => {
         try {
           await deleteRecipe(db, recipe.id);
@@ -57,11 +66,19 @@ type Props = {
   today: string;
   /** Offline the recipe is read-only: delete is disabled, the offline bar says why (OCT-25). */
   online: boolean;
+  /** «Make it lighter» entries: AI is set up and online (OCT-160 §9). */
+  lighter: boolean;
   onDelete: () => Promise<void>;
 };
 
 /** The recipe card (OCT-160 2.1, 2.2, 2.7); desktop: three columns (§10). */
-export function RecipeView({ recipe, today, online, onDelete }: Props) {
+export function RecipeView({
+  recipe,
+  today,
+  online,
+  lighter,
+  onDelete,
+}: Props) {
   const { t, num } = useT();
   const [, navigate] = useLocation();
   const { when } = useWeightFormat('metric');
@@ -155,6 +172,19 @@ export function RecipeView({ recipe, today, online, onDelete }: Props) {
             </Link>
           </div>
         )}
+        {lighter && (
+          <div className="recipe__lighter">
+            <List>
+              <ListRow
+                icon={<Feather aria-hidden="true" />}
+                description={t('lighter.sub')}
+                href={`/kitchen/${recipe.id}/lighter`}
+              >
+                {t('lighter.title')}
+              </ListRow>
+            </List>
+          </div>
+        )}
         <div className="recipe__ingredients">
           <List
             title={
@@ -230,6 +260,17 @@ export function RecipeView({ recipe, today, online, onDelete }: Props) {
             >
               {t('recipe.edit')}
             </Button>
+            {lighter && (
+              <Button
+                variant="plain"
+                onClick={() => {
+                  setMenu(false);
+                  navigate(`/kitchen/${recipe.id}/lighter`);
+                }}
+              >
+                {t('lighter.title')}
+              </Button>
+            )}
             <Button
               variant="danger-plain"
               disabled={!online}

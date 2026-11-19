@@ -98,12 +98,13 @@
 @media (min-width: 1024px) {
   .recipe {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    grid-template-rows: auto auto auto 1fr;
+    grid-template-rows: auto auto auto auto 1fr;
     grid-template-areas:
       'head head head'
       'hero ingr steps'
       'nut ingr steps'
-      'act ingr steps';
+      'act ingr steps'
+      'light ingr steps';
     align-items: start;
   }
 
@@ -118,6 +119,9 @@
   }
   .recipe__actions {
     grid-area: act;
+  }
+  .recipe__lighter {
+    grid-area: light;
   }
   .recipe__ingredients {
     grid-area: ingr;
