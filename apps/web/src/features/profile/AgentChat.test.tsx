@@ -215,6 +215,33 @@ describe('AgentChat (container)', () => {
     expect(screen.getByRole('button', { name: 'All correct' })).toBeTruthy();
   });
 
+  it('a filled profile without a deadline is confirmed first, the deadline comes next (OCT-302)', async () => {
+    const lose = { ...full, goal: 'lose' as const, targetWeightKg: 72 };
+    serve([{ role: 'assistant', kind: 'opening', known: lose }], {
+      '/api/norm-agent/messages': ({ text }) =>
+        reply([
+          user(text!),
+          {
+            role: 'assistant',
+            kind: 'text',
+            text: 'By what date do you want to reach 72 kg?',
+            ask: 'deadline',
+          },
+        ]),
+    });
+    await setup({ disclaimerHidden: true });
+
+    expect(await screen.findByText(/^I have: male formula/)).toBeTruthy();
+    expect(screen.queryByText(/male, 34, 182 and 85/)).toBeNull();
+    expect(screen.queryByText(/By what date/)).toBeNull();
+    screen.getByRole('button', { name: 'My weight changed' });
+    screen.getByRole('button', { name: 'Different goal' });
+    fireEvent.click(screen.getByRole('button', { name: 'All correct' }));
+    expect(
+      await screen.findByText('By what date do you want to reach 72 kg?'),
+    ).toBeTruthy();
+  });
+
   it('asks about units in words (9.7)', async () => {
     serve([
       {

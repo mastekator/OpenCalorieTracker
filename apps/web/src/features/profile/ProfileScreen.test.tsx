@@ -83,7 +83,7 @@ describe('ProfileScreen offline (8.15)', () => {
     ).toBe(true);
     expect(screen.queryByRole('button', { name: 'Save' })).toBeNull();
     const agent = screen.getByRole('button', {
-      name: 'Set up with the assistant',
+      name: 'Recalculate with the assistant',
     }) as HTMLButtonElement;
     expect(agent.disabled).toBe(true);
     expect(
@@ -100,7 +100,7 @@ describe('ProfileScreen offline (8.15)', () => {
 });
 
 describe('ProfileScreen, AI configured but not answering (8.14)', () => {
-  it('«Set up with the assistant» shows a banner instead of the chat', async () => {
+  it('«Recalculate with the assistant» shows a banner instead of the chat', async () => {
     vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
     vi.stubGlobal(
       'fetch',
@@ -140,7 +140,9 @@ describe('ProfileScreen, AI configured but not answering (8.14)', () => {
     );
 
     fireEvent.click(
-      await screen.findByRole('button', { name: 'Set up with the assistant' }),
+      await screen.findByRole('button', {
+        name: 'Recalculate with the assistant',
+      }),
     );
     expect(
       await screen.findByText('The AI isn’t available right now'),
@@ -226,7 +228,9 @@ describe('ProfileScreen, goal applied in the chat (OCT-225)', () => {
     );
 
     fireEvent.click(
-      await screen.findByRole('button', { name: 'Set up with the assistant' }),
+      await screen.findByRole('button', {
+        name: 'Recalculate with the assistant',
+      }),
     );
     fireEvent.click(await screen.findByRole('button', { name: 'Apply goal' }));
     await waitFor(async () =>

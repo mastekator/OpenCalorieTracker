@@ -13,7 +13,7 @@ import {
   ageYears,
   cmToFtIn,
   goalSchema,
-  nextField,
+  REQUIRED_FIELDS,
   weightFromKg,
   type AgentResponse,
   type AssistantMessage,
@@ -331,7 +331,8 @@ export function AgentChat({
           replies: capsules(m.ask),
         };
       case 'opening': {
-        const ask = nextField({ profile: m.known, unknown: [] });
+        // Only a new user gets the greeting; a known profile is confirmed first, the target and deadline come next turn.
+        const ask = REQUIRED_FIELDS.find((k) => m.known[k] === null);
         const note = !disclaimerHidden && (
           <ChatNote>{t('norm.disclaimer')}</ChatNote>
         );

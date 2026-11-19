@@ -583,14 +583,12 @@ export function ProfileForm({
 
   // The disclaimer can be closed once a norm was saved, never for under-18s (OCT-22 §1).
   const showDisclaimer = minor || !(disclaimerHidden || disclaimerClosed);
-  const canHideDisclaimer =
-    !minor &&
-    !!onHideDisclaimer &&
-    effectiveNorm(saved.profile, saved.manual, today) !== null;
+  const hasNorm = effectiveNorm(saved.profile, saved.manual, today) !== null;
+  const canHideDisclaimer = !minor && !!onHideDisclaimer && hasNorm;
   const hideDisclaimer = () => {
     setDisclaimerClosed(true);
     onHideDisclaimer?.();
-    // 8.21: focus moves to «Set up with the assistant», or to the form without it.
+    // 8.21: focus moves to the assistant button, or to the form without it.
     (
       document.getElementById(agentId) ??
       formRef.current?.querySelector<HTMLElement>(
@@ -787,11 +785,20 @@ export function ProfileForm({
               variant="tonal"
               onClick={onAgent}
               disabled={readOnly}
-              aria-describedby={readOnly ? `${agentId}-why` : undefined}
+              aria-describedby={
+                [hasNorm && `${agentId}-hint`, readOnly && `${agentId}-why`]
+                  .filter(Boolean)
+                  .join(' ') || undefined
+              }
             >
               <Sparkles aria-hidden="true" />
-              {t('agent.cta')}
+              {t(hasNorm ? 'agent.cta_recalc' : 'agent.cta_first')}
             </Button>
+          )}
+          {onAgent && !firstVisit && !minor && hasNorm && (
+            <p id={`${agentId}-hint`} className="profile__offline">
+              {t('agent.cta_hint')}
+            </p>
           )}
           {onAgent && !firstVisit && !minor && readOnly && (
             <p id={`${agentId}-why`} className="profile__offline">

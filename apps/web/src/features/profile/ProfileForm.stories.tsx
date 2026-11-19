@@ -67,6 +67,10 @@ export const Incomplete: Story = {
     },
   },
 };
+export const IncompleteDark: Story = {
+  ...Incomplete,
+  globals: { theme: 'dark' },
+};
 /** No weighing yet: the weight row has no value, «+» logs the first one (OCT-189 §4). */
 export const NoWeighing: Story = {
   args: {
