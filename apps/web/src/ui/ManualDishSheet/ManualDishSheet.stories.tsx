@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { fireEvent, fn, within } from 'storybook/test';
 import type { Recipe, Units } from '@oct/shared';
+import type { BarcodeResult } from '../../data/products';
 import { PILAF, RECIPES } from '../../features/kitchen/fixtures';
 import { useT } from '../../i18n';
 import { Button } from '../Button/Button';
@@ -15,6 +16,7 @@ function Demo(props: {
   onAdd: (dish: ManualDish) => void;
   recipes?: Recipe[];
   onRecipe?: (recipe: Recipe) => void;
+  lookup?: (code: string) => Promise<BarcodeResult>;
 }) {
   const { t } = useT();
   const [open, setOpen] = useState(true);
@@ -30,6 +32,7 @@ function Demo(props: {
           title={props.title}
           recipes={props.recipes}
           onRecipe={props.onRecipe}
+          lookup={props.lookup}
           onAdd={(dish) => {
             props.onAdd(dish);
             setOpen(false);
@@ -148,4 +151,44 @@ export const RecipesDesktop: Story = {
 export const RecipesRussian: Story = {
   args: withRecipes,
   globals: { locale: 'ru' },
+};
+
+/** OCT-313 3.2 / 5.2: digits → Enter → the empty fields are filled per 100 g, the weight is the serving. */
+const withBarcode = {
+  lookup: async (code: string): Promise<BarcodeResult> => ({
+    product: {
+      code,
+      name: 'Greek yogurt 2%',
+      brand: null,
+      kcal100: 66,
+      protein100: 8,
+      fat100: 2,
+      carbs100: 4,
+      per: 'g',
+      servingG: 140,
+      servingText: '140 g',
+    },
+    from: 'off',
+    off: 'found',
+  }),
+};
+const scan = async ({ canvasElement }: { canvasElement: HTMLElement }) => {
+  const field = await within(canvasElement.ownerDocument.body).findByLabelText(
+    /^(Barcode|Штрихкод)$/,
+  );
+  fireEvent.change(field, { target: { value: '4607012345677' } });
+  fireEvent.keyDown(field, { key: 'Enter' });
+};
+export const Barcode: Story = { args: withBarcode };
+export const BarcodeDark: Story = { args: withBarcode, globals: dark };
+export const BarcodeFound: Story = { args: withBarcode, play: scan };
+export const BarcodeFoundDark: Story = {
+  args: withBarcode,
+  play: scan,
+  globals: dark,
+};
+export const BarcodeDesktop: Story = {
+  args: withBarcode,
+  play: scan,
+  globals: { viewport: { value: 'desktop' } },
 };

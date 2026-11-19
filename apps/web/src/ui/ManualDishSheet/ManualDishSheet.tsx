@@ -4,8 +4,10 @@ import { ChefHat } from 'lucide-react';
 import {
   DISH_GRAMS,
   fromPer100,
+  gToOz,
   kcalFromMacros,
   macrosMismatch,
+  normalizeGtin,
   ozToG,
   per100,
   round1,
@@ -14,9 +16,11 @@ import {
   type Units,
 } from '@oct/shared';
 import { matchRecipes } from '../../features/kitchen/matchRecipes';
+import type { BarcodeResult } from '../../data/products';
 import { useT } from '../../i18n';
 import { Badge } from '../Badge/Badge';
 import { Banner } from '../Banner/Banner';
+import { BarcodeField, barcodeError } from '../BarcodeField/BarcodeField';
 import { Button } from '../Button/Button';
 import { Field } from '../Field/Field';
 import { parseDecimal } from '../FormList/FormList';
@@ -26,7 +30,12 @@ import { RecipeThumb } from '../RecipeThumb/RecipeThumb';
 import { Sheet } from '../Sheet/Sheet';
 import './ManualDishSheet.css';
 
-export type ManualDish = Nutrients & { name: string; grams: number };
+/** `barcode`: normalized; the server remembers the dish as the user's product (AC-4.5). */
+export type ManualDish = Nutrients & {
+  name: string;
+  grams: number;
+  barcode?: string;
+};
 type Basis = 'per100' | 'portion';
 
 /** Last «Per 100 g / Per serving» choice on this device (OCT-16 §4). */
@@ -41,7 +50,8 @@ const parse = (text: string, empty: number | null = null) => {
   return Number.isFinite(n) && n >= 0 ? n : null;
 };
 
-type Fields = 'name' | 'weight' | 'kcal' | 'proteinG' | 'fatG' | 'carbsG';
+type Fields =
+  'barcode' | 'name' | 'weight' | 'kcal' | 'proteinG' | 'fatG' | 'carbsG';
 
 type Props = {
   units: Units;
@@ -57,6 +67,10 @@ type Props = {
   recipes?: Recipe[];
   /** A recipe tapped: the screen opens its portion sheet. */
   onRecipe?: (recipe: Recipe) => void;
+  /** Set: the «Barcode» field goes first (OCT-313 §3). */
+  lookup?: (code: string) => Promise<BarcodeResult>;
+  /** Starting barcode, e.g. read from a photo. */
+  barcode?: string;
 };
 
 /** Screen 5 (OCT-16 §4): a dish entered by hand, per 100 g or per serving. The screen mounts it while open. */
@@ -68,11 +82,14 @@ export function ManualDishSheet({
   onClose,
   recipes = [],
   onRecipe,
+  lookup,
+  barcode: initialBarcode = '',
 }: Props) {
   const { t, num } = useT();
   const us = units === 'us';
   const unit = t(us ? 'unit.oz' : 'unit.g');
   const [text, setText] = useState<Record<Fields, string>>({
+    barcode: initialBarcode,
     name: initialName,
     weight: '',
     kcal: '',
@@ -99,7 +116,9 @@ export function ManualDishSheet({
     fatG: parse(text.fatG, 0),
     carbsG: parse(text.carbsG, 0),
   };
+  const badCode = barcodeError(text.barcode);
   const errors: Partial<Record<Fields, string>> = {
+    ...(badCode && { barcode: t(badCode) }),
     ...(!name && { name: t('edit.dish.name_err') }),
     ...(grams === null && {
       weight: t(us ? 'edit.weight.err_oz' : 'edit.weight.err_g'),
@@ -150,7 +169,9 @@ export function ManualDishSheet({
       return;
     }
     localStorage.setItem(BASIS_KEY, basis);
+    const code = normalizeGtin(text.barcode);
     onAdd({
+      ...(code && { barcode: code }),
       name,
       grams: round1(grams),
       kcal: round1(totals.kcal),
@@ -158,6 +179,30 @@ export function ManualDishSheet({
       fatG: round1(totals.fatG),
       carbsG: round1(totals.carbsG),
     });
+  };
+
+  // Fills only what is still empty, per 100 g; the weight is the package serving (OCT-313 3.2).
+  const fillFrom = ({ product }: BarcodeResult) => {
+    if (!product) return refs.current.name?.focus();
+    const empty = (k: Fields) => !text[k].trim();
+    // Calories typed by hand keep their basis: the macros per 100 g would not match them.
+    const per100 = empty('kcal');
+    const put = (k: Fields, v: string | number | null) =>
+      empty(k) && v !== null && (per100 || k === 'name' || k === 'weight')
+        ? String(v)
+        : text[k];
+    // shortcut: a per-ml product counts 1 ml as 1 g; fine for drinks, convert by density if users ask.
+    const g = product.servingG ?? 100;
+    setText({
+      barcode: text.barcode,
+      name: put('name', product.name ?? product.brand),
+      weight: put('weight', us ? gToOz(g) : g),
+      kcal: put('kcal', product.kcal100),
+      proteinG: put('proteinG', product.protein100),
+      fatG: put('fatG', product.fat100),
+      carbsG: put('carbsG', product.carbs100),
+    });
+    if (per100) setBasis('per100');
   };
 
   const required = (label: string) => `${label} · ${t('manual_dish.required')}`;
@@ -180,6 +225,19 @@ export function ManualDishSheet({
       footer={<Button onClick={add}>{t('manual_dish.add')}</Button>}
     >
       <div className="manual-dish">
+        {lookup && (
+          <BarcodeField
+            ref={(el) => {
+              refs.current.barcode = el;
+            }}
+            value={text.barcode}
+            onChange={(v) => setText((s) => ({ ...s, barcode: v }))}
+            onBlur={blur('barcode')}
+            error={shown('barcode')}
+            lookup={lookup}
+            onResult={fillFrom}
+          />
+        )}
         <Field
           {...field('name')}
           label={required(t('manual_dish.name'))}

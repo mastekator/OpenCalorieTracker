@@ -52,6 +52,7 @@ import {
   useRecipes,
   useSettings,
 } from '../../data/DataContext';
+import { lookupProduct, type BarcodeResult } from '../../data/products';
 import type { Choices } from '../../data/db';
 import {
   createMeal,
@@ -171,6 +172,7 @@ const savedRow = (item: Meal['items'][number]): Row => ({
       carbsG: item.carbsG,
       confidence: item.confidence ?? undefined,
       ...(item.illustrationManual && { illustration: item.illustration }),
+      ...(item.barcode && { barcode: item.barcode }),
     },
     item.source,
   ),
@@ -223,6 +225,8 @@ type Props = {
   recipes?: Recipe[];
   /** A saved meal: «⋯» → «Save as recipe» opens the editor with this draft (AC-6.2). */
   onRecipe?: (state: RecipeEditorState) => void;
+  /** Barcode lookup in the manual sheet (OCT-313 §3); none: no «Barcode» field. */
+  onBarcode?: (code: string) => Promise<BarcodeResult>;
 };
 
 /** Screen 4 (design OCT-16 §3, E.2): dishes, weights with live totals, meal type, save. */
@@ -249,6 +253,7 @@ export function MealEditScreen({
   recognition,
   recipes = [],
   onRecipe,
+  onBarcode,
 }: Props) {
   const { t, num, locale } = useT();
   const online = useOnline();
@@ -1474,6 +1479,7 @@ export function MealEditScreen({
         <ManualDishSheet
           units={units}
           onAdd={addManual}
+          lookup={onBarcode}
           onClose={() => setAdding(false)}
           recipes={recipes}
           onRecipe={(recipe) => {
@@ -1577,6 +1583,7 @@ export function MealEditRoute() {
   return (
     <MealEditScreen
       recipes={recipes}
+      onBarcode={(code) => lookupProduct(db, code)}
       dishes={state && 'dishes' in state ? state.dishes : []}
       questions={state && 'dishes' in state ? state.questions : undefined}
       manual={state && 'manual' in state ? state.manual : undefined}
@@ -1635,6 +1642,7 @@ export function MealEditExisting({ clientId }: { clientId: string }) {
       key={meal.clientId}
       meal={meal}
       recipes={recipes}
+      onBarcode={(code) => lookupProduct(db, code)}
       refused={refused}
       recalc={recalc}
       recognition={ai.status?.recognition}

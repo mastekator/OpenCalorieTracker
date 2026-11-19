@@ -47,6 +47,15 @@ describe('fixedOf', () => {
   });
 });
 
+it('itemOf passes the barcode of a manual dish (AC-4.5)', () => {
+  const row = toRow(
+    { ...dish('Yogurt', 140, 92), barcode: '96385074' },
+    'manual',
+  );
+  expect(itemOf(row).barcode).toBe('96385074');
+  expect('barcode' in itemOf(bread())).toBe(false);
+});
+
 describe('toRequest', () => {
   it('numbers the dishes d1…dN with the shown weight, one decimal', () => {
     const row = {

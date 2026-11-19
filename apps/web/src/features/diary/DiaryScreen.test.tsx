@@ -51,6 +51,7 @@ function serve(meals: Meal[]) {
         deletes.push(url);
         return new Response(null, { status: 204 });
       }
+      if (url === '/api/products/mine') return Response.json({ products: [] });
       const page = {
         rev: 1,
         more: false,

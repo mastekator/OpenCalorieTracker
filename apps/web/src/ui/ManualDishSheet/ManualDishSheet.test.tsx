@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, screen } from '@testing-library/react';
-import type { Units } from '@oct/shared';
+import type { Product, Units } from '@oct/shared';
+import type { BarcodeResult } from '../../data/products';
 import { I18nProvider, LOCALE_STORAGE_KEY } from '../../i18n';
 import { renderLoaded } from '../../test-utils';
 import { BASIS_KEY, ManualDishSheet } from './ManualDishSheet';
@@ -11,11 +12,19 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 
-async function setup(units: Units = 'metric') {
+async function setup(
+  units: Units = 'metric',
+  lookup?: (code: string) => Promise<BarcodeResult>,
+) {
   const onAdd = vi.fn();
   await renderLoaded(
     <I18nProvider>
-      <ManualDishSheet units={units} onAdd={onAdd} onClose={() => {}} />
+      <ManualDishSheet
+        units={units}
+        onAdd={onAdd}
+        onClose={() => {}}
+        lookup={lookup}
+      />
     </I18nProvider>,
   );
   const type = (label: RegExp, value: string) =>
@@ -144,5 +153,107 @@ describe('ManualDishSheet', () => {
       grams: 283.5,
       kcal: 283.5,
     });
+  });
+});
+
+const YOGURT: Product = {
+  code: '4006381333931',
+  name: 'Greek yogurt',
+  brand: null,
+  kcal100: 66,
+  protein100: 8,
+  fat100: 2,
+  carbs100: 4,
+  per: 'g',
+  servingG: 140,
+  servingText: null,
+};
+
+describe('ManualDishSheet: barcode (OCT-313 §3)', () => {
+  const find = (code: string) => {
+    const field = screen.getByLabelText('Barcode');
+    fireEvent.change(field, { target: { value: code } });
+    fireEvent.keyDown(field, { key: 'Enter' });
+  };
+
+  it('Enter finds the product: fills the empty fields per 100 g, the weight is the serving, the barcode is added', async () => {
+    const lookup = vi.fn(async () => ({
+      product: YOGURT,
+      from: 'off' as const,
+      off: 'found' as const,
+    }));
+    const { onAdd, type, add } = await setup('metric', lookup);
+    fireEvent.click(screen.getByRole('radio', { name: 'Per serving' }));
+    type(/^Name/, 'My yogurt');
+    find('4006381-333931');
+    await screen.findByText('Found in Open Food Facts — check the weight.');
+    expect(lookup).toHaveBeenCalledWith('4006381333931');
+    add();
+    expect(onAdd).toHaveBeenCalledWith({
+      barcode: '4006381333931',
+      name: 'My yogurt', // typed before the lookup: kept
+      grams: 140,
+      kcal: 92.4,
+      proteinG: 11.2,
+      fatG: 2.8,
+      carbsG: 5.6,
+    });
+  });
+
+  it('typed calories keep their basis: only the name and weight are filled', async () => {
+    const lookup = async () =>
+      ({ product: YOGURT, from: 'mine', off: 'skipped' }) as const;
+    const { onAdd, type, add } = await setup('metric', lookup);
+    type(/^Calories ·/, '50');
+    find('4006381333931');
+    await screen.findByText('Found your product — check the weight.');
+    add();
+    expect(onAdd.mock.calls[0]![0]).toMatchObject({
+      name: 'Greek yogurt',
+      grams: 140,
+      kcal: 70,
+      proteinG: 0,
+    });
+  });
+
+  it('not found: says so and moves focus to the name', async () => {
+    const lookup = async () =>
+      ({ product: null, from: null, off: 'disabled' }) as const;
+    await setup('metric', lookup);
+    find('4006381333931');
+    await screen.findByText(
+      /^Not in your products or Open Food Facts.*Open Food Facts is off in Integrations\.$/,
+    );
+    expect(document.activeElement).toBe(screen.getByLabelText(/^Name/));
+  });
+
+  it('a wrong code is an error on «Find» and on «Add»', async () => {
+    const lookup = vi.fn();
+    const { onAdd, add } = await setup('metric', lookup);
+    find('12345');
+    expect(screen.getByText('A barcode has 8 to 14 digits')).toBeTruthy();
+    expect(lookup).not.toHaveBeenCalled();
+    find('4006381333932');
+    add();
+    expect(onAdd).not.toHaveBeenCalled();
+    expect(
+      screen.getByText('This barcode is not valid — check the digits'),
+    ).toBeTruthy();
+    expect(document.activeElement).toBe(screen.getByLabelText('Barcode'));
+  });
+
+  it('offline and Open Food Facts down have their own texts', async () => {
+    let off: BarcodeResult['off'] = 'offline';
+    await setup('metric', async () => ({ product: null, from: null, off }));
+    find('4006381333931');
+    await screen.findByText(/^Offline we only search products/);
+    off = 'down';
+    fireEvent.click(screen.getByRole('button', { name: 'Find' }));
+    await screen.findByText(/^Open Food Facts didn’t respond/);
+  });
+
+  it('no lookup: no barcode field', async () => {
+    await setup();
+    expect(screen.queryByLabelText('Barcode')).toBeNull();
   });
 });
