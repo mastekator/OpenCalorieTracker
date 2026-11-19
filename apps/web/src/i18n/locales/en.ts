@@ -1500,6 +1500,48 @@ export const en = {
     legend: { eaten: 'eaten', norm: 'goal {norm} per day', over: 'over goal' },
     empty: { week: 'No entries this week', month: 'No entries this month' },
   },
+  kitchen: {
+    title: 'Kitchen',
+    row: { sub: { one: '{count} recipe', other: '{count} recipes' } },
+  },
+  recipes: {
+    sort_note: 'Recently logged first.',
+    per100: '{k}\u00a0kcal/100\u00a0g',
+    perPortion: '{k} per serving',
+    empty: {
+      title: 'No recipes yet',
+      body: 'For dishes you cook at home: add the ingredients and cooked weight once — then log a serving accurately in a couple of taps.',
+    },
+  },
+  recipe: {
+    more: 'More',
+    servings: {
+      one: '{count} serving of {g}\u00a0g',
+      other: '{count} servings of {g}\u00a0g',
+    },
+    cooked: 'cooked {w}\u00a0g',
+    logged: 'logged {when}',
+    nut: {
+      label: 'Nutrition',
+      portion: 'Serving',
+      per100: '100 g',
+      whole: 'Whole',
+      kcal_portion: 'kcal · serving {g}\u00a0g',
+      kcal_per100: 'kcal · 100\u00a0g',
+      kcal_whole: 'kcal · whole {g}\u00a0g',
+    },
+    ingredients: 'Ingredients · {n}',
+    steps: 'Steps · {n}',
+    step: 'Step {i}',
+    zero_kcal: 'not counted in kcal',
+    delete: {
+      action: 'Delete recipe',
+      title: 'Delete “{name}”?',
+      body: 'Diary entries stay as they are. Recipe photos will be deleted.',
+      ok: 'Delete',
+      error: 'Couldn’t delete the recipe. Try again.',
+    },
+  },
   errors: {
     validation_failed: 'Check the highlighted fields',
     unauthenticated: 'Please sign in',

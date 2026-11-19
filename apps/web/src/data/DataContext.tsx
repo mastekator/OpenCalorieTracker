@@ -14,13 +14,15 @@ import {
   type Meal,
   type MeResponse,
   type ProfileResponse,
+  type Recipe,
 } from '@oct/shared';
-import { api } from '../api/client';
+import { z } from 'zod';
+import { api, ApiError } from '../api/client';
 import { applyTheme, savedTheme } from '../app/theme';
 import { useT } from '../i18n';
 import { useOnline } from '../ui/OfflineBar/OfflineBar';
 import { useToast } from '../ui/Toast/Toast';
-import { onChange } from './changes';
+import { emitChange, onChange } from './changes';
 import { openUserDb, type Choices, type Db } from './db';
 import {
   flush,
@@ -29,7 +31,7 @@ import {
   pendingCount,
   type MealStatus,
 } from './outbox';
-import { prefetchThumbs } from './thumbs';
+import { photoIds, prefetchThumbs } from './thumbs';
 
 /** Exported for stories: a stub database shows queue states without IndexedDB. */
 export const DataContext = createContext<Db | null>(null);
@@ -70,7 +72,10 @@ export function DataProvider({
         document.removeEventListener('visibilitychange', onVisible);
       try {
         await flush(d); // pulls at the end
-        if (!closed) await prefetchThumbs(await d.getAll('meals'));
+        if (!closed)
+          await prefetchThumbs(
+            photoIds(await d.getAll('meals'), await d.getAll('recipes')),
+          );
       } catch {
         // Offline or server down: the local copy stays, flush() retries.
       }
@@ -306,6 +311,33 @@ export const useWeighings = () =>
       status: state.get(`weighing:${w.date}`) ?? ('synced' as MealStatus),
     }));
   }, []);
+
+/** Recently logged first (AC-7.2); never logged ones after them, last edited first. */
+export const byLastLogged = (a: Recipe, b: Recipe) =>
+  (b.lastLoggedAt ?? '').localeCompare(a.lastLoggedAt ?? '') ||
+  b.updatedAt.localeCompare(a.updatedAt);
+
+/** Recipes from the local copy (ADR-0023 §4), recently logged first. */
+export const useRecipes = () =>
+  useLocal(async (db) => (await db.getAll('recipes')).sort(byLastLogged), []);
+
+/** One recipe; null when it is not in the local copy (deleted, wrong id). */
+export const useRecipe = (id: number) =>
+  useLocal(async (db) => (await db.get('recipes', id)) ?? null, [id]);
+
+/**
+ * DELETE /api/recipes/:id, then out of the local copy. A 404 means it is already gone
+ * (another device): drop it too. Any other failure leaves the copy as it is and throws.
+ */
+export async function deleteRecipe(db: Db, id: number) {
+  try {
+    await api(`/api/recipes/${id}`, z.unknown(), { method: 'DELETE' });
+  } catch (err) {
+    if (!(err instanceof ApiError && err.status === 404)) throw err;
+  }
+  await db.delete('recipes', id);
+  emitChange();
+}
 
 /** Unsent changes, for sign-out and account switch. */
 export const usePendingCount = () => useLocal(pendingCount, []);

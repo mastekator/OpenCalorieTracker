@@ -131,6 +131,8 @@ type Props = {
   weighedOn?: string;
   /** «+» on the weight row: the weigh-in sheet. The weight itself is not edited in the form. */
   onWeighIn?: () => void;
+  /** First group of the form column: «Kitchen» (OCT-160 §1). */
+  sections?: ReactNode;
 };
 
 /** Profile screen body (OCT-22 §2, D.1): the form in rows, live norm, Save. */
@@ -148,6 +150,7 @@ export function ProfileForm({
   readOnly = false,
   weighedOn,
   onWeighIn,
+  sections,
 }: Props) {
   const { t, locale } = useT();
   const toast = useToast();
@@ -842,6 +845,7 @@ export function ProfileForm({
 
         {/* Offline the native disabled reaches every field, the switch and the activity row. */}
         <fieldset className="profile__form" ref={formRef} disabled={readOnly}>
+          {sections}
           <List
             title={t('profile.calc')}
             footer={

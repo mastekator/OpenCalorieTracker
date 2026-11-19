@@ -1,5 +1,12 @@
 import type { ReactNode } from 'react';
-import { BookOpen, ChartColumn, House, Settings2, User } from 'lucide-react';
+import {
+  BookOpen,
+  ChartColumn,
+  ChefHat,
+  House,
+  Settings2,
+  User,
+} from 'lucide-react';
 import { useCapture } from '../features/meals/CaptureContext';
 import { useT } from '../i18n';
 import { useBarVariant } from './connection';
@@ -22,12 +29,23 @@ export function AppShell({
     { href: '/', icon: House, label: t('nav.today') },
     { href: '/diary', icon: BookOpen, label: t('nav.diary') },
     { href: '/week', icon: ChartColumn, label: t('nav.week') },
+    { href: '/profile', icon: User, label: t('nav.profile'), also: '/kitchen' },
+  ];
+  // Desktop: «Kitchen» between Week and Profile; the tab bar keeps it under Profile (OCT-160 §1).
+  const kitchen = {
+    href: '/kitchen',
+    icon: ChefHat,
+    label: t('kitchen.title'),
+  };
+  const sidebar = [
+    ...tabs.slice(0, 3),
+    kitchen,
     { href: '/profile', icon: User, label: t('nav.profile') },
   ];
   return (
     <div className="app-shell">
       <Sidebar
-        items={tabs}
+        items={sidebar}
         settings={{
           href: '/settings',
           icon: Settings2,
