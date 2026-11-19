@@ -60,6 +60,7 @@ export function mealRoutes({ config, db, ai }: AppDeps) {
       : undefined;
 
   const insertItems = (
+    userId: number,
     mealId: number,
     items: MealItemInput[],
     // Provider and model come from the server, never from the client (AC-4.1).
@@ -70,9 +71,13 @@ export function mealRoutes({ config, db, ai }: AppDeps) {
   ) => {
     const insert = db.prepare(
       `INSERT INTO meal_items (meal_id, position, name, name_key, grams, kcal, protein_g, fat_g,
-         carbs_g, source, ai_provider, ai_model, confidence, illustration)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         carbs_g, source, ai_provider, ai_model, confidence, illustration, recipe_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     );
+    // Another user's or a deleted recipe (the meal waited in the offline queue) → no link, no error.
+    const ownRecipe = db
+      .prepare('SELECT id FROM recipes WHERE id = ? AND user_id = ?')
+      .pluck();
     items.forEach((i, pos) => {
       const isAi = i.source === 'ai';
       insert.run(
@@ -90,8 +95,26 @@ export function mealRoutes({ config, db, ai }: AppDeps) {
         isAi ? (by?.model ?? null) : null,
         i.confidence ?? null,
         i.illustration ?? null,
+        i.recipeId === undefined
+          ? null
+          : ((ownRecipe.get(i.recipeId, userId) as number | undefined) ?? null),
       );
     });
+  };
+
+  /** Moves `last_logged_at` of the meal's recipes up to `eatenAt`, never back (ADR-0023 §5). */
+  const touchRecipes = (userId: number, mealId: number, eatenAt: number) => {
+    const ids = db
+      .prepare(
+        `SELECT DISTINCT r.id FROM meal_items i JOIN recipes r ON r.id = i.recipe_id
+         WHERE i.meal_id = ? AND (r.last_logged_at IS NULL OR r.last_logged_at < ?)`,
+      )
+      .pluck()
+      .all(mealId, eatenAt) as number[];
+    const update = db.prepare(
+      'UPDATE recipes SET last_logged_at = ?, rev = ? WHERE id = ?',
+    );
+    for (const id of ids) update.run(eatenAt, bumpRev(db, userId), id);
   };
 
   /**
@@ -188,7 +211,8 @@ export function mealRoutes({ config, db, ai }: AppDeps) {
               now,
               now,
             ) as number;
-          insertItems(id, input.items);
+          insertItems(userId, id, input.items);
+          touchRecipes(userId, id, eatenAt);
           // Re-created after a delete: the newer rev of the meal must not sit next to a tombstone.
           db.prepare(
             'DELETE FROM meal_tombstones WHERE user_id = ? AND client_id = ?',
@@ -286,8 +310,9 @@ export function mealRoutes({ config, db, ai }: AppDeps) {
                     | { provider: string | null; model: string | null }
                     | undefined);
             db.prepare('DELETE FROM meal_items WHERE meal_id = ?').run(meal.id);
-            insertItems(meal.id, patch.items, recognizedBy);
+            insertItems(userId, meal.id, patch.items, recognizedBy);
           }
+          touchRecipes(userId, meal.id, eatenAt);
           return attach !== undefined && !full;
         })();
         if (dropFull) await removePhoto(userId, attach!, ['full']);

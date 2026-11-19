@@ -59,6 +59,7 @@ const saved = (over: Partial<Meal> = {}): Meal => ({
       aiProvider: null,
       aiModel: null,
       confidence: null,
+      recipeId: null,
       illustration: 'grains',
       illustrationManual: false,
     },

@@ -5,7 +5,13 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import sharp from 'sharp';
-import type { Recipe, RecipeInput, SyncResponse } from '@oct/shared';
+import type {
+  Meal,
+  MealInput,
+  Recipe,
+  RecipeInput,
+  SyncResponse,
+} from '@oct/shared';
 import { ensureAdmin } from '../auth/admin.js';
 import { hashPassword } from '../auth/password.js';
 import { photoPath } from '../photos/store.js';
@@ -370,5 +376,120 @@ describe('recipes', () => {
   it('is 401 without a session', async () => {
     const t = await setup();
     expect((await t.call('POST', '/recipes', input(), '')).status).toBe(401);
+  });
+});
+
+describe('portions logged from a recipe (ADR-0023 §5)', () => {
+  const portion = (recipeId?: number) => ({
+    name: 'Плов',
+    grams: 300,
+    kcal: 450,
+    proteinG: 10,
+    fatG: 12,
+    carbsG: 70,
+    source: 'recipe' as const,
+    ...(recipeId === undefined ? {} : { recipeId }),
+  });
+  const meal = (
+    items: MealInput['items'],
+    eatenAt = '2026-01-10T12:00:00.000Z',
+  ): MealInput => ({
+    clientId: randomUUID(),
+    eatenAt,
+    tzOffsetMin: 0,
+    localDate: eatenAt.slice(0, 10),
+    mealType: 'lunch',
+    items,
+  });
+  const recipeRow = (t: Awaited<ReturnType<typeof setup>>, id: number) =>
+    t.db
+      .prepare('SELECT last_logged_at AS at, rev FROM recipes WHERE id = ?')
+      .get(id) as { at: number | null; rev: number };
+
+  it('links the dish and moves last_logged_at and rev forward only, once per meal', async () => {
+    const t = await setup();
+    const { id } = (await t.call('POST', '/recipes', input())).body as Recipe;
+    const before = recipeRow(t, id);
+    const since = (await t.sync(0)).rev;
+
+    const created = await t.call(
+      'POST',
+      '/meals',
+      meal([portion(id), portion(id)]),
+    );
+    expect(created.status).toBe(201);
+    const saved = created.body as Meal;
+    expect(saved.items.map((i) => i.recipeId)).toEqual([id, id]);
+    const after = recipeRow(t, id);
+    expect(after.at).toBe(Date.parse('2026-01-10T12:00:00.000Z'));
+    expect(after.rev).toBe(before.rev + 2); // the meal's rev, then one for the recipe
+
+    const synced = await t.sync(since);
+    expect(synced.meals[0]?.items[0]?.recipeId).toBe(id);
+    expect(synced.recipes?.[0]?.lastLoggedAt).toBe('2026-01-10T12:00:00.000Z');
+
+    // An earlier meal does not move it back nor touch the rev.
+    await t.call(
+      'POST',
+      '/meals',
+      meal([portion(id)], '2026-01-09T12:00:00.000Z'),
+    );
+    expect(recipeRow(t, id)).toEqual(after);
+
+    // Moving the meal later without new items moves the recipe too.
+    const later = '2026-01-11T08:00:00.000Z';
+    const patched = await t.call('PATCH', `/meals/${saved.id}`, {
+      eatenAt: later,
+      tzOffsetMin: 0,
+      localDate: '2026-01-11',
+    });
+    expect(patched.status).toBe(200);
+    expect(recipeRow(t, id).at).toBe(Date.parse(later));
+
+    // Replacing items keeps the link.
+    const edited = await t.call('PATCH', `/meals/${saved.id}`, {
+      items: [portion(id)],
+    });
+    expect((edited.body as Meal).items[0]?.recipeId).toBe(id);
+  });
+
+  it("saves a dish with another user's, a deleted or no recipe without a link", async () => {
+    const t = await setup();
+    const other = await t.addUser('b@example.com');
+    const foreign = (await t.call('POST', '/recipes', input(), other.cookie))
+      .body as Recipe;
+    const gone = (await t.call('POST', '/recipes', input())).body as Recipe;
+    await t.call('DELETE', `/recipes/${gone.id}`);
+
+    const res = await t.call(
+      'POST',
+      '/meals',
+      meal([portion(foreign.id), portion(gone.id), portion()]),
+    );
+    expect(res.status).toBe(201);
+    expect((res.body as Meal).items.map((i) => i.recipeId)).toEqual([
+      null,
+      null,
+      null,
+    ]);
+    expect(recipeRow(t, foreign.id).at).toBeNull();
+  });
+
+  it('keeps a logged dish as is after the recipe is edited or deleted (AC-4.4)', async () => {
+    const t = await setup();
+    const { id } = (await t.call('POST', '/recipes', input())).body as Recipe;
+    const saved = (await t.call('POST', '/meals', meal([portion(id)])))
+      .body as Meal;
+
+    await t.call('PUT', `/recipes/${id}`, input({ name: 'Суп', cookedG: 900 }));
+    const edited = (await t.call('GET', `/meals/${saved.id}`)).body as Meal;
+    expect(edited).toEqual(saved);
+
+    await t.call('DELETE', `/recipes/${id}`);
+    const deleted = (await t.call('GET', `/meals/${saved.id}`)).body as Meal;
+    expect(deleted).toEqual({
+      ...saved,
+      items: [{ ...saved.items[0], recipeId: null }],
+    });
   });
 });

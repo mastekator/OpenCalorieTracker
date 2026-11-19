@@ -31,7 +31,7 @@ function selectMeals(
     .prepare(
       `SELECT i.meal_id AS mealId, i.name, i.grams, i.kcal, i.protein_g AS proteinG,
          i.fat_g AS fatG, i.carbs_g AS carbsG, i.source, i.ai_provider AS aiProvider,
-         i.ai_model AS aiModel, i.confidence, i.illustration IS NOT NULL AS manual,
+         i.ai_model AS aiModel, i.confidence, i.recipe_id AS recipeId, i.illustration IS NOT NULL AS manual,
          COALESCE(i.illustration, c.illustration) AS illustration
        FROM meal_items i JOIN meals m ON m.id = i.meal_id ${CHOICE_JOIN}
        WHERE ${where} ORDER BY i.meal_id, i.position`,
