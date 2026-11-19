@@ -11,7 +11,7 @@ export const lighterChangeSchema = z.enum([
 ]);
 export type LighterChange = z.infer<typeof lighterChangeSchema>;
 
-const nutrientsSchema = z.object({
+export const nutrientsSchema = z.object({
   kcal: z.number(),
   proteinG: z.number(),
   fatG: z.number(),
@@ -72,7 +72,7 @@ const MAX_GRAMS = 5000;
 const round1 = (v: number) => Math.round(v * 10) / 10;
 
 /** Per 100 g a food can have: no more than pure fat. */
-const validPer100 = (n: Nutrients | null): n is Nutrients =>
+export const validPer100 = (n: Nutrients | null): n is Nutrients =>
   !!n &&
   n.kcal >= 0 &&
   n.kcal <= 900 &&
