@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { fireEvent, within } from 'storybook/test';
-import type { ConfigResponse } from '@oct/shared';
+import type { AdminAiStatus, ConfigResponse } from '@oct/shared';
 import { AuthLayout } from './AuthLayout';
 import { SetupScreen } from './SetupScreen';
 
@@ -18,9 +18,36 @@ const config: ConfigResponse = {
 type Args = Parameters<typeof SetupScreen>[0] & {
   /** How POST /api/setup/code answers: an error code, `pending` (never), or 204. */
   answer?: { code: string; status: number } | 'pending';
+  /** What GET /api/admin/ai answers at step 3; none — a 500. */
+  ai?: AdminAiStatus;
 };
 
-/** First-run wizard, step 1 (OCT-244 mockups 1.1–1.11). Theme and language: toolbar; Dark and Desktop below. */
+const ai = (over: Partial<AdminAiStatus>): AdminAiStatus => ({
+  provider: 'google',
+  providerName: 'Google',
+  model: 'gemini-3.8-flash',
+  keySet: true,
+  baseUrlHost: null,
+  source: 'env',
+  keyLast4: null,
+  keyUnreadable: false,
+  savedInactive: false,
+  rev: null,
+  refineLimit: null,
+  state: 'ok',
+  checkedAt: null,
+  ...over,
+});
+const AI_OFF = ai({
+  provider: null,
+  providerName: null,
+  model: null,
+  keySet: false,
+  source: null,
+  state: 'not_configured',
+});
+
+/** First-run wizard (OCT-244 mockups 1.1–3.2). Theme and language: toolbar; Dark and Desktop below. */
 const meta = {
   title: 'App/SetupScreen',
   component: SetupScreen,
@@ -31,20 +58,24 @@ const meta = {
   ),
   beforeEach: ({ args }) => {
     const original = window.fetch;
-    window.fetch = async () =>
-      args.answer === 'pending'
-        ? new Promise<Response>(() => {})
-        : args.answer
-          ? Response.json(
-              { error: { code: args.answer.code } },
-              { status: args.answer.status },
-            )
-          : new Response(null, { status: 204 });
+    window.fetch = async (input) =>
+      String(input).endsWith('/api/admin/ai')
+        ? args.ai
+          ? Response.json(args.ai)
+          : Response.json({ error: { code: 'internal' } }, { status: 500 })
+        : args.answer === 'pending'
+          ? new Promise<Response>(() => {})
+          : args.answer
+            ? Response.json(
+                { error: { code: args.answer.code } },
+                { status: args.answer.status },
+              )
+            : new Response(null, { status: 204 });
     return () => {
       window.fetch = original;
     };
   },
-  args: { config, origin: ORIGIN },
+  args: { config, origin: ORIGIN, onSignedIn: async () => {} },
   parameters: { layout: 'fullscreen' },
 } satisfies Meta<Args>;
 export default meta;
@@ -148,9 +179,83 @@ export const Offline: Story = {
     };
   },
 };
-/** Step 2 placeholder after a right code (the form comes with OCT-286). */
+/** A right code opens step 2. */
 export const Accepted: Story = { play: submit('K7QM3XRP') };
 export const DesktopDone: Story = {
   args: { end: 'done' },
   globals: desktop,
+};
+
+/** 2.1 Both methods: passkey first. */
+export const Admin: Story = { args: { step: 2 } };
+export const AdminDark: Story = {
+  args: { step: 2 },
+  globals: { theme: 'dark' },
+};
+export const AdminDesktop: Story = { args: { step: 2 }, globals: desktop };
+export const AdminDesktopDark: Story = {
+  args: { step: 2 },
+  globals: { ...desktop, theme: 'dark' },
+};
+/** 2.2 Password with errors shown on submit. */
+export const AdminPasswordErrors: Story = {
+  args: { step: 2, config: { ...config, authMethods: ['password'] } },
+  play: async ({ canvasElement }) => {
+    fireEvent.submit(canvasElement.querySelector('form')!);
+  },
+};
+/** 2.3 Password only: no segment. */
+export const AdminPasswordOnly: Story = {
+  args: { step: 2, config: { ...config, authMethods: ['password'] } },
+};
+/** 2.4 Passkey only. */
+export const AdminPasskeyOnly: Story = {
+  args: { step: 2, config: { ...config, authMethods: ['passkey'] } },
+};
+/** 2.6 The passkey dialog was closed: a neutral line, not an error. */
+export const AdminPasskeyCancel: Story = {
+  args: { step: 2, passkeyNotice: 'cancel' },
+};
+/** 2.7 The passkey failed: no account, the code still works. */
+export const AdminPasskeyFailed: Story = {
+  args: { step: 2, passkeyNotice: 'failed' },
+};
+export const AdminPasskeyFailedDark: Story = {
+  args: { step: 2, passkeyNotice: 'failed' },
+  globals: { theme: 'dark' },
+};
+/** 2.8 Both methods, not at PUBLIC_URL: password first, the reason above the fields. */
+export const AdminAway: Story = {
+  args: { step: 2, origin: 'http://192.168.1.5:3000' },
+};
+export const AdminAwayDark: Story = {
+  args: { step: 2, origin: 'http://192.168.1.5:3000' },
+  globals: { theme: 'dark' },
+};
+
+/** 3.1 All set, AI not configured: «Set up AI». */
+export const Ready: Story = { args: { step: 3, ai: AI_OFF } };
+export const ReadyDark: Story = {
+  args: { step: 3, ai: AI_OFF },
+  globals: { theme: 'dark' },
+};
+/** 3.2 AI configured and working: provider and model, no button. */
+export const ReadyAi: Story = { args: { step: 3, ai: ai({}) } };
+export const ReadyAiDark: Story = {
+  args: { step: 3, ai: ai({}) },
+  globals: { theme: 'dark' },
+};
+/** 3.2 The provider check failed: its state and «Set up AI». */
+export const ReadyAiFailing: Story = {
+  args: { step: 3, ai: ai({ state: 'unavailable' }) },
+};
+/** The AI status didn't come: «Set up AI» anyway. */
+export const ReadyNoStatus: Story = { args: { step: 3 } };
+export const ReadyDesktop: Story = {
+  args: { step: 3, ai: ai({}) },
+  globals: desktop,
+};
+export const ReadyDesktopDark: Story = {
+  args: { step: 3, ai: AI_OFF },
+  globals: { ...desktop, theme: 'dark' },
 };

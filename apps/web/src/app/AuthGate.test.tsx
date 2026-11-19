@@ -222,6 +222,16 @@ describe('/setup (OCT-267)', () => {
     ).toBeTruthy();
     expect(screen.queryByLabelText('Setup code')).toBeNull();
   });
+  it.each(['/login', '/register', '/invite#t', '/recover#t'])(
+    'setupRequired: %s goes to the wizard (OCT-286)',
+    async (url) => {
+      configPatch = { setupRequired: true, registration: 'open' };
+      serve(null);
+      const location = renderAt(url);
+      expect(await screen.findByLabelText('Setup code')).toBeTruthy();
+      expect(location.history?.at(-1)).toBe('/setup');
+    },
+  );
 });
 
 describe('AuthGate', () => {
