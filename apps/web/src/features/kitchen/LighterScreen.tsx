@@ -144,9 +144,9 @@ export function LighterView({ recipe, online, load, onSave, onSaved }: Props) {
             tone="danger"
             title={t('lighter.error.title')}
             actions={
-              <Button onClick={() => setAttempt((n) => n + 1)}>
+              <button type="button" onClick={() => setAttempt((n) => n + 1)}>
                 {t('common.retry')}
-              </Button>
+              </button>
             }
           >
             {t('lighter.error.body')}
