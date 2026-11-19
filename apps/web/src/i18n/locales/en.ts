@@ -1565,6 +1565,33 @@ export const en = {
       error: 'Couldn’t delete the recipe. Try again.',
     },
   },
+  lighter: {
+    back: 'Recipe',
+    title: 'Make it lighter',
+    sub: 'AI suggests swaps',
+    lead: 'Now {k}\u00a0kcal per serving. The original won’t change unless you tap Apply.',
+    lead_100:
+      'Now {k}\u00a0kcal/100\u00a0g. The original won’t change unless you tap Apply.',
+    busy: 'Looking for lighter swaps…',
+    variant: 'Option {i} of {n}',
+    became: '{k}\u00a0kcal',
+    delta: '−{k} per serving',
+    delta_100: '−{k}\u00a0kcal/100\u00a0g',
+    change: {
+      reduced: '{name} {a} → {b}\u00a0g',
+      replaced: '{from} {a}\u00a0g → {name} {b}\u00a0g',
+      added: '+ {name} {b}\u00a0g',
+      removed: 'Without {name}',
+    },
+    save_new: 'Save as new',
+    apply: 'Apply to this one',
+    name: '{name} — light',
+    sent: 'Only the recipe ingredients went to the provider. The app recalculated the new kcal.',
+    error: {
+      title: 'Couldn’t suggest swaps',
+      body: 'The provider didn’t respond. The recipe hasn’t changed — try again.',
+    },
+  },
   cook: {
     step: 'Step {i} of {n}',
     step_now: 'Step {i} of {n} · now',

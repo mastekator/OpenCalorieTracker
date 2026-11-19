@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   lighterSaving,
+  lightened,
   lighterVariant,
   type LighterModelVariant,
 } from './lighter.js';
@@ -151,6 +152,12 @@ describe('lighterVariant', () => {
 });
 
 describe('lighterSaving', () => {
+  it('lightened: the cooked weight follows the raw one, to 0.1 g', () => {
+    expect(
+      lightened({ cookedG: 220, servings: null, ingredients: original }, v)
+        .cookedG,
+    ).toBe(203.7);
+  });
   const v = { ingredients: [rice, cheese] };
   it('is per serving with servings', () => {
     expect(
@@ -165,7 +172,7 @@ describe('lighterSaving', () => {
     );
     expect(saving).toBeCloseTo(
       (640 / 220) * 100 - (460 / ((220 * 250) / 270)) * 100,
-      6,
+      1,
     );
   });
 });

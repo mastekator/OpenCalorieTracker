@@ -38,6 +38,7 @@ import {
   KitchenScreen,
   NEW_RECIPE_PATH,
 } from '../features/kitchen/KitchenScreen';
+import { LighterScreen } from '../features/kitchen/LighterScreen';
 import { RecipeEditorScreen } from '../features/kitchen/RecipeEditor';
 import { RecipeScreen } from '../features/kitchen/RecipeScreen';
 import { ProfileScreen } from '../features/profile/ProfileScreen';
@@ -179,6 +180,9 @@ export function AppScreens() {
       </Route>
       <Route path="/kitchen/:id/edit">
         {({ id }) => <RecipeEditorScreen key={id} id={id} />}
+      </Route>
+      <Route path="/kitchen/:id/lighter">
+        {({ id }) => <LighterScreen id={id} />}
       </Route>
       <Route path="/kitchen/:id">{({ id }) => <RecipeScreen id={id} />}</Route>
       <Route path="/settings">
