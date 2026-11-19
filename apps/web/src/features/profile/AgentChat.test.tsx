@@ -242,6 +242,20 @@ describe('AgentChat (container)', () => {
     ).toBeTruthy();
   });
 
+  it('one required field missing: the greeting and that question, no list (OCT-302)', async () => {
+    serve([
+      { role: 'assistant', kind: 'opening', known: { ...full, sex: null } },
+    ]);
+    await setup({ disclaimerHidden: true });
+
+    expect(await screen.findByText(/male, 34, 182 and 85/)).toBeTruthy();
+    expect(
+      screen.getByText('Which formula should I use — male or female?'),
+    ).toBeTruthy();
+    expect(screen.queryByText(/^I have:/)).toBeNull();
+    expect(screen.queryByRole('button', { name: 'All correct' })).toBeNull();
+  });
+
   it('asks about units in words (9.7)', async () => {
     serve([
       {
