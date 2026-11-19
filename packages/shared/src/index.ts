@@ -104,3 +104,4 @@ export * from './weight/schemas.js';
 export * from './weight/trend.js';
 export * from './weight/jump.js';
 export * from './recipes/recipes.js';
+export * from './recipes/lighter.js';
