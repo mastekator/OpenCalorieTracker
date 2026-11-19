@@ -53,6 +53,12 @@ export const barcodeLookupSchema = z.object({
 });
 export type BarcodeLookup = z.infer<typeof barcodeLookupSchema>;
 
+/** POST /photos/:id/barcodes: the codes read from the photo, each looked up. */
+export const photoBarcodesSchema = z.object({
+  codes: z.array(z.object({ code: z.string(), result: barcodeLookupSchema })),
+});
+export type PhotoBarcodesResponse = z.infer<typeof photoBarcodesSchema>;
+
 /** GET /products/mine. */
 export const myProductsSchema = z.object({
   products: z.array(productSchema),
