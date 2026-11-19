@@ -167,6 +167,17 @@ export function RefineBar({
               )}
               value={value}
               onChange={(e) => onChange(e.target.value)}
+              onKeyDown={(e) => {
+                // ⌘/Ctrl+Enter = «Refine» when it is enabled; plain Enter stays a line break.
+                if (
+                  e.key !== 'Enter' ||
+                  !(e.metaKey || e.ctrlKey) ||
+                  e.nativeEvent.isComposing
+                )
+                  return;
+                e.preventDefault();
+                if (!disabled && text) onRefine();
+              }}
               onFocus={() => setFocused(true)}
               onBlur={() => setFocused(false)}
             />
