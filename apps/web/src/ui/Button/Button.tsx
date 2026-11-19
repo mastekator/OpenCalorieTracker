@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, MouseEvent } from 'react';
+import type { ButtonHTMLAttributes, MouseEvent, Ref } from 'react';
 import './Button.css';
 
 type Props = Omit<
@@ -10,6 +10,7 @@ type Props = Omit<
   small?: boolean;
   /** Spinner and no clicks; pass the verb with an ellipsis as children («Signing in…»). */
   loading?: boolean;
+  ref?: Ref<HTMLButtonElement>;
 };
 
 export function Button({

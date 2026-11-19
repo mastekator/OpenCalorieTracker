@@ -19,6 +19,8 @@ type Props = {
   onAgain?: () => void;
   /** A request is running; `slow` after 10 s. */
   busy?: 'busy' | 'slow';
+  /** What is running: «Recognize again» has its own busy text (OCT-234 B.3). */
+  mode?: 'refine' | 'again';
   onCancel: () => void;
   /** Offline or the photo still queued: the field takes text, the buttons wait. */
   disabled?: boolean;
@@ -43,6 +45,7 @@ export function RefineBar({
   onRefine,
   onAgain,
   busy,
+  mode,
   onCancel,
   disabled,
   note,
@@ -56,6 +59,7 @@ export function RefineBar({
   const noteId = useId();
   const fieldRef = useRef<HTMLTextAreaElement>(null);
   const resultRef = useRef<HTMLDivElement>(null);
+  const cancelRef = useRef<HTMLButtonElement>(null);
   const resultKey = result
     ? `${result.kcalDelta}|${result.removed.join()}`
     : '';
@@ -64,6 +68,8 @@ export function RefineBar({
   // a new result → its strip, cancel or error → back to the field.
   useEffect(() => {
     if (busy) {
+      // Only on idle → busy: the field just unmounted; busy → slow keeps focus where it is.
+      if (keyAtStart.current === null) cancelRef.current?.focus();
       keyAtStart.current ??= resultKey;
       return;
     }
@@ -124,9 +130,20 @@ export function RefineBar({
         <div className="refine__busy" role="status">
           <span className="button__spinner" aria-hidden="true" />
           <span className="refine__busy-text">
-            {t(busy === 'slow' ? 'edit.refine.slow' : 'edit.refine.busy')}
+            {t(
+              busy === 'slow'
+                ? 'edit.refine.slow'
+                : mode === 'again'
+                  ? 'edit.refine.busy_again'
+                  : 'edit.refine.busy',
+            )}
+            {text && (
+              <span className="refine__query">
+                {t('edit.refine.query', { text })}
+              </span>
+            )}
           </span>
-          <Button variant="plain" small onClick={onCancel}>
+          <Button ref={cancelRef} variant="plain" small onClick={onCancel}>
             {t('common.cancel')}
           </Button>
         </div>
