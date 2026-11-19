@@ -33,6 +33,7 @@ import {
   MealRecalc,
 } from '../features/meals/MealEditScreen';
 import { UndoDeleteProvider } from '../features/diary/undoDelete';
+import { CookScreen } from '../features/kitchen/CookMode';
 import {
   KitchenScreen,
   NEW_RECIPE_PATH,
@@ -404,6 +405,10 @@ function SignedIn() {
             </Route>
             <Route path="/meal/:clientId/recalc">
               {({ clientId }) => <MealRecalc clientId={clientId} />}
+            </Route>
+            {/* Cooking mode: full screen too (OCT-160 4.1). */}
+            <Route path="/kitchen/:id/cook">
+              {({ id }) => <CookScreen id={id} />}
             </Route>
             <Route>
               <AppShell email={user?.email}>

@@ -89,15 +89,21 @@
   background: var(--color-surface-2);
 }
 
+/* «Cook»: a tonal button the width of the column (OCT-160 §3). */
+.recipe__actions {
+  display: grid;
+}
+
 /* §10: title over three columns — photo and nutrition · ingredients · steps. */
 @media (min-width: 1024px) {
   .recipe {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    grid-template-rows: auto auto 1fr;
+    grid-template-rows: auto auto auto 1fr;
     grid-template-areas:
       'head head head'
       'hero ingr steps'
-      'nut ingr steps';
+      'nut ingr steps'
+      'act ingr steps';
     align-items: start;
   }
 
@@ -109,6 +115,9 @@
   }
   .recipe__nutrition {
     grid-area: nut;
+  }
+  .recipe__actions {
+    grid-area: act;
   }
   .recipe__ingredients {
     grid-area: ingr;
