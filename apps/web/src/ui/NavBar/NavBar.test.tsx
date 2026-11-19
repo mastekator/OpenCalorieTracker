@@ -48,4 +48,38 @@ describe('NavBar', () => {
     fireEvent.click(button);
     expect(onClick).toHaveBeenCalledOnce();
   });
+
+  it('puts a root screen action in the large title row, with no bar above', () => {
+    const { container } = render(
+      <NavBar
+        title="Profile"
+        large
+        action={{ icon: UserPlus, label: 'Invite', onClick: () => {} }}
+      />,
+    );
+    expect(container.querySelector('.navbar__bar')).toBeNull();
+    const row = container.querySelector('.navbar__large-row')!;
+    expect(row.contains(screen.getByRole('heading', { name: 'Profile' }))).toBe(
+      true,
+    );
+    expect(row.contains(screen.getByRole('button', { name: 'Invite' }))).toBe(
+      true,
+    );
+  });
+
+  it('keeps the bar with Back above a large title', () => {
+    const { container } = render(
+      <Router hook={memoryLocation({ path: '/register' }).hook}>
+        <NavBar
+          title="Sign up"
+          large
+          back={{ href: '/login', label: 'Sign in' }}
+        />
+      </Router>,
+    );
+    const bar = container.querySelector('.navbar__bar')!;
+    expect(bar.contains(screen.getByRole('link', { name: 'Sign in' }))).toBe(
+      true,
+    );
+  });
 });
