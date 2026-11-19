@@ -11,6 +11,7 @@ const meta = {
     recipe: PILAF,
     today: '2026-11-19',
     online: true,
+    lighter: true,
     onDelete: fn(async () => {}),
   },
 } satisfies Meta<typeof RecipeView>;
@@ -20,6 +21,8 @@ type Story = StoryObj<typeof meta>;
 const dark = { theme: 'dark' };
 const desktop = { viewport: { value: 'desktop' } };
 
+/** Without AI: no «Make it lighter» row or menu item. */
+export const NoAi: Story = { args: { lighter: false } };
 /** 2.1, 2.2: photo, meta, Serving / 100 g / Whole, ingredients (0 g not counted), steps. */
 export const WithServings: Story = {};
 export const WithServingsDark: Story = { globals: dark };

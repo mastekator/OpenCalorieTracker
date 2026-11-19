@@ -147,17 +147,26 @@ export const lighterBasisKcal = (r: Calc) =>
   r.servings ? recipeTotals(r.ingredients).kcal / r.servings : per100(r).kcal;
 
 /**
- * "−N per serving" (or per 100 g): kcal saved by the variant. The cooked weight follows the raw one
+ * The recipe with the variant's ingredients, as it is saved. The cooked weight follows the raw one
  * in proportion: dropping oil makes the dish lighter, not denser.
  */
-export function lighterSaving(r: Calc, v: Pick<LighterVariant, 'ingredients'>) {
+export function lightened<T extends Calc>(
+  r: T,
+  v: Pick<LighterVariant, 'ingredients'>,
+): T {
   const rawG = recipeTotals(r.ingredients).rawG;
   const cookedG =
     r.cookedG === null || rawG === 0
       ? null
-      : (r.cookedG * recipeTotals(v.ingredients).rawG) / rawG;
-  return (
-    lighterBasisKcal(r) -
-    lighterBasisKcal({ ...r, cookedG, ingredients: v.ingredients })
-  );
+      : Math.max(
+          1,
+          round1((r.cookedG * recipeTotals(v.ingredients).rawG) / rawG),
+        );
+  return { ...r, cookedG, ingredients: v.ingredients };
 }
+
+/** "−N per serving" (or per 100 g): kcal saved by the variant. */
+export const lighterSaving = (
+  r: Calc,
+  v: Pick<LighterVariant, 'ingredients'>,
+) => lighterBasisKcal(r) - lighterBasisKcal(lightened(r, v));
