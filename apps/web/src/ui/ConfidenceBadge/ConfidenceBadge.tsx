@@ -1,4 +1,4 @@
-import { Check, CircleAlert, History } from 'lucide-react';
+import { Check, ChefHat, CircleAlert, History } from 'lucide-react';
 import { confidenceLevel, type DishSource } from '@oct/shared';
 import { useT } from '../../i18n';
 import { Badge } from '../Badge/Badge';
@@ -10,7 +10,7 @@ type Props = {
   confidence?: number;
 };
 
-/** Where a dish's numbers come from: AI confidence as a word, manual, or history (OCT-16 §3). */
+/** Where a dish's numbers come from: AI confidence as a word, manual, history or recipe (OCT-16 §3, OCT-160 §5). */
 export function ConfidenceBadge({ source, confidence }: Props) {
   const { t } = useT();
   if (source === 'manual') return <Badge>{t('edit.source.manual')}</Badge>;
@@ -19,6 +19,13 @@ export function ConfidenceBadge({ source, confidence }: Props) {
       <Badge>
         <History aria-hidden="true" />
         {t('edit.source.history')}
+      </Badge>
+    );
+  if (source === 'recipe')
+    return (
+      <Badge>
+        <ChefHat aria-hidden="true" />
+        {t('edit.source.recipe')}
       </Badge>
     );
   if (confidence === undefined) return null;

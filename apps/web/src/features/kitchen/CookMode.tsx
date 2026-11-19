@@ -17,9 +17,11 @@ import { List, ListRow } from '../../ui/List/List';
 import { NavBar } from '../../ui/NavBar/NavBar';
 import { useBarVariant } from '../../app/connection';
 import { OfflineBar, useOnline } from '../../ui/OfflineBar/OfflineBar';
+import { PortionSheet } from '../../ui/PortionSheet/PortionSheet';
 import { Sheet } from '../../ui/Sheet/Sheet';
 import { useToast } from '../../ui/Toast/Toast';
 import { useWeight } from '../../ui/weightUnits';
+import { logPortion } from './portion';
 import { useUnits } from './units';
 import './CookMode.css';
 
@@ -91,21 +93,53 @@ export function CookScreen({ id }: { id: string }) {
   const awake = useWakeLock();
   const [, navigate] = useLocation();
   const units = useUnits();
+  const w = useWeight(units);
+  const { t } = useT();
+  const toast = useToast();
+  const [portion, setPortion] = useState(false);
   const card = `/kitchen/${id}`;
   if (recipe === null) return <Redirect to="/kitchen" replace />;
   if (!recipe) return null;
   if (recipe.steps.length === 0) return <Redirect to={card} replace />;
   return (
-    <CookMode
-      recipe={recipe}
-      online={online}
-      units={units}
-      awake={awake}
-      onExit={() => navigate(card, { replace: true })}
-      onSaveWeight={async (cookedG) => {
-        await saveRecipe(db, withCookedG(recipe, cookedG), recipe.id);
-      }}
-    />
+    <>
+      <CookMode
+        recipe={recipe}
+        online={online}
+        units={units}
+        awake={awake}
+        onExit={() => navigate(card, { replace: true })}
+        onSaveWeight={async (cookedG) => {
+          await saveRecipe(db, withCookedG(recipe, cookedG), recipe.id);
+        }}
+        onLog={() => setPortion(true)}
+      />
+      {portion && (
+        // Over «Done!»: logged, the cooking is over — back to the card.
+        <PortionSheet
+          open
+          recipe={recipe}
+          units={units}
+          log
+          onClose={() => setPortion(false)}
+          onAdd={(item, when) => {
+            if (!when) return; // `log` always passes the meal and time
+            void logPortion(db, item, when).then(
+              () => {
+                toast({
+                  text: t('portion.logged', {
+                    name: item.name,
+                    w: `${w.fmt(item.grams)}\u00a0${w.u}`,
+                  }),
+                });
+                navigate(card, { replace: true });
+              },
+              () => toast({ text: t('portion.error') }),
+            );
+          }}
+        />
+      )}
+    </>
   );
 }
 
@@ -119,7 +153,7 @@ type Props = {
   /** «×», Esc and «Just close»: back to the recipe card. */
   onExit: () => void;
   onSaveWeight: (cookedG: number) => Promise<void>;
-  /** «Log a serving»; not rendered without it (the portion sheet comes in OCT-310). */
+  /** «Log a serving»: opens the portion sheet; not rendered without it. */
   onLog?: () => void;
 };
 
@@ -344,21 +378,31 @@ export function CookDoneSheet({
   const ratio =
     valid && rawG ? Math.max(cookedG, rawG) / Math.min(cookedG, rawG) : 0;
 
+  /** True once the weight is saved. */
   const save = async () => {
-    if (!valid) return;
+    if (!valid) return false;
     setBusy(true);
     try {
       await onSave(cookedG);
       toast({ text: t('cook.finish.saved') });
+      return true;
     } catch {
       toast({ text: t('cook.finish.error') });
+      return false;
     } finally {
       setBusy(false);
     }
   };
 
+  // A serving is counted from the saved weight: save an edited one first.
+  const log = async () => {
+    if (online && changed && valid && !(await save())) return;
+    onLog?.();
+  };
+
   let note = t('cook.finish.weigh');
-  if (!online) note = t('cook.finish.offline');
+  if (!online)
+    note = t(changed ? 'cook.finish.offline_old' : 'cook.finish.offline');
   else if (changed && cookedG !== null && !valid)
     note = t('cook.finish.weight_err', { u });
   else if (warn)
@@ -386,7 +430,7 @@ export function CookDoneSheet({
             </Button>
           )}
           {onLog && (
-            <Button variant="tonal" onClick={onLog}>
+            <Button variant="tonal" disabled={busy} onClick={() => void log()}>
               {t('cook.finish.log')}
             </Button>
           )}
