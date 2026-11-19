@@ -4,6 +4,7 @@ import {
   AI_PROVIDERS,
   refineRequestSchema,
   type AiStatus,
+  type LighterResponse,
   type Recognition,
   type RefineResponse,
 } from '@oct/shared';
@@ -12,6 +13,8 @@ import { requireUser, type AuthEnv } from '../auth/session.js';
 import { ApiError } from '../http/errors.js';
 import { validate } from '../http/validate.js';
 import { photoPath } from '../photos/store.js';
+import { readRecipe } from '../recipes/read.js';
+import { lighterRecipe } from './lighter.js';
 import { recognizeMeal } from './recognize.js';
 import { refineMeal, type Refined } from './refine.js';
 import { baseUrlHost, refineLimit } from './settings.js';
@@ -194,7 +197,28 @@ export function aiRoutes({ config, db, ai }: AppDeps) {
                 Math.max(0, limit - (sessions.get(sessionKey)?.used ?? 0)),
         } satisfies RefineResponse);
       },
-    );
+    )
+    .post('/ai/recipes/:id/lighter', requireUser, async (c) => {
+      const model = ai.current()?.model ?? null;
+      if (!model) throw new ApiError(409, 'ai_not_configured');
+      const user = c.var.user;
+      const id = c.req.param('id');
+      // The recipe is read here, never taken from the client (ADR-0023 §8).
+      const rev = /^\d+$/.test(id)
+        ? (db
+            .prepare('SELECT rev FROM recipes WHERE id = ? AND user_id = ?')
+            .pluck()
+            .get(Number(id), user.id) as number | undefined)
+        : undefined;
+      if (rev === undefined) throw new ApiError(404, 'not_found');
+      // By rev: a retry of the same recipe joins the call, an edited recipe asks afresh.
+      const result = once<LighterResponse>(
+        `${user.id}:lighter:${id}:${rev}`,
+        user.id,
+        () => lighterRecipe(model, readRecipe(db, Number(id)), user.locale),
+      );
+      return c.json(await result);
+    });
 }
 
 const exists = (path: string) =>
