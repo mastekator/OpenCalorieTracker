@@ -188,6 +188,8 @@ export const en = {
     offline:
       'Everything works offline except sign-in and admin settings. We’ll sync your changes when you’re back online.',
     ai_provider: 'AI provider',
+    integrations: 'Integrations',
+    server_integrations: 'Server integrations',
     version: 'Version {v}',
     logout: 'Sign out',
     photos: {
@@ -216,6 +218,48 @@ export const en = {
         },
         ok: 'Delete photos',
       },
+    },
+  },
+  integr: {
+    lead: 'Everything is off until you turn it on. Anything connected shows up here and turns off in one tap.',
+    connections: 'Connections',
+    status: { off: 'Off', on: 'On', blocked: 'Turned off by your admin' },
+    turn_on: 'Turn on',
+    not_now: 'Not now',
+    turn_off: 'Turn off',
+    barcode: {
+      title: 'Barcode lookup',
+      desc: 'Open Food Facts · only the barcode number is sent',
+      switch: 'Search Open Food Facts',
+      sub: 'An open food database with calories and macros',
+      out: 'What leaves your server',
+      kv: {
+        what: 'What',
+        what_v: 'Only the barcode number',
+        where: 'Where',
+        where_v: 'Open Food Facts · openfoodfacts.org',
+        from: 'From',
+        from_v: 'Your server, not your phone',
+        never: 'Never sent',
+        never_v: 'Photos, your name, your diary',
+      },
+      note: 'Without lookup the barcode on a photo is still read: your products are found, and AI reads the label. Open Food Facts data is an open database (ODbL license).',
+      blocked:
+        'The admin has blocked outgoing requests from the server. Your products and AI label reading still work.',
+      off_confirm: 'Turn off barcode lookup? Your products are kept.',
+      sheet_text:
+        'We’ll look up packages in Open Food Facts, an open food database with calories and macros.',
+    },
+    admin: {
+      outbound: 'Outgoing requests from the server',
+      outbound_sub: 'Open Food Facts barcode lookup',
+      allowed_hint:
+        'Allowed doesn’t mean on: each person turns integrations on themselves.',
+      block_title: 'Block outgoing requests?',
+      block_body: 'Barcode lookup stops for everyone. Their settings are kept.',
+      block_ok: 'Block',
+      env_title: 'Set in .env',
+      env_body: 'To change it, edit .env and restart the container.',
     },
   },
   admin: {

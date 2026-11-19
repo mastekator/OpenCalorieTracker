@@ -1,0 +1,4 @@
+.consent-sheet {
+  display: grid;
+  gap: var(--space-4);
+}
