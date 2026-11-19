@@ -37,7 +37,7 @@ async function pullPages(db: Db) {
 /** One page, one transaction: a broken pull never leaves `rev` ahead of the data. */
 async function apply(db: Db, page: SyncResponse) {
   const tx = db.transaction(
-    ['meals', 'outbox', 'kv', 'weighings'],
+    ['meals', 'outbox', 'kv', 'weighings', 'recipes'],
     'readwrite',
   );
   const meals = tx.objectStore('meals');
@@ -70,6 +70,9 @@ async function apply(db: Db, page: SyncResponse) {
       else delete choices[nameKey];
     await kv.put(choices, 'choices');
   }
+  const recipes = tx.objectStore('recipes');
+  for (const recipe of page.recipes ?? []) await recipes.put(recipe);
+  for (const id of page.deletedRecipeIds ?? []) await recipes.delete(id);
   await kv.put(page.rev, 'rev');
   await tx.done;
 }
