@@ -1365,6 +1365,8 @@ export const en = {
       file: 'Choose file',
       photo_note:
         'The photo is attached to the whole meal and replaces the illustrations.',
+      photo_error: 'The photo didn’t upload. Try again.',
+      offline: 'You can add a photo once you’re back online',
       grid: 'Illustrations',
     },
     empty_manual: 'No dishes yet',

@@ -58,6 +58,26 @@
   color: var(--color-text-secondary);
 }
 
+.illo-picker__error {
+  margin: 0;
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+  font-weight: var(--text-footnote-weight);
+  color: var(--color-danger);
+}
+
+.illo-picker__note--icon {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.illo-picker__note--icon svg {
+  flex: none;
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+}
+
 .illo-picker__heading {
   margin-top: var(--space-2);
 }
