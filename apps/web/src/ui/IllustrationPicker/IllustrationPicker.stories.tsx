@@ -60,7 +60,7 @@ export const ManualDark: Story = {
   ...Manual,
   globals: { locale: 'ru', theme: 'dark' },
 };
-/** The meal has a photo, or it is a saved entry: no photo actions (AC-4.3). */
+/** The meal has a photo: no photo actions (AC-4.3). */
 export const WithPhoto: Story = {
   args: { name: 'Rice', current: 'grains', photo: false },
 };
