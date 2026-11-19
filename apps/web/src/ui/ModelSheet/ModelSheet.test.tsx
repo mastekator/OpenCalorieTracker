@@ -50,7 +50,9 @@ const groups = () =>
 describe('ModelSheet', () => {
   it('groups photo models first, then silent ones, then no photos', async () => {
     show();
-    await screen.findByText('5 models · photo models first');
+    // Wait for the groups themselves: the title is found before the dialog opens.
+    await screen.findAllByRole('radiogroup');
+    expect(screen.getByText('5 models · photo models first')).toBeTruthy();
     expect(groups()).toEqual([
       ['Accept photos', 'qwen/qwen3-vl-72bphoto', 'openai/gpt-5-miniphoto'],
       [
@@ -135,7 +137,7 @@ describe('ModelSheet', () => {
     await screen.findByText('The model list is empty');
     expect(screen.queryByText(/Nothing found/)).toBeNull();
     fireEvent.click(
-      screen.getByRole('button', { name: 'Enter the name manually' }),
+      await screen.findByRole('button', { name: 'Enter the name manually' }),
     );
     fireEvent.change(screen.getByLabelText('Model name'), {
       target: { value: 'my-model' },
