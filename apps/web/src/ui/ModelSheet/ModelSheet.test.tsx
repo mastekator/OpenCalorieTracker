@@ -52,13 +52,13 @@ describe('ModelSheet', () => {
     show();
     await screen.findByText('5 models · photo models first');
     expect(groups()).toEqual([
-      ['Accept photos', 'qwen/qwen3-vl-72bphotos', 'openai/gpt-5-miniphotos'],
+      ['Accept photos', 'qwen/qwen3-vl-72bphoto', 'openai/gpt-5-miniphoto'],
       [
         'Not reported by the provider',
         'community/vl-tiny-3b',
         'meta/llama-text',
       ],
-      ['No photos', 'mistral/vl-embedno photos'],
+      ['No photos', 'mistral/vl-embedno photo'],
     ]);
     expect(
       screen

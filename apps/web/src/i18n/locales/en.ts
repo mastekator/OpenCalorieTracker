@@ -1062,8 +1062,8 @@ export const en = {
       show_key: 'Show key',
       hide_key: 'Hide key',
       saving: 'Saving…',
-      photo: 'photos',
-      no_photo: 'no photos',
+      photo: 'photo',
+      no_photo: 'no photo',
       no_vision:
         'This model doesn’t accept photos — photo recognition will be off; the goal assistant still works',
       check: 'Check',
@@ -1145,8 +1145,8 @@ export const en = {
       passed: '{passed} of {total}',
       passed_word: 'passed',
       per_photo: '{sec}\u00a0s per photo',
-      tokens: { one: '{count} token', other: '{count} tokens' },
-      versions: 'OCT v{app} · prompt {prompt}',
+      tokens: { one: '{count}\u00a0token', other: '{count}\u00a0tokens' },
+      versions: 'OCT v{app} · prompt\u00a0{prompt}',
       stopped: 'Test stopped: {reason}',
       stopped_body: 'The remaining photos weren’t sent, to save quota.',
       reason: {

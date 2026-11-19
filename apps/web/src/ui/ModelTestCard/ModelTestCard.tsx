@@ -50,7 +50,7 @@ export function ModelTestCard({
   const targetText = (
     <>
       <span className="model-test__mono">{target}</span>
-      {targetNote && ` · ${targetNote}`}
+      {targetNote && `\u00a0· ${targetNote}`}
     </>
   );
   const targetLine = onTarget ? (

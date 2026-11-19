@@ -313,11 +313,17 @@ export function AiSettingsForm({
                     className={`list-row__description${draft.model ? ' ai-form__mono' : ''}`}
                   >
                     {draft.model ||
-                      t(
-                        models.loading
-                          ? 'ai.models.loading'
-                          : 'ai.models.choose',
-                      )}
+                      (models.loading ? (
+                        <span className="ai-form__loading">
+                          <span
+                            className="button__spinner"
+                            aria-hidden="true"
+                          />
+                          {t('ai.models.loading')}
+                        </span>
+                      ) : (
+                        t('ai.models.choose')
+                      ))}
                   </span>
                 </span>
                 {vision && (

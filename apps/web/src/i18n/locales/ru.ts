@@ -1172,13 +1172,13 @@ const ru: DeepPartial<typeof en> = {
       passed_word: 'прошло',
       per_photo: '{sec}\u00a0с на фото',
       tokens: {
-        one: '{count} токен',
-        few: '{count} токена',
-        many: '{count} токенов',
+        one: '{count}\u00a0токен',
+        few: '{count}\u00a0токена',
+        many: '{count}\u00a0токенов',
         // Also the compact «13,2 тыс.»: not a number, so «other».
-        other: '{count} токенов',
+        other: '{count}\u00a0токенов',
       },
-      versions: 'OCT v{app} · промпт {prompt}',
+      versions: 'OCT v{app} · промпт\u00a0{prompt}',
       stopped: 'Тест остановлен: {reason}',
       stopped_body: 'Остальные фото не отправляли, чтобы не тратить квоту.',
       reason: {
