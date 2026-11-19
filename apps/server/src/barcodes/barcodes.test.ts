@@ -1,3 +1,5 @@
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { aiSetup } from '../test/ai.js';
 import { FOUND_TTL, MISSING_TTL } from './lookup.js';
@@ -244,5 +246,37 @@ describe('own products (E-8)', () => {
     expect(
       t.db.prepare('SELECT COUNT(*) FROM user_products').pluck().get(),
     ).toBe(0);
+  });
+});
+
+describe('POST /photos/:id/barcodes', () => {
+  it('reads the code from the photo and looks it up without AI; 404 for another user', async () => {
+    const t = await setup();
+    t.enable();
+    const photo = await readFile(
+      join(import.meta.dirname, 'fixtures', 'ean13.jpg'),
+    );
+    const upload = await t.app.request('/api/photos', {
+      method: 'POST',
+      headers: { 'content-type': 'image/jpeg', cookie: t.user },
+      body: new Uint8Array(photo),
+    });
+    const { photoId } = (await upload.json()) as { photoId: string };
+    const post = (id: string, cookie = t.user) =>
+      t.app.request(`/api/photos/${id}/barcodes`, {
+        method: 'POST',
+        headers: { cookie, origin: 'http://localhost:3000' },
+      });
+
+    const res = await post(photoId);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      codes: [{ code: CODE, result: await t.lookup() }],
+    });
+    expect(t.fetchFn).toHaveBeenCalledTimes(1);
+
+    expect((await post(photoId, t.cookie)).status).toBe(404);
+    expect((await post('A'.repeat(22))).status).toBe(404);
+    expect((await post('bad')).status).toBe(404);
   });
 });

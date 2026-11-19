@@ -24,7 +24,7 @@ import { refineMeal, type Refined } from './refine.js';
 import { baseUrlHost, refineLimit } from './settings.js';
 import { interviewStatus, recognitionStatus } from './status.js';
 
-const RESULT_TTL_MS = 10 * 60_000;
+export const RESULT_TTL_MS = 10 * 60_000;
 const SESSION_TTL_MS = 24 * 3600_000;
 
 /** AI status, photo recognition and refining (ADR-0007 "HTTP", ADR-0020 §5). State is per app instance. */
@@ -251,7 +251,7 @@ const exists = (path: string) =>
   );
 
 /** The full photo; 410 when only its preview is left after the retention period (ADR-0008). */
-async function readJpeg(path: string, preview: string) {
+export async function readJpeg(path: string, preview: string) {
   try {
     return new Uint8Array(await readFile(path));
   } catch (err) {

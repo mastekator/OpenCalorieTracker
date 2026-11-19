@@ -48,6 +48,14 @@ jobs:
             const { set, photos: e } = await m.readExpected();
             for (const p of e) await access(new URL(p.file, m.TEST_PHOTOS_DIR));
             console.log(e.length + ' test photos of set ' + set + ' in', m.TEST_PHOTOS_DIR.pathname);"
+      - name: Barcode reader wasm in the image
+        run: |
+          # Any photo will do: reading it at all means the wasm was found and instantiated.
+          docker run --rm --entrypoint node oct:smoke --input-type=module -e "
+            import { readFile } from 'node:fs/promises';
+            const { readBarcodes } = await import('/app/server/dist/barcodes/read.js');
+            const codes = await readBarcodes(await readFile('/app/server/test-photos/banana.jpg'));
+            console.log('barcode reader ok:', JSON.stringify(codes));"
       - name: Image size and idle memory
         run: |
           sleep 10
