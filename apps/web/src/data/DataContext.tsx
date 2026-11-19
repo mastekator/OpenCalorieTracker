@@ -15,6 +15,7 @@ import {
   type MeResponse,
   type ProfileResponse,
   type Recipe,
+  type RecipeInput,
 } from '@oct/shared';
 import { z } from 'zod';
 import { api, ApiError } from '../api/client';
@@ -337,6 +338,21 @@ export async function deleteRecipe(db: Db, id: number) {
   }
   await db.delete('recipes', id);
   emitChange();
+}
+
+/**
+ * POST (new) or PUT (`id`) /api/recipes, then the server's recipe into the local copy.
+ * A failure throws and leaves the copy as it is.
+ */
+export async function saveRecipe(db: Db, input: RecipeInput, id?: number) {
+  const recipe = await api(
+    id === undefined ? '/api/recipes' : `/api/recipes/${id}`,
+    z.custom<Recipe>((v) => typeof (v as Recipe | null)?.id === 'number'),
+    { method: id === undefined ? 'POST' : 'PUT', body: input },
+  );
+  await db.put('recipes', recipe);
+  emitChange();
+  return recipe;
 }
 
 /** Unsent changes, for sign-out and account switch. */

@@ -23,6 +23,7 @@
   --text-footnote-size: 0.8125rem; --text-footnote-lh: 1.38;  --text-footnote-weight: 400; /* 13 */
   --text-tab-size: 0.6875rem;     --text-tab-weight: 500;      /* 11, tab bar labels */
   --text-caption-size: 0.75rem;  --text-caption-lh: 1.33;     --text-caption-weight: 500; /* 12 */
+  --text-cook-size: 1.625rem;    --text-cook-lh: 1.38;        /* 26, step text in «Cook», read at arm's length (OCT-160 4.1) */
   --tracking-tight: -0.02em;     /* large title & display only */
   --tracking-code: 0.15em;       /* setup code: reads like the log line */
 
