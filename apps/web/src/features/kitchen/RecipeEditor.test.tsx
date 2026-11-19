@@ -88,6 +88,8 @@ describe('RecipeEditor', () => {
     expect(screen.getByText(/в 3 раза тяжелее/)).toBeTruthy();
     fireEvent.change(cooked, { target: { value: '3100' } });
     expect(screen.getByText(/в 5 раз тяжелее/)).toBeTruthy();
+    fireEvent.change(cooked, { target: { value: '13020' } });
+    expect(screen.getByText(/в 21 раз тяжелее/)).toBeTruthy();
   });
 
   it('totals carry «kcal», «—» does not', async () => {
