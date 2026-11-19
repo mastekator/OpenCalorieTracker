@@ -22,13 +22,27 @@ export function whyOf(result: string): Why {
   return 'error';
 }
 
+/** The server's text for an empty dish set (model-test/compare.ts). */
+const isNone = (dishes?: string) => dishes === '(none)';
+
+/** `egg, egg, toast` → `egg × 2, toast`, in order of first appearance; `(none)` → null. */
+export function dishLabel(dishes: string): string | null {
+  if (isNone(dishes)) return null;
+  const counts = new Map<string, number>();
+  for (const name of dishes.split(', '))
+    counts.set(name, (counts.get(name) ?? 0) + 1);
+  return [...counts]
+    .map(([name, n]) => (n > 1 ? `${name}\u00a0×\u00a0${n}` : name))
+    .join(', ');
+}
+
 /** `egg, egg; 150-300 kcal; exact` (expectedText on the server) or `(none)`. */
 function parseExpected(text: string) {
   const [dishes = text, kcal = '', level] = text.split('; ');
   const [min, max] = kcal.replace(' kcal', '').split('-');
   return {
-    name: dishes,
-    empty: text === '(none)',
+    name: dishLabel(dishes),
+    empty: isNone(text),
     min,
     max,
     exact: level === 'exact',
@@ -60,6 +74,7 @@ export function TestPhotoList({ photos, running = false }: Props) {
     <ul className="test-photos">
       {photos.map((p, i) => {
         const e = parseExpected(p.expected);
+        const name = e.name ?? t('ai.test.not_food');
         const waiting = p.result === 'pending' || p.result === 'not_run';
         const levels = p.levels ? p.levels.split(',') : [];
         return (
@@ -70,11 +85,11 @@ export function TestPhotoList({ photos, running = false }: Props) {
             <img
               className="test-photos__thumb"
               src={`${TEST_PHOTO_PATH}/${encodeURIComponent(p.file)}`}
-              alt={t('ai.test.photo_alt', { name: e.name })}
+              alt={t('ai.test.photo_alt', { name })}
               loading="lazy"
             />
             <span className="test-photos__main">
-              <span className="test-photos__name">{e.name}</span>
+              <span className="test-photos__name">{name}</span>
               <span className="test-photos__line">
                 {t('ai.test.expected')}:{' '}
                 {e.empty
@@ -87,7 +102,7 @@ export function TestPhotoList({ photos, running = false }: Props) {
                     <b>{t('ai.test.got')}:</b>{' '}
                     {p.result.startsWith('error ')
                       ? errorText(p.result.slice('error '.length))
-                      : p.got === '(none)' || p.kcal === undefined
+                      : isNone(p.got) || p.kcal === undefined
                         ? t('ai.test.empty')
                         : `${t('ai.test.got_kcal', { kcal: num(p.kcal) })} · ${level(levels.every((l) => l === 'exact'))}`}
                   </span>
