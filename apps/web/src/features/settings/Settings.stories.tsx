@@ -199,6 +199,15 @@ export const AiProviderLimitInvalidDark: Story = {
   ...AiProviderLimitInvalid,
   ...dark,
 };
+/** OCT-292: the limit card on the desktop. */
+export const AiProviderLimitDesktop: Story = {
+  ...AiProviderLimit,
+  globals: { viewport: { value: 'desktop' } },
+};
+export const AiProviderLimitDesktopDark: Story = {
+  ...AiProviderLimit,
+  globals: { viewport: { value: 'desktop' }, theme: 'dark' },
+};
 /** OCT-25 5.6: the AI provider screen offline shows no stale status. */
 export const AiProviderOffline: Story = {
   beforeEach: offline,
