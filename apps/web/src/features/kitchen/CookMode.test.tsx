@@ -7,6 +7,7 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react';
+import { gToOz, ozToG } from '@oct/shared';
 import { I18nProvider } from '../../i18n';
 import { renderLoaded } from '../../test-utils';
 import { CookDoneSheet, CookMode, useWakeLock, withCookedG } from './CookMode';
@@ -156,6 +157,16 @@ describe('CookDoneSheet', () => {
     await waitFor(() => expect(onSaveWeight).toHaveBeenCalledWith(2050));
     fireEvent.click(screen.getByRole('button', { name: 'Just close' }));
     expect(onExit).toHaveBeenCalledOnce();
+  });
+
+  it('ounces: shown in oz, untouched is not a change, typed oz save as grams (AC-2.6)', async () => {
+    const { field, onSaveWeight } = await done({ units: 'us' });
+    expect((field as HTMLInputElement).value).toBe(String(gToOz(2100)));
+    fireEvent.change(field, { target: { value: String(gToOz(2100)) } });
+    expect(screen.queryByRole('button', { name: 'Save weight' })).toBeNull();
+    fireEvent.change(field, { target: { value: '70.5' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save weight' }));
+    await waitFor(() => expect(onSaveWeight).toHaveBeenCalledWith(ozToG(70.5)));
   });
 
   it('0 g is not saved; a weight 3× off warns but saves (E-10.1, E-10.2)', async () => {

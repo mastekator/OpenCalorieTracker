@@ -8,6 +8,7 @@ import {
   type MealItemInput,
   type MealType,
   type Recipe,
+  type Units,
 } from '@oct/shared';
 import { useT } from '../../i18n';
 import { Button } from '../Button/Button';
@@ -15,6 +16,7 @@ import { MealTypeSegment } from '../MealTypeSegment/MealTypeSegment';
 import { Segment } from '../Segment/Segment';
 import { Sheet } from '../Sheet/Sheet';
 import { usePressRepeat } from '../usePressRepeat';
+import { useWeight } from '../weightUnits';
 import { WeightStepper } from '../WeightStepper/WeightStepper';
 import '../WeightStepper/WeightStepper.css';
 import './PortionSheet.css';
@@ -57,6 +59,8 @@ type Props = {
    */
   onAdd: (item: MealItemInput, when?: { mealType: MealType; at: Date }) => void;
   log?: boolean;
+  /** Weights in grams or ounces (AC-2.6); the portion is grams either way. */
+  units?: Units;
   /** Opened at; stories and tests pin it. */
   now?: Date;
 };
@@ -68,9 +72,11 @@ export function PortionSheet({
   onClose,
   onAdd,
   log = false,
+  units = 'metric',
   now = new Date(),
 }: Props) {
   const { t, num, locale } = useT();
+  const w = useWeight(units);
   const serving = servingG(recipe);
   const [mode, setMode] = useState<'servings' | 'grams'>(
     serving ? 'servings' : 'grams',
@@ -129,7 +135,10 @@ export function PortionSheet({
             label={t('portion.mode')}
             options={[
               { value: 'servings', label: t('portion.servings') },
-              { value: 'grams', label: t('portion.grams') },
+              {
+                value: 'grams',
+                label: t(w.us ? 'portion.ounces' : 'portion.grams'),
+              },
             ]}
             value={mode}
             onChange={setMode}
@@ -162,8 +171,7 @@ export function PortionSheet({
           <div className="portion__grams">
             <WeightStepper
               grams={grams}
-              // shortcut: grams only, the kitchen has no ounces yet; upgrade with OCT-326.
-              units="metric"
+              units={units}
               label={t('edit.weight.label', { dish: recipe.name })}
               onChange={setGrams}
             />
@@ -195,8 +203,7 @@ export function PortionSheet({
                 f: num(item.fatG),
                 c: num(item.carbsG),
               })}
-              {mode === 'servings' &&
-                ` · ${num(item.grams)}\u00a0${t('macro.g')}`}
+              {mode === 'servings' && ` · ${w.fmt(item.grams)}\u00a0${w.u}`}
             </>
           ) : (
             '—'
