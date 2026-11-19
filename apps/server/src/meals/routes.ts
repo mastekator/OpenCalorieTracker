@@ -108,7 +108,12 @@ export function mealRoutes({ config, db, ai }: AppDeps) {
     if (!preview || !existsSync(preview)) throw new ApiError(404, 'not_found');
     if (
       mealHasPhoto ||
-      db.prepare('SELECT 1 FROM meals WHERE photo_id = ?').get(photoId)
+      db
+        .prepare(
+          `SELECT 1 FROM meals WHERE photo_id = @p UNION ALL SELECT 1 FROM recipes WHERE photo_id = @p
+           UNION ALL SELECT 1 FROM recipe_steps WHERE photo_id = @p`,
+        )
+        .get({ p: photoId })
     )
       throw new ApiError(409, 'photo_in_use');
     const days = db
