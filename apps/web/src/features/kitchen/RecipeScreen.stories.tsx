@@ -13,6 +13,7 @@ const meta = {
     online: true,
     lighter: true,
     onDelete: fn(async () => {}),
+    onLog: fn(async () => {}),
   },
 } satisfies Meta<typeof RecipeView>;
 export default meta;

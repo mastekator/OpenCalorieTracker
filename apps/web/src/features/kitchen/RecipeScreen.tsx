@@ -5,6 +5,8 @@ import {
   matchIllustration,
   recipeTotals,
   servingG,
+  type MealItemInput,
+  type MealType,
   type Recipe,
 } from '@oct/shared';
 import {
@@ -22,10 +24,12 @@ import { List, ListRow } from '../../ui/List/List';
 import { NavBar } from '../../ui/NavBar/NavBar';
 import { NutritionCard } from '../../ui/NutritionCard/NutritionCard';
 import { useOnline } from '../../ui/OfflineBar/OfflineBar';
+import { PortionSheet } from '../../ui/PortionSheet/PortionSheet';
 import { Sheet } from '../../ui/Sheet/Sheet';
 import { useToast } from '../../ui/Toast/Toast';
 import { useToday } from '../diary/useToday';
 import { useWeightFormat } from '../weight/format';
+import { logPortion } from './portion';
 import './RecipeScreen.css';
 
 /** /kitchen/:id from the local copy; a recipe that is gone (deleted here or elsewhere) goes back to the list. */
@@ -48,6 +52,7 @@ export function RecipeScreen({ id }: { id: string }) {
       lighter={
         online && !!ai.status && ai.status.recognition !== 'not_configured'
       }
+      onLog={(item, when) => logPortion(db, item, when)}
       onDelete={async () => {
         try {
           await deleteRecipe(db, recipe.id);
@@ -69,6 +74,11 @@ type Props = {
   /** «Make it lighter» entries: AI is set up and online (OCT-160 §9). */
   lighter: boolean;
   onDelete: () => Promise<void>;
+  /** «Log to {meal}»: a new meal through the outbox, so it works offline. */
+  onLog: (
+    item: MealItemInput,
+    when: { mealType: MealType; at: Date },
+  ) => Promise<void>;
 };
 
 /** The recipe card (OCT-160 2.1, 2.2, 2.7); desktop: three columns (§10). */
@@ -78,9 +88,12 @@ export function RecipeView({
   online,
   lighter,
   onDelete,
+  onLog,
 }: Props) {
   const { t, num } = useT();
   const [, navigate] = useLocation();
+  const toast = useToast();
+  const [portion, setPortion] = useState(false);
   const { when } = useWeightFormat('metric');
   const [menu, setMenu] = useState(false);
   const [confirm, setConfirm] = useState(false);
@@ -161,8 +174,9 @@ export function RecipeView({
         <div className="recipe__nutrition">
           <NutritionCard {...recipe} />
         </div>
-        {recipe.steps.length > 0 && (
-          <div className="recipe__actions">
+        <div className="recipe__actions">
+          <Button onClick={() => setPortion(true)}>{t('recipe.log')}</Button>
+          {recipe.steps.length > 0 && (
             <Link
               href={`/kitchen/${recipe.id}/cook`}
               className="button button--tonal"
@@ -170,8 +184,8 @@ export function RecipeView({
               <Play aria-hidden="true" />
               {t('recipe.cooking')}
             </Link>
-          </div>
-        )}
+          )}
+        </div>
         {lighter && (
           <div className="recipe__lighter">
             <List>
@@ -289,6 +303,29 @@ export function RecipeView({
       >
         {null}
       </Sheet>
+      {portion && (
+        <PortionSheet
+          open
+          recipe={recipe}
+          log
+          onClose={() => setPortion(false)}
+          onAdd={(item, when) => {
+            if (!when) return; // `log` always passes the meal and time
+            void onLog(item, when).then(
+              () => {
+                setPortion(false);
+                toast({
+                  text: t('portion.logged', {
+                    name: item.name,
+                    g: num(item.grams),
+                  }),
+                });
+              },
+              () => toast({ text: t('portion.error') }),
+            );
+          }}
+        />
+      )}
       <ConfirmDialog
         open={confirm}
         title={t('recipe.delete.title', { name: recipe.name })}

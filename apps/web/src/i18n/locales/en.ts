@@ -1323,7 +1323,7 @@ export const en = {
         low: 'Confidence: low, check it',
       },
     },
-    source: { manual: 'manual', history: 'as last time' },
+    source: { manual: 'manual', history: 'as last time', recipe: 'recipe' },
     weight: {
       label: 'Weight of {dish}',
       less: '{step} less',
@@ -1556,6 +1556,7 @@ export const en = {
     steps: 'Steps · {n}',
     step: 'Step {i}',
     cooking: 'Cook',
+    log: 'Log a serving',
     zero_kcal: 'not counted in kcal',
     delete: {
       action: 'Delete recipe',
@@ -1627,6 +1628,8 @@ export const en = {
           'Check the weight: cooked is {x}× lighter than the ingredients ({w}\u00a0g).',
       },
       offline: 'The weight can be saved when you’re back online.',
+      offline_old:
+        'The weight can be saved when you’re back online. A serving is counted from the saved weight.',
       save: 'Save weight',
       saving: 'Saving…',
       saved: 'Cooked weight saved',
@@ -1634,6 +1637,24 @@ export const en = {
       log: 'Log a serving',
       close: 'Just close',
     },
+  },
+  portion: {
+    mode: 'Amount',
+    servings: 'Servings',
+    grams: 'Grams',
+    count: '{n} serv.',
+    less: 'Half a serving less',
+    more: 'Half a serving more',
+    add: 'Add',
+    log_to: {
+      breakfast: 'Log to breakfast',
+      lunch: 'Log to lunch',
+      dinner: 'Log to dinner',
+      snack: 'Log to snack',
+    },
+    today: 'Today, {time}',
+    logged: 'Logged: {name}, {g}\u00a0g',
+    error: 'Couldn’t log the serving. Try again.',
   },
   editor: {
     new: 'New recipe',
