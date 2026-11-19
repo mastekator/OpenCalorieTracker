@@ -160,7 +160,22 @@ export const aiTestStopReasonSchema = z.enum([
 ]);
 export type AiTestStopReason = z.infer<typeof aiTestStopReasonSchema>;
 
-/** One test photo; result is 'ok', the miss, `error <code>`, 'pending' while running or 'not_run'. */
+/** Why a test photo failed (ADR-0033 §3); the screen words them, the report uses `result`. */
+export const aiTestMissSchema = z.discriminatedUnion('code', [
+  z.object({ code: z.literal('not_recognized'), dishes: z.array(z.string()) }),
+  z.object({
+    code: z.literal('count'),
+    dish: z.string(),
+    expected: z.number(),
+    got: z.number(),
+  }),
+  z.object({
+    code: z.enum(['kcal', 'exact', 'approx', 'empty', 'nothing']),
+  }),
+]);
+export type AiTestMiss = z.infer<typeof aiTestMissSchema>;
+
+/** One test photo; result is 'ok', the misses in English, `error <code>`, 'pending' while running or 'not_run'. */
 export const aiTestPhotoSchema = z.object({
   file: z.string(),
   expected: z.string(),
@@ -171,6 +186,8 @@ export const aiTestPhotoSchema = z.object({
   questions: z.number().optional(),
   ms: z.number().optional(),
   result: z.string(),
+  /** Every miss of a checked photo; runs before test set 2 have none. */
+  misses: z.array(aiTestMissSchema).optional(),
 });
 export type AiTestPhoto = z.infer<typeof aiTestPhotoSchema>;
 
@@ -183,6 +200,10 @@ export const aiTestRunSummarySchema = z.object({
   stopReason: aiTestStopReasonSchema.nullable(),
   appVersion: z.string(),
   promptVersion: z.number(),
+  /** The test set version the run used (ADR-0033 §4); runs before it are 1. */
+  testSet: z.number(),
+  /** The `set` of expected.json now: a run of another set is not comparable. */
+  currentSet: z.number(),
   startedAt: z.number(),
   finishedAt: z.number().nullable(),
   inputTokens: z.number().nullable(),

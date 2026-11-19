@@ -74,7 +74,7 @@ export async function readCases(): Promise<RefineCase[]> {
   ) as unknown;
   return parseCases(
     json,
-    (await readExpected()).map((e) => e.file),
+    (await readExpected()).photos.map((e) => e.file),
   );
 }
 

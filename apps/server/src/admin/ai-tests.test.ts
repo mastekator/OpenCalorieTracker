@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AiTestRun } from '@oct/shared';
 import { createModel } from '../ai/model.js';
+import { readExpected } from '../ai/model-test/compare.js';
 import { modelsMdRow } from '../ai/model-test/format.js';
 import { createApp } from '../app.js';
 import { aiSetup, apiError, mockModel } from '../test/ai.js';
@@ -19,7 +20,9 @@ const egg = {
 };
 const meal = { dishes: [egg] };
 const draft = { provider: 'openai', model: 'gpt-x', apiKey: KEY };
-const nine = () => Array.from({ length: 9 }, () => meal);
+// The size of the test set, not a fixed 9 (AC-10).
+const N = (await readExpected()).photos.length;
+const every = () => Array.from({ length: N }, () => meal);
 
 let cleanup: (() => Promise<void>) | undefined;
 
@@ -71,30 +74,40 @@ afterEach(async () => {
 });
 
 describe('model test', () => {
-  it('runs the 9 photos and gives the MODELS.md row', async () => {
+  it('runs every photo and gives the MODELS.md row', async () => {
     const t = await setup();
-    vi.mocked(createModel).mockResolvedValue(mockModel(...nine()));
+    vi.mocked(createModel).mockResolvedValue(mockModel(...every()));
     const run = await t.finished(await t.startId());
     expect(run).toMatchObject({
       provider: 'openai',
       model: 'gpt-x',
       status: 'done',
       stopReason: null,
-      total: 9,
-      inputTokens: 9,
-      outputTokens: 9,
+      total: N,
+      inputTokens: N,
+      outputTokens: N,
       costUsd: null,
+      testSet: 2,
+      currentSet: 2,
     });
-    expect(run.photos).toHaveLength(9);
+    expect(run.photos).toHaveLength(N);
     expect(run.photos.every((p) => p.ms !== undefined)).toBe(true);
     expect(run.passed).toBe(run.photos.filter((p) => p.result === 'ok').length);
     expect(run.modelsMdRow).toBe(modelsMdRow(run));
-    expect(run.modelsMdRow).toMatch(/^\| openai \| gpt-x \| \d\/9 \|/);
+    expect(run.modelsMdRow).toMatch(
+      new RegExp(`^\\| openai \\| gpt-x \\| \\d/${N} \\|.*, set 2 \\|$`),
+    );
     expect(run.report?.endsWith(run.modelsMdRow!)).toBe(true);
 
     const list = await (await t.req('GET', '/tests')).json();
     expect(list).toEqual([
-      expect.objectContaining({ id: run.id, status: 'done', total: 9 }),
+      expect.objectContaining({
+        id: run.id,
+        status: 'done',
+        total: N,
+        testSet: 2,
+        currentSet: 2,
+      }),
     ]);
     expect(list[0]).not.toHaveProperty('photos');
     expect(list[0]).not.toHaveProperty('modelsMdRow');
@@ -102,7 +115,7 @@ describe('model test', () => {
 
   it('under AI_* in env, tests the current model with the env key', async () => {
     const env = { AI_PROVIDER: 'google', AI_MODEL: 'g', AI_API_KEY: 'env-key' };
-    const t = await setup(mockModel(...nine()), env);
+    const t = await setup(mockModel(...every()), env);
     const run = await t.finished(
       await t.startId({ provider: 'google', model: 'g' }),
     );
@@ -123,12 +136,12 @@ describe('model test', () => {
         ],
       }),
     );
-    vi.mocked(createModel).mockResolvedValue(mockModel(...nine()));
+    vi.mocked(createModel).mockResolvedValue(mockModel(...every()));
     const run = await t.finished(
       await t.startId({ provider: 'openrouter', model: 'v/x', apiKey: KEY }),
     );
-    // 9 tokens in at $1/M, 9 out at $2/M.
-    expect(run.costUsd).toBeCloseTo(27e-6, 12);
+    // N tokens in at $1/M, N out at $2/M.
+    expect(run.costUsd).toBeCloseTo(3 * N * 1e-6, 12);
   });
 
   it('stops early on 401, the rest not run', async () => {
@@ -140,7 +153,7 @@ describe('model test', () => {
     expect(run).toMatchObject({ status: 'stopped', stopReason: 'auth_error' });
     expect(run.photos[1]!.result).toBe('error ai_unavailable');
     expect(run.photos.slice(2).map((p) => p.result)).toEqual(
-      Array(7).fill('not_run'),
+      Array(N - 2).fill('not_run'),
     );
     expect(run.modelsMdRow).toBeUndefined();
     expect(run.report).toBeUndefined();
@@ -149,7 +162,7 @@ describe('model test', () => {
   it('goes on after a timeout or a bad answer on one photo', async () => {
     const t = await setup();
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
-    const model = mockModel(apiError(500), ...nine());
+    const model = mockModel(apiError(500), ...every());
     const generate = model.doGenerate;
     let calls = 0;
     // The second photo hangs until the 60 s timeout aborts it.
@@ -238,7 +251,7 @@ describe('model test', () => {
     const t = await setup();
     let release!: () => void;
     const gate = new Promise<void>((r) => (release = r));
-    const a = mockModel('OK', ...nine());
+    const a = mockModel('OK', ...every());
     const generate = a.doGenerate;
     a.doGenerate = async (opts) => {
       if (a.doGenerateCalls.length > 1) await gate;
@@ -256,7 +269,7 @@ describe('model test', () => {
     ).toBe(200);
     release();
     await t.finished(id);
-    expect(a.doGenerateCalls).toHaveLength(10);
+    expect(a.doGenerateCalls).toHaveLength(N + 1);
     expect(b.doGenerateCalls).toHaveLength(0);
   });
 
@@ -300,10 +313,12 @@ describe('model test', () => {
     createApp({ config: t.config, db: t.db, ai: t.ai, secrets: t.secrets });
     const cut = await t.get(20);
     expect(cut.status).toBe('interrupted');
+    // A run from before the column is set 1 (ADR-0033 §4).
+    expect(cut).toMatchObject({ testSet: 1, currentSet: 2 });
     expect(cut.photos[0]!.result).toBe('not_run');
     expect(cut.modelsMdRow).toBeUndefined();
 
-    vi.mocked(createModel).mockResolvedValue(mockModel(...nine()));
+    vi.mocked(createModel).mockResolvedValue(mockModel(...every()));
     await t.finished(await t.startId());
     const ids = t.db
       .prepare('SELECT id FROM ai_test_runs ORDER BY id')

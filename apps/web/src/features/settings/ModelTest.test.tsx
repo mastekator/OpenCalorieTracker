@@ -55,6 +55,8 @@ const runOf = (patch: Partial<AiTestRun>): AiTestRun => ({
   stopReason: null,
   appVersion: '0.2.0',
   promptVersion: 3,
+  testSet: 2,
+  currentSet: 2,
   startedAt: 0,
   finishedAt: 1,
   inputTokens: 100,

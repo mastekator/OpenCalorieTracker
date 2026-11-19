@@ -16,6 +16,8 @@ const run = (
   stopReason: null,
   appVersion: '0.2.0',
   promptVersion: 3,
+  testSet: 2,
+  currentSet: 2,
   startedAt: at(18),
   finishedAt: at(18),
   inputTokens: 12000,

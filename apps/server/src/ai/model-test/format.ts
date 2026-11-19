@@ -10,6 +10,8 @@ export interface ModelTestRun {
   model: string;
   appVersion: string;
   promptVersion: number;
+  /** The `set` of expected.json the run used (ADR-0033 §4). */
+  testSet: number;
   /** Epoch ms. */
   startedAt: number;
   inputTokens?: number | null;
@@ -32,7 +34,7 @@ const date = (run: ModelTestRun) =>
   new Date(run.startedAt).toISOString().slice(0, 10);
 
 const versions = (run: ModelTestRun) =>
-  `OCT v${run.appVersion}, prompt ${run.promptVersion}`;
+  `OCT v${run.appVersion}, prompt ${run.promptVersion}, set ${run.testSet}`;
 
 // A provider error text could hold a pipe or a newline; either would break the table.
 const cell = (v: string | number | undefined) =>
