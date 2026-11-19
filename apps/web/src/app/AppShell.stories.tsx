@@ -55,6 +55,15 @@ const desktop = { viewport: { value: 'desktop' } };
 export const Today: Story = {};
 export const Profile: Story = { parameters: { path: '/profile' } };
 export const Settings: Story = { parameters: { path: '/settings' } };
+const dark = { theme: 'dark' };
+export const TodayDark: Story = { globals: dark };
+export const ProfileDark: Story = { ...Profile, globals: dark };
+export const Diary: Story = { parameters: { path: '/diary' } };
+export const DiaryDark: Story = { ...Diary, globals: dark };
+export const Week: Story = { parameters: { path: '/week' } };
+export const WeekDark: Story = { ...Week, globals: dark };
+export const DiaryDesktop: Story = { ...Diary, globals: desktop };
+export const WeekDesktop: Story = { ...Week, globals: desktop };
 export const TodayDesktop: Story = { globals: desktop };
 export const ProfileDesktop: Story = {
   parameters: { path: '/profile' },

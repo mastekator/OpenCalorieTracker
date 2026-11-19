@@ -44,6 +44,15 @@ export const Root: Story = {
   ),
 };
 
+export const RootDark: Story = { ...Root, globals: { theme: 'dark' } };
+
+/** Root screen without an action (Today): no bar row, the title right under the status bar. */
+export const RootTitleOnly: Story = {
+  render: () => (
+    <Localised make={(t) => ({ title: t('nav.today'), large: true })} />
+  ),
+};
+
 /** Root screen with a text action (Diary → «Today», OCT-19 6.1). */
 export const TextAction: Story = {
   render: () => (

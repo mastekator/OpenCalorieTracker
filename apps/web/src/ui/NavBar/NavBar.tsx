@@ -17,7 +17,7 @@ type Props = {
   large?: boolean;
   /** Nested screens: chevron + the previous screen's name. */
   back?: { href: string; label: string; mobileOnly?: boolean };
-  /** One action on the right. */
+  /** One action on the right; on a root screen (`large` without `back`) in the large title's row. */
   action?: Action;
   /** With `large`: controls in the large title's row, on its right (OCT-19 D.3). */
   aside?: ReactNode;
@@ -46,33 +46,39 @@ export function NavBar({ title, large = false, back, action, aside }: Props) {
         </button>
       );
   }
+  const bar = !large || !!back;
   return (
     <header className={`navbar${large ? ' navbar--large' : ''}`}>
-      <div className="navbar__bar">
-        <div className="navbar__start">
-          {back && (
-            <Link
-              href={back.href}
-              className={`navbar__back${back.mobileOnly ? ' navbar--mobile-only' : ''}`}
-              aria-label={back.label}
-            >
-              <ChevronLeft aria-hidden="true" />
-              <span>{back.label}</span>
-            </Link>
+      {/* Root screens have nothing for the bar: the action sits in the title's row (OCT-303). */}
+      {bar && (
+        <div className="navbar__bar">
+          <div className="navbar__start">
+            {back && (
+              <Link
+                href={back.href}
+                className={`navbar__back${back.mobileOnly ? ' navbar--mobile-only' : ''}`}
+                aria-label={back.label}
+              >
+                <ChevronLeft aria-hidden="true" />
+                <span>{back.label}</span>
+              </Link>
+            )}
+          </div>
+          {!large && <h1 className="navbar__title">{title}</h1>}
+          <div className="navbar__end">{right}</div>
+        </div>
+      )}
+      {large && (
+        <div className="navbar__large-row">
+          <h1 className="navbar__large-title">{title}</h1>
+          {(aside || (!bar && right)) && (
+            <div className="navbar__aside">
+              {aside}
+              {!bar && right}
+            </div>
           )}
         </div>
-        {!large && <h1 className="navbar__title">{title}</h1>}
-        <div className="navbar__end">{right}</div>
-      </div>
-      {large &&
-        (aside ? (
-          <div className="navbar__large-row">
-            <h1 className="navbar__large-title">{title}</h1>
-            <div className="navbar__aside">{aside}</div>
-          </div>
-        ) : (
-          <h1 className="navbar__large-title">{title}</h1>
-        ))}
+      )}
     </header>
   );
 }
