@@ -52,9 +52,10 @@ export const mockModel = (...results: unknown[]) =>
 export async function aiSetup(
   model: AiModel | null,
   env: Record<string, string> = {},
+  fetch?: typeof globalThis.fetch,
 ) {
   const dataDir = await mkdtemp(join(tmpdir(), 'oct-ai-'));
-  const t = testApp({ DATA_DIR: dataDir, ...env }, model);
+  const t = testApp({ DATA_DIR: dataDir, ...env }, model, fetch);
   await ensureAdmin(t.config, t.db);
   t.db
     .prepare(

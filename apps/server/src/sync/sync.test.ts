@@ -344,7 +344,7 @@ describe('GET /api/sync', () => {
     t.db.exec(
       'DROP TABLE weighings; DROP TABLE ai_settings; DROP TABLE setup_code; DROP TABLE ai_test_runs; DROP TABLE ai_limits; ' +
         'DROP TABLE recipe_tombstones; DROP TABLE recipe_steps; DROP TABLE recipe_ingredients; DROP TABLE recipes; ' +
-        'DROP TABLE integration_settings; ALTER TABLE users DROP COLUMN off_enabled; ALTER TABLE users DROP COLUMN off_hint_at',
+        'DROP TABLE user_products; DROP TABLE food_products; DROP TABLE integration_settings; ALTER TABLE users DROP COLUMN off_enabled; ALTER TABLE users DROP COLUMN off_hint_at',
     );
     t.db.pragma('user_version = 8');
     migrate(t.db);
