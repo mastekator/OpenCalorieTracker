@@ -17,12 +17,14 @@ curl -O https://raw.githubusercontent.com/mastekator/OpenCalorieTracker/main/doc
 curl -o .env https://raw.githubusercontent.com/mastekator/OpenCalorieTracker/main/.env.example
 ```
 
-Edit `.env`: set `PUBLIC_URL` to the exact address users will open (e.g. `https://food.example.com`), and `ADMIN_EMAIL` and `ADMIN_PASSWORD` for the first admin. Then:
+Edit `.env`: set `PUBLIC_URL` to the exact address users will open (e.g. `https://food.example.com`). Then start the container and take the setup code from its log:
 
 ```sh
 docker compose up -d
-docker compose logs
+docker compose logs opencalorietracker | grep "Setup code"
 ```
+
+Open `PUBLIC_URL` and create the admin account with that code (see [First sign-in](#first-sign-in)).
 
 The log lists any configuration problems, and the sign-in page names the first one (never the values). In `.env`, avoid `$`, `#` and quotes in a value, or wrap the whole value in single quotes. After editing `.env`, recreate the container with `docker compose up -d`.
 
@@ -53,7 +55,24 @@ volumes:
 
 ### First sign-in
 
-Open `PUBLIC_URL` and sign in with `ADMIN_EMAIL` and `ADMIN_PASSWORD`. The admin is created only on the first start with an empty database; afterwards both variables are ignored, so change the password in the app and, if you like, add a passkey. Invite other users from the admin section.
+On the first start with an empty database the server prints a one-time setup code in its log:
+
+```
+Setup code: ABCD-EFGH (valid until 2026-01-31 12:00 UTC)
+Open https://food.example.com to create the admin account.
+```
+
+Open `PUBLIC_URL`, enter the code, and create the admin account. Then invite other users from the admin section.
+
+- **The code is valid for 24 hours** and works once. Every container start while no admin exists prints a new code and the old one stops working.
+- **Expired, or burned after 5 wrong attempts:** restart the container (`docker compose restart`), or run [`reset-admin-access`](#locked-out-reset-admin-access), and take the new code.
+- **Blocked after too many attempts** from your IP or device: run `reset-admin-access`; it lifts the blocks and prints a new code.
+
+If you start containers from a web panel instead of the command line, open the container's log there; the setup code is in it.
+
+### Unattended install
+
+To create the admin without the wizard (scripts, automated deployments), uncomment `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `.env` before the first start. The admin is then created from them on the first start with an empty database, and there is no setup code. Afterwards both variables are ignored, so change the password in the app and, if you like, add a passkey.
 
 ### AI provider
 
@@ -144,25 +163,25 @@ Written for Synology DSM 7.2 with Container Manager; other NAS systems with Dock
 
 All settings are environment variables. An empty value (`KEY=`) counts as not set.
 
-| Variable           | Default              | Meaning                                                                                                                                      |
-| ------------------ | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `PUBLIC_URL`       | —, required          | The origin users open, e.g. `https://food.example.com`. HTTPS is required except for `http://localhost`; no path. See below.                 |
-| `ADMIN_EMAIL`      | —                    | Admin account, created on the first start with an empty database. Ignored afterwards.                                                        |
-| `ADMIN_PASSWORD`   | —                    | Admin password for that first start (when password sign-in is on): 8–128 characters with a letter, a digit and a symbol. Ignored afterwards. |
-| `AUTH_METHODS`     | `password,passkey`   | Enabled sign-in methods: `password`, `passkey` or both, comma-separated. See below before changing it.                                       |
-| `REGISTRATION`     | `invite`             | Who can sign up: `invite` (by admin invite link only) or `open`.                                                                             |
-| `TRUST_PROXY_HOPS` | `1`                  | How many reverse proxies stand in front of the server. See below.                                                                            |
-| `AI_PROVIDER`      | —                    | Optional; overrides the in-app AI settings. `google`, `openai`, `anthropic`, `openrouter` or `openai-compatible` (Ollama, LM Studio, etc.).  |
-| `AI_MODEL`         | —                    | Model id at that provider, e.g. `gemini-3.8-flash`. Required with `AI_PROVIDER`.                                                             |
-| `AI_API_KEY`       | —                    | API key of the provider. Never logged.                                                                                                       |
-| `AI_BASE_URL`      | —                    | Endpoint URL; required for `openai-compatible`, e.g. `http://ollama:11434/v1`.                                                               |
-| `DATA_DIR`         | `/data` in the image | Where the SQLite database and photos live. Mount a folder or volume here.                                                                    |
-| `PUID`, `PGID`     | `1000`               | User and group the app runs as and gives the data folder to. See [Data folder and its owner](#data-folder-and-its-owner).                    |
-| `PORT`             | `3000`               | HTTP port inside the container.                                                                                                              |
-| `HOST`             | `0.0.0.0`            | Address to listen on.                                                                                                                        |
-| `WEB_DIST`         | set by the image     | Built web app directory; change only for development.                                                                                        |
+| Variable           | Default              | Meaning                                                                                                                                                                                    |
+| ------------------ | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `PUBLIC_URL`       | —, required          | The origin users open, e.g. `https://food.example.com`. HTTPS is required except for `http://localhost`; no path. See below.                                                               |
+| `ADMIN_EMAIL`      | —                    | Optional. If set, the admin is created from it on the first start with an empty database, and there is no setup wizard. Ignored afterwards. See [Unattended install](#unattended-install). |
+| `ADMIN_PASSWORD`   | —                    | Optional; required with `ADMIN_EMAIL` when password sign-in is on: 8–128 characters with a letter, a digit and a symbol. Ignored afterwards.                                               |
+| `AUTH_METHODS`     | `password,passkey`   | Enabled sign-in methods: `password`, `passkey` or both, comma-separated. See below before changing it.                                                                                     |
+| `REGISTRATION`     | `invite`             | Who can sign up: `invite` (by admin invite link only) or `open`.                                                                                                                           |
+| `TRUST_PROXY_HOPS` | `1`                  | How many reverse proxies stand in front of the server. See below.                                                                                                                          |
+| `AI_PROVIDER`      | —                    | Optional; overrides the in-app AI settings. `google`, `openai`, `anthropic`, `openrouter` or `openai-compatible` (Ollama, LM Studio, etc.).                                                |
+| `AI_MODEL`         | —                    | Model id at that provider, e.g. `gemini-3.8-flash`. Required with `AI_PROVIDER`.                                                                                                           |
+| `AI_API_KEY`       | —                    | API key of the provider. Never logged.                                                                                                                                                     |
+| `AI_BASE_URL`      | —                    | Endpoint URL; required for `openai-compatible`, e.g. `http://ollama:11434/v1`.                                                                                                             |
+| `DATA_DIR`         | `/data` in the image | Where the SQLite database and photos live. Mount a folder or volume here.                                                                                                                  |
+| `PUID`, `PGID`     | `1000`               | User and group the app runs as and gives the data folder to. See [Data folder and its owner](#data-folder-and-its-owner).                                                                  |
+| `PORT`             | `3000`               | HTTP port inside the container.                                                                                                                                                            |
+| `HOST`             | `0.0.0.0`            | Address to listen on.                                                                                                                                                                      |
+| `WEB_DIST`         | set by the image     | Built web app directory; change only for development.                                                                                                                                      |
 
-Configuration problems (bad `PUBLIC_URL`, missing admin settings, a data folder it cannot write) do not stop the server: they are printed in the log at startup and shown on the sign-in screen.
+Configuration problems (bad `PUBLIC_URL`, an invalid `ADMIN_PASSWORD`, a data folder it cannot write) do not stop the server: they are printed in the log at startup and shown on the sign-in screen.
 
 ### `PUBLIC_URL`: choose it once
 
@@ -189,7 +208,7 @@ If the admin cannot sign in (forgotten password, lost passkey, blocked IP or dev
 docker exec <container> node dist/cli.js reset-admin-access
 ```
 
-It lifts all sign-in blocks and timeouts and prints one admin recovery link, valid for 24 hours. Opening it lets you set a new password or add a passkey; your data and sessions stay. A previous unused admin recovery link stops working. The server keeps running meanwhile.
+It lifts all sign-in blocks and timeouts and prints one admin recovery link, valid for 24 hours. Opening it lets you set a new password or add a passkey; your data and sessions stay. A previous unused admin recovery link stops working. The server keeps running meanwhile. Before the admin account exists, it prints a new [setup code](#first-sign-in) instead of the link.
 
 ### Changing `AUTH_METHODS`
 

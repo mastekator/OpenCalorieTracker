@@ -1,5 +1,5 @@
 # Settings live in .env next to this file: copy .env.example, then set at least
-# PUBLIC_URL, ADMIN_EMAIL and ADMIN_PASSWORD. AI_* are optional and override Settings -> AI provider.
+# PUBLIC_URL. AI_* are optional and override Settings -> AI provider.
 # All variables: docs/SELF_HOSTING.md
 services:
   opencalorietracker:
