@@ -52,6 +52,16 @@ export const TextOnlyDark: Story = { args: textOnly, globals: dark };
 /** B: the request runs; the list above is locked. */
 export const Busy: Story = { args: { busy: 'busy' } };
 export const BusyDark: Story = { args: { busy: 'busy' }, globals: dark };
+/** B.1: the sent text under the indicator. */
+const query = { busy: 'busy', value: text } satisfies Partial<Props>;
+export const BusyWithQuery: Story = { args: query };
+export const BusyWithQueryDark: Story = { args: query, globals: dark };
+
+/** B.3: «Recognize again» running. */
+const busyAgain = { busy: 'busy', mode: 'again' } satisfies Partial<Props>;
+export const BusyAgain: Story = { args: busyAgain };
+export const BusyAgainDark: Story = { args: busyAgain, globals: dark };
+
 /** B: after 10 s. */
 export const Slow: Story = { args: { busy: 'slow' } };
 export const SlowDark: Story = { args: { busy: 'slow' }, globals: dark };
@@ -98,10 +108,10 @@ const limit = {
   value: 'one more thing',
   disabled: true,
   note: (
-    <>
+    <span className="refine__note-status" role="status">
       <Ban aria-hidden="true" />
       Refinement limit reached — edit by hand
-    </>
+    </span>
   ),
 } satisfies Partial<Props>;
 export const LimitReached: Story = { args: limit };

@@ -1459,6 +1459,8 @@ const ru: DeepPartial<typeof en> = {
       refine: 'Уточнить',
       again: 'Распознать заново',
       busy: 'Уточняем…',
+      busy_again: 'Распознаём заново…',
+      query: '«{text}»',
       slow: 'Дольше обычного…',
       updated: 'Список обновлён',
       answered: 'Ответ учтён',
