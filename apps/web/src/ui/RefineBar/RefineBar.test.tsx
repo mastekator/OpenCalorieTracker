@@ -84,3 +84,37 @@ describe('RefineBar focus after a request', () => {
     expect(document.activeElement).toBe(field);
   });
 });
+
+describe('RefineBar ⌘/Ctrl+Enter (OCT-285)', () => {
+  const press = async (
+    props: Partial<ComponentProps<typeof RefineBar>>,
+    init: KeyboardEventInit,
+  ) => {
+    let sent = 0;
+    render(bar({ value: 'more rice', ...props, onRefine: () => sent++ }));
+    const field = await screen.findByRole('textbox');
+    const event = new KeyboardEvent('keydown', {
+      key: 'Enter',
+      bubbles: true,
+      cancelable: true,
+      ...init,
+    });
+    field.dispatchEvent(event);
+    cleanup();
+    return { sent, prevented: event.defaultPrevented };
+  };
+
+  it('Ctrl+Enter and Meta+Enter send, plain Enter does not', async () => {
+    expect((await press({}, { ctrlKey: true })).sent).toBe(1);
+    expect((await press({}, { metaKey: true })).sent).toBe(1);
+    expect(await press({}, {})).toEqual({ sent: 0, prevented: false });
+  });
+
+  it('does nothing while «Refine» is disabled or during IME composition', async () => {
+    expect((await press({ disabled: true }, { ctrlKey: true })).sent).toBe(0);
+    expect((await press({ value: '  ' }, { metaKey: true })).sent).toBe(0);
+    expect((await press({}, { ctrlKey: true, isComposing: true })).sent).toBe(
+      0,
+    );
+  });
+});
