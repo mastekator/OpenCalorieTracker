@@ -27,9 +27,11 @@ export function RecipeHint({ recipe, onApply, onKeep }: Props) {
           id={matchIllustration(recipe.name)}
           size="var(--hint-illo-size)"
         />
-        {before}
-        <strong>{recipe.name}</strong>
-        {after}
+        <span>
+          {before}
+          <strong>{recipe.name}</strong>
+          {after}
+        </span>
       </p>
       <div className="history-hint__actions">
         <Button variant="plain" small onClick={onApply}>
