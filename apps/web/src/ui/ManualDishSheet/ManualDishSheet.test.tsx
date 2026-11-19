@@ -200,6 +200,18 @@ describe('ManualDishSheet: barcode (OCT-313 §3)', () => {
     });
   });
 
+  it('a name typed while the lookup runs is kept', async () => {
+    let answer!: (r: BarcodeResult) => void;
+    const lookup = () => new Promise<BarcodeResult>((r) => (answer = r));
+    const { onAdd, type, add } = await setup('metric', lookup);
+    find('4006381333931');
+    type(/^Name/, 'My yogurt');
+    answer({ product: YOGURT, from: 'off', off: 'found' });
+    await screen.findByText('Found in Open Food Facts — check the weight.');
+    add();
+    expect(onAdd.mock.calls[0]![0]).toMatchObject({ name: 'My yogurt' });
+  });
+
   it('typed calories keep their basis: only the name and weight are filled', async () => {
     const lookup = async () =>
       ({ product: YOGURT, from: 'mine', off: 'skipped' }) as const;

@@ -103,6 +103,8 @@ export function ManualDishSheet({
   // Errors show after leaving a field or on «Add» (§4).
   const [touched, setTouched] = useState<Partial<Record<Fields, boolean>>>({});
   const refs = useRef<Partial<Record<Fields, HTMLInputElement | null>>>({});
+  const latest = useRef(text);
+  latest.current = text;
 
   const name = text.name.trim();
   const found = onRecipe ? matchRecipes(recipes, name) : [];
@@ -184,6 +186,8 @@ export function ManualDishSheet({
   // Fills only what is still empty, per 100 g; the weight is the package serving (OCT-313 3.2).
   const fillFrom = ({ product }: BarcodeResult) => {
     if (!product) return refs.current.name?.focus();
+    // The fields as they are now: the user may have typed while the lookup ran.
+    const text = latest.current;
     const empty = (k: Fields) => !text[k].trim();
     // Calories typed by hand keep their basis: the macros per 100 g would not match them.
     const per100 = empty('kcal');
