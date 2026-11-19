@@ -208,7 +208,7 @@ If the admin cannot sign in (forgotten password, lost passkey, blocked IP or dev
 docker exec <container> node dist/cli.js reset-admin-access
 ```
 
-It lifts all sign-in blocks and timeouts and prints one admin recovery link, valid for 24 hours. Before the admin account exists, it prints a new [setup code](#first-sign-in) instead. Opening it lets you set a new password or add a passkey; your data and sessions stay. A previous unused admin recovery link stops working. The server keeps running meanwhile.
+It lifts all sign-in blocks and timeouts and prints one admin recovery link, valid for 24 hours. Opening it lets you set a new password or add a passkey; your data and sessions stay. A previous unused admin recovery link stops working. The server keeps running meanwhile. Before the admin account exists, it prints a new [setup code](#first-sign-in) instead of the link.
 
 ### Changing `AUTH_METHODS`
 
