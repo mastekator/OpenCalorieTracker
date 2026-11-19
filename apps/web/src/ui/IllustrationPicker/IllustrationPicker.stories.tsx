@@ -10,10 +10,12 @@ type Props = {
   current: IllustrationId;
   manual: boolean;
   photo: boolean;
+  photoError?: boolean;
+  offline?: boolean;
 };
 
 // Opens on load; a pick marks the tile and closes, the button reopens it.
-function Demo({ name, current, manual, photo }: Props) {
+function Demo({ name, current, manual, photo, photoError, offline }: Props) {
   const [open, setOpen] = useState(true);
   const [picked, setPicked] = useState(current);
   return (
@@ -32,7 +34,8 @@ function Demo({ name, current, manual, photo }: Props) {
           setOpen(false);
         }}
         onReset={() => setOpen(false)}
-        {...(photo && { onCamera: fn(), onGallery: fn() })}
+        {...(photo && { onCamera: fn(), onGallery: fn(), photoError })}
+        offline={offline}
       />
     </>
   );
@@ -63,6 +66,24 @@ export const ManualDark: Story = {
 /** The meal has a photo: no photo actions (AC-4.3). */
 export const WithPhoto: Story = {
   args: { name: 'Rice', current: 'grains', photo: false },
+};
+/** A saved meal's upload failed: the sheet is back with the error, the items retry (OCT-318). */
+export const PhotoError: Story = {
+  args: { photoError: true },
+  globals: { locale: 'ru' },
+};
+export const PhotoErrorDark: Story = {
+  ...PhotoError,
+  globals: { locale: 'ru', theme: 'dark' },
+};
+/** A saved meal offline: a hint in place of the photo items (OCT-318). */
+export const Offline: Story = {
+  args: { photo: false, offline: true },
+  globals: { locale: 'ru' },
+};
+export const OfflineDark: Story = {
+  ...Offline,
+  globals: { locale: 'ru', theme: 'dark' },
 };
 export const English: Story = {
   args: { name: 'Borscht', current: 'soup-borscht' },
