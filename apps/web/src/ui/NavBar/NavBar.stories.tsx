@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { Settings2, UserPlus } from 'lucide-react';
+import { ListOrdered, Settings2, UserPlus, X } from 'lucide-react';
 import { useT } from '../../i18n';
 import { atPath } from '../navStory';
 import { Segment } from '../Segment/Segment';
@@ -74,6 +74,23 @@ export const TextActionDesktop: Story = {
   globals: { viewport: { value: 'desktop' } },
 };
 
+/** Full-screen mode: «×» on the left instead of back, an icon action on the right (OCT-160 4.1). */
+export const Start: Story = {
+  render: () => (
+    <Localised
+      make={(t) => ({
+        title: t('cook.step', { i: 2, n: 3 }),
+        start: { icon: X, label: t('cook.exit'), onClick: () => {} },
+        action: {
+          icon: ListOrdered,
+          label: t('cook.all_steps'),
+          onClick: () => {},
+        },
+      })}
+    />
+  ),
+};
+
 /** Recipe editor offline: «Save» is disabled, the offline bar says why (E-10.5). */
 export const DisabledAction: Story = {
   render: () => (
@@ -86,6 +103,7 @@ export const DisabledAction: Story = {
     />
   ),
 };
+export const StartDark: Story = { ...Start, globals: { theme: 'dark' } };
 export const DisabledActionDark: Story = {
   ...DisabledAction,
   globals: { theme: 'dark' },

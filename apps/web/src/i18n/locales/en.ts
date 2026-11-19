@@ -1539,6 +1539,7 @@ export const en = {
     ingredients: 'Ingredients · {n}',
     steps: 'Steps · {n}',
     step: 'Step {i}',
+    cooking: 'Cook',
     zero_kcal: 'not counted in kcal',
     delete: {
       action: 'Delete recipe',
@@ -1546,6 +1547,36 @@ export const en = {
       body: 'Diary entries stay as they are. Recipe photos will be deleted.',
       ok: 'Delete',
       error: 'Couldn’t delete the recipe. Try again.',
+    },
+  },
+  cook: {
+    step: 'Step {i} of {n}',
+    step_now: 'Step {i} of {n} · now',
+    exit: 'Exit cooking mode',
+    all_steps: 'All steps',
+    awake: 'Screen stays on while cooking',
+    back: 'Back',
+    next: 'Next',
+    done: 'Done',
+    finish: {
+      title: 'Done!',
+      weight: 'Cooked weight',
+      weight_err: 'More than 0\u00a0g',
+      weigh:
+        'Weigh the pot without the lid, minus its weight — kcal per 100\u00a0g get more accurate.',
+      check_weight: {
+        heavier:
+          'Check the weight: cooked is {x}× heavier than the ingredients ({w}\u00a0g).',
+        lighter:
+          'Check the weight: cooked is {x}× lighter than the ingredients ({w}\u00a0g).',
+      },
+      offline: 'The weight can be saved when you’re back online.',
+      save: 'Save weight',
+      saving: 'Saving…',
+      saved: 'Cooked weight saved',
+      error: 'Couldn’t save the weight. Try again.',
+      log: 'Log a serving',
+      close: 'Just close',
     },
   },
   editor: {

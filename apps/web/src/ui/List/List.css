@@ -71,6 +71,11 @@
   color: var(--color-accent);
 }
 
+.list-row[aria-current],
+.list-row[aria-current] .list-row__description {
+  color: var(--color-accent);
+}
+
 .list-row[aria-disabled] {
   color: var(--color-text-disabled);
   cursor: default;

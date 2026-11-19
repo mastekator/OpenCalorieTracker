@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Ellipsis } from 'lucide-react';
-import { Redirect, useLocation } from 'wouter';
+import { Ellipsis, Play } from 'lucide-react';
+import { Link, Redirect, useLocation } from 'wouter';
 import { matchIllustration, servingG, type Recipe } from '@oct/shared';
 import { deleteRecipe, useDb, useRecipe } from '../../data/DataContext';
 import { thumbUrl } from '../../data/thumbs';
@@ -114,6 +114,17 @@ export function RecipeView({ recipe, today, online, onDelete }: Props) {
         <div className="recipe__nutrition">
           <NutritionCard {...recipe} />
         </div>
+        {recipe.steps.length > 0 && (
+          <div className="recipe__actions">
+            <Link
+              href={`/kitchen/${recipe.id}/cook`}
+              className="button button--tonal"
+            >
+              <Play aria-hidden="true" />
+              {t('recipe.cooking')}
+            </Link>
+          </div>
+        )}
         <div className="recipe__ingredients">
           <List
             title={

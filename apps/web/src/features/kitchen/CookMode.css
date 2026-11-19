@@ -1,0 +1,120 @@
+/* Full screen without the tab bar (OCT-160 4.1); desktop: the same column, centred. */
+.cook {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  width: 100%;
+  max-width: var(--content-max-width);
+  margin-inline: auto;
+}
+
+.cook__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding: var(--space-2) max(var(--screen-gutter), env(safe-area-inset-right))
+    var(--space-6) max(var(--screen-gutter), env(safe-area-inset-left));
+  /* Vertical scrolling stays with the browser; horizontal moves are the swipe. */
+  touch-action: pan-y;
+}
+
+.cook__progress {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: var(--space-1);
+}
+
+.cook__segment {
+  height: var(--space-1);
+  border-radius: var(--radius-full);
+  background: var(--color-separator);
+}
+
+.cook__segment--on {
+  background: var(--color-accent);
+}
+
+.cook__step {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.cook__kicker {
+  margin: 0;
+  color: var(--color-accent);
+  font-size: var(--text-subhead-size);
+  line-height: var(--text-subhead-lh);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.cook__text {
+  margin: 0;
+  max-width: 36em;
+  font-size: var(--text-cook-size);
+  line-height: var(--text-cook-lh);
+  font-weight: 500;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+/* Focus moves here on every step change for screen readers; it is not a control. */
+.cook__text:focus {
+  outline: none;
+}
+
+.cook__photo {
+  width: 100%;
+  height: var(--recipe-hero-height);
+  object-fit: cover;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-2);
+}
+
+.cook__bar {
+  position: sticky;
+  bottom: 0;
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4) max(var(--screen-gutter), env(safe-area-inset-right))
+    max(var(--space-4), env(safe-area-inset-bottom))
+    max(var(--screen-gutter), env(safe-area-inset-left));
+  border-top: 1px solid var(--color-separator);
+  background: var(--color-bg);
+}
+
+.cook__awake {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+}
+
+.cook__awake svg {
+  flex: none;
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+}
+
+.cook__nav {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: var(--space-3);
+}
+
+.cook__note--warn {
+  color: var(--color-warning);
+}
+
+@media (min-width: 1024px) {
+  .cook {
+    max-width: var(--content-max-width-wide);
+    padding-inline: calc(var(--desktop-gutter) - var(--screen-gutter));
+  }
+}
