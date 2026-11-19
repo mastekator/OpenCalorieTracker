@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, screen } from '@testing-library/react';
 import { I18nProvider, LOCALE_STORAGE_KEY } from '../../i18n';
+import { en } from '../../i18n/locales/en';
+import ru from '../../i18n/locales/ru';
+import { translate } from '../../i18n/translate';
 import { renderLoaded } from '../../test-utils';
 import { PILAF, SALAD } from '../../features/kitchen/fixtures';
 import { PortionSheet, stepServings, todayAt } from './PortionSheet';
@@ -26,7 +29,26 @@ const open = (props: Partial<Parameters<typeof PortionSheet>[0]> = {}) => {
   );
   return { onAdd, result };
 };
-const total = () => document.querySelector('.portion__total')!.textContent;
+const total = () => document.querySelector('.portion__total p')!.textContent;
+const macros = () => document.querySelector('.portion__macros')!.textContent;
+
+describe('portion.count', () => {
+  it.each([
+    ['en', 0.5, '½', '½ servings'],
+    ['en', 1, '1', '1 serving'],
+    ['en', 1.5, '1½', '1½ servings'],
+    ['en', 2, '2', '2 servings'],
+    ['en', 5, '5', '5 servings'],
+    ['ru', 0.5, '½', '½ порции'],
+    ['ru', 1, '1', '1 порция'],
+    ['ru', 1.5, '1½', '1½ порции'],
+    ['ru', 2, '2', '2 порции'],
+    ['ru', 5, '5', '5 порций'],
+  ] as const)('%s %d: «%s»', (locale, count, n, label) => {
+    const dict = locale === 'en' ? en : ru;
+    expect(translate(locale, dict, 'portion.count', { n, count })).toBe(label);
+  });
+});
 
 describe('stepServings', () => {
   it('steps by half a serving, to the next half from a typed weight', () => {
@@ -56,16 +78,22 @@ describe('PortionSheet', () => {
   it('starts at one serving and scales kcal with the chips and the stepper', async () => {
     const { onAdd, result } = open();
     await result;
-    expect(total()).toMatch(/^581.kcal · P 18 · F 28 · C 62 · 350.g$/);
-    fireEvent.click(screen.getByRole('button', { name: '1½ serv.' }));
-    expect(total()).toMatch(/^872.kcal .* 525.g$/);
+    expect(total()).toMatch(/^581.kcal · 350.g$/);
+    expect(macros()).toMatch(/^P 18.gF 28.gC 62.g$/);
+    expect(
+      document.querySelectorAll('.portion__macros .macro__dot'),
+    ).toHaveLength(3);
+    // The recipe photo in the sheet.
+    expect(document.querySelector('.portion__total img')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: '1½ servings' }));
+    expect(total()).toMatch(/^872.kcal · 525.g$/);
     fireEvent.pointerDown(
       screen.getByRole('button', { name: 'Half a serving more' }),
     );
     fireEvent.pointerUp(
       screen.getByRole('button', { name: 'Half a serving more' }),
     );
-    expect(screen.getByText('2 serv.')).toBeTruthy();
+    expect(screen.getByText('2 servings')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Add' }));
     expect(onAdd).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -88,7 +116,7 @@ describe('PortionSheet', () => {
     fireEvent.change(input, { target: { value: '200' } });
     expect(total()).toMatch(/^332.kcal/);
     fireEvent.click(screen.getByRole('radio', { name: 'Servings' }));
-    expect(screen.getByText('0.6 serv.')).toBeTruthy();
+    expect(screen.getByText('0.6 servings')).toBeTruthy();
   });
 
   it('in ounces: shows and takes ounces, adds grams (AC-2.6)', async () => {
@@ -109,7 +137,9 @@ describe('PortionSheet', () => {
     const { onAdd, result } = open({ recipe: SALAD });
     await result;
     expect(screen.queryByRole('radiogroup')).toBeNull();
-    expect(screen.queryByRole('button', { name: '½ serv.' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '½ servings' })).toBeNull();
+    // No photo: the illustration instead.
+    expect(document.querySelector('.portion__total img')).toBeNull();
     expect((screen.getByRole('textbox') as HTMLInputElement).value).toBe('100');
     expect(total()).toMatch(/^86.kcal/);
     fireEvent.click(screen.getByRole('button', { name: 'Add' }));

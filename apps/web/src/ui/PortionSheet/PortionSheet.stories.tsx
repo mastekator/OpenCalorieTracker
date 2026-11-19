@@ -41,6 +41,14 @@ const desktop = { viewport: { value: 'desktop' } };
 /** 3.1: «Servings / Grams», ±½ serving, ½ · 1 · 1½ · 2, «Add» to the meal being edited. */
 export const WithServings: Story = {};
 export const WithServingsDark: Story = { globals: dark };
+/** A recipe without a photo: its illustration in the sheet. */
+export const NoPhoto: Story = {
+  args: { recipe: { ...PILAF, photoId: null } },
+};
+export const NoPhotoDark: Story = {
+  args: { recipe: { ...PILAF, photoId: null } },
+  globals: dark,
+};
 /** 3.2: in grams, ±10 g. */
 export const Grams: Story = {
   // The sheet is a modal <dialog> outside the canvas.

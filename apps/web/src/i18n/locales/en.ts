@@ -1643,7 +1643,7 @@ export const en = {
     servings: 'Servings',
     grams: 'Grams',
     ounces: 'Ounces',
-    count: '{n} serv.',
+    count: { one: '{n} serving', other: '{n} servings' },
     less: 'Half a serving less',
     more: 'Half a serving more',
     add: 'Add',
