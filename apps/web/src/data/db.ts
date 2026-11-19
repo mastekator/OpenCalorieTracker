@@ -11,11 +11,12 @@ import type {
   MeResponse,
   PhotoRetention,
   ProfileResponse,
+  Recipe,
   Weighing,
 } from '@oct/shared';
 
 /** Bump with a new `oldVersion` branch in `upgrade` when the stores change. */
-export const DB_VERSION = 2;
+export const DB_VERSION = 3;
 
 export interface OctDb extends DBSchema {
   meals: { key: string; value: Meal; indexes: { localDate: string } };
@@ -36,6 +37,8 @@ export interface OctDb extends DBSchema {
   photos: { key: string; value: Blob };
   /** The weight diary, one weighing per day (ADR-0016 §4). */
   weighings: { key: string; value: Weighing };
+  /** Recipes, read-only offline (ADR-0023 §4). */
+  recipes: { key: number; value: Recipe };
 }
 
 /**
@@ -88,6 +91,7 @@ export function openUserDb(userId: number) {
       }
       if (oldVersion < 2)
         db.createObjectStore('weighings', { keyPath: 'date' });
+      if (oldVersion < 3) db.createObjectStore('recipes', { keyPath: 'id' });
     },
     // Another tab (or clearLocal) deletes or upgrades the base: let it through.
     blocking(_current, _blocked, event) {

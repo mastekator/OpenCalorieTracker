@@ -30,12 +30,12 @@ export function TabBar({ items, onAdd, onLongPress }: Props) {
     press.current = null;
   };
   const isCurrent = useIsCurrent();
-  const tab = ({ href, icon: Icon, label }: NavItem) => (
+  const tab = ({ href, icon: Icon, label, also }: NavItem) => (
     <li key={href}>
       <Link
         href={href}
         className="tabbar__tab"
-        aria-current={isCurrent(href) ? 'page' : undefined}
+        aria-current={isCurrent(href, also) ? 'page' : undefined}
       >
         <Icon aria-hidden="true" />
         {label}

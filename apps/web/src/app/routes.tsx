@@ -33,6 +33,8 @@ import {
   MealRecalc,
 } from '../features/meals/MealEditScreen';
 import { UndoDeleteProvider } from '../features/diary/undoDelete';
+import { KitchenScreen } from '../features/kitchen/KitchenScreen';
+import { RecipeScreen } from '../features/kitchen/RecipeScreen';
 import { ProfileScreen } from '../features/profile/ProfileScreen';
 import { periodPath } from '../features/week/period';
 import { WeekNavHead, WeekScreen } from '../features/week/WeekScreen';
@@ -164,6 +166,18 @@ export function AppScreens() {
           <ProfileScreen />
         </Screen>
       </Route>
+      <Route path="/kitchen">
+        {/* No tab: a row in the profile; on desktop a sidebar item (OCT-160 §1). */}
+        <Screen
+          wide
+          large
+          title={t('kitchen.title')}
+          back={{ href: '/profile', label: t('nav.profile'), mobileOnly: true }}
+        >
+          <KitchenScreen />
+        </Screen>
+      </Route>
+      <Route path="/kitchen/:id">{({ id }) => <RecipeScreen id={id} />}</Route>
       <Route path="/settings">
         <Screen
           wide

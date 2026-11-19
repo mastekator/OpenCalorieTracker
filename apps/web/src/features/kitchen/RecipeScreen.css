@@ -1,0 +1,119 @@
+.recipe {
+  display: grid;
+  gap: var(--space-6);
+  align-content: start;
+}
+
+.recipe p {
+  margin: 0;
+}
+
+/* No photo: the illustration on its tile, never passing for a photo (OCT-33). */
+.recipe__hero {
+  display: grid;
+  place-items: center;
+  height: var(--recipe-hero-height);
+  border-radius: var(--radius-lg);
+  background: var(--illo-tile);
+  overflow: hidden;
+}
+
+.recipe__photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.recipe__head {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.recipe__name {
+  margin: 0;
+  font-size: var(--text-title-size);
+  line-height: var(--text-title-lh);
+  font-weight: var(--text-title-weight);
+  overflow-wrap: anywhere;
+}
+
+.recipe__meta {
+  color: var(--color-text-secondary);
+  font-size: var(--text-subhead-size);
+  line-height: var(--text-subhead-lh);
+  font-variant-numeric: tabular-nums;
+}
+
+/* «Ingredients · 8» on the left, the recipe's kcal on the right. */
+.recipe__group {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.recipe .list-row__value {
+  font-variant-numeric: tabular-nums;
+}
+
+.recipe__step {
+  align-items: flex-start;
+}
+
+.recipe__step-n {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: var(--chat-avatar-size);
+  height: var(--chat-avatar-size);
+  border-radius: var(--radius-full);
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  font-size: var(--text-footnote-size);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.recipe__step-body {
+  display: grid;
+  gap: var(--space-3);
+  flex: 1;
+  min-width: 0;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.recipe__step-photo {
+  width: 100%;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+}
+
+/* §10: title over three columns — photo and nutrition · ingredients · steps. */
+@media (min-width: 1024px) {
+  .recipe {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: auto auto 1fr;
+    grid-template-areas:
+      'head head head'
+      'hero ingr steps'
+      'nut ingr steps';
+    align-items: start;
+  }
+
+  .recipe__head {
+    grid-area: head;
+  }
+  .recipe__hero {
+    grid-area: hero;
+  }
+  .recipe__nutrition {
+    grid-area: nut;
+  }
+  .recipe__ingredients {
+    grid-area: ingr;
+  }
+  .recipe__steps {
+    grid-area: steps;
+  }
+}

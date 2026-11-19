@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { ChefHat } from 'lucide-react';
+import { useLocation } from 'wouter';
 import { z } from 'zod';
 import {
   type Profile,
@@ -11,6 +13,7 @@ import {
   useAiStatus,
   useDb,
   useProfile,
+  useRecipes,
   useSettings,
   useWeighings,
 } from '../../data/DataContext';
@@ -19,6 +22,7 @@ import type { Db } from '../../data/db';
 import { storeProfile } from '../../data/sync';
 import { localToday } from '../diary/day';
 import { useT } from '../../i18n';
+import { List, ListRow } from '../../ui/List/List';
 import { useOnline } from '../../ui/OfflineBar/OfflineBar';
 import { Delayed, Skeleton } from '../../ui/Skeleton/Skeleton';
 import { useToast } from '../../ui/Toast/Toast';
@@ -57,6 +61,8 @@ export function ProfileScreen() {
   }>();
   const [agentDown, setAgentDown] = useState(false);
   const weighings = useWeighings();
+  const recipes = useRecipes();
+  const [, navigate] = useLocation();
   const [weighIn, setWeighIn] = useState(false);
   const toast = useToast();
   const today = localToday();
@@ -101,6 +107,24 @@ export function ProfileScreen() {
         agentDraft={agentDraft}
         weighedOn={weighings?.at(-1)?.date}
         onWeighIn={() => setWeighIn(true)}
+        sections={
+          <List>
+            {/* A link: the kitchen reads the local copy and works offline, past the disabled fieldset. */}
+            <ListRow
+              href="/kitchen"
+              onClick={(e) => {
+                e.preventDefault();
+                navigate('/kitchen');
+              }}
+              icon={<ChefHat aria-hidden="true" />}
+              description={
+                recipes && t('kitchen.row.sub', { count: recipes.length })
+              }
+            >
+              {t('kitchen.title')}
+            </ListRow>
+          </List>
+        }
       />
       {weighings && (
         <WeighInSheet
