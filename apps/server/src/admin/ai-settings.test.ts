@@ -57,7 +57,7 @@ const setup = async (
     row,
   };
 };
-// Checks share the one-per-10-s limit.
+// Checks and saves each allow one per 10 s.
 const nextCheck = () => vi.setSystemTime(Date.now() + 10_000);
 const logged = () =>
   [...log.mock.calls, ...error.mock.calls].map((c) => c.join(' ')).join('\n');
@@ -107,6 +107,36 @@ describe('PUT /api/admin/ai/settings', () => {
     expect(model.doGenerateCalls).toHaveLength(2);
     for (const text of [body, JSON.stringify(await t.get()), logged()])
       expect(text).not.toContain(KEY);
+  });
+
+  it('saves right after a passed check of the same draft', async () => {
+    const t = await setup();
+    vi.mocked(createModel).mockImplementation(async () => mockModel('OK'));
+    expect(await (await t.check(draft)).json()).toMatchObject({ state: 'ok' });
+    const res = await t.put({ ...draft, rev: null });
+    expect(res.status).toBe(200);
+    expect(await t.get()).toMatchObject({
+      provider: 'openai',
+      model: 'gpt-x',
+      source: 'admin',
+      rev: 1,
+      state: 'ok',
+    });
+  });
+
+  it('allows one checked save per 10 s', async () => {
+    const t = await setup();
+    vi.mocked(createModel).mockImplementation(async () => mockModel('OK'));
+    expect((await t.put({ ...draft, rev: null })).status).toBe(200);
+    const again = await t.put({ ...draft, model: 'gpt-y', rev: 1 });
+    expect(again.status).toBe(429);
+    expect(await again.json()).toEqual({
+      error: { code: 'too_many_attempts', details: { retryAfterSec: 10 } },
+    });
+    nextCheck();
+    expect((await t.put({ ...draft, model: 'gpt-y', rev: 1 })).status).toBe(
+      200,
+    );
   });
 
   it('keeps the saved key for another model of the same provider', async () => {

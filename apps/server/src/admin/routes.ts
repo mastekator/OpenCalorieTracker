@@ -167,15 +167,20 @@ export function adminRoutes({ config, db, ai, secrets }: AppDeps) {
     };
   };
   // Counted from the start of a check, so a double click never reaches the provider twice.
-  let lastCheck = -Infinity;
-  const throttleCheck = () => {
-    const wait = lastCheck + CHECK_INTERVAL_MS - Date.now();
-    if (wait > 0)
-      throw new ApiError(429, 'too_many_attempts', {
-        retryAfterSec: Math.ceil(wait / 1000),
-      });
-    lastCheck = Date.now();
+  const throttle = () => {
+    let last = -Infinity;
+    return () => {
+      const wait = last + CHECK_INTERVAL_MS - Date.now();
+      if (wait > 0)
+        throw new ApiError(429, 'too_many_attempts', {
+          retryAfterSec: Math.ceil(wait / 1000),
+        });
+      last = Date.now();
+    };
   };
+  // Separate, so Save right after a passed check is not refused.
+  const throttleCheck = throttle();
+  const throttleSave = throttle();
 
   // One tiny request with an image, so no_vision is told apart (ADR-0013). Records the global
   // state only when `model` is the active one.
@@ -301,7 +306,7 @@ export function adminRoutes({ config, db, ai, secrets }: AppDeps) {
           const settings = draftSettings(draft);
           let checked: AiModel | undefined;
           if (!force) {
-            throttleCheck();
+            throttleSave();
             const model = (await createModel(settings))!;
             const { state, details } = await runCheck(model);
             if (state !== 'ok')
