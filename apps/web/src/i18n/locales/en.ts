@@ -1760,6 +1760,8 @@ export const en = {
     ai_empty_result: 'The AI removed every dish — the list is unchanged',
     ai_env_managed:
       'AI is set in the server environment (AI_*); change it there',
+    outbound_env_managed:
+      'Outbound requests are set in the server environment (ALLOW_OUTBOUND_REQUESTS); change them there',
     ai_settings_changed:
       'Someone else changed the AI settings. Reload and try again',
     ai_key_required: 'Enter the API key for this provider',

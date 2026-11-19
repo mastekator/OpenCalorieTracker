@@ -16,6 +16,7 @@ import { session } from './auth/session.js';
 import { diaryRoutes } from './diary/routes.js';
 import { mealRoutes } from './meals/routes.js';
 import { illustrationRoutes } from './illustrations/routes.js';
+import { integrationRoutes } from './integrations/routes.js';
 import { normAgentRoutes } from './norm-agent/routes.js';
 import { photoRoutes } from './photos/routes.js';
 import { profileRoutes } from './profile/routes.js';
@@ -74,6 +75,7 @@ export function createApp(deps: AppDeps) {
   app.route('/api', adminRoutes(deps));
   app.route('/api', profileRoutes(deps));
   app.route('/api', accountRoutes(deps));
+  app.route('/api', integrationRoutes(deps));
   app.route('/api', aiRoutes(deps));
   app.route('/api', photoRoutes(deps));
   app.route('/api', mealRoutes(deps));

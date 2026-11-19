@@ -268,6 +268,8 @@ const synced: AccountSettings = {
   settingsRev: 1,
   photoRetentionDays: 30,
   normDisclaimerHidden: false,
+  offEnabled: false,
+  offHintAt: null,
 };
 const seed = async (settings: AccountSettings, ai?: AiStatus) => {
   const db = await openUserDb(user.id);

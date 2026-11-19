@@ -34,6 +34,7 @@ export type ErrorCode =
   | 'ai_invalid_response'
   | 'ai_empty_result'
   | 'ai_env_managed'
+  | 'outbound_env_managed'
   | 'ai_settings_changed'
   | 'ai_key_required'
   | 'ai_check_failed'
@@ -98,6 +99,7 @@ export * from './dates.js';
 export * from './diary/summarize.js';
 export * from './locales.js';
 export * from './settings.js';
+export * from './integrations.js';
 export * from './illustrations/dictionary.js';
 export * from './sync.js';
 export * from './weight/schemas.js';
