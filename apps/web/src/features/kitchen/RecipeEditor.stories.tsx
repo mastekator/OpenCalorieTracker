@@ -60,6 +60,23 @@ export const AddIngredient: Story = {
     await within(canvasElement.ownerDocument.body).findByRole('dialog');
   },
 };
+/** 2.4: steps with a photo, «+ Step»; the handle drags, a tap on it opens «Move up / Move down / Delete». */
+export const Steps: Story = {
+  args: { recipe: PILAF },
+  play: async ({ canvas }) => {
+    (await canvas.findByRole('button', { name: 'Step' })).scrollIntoView();
+  },
+};
+export const StepsDark: Story = { ...Steps, globals: dark };
+/** The step menu of the last step: «Move down» is disabled. */
+export const StepMenu: Story = {
+  args: { recipe: PILAF },
+  play: async ({ canvas, canvasElement }) => {
+    fireEvent.click(await canvas.findByRole('button', { name: 'Move step 3' }));
+    await within(canvasElement.ownerDocument.body).findByRole('dialog');
+  },
+};
+export const StepMenuDark: Story = { ...StepMenu, globals: dark };
 /** §10: two columns. */
 export const Desktop: Story = { args: { recipe: PILAF }, globals: desktop };
 export const DesktopDark: Story = {

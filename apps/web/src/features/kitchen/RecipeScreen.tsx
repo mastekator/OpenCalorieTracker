@@ -1,7 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Ellipsis, Play } from 'lucide-react';
 import { Link, Redirect, useLocation } from 'wouter';
-import { matchIllustration, servingG, type Recipe } from '@oct/shared';
+import {
+  matchIllustration,
+  recipeTotals,
+  servingG,
+  type Recipe,
+} from '@oct/shared';
 import { deleteRecipe, useDb, useRecipe } from '../../data/DataContext';
 import { thumbUrl } from '../../data/thumbs';
 import { useT } from '../../i18n';
@@ -63,8 +68,30 @@ export function RecipeView({ recipe, today, online, onDelete }: Props) {
   const [menu, setMenu] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const [brokenHero, setBrokenHero] = useState(false);
+  const [brokenSteps, setBrokenSteps] = useState<ReadonlySet<number>>(
+    new Set(),
+  );
+  const nameRef = useRef<HTMLHeadingElement>(null);
+  // 2.2: the navbar shows the name only once the page title is scrolled under it.
+  const [nameUnder, setNameUnder] = useState(false);
+  useEffect(() => {
+    const el = nameRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') return;
+    const bar = el.closest('.screen')?.querySelector('.navbar');
+    const top = Math.round(bar?.getBoundingClientRect().bottom ?? 0);
+    const io = new IntersectionObserver(
+      ([e]) =>
+        setNameUnder(
+          !e!.isIntersecting &&
+            e!.boundingClientRect.top < (e!.rootBounds?.top ?? 0),
+        ),
+      { rootMargin: `-${top}px 0px 0px 0px` },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
   const serving = servingG(recipe);
-  const totalKcal = recipe.ingredients.reduce((s, i) => s + i.kcal, 0);
+  const totalKcal = recipeTotals(recipe.ingredients).kcal;
   const meta = [
     recipe.servings !== null &&
       serving !== null &&
@@ -84,6 +111,7 @@ export function RecipeView({ recipe, today, online, onDelete }: Props) {
     <div className="screen screen--wide">
       <NavBar
         title={recipe.name}
+        titleHidden={!nameUnder}
         back={{ href: '/kitchen', label: t('kitchen.title') }}
         action={{
           icon: Ellipsis,
@@ -108,7 +136,9 @@ export function RecipeView({ recipe, today, online, onDelete }: Props) {
           )}
         </div>
         <header className="recipe__head">
-          <h2 className="recipe__name">{recipe.name}</h2>
+          <h2 ref={nameRef} className="recipe__name">
+            {recipe.name}
+          </h2>
           {meta && <p className="recipe__meta">{meta}</p>}
         </header>
         <div className="recipe__nutrition">
@@ -165,12 +195,16 @@ export function RecipeView({ recipe, today, online, onDelete }: Props) {
                     </span>
                     <div className="recipe__step-body">
                       <p>{s.text}</p>
-                      {s.photoId && (
+                      {s.photoId && !brokenSteps.has(i) && (
                         <img
                           className="recipe__step-photo"
                           src={thumbUrl(s.photoId)}
                           alt=""
                           loading="lazy"
+                          // A photo that is gone or offline is left out: the step text is enough.
+                          onError={() =>
+                            setBrokenSteps((b) => new Set(b).add(i))
+                          }
                         />
                       )}
                     </div>

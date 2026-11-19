@@ -15,6 +15,8 @@ type Action = { icon?: LucideIcon; label: string; mobileOnly?: boolean } & (
 
 type Props = {
   title: string;
+  /** The centred title is kept for screen readers but not shown, e.g. until the page's own title scrolls under the bar (OCT-160 2.1, 2.2). */
+  titleHidden?: boolean;
   /** Root screens: a 34 pt title under the bar instead of a centred one. */
   large?: boolean;
   /** Nested screens: chevron + the previous screen's name. */
@@ -57,6 +59,7 @@ function ActionButton({
 
 export function NavBar({
   title,
+  titleHidden = false,
   large = false,
   back,
   start,
@@ -83,7 +86,13 @@ export function NavBar({
               </Link>
             )}
           </div>
-          {!large && <h1 className="navbar__title">{title}</h1>}
+          {!large && (
+            <h1
+              className={`navbar__title${titleHidden ? ' navbar__title--hidden' : ''}`}
+            >
+              {title}
+            </h1>
+          )}
           <div className="navbar__end">{right}</div>
         </div>
       )}

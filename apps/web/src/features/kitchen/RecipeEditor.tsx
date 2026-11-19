@@ -34,6 +34,9 @@ import { IngredientRow } from '../../ui/IngredientRow/IngredientRow';
 import { List, ListRow } from '../../ui/List/List';
 import { ManualDishSheet } from '../../ui/ManualDishSheet/ManualDishSheet';
 import { NavBar } from '../../ui/NavBar/NavBar';
+import { Button } from '../../ui/Button/Button';
+import { Sheet } from '../../ui/Sheet/Sheet';
+import { StepEditorRow } from '../../ui/StepEditorRow/StepEditorRow';
 import { useOnline } from '../../ui/OfflineBar/OfflineBar';
 import { usePressRepeat } from '../../ui/usePressRepeat';
 import { useToast } from '../../ui/Toast/Toast';
@@ -47,6 +50,9 @@ export type RecipeEditorState = { draft?: RecipeInput };
 const photoSchema = z.object({ photoId: z.string() });
 const MAX_SERVINGS = 100;
 const MAX_COOKED_G = 50000;
+const MAX_STEPS = 30;
+/** `busy` key of the recipe photo; steps use their row keys (≥ 0). */
+const RECIPE_PHOTO = -1;
 
 /** /kitchen/new and /kitchen/:id/edit. */
 export function RecipeEditorScreen({ id }: { id?: string }) {
@@ -115,11 +121,13 @@ const rowOf = (i: RecipeInput['ingredients'][number]): Row => ({
   grams: text(i.grams),
 });
 
+type StepRow = { key: number; text: string; photoId: string | null };
+
 /** Current values of a row; a 0 g base (an AI «to taste») has nothing to scale from. */
 const valuesOf = (r: Row, grams: number): Nutrients =>
   r.base.grams > 0 ? scaleItem(r.base, grams) : r.base;
 
-/** The recipe editor (OCT-160 2.3–2.6, AC-6.1, E-10.1, 10.2, 10.8, 10.12). Steps: OCT-324. */
+/** The recipe editor (OCT-160 2.3–2.6, AC-6.1, E-10.1, 10.2, 10.8, 10.12). */
 export function RecipeEditor({
   recipe,
   draft,
@@ -141,8 +149,10 @@ export function RecipeEditor({
   );
   const [servings, setServings] = useState(start?.servings ?? null);
   const [note, setNote] = useState(start?.note ?? '');
-  // Edited in OCT-324; until then a draft's steps are sent back as they came.
-  const steps = start?.steps ?? [];
+  const [steps, setSteps] = useState<StepRow[]>(
+    () => start?.steps.map((s) => ({ key: nextKey++, ...s })) ?? [],
+  );
+  const [focusStep, setFocusStep] = useState<number | null>(null);
   const [touched, setTouched] = useState<{
     name?: boolean;
     cooked?: boolean;
@@ -152,9 +162,12 @@ export function RecipeEditor({
     | { kind: 'picker' }
     | { kind: 'manual'; name: string }
     | { kind: 'edit'; key: number }
+    | { kind: 'step'; key: number }
     | null
   >(null);
-  const [uploading, setUploading] = useState(false);
+  // Photos being uploaded: RECIPE_PHOTO or a step's key.
+  const [busy, setBusy] = useState<ReadonlySet<number>>(new Set());
+  const uploading = busy.size > 0;
   const [saving, setSaving] = useState(false);
   const saveLock = useRef(false);
   const cookedLabel = useId();
@@ -192,7 +205,10 @@ export function RecipeEditor({
       carbsG: round1(carbsG),
       source: row.source,
     })),
-    steps,
+    // An empty step is dropped rather than an error: «+ Step» tapped and left blank.
+    steps: steps
+      .filter((s) => s.text.trim())
+      .map((s) => ({ text: s.text.trim(), photoId: s.photoId })),
   });
   const [initial] = useState(() => JSON.stringify(input()));
   // A draft from elsewhere is unsaved work from the start (as new dishes, OCT-16 4.7).
@@ -237,27 +253,55 @@ export function RecipeEditor({
 
   useDirty(dirty, () => save(false), { title: t('unsaved.title'), body: '' });
 
-  // E-10.12: a failed photo is a toast; the recipe saves without it.
-  const onPhoto = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    event.target.value = '';
-    if (!file) return;
-    setUploading(true);
+  // E-10.12: a failed photo is a toast; the recipe (or the step) saves without it.
+  const upload = async (
+    key: number,
+    file: File,
+    done: (id: string) => void,
+  ) => {
+    setBusy((b) => new Set(b).add(key));
     try {
       const blob = await prepareImage(file);
       const { photoId: id } = await api('/api/photos', photoSchema, {
         method: 'POST',
         body: blob,
       });
-      setPhotoId(id);
+      done(id);
     } catch (err) {
       if (err instanceof ImageDecodeError || err instanceof ApiError)
         toast({ text: t('editor.photo_error') });
       else throw err;
     } finally {
-      setUploading(false);
+      setBusy((b) => {
+        const next = new Set(b);
+        next.delete(key);
+        return next;
+      });
     }
   };
+  const onPhoto = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (file) void upload(RECIPE_PHOTO, file, setPhotoId);
+  };
+
+  const setStep = (key: number, patch: Partial<StepRow>) =>
+    setSteps((ss) => ss.map((s) => (s.key === key ? { ...s, ...patch } : s)));
+  const moveStep = (key: number, to: number) =>
+    setSteps((ss) => {
+      const from = ss.findIndex((s) => s.key === key);
+      if (from < 0 || to < 0 || to >= ss.length || to === from) return ss;
+      const next = [...ss];
+      next.splice(to, 0, ...next.splice(from, 1));
+      return next;
+    });
+  const addStep = () => {
+    const key = nextKey++;
+    setSteps((ss) => [...ss, { key, text: '', photoId: null }]);
+    setFocusStep(key);
+  };
+  const stepMenu =
+    sheet?.kind === 'step' ? steps.findIndex((s) => s.key === sheet.key) : -1;
 
   const setRow = (key: number, patch: Partial<Row>) =>
     setRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...patch } : r)));
@@ -305,8 +349,8 @@ export function RecipeEditor({
             aria-label={t(
               photoId ? 'editor.photo_replace' : 'editor.photo_add',
             )}
-            aria-busy={uploading}
-            disabled={uploading}
+            aria-busy={busy.has(RECIPE_PHOTO)}
+            disabled={busy.has(RECIPE_PHOTO)}
             onClick={() => photoInput.current?.click()}
           >
             {photoId ? (
@@ -323,7 +367,7 @@ export function RecipeEditor({
             type="file"
             accept="image/*"
             hidden
-            onChange={(e) => void onPhoto(e)}
+            onChange={onPhoto}
           />
           <Field
             ref={nameRef}
@@ -499,6 +543,38 @@ export function RecipeEditor({
         </div>
 
         <div className="recipe-editor__more">
+          <List
+            title={
+              <span className="recipe-editor__group">
+                <span>{t('editor.steps')}</span>
+                <span>{t('editor.optional')}</span>
+              </span>
+            }
+          >
+            {steps.map((s, i) => (
+              <StepEditorRow
+                key={s.key}
+                index={i}
+                text={s.text}
+                photoId={s.photoId}
+                busy={busy.has(s.key)}
+                autoFocus={s.key === focusStep}
+                onTextChange={(v) => setStep(s.key, { text: v })}
+                onPhoto={(file) =>
+                  void upload(s.key, file, (id) =>
+                    setStep(s.key, { photoId: id }),
+                  )
+                }
+                onMenu={() => setSheet({ kind: 'step', key: s.key })}
+                onMove={(to) => moveStep(s.key, to)}
+              />
+            ))}
+            {steps.length < MAX_STEPS && (
+              <ListRow accent icon={<Plus />} onClick={addStep}>
+                {t('editor.step')}
+              </ListRow>
+            )}
+          </List>
           <Field
             label={t('editor.note')}
             value={note}
@@ -509,6 +585,51 @@ export function RecipeEditor({
         </div>
       </main>
 
+      <Sheet
+        open={stepMenu >= 0}
+        title={t('editor.step_text', { i: stepMenu + 1 })}
+        onClose={() => setSheet(null)}
+        footer={
+          <>
+            {(
+              [
+                ['editor.step_up', -1],
+                ['editor.step_down', 1],
+              ] as const
+            ).map(([label, dir]) => (
+              <Button
+                key={label}
+                variant="plain"
+                disabled={
+                  dir < 0 ? stepMenu <= 0 : stepMenu >= steps.length - 1
+                }
+                onClick={() => {
+                  if (sheet?.kind === 'step')
+                    moveStep(sheet.key, stepMenu + dir);
+                  setSheet(null);
+                }}
+              >
+                {t(label)}
+              </Button>
+            ))}
+            <Button
+              variant="danger-plain"
+              onClick={() => {
+                if (sheet?.kind === 'step')
+                  setSteps((ss) => ss.filter((s) => s.key !== sheet.key));
+                setSheet(null);
+              }}
+            >
+              {t('editor.step_delete')}
+            </Button>
+            <Button variant="plain" onClick={() => setSheet(null)}>
+              {t('common.cancel')}
+            </Button>
+          </>
+        }
+      >
+        {null}
+      </Sheet>
       {sheet?.kind === 'picker' && (
         <IngredientPickerSheet
           search={search}
