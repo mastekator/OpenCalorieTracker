@@ -4,6 +4,20 @@ All notable changes to this project are documented in this file.
 
 ## Unreleased
 
+## 0.2.0 — 2026-11-19
+
+AI settings in the app, refining what the AI recognized, and a setup wizard.
+
+- Refine a meal: "Recognize again", or tell the AI what to fix in words; the AI asks short questions under unsure dishes, answered with one tap; an admin sets how many refinements a meal gets
+- Settings → AI provider for the admin: provider, key and model without editing `.env` or restarting; pick the model from the provider's list, with photo support and price
+- Test a model on built-in sample photos and compare the last 20 runs, with a ready row for [Tested models](docs/MODELS.md)
+- First-run wizard: create the admin in the browser with a one-time setup code from the log; `ADMIN_EMAIL` and `ADMIN_PASSWORD` are now optional
+- Fixes: our own "AI unavailable" no longer shows the "server is down" banner; a saved API key is sent only to its own address
+
+### Upgrade from 0.1.x
+
+Set `image: ghcr.io/mastekator/opencalorietracker:0.2.0` in `docker-compose.yml`, then `docker compose pull && docker compose up -d`. Nothing else is required: the existing admin and the `AI_*` variables keep working. While `AI_PROVIDER` is set in `.env`, it overrides Settings → AI provider; remove the `AI_*` variables to manage AI in the app. The saved key is encrypted with `data/secret.key`, created on the first start: keep it in your backups together with the database.
+
 ## 0.1.1 — 2026-11-17
 
 Fixes after the first installs.
