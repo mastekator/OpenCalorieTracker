@@ -60,6 +60,17 @@ describe('RecipeView', () => {
     expect(screen.getByText('Steps · 3')).toBeTruthy();
   });
 
+  it('ounces: meta, serving and ingredient weights in oz (AC-2.6)', async () => {
+    await view({ units: 'us' }).result;
+    expect(
+      screen.getByText(
+        /^6 servings of 12\.3.oz · cooked 74\.1.oz · logged yesterday$/,
+      ),
+    ).toBeTruthy();
+    expect(screen.getAllByText('14.1 oz')).toHaveLength(2);
+    expect(screen.getByText(/kcal · serving 12\.3.oz/)).toBeTruthy();
+  });
+
   it('no steps: no block; no servings: no serving meta', async () => {
     await view({ recipe: SALAD }).result;
     expect(screen.queryByText(/Steps/)).toBeNull();

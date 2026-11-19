@@ -71,6 +71,13 @@ export const DoneWeightWarning: Story = {
 };
 /** With the portion sheet hooked up (OCT-310): «Log a serving». */
 export const DoneWithLog: Story = { ...Done, args: { onLog: fn() } };
+
+export const DoneOunces: Story = { ...Done, args: { units: 'us' } };
+export const DoneOuncesDark: Story = {
+  ...Done,
+  args: { units: 'us' },
+  globals: dark,
+};
 /** Offline: the weight is read-only, the footnote says why (E-10.5). */
 export const DoneOffline: Story = { ...Done, args: { online: false } };
 

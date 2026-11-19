@@ -50,6 +50,11 @@ export const Grams: Story = {
   },
 };
 /** 3.3: no servings — grams only, 100 g. */
+export const Ounces: Story = { args: { units: 'us', log: true } };
+export const OuncesDark: Story = {
+  args: { units: 'us', log: true },
+  globals: dark,
+};
 export const NoServings: Story = { args: { recipe: SALAD } };
 export const NoServingsDark: Story = {
   args: { recipe: SALAD },

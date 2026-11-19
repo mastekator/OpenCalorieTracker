@@ -91,6 +91,20 @@ describe('PortionSheet', () => {
     expect(screen.getByText('0.6 serv.')).toBeTruthy();
   });
 
+  it('in ounces: shows and takes ounces, adds grams (AC-2.6)', async () => {
+    const { onAdd, result } = open({ units: 'us' });
+    await result;
+    expect(total()).toMatch(/ 12\.3.oz$/);
+    fireEvent.click(screen.getByRole('radio', { name: 'Ounces' }));
+    const input = screen.getByRole('textbox', {
+      name: 'Weight of Homemade pilaf',
+    }) as HTMLInputElement;
+    expect(input.value).toBe('12.3');
+    fireEvent.change(input, { target: { value: '10' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+    expect(onAdd.mock.calls[0]![0].grams).toBeCloseTo(283.5, 0);
+  });
+
   it('a recipe without servings: grams only, 100 g', async () => {
     const { onAdd, result } = open({ recipe: SALAD });
     await result;

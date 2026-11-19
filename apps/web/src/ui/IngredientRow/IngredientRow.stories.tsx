@@ -33,6 +33,12 @@ export const InvalidDark: Story = {
   args: { grams: '-5', error: 'From 0 to 5,000 g' },
   globals: dark,
 };
+export const Ounces: Story = { args: { grams: '8.8', units: 'us' } };
+export const OuncesDark: Story = {
+  args: { grams: '8.8', units: 'us' },
+  globals: dark,
+};
+
 export const LongName: Story = {
   args: { name: 'Pork shoulder, boneless, trimmed of most of the fat' },
 };
