@@ -36,6 +36,8 @@ describe('PATCH /api/account/settings', () => {
       settingsRev: 1,
       photoRetentionDays: 30,
       normDisclaimerHidden: false,
+      offEnabled: false,
+      offHintAt: null,
     });
     expect(await (await patch({ theme: 'dark' })).json()).toMatchObject({
       theme: 'dark',
@@ -48,6 +50,8 @@ describe('PATCH /api/account/settings', () => {
       settingsRev: 3,
       photoRetentionDays: 30,
       normDisclaimerHidden: false,
+      offEnabled: false,
+      offHintAt: null,
     });
     expect(syncRev()).toBe(3);
   });
@@ -103,6 +107,31 @@ describe('PATCH /api/account/settings', () => {
     ]) {
       expect((await patch(body)).status).toBe(400);
     }
+  });
+
+  it('saves the barcode switch and hint by editedAt and sends them on sync', async () => {
+    const { app, cookie, patch } = await setup();
+    const at = '2026-11-20T10:00:00.000Z';
+    expect(
+      await (
+        await patch({ offEnabled: true, offHintAt: at, editedAt: 2000 })
+      ).json(),
+    ).toMatchObject({ offEnabled: true, offHintAt: at, settingsRev: 1 });
+    // An older edit loses, like any other setting.
+    expect(
+      await (
+        await patch({ offEnabled: false, offHintAt: null, editedAt: 1000 })
+      ).json(),
+    ).toMatchObject({ offEnabled: true, offHintAt: at });
+    const res = await app.request('/api/sync?since=0', { headers: { cookie } });
+    expect(
+      ((await res.json()) as { settings: unknown }).settings,
+    ).toMatchObject({
+      offEnabled: true,
+      offHintAt: at,
+    });
+    for (const body of [{ offEnabled: 1 }, { offHintAt: 'yesterday' }])
+      expect((await patch(body)).status).toBe(400);
   });
 
   it('is 401 without a session', async () => {

@@ -43,6 +43,10 @@ export const accountSettingsSchema = z.object({
   photoRetentionDays: photoRetentionDaysSchema,
   /** The norm disclaimer was dismissed; it never comes back (design 8.21). */
   normDisclaimerHidden: z.boolean(),
+  /** Barcode lookup in Open Food Facts; off by default (ADR-0034 §5). */
+  offEnabled: z.boolean(),
+  /** When the "turn on barcode lookup" hint was dismissed, or null. */
+  offHintAt: z.iso.datetime().nullable(),
 });
 export type AccountSettings = z.infer<typeof accountSettingsSchema>;
 
@@ -53,6 +57,8 @@ export const accountSettingsPatchSchema = z.object({
   units: unitsSchema.optional(),
   /** Only `true`: a hidden disclaimer cannot be shown again. Not subject to `editedAt`. */
   normDisclaimerHidden: z.literal(true).optional(),
+  offEnabled: z.boolean().optional(),
+  offHintAt: z.iso.datetime().nullable().optional(),
   editedAt: z.number().int().nonnegative().optional(),
 });
 export type AccountSettingsPatch = z.infer<typeof accountSettingsPatchSchema>;

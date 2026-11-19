@@ -1845,6 +1845,8 @@ const ru: DeepPartial<typeof en> = {
     ai_invalid_response: 'ИИ вернул непонятный ответ. Попробуйте ещё раз',
     ai_empty_result: 'ИИ убрал все блюда — список не изменён',
     ai_env_managed: 'ИИ задан в окружении сервера (AI_*) — менять там',
+    outbound_env_managed:
+      'Запросы наружу заданы в окружении сервера (ALLOW_OUTBOUND_REQUESTS) — менять там',
     ai_settings_changed:
       'Настройки ИИ уже изменили. Обновите страницу и повторите',
     ai_key_required: 'Введите API-ключ этого провайдера',

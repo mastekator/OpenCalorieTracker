@@ -41,6 +41,10 @@ const envSchema = z.object({
   AI_MODEL: z.string().optional(),
   AI_API_KEY: z.string().optional(),
   AI_BASE_URL: z.url().optional(),
+  ALLOW_OUTBOUND_REQUESTS: z
+    .enum(['true', 'false', '1', '0'])
+    .transform((v) => v === 'true' || v === '1')
+    .optional(),
 });
 
 export interface Config {
@@ -63,6 +67,8 @@ export interface Config {
     apiKey: string | undefined;
     baseUrl: string | undefined;
   };
+  /** ALLOW_OUTBOUND_REQUESTS; when set, it overrides the admin's switch (ADR-0034 §5). */
+  outbound: boolean | undefined;
 }
 
 /** Parses the environment once. Nonsense values throw; installation problems surface via setupErrors(). */
@@ -93,6 +99,7 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
       apiKey: e.AI_API_KEY,
       baseUrl: e.AI_BASE_URL,
     },
+    outbound: e.ALLOW_OUTBOUND_REQUESTS,
   };
 }
 
