@@ -1,7 +1,7 @@
 import { useEffect, type ComponentProps } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import type { Meal } from '@oct/shared';
-import { fn } from 'storybook/test';
+import { fireEvent, fn, within } from 'storybook/test';
 import { Router, useLocation } from 'wouter';
 import { memoryLocation } from 'wouter/memory-location';
 import { LeaveGuard } from '../../app/LeaveGuard';
@@ -231,8 +231,26 @@ const existing = {
   dishes: [],
   onPatch: fn(async () => {}),
   onDelete: fn(),
+  onRecipe: fn(),
 } satisfies Partial<Props>;
 export const Existing: Story = { args: existing };
+/** OCT-160 3.6: «⋯» of a saved meal → «Save as recipe». */
+const existingMenu: Story = {
+  args: existing,
+  play: async ({ canvasElement }) => {
+    fireEvent.click(
+      await within(canvasElement).findByRole('button', {
+        name: /Meal actions|Действия с приёмом пищи/,
+      }),
+    );
+  },
+};
+export const ExistingMenu: Story = existingMenu;
+export const ExistingMenuDark: Story = { ...existingMenu, globals: dark };
+export const ExistingMenuDesktop: Story = {
+  ...existingMenu,
+  globals: { viewport: { value: 'desktop' } },
+};
 export const ExistingDark: Story = { args: existing, globals: dark };
 export const ExistingDesktop: Story = {
   args: existing,

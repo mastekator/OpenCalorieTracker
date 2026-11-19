@@ -1356,6 +1356,8 @@ export const en = {
     kcal: '{n} kcal',
     status: { late: 'late', pending: 'waiting to sync', error: 'not saved' },
     delete: 'Delete {meal}',
+    menu: 'Meal actions',
+    save_as_recipe: 'Save as recipe',
   },
   edit: {
     meal_label: 'Meal',
@@ -1575,6 +1577,11 @@ export const en = {
     new: 'New recipe',
     manual: 'Enter manually',
     paste: 'Paste recipe text',
+    from_meal: 'From a meal',
+    pick_meal: {
+      title: 'Choose a meal',
+      empty: 'No meals in the last 30 days yet.',
+    },
     add: 'Add a recipe',
     sort_note: 'Recently logged first.',
     per100: '{k}\u00a0kcal/100\u00a0g',
@@ -1776,6 +1783,15 @@ export const en = {
     step_up: 'Move up',
     step_down: 'Move down',
     step_delete: 'Delete step',
+    from_meal: {
+      title: {
+        breakfast: 'From breakfast, {date}',
+        lunch: 'From lunch, {date}',
+        dinner: 'From dinner, {date}',
+        snack: 'From a snack, {date}',
+      },
+      body: 'Dishes became ingredients. Check the name and add cooked weight and servings if needed.',
+    },
     ai: {
       title: 'AI draft',
       body: 'Grams are estimates — please check. The app calculates kcal from ingredients.',

@@ -1,7 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { fireEvent, fn, within } from 'storybook/test';
 import { RecipeEditor } from './RecipeEditor';
-import { PILAF, SALAD } from './fixtures';
+import { MEALS, PILAF, SALAD } from './fixtures';
+import { recipeFromMeal } from './recipeFromMeal';
 
 const meta = {
   title: 'Screens/Kitchen/RecipeEditor',
@@ -117,3 +118,16 @@ const aiArgs = {
 export const AiDraft: Story = { args: aiArgs };
 export const AiDraftDark: Story = { args: aiArgs, globals: dark };
 export const AiDraftDesktop: Story = { args: aiArgs, globals: desktop };
+/** 3.7: a draft from a meal — the notice says which meal; the name is the dish with the most kcal. */
+const fromMealArgs = recipeFromMeal(MEALS[0]!);
+export const FromMeal: Story = { args: fromMealArgs };
+export const FromMealDark: Story = { args: fromMealArgs, globals: dark };
+export const FromMealRussian: Story = {
+  args: fromMealArgs,
+  globals: { locale: 'ru' },
+};
+export const FromMealDesktop: Story = { args: fromMealArgs, globals: desktop };
+export const FromMealDesktopDark: Story = {
+  args: fromMealArgs,
+  globals: { ...desktop, ...dark },
+};

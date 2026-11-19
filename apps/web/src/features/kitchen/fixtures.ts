@@ -1,4 +1,4 @@
-import type { Recipe } from '@oct/shared';
+import type { Meal, MealType, Recipe } from '@oct/shared';
 
 const ing = (name: string, grams: number, kcal: number, p = 0, f = 0, c = 0) =>
   ({
@@ -91,4 +91,54 @@ export const RECIPES: Recipe[] = [
     lastLoggedAt: '2026-11-01T12:00:00.000Z',
   },
   SALAD,
+];
+
+const meal = (
+  id: number,
+  localDate: string,
+  mealType: MealType,
+  dishes: [string, number, number][],
+): Meal => {
+  const items = dishes.map(([name, grams, kcal]) => ({
+    ...ing(name, grams, kcal, kcal / 20, kcal / 30, kcal / 10),
+    aiProvider: null,
+    aiModel: null,
+    confidence: null,
+    recipeId: null,
+    barcode: null,
+    illustration: 'grains' as const,
+    illustrationManual: false,
+  }));
+  const sum = (k: 'kcal' | 'proteinG' | 'fatG' | 'carbsG') =>
+    items.reduce((s, i) => s + i[k], 0);
+  return {
+    id,
+    clientId: `m${id}`,
+    eatenAt: `${localDate}T12:00:00.000Z`,
+    tzOffsetMin: 0,
+    localDate,
+    mealType,
+    photo: null,
+    recalcOffer: false,
+    items,
+    kcal: sum('kcal'),
+    proteinG: sum('proteinG'),
+    fatG: sum('fatG'),
+    carbsG: sum('carbsG'),
+  };
+};
+
+/** «From a meal» (OCT-160 3.7): recent meals, newest first. */
+export const MEALS: Meal[] = [
+  meal(3, '2026-11-13', 'lunch', [
+    ['Grilled chicken breast', 150, 248],
+    ['Buckwheat with mushrooms', 180, 230],
+    ['Boiled eggs, 2 pcs', 100, 155],
+    ['Sour cream sauce', 40, 84],
+  ]),
+  meal(2, '2026-11-13', 'breakfast', [
+    ['Oatmeal with berries', 250, 310],
+    ['Coffee with milk', 200, 60],
+  ]),
+  meal(1, '2026-11-12', 'dinner', [['Homemade pilaf', 350, 581]]),
 ];

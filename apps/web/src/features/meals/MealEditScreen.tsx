@@ -10,7 +10,9 @@ import {
   Ban,
   Calendar,
   Camera,
+  ChefHat,
   Clock,
+  Ellipsis,
   ImageOff,
   Plus,
   RefreshCw,
@@ -67,6 +69,7 @@ import { Button } from '../../ui/Button/Button';
 import { DishRow } from '../../ui/DishRow/DishRow';
 import { DishSheet } from '../../ui/DishSheet/DishSheet';
 import { HistoryHint } from '../../ui/HistoryHint/HistoryHint';
+import { List, ListRow } from '../../ui/List/List';
 import { IllustrationPicker } from '../../ui/IllustrationPicker/IllustrationPicker';
 import {
   ManualDishSheet,
@@ -80,9 +83,13 @@ import { RecipeHint } from '../../ui/RecipeHint/RecipeHint';
 import { RefineBar } from '../../ui/RefineBar/RefineBar';
 import { ScreenState } from '../../ui/ScreenState/ScreenState';
 import { Segment } from '../../ui/Segment/Segment';
+import { Sheet } from '../../ui/Sheet/Sheet';
 import { useToast } from '../../ui/Toast/Toast';
 import { diaryDay, localToday } from '../diary/day';
+import { NEW_RECIPE_PATH } from '../kitchen/KitchenScreen';
 import { recipeFor } from '../kitchen/matchRecipes';
+import type { RecipeEditorState } from '../kitchen/RecipeEditor';
+import { recipeFromMeal } from '../kitchen/recipeFromMeal';
 import type { TodayState } from '../diary/TodayScreen';
 import { UNDO_MS, useUndoDelete } from '../diary/undoDelete';
 import { MEAL_NEW_PATH, useCapture } from './CaptureContext';
@@ -214,6 +221,8 @@ type Props = {
   recognition?: RecognitionStatus;
   /** The user's recipes: in the manual sheet and for «Your recipe» (ADR-0023 §5, §6). */
   recipes?: Recipe[];
+  /** A saved meal: «⋯» → «Save as recipe» opens the editor with this draft (AC-6.2). */
+  onRecipe?: (state: RecipeEditorState) => void;
 };
 
 /** Screen 4 (design OCT-16 §3, E.2): dishes, weights with live totals, meal type, save. */
@@ -239,6 +248,7 @@ export function MealEditScreen({
   onDismissRecalc,
   recognition,
   recipes = [],
+  onRecipe,
 }: Props) {
   const { t, num, locale } = useT();
   const online = useOnline();
@@ -278,6 +288,7 @@ export function MealEditScreen({
   /** The time eaten on a past day, local. */
   const pastAt = () => new Date(y!, m! - 1, d, hh, mm);
   const [status, setStatus] = useState<'idle' | 'saving' | 'error'>('idle');
+  const [menu, setMenu] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
   // Row whose «Dish picture» sheet is open (OCT-33 4.1).
   const [picking, setPicking] = useState<string | null>(null);
@@ -942,10 +953,46 @@ export function MealEditScreen({
     <div className="meal-edit">
       <OfflineBar variant={useBarVariant()} />
       <div className="meal-edit__window">
-        <NavBar
-          title={title}
-          action={{ icon: X, label: t('common.close'), onClick: onClose }}
-        />
+        {meal && onRecipe ? (
+          // OCT-160 3.6: «⋯» on the right, so «×» moves to the left.
+          <NavBar
+            title={title}
+            start={{ icon: X, label: t('common.close'), onClick: onClose }}
+            action={{
+              icon: Ellipsis,
+              label: t('meal.menu'),
+              onClick: () => setMenu(true),
+            }}
+          />
+        ) : (
+          <NavBar
+            title={title}
+            action={{ icon: X, label: t('common.close'), onClick: onClose }}
+          />
+        )}
+        <Sheet open={menu} title={title} onClose={() => setMenu(false)}>
+          <List>
+            <ListRow
+              icon={<ChefHat />}
+              // An empty meal has nothing to make a recipe of.
+              disabled={!items.length}
+              onClick={() => {
+                if (!items.length) return;
+                setMenu(false);
+                // From the dishes on screen, edits included; the leave guard asks about them.
+                onRecipe?.(
+                  recipeFromMeal({
+                    mealType,
+                    localDate: (when || initial.when).slice(0, 10),
+                    items,
+                  }),
+                );
+              }}
+            >
+              {t('meal.save_as_recipe')}
+            </ListRow>
+          </List>
+        </Sheet>
         {manual && manual !== 'user' && (
           <div className="meal-edit__error">
             <Banner tone="notice">
@@ -1635,6 +1682,7 @@ export function MealEditExisting({ clientId }: { clientId: string }) {
         undo.remove(meal);
       }}
       onClose={() => navigate(back)}
+      onRecipe={(state) => navigate(NEW_RECIPE_PATH, { state })}
     />
   );
 }
