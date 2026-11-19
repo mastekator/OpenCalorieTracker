@@ -236,12 +236,86 @@ describe('meals', () => {
       input({ items: [] }),
       input({ items: [{ ...item, grams: 0 }] }),
       input({ items: [{ ...item, grams: 5000.1 }] }),
+      input({ items: [{ ...item, barcode: '4006381333932' }] }), // bad check digit
       input({ localDate: '2026-01-09' }), // 15:00 local: "yesterday" is not allowed
       input({ localDate: '2026-01-11' }),
       input({ eatenAt: new Date(Date.now() + 10 * 60_000).toISOString() }),
     ])
       expect((await t.call(t.cookie, 'POST', '/meals', body)).status).toBe(400);
     expect(t.db.prepare('SELECT COUNT(*) FROM meals').pluck().get()).toBe(0);
+  });
+
+  it('keeps the barcode and remembers typed-in products (ADR-0034 §6)', async () => {
+    const t = await setup();
+    const dish = (patch: Partial<MealInput['items'][number]>) => ({
+      ...input().items[1]!,
+      ...patch,
+    });
+    const mine = async (code: string) =>
+      (await (await t.call(t.cookie, 'GET', `/barcodes/${code}`)).json()) as {
+        from: string | null;
+        product: Record<string, unknown> | null;
+      };
+    const res = await t.call(
+      t.cookie,
+      'POST',
+      '/meals',
+      input({
+        items: [
+          // UPC-A is stored as GTIN-13.
+          dish({
+            name: 'Yogurt',
+            grams: 150,
+            kcal: 90,
+            proteinG: 4.5,
+            source: 'label',
+            barcode: '036000291452',
+          }),
+          dish({
+            name: 'Bar',
+            grams: 40,
+            kcal: 200,
+            source: 'barcode',
+            barcode: '4006381333931',
+          }),
+          dish({ name: 'Water', grams: 500, kcal: 0, barcode: '96385074' }),
+        ],
+      }),
+    );
+    expect(res.status).toBe(201);
+    const meal = (await res.json()) as Meal;
+    expect(meal.items.map((i) => [i.source, i.barcode])).toEqual([
+      ['label', '0036000291452'],
+      ['barcode', '4006381333931'],
+      ['manual', '96385074'],
+    ]);
+    expect(await mine('036000291452')).toMatchObject({
+      from: 'mine',
+      product: { name: 'Yogurt', kcal100: 60, protein100: 3, per: 'g' },
+    });
+    // A found product and zero kcal are not remembered.
+    expect(
+      t.db.prepare('SELECT COUNT(*) FROM user_products').pluck().get(),
+    ).toBe(1);
+
+    // Editing the dish updates the product.
+    await t.call(t.cookie, 'PATCH', `/meals/${meal.id}`, {
+      items: [
+        dish({
+          name: 'Greek yogurt',
+          grams: 200,
+          kcal: 240,
+          barcode: '0036000291452',
+        }),
+      ],
+    });
+    expect((await mine('0036000291452')).product).toMatchObject({
+      name: 'Greek yogurt',
+      kcal100: 120,
+    });
+    expect(
+      t.db.prepare('SELECT COUNT(*) FROM user_products').pluck().get(),
+    ).toBe(1);
   });
 
   it("hides another user's meal: 404 on GET/PATCH, 204 on DELETE without deleting (AC-4.4)", async () => {

@@ -3,6 +3,7 @@ import {
   illustrationIdSchema,
   type IllustrationId,
 } from './illustrations/dictionary.js';
+import { normalizeGtin } from './barcodes/barcodes.js';
 
 /** Key for matching dishes by name (ADR-0009): history lookups and remembered illustrations. */
 export const nameKey = (name: string) =>
@@ -18,6 +19,10 @@ export type IngredientSource = z.infer<typeof ingredientSourceSchema>;
 export const dishSourceSchema = z.enum([
   ...ingredientSourceSchema.options,
   'recipe',
+  /** Values from a product found by its barcode (ADR-0034 §6). */
+  'barcode',
+  /** Values typed from the package label. */
+  'label',
 ]);
 export type DishSource = z.infer<typeof dishSourceSchema>;
 
@@ -41,6 +46,13 @@ export const mealItemInputSchema = z
     confidence: z.number().min(0).max(1).optional(),
     /** The recipe this portion was logged from (ADR-0023 §5); the dish stays a snapshot. */
     recipeId: z.number().int().positive().optional(),
+    /** The product's barcode; stored normalized (ADR-0034 §3). */
+    barcode: z
+      .string()
+      .transform(
+        (s, ctx) => normalizeGtin(s) ?? (ctx.addIssue('Invalid GTIN'), z.NEVER),
+      )
+      .optional(),
     /** Manual choice on this dish; omitted = automatic. */
     illustration: illustrationIdSchema.optional(),
   })
@@ -101,6 +113,8 @@ export interface MealItem {
   confidence: number | null;
   /** Recipe the portion was logged from; null once that recipe is deleted (the dish stays). */
   recipeId: number | null;
+  /** Normalized GTIN of the packaged product, if the dish has one. */
+  barcode: string | null;
   /** Resolved: choice on this dish → choice for its name → matched by name (ADR-0009). */
   illustration: IllustrationId;
   /** True when `illustration` was picked on this dish: send it back in `PATCH` only then, or it freezes. */
