@@ -6,7 +6,10 @@ import { PILAF, SALAD } from '../../features/kitchen/fixtures';
 import { PortionSheet, stepServings, todayAt } from './PortionSheet';
 
 beforeEach(() => localStorage.setItem(LOCALE_STORAGE_KEY, 'en'));
-afterEach(cleanup);
+afterEach(() => {
+  vi.useRealTimers();
+  cleanup();
+});
 
 const open = (props: Partial<Parameters<typeof PortionSheet>[0]> = {}) => {
   const onAdd = vi.fn();
@@ -103,6 +106,9 @@ describe('PortionSheet', () => {
     const now = new Date(2026, 10, 19, 19, 40);
     const { onAdd, result } = open({ log: true, now });
     await result;
+    // The tap clamps to the real clock: pin it to the sheet's evening.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 10, 19, 19, 45));
     expect(screen.getByText(/^Today, 7:40.PM$/)).toBeTruthy();
     fireEvent.change(screen.getByLabelText('Time'), {
       target: { value: '18:15' },
