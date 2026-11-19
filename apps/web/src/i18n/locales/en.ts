@@ -1202,7 +1202,6 @@ export const en = {
         passed: 'Passed',
         time: 'Time per photo',
         cost: 'Cost or tokens',
-        date: 'Date',
       },
       best: 'best',
       stopped: 'stopped',

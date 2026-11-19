@@ -1241,7 +1241,6 @@ const ru: DeepPartial<typeof en> = {
         passed: 'Прошло',
         time: 'Время на фото',
         cost: 'Стоимость или токены',
-        date: 'Дата',
       },
       best: 'лучший',
       stopped: 'остановлен',

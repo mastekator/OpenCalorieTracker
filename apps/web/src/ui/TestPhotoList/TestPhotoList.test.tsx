@@ -35,6 +35,32 @@ it('folds repeated dish names into × N in order of first appearance', () => {
   expect(dishLabel('(none)')).toBeNull();
 });
 
+it('names the dishes the model returned in «Got», repeats as × N', async () => {
+  render(
+    <I18nProvider>
+      <TestPhotoList
+        photos={[
+          {
+            file: 'eggs.jpg',
+            expected: 'egg, egg; 150-300 kcal; exact',
+            got: 'boiled egg, boiled egg, toast',
+            kcal: 78,
+            levels: 'exact,exact,approx',
+            ms: 900,
+            result: 'ok',
+          },
+        ]}
+      />
+    </I18nProvider>,
+  );
+  const line = (await screen.findByText(/^Got/)).parentElement!;
+  const plain = (t: string | null) => t?.replace(/\u00a0/g, ' ');
+  expect(plain(line.textContent)).toBe(
+    'Got: boiled egg × 2, toast · 78 kcal · approx.',
+  );
+  expect(plain(line.getAttribute('title'))).toBe('boiled egg × 2, toast');
+});
+
 const chair: AiTestPhoto = {
   file: 'chair.jpg',
   expected: '(none)',

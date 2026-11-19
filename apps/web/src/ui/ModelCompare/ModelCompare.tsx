@@ -87,8 +87,8 @@ export function ModelCompare({
           <span>{t('ai.compare.col.model')}</span>
           <span className="compare__num">{t('ai.compare.col.passed')}</span>
           <span className="compare__num">{t('ai.compare.col.time')}</span>
-          <span>{t('ai.compare.col.cost')}</span>
-          <span>{t('ai.compare.col.date')}</span>
+          <span className="compare__num">{t('ai.compare.col.cost')}</span>
+          <span />
         </div>
         <ul className="compare__list">
           {runs.map((r) => {
@@ -99,12 +99,14 @@ export function ModelCompare({
             return (
               <li
                 key={r.id}
-                className={`compare__item${best === r.id ? ' compare__item--best' : ''}${done ? '' : ' compare__item--part'}`}
+                className={`compare__item${best === r.id ? ' compare__item--best' : ''}${done ? '' : ' compare__item--part'}${open ? ' compare__item--open' : ''}`}
               >
                 <div className="compare__row">
                   <div className="compare__name">
                     <span className="compare__model">
-                      <span className="compare__mono">{r.model}</span>
+                      <span className="compare__mono" title={r.model}>
+                        {r.model}
+                      </span>
                       {best === r.id && (
                         <Badge tone="ok">{t('ai.compare.best')}</Badge>
                       )}
@@ -116,8 +118,7 @@ export function ModelCompare({
                       )}
                     </span>
                     <span className="compare__sub">
-                      {providerName(r.provider)}
-                      <span className="compare__phone"> · {day}</span>
+                      {providerName(r.provider)} · {day}
                     </span>
                   </div>
                   <span className="compare__passed compare__num">
@@ -136,44 +137,21 @@ export function ModelCompare({
                             }),
                           })}
                     </span>
-                    <span>{price}</span>
+                    <span className="compare__num">{price}</span>
                   </span>
-                  <span className="compare__date">{day}</span>
-                  <span className="compare__actions">
-                    {/* Only a complete run makes a MODELS.md row (ADR-0019 §1). */}
-                    {done && (
-                      <button
-                        type="button"
-                        className="compare__icon compare__icon--copy compare__desktop"
-                        title={t('ai.test.copy_row')}
-                        aria-label={`${t('ai.test.copy_row')}: ${r.model}`}
-                        onClick={() => onCopy(r.id, 'row')}
-                      >
-                        <Copy aria-hidden="true" />
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      className="compare__icon compare__icon--delete compare__desktop"
-                      title={t('ai.compare.delete')}
-                      aria-label={`${t('ai.compare.delete')}: ${r.model}`}
-                      onClick={() => onDelete(r.id)}
-                    >
-                      <Trash2 aria-hidden="true" />
-                    </button>
-                    {/* On a phone it covers the whole card: a tap opens the photos (4.6). */}
-                    <button
-                      type="button"
-                      className="compare__icon compare__toggle"
-                      aria-expanded={open}
-                      aria-controls={`compare-${r.id}`}
-                      title={t('ai.compare.photos')}
-                      aria-label={`${t('ai.compare.photos')}: ${r.model}`}
-                      onClick={() => onToggle(r.id)}
-                    >
-                      <ChevronDown aria-hidden="true" />
-                    </button>
+                  <span className="compare__chevron" aria-hidden="true">
+                    <ChevronDown />
                   </span>
+                  {/* Covers the whole row: a click or tap opens the photos (4.6, OCT-300). */}
+                  <button
+                    type="button"
+                    className="compare__toggle"
+                    aria-expanded={open}
+                    aria-controls={`compare-${r.id}`}
+                    title={t('ai.compare.photos')}
+                    aria-label={`${t('ai.compare.photos')}: ${r.model}`}
+                    onClick={() => onToggle(r.id)}
+                  />
                 </div>
                 {open && (
                   <div id={`compare-${r.id}`} className="compare__details">
@@ -197,7 +175,7 @@ export function ModelCompare({
                           </Button>
                         </>
                       )}
-                      <span className="compare__phone">
+                      <span className="compare__delete">
                         <Button
                           variant="danger-plain"
                           small
