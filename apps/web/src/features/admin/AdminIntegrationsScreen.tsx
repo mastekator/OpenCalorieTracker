@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { CircleAlert, Lock } from 'lucide-react';
 import { adminIntegrationsSchema, type AdminIntegrations } from '@oct/shared';
-import { api } from '../../api/client';
+import { api, type ClientErrorCode } from '../../api/client';
 import { useT } from '../../i18n';
 import { Banner } from '../../ui/Banner/Banner';
 import { Button } from '../../ui/Button/Button';
@@ -19,7 +19,7 @@ export function AdminIntegrationsScreen() {
   const { t } = useT();
   const toast = useToast();
   const [policy, setPolicy] = useState<AdminIntegrations | null>(null);
-  const [failed, setFailed] = useState<string | null>(null);
+  const [failed, setFailed] = useState<ClientErrorCode | null>(null);
   const [confirm, setConfirm] = useState(false);
 
   const load = () => {
