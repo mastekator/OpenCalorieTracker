@@ -15,7 +15,7 @@ describe('migrate', () => {
   it('brings an empty database to the latest version', () => {
     const db = openDb(':memory:');
     migrate(db);
-    expect(db.pragma('user_version', { simple: true })).toBe(17);
+    expect(db.pragma('user_version', { simple: true })).toBe(18);
     expect(tables(db)).toEqual([
       'agent_drafts',
       'agent_messages',
@@ -65,7 +65,7 @@ describe('migrate', () => {
       .pluck()
       .all();
     migrate(db);
-    expect(db.pragma('user_version', { simple: true })).toBe(17);
+    expect(db.pragma('user_version', { simple: true })).toBe(18);
     expect(
       db.prepare('SELECT sql FROM sqlite_master ORDER BY name').pluck().all(),
     ).toEqual(before);
@@ -125,7 +125,7 @@ describe('migrate', () => {
     expect(db.prepare('SELECT COUNT(*) FROM meals').pluck().get()).toBe(0);
   });
 
-  it('keeps meals and their dishes when rebuilding meal_items in 0014', () => {
+  it('keeps meals and their dishes when rebuilding meal_items in 0014 and 0018', () => {
     const db = openDb(':memory:');
     const dir = new URL('./migrations/', import.meta.url);
     // The database as version 13 left it.
@@ -151,9 +151,9 @@ describe('migrate', () => {
     const before = db.prepare('SELECT * FROM meal_items ORDER BY id').all();
 
     migrate(db);
-    expect(db.pragma('user_version', { simple: true })).toBe(17);
+    expect(db.pragma('user_version', { simple: true })).toBe(18);
     expect(db.prepare('SELECT * FROM meal_items ORDER BY id').all()).toEqual(
-      before.map((r) => ({ ...(r as object), recipe_id: null })),
+      before.map((r) => ({ ...(r as object), recipe_id: null, barcode: null })),
     );
     // The new source passes the CHECK and the link is cleared with its recipe.
     db.prepare(
@@ -163,6 +163,15 @@ describe('migrate', () => {
     db.prepare(
       "UPDATE meal_items SET source = 'recipe', recipe_id = 1 WHERE name = 'Чай'",
     ).run();
+    // 0018 adds the barcode sources.
+    db.prepare(
+      "UPDATE meal_items SET source = 'label' WHERE name = 'Рис'",
+    ).run();
+    expect(() =>
+      db
+        .prepare("UPDATE meal_items SET source = 'photo' WHERE name = 'Рис'")
+        .run(),
+    ).toThrow();
     db.prepare('DELETE FROM recipes').run();
     expect(
       db.prepare("SELECT recipe_id FROM meal_items WHERE name = 'Чай'").get(),

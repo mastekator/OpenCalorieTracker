@@ -71,9 +71,21 @@ export function mealRoutes({ config, db, ai }: AppDeps) {
   ) => {
     const insert = db.prepare(
       `INSERT INTO meal_items (meal_id, position, name, name_key, grams, kcal, protein_g, fat_g,
-         carbs_g, source, ai_provider, ai_model, confidence, illustration, recipe_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         carbs_g, source, ai_provider, ai_model, confidence, illustration, recipe_id, barcode)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     );
+    // The user's own product, per 100 g (ADR-0034 §6): only values the user typed in are remembered.
+    const remember = db.prepare(
+      `INSERT INTO user_products (user_id, code, name, kcal_100, protein_100, fat_100, carbs_100,
+         per, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'g', ?, ?)
+       ON CONFLICT (user_id, code) DO UPDATE SET name = excluded.name,
+         kcal_100 = excluded.kcal_100, protein_100 = excluded.protein_100,
+         fat_100 = excluded.fat_100, carbs_100 = excluded.carbs_100, per = 'g',
+         updated_at = excluded.updated_at`,
+    );
+    const per100 = (v: number, g: number) => Math.round((v * 1000) / g) / 10;
+    const now = Date.now();
     // Another user's or a deleted recipe (the meal waited in the offline queue) → no link, no error.
     const ownRecipe = db
       .prepare('SELECT id FROM recipes WHERE id = ? AND user_id = ?')
@@ -98,7 +110,24 @@ export function mealRoutes({ config, db, ai }: AppDeps) {
         i.recipeId === undefined
           ? null
           : ((ownRecipe.get(i.recipeId, userId) as number | undefined) ?? null),
+        i.barcode ?? null,
       );
+      if (
+        i.barcode &&
+        i.kcal > 0 &&
+        (i.source === 'label' || i.source === 'manual')
+      )
+        remember.run(
+          userId,
+          i.barcode,
+          i.name,
+          per100(i.kcal, i.grams),
+          per100(i.proteinG, i.grams),
+          per100(i.fatG, i.grams),
+          per100(i.carbsG, i.grams),
+          now,
+          now,
+        );
     });
   };
 
