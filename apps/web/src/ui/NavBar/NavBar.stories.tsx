@@ -74,6 +74,23 @@ export const TextActionDesktop: Story = {
   globals: { viewport: { value: 'desktop' } },
 };
 
+/** Recipe editor offline: «Save» is disabled, the offline bar says why (E-10.5). */
+export const DisabledAction: Story = {
+  render: () => (
+    <Localised
+      make={(t) => ({
+        title: t('editor.new'),
+        back: { href: '/kitchen', label: t('common.cancel') },
+        action: { label: t('editor.save'), onClick: () => {}, disabled: true },
+      })}
+    />
+  ),
+};
+export const DisabledActionDark: Story = {
+  ...DisabledAction,
+  globals: { theme: 'dark' },
+};
+
 /** Nested screen: back to the previous screen, centred title. */
 export const Nested: Story = {
   render: () => (

@@ -38,6 +38,8 @@ type Fields = 'name' | 'weight' | 'kcal' | 'proteinG' | 'fatG' | 'carbsG';
 
 type Props = {
   units: Units;
+  /** Starting name, e.g. what was typed in the ingredient search. */
+  name?: string;
   /** «Add» with a valid dish: totals for its weight. */
   onAdd: (dish: ManualDish) => void;
   /** Close button, Esc, scrim, swipe down: the draft is dropped. */
@@ -45,12 +47,17 @@ type Props = {
 };
 
 /** Screen 5 (OCT-16 §4): a dish entered by hand, per 100 g or per serving. The screen mounts it while open. */
-export function ManualDishSheet({ units, onAdd, onClose }: Props) {
+export function ManualDishSheet({
+  units,
+  name: initialName = '',
+  onAdd,
+  onClose,
+}: Props) {
   const { t, num } = useT();
   const us = units === 'us';
   const unit = t(us ? 'unit.oz' : 'unit.g');
   const [text, setText] = useState<Record<Fields, string>>({
-    name: '',
+    name: initialName,
     weight: '',
     kcal: '',
     proteinG: '',

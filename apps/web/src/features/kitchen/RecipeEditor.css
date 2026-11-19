@@ -1,0 +1,159 @@
+.recipe-editor {
+  display: grid;
+  gap: var(--space-6);
+  align-content: start;
+}
+
+.recipe-editor p {
+  margin: 0;
+}
+
+/* Photo tile left of the name (OCT-160 2.3). */
+.recipe-editor__head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: end;
+  gap: var(--space-3);
+}
+
+.recipe-editor__photo {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 2px;
+  width: var(--thumb-size);
+  height: var(--thumb-size);
+  padding: 0;
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+  color: var(--color-accent);
+  font: inherit;
+  font-size: var(--text-footnote-size);
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.recipe-editor__photo:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+.recipe-editor__photo svg {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+}
+
+.recipe-editor__photo img {
+  width: var(--thumb-size);
+  height: var(--thumb-size);
+  object-fit: cover;
+}
+
+/* «Serving / 100 g / Total», kcal, live on every input. */
+.recipe-editor__totals {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.recipe-editor__total {
+  display: grid;
+  gap: 2px;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.recipe-editor__total dt {
+  color: var(--color-text-secondary);
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+}
+
+.recipe-editor__total dd {
+  margin: 0;
+  font-size: var(--text-title-size);
+  line-height: var(--text-title-lh);
+  font-weight: var(--text-title-weight);
+}
+
+.recipe-editor__group {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.list-row.recipe-editor__kv {
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.recipe-editor__servings {
+  min-width: var(--tap-min);
+  text-align: center;
+  font-weight: 600;
+}
+
+.recipe-editor__invalid {
+  border-color: var(--color-danger);
+  box-shadow: inset 0 0 0 1px var(--color-danger);
+}
+
+.recipe-editor__note,
+.recipe-editor__error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  padding-inline: var(--space-4);
+  color: var(--color-text-secondary);
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+}
+
+.recipe-editor__note--warning {
+  color: var(--color-warning);
+}
+
+.recipe-editor__error {
+  color: var(--color-danger);
+}
+
+.recipe-editor__note svg,
+.recipe-editor__error svg {
+  flex: none;
+  width: 1.2em;
+  height: 1.2em;
+}
+
+/* §10: name and totals over two columns — ingredients · yield and note. */
+@media (min-width: 1024px) {
+  .recipe-editor {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    /* The ingredients' height goes to the last row: the note stays under the yield. */
+    grid-template-rows: auto auto 1fr;
+    grid-template-areas:
+      'head totals'
+      'ingr yield'
+      'ingr more';
+    align-items: start;
+  }
+
+  .recipe-editor__head {
+    grid-area: head;
+  }
+  .recipe-editor__totals {
+    grid-area: totals;
+  }
+  .recipe-editor__ingredients {
+    grid-area: ingr;
+  }
+  .recipe-editor__yield {
+    grid-area: yield;
+  }
+  .recipe-editor__more {
+    grid-area: more;
+  }
+}

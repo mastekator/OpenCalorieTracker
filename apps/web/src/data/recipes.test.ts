@@ -1,8 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { openDB } from 'idb';
-import type { Recipe, SyncResponse } from '@oct/shared';
+import type { Meal, Recipe, RecipeInput, SyncResponse } from '@oct/shared';
 import { PILAF, SALAD } from '../features/kitchen/fixtures';
-import { byLastLogged, deleteRecipe } from './DataContext';
+import {
+  byLastLogged,
+  deleteRecipe,
+  findHistoryDishes,
+  saveRecipe,
+} from './DataContext';
 import { dbName, openUserDb, type Db } from './db';
 import { pull } from './sync';
 import { photoIds } from './thumbs';
@@ -111,6 +116,84 @@ describe('deleteRecipe', () => {
     await expect(deleteRecipe(db, PILAF.id)).rejects.toThrow();
     expect(await db.get('recipes', PILAF.id)).toEqual(PILAF);
   });
+});
+
+describe('saveRecipe', () => {
+  const input: RecipeInput = {
+    name: SALAD.name,
+    cookedG: null,
+    servings: null,
+    note: null,
+    photoId: null,
+    ingredients: SALAD.ingredients,
+    steps: [],
+  };
+
+  it('POST for a new one, PUT for a saved one; the answer goes into the copy', async () => {
+    db = await openUserDb(7);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => Response.json({ ...SALAD, id: 9 }, { status: 201 })),
+    );
+    await saveRecipe(db, input);
+    expect(vi.mocked(fetch).mock.calls[0]).toMatchObject([
+      '/api/recipes',
+      { method: 'POST' },
+    ]);
+    expect(await db.get('recipes', 9)).toEqual({ ...SALAD, id: 9 });
+    await saveRecipe(db, input, 9);
+    expect(vi.mocked(fetch).mock.calls[1]).toMatchObject([
+      '/api/recipes/9',
+      { method: 'PUT' },
+    ]);
+  });
+
+  it('a 4xx / 5xx throws and writes nothing', async () => {
+    db = await openUserDb(7);
+    await db.put('recipes', SALAD);
+    for (const status of [400, 500]) {
+      vi.stubGlobal('fetch', async () =>
+        Response.json({ error: { code: 'internal' } }, { status }),
+      );
+      await expect(
+        saveRecipe(db, { ...input, name: 'Changed' }, SALAD.id),
+      ).rejects.toThrow();
+    }
+    expect(await db.getAll('recipes')).toEqual([SALAD]);
+  });
+});
+
+it('findHistoryDishes: by part of the name, the latest per name, no 0 g', async () => {
+  db = await openUserDb(7);
+  const meal = (clientId: string, eatenAt: string, items: object[]) =>
+    ({ clientId, eatenAt, localDate: eatenAt.slice(0, 10), items }) as Meal;
+  const dish = (name: string, grams: number, kcal: number) => ({
+    name,
+    grams,
+    kcal,
+    proteinG: 1,
+    fatG: 1,
+    carbsG: 1,
+  });
+  await db.put(
+    'meals',
+    meal('a', '2026-11-01T12:00:00.000Z', [
+      dish('Carrots', 100, 35),
+      dish('Rice', 200, 260),
+    ]),
+  );
+  await db.put(
+    'meals',
+    meal('b', '2026-11-03T12:00:00.000Z', [
+      dish('carrots', 150, 50),
+      dish('Korean carrot salad', 0, 0),
+    ]),
+  );
+  const found = await findHistoryDishes(db, ' CARROT');
+  expect(found).toEqual([
+    { ...dish('carrots', 150, 50), eatenAt: '2026-11-03T12:00:00.000Z' },
+  ]);
+  expect(await findHistoryDishes(db, '')).toEqual([]);
 });
 
 it('byLastLogged: recently logged first, then never logged by last edit', () => {

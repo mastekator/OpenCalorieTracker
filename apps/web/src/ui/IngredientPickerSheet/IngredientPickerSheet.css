@@ -1,0 +1,15 @@
+.ingredient-picker {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.ingredient-picker__group {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.ingredient-picker__group svg {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+}

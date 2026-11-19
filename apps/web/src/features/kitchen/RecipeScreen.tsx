@@ -58,6 +58,7 @@ type Props = {
 /** The recipe card (OCT-160 2.1, 2.2, 2.7); desktop: three columns (§10). */
 export function RecipeView({ recipe, today, online, onDelete }: Props) {
   const { t, num } = useT();
+  const [, navigate] = useLocation();
   const { when } = useWeightFormat('metric');
   const [menu, setMenu] = useState(false);
   const [confirm, setConfirm] = useState(false);
@@ -175,6 +176,15 @@ export function RecipeView({ recipe, today, online, onDelete }: Props) {
         onClose={() => setMenu(false)}
         footer={
           <>
+            <Button
+              variant="plain"
+              onClick={() => {
+                setMenu(false);
+                navigate(`/kitchen/${recipe.id}/edit`);
+              }}
+            >
+              {t('recipe.edit')}
+            </Button>
             <Button
               variant="danger-plain"
               disabled={!online}

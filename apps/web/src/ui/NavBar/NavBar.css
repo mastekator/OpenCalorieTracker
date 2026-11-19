@@ -107,6 +107,11 @@
   justify-content: center;
 }
 
+.navbar__action:disabled {
+  color: var(--color-text-disabled);
+  cursor: default;
+}
+
 .navbar__action--text {
   padding-inline: var(--space-2);
   font: inherit;
@@ -121,7 +126,7 @@
 
 @media (hover: hover) {
   .navbar__back:hover,
-  .navbar__action:hover {
+  .navbar__action:hover:not(:disabled) {
     background: var(--color-hover);
   }
 }
