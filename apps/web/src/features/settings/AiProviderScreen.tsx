@@ -29,6 +29,7 @@ import {
 } from './aiDraft';
 import { ModelCompare } from './ModelCompare';
 import { ModelTest } from './ModelTest';
+import './settings.css';
 
 export { AI_STATUS_PATH };
 
@@ -309,25 +310,29 @@ function RefineLimitField({
 
   return (
     <form
-      className="list"
+      className="list settings__limit"
       onSubmit={(e) => {
         e.preventDefault();
         void commit();
       }}
     >
       <h2 className="list__title">{t('ai.form.limit_title')}</h2>
-      <Field
-        label={t('ai.form.limit')}
-        hint={t('ai.form.limit_hint')}
-        error={error}
-        inputMode="numeric"
-        value={value}
-        onChange={(e) => {
-          setValue(e.target.value);
-          setError(undefined);
-        }}
-        onBlur={() => void commit()}
-      />
+      <ul className="list__rows">
+        <li className="list__item ai-form__field">
+          <Field
+            label={t('ai.form.limit')}
+            hint={t('ai.form.limit_hint')}
+            error={error}
+            inputMode="numeric"
+            value={value}
+            onChange={(e) => {
+              setValue(e.target.value);
+              setError(undefined);
+            }}
+            onBlur={() => void commit()}
+          />
+        </li>
+      </ul>
     </form>
   );
 }

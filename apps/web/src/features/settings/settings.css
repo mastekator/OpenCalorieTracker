@@ -50,3 +50,8 @@
   color: var(--color-text-secondary);
   text-align: center;
 }
+
+/* OCT-292: the limit section sits under the check hint, so it needs more air than the screen gap. */
+.settings__limit {
+  margin-block-start: var(--space-3);
+}
