@@ -19,6 +19,7 @@ import { illustrationRoutes } from './illustrations/routes.js';
 import { normAgentRoutes } from './norm-agent/routes.js';
 import { photoRoutes } from './photos/routes.js';
 import { profileRoutes } from './profile/routes.js';
+import { recipeRoutes } from './recipes/routes.js';
 import { setupRoutes } from './setup/routes.js';
 import { syncRoutes } from './sync/routes.js';
 import { weightRoutes } from './weight/routes.js';
@@ -76,6 +77,7 @@ export function createApp(deps: AppDeps) {
   app.route('/api', aiRoutes(deps));
   app.route('/api', photoRoutes(deps));
   app.route('/api', mealRoutes(deps));
+  app.route('/api', recipeRoutes(deps));
   app.route('/api', illustrationRoutes(deps));
   app.route('/api', diaryRoutes(deps));
   app.route('/api', normAgentRoutes(deps));

@@ -14,7 +14,7 @@ const FILE_RE = /^([A-Za-z0-9_-]{22})\.(jpg|webp)(\.tmp)?$/;
 const list = (dir: string) => readdir(dir).catch(() => [] as string[]);
 
 /**
- * Deletes expired full photos (keeping the preview and the meal), files no meal owns older than
+ * Deletes expired full photos (keeping the preview and the meal), files no meal or recipe owns older than
  * 30 days, and the photo folders of deleted users. Only names the server itself creates are touched.
  */
 export async function sweepPhotos(db: Database, dataDir: string, now: number) {
@@ -44,6 +44,12 @@ export async function sweepPhotos(db: Database, dataDir: string, now: number) {
   const meal = db.prepare(
     'SELECT photo_full FROM meals WHERE user_id = ? AND photo_id = ?',
   );
+  // Recipe photos are kept whole while the recipe lives; retention applies to meals only (ADR-0023 §7).
+  const recipe = db.prepare(
+    `SELECT 1 FROM recipes WHERE user_id = @u AND photo_id = @p
+     UNION ALL SELECT 1 FROM recipe_steps s JOIN recipes r ON r.id = s.recipe_id
+     WHERE r.user_id = @u AND s.photo_id = @p`,
+  );
   for (const name of await list(root)) {
     if (!/^[1-9]\d*$/.test(name)) continue;
     const dir = join(root, name);
@@ -56,7 +62,10 @@ export async function sweepPhotos(db: Database, dataDir: string, now: number) {
       const m = FILE_RE.exec(file);
       if (!m) continue;
       const row = meal.get(userId, m[1]) as { photo_full: number } | undefined;
-      const kept = row && !m[3] && (m[2] === 'webp' || row.photo_full === 1);
+      const kept =
+        !m[3] &&
+        ((row && (m[2] === 'webp' || row.photo_full === 1)) ||
+          recipe.get({ u: userId, p: m[1] }));
       if (kept) continue;
       const path = join(dir, file);
       const info = await stat(path).catch(() => null);

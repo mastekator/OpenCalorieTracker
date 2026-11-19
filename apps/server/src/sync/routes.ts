@@ -11,6 +11,7 @@ import { requireUser, type AuthEnv } from '../auth/session.js';
 import { validate } from '../http/validate.js';
 import { readMealsByRev } from '../meals/read.js';
 import { readProfile } from '../profile/norm.js';
+import { readRecipesByRev } from '../recipes/read.js';
 
 type Change =
   | { rev: number; kind: 'meal' }
@@ -23,7 +24,9 @@ type Change =
     }
   | { rev: number; kind: 'settings' }
   | { rev: number; kind: 'profile' }
-  | { rev: number; kind: 'weighing'; date: string; weightKg: number | null };
+  | { rev: number; kind: 'weighing'; date: string; weightKg: number | null }
+  | { rev: number; kind: 'recipe' }
+  | { rev: number; kind: 'deletedRecipe'; recipeId: number };
 
 /**
  * Everything of the user changed after `since`, by rev (ADR-0011 §3). Each change has its own
@@ -45,6 +48,13 @@ export function syncRoutes({ db }: AppDeps) {
   );
   const weighings = db.prepare(
     `SELECT rev, 'weighing' AS kind, date, weight_kg AS weightKg FROM weighings
+     WHERE user_id = ? AND rev > ? ORDER BY rev LIMIT ${limit}`,
+  );
+  const recipes = db.prepare(
+    `SELECT rev, 'recipe' AS kind FROM recipes WHERE user_id = ? AND rev > ? ORDER BY rev LIMIT ${limit}`,
+  );
+  const recipeTombstones = db.prepare(
+    `SELECT rev, 'deletedRecipe' AS kind, recipe_id AS recipeId FROM recipe_tombstones
      WHERE user_id = ? AND rev > ? ORDER BY rev LIMIT ${limit}`,
   );
   const profile = db.prepare(
@@ -71,6 +81,8 @@ export function syncRoutes({ db }: AppDeps) {
           ...(tombstones.all(userId, since) as Change[]),
           ...(choices.all(userId, since) as Change[]),
           ...(weighings.all(userId, since) as Change[]),
+          ...(recipes.all(userId, since) as Change[]),
+          ...(recipeTombstones.all(userId, since) as Change[]),
           ...(profile.all(userId, since) as Change[]),
           // since = 0 is the first load: never-changed settings (settings_rev 0) come too.
           ...(settingsRev > since || since === 0
@@ -88,6 +100,8 @@ export function syncRoutes({ db }: AppDeps) {
             : [],
           deletedMealClientIds: [],
         };
+        if (page.some((x) => x.kind === 'recipe'))
+          out.recipes = readRecipesByRev(db, userId, since, rev);
         for (const x of page)
           if (x.kind === 'deleted') out.deletedMealClientIds.push(x.clientId);
           else if (x.kind === 'choice')
@@ -100,6 +114,8 @@ export function syncRoutes({ db }: AppDeps) {
           else if (x.kind === 'profile') out.profile = readProfile(db, userId);
           else if (x.kind === 'weighing')
             (out.weighings ??= []).push({ date: x.date, weightKg: x.weightKg });
+          else if (x.kind === 'deletedRecipe')
+            (out.deletedRecipeIds ??= []).push(x.recipeId);
         return out;
       })();
       return c.json(res);

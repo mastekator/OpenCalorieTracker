@@ -15,7 +15,7 @@ describe('migrate', () => {
   it('brings an empty database to the latest version', () => {
     const db = openDb(':memory:');
     migrate(db);
-    expect(db.pragma('user_version', { simple: true })).toBe(13);
+    expect(db.pragma('user_version', { simple: true })).toBe(14);
     expect(tables(db)).toEqual([
       'agent_drafts',
       'agent_messages',
@@ -31,8 +31,13 @@ describe('migrate', () => {
       'passkeys',
       'passwords',
       'profiles',
+      'recipe_ingredients',
+      'recipe_steps',
+      'recipe_tombstones',
+      'recipes',
       'sessions',
       'setup_code',
+      'sqlite_sequence',
       'users',
       'weighings',
     ]);
@@ -57,7 +62,7 @@ describe('migrate', () => {
       .pluck()
       .all();
     migrate(db);
-    expect(db.pragma('user_version', { simple: true })).toBe(13);
+    expect(db.pragma('user_version', { simple: true })).toBe(14);
     expect(
       db.prepare('SELECT sql FROM sqlite_master ORDER BY name').pluck().all(),
     ).toEqual(before);
@@ -113,6 +118,52 @@ describe('migrate', () => {
     db.prepare('DELETE FROM users WHERE id = 1').run();
     expect(db.prepare('SELECT COUNT(*) FROM passwords').pluck().get()).toBe(0);
     expect(db.prepare('SELECT COUNT(*) FROM meals').pluck().get()).toBe(0);
+  });
+
+  it('keeps meals and their dishes when rebuilding meal_items in 0014', () => {
+    const db = openDb(':memory:');
+    const dir = new URL('./migrations/', import.meta.url);
+    // The database as version 13 left it.
+    for (const f of readdirSync(dir)
+      .filter((f) => /^\d{4}_\w+\.sql$/.test(f) && f < '0014')
+      .sort())
+      db.exec(readFileSync(new URL(f, dir), 'utf8'));
+    db.pragma('user_version = 13');
+    db.prepare(
+      "INSERT INTO users (id, email, role, webauthn_user_id, created_at) VALUES (1, 'a@b.c', 'user', x'01', 0)",
+    ).run();
+    db.prepare(
+      `INSERT INTO meals (id, user_id, client_id, eaten_at, tz_offset_min, local_date, meal_type, created_at, updated_at)
+       VALUES (1, 1, 'c', 0, 0, '1970-01-01', 'lunch', 0, 0)`,
+    ).run();
+    const insert = db.prepare(
+      `INSERT INTO meal_items (meal_id, position, name, name_key, grams, kcal, protein_g, fat_g,
+         carbs_g, source, ai_provider, ai_model, confidence, illustration)
+       VALUES (1, ?, ?, ?, 150, 210.5, 7.1, 3.2, 40.4, ?, ?, ?, ?, ?)`,
+    );
+    insert.run(0, 'Рис', 'рис', 'ai', 'openai', 'gpt', 0.8, 'rice');
+    insert.run(1, 'Чай', 'чай', 'manual', null, null, null, null);
+    const before = db.prepare('SELECT * FROM meal_items ORDER BY id').all();
+
+    migrate(db);
+    expect(db.pragma('user_version', { simple: true })).toBe(14);
+    expect(db.prepare('SELECT * FROM meal_items ORDER BY id').all()).toEqual(
+      before.map((r) => ({ ...(r as object), recipe_id: null })),
+    );
+    // The new source passes the CHECK and the link is cleared with its recipe.
+    db.prepare(
+      `INSERT INTO recipes (id, user_id, name, name_key, rev, created_at, updated_at)
+       VALUES (1, 1, 'Плов', 'плов', 1, 0, 0)`,
+    ).run();
+    db.prepare(
+      "UPDATE meal_items SET source = 'recipe', recipe_id = 1 WHERE name = 'Чай'",
+    ).run();
+    db.prepare('DELETE FROM recipes').run();
+    expect(
+      db.prepare("SELECT recipe_id FROM meal_items WHERE name = 'Чай'").get(),
+    ).toEqual({ recipe_id: null });
+    db.prepare('DELETE FROM meals').run();
+    expect(db.prepare('SELECT COUNT(*) FROM meal_items').pluck().get()).toBe(0);
   });
 
   it('turns foreign keys back on when a migration fails', () => {
