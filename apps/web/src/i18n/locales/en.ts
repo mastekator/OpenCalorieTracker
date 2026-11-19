@@ -132,6 +132,7 @@ export const en = {
         ai_off_body: 'Without it, food is entered by hand',
         ai_on: 'AI connected',
         ai_on_body: 'Snap your food — calories and macros are counted for you',
+        ai_failing_body: 'Check the key and model in AI settings',
         ai_cta: 'Set up AI',
         invite: 'Invite your people',
         invite_body: 'Send a link — everyone gets their own diary and goal',

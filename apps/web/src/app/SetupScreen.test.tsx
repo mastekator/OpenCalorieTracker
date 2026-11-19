@@ -352,6 +352,39 @@ describe('setup step 2 and 3', () => {
     expect(screen.queryByRole('link', { name: 'Set up AI' })).toBeNull();
   });
 
+  it('a failing provider asks to check the key and model', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        Response.json({
+          provider: 'google',
+          providerName: 'Google',
+          model: 'gemini-3.8-flash',
+          keySet: true,
+          baseUrlHost: null,
+          source: 'env',
+          keyLast4: null,
+          keyUnreadable: false,
+          savedInactive: false,
+          rev: null,
+          refineLimit: null,
+          state: 'unavailable',
+          checkedAt: null,
+        }),
+      ),
+    );
+    localStorage.setItem(LOCALE_STORAGE_KEY, 'en');
+    render(
+      <I18nProvider>
+        <SetupScreen config={config} onSignedIn={async () => {}} step={3} />
+      </I18nProvider>,
+    );
+    expect(
+      await screen.findByText('Check the key and model in AI settings'),
+    ).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Set up AI' })).toBeTruthy();
+  });
+
   it('both methods at another origin: password first and the reason', async () => {
     renderSetup({ origin: 'http://192.168.1.5:3000' });
     serve();

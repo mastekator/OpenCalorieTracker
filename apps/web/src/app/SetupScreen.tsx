@@ -412,9 +412,11 @@ function Ready() {
             )}
             <p>
               {t(
-                on
-                  ? 'setup.wizard.ready.ai_on_body'
-                  : 'setup.wizard.ready.ai_off_body',
+                !on
+                  ? 'setup.wizard.ready.ai_off_body'
+                  : tone === 'err' || tone === 'warn'
+                    ? 'setup.wizard.ready.ai_failing_body'
+                    : 'setup.wizard.ready.ai_on_body',
               )}
             </p>
             {/* Configured and working needs nothing; off, failing or unknown — the AI screen. */}
