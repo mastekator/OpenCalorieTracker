@@ -654,6 +654,7 @@ export function MealEditScreen({
   /** Resolves true once saved; false when invalid, already saving or failed (the screen shows why). */
   async function save() {
     if (saving.current || !valid) return false; // a second tap sends nothing (E-4.2)
+    if (meal && uploading) return false; // a saved entry would lose the photo being uploaded
     saving.current = true;
     setStatus('saving');
     const at = date ? pastAt() : now();
@@ -895,7 +896,7 @@ export function MealEditScreen({
         )}
         <div className="meal-edit__body">
           <aside
-            className={`meal-edit__summary${!meal || photo ? ' meal-edit__summary--photo' : ''}`}
+            className={`meal-edit__summary${!meal || photo || uploading ? ' meal-edit__summary--photo' : ''}`}
           >
             {photo ? (
               brokenUrl === photo.url ? (
@@ -914,7 +915,7 @@ export function MealEditScreen({
                   onError={() => setBrokenUrl(photo.url)}
                 />
               )
-            ) : meal ? null : (
+            ) : meal && !uploading ? null : (
               <button
                 type="button"
                 className="meal-edit__thumb meal-edit__photo-add"
@@ -1248,7 +1249,7 @@ export function MealEditScreen({
               <Button
                 onClick={() => void save()}
                 disabled={!valid || working}
-                loading={busy}
+                loading={busy || (!!meal && uploading)}
               >
                 {t(
                   busy

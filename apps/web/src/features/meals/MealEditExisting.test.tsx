@@ -431,6 +431,8 @@ describe('recalculation from the photo (OCT-62)', () => {
       recognize = () => Response.json({ dishes: [porridge] }),
       refine = () =>
         Response.json({ error: { code: 'ai_no_vision' } }, { status: 409 }),
+      upload = (): Response | Promise<Response> =>
+        Response.json({ photoId: 'p1' }, { status: 201 }),
     } = {},
   ) {
     sent = [];
@@ -456,8 +458,7 @@ describe('recalculation from the photo (OCT-62)', () => {
             refineLimit: null,
           });
         }
-        if (url === '/api/photos')
-          return Response.json({ photoId: 'p1' }, { status: 201 });
+        if (url === '/api/photos') return upload();
         if (url === '/api/photos/p1/recognize') return recognize();
         if (url === '/api/ai/refine') return refine();
         if (url === '/api/dishes/previous') return Response.json([null]);
@@ -611,6 +612,73 @@ describe('recalculation from the photo (OCT-62)', () => {
         }),
       ),
     );
+  });
+
+  async function uploadHeld(answer: Response) {
+    let release!: () => void;
+    const held = new Promise<Response>(
+      (done) => (release = () => done(answer)),
+    );
+    await setup(withPhoto({ photo: null, recalcOffer: false }), {
+      upload: () => held,
+    });
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Illustration: Grains & sides, change',
+      }),
+    );
+    fireEvent.click(button('From library'));
+    fireEvent.change(screen.getByTestId('edit-photo'), {
+      target: { files: [new File(['jpeg'], 'a.jpg', { type: 'image/jpeg' })] },
+    });
+    const slot = await screen.findByRole('button', { name: 'Add photo' });
+    return { slot, release };
+  }
+  const patches = () => sent.filter((s) => s.method === 'PATCH');
+
+  it('a saved meal waits for its photo upload: spinner slot, Save busy (OCT-317)', async () => {
+    const { slot, release } = await uploadHeld(
+      Response.json({ photoId: 'p1' }, { status: 201 }),
+    );
+    expect(slot.getAttribute('aria-busy')).toBe('true');
+    expect(slot.querySelector('.button__spinner')).toBeTruthy();
+    const save = button('Save');
+    expect(save.getAttribute('aria-busy')).toBe('true');
+    fireEvent.click(save);
+    fireEvent.keyDown(document, { key: 'Enter', ctrlKey: true });
+    await act(async () => {});
+    expect(patches()).toEqual([]);
+
+    await act(async () => release());
+    await waitFor(() =>
+      expect(document.querySelector('img.meal-edit__thumb')).toBeTruthy(),
+    );
+    expect(screen.queryByRole('button', { name: 'Add photo' })).toBeNull();
+    expect(button('Save').getAttribute('aria-busy')).toBeNull();
+    fireEvent.click(button('Save'));
+    await waitFor(() =>
+      expect(patches()).toEqual([
+        expect.objectContaining({
+          body: expect.objectContaining({ photoId: 'p1' }),
+        }),
+      ]),
+    );
+  });
+
+  it('a failed upload frees Save: the meal saves without a photo (OCT-317)', async () => {
+    const { release } = await uploadHeld(
+      Response.json({ error: { code: 'internal' } }, { status: 500 }),
+    );
+    await act(async () => release());
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: 'Add photo' })).toBeNull(),
+    );
+    expect(document.querySelector('img.meal-edit__thumb')).toBeNull();
+    expect(button('Save').getAttribute('aria-busy')).toBeNull();
+    fireEvent.change(weight(), { target: { value: '250' } });
+    fireEvent.click(button('Save'));
+    await waitFor(() => expect(patches()).toHaveLength(1));
+    expect(patches()[0]!.body).not.toHaveProperty('photoId');
   });
 
   it('«Recognize again» shown: no «Recalculate from photo» (OCT-273)', async () => {
