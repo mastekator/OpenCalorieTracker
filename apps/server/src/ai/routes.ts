@@ -1,11 +1,14 @@
+import { createHash } from 'node:crypto';
 import { access, readFile } from 'node:fs/promises';
 import { Hono } from 'hono';
 import {
   AI_PROVIDERS,
+  recipeParseRequestSchema,
   refineRequestSchema,
   type AiStatus,
   type LighterResponse,
   type Recognition,
+  type RecipeParseResponse,
   type RefineResponse,
 } from '@oct/shared';
 import type { AppDeps } from '../app.js';
@@ -15,6 +18,7 @@ import { validate } from '../http/validate.js';
 import { photoPath } from '../photos/store.js';
 import { readRecipe } from '../recipes/read.js';
 import { lighterRecipe } from './lighter.js';
+import { parseRecipe } from './parse.js';
 import { recognizeMeal } from './recognize.js';
 import { refineMeal, type Refined } from './refine.js';
 import { baseUrlHost, refineLimit } from './settings.js';
@@ -218,7 +222,26 @@ export function aiRoutes({ config, db, ai }: AppDeps) {
         () => lighterRecipe(model, readRecipe(db, Number(id)), user.locale),
       );
       return c.json(await result);
-    });
+    })
+    .post(
+      '/ai/recipes/parse',
+      requireUser,
+      validate('json', recipeParseRequestSchema),
+      async (c) => {
+        const model = ai.current()?.model ?? null;
+        if (!model) throw new ApiError(409, 'ai_not_configured');
+        const user = c.var.user;
+        const { text } = c.req.valid('json');
+        // By a hash, so the key kept for 10 minutes holds no recipe text; a retry joins the call.
+        const hash = createHash('sha256').update(text).digest('hex');
+        const result = once<RecipeParseResponse>(
+          `${user.id}:parse:${hash}`,
+          user.id,
+          () => parseRecipe(model, text, user.locale),
+        );
+        return c.json(await result);
+      },
+    );
 }
 
 const exists = (path: string) =>
