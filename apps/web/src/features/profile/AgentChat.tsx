@@ -13,7 +13,7 @@ import {
   ageYears,
   cmToFtIn,
   goalSchema,
-  nextField,
+  REQUIRED_FIELDS,
   weightFromKg,
   type AgentResponse,
   type AssistantMessage,
@@ -245,12 +245,13 @@ export function AgentChat({
     }).format(new Date(iso));
   const weightUnit = t(units === 'us' ? 'unit.lb' : 'unit.kg');
   const height = (cm: number) => {
-    if (units === 'metric') return `${Math.round(cm)} ${t('unit.cm')}`;
+    if (units === 'metric') return `${Math.round(cm)}\u00a0${t('unit.cm')}`;
     const { ft, in: inches } = cmToFtIn(cm);
-    return `${ft}′ ${inches}″`;
+    return `${ft}′\u00a0${inches}″`;
   };
   const weight = (kg: number) =>
-    `${num1.format(weightFromKg(kg, units))} ${weightUnit}`;
+    // No-break space: a value never wraps away from its unit.
+    `${num1.format(weightFromKg(kg, units))}\u00a0${weightUnit}`;
 
   const capsules = (ask: InterviewField | undefined): QuickReply[] => {
     if (ask === 'sex')
@@ -331,7 +332,8 @@ export function AgentChat({
           replies: capsules(m.ask),
         };
       case 'opening': {
-        const ask = nextField({ profile: m.known, unknown: [] });
+        // Only a new user gets the greeting; a known profile is confirmed first, the target and deadline come next turn.
+        const ask = REQUIRED_FIELDS.find((k) => m.known[k] === null);
         const note = !disclaimerHidden && (
           <ChatNote>{t('norm.disclaimer')}</ChatNote>
         );

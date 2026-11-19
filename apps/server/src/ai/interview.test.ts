@@ -90,7 +90,7 @@ describe('normInterview', () => {
     );
     expect(logs()).toEqual([
       expect.stringMatching(
-        /^ai\.interview provider=mock model=text-1 prompt=1 ms=\d+ fields=sex,ageYears,weight result=ok$/,
+        /^ai\.interview provider=mock model=text-1 prompt=2 ms=\d+ fields=sex,ageYears,weight result=ok$/,
       ),
     ]);
     expect(logs()[0]).not.toContain('tall');

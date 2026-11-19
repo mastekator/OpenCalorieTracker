@@ -379,7 +379,7 @@ describe('ProfileForm', () => {
       screen.queryByRole('button', { name: 'Hide this notice' }),
     ).toBeNull();
     expect(
-      screen.queryByRole('button', { name: /Set up with the assistant/ }),
+      screen.queryByRole('button', { name: /with the assistant/ }),
     ).toBeNull();
   });
 
@@ -437,13 +437,30 @@ describe('ProfileForm', () => {
     expect(onHideDisclaimer).toHaveBeenCalledOnce();
     expect(screen.queryByText(/not medical advice/)).toBeNull();
     expect(document.activeElement).toBe(
-      screen.getByRole('button', { name: /Set up with the assistant/ }),
+      screen.getByRole('button', { name: 'Recalculate with the assistant' }),
     );
     // After a reload the account flag keeps it hidden.
     cleanup();
     setup(base, { onHideDisclaimer, disclaimerHidden: true });
     await screen.findByText(kcal(2760));
     expect(screen.queryByText(/not medical advice/)).toBeNull();
+  });
+
+  it('the assistant button: «work out» without a goal, «recalculate» with the hint once there is one (OCT-302)', async () => {
+    setup({ ...base, activity: null }, { onAgent: vi.fn() });
+    await screen.findByRole('button', {
+      name: 'Calculate with the assistant',
+    });
+    expect(screen.queryByText(/Nothing changes until/)).toBeNull();
+    cleanup();
+    setup(base, { onAgent: vi.fn() });
+    const button = await screen.findByRole('button', {
+      name: 'Recalculate with the assistant',
+    });
+    const hint = screen.getByText(
+      'Nothing changes until you apply the new goal',
+    );
+    expect(button.getAttribute('aria-describedby')).toBe(hint.id);
   });
 
   it('no close button on the disclaimer before a norm was ever saved', async () => {
