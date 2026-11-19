@@ -260,6 +260,27 @@ describe('RecipeEditor', () => {
       ]);
     });
 
+    it('dragging the handle down past two steps moves the step to the end', async () => {
+      // jsdom has no layout: each step is 100 px tall, in DOM order.
+      vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(
+        function (this: Element) {
+          const i = [...(this.parentElement?.children ?? [])].indexOf(this);
+          return { top: i * 100, height: 100 } as DOMRect;
+        },
+      );
+      await view({ recipe: PILAF });
+      const grip = screen.getByRole('button', { name: 'Move step 1' });
+      fireEvent.pointerDown(grip, { button: 0, clientY: 50 });
+      for (const y of [120, 180, 260])
+        fireEvent.pointerMove(window, { clientY: y });
+      fireEvent.pointerUp(window);
+      fireEvent.click(grip);
+      expect(texts()).toEqual(['Heat', 'Add ', 'Dice']);
+      // The click that ends a drag opens no menu.
+      expect(screen.queryByRole('button', { name: 'Move up' })).toBeNull();
+      vi.restoreAllMocks();
+    });
+
     it('«+ Step» adds a step that goes into the POST; a blank one and a deleted one do not', async () => {
       const { onSave } = await view({ recipe: SALAD });
       fireEvent.click(screen.getByRole('button', { name: 'Step' }));

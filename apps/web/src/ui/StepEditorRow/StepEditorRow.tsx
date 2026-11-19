@@ -37,42 +37,50 @@ export function StepEditorRow({
 }: Props) {
   const { t } = useT();
   const fileInput = useRef<HTMLInputElement>(null);
-  const drag = useRef<{ y: number; moved: boolean } | null>(null);
+  const row = useRef<HTMLLIElement>(null);
   const dragged = useRef(false);
   const [dragging, setDragging] = useState(false);
+  // Read by the window listeners of a drag in progress, which outlive this render.
+  const latest = useRef({ index, onMove });
+  latest.current = { index, onMove };
   const i = index + 1;
 
+  // Listeners on window, not pointer capture: reordering moves this row in the DOM, which drops a capture.
   const onPointerDown = (e: PointerEvent<HTMLButtonElement>) => {
     if (e.button !== 0) return;
-    e.currentTarget.setPointerCapture(e.pointerId);
-    drag.current = { y: e.clientY, moved: false };
-  };
-  const onPointerMove = (e: PointerEvent<HTMLButtonElement>) => {
-    const d = drag.current;
-    if (!d) return;
-    if (!d.moved && Math.abs(e.clientY - d.y) < DRAG_SLOP) return;
-    if (!d.moved) setDragging(true);
-    d.moved = true;
-    const row = e.currentTarget.closest('.list__item');
-    const rows = [
-      ...(row?.parentElement?.querySelectorAll(':scope > .step-item') ?? []),
-    ];
-    // Steps above the pointer, not counting this one: where this one belongs.
-    const to = rows.filter((r) => {
-      if (r === row) return false;
-      const box = r.getBoundingClientRect();
-      return box.top + box.height / 2 < e.clientY;
-    }).length;
-    if (to !== index) onMove(to);
-  };
-  const onPointerEnd = () => {
-    dragged.current = !!drag.current?.moved;
-    drag.current = null;
-    setDragging(false);
+    const startY = e.clientY;
+    let moved = false;
+    dragged.current = false;
+    const move = (ev: globalThis.PointerEvent) => {
+      if (!moved && Math.abs(ev.clientY - startY) < DRAG_SLOP) return;
+      if (!moved) setDragging(true);
+      moved = true;
+      const self = row.current;
+      const rows = [
+        ...(self?.parentElement?.querySelectorAll(':scope > .step-item') ?? []),
+      ];
+      // Steps above the pointer, not counting this one: where this one belongs.
+      const to = rows.filter((r) => {
+        if (r === self) return false;
+        const box = r.getBoundingClientRect();
+        return box.top + box.height / 2 < ev.clientY;
+      }).length;
+      if (to !== latest.current.index) latest.current.onMove(to);
+    };
+    const end = () => {
+      dragged.current = moved;
+      setDragging(false);
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', end);
+      window.removeEventListener('pointercancel', end);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', end);
+    window.addEventListener('pointercancel', end);
   };
 
   return (
-    <li className="list__item step-item">
+    <li ref={row} className="list__item step-item">
       <div
         className={`list-row step-editor-row${dragging ? ' step-editor-row--dragging' : ''}`}
       >
@@ -126,9 +134,6 @@ export function StepEditorRow({
           aria-label={t('editor.step_move', { i })}
           aria-haspopup="dialog"
           onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerEnd}
-          onPointerCancel={onPointerEnd}
           onClick={() => {
             // The click that ends a drag is not a tap.
             if (dragged.current) dragged.current = false;
