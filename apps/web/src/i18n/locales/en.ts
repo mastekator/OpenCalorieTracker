@@ -1161,6 +1161,7 @@ export const en = {
         'The server restarted during the test. The result doesn’t count — you can run it again.',
       again: 'Run again',
       photo_alt: 'Test photo: {name}',
+      not_food: 'Not food',
       expected: 'Expected',
       got: 'Got',
       empty: 'empty',
