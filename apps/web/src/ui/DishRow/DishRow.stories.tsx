@@ -173,7 +173,7 @@ export const MarkRenamedDark: Story = {
   ...MarkRenamed,
   globals: { theme: 'dark' },
 };
-/** A long old name wraps beside the stepper and never squeezes it (C.1). */
+/** A long old name takes its own line under the stepper, two lines at most (C.1). */
 export const MarkRenamedLong: Story = {
   args: {
     mark: {
