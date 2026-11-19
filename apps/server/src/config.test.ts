@@ -134,7 +134,8 @@ describe('setupRequired (ADR-0021 §1, §6, §9)', () => {
       )
       .run();
     t.db.exec(
-      'DROP TABLE setup_code; DROP TABLE ai_test_runs; DROP TABLE ai_limits',
+      'DROP TABLE setup_code; DROP TABLE ai_test_runs; DROP TABLE ai_limits; ' +
+        'DROP TABLE recipe_tombstones; DROP TABLE recipe_steps; DROP TABLE recipe_ingredients; DROP TABLE recipes',
     );
     t.db.pragma('user_version = 10');
     migrate(t.db);

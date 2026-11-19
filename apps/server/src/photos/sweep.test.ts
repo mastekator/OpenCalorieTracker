@@ -101,6 +101,32 @@ describe('sweepPhotos', () => {
     expect(existsSync(other)).toBe(true);
   });
 
+  it('keeps recipe and step photos past the orphan age (ADR-0023 §7)', async () => {
+    const t = await setup();
+    const hero = 'hero'.padEnd(22, 'a');
+    const step = 'step'.padEnd(22, 'a');
+    await t.files(hero, ORPHAN_AGE_MS * 10);
+    await t.files(step, ORPHAN_AGE_MS * 10);
+    const id = t.db
+      .prepare(
+        `INSERT INTO recipes (user_id, name, name_key, photo_id, rev, created_at, updated_at)
+         VALUES (?, 'Плов', 'плов', ?, 1, 0, 0) RETURNING id`,
+      )
+      .pluck()
+      .get(t.userId, hero);
+    t.db
+      .prepare(
+        "INSERT INTO recipe_steps (recipe_id, position, text, photo_id) VALUES (?, 0, 'a', ?)",
+      )
+      .run(id, step);
+    await sweepPhotos(t.db, t.dataDir, NOW);
+    for (const p of [hero, step])
+      expect([t.exists(p, 'full'), t.exists(p, 'preview')]).toEqual([
+        true,
+        true,
+      ]);
+  });
+
   it("deletes a deleted user's folder", async () => {
     const t = await setup();
     await t.files('gone'.padEnd(22, 'a'), 0, 999);

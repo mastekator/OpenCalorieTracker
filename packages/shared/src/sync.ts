@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type { IllustrationId } from './illustrations/dictionary.js';
 import type { Meal } from './meals.js';
 import type { ProfileResponse } from './norm/schemas.js';
+import type { Recipe } from './recipes/recipes.js';
 import type { AccountSettings } from './settings.js';
 
 /** At most this many changes per `GET /api/sync` page. */
@@ -14,7 +15,7 @@ export const syncQuerySchema = z.object({
 
 /**
  * Changes with `rev > since` (ADR-0011 §3). Ask again with `since = rev` while `more` is true.
- * `settings`, `illustrationChoices`, `profile` and `weighings` are omitted when unchanged.
+ * `settings`, `illustrationChoices`, `profile`, `weighings` and recipes are omitted when unchanged.
  */
 export interface SyncResponse {
   rev: number;
@@ -32,4 +33,7 @@ export interface SyncResponse {
   }[];
   /** `weightKg: null` = deleted (ADR-0016 §4). */
   weighings?: { date: string; weightKg: number | null }[];
+  /** Created or edited recipes, by rev (ADR-0023 §4). */
+  recipes?: Recipe[];
+  deletedRecipeIds?: number[];
 }
