@@ -2,7 +2,7 @@ import { afterEach, beforeEach, expect, it } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import type { AiTestPhoto } from '@oct/shared';
 import { I18nProvider, LOCALE_STORAGE_KEY } from '../../i18n';
-import { TestPhotoList } from './TestPhotoList';
+import { dishLabel, TestPhotoList } from './TestPhotoList';
 
 beforeEach(() => localStorage.setItem(LOCALE_STORAGE_KEY, 'en'));
 afterEach(cleanup);
@@ -26,3 +26,36 @@ it('shows a provider error in words and an unknown code as a dash', async () => 
   expect(text[1]).toBe('Got: —');
   expect(document.body.textContent).not.toContain('ai_unavailable');
 });
+
+it('folds repeated dish names into × N in order of first appearance', () => {
+  expect(dishLabel('egg, egg, egg')).toBe('egg × 3');
+  expect(dishLabel('egg, egg, toast')).toBe('egg × 2, toast');
+  expect(dishLabel('egg, toast, egg')).toBe('egg × 2, toast');
+  expect(dishLabel('banana')).toBe('banana');
+  expect(dishLabel('(none)')).toBeNull();
+});
+
+const chair: AiTestPhoto = {
+  file: 'chair.jpg',
+  expected: '(none)',
+  got: '(none)',
+  ms: 500,
+  result: 'ok',
+};
+
+for (const [locale, word, alt] of [
+  ['en', 'Not food', 'Test photo: Not food'],
+  ['ru', 'Не еда', 'Эталонное фото: Не еда'],
+] as const) {
+  it(`names a photo without food "${word}" in ${locale}, for the eye and the screen reader`, async () => {
+    localStorage.setItem(LOCALE_STORAGE_KEY, locale);
+    render(
+      <I18nProvider>
+        <TestPhotoList photos={[chair]} />
+      </I18nProvider>,
+    );
+    expect(await screen.findByText(word)).toBeTruthy();
+    expect(screen.getByAltText(alt)).toBeTruthy();
+    expect(document.body.textContent).not.toContain('(none)');
+  });
+}
