@@ -34,6 +34,7 @@ const ai = (over: Partial<AdminAiStatus>): AdminAiStatus => ({
   savedInactive: false,
   rev: null,
   refineLimit: null,
+  testPhotoCount: 9,
   state: 'ok',
   checkedAt: null,
   ...over,

@@ -78,6 +78,32 @@
   color: var(--color-text);
 }
 
+/* A miss: a red line, not a badge; the text wraps past the icon. */
+.test-photos__why {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1);
+  font-weight: 500;
+  color: var(--color-danger);
+}
+
+.test-photos__why svg {
+  flex: none;
+  width: 1em;
+  height: 1em;
+  margin-top: 0.2em;
+}
+
+/* Heard by screen readers, not shown. */
+.test-photos__hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 /* Icon at the badge's text size. */
 .test-photos__line .badge svg {
   width: 1em;

@@ -75,6 +75,7 @@ const serve = (list: Passkey[]) => () => {
               savedInactive: false,
               rev: null,
               refineLimit: 3,
+              testPhotoCount: 9,
               state: 'quota_exceeded',
               checkedAt: Date.now(),
             })

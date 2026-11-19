@@ -138,6 +138,21 @@ describe('Model comparison', () => {
     expect(within(row('model-1')).getByText('Delete')).toBeTruthy();
   });
 
+  it('labels a run of another test set «old set» and never makes it the best', async () => {
+    serve({
+      'GET /api/admin/ai/tests': [
+        summary(1, { passed: 9, total: 9, testSet: 1 }),
+        summary(2, { passed: 14, total: 17 }),
+      ],
+    });
+    mount();
+    await screen.findByText('Model comparison');
+    expect(within(row('model-1')).getByText('old set')).toBeTruthy();
+    expect(within(row('model-1')).queryByText('best')).toBeNull();
+    expect(within(row('model-2')).getByText('best')).toBeTruthy();
+    expect(within(row('model-2')).queryByText('old set')).toBeNull();
+  });
+
   it('opening a row loads its photos once and copies its row', async () => {
     const writeText = vi.fn(async () => {});
     vi.stubGlobal('navigator', { ...navigator, clipboard: { writeText } });

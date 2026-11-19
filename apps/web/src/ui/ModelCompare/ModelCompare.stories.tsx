@@ -125,6 +125,25 @@ export const OpenedDesktopDark: Story = {
   ...Opened,
   globals: { ...desktop, theme: 'dark' },
 };
+/** Set 1 runs: «old set», a grey score and never the best, even 9/9 (ADR-0033 §4). */
+const OLD_SET = [
+  run(8, { passed: 14, total: 17, msPerPhoto: 4100 }),
+  run(7, {
+    provider: 'openrouter',
+    model: 'google/gemini-3.8-flash',
+    testSet: 1,
+    passed: 9,
+    msPerPhoto: 2900,
+  }),
+  { ...RUNS[4]!, testSet: 1 },
+];
+export const OldSet: Story = { args: { runs: OLD_SET } };
+export const OldSetDark: Story = { ...OldSet, globals: { theme: 'dark' } };
+export const OldSetDesktop: Story = { ...OldSet, globals: desktop };
+export const OldSetDesktopDark: Story = {
+  ...OldSet,
+  globals: { ...desktop, theme: 'dark' },
+};
 /** The photos are on their way. */
 export const Loading: Story = { args: { openId: 6, openRun: null } };
 export const LoadingDark: Story = { ...Loading, globals: { theme: 'dark' } };
