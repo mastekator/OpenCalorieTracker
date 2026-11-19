@@ -245,12 +245,13 @@ export function AgentChat({
     }).format(new Date(iso));
   const weightUnit = t(units === 'us' ? 'unit.lb' : 'unit.kg');
   const height = (cm: number) => {
-    if (units === 'metric') return `${Math.round(cm)} ${t('unit.cm')}`;
+    if (units === 'metric') return `${Math.round(cm)}\u00a0${t('unit.cm')}`;
     const { ft, in: inches } = cmToFtIn(cm);
-    return `${ft}′ ${inches}″`;
+    return `${ft}′\u00a0${inches}″`;
   };
   const weight = (kg: number) =>
-    `${num1.format(weightFromKg(kg, units))} ${weightUnit}`;
+    // No-break space: a value never wraps away from its unit.
+    `${num1.format(weightFromKg(kg, units))}\u00a0${weightUnit}`;
 
   const capsules = (ask: InterviewField | undefined): QuickReply[] => {
     if (ask === 'sex')

@@ -449,7 +449,7 @@ describe('ProfileForm', () => {
   it('the assistant button: «work out» without a goal, «recalculate» with the hint once there is one (OCT-302)', async () => {
     setup({ ...base, activity: null }, { onAgent: vi.fn() });
     await screen.findByRole('button', {
-      name: 'Work out my goal with the assistant',
+      name: 'Calculate with the assistant',
     });
     expect(screen.queryByText(/Nothing changes until/)).toBeNull();
     cleanup();

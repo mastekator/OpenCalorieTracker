@@ -474,7 +474,7 @@ export const en = {
     disclaimer_hide: 'Hide this notice',
   },
   agent: {
-    cta_first: 'Work out my goal with the assistant',
+    cta_first: 'Calculate with the assistant',
     cta_recalc: 'Recalculate with the assistant',
     cta_hint: 'Nothing changes until you apply the new goal',
     unavailable: 'The AI isn’t available right now',

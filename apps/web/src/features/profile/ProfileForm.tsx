@@ -780,30 +780,32 @@ export function ProfileForm({
             />
           )}
           {onAgent && !firstVisit && !minor && (
-            <Button
-              id={agentId}
-              variant="tonal"
-              onClick={onAgent}
-              disabled={readOnly}
-              aria-describedby={
-                [hasNorm && `${agentId}-hint`, readOnly && `${agentId}-why`]
-                  .filter(Boolean)
-                  .join(' ') || undefined
-              }
-            >
-              <Sparkles aria-hidden="true" />
-              {t(hasNorm ? 'agent.cta_recalc' : 'agent.cta_first')}
-            </Button>
-          )}
-          {onAgent && !firstVisit && !minor && hasNorm && (
-            <p id={`${agentId}-hint`} className="profile__offline">
-              {t('agent.cta_hint')}
-            </p>
-          )}
-          {onAgent && !firstVisit && !minor && readOnly && (
-            <p id={`${agentId}-why`} className="profile__offline">
-              {t('offline.blocked.agent')}
-            </p>
+            <div className="profile__agent">
+              <Button
+                id={agentId}
+                variant="tonal"
+                onClick={onAgent}
+                disabled={readOnly}
+                aria-describedby={
+                  [hasNorm && `${agentId}-hint`, readOnly && `${agentId}-why`]
+                    .filter(Boolean)
+                    .join(' ') || undefined
+                }
+              >
+                <Sparkles aria-hidden="true" />
+                {t(hasNorm ? 'agent.cta_recalc' : 'agent.cta_first')}
+              </Button>
+              {hasNorm && (
+                <p id={`${agentId}-hint`} className="profile__hint">
+                  {t('agent.cta_hint')}
+                </p>
+              )}
+              {readOnly && (
+                <p id={`${agentId}-why`} className="profile__offline">
+                  {t('offline.blocked.agent')}
+                </p>
+              )}
+            </div>
           )}
           {agentUnavailable && (
             <Banner title={t('agent.unavailable')}>
