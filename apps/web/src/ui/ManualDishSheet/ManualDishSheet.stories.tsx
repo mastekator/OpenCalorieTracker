@@ -7,7 +7,12 @@ import { Button } from '../Button/Button';
 import { BASIS_KEY, ManualDishSheet, type ManualDish } from './ManualDishSheet';
 
 // Opens on load; the button reopens it so focus return is visible.
-function Demo(props: { units: Units; onAdd: (dish: ManualDish) => void }) {
+function Demo(props: {
+  units: Units;
+  name?: string;
+  title?: string;
+  onAdd: (dish: ManualDish) => void;
+}) {
   const { t } = useT();
   const [open, setOpen] = useState(true);
   return (
@@ -18,6 +23,8 @@ function Demo(props: { units: Units; onAdd: (dish: ManualDish) => void }) {
       {open && (
         <ManualDishSheet
           units={props.units}
+          name={props.name}
+          title={props.title}
           onAdd={(dish) => {
             props.onAdd(dish);
             setOpen(false);
@@ -107,3 +114,7 @@ export const DesktopDark: Story = {
   globals: { viewport: { value: 'desktop' }, theme: 'dark' },
 };
 export const Russian: Story = { globals: { locale: 'ru' } };
+/** From the recipe's ingredient search: the typed text is the name. */
+export const Prefilled: Story = {
+  args: { name: 'Carrots', title: 'Ingredient, manually' },
+};

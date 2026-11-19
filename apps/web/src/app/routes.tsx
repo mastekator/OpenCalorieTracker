@@ -34,7 +34,11 @@ import {
 } from '../features/meals/MealEditScreen';
 import { UndoDeleteProvider } from '../features/diary/undoDelete';
 import { CookScreen } from '../features/kitchen/CookMode';
-import { KitchenScreen } from '../features/kitchen/KitchenScreen';
+import {
+  KitchenScreen,
+  NEW_RECIPE_PATH,
+} from '../features/kitchen/KitchenScreen';
+import { RecipeEditorScreen } from '../features/kitchen/RecipeEditor';
 import { RecipeScreen } from '../features/kitchen/RecipeScreen';
 import { ProfileScreen } from '../features/profile/ProfileScreen';
 import { periodPath } from '../features/week/period';
@@ -168,15 +172,13 @@ export function AppScreens() {
         </Screen>
       </Route>
       <Route path="/kitchen">
-        {/* No tab: a row in the profile; on desktop a sidebar item (OCT-160 §1). */}
-        <Screen
-          wide
-          large
-          title={t('kitchen.title')}
-          back={{ href: '/profile', label: t('nav.profile'), mobileOnly: true }}
-        >
-          <KitchenScreen />
-        </Screen>
+        <KitchenScreen />
+      </Route>
+      <Route path={NEW_RECIPE_PATH}>
+        <RecipeEditorScreen />
+      </Route>
+      <Route path="/kitchen/:id/edit">
+        {({ id }) => <RecipeEditorScreen key={id} id={id} />}
       </Route>
       <Route path="/kitchen/:id">{({ id }) => <RecipeScreen id={id} />}</Route>
       <Route path="/settings">
