@@ -216,6 +216,7 @@ const savedMeal: Meal = {
     source: 'ai',
     aiProvider: null,
     aiModel: null,
+    recipeId: null,
     illustration: 'grains',
     illustrationManual: false,
   })),

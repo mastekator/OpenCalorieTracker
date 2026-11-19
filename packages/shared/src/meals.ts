@@ -99,6 +99,8 @@ export interface MealItem {
   aiProvider: string | null;
   aiModel: string | null;
   confidence: number | null;
+  /** Recipe the portion was logged from; null once that recipe is deleted (the dish stays). */
+  recipeId: number | null;
   /** Resolved: choice on this dish → choice for its name → matched by name (ADR-0009). */
   illustration: IllustrationId;
   /** True when `illustration` was picked on this dish: send it back in `PATCH` only then, or it freezes. */
