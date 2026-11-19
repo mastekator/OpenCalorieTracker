@@ -6,6 +6,7 @@ import {
   recipeTotals,
   weightWarning,
   type Recipe,
+  type Units,
 } from '@oct/shared';
 import { saveRecipe, useDb, useRecipe } from '../../data/DataContext';
 import { thumbUrl } from '../../data/thumbs';
@@ -18,6 +19,8 @@ import { useBarVariant } from '../../app/connection';
 import { OfflineBar, useOnline } from '../../ui/OfflineBar/OfflineBar';
 import { Sheet } from '../../ui/Sheet/Sheet';
 import { useToast } from '../../ui/Toast/Toast';
+import { useWeight } from '../../ui/weightUnits';
+import { useUnits } from './units';
 import './CookMode.css';
 
 /** Below this a move is still a tap. */
@@ -87,6 +90,7 @@ export function CookScreen({ id }: { id: string }) {
   const online = useOnline();
   const awake = useWakeLock();
   const [, navigate] = useLocation();
+  const units = useUnits();
   const card = `/kitchen/${id}`;
   if (recipe === null) return <Redirect to="/kitchen" replace />;
   if (!recipe) return null;
@@ -95,6 +99,7 @@ export function CookScreen({ id }: { id: string }) {
     <CookMode
       recipe={recipe}
       online={online}
+      units={units}
       awake={awake}
       onExit={() => navigate(card, { replace: true })}
       onSaveWeight={async (cookedG) => {
@@ -107,6 +112,8 @@ export function CookScreen({ id }: { id: string }) {
 type Props = {
   recipe: Recipe;
   online: boolean;
+  /** The cooked weight in grams or ounces (AC-2.6). */
+  units?: Units;
   /** The screen is kept on: shows the `sun` line. */
   awake: boolean;
   /** «×», Esc and «Just close»: back to the recipe card. */
@@ -120,6 +127,7 @@ type Props = {
 export function CookMode({
   recipe,
   online,
+  units,
   awake,
   onExit,
   onSaveWeight,
@@ -284,6 +292,7 @@ export function CookMode({
         open={sheet === 'done'}
         recipe={recipe}
         online={online}
+        units={units}
         onClose={() => setSheet(null)}
         onExit={onExit}
         onSave={onSaveWeight}
@@ -297,6 +306,7 @@ type DoneProps = {
   open: boolean;
   recipe: Recipe;
   online: boolean;
+  units?: Units;
   /** «×», Esc, scrim: back to the last step. */
   onClose: () => void;
   /** «Just close»: out of the mode. */
@@ -311,12 +321,15 @@ export function CookDoneSheet({
   open,
   recipe,
   online,
+  units,
   onClose,
   onExit,
   onSave,
   onLog,
 }: DoneProps) {
   const { t, num } = useT();
+  const w = useWeight(units);
+  const { u } = w;
   const toast = useToast();
   const [cookedG, setCookedG] = useState(recipe.cookedG);
   const [busy, setBusy] = useState(false);
@@ -347,13 +360,13 @@ export function CookDoneSheet({
   let note = t('cook.finish.weigh');
   if (!online) note = t('cook.finish.offline');
   else if (changed && cookedG !== null && !valid)
-    note = t('cook.finish.weight_err');
+    note = t('cook.finish.weight_err', { u });
   else if (warn)
     note = t(
       cookedG > rawG
         ? 'cook.finish.check_weight.heavier'
         : 'cook.finish.check_weight.lighter',
-      { x: num(ratio), w: num(rawG) },
+      { x: num(ratio), w: w.fmt(rawG), u },
     );
 
   return (
@@ -393,9 +406,19 @@ export function CookDoneSheet({
         <FormRow label={t('cook.finish.weight')}>
           <InlineNumber
             label={t('cook.finish.weight')}
-            value={cookedG}
-            onChange={setCookedG}
-            unit={t('macro.g')}
+            value={cookedG === null ? null : w.show(cookedG)}
+            // Untouched ounces keep the saved grams, so «Save weight» doesn't appear by itself.
+            onChange={(v) =>
+              setCookedG(
+                v === null
+                  ? null
+                  : recipe.cookedG !== null && v === w.show(recipe.cookedG)
+                    ? recipe.cookedG
+                    : w.toG(v),
+              )
+            }
+            unit={u}
+            decimals={w.us ? 1 : 0}
             error={changed && cookedG !== null && !valid}
             readOnly={!online}
           />

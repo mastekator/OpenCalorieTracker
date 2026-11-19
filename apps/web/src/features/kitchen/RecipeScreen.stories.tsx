@@ -45,6 +45,9 @@ export const ScrolledDark: Story = { ...Scrolled, globals: dark };
 export const Desktop: Story = { globals: desktop };
 export const DesktopDark: Story = { globals: { ...desktop, ...dark } };
 /** No servings: 100 g by default, no Serving option; no photo: the illustration; no steps: no block. */
+export const Ounces: Story = { args: { units: 'us' } };
+export const OuncesDark: Story = { args: { units: 'us' }, globals: dark };
+
 export const NoServings: Story = { args: { recipe: SALAD } };
 export const NoServingsDark: Story = { args: { recipe: SALAD }, globals: dark };
 /** 2.7: «⋯» → Delete recipe → the alert (E-10.4). */

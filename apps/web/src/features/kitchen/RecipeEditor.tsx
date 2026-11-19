@@ -14,6 +14,7 @@ import {
   type Nutrients,
   type Recipe,
   type RecipeInput,
+  type Units,
 } from '@oct/shared';
 import { api, ApiError } from '../../api/client';
 import { useDirty } from '../../app/dirty';
@@ -43,6 +44,8 @@ import { usePressRepeat } from '../../ui/usePressRepeat';
 import { useToast } from '../../ui/Toast/Toast';
 import { ImageDecodeError, prepareImage } from '../meals/prepareImage';
 import '../../ui/WeightStepper/WeightStepper.css';
+import { useWeight, weightIn } from '../../ui/weightUnits';
+import { useUnits } from './units';
 import './RecipeEditor.css';
 
 /** `history.state` of /kitchen/new: a prefilled draft (from a meal, from text; 7/9, 8/9). */
@@ -67,6 +70,7 @@ export function RecipeEditorScreen({ id }: { id?: string }) {
   // 0 is never a recipe id: a new recipe reads nothing.
   const recipe = useRecipe(Number(id ?? 0));
   const search = useCallback((q: string) => findHistoryDishes(db, q), [db]);
+  const units = useUnits();
   if (id !== undefined && recipe === null)
     return <Redirect to="/kitchen" replace />;
   if (id !== undefined && !recipe) return null;
@@ -76,6 +80,7 @@ export function RecipeEditorScreen({ id }: { id?: string }) {
       draft={state?.draft}
       ai={state?.ai}
       online={online}
+      units={units}
       search={search}
       onSave={(input) => saveRecipe(db, input, recipe?.id)}
       onSaved={(r) => navigate(`/kitchen/${r.id}`, { replace: true })}
@@ -89,7 +94,7 @@ type Row = {
   source: IngredientSource;
   /** Values the grams scale from (as a dish, AC-3.2). */
   base: Nutrients & { grams: number };
-  /** The grams field as typed. */
+  /** The weight field as typed, in the user's units. */
   grams: string;
   /** The AI couldn't estimate it; cleared by a grams edit. */
   unsure?: boolean;
@@ -104,6 +109,8 @@ type Props = {
   ai?: AiDraft;
   /** Offline «Save» is disabled (E-10.5, ADR-0023 §4). */
   online: boolean;
+  /** Weights shown and typed in grams or ounces; saved in grams (AC-2.6). */
+  units?: Units;
   search: (query: string) => Promise<HistoryDish[]>;
   /** POST / PUT and the local copy; throws on failure. */
   onSave: (input: RecipeInput) => Promise<Recipe>;
@@ -111,24 +118,38 @@ type Props = {
   onSaved: (recipe: Recipe) => void;
 };
 
-/** Grams of an ingredient: 0 is allowed (salt «to taste»), null when not a valid weight. */
-const gramsOf = (text: string) => {
-  const n = parseDecimal(text.trim());
-  return n !== null && n >= 0 && n <= 5000 ? round1(n) : null;
-};
+const MAX_INGREDIENT_G = 5000;
+type Weight = ReturnType<typeof weightIn>;
 
 const text = (n: number) => String(n);
+
+/**
+ * Grams of a typed weight, null when it is not a number. Untouched, it keeps
+ * the saved grams, so opening and saving in ounces changes nothing.
+ */
+const typedG = (typed: string, w: Weight, saved?: number | null) => {
+  if (saved != null && typed === text(w.show(saved))) return saved;
+  const n = parseDecimal(typed.trim());
+  return n === null ? null : w.toG(n);
+};
+
+/** Grams of an ingredient: 0 is allowed (salt «to taste»), null when not a valid weight. */
+const gramsOf = (typed: string, w: Weight, saved?: number) => {
+  const g = typedG(typed, w, saved);
+  return g !== null && g >= 0 && g <= MAX_INGREDIENT_G ? g : null;
+};
 
 let nextKey = 0;
 const rowOf = (
   i: RecipeInput['ingredients'][number],
+  w: Weight,
   unsure?: boolean,
 ): Row => ({
   key: nextKey++,
   name: i.name,
   source: i.source,
   base: i,
-  grams: text(i.grams),
+  grams: text(w.show(i.grams)),
   unsure,
 });
 
@@ -144,21 +165,25 @@ export function RecipeEditor({
   draft,
   ai,
   online,
+  units,
   search,
   onSave,
   onSaved,
 }: Props) {
   const { t, num } = useT();
   const toast = useToast();
+  const w = useWeight(units);
+  const unit = w.u;
   const start = recipe ?? draft;
   const [name, setName] = useState(start?.name ?? '');
   const [photoId, setPhotoId] = useState(start?.photoId ?? null);
   const [rows, setRows] = useState<Row[]>(
     () =>
-      start?.ingredients.map((i, n) => rowOf(i, ai?.unsure.includes(n))) ?? [],
+      start?.ingredients.map((i, n) => rowOf(i, w, ai?.unsure.includes(n))) ??
+      [],
   );
   const [cooked, setCooked] = useState(
-    start?.cookedG == null ? '' : text(start.cookedG),
+    start?.cookedG == null ? '' : text(w.show(start.cookedG)),
   );
   const [servings, setServings] = useState(start?.servings ?? null);
   const [note, setNote] = useState(start?.note ?? '');
@@ -189,13 +214,13 @@ export function RecipeEditor({
   const cookedRef = useRef<HTMLInputElement>(null);
   const photoInput = useRef<HTMLInputElement>(null);
 
-  const cookedN = cooked.trim() ? parseDecimal(cooked.trim()) : null;
+  const cookedIn = cooked.trim() ? typedG(cooked, w, start?.cookedG) : null;
   const cookedValid =
-    cookedN === null ||
-    (Number.isFinite(cookedN) && cookedN >= 1 && cookedN <= MAX_COOKED_G);
-  const cookedG = cookedValid && cookedN !== null ? round1(cookedN) : null;
+    cookedIn === null ||
+    (Number.isFinite(cookedIn) && cookedIn >= 1 && cookedIn <= MAX_COOKED_G);
+  const cookedG = cookedValid ? cookedIn : null;
   const items = rows.map((r) => {
-    const g = gramsOf(r.grams);
+    const g = gramsOf(r.grams, w, r.base.grams);
     return { row: r, g, ...valuesOf(r, g ?? 0), grams: g ?? 0 };
   });
   const calc = { cookedG, servings, ingredients: items };
@@ -229,7 +254,7 @@ export function RecipeEditor({
 
   const errors = {
     name: !name.trim() ? t('editor.name_err') : undefined,
-    cooked: !cookedValid ? t('editor.cooked_err') : undefined,
+    cooked: !cookedValid ? t('editor.cooked_err', { u: unit }) : undefined,
     rows: !rows.length ? t('editor.no_ingredients') : undefined,
   };
 
@@ -319,7 +344,7 @@ export function RecipeEditor({
   const setRow = (key: number, patch: Partial<Row>) =>
     setRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...patch } : r)));
   const addRow = (i: RecipeInput['ingredients'][number]) => {
-    setRows((rs) => [...rs, rowOf(i)]);
+    setRows((rs) => [...rs, rowOf(i, w)]);
     setSheet(null);
   };
   const editing =
@@ -438,7 +463,13 @@ export function RecipeEditor({
             title={
               <span className="recipe-editor__group">
                 <span>{t('editor.ingredients')}</span>
-                <span>{t('editor.ingredients_cols')}</span>
+                <span>
+                  {t(
+                    w.us
+                      ? 'editor.ingredients_cols_oz'
+                      : 'editor.ingredients_cols',
+                  )}
+                </span>
               </span>
             }
           >
@@ -448,9 +479,13 @@ export function RecipeEditor({
                 name={row.name}
                 kcal={k}
                 grams={row.grams}
+                units={units}
                 error={
                   g === null && (touched.rows || row.grams.trim() !== '')
-                    ? t('editor.grams_err')
+                    ? t('editor.grams_err', {
+                        max: w.fmt(MAX_INGREDIENT_G),
+                        u: unit,
+                      })
                     : undefined
                 }
                 estimate={row.source === 'ai'}
@@ -505,7 +540,7 @@ export function RecipeEditor({
                     onBlur={() => setTouched((s) => ({ ...s, cooked: true }))}
                   />
                   <span className="stepper__unit" aria-hidden="true">
-                    {t('unit.g')}
+                    {unit}
                   </span>
                 </label>
               </div>
@@ -558,7 +593,11 @@ export function RecipeEditor({
                 cookedG! > totals.rawG
                   ? 'editor.check_weight.heavier'
                   : 'editor.check_weight.lighter',
-                { count: Math.round(ratio), w: num(totals.rawG) },
+                {
+                  count: Math.round(ratio),
+                  w: w.fmt(totals.rawG),
+                  u: unit,
+                },
               )}
             </p>
           ) : (
@@ -566,7 +605,7 @@ export function RecipeEditor({
             totals.rawG > 0 && (
               <p className="recipe-editor__note">
                 <Scale aria-hidden="true" />
-                {t('editor.weigh', { w: num(totals.rawG) })}
+                {t('editor.weigh', { w: w.fmt(totals.rawG), u: unit })}
               </p>
             )
           )}
@@ -670,7 +709,7 @@ export function RecipeEditor({
       )}
       {sheet?.kind === 'manual' && (
         <ManualDishSheet
-          units="metric"
+          units={units ?? 'metric'}
           title={t('editor.manual_title')}
           name={sheet.name}
           onAdd={(d) => addRow({ ...d, source: 'manual' })}
@@ -681,10 +720,14 @@ export function RecipeEditor({
         <DishSheet
           // shortcut: DishSheet weights start at 1 g, so a 0 g row can be renamed only after a weight; fine until salt rows need renaming.
           original={{ ...editing.base, name: editing.name }}
-          grams={gramsOf(editing.grams) ?? editing.base.grams}
-          units="metric"
+          grams={gramsOf(editing.grams, w) ?? editing.base.grams}
+          units={units ?? 'metric'}
           onDone={(n, g) => {
-            setRow(editing.key, { name: n, grams: text(g), unsure: false });
+            setRow(editing.key, {
+              name: n,
+              grams: text(w.show(g)),
+              unsure: false,
+            });
             setSheet(null);
           }}
           onDelete={() => {

@@ -11,6 +11,7 @@ import {
   type LighterVariant,
   type Recipe,
   type RecipeInput,
+  type Units,
 } from '@oct/shared';
 import { api } from '../../api/client';
 import { saveRecipe, useDb, useRecipe } from '../../data/DataContext';
@@ -21,6 +22,8 @@ import { NavBar } from '../../ui/NavBar/NavBar';
 import { useOnline } from '../../ui/OfflineBar/OfflineBar';
 import { Delayed, Skeleton } from '../../ui/Skeleton/Skeleton';
 import { useToast } from '../../ui/Toast/Toast';
+import { useWeight } from '../../ui/weightUnits';
+import { useUnits } from './units';
 import './LighterScreen.css';
 
 const responseSchema = z.custom<LighterResponse>((v) =>
@@ -33,12 +36,14 @@ export function LighterScreen({ id }: { id: string }) {
   const recipe = useRecipe(Number(id));
   const online = useOnline();
   const [, navigate] = useLocation();
+  const units = useUnits();
   if (recipe === null) return <Redirect to="/kitchen" replace />;
   if (!recipe) return null;
   return (
     <LighterView
       recipe={recipe}
       online={online}
+      units={units}
       load={() =>
         api(`/api/ai/recipes/${recipe.id}/lighter`, responseSchema, {
           method: 'POST',
@@ -59,6 +64,8 @@ type Props = {
   recipe: Recipe;
   /** Offline the variants stay readable, saving is disabled (ADR-0023 §4). */
   online: boolean;
+  /** Weights in grams or ounces (AC-2.6). */
+  units?: Units;
   /** POST /api/ai/recipes/:id/lighter. */
   load: () => Promise<LighterResponse>;
   /** POST (no id) or PUT; throws on failure. */
@@ -67,8 +74,16 @@ type Props = {
 };
 
 /** «Make it lighter» (OCT-160 §9, frame 7.3; AC-9.1, 9.3, 9.4; E-10.6). */
-export function LighterView({ recipe, online, load, onSave, onSaved }: Props) {
+export function LighterView({
+  recipe,
+  online,
+  units,
+  load,
+  onSave,
+  onSaved,
+}: Props) {
   const { t, num } = useT();
+  const w = useWeight(units);
   const toast = useToast();
   const [attempt, setAttempt] = useState(0);
   const [state, setState] = useState<State>({ status: 'loading' });
@@ -93,8 +108,9 @@ export function LighterView({ recipe, online, load, onSave, onSaved }: Props) {
     return t(`lighter.change.${c.change}`, {
       name: c.name,
       from: src?.name ?? '',
-      a: num(src?.grams ?? 0),
-      b: num(c.grams),
+      a: w.fmt(src?.grams ?? 0),
+      b: w.fmt(c.grams),
+      u: w.u,
     });
   };
   const save = async (v: LighterVariant, apply: boolean) => {

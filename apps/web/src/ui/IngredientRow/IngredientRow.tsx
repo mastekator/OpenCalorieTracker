@@ -1,5 +1,6 @@
 import { useId } from 'react';
 import { CircleAlert, TriangleAlert } from 'lucide-react';
+import type { Units } from '@oct/shared';
 import { useT } from '../../i18n';
 import { Badge } from '../Badge/Badge';
 import '../WeightStepper/WeightStepper.css';
@@ -9,8 +10,10 @@ type Props = {
   name: string;
   /** Kcal for the current grams; with 0 g «not counted in kcal». */
   kcal: number;
-  /** The grams field's text, as typed. */
+  /** The weight field's text, as typed. */
   grams: string;
+  /** The field is in grams or ounces. */
+  units?: Units;
   /** Under the field; also marks it invalid. */
   error?: string;
   /** Grams estimated by the AI: an «estimate» badge after the name (OCT-160 §9). */
@@ -27,6 +30,7 @@ export function IngredientRow({
   name,
   kcal,
   grams,
+  units = 'metric',
   error,
   estimate,
   unsure,
@@ -61,13 +65,15 @@ export function IngredientRow({
             inputMode="decimal"
             autoComplete="off"
             value={grams}
-            aria-label={t('editor.grams', { name })}
+            aria-label={t(units === 'us' ? 'editor.ounces' : 'editor.grams', {
+              name,
+            })}
             aria-invalid={!!error}
             aria-describedby={error || unsure ? errorId : undefined}
             onChange={(e) => onGramsChange(e.target.value)}
           />
           <span className="stepper__unit" aria-hidden="true">
-            {t('unit.g')}
+            {t(units === 'us' ? 'unit.oz' : 'unit.g')}
           </span>
         </label>
         {!error && unsure && (

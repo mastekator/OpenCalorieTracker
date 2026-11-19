@@ -6,6 +6,7 @@ import {
   recipeTotals,
   servingG,
   type Recipe,
+  type Units,
 } from '@oct/shared';
 import {
   deleteRecipe,
@@ -26,6 +27,8 @@ import { Sheet } from '../../ui/Sheet/Sheet';
 import { useToast } from '../../ui/Toast/Toast';
 import { useToday } from '../diary/useToday';
 import { useWeightFormat } from '../weight/format';
+import { useWeight } from '../../ui/weightUnits';
+import { useUnits } from './units';
 import './RecipeScreen.css';
 
 /** /kitchen/:id from the local copy; a recipe that is gone (deleted here or elsewhere) goes back to the list. */
@@ -38,11 +41,13 @@ export function RecipeScreen({ id }: { id: string }) {
   const [, navigate] = useLocation();
   const toast = useToast();
   const { t } = useT();
+  const units = useUnits();
   if (recipe === null) return <Redirect to="/kitchen" replace />;
   if (!recipe) return null;
   return (
     <RecipeView
       recipe={recipe}
+      units={units}
       today={today}
       online={online}
       lighter={
@@ -66,6 +71,8 @@ type Props = {
   today: string;
   /** Offline the recipe is read-only: delete is disabled, the offline bar says why (OCT-25). */
   online: boolean;
+  /** Weights in grams or ounces (AC-2.6). */
+  units?: Units;
   /** «Make it lighter» entries: AI is set up and online (OCT-160 §9). */
   lighter: boolean;
   onDelete: () => Promise<void>;
@@ -76,10 +83,13 @@ export function RecipeView({
   recipe,
   today,
   online,
+  units,
   lighter,
   onDelete,
 }: Props) {
   const { t, num } = useT();
+  const w = useWeight(units);
+  const { u } = w;
   const [, navigate] = useLocation();
   const { when } = useWeightFormat('metric');
   const [menu, setMenu] = useState(false);
@@ -112,8 +122,13 @@ export function RecipeView({
   const meta = [
     recipe.servings !== null &&
       serving !== null &&
-      t('recipe.servings', { count: recipe.servings, g: num(serving) }),
-    recipe.cookedG !== null && t('recipe.cooked', { w: num(recipe.cookedG) }),
+      t('recipe.servings', {
+        count: recipe.servings,
+        g: w.fmt(serving),
+        u,
+      }),
+    recipe.cookedG !== null &&
+      t('recipe.cooked', { w: w.fmt(recipe.cookedG), u }),
     recipe.lastLoggedAt &&
       t('recipe.logged', {
         when: when(
@@ -159,7 +174,7 @@ export function RecipeView({
           {meta && <p className="recipe__meta">{meta}</p>}
         </header>
         <div className="recipe__nutrition">
-          <NutritionCard {...recipe} />
+          <NutritionCard {...recipe} units={units} />
         </div>
         {recipe.steps.length > 0 && (
           <div className="recipe__actions">
@@ -204,7 +219,7 @@ export function RecipeView({
                     ? t('recipe.zero_kcal')
                     : t('meal.kcal', { n: num(i.kcal) })
                 }
-                value={`${num(i.grams)}\u00a0${t('macro.g')}`}
+                value={`${w.fmt(i.grams)}\u00a0${u}`}
               >
                 {i.name}
               </ListRow>

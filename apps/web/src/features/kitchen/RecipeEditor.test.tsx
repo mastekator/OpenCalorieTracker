@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
-import type { Recipe, RecipeInput } from '@oct/shared';
+import { gToOz, ozToG, type Recipe, type RecipeInput } from '@oct/shared';
 import { isDirty, saveDirty } from '../../app/dirty';
 import { I18nProvider, LOCALE_STORAGE_KEY } from '../../i18n';
 import { renderLoaded } from '../../test-utils';
@@ -150,6 +150,45 @@ describe('RecipeEditor', () => {
       cookedG: 2100,
       servings: 6,
     });
+  });
+
+  it('ounces: shown in oz, an untouched recipe saves its grams unchanged (AC-2.6)', async () => {
+    const { onSave } = await view({ recipe: PILAF, units: 'us' });
+    const rice = screen.getByLabelText(
+      'Long-grain rice, ounces',
+    ) as HTMLInputElement;
+    expect(rice.value).toBe(String(gToOz(400)));
+    expect(cookedField().value).toBe(String(gToOz(2100)));
+    expect(screen.getByText('ounces · kcal')).toBeTruthy();
+    expect(isDirty()).toBe(false);
+    save();
+    await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
+    const sent = onSave.mock.calls[0]![0];
+    expect(sent.cookedG).toBe(2100);
+    expect(sent.ingredients.map((i) => i.grams)).toEqual(
+      PILAF.ingredients.map((i) => i.grams),
+    );
+  });
+
+  it('ounces: typed oz go to grams without rounding in oz (AC-2.6)', async () => {
+    const { onSave } = await view({ recipe: PILAF, units: 'us' });
+    fireEvent.change(screen.getByLabelText('Long-grain rice, ounces'), {
+      target: { value: '10.25' },
+    });
+    fireEvent.change(cookedField(), { target: { value: '70' } });
+    save();
+    await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
+    const sent = onSave.mock.calls[0]![0];
+    expect(sent.ingredients[0]!.grams).toBe(ozToG(10.25));
+    expect(sent.cookedG).toBe(ozToG(70));
+  });
+
+  it('ounces: the weigh hint and the range error are in oz', async () => {
+    await view({ recipe: SALAD, units: 'us' });
+    expect(screen.getByText(/raw weight: 21\.9 oz/)).toBeTruthy();
+    const first = screen.getAllByLabelText(/, ounces$/)[0]!;
+    fireEvent.change(first, { target: { value: '200' } });
+    expect(screen.getByText('From 0 to 176.4 oz')).toBeTruthy();
   });
 
   it('a failed save is a toast; the editor stays', async () => {

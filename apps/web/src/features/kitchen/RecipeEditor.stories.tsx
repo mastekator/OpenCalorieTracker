@@ -37,6 +37,17 @@ export const EditRussian: Story = {
   globals: { locale: 'ru' },
 };
 /** 2.4: no cooked weight — «Weigh the cooked dish…» with the raw weight; no servings — «—». */
+/** Weights in ounces (AC-2.6); saved in grams. */
+export const Ounces: Story = { args: { recipe: PILAF, units: 'us' } };
+export const OuncesDark: Story = {
+  args: { recipe: PILAF, units: 'us' },
+  globals: dark,
+};
+export const OuncesDesktop: Story = {
+  args: { recipe: SALAD, units: 'us' },
+  globals: desktop,
+};
+
 export const NoCookedWeight: Story = { args: { recipe: SALAD } };
 export const NoCookedWeightDark: Story = {
   args: { recipe: SALAD },

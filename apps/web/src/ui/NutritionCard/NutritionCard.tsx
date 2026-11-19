@@ -7,7 +7,9 @@ import {
   servingG,
   type Nutrients,
   type Recipe,
+  type Units,
 } from '@oct/shared';
+import { useWeight } from '../weightUnits';
 import { useT } from '../../i18n';
 import { Segment } from '../Segment/Segment';
 import '../MacroStat/MacroStat.css';
@@ -31,12 +33,13 @@ export function nutritionFor(recipe: Props, basis: Basis) {
 }
 
 /** Recipe nutrition (OCT-160 2.1): Serving / 100 g / Whole; without servings 100 g, no Serving option. */
-export function NutritionCard(recipe: Props) {
+export function NutritionCard({ units, ...recipe }: Props & { units?: Units }) {
   const { t, num } = useT();
   const hasServings = servingG(recipe) !== null;
   const [basis, setBasis] = useState<Basis>(hasServings ? 'portion' : 'per100');
   const shown = !hasServings && basis === 'portion' ? 'per100' : basis;
   const { n, g } = nutritionFor(recipe, shown);
+  const w = useWeight(units);
   const grams = (v: number) => `${num(v)}\u00a0${t('macro.g')}`;
   const options = [
     ...(hasServings
@@ -57,7 +60,7 @@ export function NutritionCard(recipe: Props) {
       <div aria-live="polite">
         <p className="nutrition-card__kcal">
           <span className="nutrition-card__value">{num(n.kcal)}</span>{' '}
-          {t(`recipe.nut.kcal_${shown}`, { g: num(g) })}
+          {t(`recipe.nut.kcal_${shown}`, { g: w.fmt(g), u: w.u })}
         </p>
         <p className="nutrition-card__macros">
           {(
