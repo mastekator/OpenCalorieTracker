@@ -11,32 +11,44 @@ export const nameKey = (name: string) =>
 export const mealTypeSchema = z.enum(['breakfast', 'lunch', 'dinner', 'snack']);
 export type MealType = z.infer<typeof mealTypeSchema>;
 
-export const dishSourceSchema = z.enum(['ai', 'manual', 'history']);
+/** Where a recipe ingredient's values came from; a recipe can't contain another recipe. */
+export const ingredientSourceSchema = z.enum(['ai', 'manual', 'history']);
+export type IngredientSource = z.infer<typeof ingredientSourceSchema>;
+
+export const dishSourceSchema = z.enum([
+  ...ingredientSourceSchema.options,
+  'recipe',
+]);
 export type DishSource = z.infer<typeof dishSourceSchema>;
 
 // Grams carry at most one decimal so 10 oz = 283.5 g is stored as is (AC-3.15).
-const grams = z
-  .number()
-  .min(0.1)
-  .max(5000)
-  .refine((g) => Math.abs(g * 10 - Math.round(g * 10)) < 1e-9);
-const macro = z.number().min(0).max(1000);
+export const oneDecimal = (g: number) =>
+  Math.abs(g * 10 - Math.round(g * 10)) < 1e-9;
+const grams = z.number().min(0.1).max(5000).refine(oneDecimal);
+export const kcalSchema = z.number().min(0).max(10000);
+export const macroSchema = z.number().min(0).max(1000);
+const macro = macroSchema;
 
 export const mealItemInputSchema = z
   .object({
     name: z.string().trim().min(1).max(80),
     grams,
-    kcal: z.number().min(0).max(10000),
+    kcal: kcalSchema,
     proteinG: macro,
     fatG: macro,
     carbsG: macro,
     source: dishSourceSchema,
     confidence: z.number().min(0).max(1).optional(),
+    /** The recipe this portion was logged from (ADR-0023 §5); the dish stays a snapshot. */
+    recipeId: z.number().int().positive().optional(),
     /** Manual choice on this dish; omitted = automatic. */
     illustration: illustrationIdSchema.optional(),
   })
   .refine((i) => i.confidence === undefined || i.source === 'ai', {
     path: ['confidence'],
+  })
+  .refine((i) => i.recipeId === undefined || i.source === 'recipe', {
+    path: ['recipeId'],
   });
 export type MealItemInput = z.infer<typeof mealItemInputSchema>;
 
