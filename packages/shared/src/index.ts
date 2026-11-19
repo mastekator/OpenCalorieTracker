@@ -35,6 +35,7 @@ export type ErrorCode =
   | 'ai_empty_result'
   | 'ai_env_managed'
   | 'outbound_env_managed'
+  | 'barcode_invalid'
   | 'ai_settings_changed'
   | 'ai_key_required'
   | 'ai_check_failed'
@@ -100,6 +101,7 @@ export * from './diary/summarize.js';
 export * from './locales.js';
 export * from './settings.js';
 export * from './integrations.js';
+export * from './barcodes/barcodes.js';
 export * from './illustrations/dictionary.js';
 export * from './sync.js';
 export * from './weight/schemas.js';

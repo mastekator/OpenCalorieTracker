@@ -8,10 +8,11 @@ import { migrate } from '../db/migrate.js';
 import { openDb } from '../db/open.js';
 import { secretsFrom } from '../secrets.js';
 
-/** The app over a migrated in-memory database; `env` overrides a valid default setup, `model` is the active AI. */
+/** The app over a migrated in-memory database; `env` overrides a valid default setup, `model` is the active AI, `fetch` fakes outbound HTTP. */
 export function testApp(
   env: Record<string, string | undefined> = {},
   model: AiModel | null = null,
+  fetch?: typeof globalThis.fetch,
 ) {
   const config = loadConfig({
     PUBLIC_URL: 'http://localhost:3000',
@@ -36,7 +37,7 @@ export function testApp(
     },
   );
   return {
-    app: createApp({ config, db, ai, secrets }),
+    app: createApp({ config, db, ai, secrets, fetch }),
     config,
     db,
     ai,
