@@ -139,7 +139,7 @@ describe('RecipeEditor', () => {
     expect(feta).toMatchObject({ grams: 0, kcal: 0 });
   });
 
-  it('Save sends the recipe with its steps as they came, then leaves', async () => {
+  it('Save sends the recipe with its steps (PUT), then leaves', async () => {
     const { onSave, onSaved } = await view({ recipe: PILAF });
     save();
     await waitFor(() => expect(onSaved).toHaveBeenCalledWith(PILAF));
@@ -228,5 +228,123 @@ describe('RecipeEditor', () => {
     );
     const name = (await screen.findByLabelText(/^Name ·/)) as HTMLInputElement;
     expect(name.value).toBe('Onion');
+  });
+
+  describe('steps', () => {
+    const texts = () =>
+      screen
+        .getAllByRole('textbox', { name: /^Step \d+$/ })
+        .map((e) => (e as HTMLTextAreaElement).value.slice(0, 4));
+    const menu = (i: number) =>
+      fireEvent.click(screen.getByRole('button', { name: `Move step ${i}` }));
+    const action = (name: string) =>
+      screen.getByRole('button', { name }) as HTMLButtonElement;
+
+    it('«Move up / Move down» reorder; the first can’t go up, the last can’t go down', async () => {
+      const { onSave } = await view({ recipe: PILAF });
+      expect(texts()).toEqual(['Dice', 'Heat', 'Add ']);
+      menu(1);
+      expect(action('Move up').disabled).toBe(true);
+      fireEvent.click(action('Move down'));
+      expect(texts()).toEqual(['Heat', 'Dice', 'Add ']);
+      menu(3);
+      expect(action('Move down').disabled).toBe(true);
+      fireEvent.click(action('Move up'));
+      expect(texts()).toEqual(['Heat', 'Add ', 'Dice']);
+      save();
+      await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
+      expect(onSave.mock.calls[0]![0].steps.map((s) => s.photoId)).toEqual([
+        'spaghetti.jpg',
+        null,
+        null,
+      ]);
+    });
+
+    it('dragging the handle down past two steps moves the step to the end', async () => {
+      // jsdom has no layout: each step is 100 px tall, in DOM order.
+      vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(
+        function (this: Element) {
+          const i = [...(this.parentElement?.children ?? [])].indexOf(this);
+          return { top: i * 100, height: 100 } as DOMRect;
+        },
+      );
+      await view({ recipe: PILAF });
+      const grip = screen.getByRole('button', { name: 'Move step 1' });
+      fireEvent.pointerDown(grip, { button: 0, clientY: 50 });
+      for (const y of [120, 180, 260])
+        fireEvent.pointerMove(window, { clientY: y });
+      fireEvent.pointerUp(window);
+      fireEvent.click(grip);
+      expect(texts()).toEqual(['Heat', 'Add ', 'Dice']);
+      // The click that ends a drag opens no menu.
+      expect(screen.queryByRole('button', { name: 'Move up' })).toBeNull();
+      vi.restoreAllMocks();
+    });
+
+    it('«+ Step» adds a step that goes into the POST; a blank one and a deleted one do not', async () => {
+      const { onSave } = await view({ recipe: SALAD });
+      fireEvent.click(screen.getByRole('button', { name: 'Step' }));
+      fireEvent.change(screen.getByRole('textbox', { name: 'Step 1' }), {
+        target: { value: '  Chop everything  ' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Step' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Step' }));
+      menu(3);
+      fireEvent.click(action('Delete step'));
+      expect(texts()).toHaveLength(2);
+      save();
+      await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
+      expect(onSave.mock.calls[0]![0].steps).toEqual([
+        { text: 'Chop everything', photoId: null },
+      ]);
+    });
+
+    it('a step photo is uploaded and sent with the step', async () => {
+      vi.stubGlobal('fetch', async () => Response.json({ photoId: 'p-step' }));
+      const { onSave } = await view({ recipe: PILAF });
+      const input = screen
+        .getByRole('button', { name: 'Add a photo to step 1' })
+        .parentElement!.querySelector('input[type=file]')!;
+      fireEvent.change(input, {
+        target: { files: [new File(['x'], 'a.jpg', { type: 'image/jpeg' })] },
+      });
+      await screen.findByRole('button', {
+        name: 'Replace the photo of step 1',
+      });
+      save();
+      await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
+      expect(onSave.mock.calls[0]![0].steps[0]!.photoId).toBe('p-step');
+    });
+
+    it('a failed step photo is a toast; the step saves without it (E-10.12)', async () => {
+      vi.stubGlobal('fetch', async () =>
+        Response.json({ error: { code: 'internal' } }, { status: 500 }),
+      );
+      const { onSave } = await view({ recipe: PILAF });
+      const input = screen
+        .getByRole('button', { name: 'Add a photo to step 1' })
+        .parentElement!.querySelector('input[type=file]')!;
+      fireEvent.change(input, {
+        target: { files: [new File(['x'], 'a.jpg', { type: 'image/jpeg' })] },
+      });
+      expect(
+        await screen.findByText(
+          'Couldn’t upload the photo. The recipe will be saved without it.',
+        ),
+      ).toBeTruthy();
+      await waitFor(() => expect(action('Save').disabled).toBe(false));
+      save();
+      await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
+      expect(onSave.mock.calls[0]![0].steps[0]).toEqual(PILAF.steps[0]);
+    });
+
+    it('no «+ Step» at 30 steps', async () => {
+      const steps = Array.from({ length: 30 }, (_, i) => ({
+        text: `s${i}`,
+        photoId: null,
+      }));
+      await view({ recipe: { ...SALAD, steps } });
+      expect(screen.queryByRole('button', { name: 'Step' })).toBeNull();
+    });
   });
 });

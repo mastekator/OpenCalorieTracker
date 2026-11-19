@@ -1,0 +1,104 @@
+/* Number · text and photo · handle (OCT-160 2.4). */
+.list-row.step-editor-row {
+  display: grid;
+  grid-template-columns: var(--chat-avatar-size) minmax(0, 1fr) auto;
+  align-items: start;
+  column-gap: var(--space-3);
+}
+
+.step-editor-row--dragging {
+  background: var(--color-surface-2);
+}
+
+.step-editor-row__n {
+  display: grid;
+  place-items: center;
+  width: var(--chat-avatar-size);
+  height: var(--chat-avatar-size);
+  margin-top: calc((var(--tap-min) - var(--chat-avatar-size)) / 2);
+  border-radius: var(--radius-full);
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  font-size: var(--text-footnote-size);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.step-editor-row__body {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.step-editor-row__text {
+  width: 100%;
+  min-height: var(--tap-min);
+  padding: var(--space-2) 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: var(--text-subhead-size);
+  line-height: var(--text-subhead-lh);
+  resize: none;
+  field-sizing: content;
+}
+
+.step-editor-row__photo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.step-editor-row__photo img {
+  width: var(--meal-thumb-size);
+  height: var(--meal-thumb-size);
+  border-radius: var(--radius-md);
+  object-fit: cover;
+  background: var(--color-surface-2);
+}
+
+.step-editor-row__photo-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: var(--tap-min);
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-accent);
+  font: inherit;
+  font-size: var(--text-footnote-size);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.step-editor-row__photo-button:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+.step-editor-row__photo-button svg {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+}
+
+.step-editor-row__grip {
+  display: grid;
+  place-items: center;
+  width: var(--tap-min);
+  height: var(--tap-min);
+  margin-inline-end: calc(-1 * var(--space-3));
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--color-text-secondary);
+  cursor: grab;
+  /* The handle drags; the page must not scroll under the finger. */
+  touch-action: none;
+}
+
+.step-editor-row--dragging .step-editor-row__grip {
+  cursor: grabbing;
+}

@@ -8,6 +8,11 @@
   margin: 0;
 }
 
+.recipe-editor__more {
+  display: grid;
+  gap: var(--space-6);
+}
+
 /* Photo tile left of the name (OCT-160 2.3). */
 .recipe-editor__head {
   display: grid;
