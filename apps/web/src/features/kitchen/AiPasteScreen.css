@@ -44,6 +44,11 @@
   justify-content: space-between;
 }
 
+.ai-paste__hint span:last-child {
+  flex: none;
+  white-space: nowrap;
+}
+
 .ai-paste__sent svg {
   flex: none;
   width: var(--icon-size-sm);
