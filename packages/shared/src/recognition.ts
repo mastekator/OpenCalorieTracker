@@ -48,6 +48,21 @@ export const recognitionSchema = z.object({
 });
 export type Recognition = z.infer<typeof recognitionSchema>;
 
+/** A recognized dish with the package hints of ADR-0034 §2; refine keeps the plain dish. */
+export const packageDishSchema = recognizedDishSchema.extend({
+  /** The code from the `<barcodes>` tag this dish is the package of; the server nulls any other. */
+  barcode: z.string().nullable().optional(),
+  /** The numbers were read from the package's nutrition table. */
+  label: z.boolean().optional(),
+});
+export type PackageDish = z.infer<typeof packageDishSchema>;
+
+/** POST /api/photos/:id/recognize: dishes may carry the package hints. */
+export const packageRecognitionSchema = recognitionSchema.extend({
+  dishes: z.array(packageDishSchema).max(20),
+});
+export type PackageRecognition = z.infer<typeof packageRecognitionSchema>;
+
 /** GET /api/ai/status for every user: what AI features can be used and where data goes; never the model, state or key. */
 export const aiStatusSchema = z.object({
   recognition: z.enum(['ready', 'not_configured', 'no_vision']),

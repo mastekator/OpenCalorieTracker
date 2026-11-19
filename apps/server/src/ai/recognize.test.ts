@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { loadConfig } from '../config.js';
 import { createModel } from './model.js';
 import {
+  readLabel,
   recognizeMeal,
   RECOGNIZE_TIMEOUT_MS,
   sanitizeDish,
@@ -86,7 +87,7 @@ describe('recognizeMeal', () => {
     });
     expect(logs()).toEqual([
       expect.stringMatching(
-        /^ai\.recognize provider=mock model=vision-1 prompt=2 ms=\d+ dishes=1 questions=0 result=ok$/,
+        /^ai\.recognize provider=mock model=vision-1 prompt=3 ms=\d+ dishes=1 questions=0 result=ok$/,
       ),
     ]);
   });
@@ -182,6 +183,56 @@ describe('recognizeMeal', () => {
     expect(JSON.stringify(model.doGenerateCalls[0]!.prompt)).toContain(
       'Write dish names in Russian.',
     );
+  });
+
+  it('sends no barcodes tag without codes', async () => {
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    const model = mockModel({ dishes: [] });
+    await recognizeMeal(model, jpeg, 'en');
+    const user = model.doGenerateCalls[0]!.prompt.find(
+      (m) => m.role === 'user',
+    )!;
+    expect(user.content).toHaveLength(1);
+  });
+
+  it('sends the codes in a tag and keeps only their barcodes (ADR-0034 §2)', async () => {
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    const model = mockModel({
+      dishes: [
+        { ...egg, name: 'Yogurt', barcode: '4006381333931', label: true },
+        { ...egg, name: 'Juice', barcode: '5901234123457' },
+        { ...egg, barcode: null },
+      ],
+    });
+    const got = await recognizeMeal(model, jpeg, 'en', undefined, undefined, [
+      '4006381333931',
+    ]);
+    expect(JSON.stringify(model.doGenerateCalls[0]!.prompt)).toContain(
+      '<barcodes>4006381333931</barcodes>',
+    );
+    expect(got.dishes).toEqual([
+      { ...egg, name: 'Yogurt', barcode: '4006381333931', label: true },
+      { ...egg, name: 'Juice' },
+      egg,
+    ]);
+  });
+
+  it('reads one label dish with the code, or none', async () => {
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    const model = mockModel({ dishes: [egg, egg] }, { dishes: [] });
+    await expect(
+      readLabel(model, jpeg, 'en', '4006381333931'),
+    ).resolves.toEqual({
+      dishes: [{ ...egg, barcode: '4006381333931', label: true }],
+      questions: [],
+    });
+    expect(JSON.stringify(model.doGenerateCalls[0]!.prompt)).toContain(
+      'package with barcode 4006381333931',
+    );
+    await expect(
+      readLabel(model, jpeg, 'en', '4006381333931'),
+    ).resolves.toEqual({ dishes: [], questions: [] });
+    expect(logs()[0]).toMatch(/^ai\.label .* prompt=3 /);
   });
 
   it('maps a no-image error to ai_no_vision and remembers it', async () => {
