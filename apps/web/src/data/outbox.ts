@@ -79,18 +79,21 @@ function withChange(
   // The server sets `full` by the retention setting; the sync brings it.
   if (photoId) next.photo = { id: photoId, full: true };
   if (!items) return next;
-  next.items = items.map(({ illustration, confidence, recipeId, ...item }) => ({
-    ...item,
-    recipeId: recipeId ?? null,
-    aiProvider: null,
-    aiModel: null,
-    confidence: confidence ?? null,
-    illustration:
-      illustration ??
-      choices[nameKey(item.name)] ??
-      matchIllustration(item.name),
-    illustrationManual: illustration !== undefined,
-  }));
+  next.items = items.map(
+    ({ illustration, confidence, recipeId, barcode, ...item }) => ({
+      ...item,
+      recipeId: recipeId ?? null,
+      barcode: barcode ?? null,
+      aiProvider: null,
+      aiModel: null,
+      confidence: confidence ?? null,
+      illustration:
+        illustration ??
+        choices[nameKey(item.name)] ??
+        matchIllustration(item.name),
+      illustrationManual: illustration !== undefined,
+    }),
+  );
   for (const k of ['kcal', 'proteinG', 'fatG', 'carbsG'] as const)
     next[k] = next.items.reduce((s, i) => s + i[k], 0);
   return next;
