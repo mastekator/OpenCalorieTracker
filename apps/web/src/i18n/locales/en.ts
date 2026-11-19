@@ -1614,6 +1614,8 @@ export const en = {
           'Check the weight: cooked is {x}× lighter than the ingredients ({w}\u00a0g).',
       },
       offline: 'The weight can be saved when you’re back online.',
+      offline_old:
+        'The weight can be saved when you’re back online. A serving is counted from the saved weight.',
       save: 'Save weight',
       saving: 'Saving…',
       saved: 'Cooked weight saved',

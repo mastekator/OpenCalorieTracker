@@ -9,7 +9,7 @@ import {
 } from '@testing-library/react';
 import { I18nProvider } from '../../i18n';
 import { renderLoaded } from '../../test-utils';
-import { CookMode, useWakeLock, withCookedG } from './CookMode';
+import { CookDoneSheet, CookMode, useWakeLock, withCookedG } from './CookMode';
 import { PILAF } from './fixtures';
 import { RecipeView } from './RecipeScreen';
 
@@ -212,6 +212,66 @@ describe('CookDoneSheet', () => {
     cleanup();
     await done({ onLog: () => {} });
     expect(screen.getByRole('button', { name: 'Log a serving' })).toBeTruthy();
+  });
+
+  it('«Log a serving» saves an edited weight first', async () => {
+    const order: string[] = [];
+    const { field } = await done({
+      onSaveWeight: vi.fn(async () => void order.push('save')),
+      onLog: () => order.push('log'),
+    });
+    fireEvent.change(field, { target: { value: '1800' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Log a serving' }));
+    await waitFor(() => expect(order).toEqual(['save', 'log']));
+  });
+
+  it('a failed save does not open the portion sheet', async () => {
+    const onLog = vi.fn();
+    const onSaveWeight = vi.fn(async () => {
+      throw new Error('500');
+    });
+    const { field } = await done({ onSaveWeight, onLog });
+    fireEvent.change(field, { target: { value: '1800' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Log a serving' }));
+    await waitFor(() => expect(onSaveWeight).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(
+        screen
+          .getByRole('button', { name: 'Log a serving' })
+          .hasAttribute('disabled'),
+      ).toBe(false),
+    );
+    expect(onLog).not.toHaveBeenCalled();
+  });
+
+  it('offline with an edited weight: logs from the saved one and says so', async () => {
+    const onSave = vi.fn(async () => {});
+    const onLog = vi.fn();
+    const sheet = (online: boolean) => (
+      <I18nProvider>
+        <CookDoneSheet
+          open
+          recipe={PILAF}
+          online={online}
+          onClose={() => {}}
+          onExit={() => {}}
+          onSave={onSave}
+          onLog={onLog}
+        />
+      </I18nProvider>
+    );
+    const { rerender } = await renderLoaded(sheet(true));
+    fireEvent.change(
+      await screen.findByRole('textbox', { name: 'Cooked weight' }),
+      { target: { value: '1800' } },
+    );
+    rerender(sheet(false));
+    expect(
+      screen.getByText(/A serving is counted from the saved weight/),
+    ).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Log a serving' }));
+    await waitFor(() => expect(onLog).toHaveBeenCalledOnce());
+    expect(onSave).not.toHaveBeenCalled();
   });
 });
 
