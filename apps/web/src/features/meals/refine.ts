@@ -8,6 +8,7 @@ import {
   sumDay,
   uuid,
   type AiQuestion,
+  type DishSource,
   type FixedField,
   type IllustrationId,
   type MealItemInput,
@@ -47,7 +48,7 @@ export type Row = {
   id: string;
   /** As recognized or entered, with the current name: every recalculation starts from here (AC-3.2). */
   original: Dish;
-  source: 'ai' | 'manual' | 'history';
+  source: DishSource;
   /** Null while the weight field is invalid (AC-3.4). */
   grams: number | null;
   /** Last valid weight: the numbers stay on it while the field is invalid. */

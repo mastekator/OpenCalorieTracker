@@ -36,6 +36,14 @@ describe('mealItemInputSchema', () => {
     expect(ok({ grams: 10.25 })).toBe(false);
   });
 
+  it('takes recipeId only on a recipe portion (ADR-0023 §5)', () => {
+    expect(ok({ source: 'recipe', recipeId: 3 })).toBe(true);
+    expect(ok({ source: 'recipe' })).toBe(true);
+    expect(ok({ source: 'manual', recipeId: 3 })).toBe(false);
+    expect(ok({ source: 'recipe', recipeId: 0 })).toBe(false);
+    expect(ok({ source: 'recipe', recipeId: 1.5 })).toBe(false);
+  });
+
   it('takes confidence only from the AI', () => {
     expect(ok({ source: 'ai', confidence: 0.9 })).toBe(true);
     expect(ok({ confidence: 0.9 })).toBe(false);
