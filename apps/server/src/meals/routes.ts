@@ -94,6 +94,33 @@ export function mealRoutes({ config, db, ai }: AppDeps) {
     });
   };
 
+  /**
+   * Checks a photo about to be attached to a meal (ADR-0008) and returns its storage terms:
+   * 0 days keeps only the preview, NULL keeps the full photo forever, else N days from `eatenAt`.
+   */
+  const photoTerms = (
+    userId: number,
+    photoId: string,
+    eatenAt: number,
+    mealHasPhoto = false,
+  ) => {
+    const preview = photoPath(config.dataDir, userId, photoId, 'preview');
+    if (!preview || !existsSync(preview)) throw new ApiError(404, 'not_found');
+    if (
+      mealHasPhoto ||
+      db.prepare('SELECT 1 FROM meals WHERE photo_id = ?').get(photoId)
+    )
+      throw new ApiError(409, 'photo_in_use');
+    const days = db
+      .prepare('SELECT photo_retention_days FROM users WHERE id = ?')
+      .pluck()
+      .get(userId) as number | null;
+    return {
+      full: days === 0 ? 0 : 1,
+      expiresAt: days ? eatenAt + days * DAY_MS : null,
+    };
+  };
+
   const removePhoto = (
     userId: number,
     photoId: string,
@@ -129,31 +156,10 @@ export function mealRoutes({ config, db, ai }: AppDeps) {
             input.tzOffsetMin,
             input.localDate,
           );
-          let full = 0;
-          let expiresAt: number | null = null;
-          if (input.photoId !== undefined) {
-            const preview = photoPath(
-              config.dataDir,
-              userId,
-              input.photoId,
-              'preview',
-            );
-            if (!preview || !existsSync(preview))
-              throw new ApiError(404, 'not_found');
-            if (
-              db
-                .prepare('SELECT 1 FROM meals WHERE photo_id = ?')
-                .get(input.photoId)
-            )
-              throw new ApiError(409, 'photo_in_use');
-            const days = db
-              .prepare('SELECT photo_retention_days FROM users WHERE id = ?')
-              .pluck()
-              .get(userId) as number | null;
-            // ADR-0008: 0 keeps only the preview, NULL keeps the full photo forever.
-            full = days === 0 ? 0 : 1;
-            expiresAt = days ? eatenAt + days * DAY_MS : null;
-          }
+          const { full, expiresAt } =
+            input.photoId === undefined
+              ? { full: 0, expiresAt: null }
+              : photoTerms(userId, input.photoId, eatenAt);
           const now = Date.now();
           const id = db
             .prepare(
@@ -202,19 +208,25 @@ export function mealRoutes({ config, db, ai }: AppDeps) {
       '/meals/:id',
       requireUser,
       validate('json', mealPatchSchema),
-      (c) => {
+      async (c) => {
         const userId = c.var.user.id;
         const patch = c.req.valid('json');
         const meal = findMeal(userId, c.req.param('id'));
         if (!meal) throw new ApiError(404, 'not_found');
-        db.transaction(() => {
+        // Attaching a photo to a saved meal (ADR-0009); a repeat of the same id changes nothing.
+        const attach =
+          patch.photoId !== undefined && patch.photoId !== meal.photo_id
+            ? patch.photoId
+            : undefined;
+        const dropFull = db.transaction(() => {
           // Same rule as account settings: clamp to server time, an older offline edit loses.
           const now = Date.now();
           const at = Math.min(patch.editedAt ?? now, now);
           const stored = meal.edited_at;
-          if (stored !== null && stored <= now && at < stored) return;
+          if (stored !== null && stored <= now && at < stored) return false;
           let eatenAt = meal.eaten_at;
           let expiresAt = meal.photo_expires_at;
+          let full = meal.photo_full;
           if ('eatenAt' in patch) {
             eatenAt = checkWhen(
               patch.eatenAt,
@@ -225,15 +237,26 @@ export function mealRoutes({ config, db, ai }: AppDeps) {
             if (meal.photo_full && expiresAt !== null)
               expiresAt += eatenAt - meal.eaten_at;
           }
+          // After the eatenAt change: a new photo's period counts once, from the new time.
+          if (attach !== undefined)
+            ({ full, expiresAt } = photoTerms(
+              userId,
+              attach,
+              eatenAt,
+              meal.photo_id !== null,
+            ));
           db.prepare(
             `UPDATE meals SET eaten_at = ?, tz_offset_min = ?, local_date = ?, meal_type = ?,
-             photo_expires_at = ?, recalc_offer = ?, rev = ?, edited_at = ?, updated_at = ?
+             photo_id = ?, photo_full = ?, photo_expires_at = ?, recalc_offer = ?, rev = ?,
+             edited_at = ?, updated_at = ?
              WHERE id = ?`,
           ).run(
             eatenAt,
             'eatenAt' in patch ? patch.tzOffsetMin : meal.tz_offset_min,
             'eatenAt' in patch ? patch.localDate : meal.local_date,
             patch.mealType ?? meal.meal_type,
+            attach ?? meal.photo_id,
+            full,
             expiresAt,
             patch.recalcOffer === undefined
               ? meal.recalc_offer
@@ -260,7 +283,9 @@ export function mealRoutes({ config, db, ai }: AppDeps) {
             db.prepare('DELETE FROM meal_items WHERE meal_id = ?').run(meal.id);
             insertItems(meal.id, patch.items, recognizedBy);
           }
+          return attach !== undefined && !full;
         })();
+        if (dropFull) await removePhoto(userId, attach!, ['full']);
         return c.json(readMeal(db, meal.id));
       },
     )

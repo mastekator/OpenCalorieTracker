@@ -63,6 +63,8 @@ const patch = {
   mealType: mealTypeSchema.optional(),
   recalcOffer: z.boolean().optional(),
   items: items.optional(),
+  /** Attach a photo to a saved meal that has none (ADR-0009); online only. */
+  photoId: z.string().optional(),
   /** Unix ms of the edit on the device; an older one than the stored edit is ignored (last edit wins). */
   editedAt: z.number().int().nonnegative().optional(),
 };

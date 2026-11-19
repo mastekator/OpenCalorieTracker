@@ -385,8 +385,11 @@ export function MealEditScreen({
     items: recalced || itemsKey !== initial.itemsKey || !valid,
     mealType: mealType !== initial.mealType,
     when: when !== initial.when,
+    // Uploaded to a saved meal without a photo; attached by PATCH on save (OCT-126).
+    photoId: !!meal && !meal.photo && photo && 'id' in photo ? photo.id : null,
   };
-  const dirty = changed.items || changed.mealType || changed.when;
+  const dirty =
+    changed.items || changed.mealType || changed.when || !!changed.photoId;
 
   const setGrams = (index: number, grams: number | null) => {
     setApplied(null);
@@ -551,8 +554,8 @@ export function MealEditScreen({
         url: `/api/photos/${encodeURIComponent(id)}?size=preview`,
       });
     } catch (err) {
-      if (blob && err instanceof ApiError && err.status === 0)
-        // No network: the outbox uploads it with the meal (ADR-0008).
+      if (blob && !meal && err instanceof ApiError && err.status === 0)
+        // No network: the outbox uploads it with the new meal (ADR-0008); a saved one is online only.
         setPhoto({ blob, url: URL.createObjectURL(blob) });
       else if (
         err instanceof ImageDecodeError ||
@@ -639,6 +642,7 @@ export function MealEditScreen({
       ...(changed.items && { items }),
       // The server then records the current model on the AI dishes (AC-10.10).
       ...(recalced && { recalcOffer: false }),
+      ...(changed.photoId && { photoId: changed.photoId }),
       ...(changed.when && {
         eatenAt: at.toISOString(),
         tzOffsetMin: offsetAt(at),
@@ -824,8 +828,8 @@ export function MealEditScreen({
   );
   const startRecalc = () => onRecalc?.({ rows, mealType, when });
   const pickingRow = rows.find((r) => r.id === picking);
-  // A saved meal takes no photo in PATCH; a meal with a photo has one (AC-4.3).
-  const photoActions = !meal && !photo && !uploading;
+  // A meal with a photo has one (AC-4.3); a saved one takes it online only (OCT-126).
+  const photoActions = !photo && !uploading && (!meal || online);
   const takePhoto = (input: typeof photoInput) => () => {
     setPicking(null);
     input.current?.click();
