@@ -4,6 +4,22 @@ All notable changes to this project are documented in this file.
 
 ## Unreleased
 
+## 0.2.1 — 2026-11-19
+
+Fixes after 0.2.0, a stricter model test, and the first part of recipes.
+
+- Model test checks what was recognized, not only the calorie total: every expected dish must be found, countable items are counted, calories must be close to a reference portion; every reason a photo failed is shown. The set has a version and more photos; older results in [Tested models](docs/MODELS.md) are marked `set 1`
+- Model comparison: model names on one line, the dishes a model returned are shown, clearer thumbnails
+- AI provider: Save right after Check no longer asks to wait
+- Goal assistant: with a filled profile it first confirms what it knows, and the deadline question names the target weight
+- iPhone: no empty bar above the large title on the main screens
+- Add a photo to a saved meal that has none, with upload progress and retry
+- Kitchen (early): recipes with ingredients, yield, steps and photo, and a cooking mode with the screen kept on. Logging a portion from a recipe and more are coming in 0.3
+
+### Upgrade from 0.2.0
+
+Set `image: ghcr.io/mastekator/opencalorietracker:0.2.1` in `docker-compose.yml`, then `docker compose pull && docker compose up -d`. Database migrations run on start; back up the `data` folder first.
+
 ## 0.2.0 — 2026-11-19
 
 AI settings in the app, refining what the AI recognized, and a setup wizard.
