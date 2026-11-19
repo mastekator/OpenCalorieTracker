@@ -41,6 +41,16 @@
   white-space: nowrap;
 }
 
+.navbar__title--hidden {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .navbar__title {
+    transition: opacity var(--duration-fast) var(--ease-out);
+  }
+}
+
 .navbar__large-title {
   padding: 0 var(--space-3) var(--space-2);
   font-size: var(--text-large-title-size);

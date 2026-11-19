@@ -10,6 +10,7 @@ import {
 } from '@oct/shared';
 import { useT } from '../../i18n';
 import { Segment } from '../Segment/Segment';
+import '../MacroStat/MacroStat.css';
 import './NutritionCard.css';
 
 type Basis = 'portion' | 'per100' | 'whole';
@@ -59,11 +60,18 @@ export function NutritionCard(recipe: Props) {
           {t(`recipe.nut.kcal_${shown}`, { g: num(g) })}
         </p>
         <p className="nutrition-card__macros">
-          {t('edit.macros', {
-            p: grams(n.proteinG),
-            f: grams(n.fatG),
-            c: grams(n.carbsG),
-          })}
+          {(
+            [
+              ['p', 'protein', n.proteinG],
+              ['f', 'fat', n.fatG],
+              ['c', 'carbs', n.carbsG],
+            ] as const
+          ).map(([k, m, v]) => (
+            <span key={k}>
+              <i className={`macro__dot macro__dot--${m}`} aria-hidden="true" />
+              {t(`recipe.nut.${k}`, { g: grams(v) })}
+            </span>
+          ))}
         </p>
       </div>
     </section>

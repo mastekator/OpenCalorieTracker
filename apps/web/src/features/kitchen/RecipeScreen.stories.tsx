@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { fn, within } from 'storybook/test';
+import { fn, waitFor, within } from 'storybook/test';
 import { RecipeView } from './RecipeScreen';
 import { PILAF, SALAD } from './fixtures';
 
@@ -27,6 +27,20 @@ export const NoAi: Story = { args: { lighter: false } };
 export const WithServings: Story = {};
 export const WithServingsDark: Story = { globals: dark };
 export const WithServingsRussian: Story = { globals: { locale: 'ru' } };
+/** 2.2: scrolled past the page title, the navbar shows the recipe name (before scrolling — 2.1, none). */
+export const Scrolled: Story = {
+  play: async ({ canvas, canvasElement }) => {
+    await canvas.findByRole('heading', { level: 2, name: 'Homemade pilaf' });
+    // Retried: the page may still be growing (the photo) when the play starts.
+    await waitFor(() => {
+      canvasElement.ownerDocument.defaultView?.scrollTo(0, 600);
+      const title = canvasElement.querySelector('.navbar__title');
+      if (title?.classList.contains('navbar__title--hidden'))
+        throw new Error('title still hidden');
+    });
+  },
+};
+export const ScrolledDark: Story = { ...Scrolled, globals: dark };
 /** §10: title over three columns. */
 export const Desktop: Story = { globals: desktop };
 export const DesktopDark: Story = { globals: { ...desktop, ...dark } };

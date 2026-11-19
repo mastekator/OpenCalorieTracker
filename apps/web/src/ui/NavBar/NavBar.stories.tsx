@@ -126,6 +126,23 @@ export const Nested: Story = {
   ),
 };
 
+/** Recipe card before scrolling (OCT-160 2.1): the title is only for screen readers, the page shows its own. */
+export const TitleHidden: Story = {
+  render: () => (
+    <Localised
+      make={(t) => ({
+        title: t('screens.invite'),
+        titleHidden: true,
+        back: { href: '/settings', label: t('nav.settings') },
+      })}
+    />
+  ),
+};
+export const TitleHiddenDark: Story = {
+  ...TitleHidden,
+  globals: { theme: 'dark' },
+};
+
 export const TitleOnly: Story = {
   render: () => <Localised make={(t) => ({ title: t('nav.settings') })} />,
 };

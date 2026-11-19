@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  cleanup,
+  fireEvent,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { I18nProvider } from '../../i18n';
 import { renderLoaded } from '../../test-utils';
 import { PILAF, SALAD } from './fixtures';
@@ -83,5 +89,52 @@ describe('RecipeView', () => {
     expect(
       screen.queryByRole('button', { name: 'Make it lighter' }),
     ).toBeNull();
+  });
+
+  it('a step photo that fails to load is left out', async () => {
+    await view().result;
+    const img = document.querySelector('.recipe__step-photo')!;
+    fireEvent.error(img);
+    expect(document.querySelector('.recipe__step-photo')).toBeNull();
+    expect(screen.getByText(/^Heat the oil/)).toBeTruthy();
+  });
+
+  it('the navbar title waits until the page title scrolls under it (2.1, 2.2)', async () => {
+    let fire: (top: number) => void = () => {};
+    vi.stubGlobal(
+      'IntersectionObserver',
+      class {
+        constructor(cb: IntersectionObserverCallback) {
+          fire = (top) =>
+            cb(
+              [
+                {
+                  isIntersecting: top >= 0,
+                  boundingClientRect: { top },
+                  rootBounds: { top: 0 },
+                } as unknown as IntersectionObserverEntry,
+              ],
+              this as unknown as IntersectionObserver,
+            );
+        }
+        observe() {}
+        disconnect() {}
+      },
+    );
+    await view().result;
+    const title = screen.getByRole('heading', { level: 1 });
+    expect(title.className).toContain('navbar__title--hidden');
+    act(() => fire(-40));
+    expect(title.className).not.toContain('navbar__title--hidden');
+    act(() => fire(20));
+    expect(title.className).toContain('navbar__title--hidden');
+    vi.unstubAllGlobals();
+  });
+
+  it('macros carry their colour dots', async () => {
+    await view().result;
+    expect(
+      document.querySelectorAll('.nutrition-card__macros .macro__dot'),
+    ).toHaveLength(3);
   });
 });
