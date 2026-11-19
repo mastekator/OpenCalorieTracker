@@ -52,6 +52,7 @@
 
 .cook__text {
   margin: 0;
+  max-width: 36em;
   font-size: var(--text-cook-size);
   line-height: var(--text-cook-lh);
   font-weight: 500;

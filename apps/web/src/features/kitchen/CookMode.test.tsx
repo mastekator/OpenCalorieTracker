@@ -87,6 +87,13 @@ describe('CookMode', () => {
     expect(title()).toBe('Step 1 of 3');
     // Esc closed only the sheet; in the list a tap goes to that step.
     fireEvent.click(screen.getByRole('button', { name: 'All steps' }));
+    // The step being cooked is marked on the row button itself.
+    expect(
+      screen
+        .getByText('Step 1 of 3 · now')
+        .closest('button')!
+        .getAttribute('aria-current'),
+    ).toBe('step');
     fireEvent.click(screen.getByText(PILAF.steps[2]!.text));
     expect(title()).toBe('Step 3 of 3');
     fireEvent.click(screen.getByRole('button', { name: 'Done' }));

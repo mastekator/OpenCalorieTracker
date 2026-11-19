@@ -139,3 +139,22 @@ export const DescriptionNowrapDark: Story = {
 export const Desktop: Story = {
   globals: { viewport: { value: 'desktop' } },
 };
+/** current: the item being worked on, e.g. the step in cooking mode. */
+export const Current: Story = {
+  render: () => (
+    <List>
+      {['Fry the onion', 'Add the rice', 'Simmer 20 minutes'].map((text, k) => (
+        <ListRow
+          key={k}
+          chevron={false}
+          current={k === 1 ? 'step' : undefined}
+          description={`Step ${k + 1} of 3${k === 1 ? ' · now' : ''}`}
+          onClick={noop}
+        >
+          {text}
+        </ListRow>
+      ))}
+    </List>
+  ),
+};
+export const CurrentDark: Story = { ...Current, globals: { theme: 'dark' } };

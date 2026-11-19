@@ -43,6 +43,8 @@ type RowProps = {
   disabled?: boolean;
   href?: string;
   onClick?: (event: MouseEvent<HTMLElement>) => void;
+  /** Marks the current item of a set, e.g. the step being cooked; tinted accent. */
+  current?: 'step' | 'page';
   /** A separate button at the row's end, its own tap zone, e.g. «+» on the profile's weight row. */
   action?: ReactNode;
 };
@@ -60,6 +62,7 @@ export function ListRow({
   href,
   onClick,
   action,
+  current,
 }: RowProps) {
   const interactive = href !== undefined || onClick !== undefined;
   const className = `list-row${danger ? ' list-row--danger' : ''}${accent ? ' list-row--accent' : ''}${icon ? ' list-row--icon' : ''}${interactive ? ' list-row--interactive' : ''}`;
@@ -85,6 +88,7 @@ export function ListRow({
   const common = {
     className,
     'aria-disabled': disabled || undefined,
+    'aria-current': current,
   };
   let row;
   if (href !== undefined)

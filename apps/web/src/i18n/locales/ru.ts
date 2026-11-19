@@ -1619,6 +1619,7 @@ const ru: DeepPartial<typeof en> = {
   },
   cook: {
     step: 'Шаг {i} из {n}',
+    step_now: 'Шаг {i} из {n} · сейчас',
     exit: 'Выйти из режима',
     all_steps: 'Все шаги',
     awake: 'Экран не погаснет, пока открыт режим',

@@ -1547,6 +1547,7 @@ export const en = {
   },
   cook: {
     step: 'Step {i} of {n}',
+    step_now: 'Step {i} of {n} · now',
     exit: 'Exit cooking mode',
     all_steps: 'All steps',
     awake: 'Screen stays on while cooking',

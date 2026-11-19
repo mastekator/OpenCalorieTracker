@@ -265,13 +265,17 @@ export function CookMode({
             <ListRow
               key={k}
               chevron={false}
-              description={t('cook.step', { i: k + 1, n })}
+              current={k === i ? 'step' : undefined}
+              description={t(k === i ? 'cook.step_now' : 'cook.step', {
+                i: k + 1,
+                n,
+              })}
               onClick={() => {
                 setSheet(null);
                 setI(k);
               }}
             >
-              <span aria-current={k === i ? 'step' : undefined}>{s.text}</span>
+              {s.text}
             </ListRow>
           ))}
         </List>
