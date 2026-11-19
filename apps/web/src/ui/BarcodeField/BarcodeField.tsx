@@ -74,7 +74,11 @@ export function BarcodeField({
         ? 'manual_dish.barcode.offline'
         : result.off === 'down'
           ? 'manual_dish.barcode.off_down'
-          : 'manual_dish.barcode.not_found'
+          : result.off === 'disabled'
+            ? 'manual_dish.barcode.off_disabled'
+            : result.off === 'blocked'
+              ? 'manual_dish.barcode.off_blocked'
+              : 'manual_dish.barcode.not_found'
       : undefined;
 
   return (
@@ -126,8 +130,6 @@ export function BarcodeField({
           role="status"
         >
           {t(missing)}
-          {(result?.off === 'disabled' || result?.off === 'blocked') &&
-            ` ${t('manual_dish.barcode.off_disabled')}`}
         </p>
       )}
     </div>

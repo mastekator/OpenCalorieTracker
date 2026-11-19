@@ -89,9 +89,12 @@ export const OffDownDark = dark(OffDown);
 /** 3.6 (AC-4.9) */
 export const Offline = state(none('offline'));
 export const OfflineDark = dark(Offline);
-/** Lookup off or blocked by the admin: own products only. */
+/** Lookup off in Integrations: own products only. */
 export const OffDisabled = state(none('disabled'));
 export const OffDisabledDark = dark(OffDisabled);
+/** Lookup blocked by the admin: own products only. */
+export const OffBlocked = state(none('blocked'));
+export const OffBlockedDark = dark(OffBlocked);
 export const WrongLength = state(undefined, '12345');
 export const WrongLengthDark = dark(WrongLength);
 export const Russian: Story = {

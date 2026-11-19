@@ -945,7 +945,10 @@ export const en = {
       off_down: 'Open Food Facts didn’t respond. Try again or fill it in.',
       offline:
         'Offline we only search products saved on this phone. Not here — fill it in.',
-      off_disabled: 'Open Food Facts is off in Integrations.',
+      off_disabled:
+        'Not in your products. Open Food Facts lookup is off — you can turn it on in Integrations.',
+      off_blocked:
+        'Not in your products. Open Food Facts lookup is turned off by the admin.',
       err: 'A barcode has 8 to 14 digits',
     },
     recipes_footer: 'Or type a name — your recipes come first.',

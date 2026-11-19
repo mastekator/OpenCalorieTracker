@@ -234,7 +234,7 @@ describe('ManualDishSheet: barcode (OCT-313 §3)', () => {
     await setup('metric', lookup);
     find('4006381333931');
     await screen.findByText(
-      /^Not in your products or Open Food Facts.*Open Food Facts is off in Integrations\.$/,
+      'Not in your products. Open Food Facts lookup is off — you can turn it on in Integrations.',
     );
     expect(document.activeElement).toBe(screen.getByLabelText(/^Name/));
   });
