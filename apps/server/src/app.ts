@@ -9,6 +9,7 @@ import { adminRoutes } from './admin/routes.js';
 import { aiRoutes } from './ai/routes.js';
 import type { AiRuntime } from './ai/runtime.js';
 import { authRoutes } from './auth/routes.js';
+import { barcodeRoutes } from './barcodes/routes.js';
 import { device } from './auth/device.js';
 import { passkeyRoutes } from './auth/passkeys.js';
 import { dummyHash } from './auth/password.js';
@@ -45,6 +46,8 @@ export interface AppDeps {
   /** The active AI model; read ai.current() in each request, never once per route. */
   ai: AiRuntime;
   secrets: Secrets;
+  /** Outbound HTTP (Open Food Facts); tests pass a fake. Defaults to the global fetch. */
+  fetch?: typeof fetch;
 }
 
 export function createApp(deps: AppDeps) {
@@ -76,6 +79,7 @@ export function createApp(deps: AppDeps) {
   app.route('/api', profileRoutes(deps));
   app.route('/api', accountRoutes(deps));
   app.route('/api', integrationRoutes(deps));
+  app.route('/api', barcodeRoutes(deps));
   app.route('/api', aiRoutes(deps));
   app.route('/api', photoRoutes(deps));
   app.route('/api', mealRoutes(deps));

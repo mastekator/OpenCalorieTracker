@@ -1910,6 +1910,7 @@ const ru: DeepPartial<typeof en> = {
     ai_env_managed: 'ИИ задан в окружении сервера (AI_*) — менять там',
     outbound_env_managed:
       'Запросы наружу заданы в окружении сервера (ALLOW_OUTBOUND_REQUESTS) — менять там',
+    barcode_invalid: 'Такого штрихкода не бывает — проверьте цифры',
     ai_settings_changed:
       'Настройки ИИ уже изменили. Обновите страницу и повторите',
     ai_key_required: 'Введите API-ключ этого провайдера',

@@ -1818,6 +1818,7 @@ export const en = {
       'AI is set in the server environment (AI_*); change it there',
     outbound_env_managed:
       'Outbound requests are set in the server environment (ALLOW_OUTBOUND_REQUESTS); change them there',
+    barcode_invalid: 'This barcode is not valid — check the digits',
     ai_settings_changed:
       'Someone else changed the AI settings. Reload and try again',
     ai_key_required: 'Enter the API key for this provider',
