@@ -100,11 +100,11 @@ export const en = {
       new_code: 'Enter a new code',
       expired: {
         title: 'The code has expired',
-        body: 'Restart the container to get a new one in the log',
+        body: 'Restart the container to get a new one in the log.',
       },
       burned: {
         title: 'Too many wrong attempts',
-        body: 'Restart the container to get a new code',
+        body: 'Restart the container to get a new code.',
       },
       done: {
         title: 'Setup is already complete — sign in',
@@ -152,7 +152,7 @@ export const en = {
       public_url_invalid:
         '`PUBLIC_URL` must be the address people open, like `https://food.example.com`, with no path. Plain http works only for localhost.',
       admin_missing:
-        '`ADMIN_EMAIL` isn’t set. Add the admin’s email to the container configuration.',
+        '`ADMIN_PASSWORD` is set but `ADMIN_EMAIL` isn’t. Set both, or remove `ADMIN_PASSWORD` to create the admin in the setup wizard.',
       admin_email_invalid: '`ADMIN_EMAIL` isn’t a valid email address.',
       admin_password_missing:
         '`ADMIN_PASSWORD` isn’t set. Password sign-in is on, so the admin needs a password.',

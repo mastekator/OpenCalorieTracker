@@ -162,9 +162,9 @@ describe('setup step 1', () => {
       renderSetup();
       await enter('K7QM-3XRP');
       expect(await screen.findByRole('heading', { name: title })).toBeTruthy();
-      expect(
-        screen.getByText('docker compose restart opencalorietracker'),
-      ).toBeTruthy();
+      expect(document.querySelector('.command-line code')?.textContent).toBe(
+        'docker compose restart opencalorietracker',
+      );
       fireEvent.click(screen.getByRole('button', { name: 'Enter a new code' }));
       expect(
         ((await screen.findByLabelText('Setup code')) as HTMLInputElement)
