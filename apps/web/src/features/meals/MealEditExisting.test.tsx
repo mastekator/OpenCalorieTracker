@@ -27,6 +27,7 @@ import { SessionContext } from '../../app/SessionContext';
 import { ToastProvider } from '../../ui/Toast/Toast';
 import { localToday } from '../diary/day';
 import { UNDO_MS, UndoDeleteProvider } from '../diary/undoDelete';
+import type { RecipeEditorState } from '../kitchen/RecipeEditor';
 import { MealEditExisting, MealEditScreen, MealRecalc } from './MealEditScreen';
 
 // jsdom has no canvas: the photo is taken as is.
@@ -91,9 +92,11 @@ describe('MealEditScreen: a saved meal (OCT-19 §3.1)', () => {
   function Flow({
     onPatch,
     onDelete,
+    onRecipe,
   }: {
     onPatch: (patch: Patch) => void;
     onDelete: () => void;
+    onRecipe: (state: RecipeEditorState) => void;
   }) {
     const [path, navigate] = useLocation();
     if (path !== PATH) return <p>Day page</p>;
@@ -110,6 +113,7 @@ describe('MealEditScreen: a saved meal (OCT-19 §3.1)', () => {
         }}
         onDelete={onDelete}
         onClose={() => navigate('/')}
+        onRecipe={onRecipe}
       />
     );
   }
@@ -123,16 +127,17 @@ describe('MealEditScreen: a saved meal (OCT-19 §3.1)', () => {
     history.pushState(null, '', PATH);
     const onPatch = vi.fn<(patch: Patch) => void>();
     const onDelete = vi.fn();
+    const onRecipe = vi.fn<(state: RecipeEditorState) => void>();
     await renderLoaded(
       <I18nProvider>
         <ToastProvider>
           <LeaveGuard>
-            <Flow onPatch={onPatch} onDelete={onDelete} />
+            <Flow onPatch={onPatch} onDelete={onDelete} onRecipe={onRecipe} />
           </LeaveGuard>
         </ToastProvider>
       </I18nProvider>,
     );
-    return { onPatch, onDelete };
+    return { onPatch, onDelete, onRecipe };
   }
 
   it('shows type and date in the title, the time eaten, no future (AC-2.9)', async () => {
@@ -146,6 +151,23 @@ describe('MealEditScreen: a saved meal (OCT-19 §3.1)', () => {
     expect(when().max).toBe('2026-11-15T13:24');
     fireEvent.change(when(), { target: { value: '2026-11-20T10:00' } });
     expect(when().value).toBe('2026-11-15T13:24');
+  });
+
+  it('«⋯» → «Save as recipe» opens the editor with the dishes on screen (AC-6.2)', async () => {
+    const { onRecipe } = await setup();
+    fireEvent.change(weight(), { target: { value: '400' } });
+    fireEvent.click(button('Meal actions'));
+    fireEvent.click(await screen.findByText('Save as recipe'));
+    expect(onRecipe).toHaveBeenCalledOnce();
+    expect(onRecipe.mock.calls[0]![0]).toMatchObject({
+      draft: {
+        name: 'Buckwheat',
+        ingredients: [
+          { name: 'Buckwheat', grams: 400, kcal: 500, source: 'history' },
+        ],
+      },
+      fromMeal: { mealType: 'dinner', localDate: '2026-11-12' },
+    });
   });
 
   it('a weight edit counts from the stored values (AC-2.8)', async () => {

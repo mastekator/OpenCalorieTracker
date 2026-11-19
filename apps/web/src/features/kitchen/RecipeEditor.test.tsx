@@ -231,6 +231,16 @@ describe('RecipeEditor', () => {
     expect(total('Total')).toBe('3,487');
   });
 
+  it('a draft from a meal says which meal (OCT-160 3.7)', async () => {
+    const { steps, ...draft } = PILAF;
+    await view({
+      draft: { ...draft, steps },
+      fromMeal: { mealType: 'lunch', localDate: '2026-11-13' },
+    });
+    expect(screen.getByText('From lunch, Nov 13')).toBeTruthy();
+    expect(screen.getByText(/^Dishes became ingredients/)).toBeTruthy();
+  });
+
   it('a failed photo upload is a toast; the recipe saves without a photo (E-10.12)', async () => {
     vi.stubGlobal('fetch', async () =>
       Response.json({ error: { code: 'internal' } }, { status: 500 }),

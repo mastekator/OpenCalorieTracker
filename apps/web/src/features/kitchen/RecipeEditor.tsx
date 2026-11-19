@@ -1,6 +1,6 @@
 import { useCallback, useId, useRef, useState, type ChangeEvent } from 'react';
 import { flushSync } from 'react-dom';
-import { Camera, CircleAlert, Minus, Plus, Scale } from 'lucide-react';
+import { Camera, CircleAlert, History, Minus, Plus, Scale } from 'lucide-react';
 import { Redirect, useLocation } from 'wouter';
 import { z } from 'zod';
 import {
@@ -11,6 +11,7 @@ import {
   servingG,
   weightWarning,
   type IngredientSource,
+  type Meal,
   type Nutrients,
   type Recipe,
   type RecipeInput,
@@ -49,7 +50,14 @@ import { useUnits } from './units';
 import './RecipeEditor.css';
 
 /** `history.state` of /kitchen/new: a prefilled draft (from a meal, from text; 7/9, 8/9). */
-export type RecipeEditorState = { draft?: RecipeInput; ai?: AiDraft };
+export type RecipeEditorState = {
+  draft?: RecipeInput;
+  ai?: AiDraft;
+  fromMeal?: FromMeal;
+};
+
+/** A draft from «Save as recipe» / «From a meal»: the notice says which meal (OCT-160 3.7). */
+type FromMeal = Pick<Meal, 'mealType' | 'localDate'>;
 
 /** A draft from «Recipe from text»: indexes of `draft.ingredients` to check (AC-6.4); never saved. */
 type AiDraft = { unsure: number[] };
@@ -79,6 +87,7 @@ export function RecipeEditorScreen({ id }: { id?: string }) {
       recipe={recipe ?? undefined}
       draft={state?.draft}
       ai={state?.ai}
+      fromMeal={state?.fromMeal}
       online={online}
       units={units}
       search={search}
@@ -107,6 +116,8 @@ type Props = {
   draft?: RecipeInput;
   /** The draft came from the AI: a notice, «estimate» badges, unsure rows marked. */
   ai?: AiDraft;
+  /** The draft came from a meal: a notice with its type and date. */
+  fromMeal?: FromMeal;
   /** Offline «Save» is disabled (E-10.5, ADR-0023 §4). */
   online: boolean;
   /** Weights shown and typed in grams or ounces; saved in grams (AC-2.6). */
@@ -164,13 +175,14 @@ export function RecipeEditor({
   recipe,
   draft,
   ai,
+  fromMeal,
   online,
   units,
   search,
   onSave,
   onSaved,
 }: Props) {
-  const { t, num } = useT();
+  const { t, num, locale } = useT();
   const toast = useToast();
   const w = useWeight(units);
   const unit = w.u;
@@ -380,8 +392,25 @@ export function RecipeEditor({
         }}
       />
       <main
-        className={`screen__body recipe-editor${ai ? ' recipe-editor--ai' : ''}`}
+        className={`screen__body recipe-editor${ai || fromMeal ? ' recipe-editor--ai' : ''}`}
       >
+        {fromMeal && (
+          <div className="recipe-editor__ai">
+            <Banner
+              tone="notice"
+              icon={<History aria-hidden="true" />}
+              title={t(`editor.from_meal.title.${fromMeal.mealType}`, {
+                date: new Intl.DateTimeFormat(locale, {
+                  day: 'numeric',
+                  month: 'short',
+                  timeZone: 'UTC',
+                }).format(new Date(`${fromMeal.localDate}T00:00:00Z`)),
+              })}
+            >
+              {t('editor.from_meal.body')}
+            </Banner>
+          </div>
+        )}
         {ai && (
           <div className="recipe-editor__ai">
             <Banner tone="accent" title={t('editor.ai.title')}>
