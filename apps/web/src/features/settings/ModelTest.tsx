@@ -192,6 +192,7 @@ export function ModelTest({ status, draft, dirty, onFinished }: Props) {
     <>
       <ModelTestCard
         run={run}
+        photoCount={status.testPhotoCount}
         target={`${providerName(draft.provider)} · ${draft.model.trim()}`}
         targetNote={
           env ? t('ai.test.current') : dirty ? t('ai.test.unsaved') : undefined
@@ -256,7 +257,7 @@ export function ModelTest({ status, draft, dirty, onFinished }: Props) {
         open={confirm}
         stack
         title={t('ai.test.confirm_title')}
-        body={t('ai.test.confirm_body')}
+        body={t('ai.test.confirm_body', { count: status.testPhotoCount })}
         confirmLabel={t('ai.test.run')}
         tone="primary"
         onConfirm={() => void start()}

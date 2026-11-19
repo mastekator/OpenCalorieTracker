@@ -28,6 +28,12 @@ const run = (
 });
 
 describe('bestRunId', () => {
+  it('skips a run of another test set, even with every photo passed', () => {
+    const old = { ...run(1, 9, 1000), testSet: 1 };
+    expect(bestRunId([old, run(2, 14, 4000)])).toBe(2);
+    expect(bestRunId([old])).toBeNull();
+  });
+
   it('takes the most passed', () => {
     expect(bestRunId([run(1, 7, 1000), run(2, 9, 5000), run(3, 8, 900)])).toBe(
       2,

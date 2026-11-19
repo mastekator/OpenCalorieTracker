@@ -39,6 +39,7 @@ const meta = {
   component: ModelTestCard,
   args: {
     run: null,
+    photoCount: 17,
     target: 'Google · gemini-3.5-flash-lite',
     onStart: fn(),
     onStop: fn(),

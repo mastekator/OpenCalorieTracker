@@ -26,6 +26,7 @@ const status: AdminAiStatus = {
   state: 'ok',
   checkedAt: 0,
   refineLimit: null,
+  testPhotoCount: 17,
 };
 const draft = {
   provider: 'google' as const,
@@ -177,7 +178,14 @@ describe('Model test', () => {
       'GET /api/admin/ai/tests/9': running,
     });
     await mount();
+    // The set size comes from the server, never a fixed 9.
+    expect(await screen.findByText(/^17 reference photos/)).toBeTruthy();
     fireEvent.click(await screen.findByRole('button', { name: 'Test model' }));
+    expect(
+      await screen.findByText(
+        /17 photos to the provider — 17 recognition requests/,
+      ),
+    ).toBeTruthy();
     fireEvent.click(await screen.findByRole('button', { name: 'Run test' }));
     expect(await screen.findByText('Photo 2 of 3')).toBeTruthy();
     expect(screen.getByText('A model test is already running')).toBeTruthy();

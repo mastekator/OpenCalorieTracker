@@ -14,6 +14,7 @@ const gemini: AdminAiStatus = {
   savedInactive: false,
   rev: null,
   refineLimit: null,
+  testPhotoCount: 9,
   state: 'ok',
   checkedAt: Date.now() - 20 * 60_000,
 };

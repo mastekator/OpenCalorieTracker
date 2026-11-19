@@ -146,7 +146,7 @@ export function adminRoutes({ config, db, ai, secrets }: AppDeps) {
       },
     };
 
-  const aiStatus = (): AdminAiStatus => {
+  const aiStatus = async (): Promise<AdminAiStatus> => {
     const { settings = null, model = null } = ai.current() ?? {};
     const saved = savedAiRow(db, secrets);
     // An unreadable saved key: nothing is active, the screen shows what was saved (E-2).
@@ -165,6 +165,7 @@ export function adminRoutes({ config, db, ai, secrets }: AppDeps) {
       rev: saved?.rev ?? null,
       refineLimit: refineLimit(db),
       state,
+      testPhotoCount: (await readExpected()).photos.length,
       checkedAt,
       ...redacted(details, settings?.apiKey),
     };
@@ -264,7 +265,7 @@ export function adminRoutes({ config, db, ai, secrets }: AppDeps) {
   return (
     new Hono<AuthEnv & { Variables: { user: User } }>()
       .use('/admin/*', requireAdmin)
-      .get('/admin/ai', (c) => c.json(aiStatus()))
+      .get('/admin/ai', async (c) => c.json(await aiStatus()))
       // Without a body: the active model, its result becomes the global state. With a draft:
       // nothing is saved or recorded (ADR-0018 §4).
       .post('/admin/ai/check', async (c) => {
@@ -274,7 +275,7 @@ export function adminRoutes({ config, db, ai, secrets }: AppDeps) {
           if (!model) throw new ApiError(409, 'ai_not_configured');
           throttleCheck();
           await runCheck(model);
-          return c.json(aiStatus());
+          return c.json(await aiStatus());
         }
         let body: unknown;
         try {
@@ -344,7 +345,7 @@ export function adminRoutes({ config, db, ai, secrets }: AppDeps) {
           console.log(
             `[info] AI settings changed by admin: provider ${settings.provider}, model ${settings.model}`,
           );
-          return c.json(aiStatus());
+          return c.json(await aiStatus());
         },
       )
       .delete('/admin/ai/settings', async (c) => {
@@ -352,19 +353,19 @@ export function adminRoutes({ config, db, ai, secrets }: AppDeps) {
         db.prepare('DELETE FROM ai_settings').run();
         await ai.apply(null);
         console.log('[info] AI turned off by admin');
-        return c.json(aiStatus());
+        return c.json(await aiStatus());
       })
       // Not envManaged(): the limit lives apart from AI_* and is set either way (ADR-0020 §6).
       .put(
         '/admin/ai/refine-limit',
         validate('json', refineLimitRequestSchema),
-        (c) => {
+        async (c) => {
           const { limit } = c.req.valid('json');
           db.prepare(
             `INSERT INTO ai_limits (id, refine_per_session) VALUES (1, ?)
              ON CONFLICT (id) DO UPDATE SET refine_per_session = excluded.refine_per_session`,
           ).run(limit);
-          return c.json(aiStatus());
+          return c.json(await aiStatus());
         },
       )
       // No throttle and no global state: listing models costs nothing and changes nothing.

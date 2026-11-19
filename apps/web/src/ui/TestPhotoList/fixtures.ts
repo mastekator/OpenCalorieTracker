@@ -74,3 +74,56 @@ export const STOPPED_PHOTOS: AiTestPhoto[] = TEST_PHOTOS.map((p, i) =>
       }
     : { file: p.file, expected: p.expected, result: 'not_run' },
 );
+
+/** Set 2 (ADR-0033): counts, a pack per 100 g, several misses at once, a provider error. */
+export const SET2_PHOTOS: AiTestPhoto[] = [
+  {
+    file: 'eggs.jpg',
+    expected: 'egg ×3; 170-260 kcal; exact',
+    got: 'Chicken egg, raw',
+    kcal: 78,
+    levels: 'exact',
+    ms: 3900,
+    result: 'egg: expected 3, got 1 · Calories out of range',
+    misses: [
+      { code: 'count', dish: 'egg', expected: 3, got: 1 },
+      { code: 'kcal' },
+    ],
+  },
+  // The worst case on a phone: six dishes not recognized and two more reasons.
+  {
+    file: 'noodles.jpg',
+    expected:
+      'noodle, krupuk, sambal, acar, egg, vegetable; 600-1120 kcal; notExact',
+    got: 'Nasi goreng with chicken',
+    kcal: 1340,
+    levels: 'exact',
+    ms: 5600,
+    result:
+      'Not recognized: noodle, krupuk, sambal, acar, egg, vegetable · Calories out of range · a mixed dish is exact',
+    misses: [
+      {
+        code: 'not_recognized',
+        dishes: ['noodle', 'krupuk', 'sambal', 'acar', 'egg', 'vegetable'],
+      },
+      { code: 'kcal' },
+      { code: 'approx' },
+    ],
+  },
+  {
+    file: 'sausages.jpg',
+    expected: 'sausage; 172-316 kcal/100 g; exact',
+    got: 'Pork sausages',
+    kcal: 540,
+    levels: 'exact',
+    ms: 3400,
+    result: 'ok',
+    misses: [],
+  },
+  {
+    file: 'sushi.jpg',
+    expected: 'salmon, tuna, tamago; 230-350 kcal; exact',
+    ms: 30000,
+    result: 'error ai_unavailable',
+  },
+];

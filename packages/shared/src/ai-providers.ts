@@ -60,6 +60,8 @@ export const adminAiStatusSchema = z.object({
   /** Refinements per meal per edit session; null without a limit. Set even with AI_* in env. */
   refineLimit: z.number().int().nullable(),
   state: aiProviderStateSchema,
+  /** Photos in the model test set (expected.json), for the texts before the first run. */
+  testPhotoCount: z.number().int(),
   checkedAt: z.number().nullable(),
   /** Provider's status code and message with secrets cut out, up to 500 chars; the timeout that ran out. */
   details: z

@@ -11,11 +11,14 @@ import { Button } from '../Button/Button';
 import { TestPhotoList } from '../TestPhotoList/TestPhotoList';
 import './ModelCompare.css';
 
-/** The best run: most passed among complete runs, then the faster one per photo (AC-2.9). */
+/** Another test set's score is not comparable (ADR-0033 §4). */
+const oldSet = (r: AiTestRunSummary) => r.testSet !== r.currentSet;
+
+/** The best run: most passed among complete runs of the current set, then the faster one per photo (AC-2.9). */
 export function bestRunId(runs: AiTestRunSummary[]): number | null {
   let best: AiTestRunSummary | null = null;
   for (const r of runs) {
-    if (r.status !== 'done') continue;
+    if (r.status !== 'done' || oldSet(r)) continue;
     if (
       !best ||
       r.passed > best.passed ||
@@ -99,7 +102,7 @@ export function ModelCompare({
             return (
               <li
                 key={r.id}
-                className={`compare__item${best === r.id ? ' compare__item--best' : ''}${done ? '' : ' compare__item--part'}${open ? ' compare__item--open' : ''}`}
+                className={`compare__item${best === r.id ? ' compare__item--best' : ''}${done ? '' : ' compare__item--part'}${oldSet(r) ? ' compare__item--old' : ''}${open ? ' compare__item--open' : ''}`}
               >
                 <div className="compare__row">
                   <div className="compare__name">
@@ -107,6 +110,7 @@ export function ModelCompare({
                       <span className="compare__mono" title={r.model}>
                         {r.model}
                       </span>
+                      {oldSet(r) && <Badge>{t('ai.compare.old_set')}</Badge>}
                       {best === r.id && (
                         <Badge tone="ok">{t('ai.compare.best')}</Badge>
                       )}

@@ -16,6 +16,8 @@ import './ModelTestCard.css';
 type Props = {
   /** The run to show: the one going on, else the latest; null before the first. */
   run: AiTestRun | null;
+  /** Photos in the current test set. */
+  photoCount: number;
   /** What a new run tests: «Google · gemini-…». */
   target: string;
   /** After the target: «not saved» or «current, from .env». */
@@ -33,6 +35,7 @@ type Props = {
 /** «Model test» on «AI provider» (OCT-248 §4): idle, running, result, stopped, interrupted. */
 export function ModelTestCard({
   run,
+  photoCount,
   target,
   targetNote,
   onTarget,
@@ -88,7 +91,7 @@ export function ModelTestCard({
   const head = (
     <div className="model-test__head">
       <h2>{t('ai.test.title')}</h2>
-      <p>{t('ai.test.body')}</p>
+      <p>{t('ai.test.body', { count: photoCount })}</p>
     </div>
   );
 

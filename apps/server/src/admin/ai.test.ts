@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { readExpected } from '../ai/model-test/compare.js';
 import { aiSetup, apiError, mockModel } from '../test/ai.js';
 
 const KEY = 'sk-test-SECRET-key-42';
@@ -50,6 +51,8 @@ describe('GET /api/admin/ai', () => {
       rev: null,
       refineLimit: null,
       state: 'unknown',
+      // The screen's texts need the set size before the first run (OCT-323).
+      testPhotoCount: (await readExpected()).photos.length,
       checkedAt: null,
     });
   });

@@ -129,6 +129,12 @@
   color: var(--color-text-secondary);
 }
 
+/* Another test set: a score not comparable with the rest. */
+.compare__item--old .compare__passed {
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
 .compare__num {
   font-variant-numeric: tabular-nums;
 }

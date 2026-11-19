@@ -16,6 +16,7 @@ const saved: AdminAiStatus = {
   savedInactive: false,
   rev: 3,
   refineLimit: null,
+  testPhotoCount: 9,
   state: 'ok',
   checkedAt: Date.now() - 5 * 60_000,
 };

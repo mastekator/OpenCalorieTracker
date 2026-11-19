@@ -20,6 +20,7 @@ const off = {
   savedInactive: false,
   rev: null,
   refineLimit: null,
+  testPhotoCount: 9,
   state: 'not_configured',
   checkedAt: null,
 } satisfies AdminAiStatus;
