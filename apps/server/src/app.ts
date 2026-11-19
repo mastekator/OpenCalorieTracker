@@ -9,6 +9,7 @@ import { adminRoutes } from './admin/routes.js';
 import { aiRoutes } from './ai/routes.js';
 import type { AiRuntime } from './ai/runtime.js';
 import { authRoutes } from './auth/routes.js';
+import { photoBarcodes, type PhotoBarcodes } from './barcodes/read.js';
 import { barcodeRoutes } from './barcodes/routes.js';
 import { device } from './auth/device.js';
 import { passkeyRoutes } from './auth/passkeys.js';
@@ -50,7 +51,14 @@ export interface AppDeps {
   fetch?: typeof fetch;
 }
 
-export function createApp(deps: AppDeps) {
+/** AppDeps plus the state createApp shares between routes. */
+export type RouteDeps = AppDeps & {
+  /** Barcodes read from photos; one cache for the barcode and recognition routes. */
+  photoBarcodes: PhotoBarcodes;
+};
+
+export function createApp(appDeps: AppDeps) {
+  const deps: RouteDeps = { ...appDeps, photoBarcodes: photoBarcodes() };
   const { config, db } = deps;
   const app = new Hono();
   app.onError(onError);
