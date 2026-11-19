@@ -25,8 +25,11 @@ import {
   matchIllustration,
   mealTypeAt,
   nameKey,
+  recipePortion,
   type Meal,
   type MealInput,
+  type MealItemInput,
+  type Recipe,
   type MealPatch,
   type DayChoice,
   type IllustrationId,
@@ -44,6 +47,7 @@ import {
   useIllustrationChoices,
   useMeal,
   useMealError,
+  useRecipes,
   useSettings,
 } from '../../data/DataContext';
 import type { Choices } from '../../data/db';
@@ -71,11 +75,14 @@ import {
 import { MealTypeSegment } from '../../ui/MealTypeSegment/MealTypeSegment';
 import { NavBar } from '../../ui/NavBar/NavBar';
 import { OfflineBar, useOnline } from '../../ui/OfflineBar/OfflineBar';
+import { PortionSheet } from '../../ui/PortionSheet/PortionSheet';
+import { RecipeHint } from '../../ui/RecipeHint/RecipeHint';
 import { RefineBar } from '../../ui/RefineBar/RefineBar';
 import { ScreenState } from '../../ui/ScreenState/ScreenState';
 import { Segment } from '../../ui/Segment/Segment';
 import { useToast } from '../../ui/Toast/Toast';
 import { diaryDay, localToday } from '../diary/day';
+import { recipeFor } from '../kitchen/matchRecipes';
 import type { TodayState } from '../diary/TodayScreen';
 import { UNDO_MS, useUndoDelete } from '../diary/undoDelete';
 import { MEAL_NEW_PATH, useCapture } from './CaptureContext';
@@ -146,8 +153,8 @@ const localInput = (at: Date) =>
     .slice(0, 16);
 
 /** A saved dish as the screen edits it: its stored values are the base for recalculation (AC-2.8). */
-const savedRow = (item: Meal['items'][number]): Row =>
-  toRow(
+const savedRow = (item: Meal['items'][number]): Row => ({
+  ...toRow(
     {
       name: item.name,
       grams: item.grams,
@@ -159,7 +166,9 @@ const savedRow = (item: Meal['items'][number]): Row =>
       ...(item.illustrationManual && { illustration: item.illustration }),
     },
     item.source,
-  );
+  ),
+  ...(item.recipeId && { recipeId: item.recipeId }),
+});
 
 type Props = {
   /** Recognized dishes; empty for manual entry. */
@@ -203,6 +212,8 @@ type Props = {
   onDismissRecalc?: () => void;
   /** GET /api/ai/status: «What should I fix?» shows unless AI is not set up (ADR-0020 §5). */
   recognition?: RecognitionStatus;
+  /** The user's recipes: in the manual sheet and for «Your recipe» (ADR-0023 §5, §6). */
+  recipes?: Recipe[];
 };
 
 /** Screen 4 (design OCT-16 §3, E.2): dishes, weights with live totals, meal type, save. */
@@ -227,6 +238,7 @@ export function MealEditScreen({
   onRecalc,
   onDismissRecalc,
   recognition,
+  recipes = [],
 }: Props) {
   const { t, num, locale } = useT();
   const online = useOnline();
@@ -273,6 +285,8 @@ export function MealEditScreen({
   const photoRow = useRef<string | null>(null);
   const [photoError, setPhotoError] = useState(false);
   const [adding, setAdding] = useState(manual !== undefined); // AC-5.5, 5.3
+  // A recipe tapped in the manual sheet: its portion sheet (OCT-160 3.4).
+  const [portion, setPortion] = useState<Recipe | null>(null);
   // Recognized, uploaded from the slot, or kept on the device when the upload failed.
   const [photo, setPhoto] = useState<
     { id: string; url: string } | { blob: Blob; url: string } | null
@@ -356,10 +370,31 @@ export function MealEditScreen({
     ctl.signal.addEventListener('abort', () => clearTimeout(timer));
   }
 
-  // One request for all recognized dishes, by the AI's kcal per 100 g.
+  /** «Your recipe» goes first: a dish named like a recipe gets no history lookup (ADR-0023 §6). */
+  function findHints(key: string, wanted: Row[], ms = 0) {
+    const found = new Map<string, Recipe>();
+    for (const r of wanted) {
+      const recipe = recipeFor(recipes, r.original.name);
+      if (recipe) found.set(r.id, recipe);
+    }
+    if (found.size)
+      setRows((rs) =>
+        rs.map((r) =>
+          found.has(r.id)
+            ? { ...r, recipe: found.get(r.id), previous: undefined }
+            : r,
+        ),
+      );
+    const rest = wanted.filter((r) => !found.has(r.id));
+    if (rest.length) findPrevious(key, rest.map(lookupOf), ms);
+    else lookups.current.get(key)?.abort();
+  }
+
+  // One request for all recognized dishes, by the AI's kcal per 100 g; a recipe portion needs none.
   useEffect(() => {
     const pending = lookups.current;
-    if (rows.length) findPrevious('ai', rows.slice(0, 20).map(lookupOf));
+    const wanted = rows.filter((r) => r.source !== 'recipe').slice(0, 20);
+    if (wanted.length) findHints('ai', wanted);
     return () => pending.forEach((c) => c.abort());
   }, []);
 
@@ -450,6 +485,13 @@ export function MealEditScreen({
                 ...(grams !== r.grams ? ['grams' as const] : []),
               ].reduce(withFixed, r.fixed),
               previous: renamed ? undefined : r.previous,
+              recipe: renamed ? undefined : r.recipe,
+              // Another dish now: the server refuses a recipe link on a non-recipe dish.
+              ...(renamed &&
+                r.source === 'recipe' && {
+                  source: 'manual' as const,
+                  recipeId: undefined,
+                }),
               // A question about another dish (E-10.a).
               question: renamed ? undefined : r.question,
             }
@@ -457,9 +499,9 @@ export function MealEditScreen({
       ),
     );
     if (row && renamed)
-      findPrevious(
+      findHints(
         id,
-        [lookupOf({ ...row, original: { ...row.original, name } })],
+        [{ ...row, original: { ...row.original, name } }],
         LOOKUP_DELAY_MS,
       );
   };
@@ -489,14 +531,28 @@ export function MealEditScreen({
     focusRow.current = row.id;
     setApplied(null);
     setRows((rs) => [...rs, row]);
-    findPrevious(row.id, [lookupOf(row)], LOOKUP_DELAY_MS);
+    findHints(row.id, [row], LOOKUP_DELAY_MS);
+  };
+
+  const addRecipe = (item: MealItemInput) => {
+    setPortion(null);
+    const { name, grams, kcal, proteinG, fatG, carbsG, recipeId } = item;
+    const row: Row = {
+      ...toRow({ name, grams, kcal, proteinG, fatG, carbsG }, 'recipe'),
+      recipeId,
+    };
+    focusRow.current = row.id;
+    setApplied(null);
+    setRows((rs) => [...rs, row]);
   };
 
   // The hint unmounts with the focused button, so focus goes back to the dish row.
   const keepEstimate = (id: string) => {
     focusRow.current = id;
     setRows((rs) =>
-      rs.map((r) => (r.id === id ? { ...r, previous: undefined } : r)),
+      rs.map((r) =>
+        r.id === id ? { ...r, previous: undefined, recipe: undefined } : r,
+      ),
     );
   };
 
@@ -528,8 +584,45 @@ export function MealEditScreen({
           : r,
       ),
     );
+    undoToast(row, 'edit.history.applied');
+  };
+
+  // «Use the recipe»: the estimated weight stays, kcal and macros come from the recipe per 100 g.
+  const applyRecipe = (row: Row, recipe: Recipe) => {
+    const { kcal, proteinG, fatG, carbsG } = recipePortion(recipe, row.shown);
+    focusRow.current = row.id;
+    setApplied(null);
+    setRows((rs) =>
+      rs.map((r) =>
+        r.id === row.id
+          ? {
+              ...r,
+              original: {
+                name: r.original.name,
+                grams: row.shown,
+                kcal,
+                proteinG,
+                fatG,
+                carbsG,
+              },
+              source: 'recipe',
+              recipeId: recipe.id,
+              fixed: [],
+              recipe: undefined,
+              question: undefined,
+            }
+          : r,
+      ),
+    );
+    undoToast(row, 'edit.recipe.applied');
+  };
+
+  const undoToast = (
+    row: Row,
+    text: 'edit.history.applied' | 'edit.recipe.applied',
+  ) =>
     toast({
-      text: t('edit.history.applied'),
+      text: t(text),
       ms: 5000,
       action: {
         label: t('common.undo'),
@@ -537,7 +630,6 @@ export function MealEditScreen({
           setRows((rs) => rs.map((r) => (r.id === row.id ? row : r))),
       },
     });
-  };
 
   // The slot photo never goes to the AI (AC-5.7).
   const onPhoto = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -604,7 +696,7 @@ export function MealEditScreen({
     setRefineText('');
     // Hints work for the dishes the AI added or changed too (AC-3.5).
     const fresh = next.rows.filter((r) => next.marks[r.id]).slice(0, 20);
-    if (fresh.length) findPrevious('refine', fresh.map(lookupOf));
+    if (fresh.length) findHints('refine', fresh);
   }
   // Local, no request: works offline and costs no refinement (ADR-0020 §4).
   const answerRow = (row: Row, option: number) => {
@@ -1131,16 +1223,24 @@ export function MealEditScreen({
                           />
                         )}
                       </DishRow>
-                      {row.previous && (
-                        <HistoryHint
-                          eatenAt={row.previous.eatenAt}
-                          grams={row.previous.grams}
-                          kcal={row.previous.kcal}
-                          illustration={row.previous.illustration}
-                          units={units}
-                          onApply={() => applyPrevious(row, row.previous!)}
+                      {row.recipe ? (
+                        <RecipeHint
+                          recipe={row.recipe}
+                          onApply={() => applyRecipe(row, row.recipe!)}
                           onKeep={() => keepEstimate(row.id)}
                         />
+                      ) : (
+                        row.previous && (
+                          <HistoryHint
+                            eatenAt={row.previous.eatenAt}
+                            grams={row.previous.grams}
+                            kcal={row.previous.kcal}
+                            illustration={row.previous.illustration}
+                            units={units}
+                            onApply={() => applyPrevious(row, row.previous!)}
+                            onKeep={() => keepEstimate(row.id)}
+                          />
+                        )
                       )}
                     </li>
                   );
@@ -1328,6 +1428,20 @@ export function MealEditScreen({
           units={units}
           onAdd={addManual}
           onClose={() => setAdding(false)}
+          recipes={recipes}
+          onRecipe={(recipe) => {
+            setAdding(false);
+            setPortion(recipe);
+          }}
+        />
+      )}
+      {portion && (
+        <PortionSheet
+          open
+          recipe={portion}
+          units={units}
+          onAdd={addRecipe}
+          onClose={() => setPortion(null)}
         />
       )}
       {editingRow && (
@@ -1408,10 +1522,14 @@ export function MealEditRoute() {
   const date = day === today ? undefined : day;
   const [state] = useState(() => history.state as MealEditState | null);
   const ai = useAiStatus();
+  const recipes = useRecipes();
   if (!state && photoId)
     return <Redirect to={`${MEAL_NEW_PATH}?${search}`} replace />;
+  // Read once on open: hints are matched then (the local copy answers within a frame).
+  if (!recipes) return null;
   return (
     <MealEditScreen
+      recipes={recipes}
       dishes={state && 'dishes' in state ? state.dishes : []}
       questions={state && 'dishes' in state ? state.questions : undefined}
       manual={state && 'manual' in state ? state.manual : undefined}
@@ -1453,7 +1571,9 @@ export function MealEditExisting({ clientId }: { clientId: string }) {
   const ai = useAiStatus();
   const online = useOnline();
   const [recalc] = useState(() => recalcState());
-  if (meal === undefined) return null; // the local copy answers within a frame
+  const recipes = useRecipes();
+  // The local copy answers within a frame.
+  if (meal === undefined || recipes === undefined) return null;
   if (!meal || undo.hidden.has(clientId)) return <Redirect to="/" replace />;
   const from = meal.localDate;
   const back = from === localToday() ? '/' : `/diary/${from}`;
@@ -1467,6 +1587,7 @@ export function MealEditExisting({ clientId }: { clientId: string }) {
     <MealEditScreen
       key={meal.clientId}
       meal={meal}
+      recipes={recipes}
       refused={refused}
       recalc={recalc}
       recognition={ai.status?.recognition}

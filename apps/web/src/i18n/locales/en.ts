@@ -929,6 +929,10 @@ export const en = {
     ok: 'Sign in',
   },
   manual_dish: {
+    recipes_footer: 'Or type a name — your recipes come first.',
+    recipes_recent: 'My recipes · recent',
+    recipes: 'My recipes',
+    recipe: 'recipe',
     title: 'Add dish manually',
     name: 'Name',
     name_ph: 'e.g. Greek yogurt 2%',
@@ -1374,6 +1378,11 @@ export const en = {
       more: '{step} more',
       err_g: 'Weight from 1 to 5000 g',
       err_oz: 'Weight from 0.1 to 176.4 oz',
+    },
+    recipe: {
+      hint: 'Your recipe: {name} · {k}\u00a0kcal/100\u00a0g',
+      apply: 'Use the recipe',
+      applied: 'Used your recipe',
     },
     history: {
       hint: 'Looks like your entry from {date}: {weight} · {kcal}\u00a0kcal',
