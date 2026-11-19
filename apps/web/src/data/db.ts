@@ -2,6 +2,7 @@ import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 import type {
   AccountSettings,
   AiStatus,
+  Integrations,
   AccountSettingsPatch,
   IllustrationChoiceInput,
   IllustrationId,
@@ -23,15 +24,23 @@ export interface OctDb extends DBSchema {
   /** Unsent changes, in order (OCT-77). */
   outbox: { key: number; value: Op; indexes: { clientId: string } };
   kv: {
-    /** `aiStatus`: the last GET /api/ai/status, shown offline. */
-    key: 'rev' | 'me' | 'settings' | 'choices' | 'profile' | 'aiStatus';
+    /** `aiStatus`, `integrations`: the last GET /api/ai/status, /api/integrations, shown offline. */
+    key:
+      | 'rev'
+      | 'me'
+      | 'settings'
+      | 'choices'
+      | 'profile'
+      | 'aiStatus'
+      | 'integrations';
     value:
       | number
       | MeResponse
       | AccountSettings
       | Choices
       | ProfileResponse
-      | AiStatus;
+      | AiStatus
+      | Integrations;
   };
   /** Photos taken offline, by meal clientId (OCT-77). */
   photos: { key: string; value: Blob };

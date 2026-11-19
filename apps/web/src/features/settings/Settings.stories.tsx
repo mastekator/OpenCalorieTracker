@@ -5,7 +5,12 @@ import { DataProvider } from '../../data/DataContext';
 import { openUserDb } from '../../data/db';
 import { atPath } from '../../ui/navStory';
 import { ToastProvider } from '../../ui/Toast/Toast';
+import { AdminIntegrationsScreen } from '../admin/AdminIntegrationsScreen';
 import { AiProviderScreen } from './AiProviderScreen';
+import {
+  BarcodeIntegrationScreen,
+  IntegrationsScreen,
+} from './IntegrationsScreen';
 import { PasskeySheet, PasskeysScreen } from './PasskeysScreen';
 import { PasswordScreen } from './PasswordScreen';
 import { hintClosedKey, SettingsScreen } from './SettingsScreen';
@@ -312,3 +317,142 @@ export const SetPassword: Story = {
   ),
 };
 export const SetPasswordDark: Story = { ...SetPassword, ...dark };
+
+/** Local offEnabled, GET /api/integrations (blocked) and GET/PUT /api/admin/integrations. */
+const integrations =
+  (
+    on: boolean,
+    blocked: boolean,
+    admin = { outbound: !blocked, outboundFromEnv: false },
+  ) =>
+  async () => {
+    const db = await openUserDb(user.id);
+    await db.put(
+      'kv',
+      {
+        locale: 'en',
+        theme: 'system',
+        units: 'metric',
+        settingsRev: 1,
+        photoRetentionDays: 30,
+        normDisclaimerHidden: false,
+        offEnabled: on,
+        offHintAt: null,
+      },
+      'settings',
+    );
+    db.close();
+    const real = globalThis.fetch;
+    globalThis.fetch = async (input) =>
+      String(input).endsWith('/api/integrations')
+        ? Response.json({ barcode: { enabled: on, blocked } })
+        : String(input).endsWith('/api/admin/integrations')
+          ? Response.json(admin)
+          : new Response(null, { status: 204 });
+    return () => {
+      globalThis.fetch = real;
+    };
+  };
+const withData = (node: ReactNode) => (
+  <DataProvider user={user}>{node}</DataProvider>
+);
+
+/** OCT-187 §1: the hub with the barcode card, off. */
+export const Integrations: Story = {
+  beforeEach: integrations(false, false),
+  render: () => withData(<IntegrationsScreen />),
+};
+export const IntegrationsDark: Story = { ...Integrations, ...dark };
+export const IntegrationsOn: Story = {
+  beforeEach: integrations(true, false),
+  render: () => withData(<IntegrationsScreen />),
+};
+export const IntegrationsOnDark: Story = { ...IntegrationsOn, ...dark };
+export const IntegrationsBlocked: Story = {
+  beforeEach: integrations(true, true),
+  render: () => withData(<IntegrationsScreen />),
+};
+export const IntegrationsBlockedDark: Story = {
+  ...IntegrationsBlocked,
+  ...dark,
+};
+export const IntegrationsDesktop: Story = {
+  ...IntegrationsOn,
+  render: () => column(withData(<IntegrationsScreen />)),
+  globals: desktop,
+};
+export const IntegrationsDesktopDark: Story = {
+  ...IntegrationsDesktop,
+  globals: { ...desktop, theme: 'dark' },
+};
+
+/** OCT-313 4.1: barcode lookup off. */
+export const Barcode: Story = {
+  beforeEach: integrations(false, false),
+  render: () => withData(<BarcodeIntegrationScreen />),
+};
+export const BarcodeDark: Story = { ...Barcode, ...dark };
+/** 4.2: on, with «Turn off». */
+export const BarcodeOn: Story = {
+  beforeEach: integrations(true, false),
+  render: () => withData(<BarcodeIntegrationScreen />),
+};
+export const BarcodeOnDark: Story = { ...BarcodeOn, ...dark };
+/** 4.3: the admin's ban: lock, inactive switch. */
+export const BarcodeBlocked: Story = {
+  beforeEach: integrations(true, true),
+  render: () => withData(<BarcodeIntegrationScreen />),
+};
+export const BarcodeBlockedDark: Story = { ...BarcodeBlocked, ...dark };
+export const BarcodeDesktop: Story = {
+  ...BarcodeOn,
+  render: () => column(withData(<BarcodeIntegrationScreen />)),
+  globals: desktop,
+};
+export const BarcodeDesktopDark: Story = {
+  ...BarcodeDesktop,
+  globals: { ...desktop, theme: 'dark' },
+};
+
+/** OCT-187 7.1: outbound requests allowed. */
+export const ServerIntegrations: Story = {
+  beforeEach: integrations(false, false),
+  render: () => <AdminIntegrationsScreen />,
+};
+export const ServerIntegrationsDark: Story = { ...ServerIntegrations, ...dark };
+/** 7.2: blocking asks first. */
+export const ServerIntegrationsBlock: Story = {
+  ...ServerIntegrations,
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.click(
+      await canvas.findByRole('switch', {
+        name: 'Outgoing requests from the server',
+      }),
+    );
+  },
+};
+export const ServerIntegrationsBlockDark: Story = {
+  ...ServerIntegrationsBlock,
+  ...dark,
+};
+/** 7.3: set in .env, the switch is read-only. */
+export const ServerIntegrationsEnv: Story = {
+  beforeEach: integrations(false, true, {
+    outbound: false,
+    outboundFromEnv: true,
+  }),
+  render: () => <AdminIntegrationsScreen />,
+};
+export const ServerIntegrationsEnvDark: Story = {
+  ...ServerIntegrationsEnv,
+  ...dark,
+};
+export const ServerIntegrationsDesktop: Story = {
+  ...ServerIntegrations,
+  render: () => column(<AdminIntegrationsScreen />),
+  globals: desktop,
+};
+export const ServerIntegrationsDesktopDark: Story = {
+  ...ServerIntegrationsDesktop,
+  globals: { ...desktop, theme: 'dark' },
+};

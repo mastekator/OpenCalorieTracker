@@ -1,0 +1,5 @@
+.integration-status__lock {
+  flex: none;
+  width: var(--icon-xs);
+  height: var(--icon-xs);
+}

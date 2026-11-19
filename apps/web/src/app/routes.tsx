@@ -12,6 +12,13 @@ import { PasskeysScreen } from '../features/settings/PasskeysScreen';
 import { AiProviderScreen } from '../features/settings/AiProviderScreen';
 import { PasswordScreen } from '../features/settings/PasswordScreen';
 import { SettingsScreen } from '../features/settings/SettingsScreen';
+import {
+  BARCODE_PATH,
+  BarcodeIntegrationScreen,
+  INTEGRATIONS_PATH,
+  IntegrationsScreen,
+} from '../features/settings/IntegrationsScreen';
+import { AdminIntegrationsScreen } from '../features/admin/AdminIntegrationsScreen';
 import { BlocksScreen } from '../features/admin/BlocksScreen';
 import { INVITES_PATH, InvitesScreen } from '../features/admin/InvitesScreen';
 import { UsersScreen } from '../features/admin/UsersScreen';
@@ -222,6 +229,19 @@ export function AppScreens() {
           />
         </Screen>
       </Route>
+      <Route path={INTEGRATIONS_PATH}>
+        <Screen title={t('settings.integrations')} back={toSettings}>
+          <IntegrationsScreen />
+        </Screen>
+      </Route>
+      <Route path={BARCODE_PATH}>
+        <Screen
+          title={t('integr.barcode.title')}
+          back={{ href: INTEGRATIONS_PATH, label: t('settings.integrations') }}
+        >
+          <BarcodeIntegrationScreen />
+        </Screen>
+      </Route>
       {user.role !== 'admin' && (
         <Route path="/settings/admin/*">
           <Redirect to="/settings" replace />
@@ -241,6 +261,11 @@ export function AppScreens() {
       <Route path="/settings/admin/users">
         <Screen title={t('users.title')} back={toSettings}>
           <UsersScreen selfId={user.id} />
+        </Screen>
+      </Route>
+      <Route path="/settings/admin/integrations">
+        <Screen title={t('settings.server_integrations')} back={toSettings}>
+          <AdminIntegrationsScreen />
         </Screen>
       </Route>
       <Route path="/settings/admin/blocks">
