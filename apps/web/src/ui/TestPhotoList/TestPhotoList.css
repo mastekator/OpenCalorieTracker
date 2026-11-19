@@ -20,14 +20,14 @@
   position: absolute;
   top: 0;
   right: 0;
-  left: calc(var(--meal-thumb-size) + var(--space-3));
+  left: calc(var(--test-thumb-w) + var(--space-3));
   border-top: 1px solid var(--color-separator);
 }
 
 .test-photos__thumb {
   flex: none;
-  width: var(--meal-thumb-size);
-  height: var(--meal-thumb-size);
+  width: var(--test-thumb-w);
+  height: var(--test-thumb-h);
   border-radius: var(--radius-sm);
   object-fit: cover;
   background: var(--color-surface-2);
@@ -61,8 +61,20 @@
   overflow-wrap: anywhere;
 }
 
+.test-photos__got {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+
 .test-photos__line b {
   font-weight: 500;
+  color: var(--color-text);
+}
+
+.test-photos__dish {
   color: var(--color-text);
 }
 

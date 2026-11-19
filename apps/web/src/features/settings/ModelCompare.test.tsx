@@ -113,17 +113,9 @@ describe('Model comparison', () => {
     expect(screen.getAllByText('best')).toHaveLength(1);
     expect(within(row('model-1')).getByText('stopped')).toBeTruthy();
     expect(within(row('model-2')).getByText('interrupted')).toBeTruthy();
-    const copy = /^Copy row for MODELS\.md: /;
-    expect(
-      within(row('model-1')).queryByRole('button', { name: copy }),
-    ).toBeNull();
-    expect(
-      within(row('model-2')).queryByRole('button', { name: copy }),
-    ).toBeNull();
-    expect(
-      within(row('model-3')).getByRole('button', { name: copy }),
-    ).toBeTruthy();
-    // Opened, a stopped run shows its photos but still no copy buttons.
+    // The full name stays in the tooltip when the cell cuts it with «…».
+    expect(screen.getByText('model-3').getAttribute('title')).toBe('model-3');
+    // Opened, a stopped run shows its photos and «Delete», but no copy buttons.
     serve({
       'GET /api/admin/ai/tests/1': full(
         summary(1, { status: 'stopped', stopReason: 'user' }),
@@ -134,8 +126,14 @@ describe('Model comparison', () => {
         name: /^Results per photo/,
       }),
     );
-    expect(await within(row('model-1')).findByText('banana')).toBeTruthy();
+    expect(
+      await within(row('model-1')).findByAltText('Test photo: banana'),
+    ).toBeTruthy();
     expect(within(row('model-1')).queryByText('Copy full report')).toBeNull();
+    expect(
+      within(row('model-1')).queryByText('Copy row for MODELS.md'),
+    ).toBeNull();
+    expect(within(row('model-1')).getByText('Delete')).toBeTruthy();
   });
 
   it('opening a row loads its photos once and copies its row', async () => {
@@ -151,15 +149,13 @@ describe('Model comparison', () => {
     });
     fireEvent.click(toggle);
     expect(toggle.getAttribute('aria-expanded')).toBe('true');
-    expect(await screen.findByText('banana')).toBeTruthy();
+    expect(await screen.findByAltText('Test photo: banana')).toBeTruthy();
     fireEvent.click(screen.getByText('Copy full report'));
     await waitFor(() => expect(writeText).toHaveBeenCalledWith(ROW));
-    fireEvent.click(toggle);
-    expect(screen.queryByText('banana')).toBeNull();
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Copy row for MODELS.md: model-3' }),
-    );
+    fireEvent.click(screen.getByText('Copy row for MODELS.md'));
     await waitFor(() => expect(writeText).toHaveBeenCalledTimes(2));
+    fireEvent.click(toggle);
+    expect(screen.queryByAltText('Test photo: banana')).toBeNull();
     expect(calls(fetch, 'GET', '/api/admin/ai/tests/3')).toBe(1);
   });
 
@@ -174,8 +170,11 @@ describe('Model comparison', () => {
     });
     mount();
     fireEvent.click(
-      await screen.findByRole('button', { name: 'Delete: model-1' }),
+      await screen.findByRole('button', {
+        name: 'Results per photo: model-1',
+      }),
     );
+    fireEvent.click(await screen.findByText('Delete'));
     const dialog = await confirmDialog('Delete this run?');
     expect(calls(fetch, 'DELETE', '/api/admin/ai/tests/1')).toBe(0);
     fireEvent.click(within(dialog).getByText('Delete'));

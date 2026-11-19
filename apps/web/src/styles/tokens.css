@@ -42,6 +42,8 @@
   --camera-button-lift: 14px;   /* how far the camera circle rises above the tab bar */
   --camera-icon-size: 30px;     /* icon inside the camera circle */
   --meal-thumb-size: 44px;      /* meal photo in Today / Diary lists */
+  --test-thumb-w: 64px;         /* reference photo in «Model test» / «Model comparison», 4:3 like the photos (OCT-300) */
+  --test-thumb-h: 48px;
   --thumb-size: 64px;           /* meal photo next to the total on the edit screen (OCT-16 §3) */
   --swipe-action-width: 96px;   /* «Delete» revealed by swiping a meal row (OCT-19 6.3) */
   --photo-preview-height: 280px; /* photo on the recognition screen (OCT-16 §2) */
