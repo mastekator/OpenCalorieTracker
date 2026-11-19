@@ -269,6 +269,9 @@ export function MealEditScreen({
   const [editing, setEditing] = useState<string | null>(null);
   // Row whose «Dish picture» sheet is open (OCT-33 4.1).
   const [picking, setPicking] = useState<string | null>(null);
+  // The row whose sheet took the photo: a failed upload reopens it with the error (OCT-318).
+  const photoRow = useRef<string | null>(null);
+  const [photoError, setPhotoError] = useState(false);
   const [adding, setAdding] = useState(manual !== undefined); // AC-5.5, 5.3
   // Recognized, uploaded from the slot, or kept on the device when the upload failed.
   const [photo, setPhoto] = useState<
@@ -554,10 +557,15 @@ export function MealEditScreen({
         url: `/api/photos/${encodeURIComponent(id)}?size=preview`,
       });
     } catch (err) {
+      const failed = err instanceof ImageDecodeError || err instanceof ApiError;
       if (blob && !meal && err instanceof ApiError && err.status === 0)
         // No network: the outbox uploads it with the new meal (ADR-0008); a saved one is online only.
         setPhoto({ blob, url: URL.createObjectURL(blob) });
-      else if (
+      else if (meal && failed) {
+        // No toast over «Save»: the sheet comes back with the error and the retry (OCT-318).
+        setPicking(photoRow.current);
+        setPhotoError(true);
+      } else if (
         err instanceof ImageDecodeError ||
         (err instanceof ApiError &&
           (err.code === 'photo_invalid' || err.code === 'photo_too_large'))
@@ -832,6 +840,8 @@ export function MealEditScreen({
   // A meal with a photo has one (AC-4.3); a saved one takes it online only (OCT-126).
   const photoActions = !photo && !uploading && (!meal || online);
   const takePhoto = (input: typeof photoInput) => () => {
+    photoRow.current = picking;
+    setPhotoError(false);
     setPicking(null);
     input.current?.click();
   };
@@ -1103,7 +1113,10 @@ export function MealEditScreen({
                         onGramsChange={(g) => setGrams(i, g)}
                         onEdit={() => setEditing(row.id)}
                         onDelete={() => remove(row.id)}
-                        onIllustration={() => setPicking(row.id)}
+                        onIllustration={() => {
+                          setPhotoError(false);
+                          setPicking(row.id);
+                        }}
                         mark={applied?.marks[row.id]}
                       >
                         {row.question && (
@@ -1298,11 +1311,16 @@ export function MealEditScreen({
           }
           onPick={(id) => pickIllustration(pickingRow, id)}
           onReset={() => pickIllustration(pickingRow, null)}
-          onClose={() => setPicking(null)}
+          onClose={() => {
+            setPicking(null);
+            photoRow.current = null;
+          }}
           {...(photoActions && {
             onCamera: takePhoto(cameraInput),
             onGallery: takePhoto(photoInput),
+            photoError,
           })}
+          offline={!!meal && !online && !photo && !uploading}
         />
       )}
       {adding && (

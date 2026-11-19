@@ -1,5 +1,5 @@
 import { useEffect, useRef, type KeyboardEvent } from 'react';
-import { Camera, Check, Image, Upload } from 'lucide-react';
+import { Camera, Check, Image, Upload, WifiOff } from 'lucide-react';
 import { ILLUSTRATION_IDS, type IllustrationId } from '@oct/shared';
 import { useT } from '../../i18n';
 import { DESKTOP_MEDIA } from '../../styles/breakpoints';
@@ -25,6 +25,10 @@ type Props = {
   /** Photo actions; none when the meal already has a photo (AC-4.3). */
   onCamera?: () => void;
   onGallery?: () => void;
+  /** The last upload failed: an error line under the photo actions, which retry it (OCT-318). */
+  photoError?: boolean;
+  /** Photo actions are hidden offline: a hint in their place (OCT-318). */
+  offline?: boolean;
 };
 
 const STEP: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1 };
@@ -40,6 +44,8 @@ export function IllustrationPicker({
   onReset,
   onCamera,
   onGallery,
+  photoError,
+  offline,
 }: Props) {
   const { t, locale } = useT();
   const grid = useRef<HTMLDivElement>(null);
@@ -110,8 +116,19 @@ export function IllustrationPicker({
                 </>
               )}
             </div>
+            {photoError && (
+              <p className="illo-picker__error" role="alert">
+                {t('edit.illo.photo_error')}
+              </p>
+            )}
             <p className="illo-picker__note">{t('edit.illo.photo_note')}</p>
           </>
+        )}
+        {offline && (
+          <p className="illo-picker__note illo-picker__note--icon">
+            <WifiOff aria-hidden="true" />
+            {t('edit.illo.offline')}
+          </p>
         )}
         <h3 className="illo-picker__heading">{t('edit.illo.grid')}</h3>
         <div

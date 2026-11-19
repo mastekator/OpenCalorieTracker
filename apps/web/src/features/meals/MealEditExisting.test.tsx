@@ -682,6 +682,78 @@ describe('recalculation from the photo (OCT-62)', () => {
     expect(patches()[0]!.body).not.toHaveProperty('photoId');
   });
 
+  it('a failed upload reopens the picture sheet with the error and a retry, no toast (OCT-318)', async () => {
+    let fail = true;
+    await setup(withPhoto({ photo: null, recalcOffer: false }), {
+      upload: () =>
+        fail
+          ? Response.json({ error: { code: 'internal' } }, { status: 500 })
+          : Response.json({ photoId: 'p1' }, { status: 201 }),
+    });
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Illustration: Grains & sides, change',
+      }),
+    );
+    fireEvent.click(button('From library'));
+    const file = new File(['jpeg'], 'a.jpg', { type: 'image/jpeg' });
+    fireEvent.change(screen.getByTestId('edit-photo'), {
+      target: { files: [file] },
+    });
+    const error = await screen.findByRole('alert');
+    expect(error.textContent).toBe('The photo didn’t upload. Try again.');
+    const sheet = screen.getByRole('dialog');
+    expect(
+      within(sheet).getByRole('button', { name: 'Take photo' }),
+    ).toBeTruthy();
+    expect(screen.queryByText('Couldn’t upload the photo')).toBeNull();
+
+    fail = false;
+    fireEvent.click(
+      within(sheet).getByRole('button', { name: 'From library' }),
+    );
+    expect(screen.queryByRole('alert')).toBeNull();
+    fireEvent.change(screen.getByTestId('edit-photo'), {
+      target: { files: [file] },
+    });
+    await waitFor(() =>
+      expect(document.querySelector('img.meal-edit__thumb')).toBeTruthy(),
+    );
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('offline the picture sheet has a hint in place of the photo items (OCT-318)', async () => {
+    await setup(withPhoto({ photo: null, recalcOffer: false }), {
+      upload: () =>
+        Response.json({ error: { code: 'internal' } }, { status: 500 }),
+    });
+    const hint = 'You can add a photo once you’re back online';
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Illustration: Grains & sides, change',
+      }),
+    );
+    expect(screen.queryByText(hint)).toBeNull();
+    fireEvent.click(button('From library'));
+    fireEvent.change(screen.getByTestId('edit-photo'), {
+      target: { files: [new File(['jpeg'], 'a.jpg', { type: 'image/jpeg' })] },
+    });
+    await screen.findByRole('alert');
+
+    // Gone offline with the error on screen: only the hint stays.
+    const offline = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+    act(() => void window.dispatchEvent(new Event('offline')));
+    expect(screen.getByText(hint)).toBeTruthy();
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'From library' })).toBeNull();
+
+    offline.mockRestore();
+    // Back online the data syncs: let it settle before the next test.
+    await act(async () => void window.dispatchEvent(new Event('online')));
+    expect(screen.queryByText(hint)).toBeNull();
+    expect(button('From library')).toBeTruthy();
+  });
+
   it('«Recognize again» shown: no «Recalculate from photo» (OCT-273)', async () => {
     await setup(withPhoto({ recalcOffer: false }));
     expect(button('Recognize again')).toBeTruthy();
