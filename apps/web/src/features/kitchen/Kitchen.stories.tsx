@@ -1,28 +1,11 @@
-import type { ReactNode } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { useT } from '../../i18n';
-import { NavBar } from '../../ui/NavBar/NavBar';
+import { fireEvent, within } from 'storybook/test';
 import { KitchenView } from './KitchenScreen';
 import { RECIPES } from './fixtures';
-
-function InScreen({ children }: { children: ReactNode }) {
-  const { t } = useT();
-  return (
-    <div className="screen screen--wide">
-      <NavBar
-        large
-        title={t('kitchen.title')}
-        back={{ href: '/profile', label: t('nav.profile'), mobileOnly: true }}
-      />
-      <main className="screen__body">{children}</main>
-    </div>
-  );
-}
 
 const meta = {
   title: 'Screens/Kitchen/KitchenScreen',
   component: KitchenView,
-  decorators: [(Story) => <InScreen>{Story()}</InScreen>],
   parameters: { layout: 'fullscreen' },
   args: { recipes: RECIPES },
 } satisfies Meta<typeof KitchenView>;
@@ -37,6 +20,17 @@ export const List: Story = {};
 export const ListDark: Story = { globals: dark };
 export const ListRussian: Story = { globals: { locale: 'ru' } };
 export const ListDesktop: Story = { globals: desktop };
-/** 1.4, wave 1: no «New recipe» yet, it comes with the editor. */
+/** «+»: wave 1 offers «Enter manually» only. */
+export const Add: Story = {
+  play: async ({ canvasElement }) => {
+    fireEvent.click(
+      await within(canvasElement).findByRole('button', {
+        name: /Add a recipe|Добавить рецепт/,
+      }),
+    );
+  },
+};
+export const AddDark: Story = { ...Add, globals: dark };
+/** 1.4: «New recipe» opens the editor. */
 export const Empty: Story = { args: { recipes: [] } };
 export const EmptyDark: Story = { args: { recipes: [] }, globals: dark };

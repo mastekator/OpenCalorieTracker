@@ -1507,6 +1507,9 @@ export const en = {
     row: { sub: { one: '{count} recipe', other: '{count} recipes' } },
   },
   recipes: {
+    new: 'New recipe',
+    manual: 'Enter manually',
+    add: 'Add a recipe',
     sort_note: 'Recently logged first.',
     per100: '{k}\u00a0kcal/100\u00a0g',
     perPortion: '{k} per serving',
@@ -1516,6 +1519,7 @@ export const en = {
     },
   },
   recipe: {
+    edit: 'Edit',
     more: 'More',
     servings: {
       one: '{count} serving of {g}\u00a0g',
@@ -1543,6 +1547,62 @@ export const en = {
       ok: 'Delete',
       error: 'Couldn’t delete the recipe. Try again.',
     },
+  },
+  editor: {
+    new: 'New recipe',
+    save: 'Save',
+    name: 'Name',
+    name_err: 'Enter a name',
+    photo: 'Photo',
+    photo_add: 'Add a photo of the dish',
+    photo_replace: 'Replace the photo',
+    photo_error:
+      'Couldn’t upload the photo. The recipe will be saved without it.',
+    totals: {
+      label: 'Recipe totals, kcal',
+      serving: 'Serving',
+      per100: '100 g',
+      total: 'Total',
+    },
+    ingredients: 'Ingredients',
+    ingredients_cols: 'grams · kcal',
+    ingredient: 'Ingredient',
+    no_ingredients: 'Add at least one ingredient',
+    grams: '{name}, grams',
+    grams_err: 'From 0 to 5,000 g',
+    yield: 'Yield',
+    cooked_weight: 'Cooked weight',
+    cooked_err: 'More than 0 g',
+    portions: 'Servings',
+    manual_title: 'Ingredient, manually',
+    portions_less: 'Fewer servings',
+    portions_more: 'More servings',
+    weigh:
+      'Weigh the cooked dish for better accuracy. For now we use the raw weight: {w}\u00a0g.',
+    check_weight: {
+      heavier: {
+        one: 'Check the weight: cooked is {count}× heavier than the ingredients ({w}\u00a0g). You can still save.',
+        other:
+          'Check the weight: cooked is {count}× heavier than the ingredients ({w}\u00a0g). You can still save.',
+      },
+      lighter: {
+        one: 'Check the weight: cooked is {count}× lighter than the ingredients ({w}\u00a0g). You can still save.',
+        other:
+          'Check the weight: cooked is {count}× lighter than the ingredients ({w}\u00a0g). You can still save.',
+      },
+    },
+    note: 'Note',
+    note_ph: 'For example: in a 5 l pot',
+    search: 'Search',
+    from_history: 'From history',
+    history_sub: '{k}\u00a0kcal/100\u00a0g · {date}',
+    enter_manually: 'Enter “{q}” manually',
+    picker_note:
+      'Then set the grams. Entering manually has the same fields as a dish entered by hand.',
+    save_error: 'Couldn’t save the recipe. Try again.',
+  },
+  unsaved: {
+    title: 'Recipe changes aren’t saved',
   },
   errors: {
     validation_failed: 'Check the highlighted fields',

@@ -8,7 +8,9 @@ import './NavBar.css';
  * mobileOnly: hidden inside the app shell from 1024px, where the sidebar already offers it.
  */
 type Action = { icon?: LucideIcon; label: string; mobileOnly?: boolean } & (
-  { href: string; onClick?: never } | { onClick: () => void; href?: never }
+  | { href: string; onClick?: never; disabled?: never }
+  /** disabled: offline «Save» of the recipe editor (E-10.5); the offline bar says why. */
+  | { onClick: () => void; href?: never; disabled?: boolean }
 );
 
 type Props = {
@@ -26,7 +28,7 @@ type Props = {
 export function NavBar({ title, large = false, back, action, aside }: Props) {
   let right = null;
   if (action) {
-    const { icon: Icon, label, href, onClick, mobileOnly } = action;
+    const { icon: Icon, label, href, onClick, mobileOnly, disabled } = action;
     const className = `navbar__action${Icon ? '' : ' navbar__action--text'}${mobileOnly ? ' navbar--mobile-only' : ''}`;
     const content = Icon ? <Icon aria-hidden="true" /> : label;
     const ariaLabel = Icon ? label : undefined;
@@ -40,6 +42,7 @@ export function NavBar({ title, large = false, back, action, aside }: Props) {
           type="button"
           className={className}
           aria-label={ariaLabel}
+          disabled={disabled}
           onClick={onClick}
         >
           {content}

@@ -9,12 +9,15 @@ import {
 import {
   aiStatusSchema,
   effectiveNorm,
+  nameKey,
   type AccountSettings,
   type AiStatus,
   type Meal,
   type MeResponse,
   type ProfileResponse,
+  type Nutrients,
   type Recipe,
+  type RecipeInput,
 } from '@oct/shared';
 import { z } from 'zod';
 import { api, ApiError } from '../api/client';
@@ -337,6 +340,56 @@ export async function deleteRecipe(db: Db, id: number) {
   }
   await db.delete('recipes', id);
   emitChange();
+}
+
+/**
+ * POST (new) or PUT (`id`) /api/recipes, then the server's recipe into the local copy.
+ * A failure throws and leaves the copy as it is.
+ */
+export async function saveRecipe(db: Db, input: RecipeInput, id?: number) {
+  const recipe = await api(
+    id === undefined ? '/api/recipes' : `/api/recipes/${id}`,
+    z.custom<Recipe>((v) => typeof (v as Recipe | null)?.id === 'number'),
+    { method: id === undefined ? 'POST' : 'PUT', body: input },
+  );
+  await db.put('recipes', recipe);
+  emitChange();
+  return recipe;
+}
+
+export type HistoryDish = Nutrients & {
+  name: string;
+  grams: number;
+  eatenAt: string;
+};
+
+/**
+ * Dishes from the local diary whose name contains `query`, the latest one per name,
+ * newest first: «From history» in the ingredient picker (AC-2.2).
+ */
+export async function findHistoryDishes(db: Db, query: string, limit = 10) {
+  const q = nameKey(query);
+  // shortcut: reads every local meal per search; add an index if long diaries get slow.
+  const meals = (await db.getAll('meals')).sort((a, b) =>
+    b.eatenAt.localeCompare(a.eatenAt),
+  );
+  const found = new Map<string, HistoryDish>();
+  for (const m of meals)
+    for (const { name, grams, kcal, proteinG, fatG, carbsG } of m.items) {
+      const key = nameKey(name);
+      if (!q || !grams || found.has(key) || !key.includes(q)) continue;
+      found.set(key, {
+        name,
+        grams,
+        kcal,
+        proteinG,
+        fatG,
+        carbsG,
+        eatenAt: m.eatenAt,
+      });
+      if (found.size === limit) return [...found.values()];
+    }
+  return [...found.values()];
 }
 
 /** Unsent changes, for sign-out and account switch. */
