@@ -52,11 +52,11 @@ figcaption b { color: var(--color-text); }
 
 /* ---- photo (a drawn stand-in for the user's photo) ---- */
 .photo { position: relative; height: var(--photo-preview-height); border-radius: var(--radius-lg); overflow: hidden; background: var(--illo-tile); }
-.photo svg { width: 100%; height: 100%; display: block; }
+.photo img { object-fit: cover; width: 100%; height: 100%; display: block; }
 .photo--sm { height: calc(var(--photo-preview-height) * .6); }
 .photo__mark { position: absolute; border: 2px solid var(--color-accent); border-radius: var(--radius-sm); box-shadow: 0 0 0 999px rgb(0 0 0 / 0); }
 .thumb { flex: none; width: var(--thumb-size); height: var(--thumb-size); border-radius: var(--radius-md); overflow: hidden; background: var(--illo-tile); }
-.thumb svg { width: 100%; height: 100%; display: block; }
+.thumb img { object-fit: cover; width: 100%; height: 100%; display: block; }
 
 /* ---- recognition steps (new: RecognitionSteps) ---- */
 .status { display: grid; gap: 2px; text-align: center; }
@@ -233,20 +233,8 @@ const I = {
   trash: sv('<path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>'),
 };
 
-// A drawn stand-in for the photo: a yogurt cup with a barcode next to a plate with an omelette.
-const PHOTO = (opts = {}) => {
-  const bars = [0,2,3,5,8,9,11,14,15,17,19,20,23,25,26,28].map(x => `<rect x="${228 + x * 3.2}" y="138" width="${x % 3 ? 1.6 : 2.6}" height="40" fill="var(--illo-cocoa)"/>`).join('');
-  const plate = opts.noPack ? 0 : 1;
-  return `<svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-    <rect width="400" height="300" fill="var(--illo-tile)"/>
-    <circle cx="${plate ? 120 : 200}" cy="160" r="${plate ? 98 : 120}" fill="var(--illo-plate)"/><circle cx="${plate ? 120 : 200}" cy="160" r="${plate ? 72 : 90}" fill="var(--illo-white)"/>
-    <ellipse cx="${plate ? 120 : 200}" cy="160" rx="${plate ? 54 : 68}" ry="${plate ? 40 : 50}" fill="var(--illo-yellow)"/>
-    <circle cx="${plate ? 104 : 182}" cy="150" r="5" fill="var(--illo-leaf)"/><circle cx="${plate ? 134 : 220}" cy="168" r="4" fill="var(--illo-leaf)"/><circle cx="${plate ? 118 : 198}" cy="178" r="4" fill="var(--illo-green)"/>
-    ${opts.noPack ? '' : `<path d="M222 70h104l-10 190h-84z" fill="var(--illo-white)"/><rect x="218" y="60" width="112" height="16" rx="6" fill="var(--illo-blue)"/>
-    <rect x="230" y="92" width="88" height="30" rx="4" fill="var(--illo-blue)"/>
-    <rect x="224" y="134" width="${opts.blur ? 0 : 60}" height="52" fill="var(--illo-white)"/>${opts.blur ? '' : bars}`}
-  </svg>`;
-};
+// A drawn stand-in for the user's photo (a photo does not follow the theme): omelette plate + yogurt cup with a barcode.
+const PHOTO = (opts = {}) => `<img src="img/${opts.noPack ? 'photo-plate' : 'photo'}.svg" alt="">`;
 const thumb = () => `<span class="thumb">${PHOTO()}</span>`;
 
 // ---- building blocks ----
