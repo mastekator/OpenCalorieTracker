@@ -18,13 +18,25 @@ export const readSettings = (db: Database, userId: number): AccountSettings => {
   const row = db
     .prepare(
       `SELECT locale, theme, units, settings_rev AS settingsRev,
-       photo_retention_days AS photoRetentionDays, norm_disclaimer_hidden AS normDisclaimerHidden
+       photo_retention_days AS photoRetentionDays, norm_disclaimer_hidden AS normDisclaimerHidden,
+       off_enabled AS offEnabled, off_hint_at AS offHintAt
        FROM users WHERE id = ?`,
     )
-    .get(userId) as Omit<AccountSettings, 'normDisclaimerHidden'> & {
-    normDisclaimerHidden: 0 | 1;
+    .get(userId) as Omit<
+    AccountSettings,
+    'normDisclaimerHidden' | 'offEnabled'
+  > & { normDisclaimerHidden: 0 | 1; offEnabled: 0 | 1 };
+  return {
+    ...row,
+    normDisclaimerHidden: row.normDisclaimerHidden === 1,
+    offEnabled: row.offEnabled === 1,
   };
-  return { ...row, normDisclaimerHidden: row.normDisclaimerHidden === 1 };
+};
+
+/** Patch keys whose column name differs from the key. */
+const COLUMNS: Record<string, string> = {
+  offEnabled: 'off_enabled',
+  offHintAt: 'off_hint_at',
 };
 
 /** Language, theme, units and photo retention of one's own account (ADR-0011 §3, AC-0.3, ADR-0008). */
@@ -91,9 +103,10 @@ export function accountRoutes({ db, config }: AppDeps) {
         const userId = c.var.user.id;
         const { editedAt, normDisclaimerHidden, ...fields } =
           c.req.valid('json');
-        const changes = Object.entries(fields).filter(
-          ([, v]) => v !== undefined,
-        );
+        const changes = Object.entries(fields)
+          .filter(([, v]) => v !== undefined)
+          // SQLite has no booleans.
+          .map(([k, v]) => [COLUMNS[k] ?? k, typeof v === 'boolean' ? +v : v]);
         db.transaction(() => {
           // Only ever set, so it cannot conflict and an old offline edit must not lose it.
           if (normDisclaimerHidden)

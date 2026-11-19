@@ -38,12 +38,26 @@ describe('loadConfig', () => {
     ]);
   });
 
-  it.each([{ REGISTRATION: 'foo' }, { AUTH_METHODS: 'x' }, { PORT: 'abc' }])(
-    'rejects nonsense %o',
-    (env) => {
-      expect(() => loadConfig(env)).toThrow(/Invalid environment/);
-    },
-  );
+  it.each([
+    ['', undefined],
+    ['true', true],
+    ['1', true],
+    ['false', false],
+    ['0', false],
+  ])('parses ALLOW_OUTBOUND_REQUESTS=%j', (value, outbound) => {
+    expect(loadConfig({ ALLOW_OUTBOUND_REQUESTS: value }).outbound).toBe(
+      outbound,
+    );
+  });
+
+  it.each([
+    { REGISTRATION: 'foo' },
+    { AUTH_METHODS: 'x' },
+    { PORT: 'abc' },
+    { ALLOW_OUTBOUND_REQUESTS: 'yes' },
+  ])('rejects nonsense %o', (env) => {
+    expect(() => loadConfig(env)).toThrow(/Invalid environment/);
+  });
 });
 
 describe('setupError (AC-7.1, AC-1.3)', () => {
@@ -135,7 +149,8 @@ describe('setupRequired (ADR-0021 §1, §6, §9)', () => {
       .run();
     t.db.exec(
       'DROP TABLE setup_code; DROP TABLE ai_test_runs; DROP TABLE ai_limits; ' +
-        'DROP TABLE recipe_tombstones; DROP TABLE recipe_steps; DROP TABLE recipe_ingredients; DROP TABLE recipes',
+        'DROP TABLE recipe_tombstones; DROP TABLE recipe_steps; DROP TABLE recipe_ingredients; DROP TABLE recipes; ' +
+        'DROP TABLE integration_settings; ALTER TABLE users DROP COLUMN off_enabled; ALTER TABLE users DROP COLUMN off_hint_at',
     );
     t.db.pragma('user_version = 10');
     migrate(t.db);
