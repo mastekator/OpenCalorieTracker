@@ -67,6 +67,89 @@
         }
       ]
     },
+    {
+      "file": "noodles.jpg",
+      "level": "notExact",
+      "ref": 590,
+      "dishes": [
+        { "words": ["noodle", "mie", "bakmi"] },
+        { "words": ["krupuk", "kerupuk", "cracker"] },
+        { "words": ["sambal", "chili paste"] },
+        { "words": ["acar", "achar", "pickle"] },
+        { "words": ["egg"] },
+        {
+          "words": [
+            "vegetable",
+            "greens",
+            "cabbage",
+            "bok choy",
+            "choy sum",
+            "lettuce"
+          ]
+        }
+      ]
+    },
+    {
+      "file": "sushi.jpg",
+      "level": "exact",
+      "ref": 300,
+      "dishes": [
+        { "words": ["salmon", "sake"] },
+        { "words": ["tuna", "maguro"] },
+        { "words": ["yellowtail", "hamachi", "sea bream", "white fish"] },
+        { "words": ["octopus", "tako"] },
+        { "words": ["tobiko", "flying fish roe", "roe"] },
+        { "words": ["tamago", "omelet", "omelette", "egg"] }
+      ]
+    },
+    {
+      "file": "sausages.jpg",
+      "level": "exact",
+      "per100": [191, 287],
+      "dishes": [{ "words": ["sausage", "hot dog", "frankfurter", "wiener"] }]
+    },
+    {
+      "file": "fried-eggs-toast.jpg",
+      "level": "notExact",
+      "ref": 450,
+      "dishes": [
+        { "words": ["egg"], "count": 3 },
+        { "words": ["toast", "bread"] }
+      ]
+    },
+    {
+      "file": "cheesecake.jpg",
+      "level": "notExact",
+      "ref": 450,
+      "dishes": [{ "words": ["cheesecake", "cake"] }]
+    },
+    {
+      "file": "grilled-shrimp.jpg",
+      "level": "notExact",
+      "ref": 350,
+      "dishes": [{ "words": ["shrimp", "prawn"] }]
+    },
+    {
+      "file": "crepes-salad.jpg",
+      "level": "notExact",
+      "ref": 860,
+      "dishes": [
+        { "words": ["crepe", "pancake", "blini", "blin"] },
+        { "words": ["salad"] }
+      ]
+    },
+    {
+      "file": "pastries.jpg",
+      "level": "notExact",
+      "ref": 1290,
+      "dishes": [
+        {
+          "words": ["danish", "pastry", "vatrushka", "curd", "cheese"],
+          "count": 3
+        },
+        { "words": ["croissant"] }
+      ]
+    },
     { "file": "chair.jpg", "empty": true }
   ]
 }
