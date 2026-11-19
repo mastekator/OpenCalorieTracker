@@ -111,14 +111,6 @@ export const FirstConnection: Story = {
   },
 };
 export const FirstConnectionDark: Story = { ...FirstConnection, ...dark };
-/** 1.2 The model list is loading: spinner in the «Model» row. */
-export const LoadingModels: Story = {
-  args: {
-    ...FirstConnection.args,
-    models: { list: null, loading: true, error: null },
-  },
-};
-export const LoadingModelsDark: Story = { ...LoadingModels, ...dark };
 /** «Save» pressed: both buttons wait. */
 export const Saving: Story = {
   args: {
