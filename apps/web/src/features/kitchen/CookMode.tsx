@@ -16,8 +16,10 @@ import { List, ListRow } from '../../ui/List/List';
 import { NavBar } from '../../ui/NavBar/NavBar';
 import { useBarVariant } from '../../app/connection';
 import { OfflineBar, useOnline } from '../../ui/OfflineBar/OfflineBar';
+import { PortionSheet } from '../../ui/PortionSheet/PortionSheet';
 import { Sheet } from '../../ui/Sheet/Sheet';
 import { useToast } from '../../ui/Toast/Toast';
+import { logPortion } from './portion';
 import './CookMode.css';
 
 /** Below this a move is still a tap. */
@@ -87,20 +89,50 @@ export function CookScreen({ id }: { id: string }) {
   const online = useOnline();
   const awake = useWakeLock();
   const [, navigate] = useLocation();
+  const { t, num } = useT();
+  const toast = useToast();
+  const [portion, setPortion] = useState(false);
   const card = `/kitchen/${id}`;
   if (recipe === null) return <Redirect to="/kitchen" replace />;
   if (!recipe) return null;
   if (recipe.steps.length === 0) return <Redirect to={card} replace />;
   return (
-    <CookMode
-      recipe={recipe}
-      online={online}
-      awake={awake}
-      onExit={() => navigate(card, { replace: true })}
-      onSaveWeight={async (cookedG) => {
-        await saveRecipe(db, withCookedG(recipe, cookedG), recipe.id);
-      }}
-    />
+    <>
+      <CookMode
+        recipe={recipe}
+        online={online}
+        awake={awake}
+        onExit={() => navigate(card, { replace: true })}
+        onSaveWeight={async (cookedG) => {
+          await saveRecipe(db, withCookedG(recipe, cookedG), recipe.id);
+        }}
+        onLog={() => setPortion(true)}
+      />
+      {portion && (
+        // Over «Done!»: logged, the cooking is over — back to the card.
+        <PortionSheet
+          open
+          recipe={recipe}
+          log
+          onClose={() => setPortion(false)}
+          onAdd={(item, when) => {
+            if (!when) return; // `log` always passes the meal and time
+            void logPortion(db, item, when).then(
+              () => {
+                toast({
+                  text: t('portion.logged', {
+                    name: item.name,
+                    g: num(item.grams),
+                  }),
+                });
+                navigate(card, { replace: true });
+              },
+              () => toast({ text: t('portion.error') }),
+            );
+          }}
+        />
+      )}
+    </>
   );
 }
 
@@ -112,7 +144,7 @@ type Props = {
   /** «×», Esc and «Just close»: back to the recipe card. */
   onExit: () => void;
   onSaveWeight: (cookedG: number) => Promise<void>;
-  /** «Log a serving»; not rendered without it (the portion sheet comes in OCT-310). */
+  /** «Log a serving»: opens the portion sheet; not rendered without it. */
   onLog?: () => void;
 };
 

@@ -300,6 +300,7 @@ it('the recipe card has «Cook» only when the recipe has steps', async () => {
           today="2026-11-19"
           online
           onDelete={async () => {}}
+          onLog={async () => {}}
         />
       </I18nProvider>,
     );

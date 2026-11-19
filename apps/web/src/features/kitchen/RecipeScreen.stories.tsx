@@ -12,6 +12,7 @@ const meta = {
     today: '2026-11-19',
     online: true,
     onDelete: fn(async () => {}),
+    onLog: fn(async () => {}),
   },
 } satisfies Meta<typeof RecipeView>;
 export default meta;

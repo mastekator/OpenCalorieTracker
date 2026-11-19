@@ -15,6 +15,9 @@ afterEach(cleanup);
 
 const view = (props: Partial<Parameters<typeof RecipeView>[0]> = {}) => {
   const onDelete = vi.fn(async () => {});
+  const onLog = vi.fn<Parameters<typeof RecipeView>[0]['onLog']>(
+    async () => {},
+  );
   const result = renderLoaded(
     <I18nProvider>
       <RecipeView
@@ -22,14 +25,28 @@ const view = (props: Partial<Parameters<typeof RecipeView>[0]> = {}) => {
         today="2026-11-19"
         online
         onDelete={onDelete}
+        onLog={onLog}
         {...props}
       />
     </I18nProvider>,
   );
-  return { onDelete, result };
+  return { onDelete, onLog, result };
 };
 
 describe('RecipeView', () => {
+  it('«Log a serving»: the portion sheet logs a serving straight to the diary', async () => {
+    const { onLog, result } = view();
+    await result;
+    fireEvent.click(screen.getByRole('button', { name: 'Log a serving' }));
+    fireEvent.click(await screen.findByRole('button', { name: /^Log to / }));
+    await waitFor(() => expect(onLog).toHaveBeenCalledOnce());
+    expect(onLog.mock.calls[0]![0]).toMatchObject({
+      grams: 350,
+      source: 'recipe',
+      recipeId: 1,
+    });
+  });
+
   it('shows meta, ingredients with 0 g not counted, and steps', async () => {
     await view().result;
     expect(

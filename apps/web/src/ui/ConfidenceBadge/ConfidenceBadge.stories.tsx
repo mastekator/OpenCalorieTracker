@@ -24,6 +24,9 @@ export const Manual: Story = {
 export const History: Story = {
   args: { source: 'history', confidence: undefined },
 };
+export const Recipe: Story = {
+  args: { source: 'recipe', confidence: undefined },
+};
 
 /** Every variant, as in the OCT-16 confidence table. */
 export const Matrix: Story = {
@@ -34,6 +37,7 @@ export const Matrix: Story = {
       <ConfidenceBadge source="ai" confidence={0.2} />
       <ConfidenceBadge source="manual" />
       <ConfidenceBadge source="history" />
+      <ConfidenceBadge source="recipe" />
     </div>
   ),
 };

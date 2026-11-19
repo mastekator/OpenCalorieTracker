@@ -1370,7 +1370,11 @@ const ru: DeepPartial<typeof en> = {
         low: 'Уверенность: низкая, проверьте',
       },
     },
-    source: { manual: 'вручную', history: 'как в прошлый раз' },
+    source: {
+      manual: 'вручную',
+      history: 'как в прошлый раз',
+      recipe: 'рецепт',
+    },
     weight: {
       label: 'Вес: {dish}',
       less: 'Меньше на {step}',
@@ -1631,6 +1635,7 @@ const ru: DeepPartial<typeof en> = {
     steps: 'Шаги · {n}',
     step: 'Шаг {i}',
     cooking: 'Готовлю',
+    log: 'Записать порцию',
     zero_kcal: 'не учитывается в ккал',
     delete: {
       action: 'Удалить рецепт',
@@ -1669,6 +1674,24 @@ const ru: DeepPartial<typeof en> = {
       log: 'Записать порцию',
       close: 'Просто закрыть',
     },
+  },
+  portion: {
+    mode: 'Сколько',
+    servings: 'Порции',
+    grams: 'Граммы',
+    count: '{n} порц.',
+    less: 'Меньше на ½ порции',
+    more: 'Больше на ½ порции',
+    add: 'Добавить',
+    log_to: {
+      breakfast: 'Записать в завтрак',
+      lunch: 'Записать в обед',
+      dinner: 'Записать в ужин',
+      snack: 'Записать в перекус',
+    },
+    today: 'Сегодня, {time}',
+    logged: 'Записано: {name}, {g}\u00a0г',
+    error: 'Не получилось записать порцию. Попробуйте ещё раз.',
   },
   editor: {
     new: 'Новый рецепт',
