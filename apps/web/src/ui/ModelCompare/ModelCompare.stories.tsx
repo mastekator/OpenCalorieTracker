@@ -32,7 +32,7 @@ const RUNS: AiTestRunSummary[] = [
   run(6, {}),
   run(5, {
     provider: 'openrouter',
-    model: 'qwen/qwen3-vl-72b',
+    model: 'qwen/qwen3-vl-235b-a22b-instruct',
     passed: 7,
     msPerPhoto: 6100,
     costUsd: 0.011,
@@ -100,7 +100,7 @@ const desktop = { viewport: { value: 'desktop' } };
 /** 4.6 Phone: a card per run; a tap opens its photos. */
 export const Several: Story = {};
 export const SeveralDark: Story = { globals: { theme: 'dark' } };
-/** 6.2 Desktop: a table, the best row tinted, icon actions on every row. */
+/** 6.2 Desktop: a table, the best row tinted; a click anywhere on a row opens it (OCT-300). */
 export const Desktop: Story = { globals: desktop };
 export const DesktopDark: Story = { globals: { ...desktop, theme: 'dark' } };
 /** One complete run: it is the best; a stopped one never is. */
@@ -115,7 +115,7 @@ export const StoppedInterruptedDark: Story = {
   ...StoppedInterrupted,
   globals: { ...desktop, theme: 'dark' },
 };
-/** A row opened: copy buttons and the photos (6.2, under the row). */
+/** A row opened: copy and delete buttons, then the photos with the dishes the model returned (6.2, OCT-300). */
 export const Opened: Story = { args: { openId: 6, openRun: opened } };
 export const OpenedDark: Story = { ...Opened, globals: { theme: 'dark' } };
 export const OpenedDesktop: Story = { ...Opened, globals: desktop };

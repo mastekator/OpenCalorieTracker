@@ -71,10 +71,6 @@
     order: 6;
     margin-left: auto;
   }
-
-  .compare__actions {
-    order: 7;
-  }
 }
 
 /* The line break between the two lines. */
@@ -85,7 +81,7 @@
 }
 
 .compare__row--head,
-.compare__date {
+.compare__chevron {
   display: none;
 }
 
@@ -97,9 +93,17 @@
 .compare__mono {
   flex: 1 1 0;
   min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   font-family: var(--font-mono);
+  font-size: var(--text-subhead-size);
+  line-height: var(--text-subhead-lh);
   font-weight: 600;
-  overflow-wrap: anywhere;
+}
+
+.compare__model > .badge {
+  flex: none;
 }
 
 .compare__sub,
@@ -142,43 +146,24 @@
   content: '· ';
 }
 
-.compare__icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--tap-min);
-  height: var(--tap-min);
-  padding: 0;
-  border: 0;
-  border-radius: var(--radius-sm);
-  background: none;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-}
-
-.compare__icon svg {
+.compare__chevron svg {
   width: var(--icon-size-sm);
   height: var(--icon-size-sm);
 }
 
-.compare__desktop {
-  display: none;
-}
-
-.compare__toggle[aria-expanded='true'] svg {
+.compare__item--open .compare__chevron svg {
   transform: rotate(180deg);
 }
 
-/* Phone: the toggle has no place of its own and covers the card instead. */
+/* The toggle has no place of its own and covers the row: the row is the button. */
 .compare__toggle {
   position: absolute;
   inset: 0;
-  width: auto;
-  height: auto;
-}
-
-.compare__toggle svg {
-  display: none;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: none;
+  cursor: pointer;
 }
 
 .compare__details {
@@ -201,8 +186,8 @@
   .compare__row {
     display: grid;
     grid-template-columns:
-      minmax(0, 1fr) 4.5rem 7rem minmax(9rem, 12rem) 5.5rem
-      calc(3 * var(--tap-min));
+      minmax(12rem, 1fr) 4.5rem 7rem 9rem
+      var(--tap-min);
     column-gap: var(--space-4);
     row-gap: 0;
     padding: var(--space-2) var(--space-3);
@@ -225,12 +210,21 @@
     display: grid;
   }
 
+  .compare__name {
+    min-width: 0;
+  }
+
   .compare__model {
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
-    gap: var(--space-1) var(--space-2);
+    gap: var(--space-2);
     min-width: 0;
+  }
+
+  .compare__sub {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
 
   .compare__mono {
@@ -262,40 +256,16 @@
     display: block;
   }
 
-  .compare__date {
-    display: block;
-  }
-
-  .compare__phone {
-    display: none;
-  }
-
-  .compare__desktop {
+  .compare__chevron {
     display: inline-flex;
-  }
-
-  .compare__actions {
-    display: grid;
-    grid-template-columns: repeat(3, var(--tap-min));
-  }
-
-  .compare__icon--copy {
-    grid-column: 1;
-  }
-
-  .compare__icon--delete {
-    grid-column: 2;
-  }
-
-  .compare__toggle {
-    position: static;
-    grid-column: 3;
-    width: var(--tap-min);
+    align-items: center;
+    justify-content: center;
     height: var(--tap-min);
+    color: var(--color-text-secondary);
   }
 
-  .compare__toggle svg {
-    display: block;
+  .compare__delete {
+    margin-left: auto;
   }
 
   .compare__item--best > .compare__row {
@@ -309,27 +279,19 @@
 }
 
 @media (hover: hover) {
-  .compare__icon:hover {
-    color: var(--color-text);
-  }
-
-  .compare__icon--delete:hover {
-    color: var(--color-danger);
-  }
-
   .compare__row:not(.compare__row--head):hover {
     border-radius: var(--radius-md);
     background: var(--color-surface-2);
   }
 }
 
-.compare__icon:focus-visible {
+.compare__toggle:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: -2px;
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .compare__toggle svg {
+  .compare__chevron svg {
     transition: transform var(--duration-fast) var(--ease-out);
   }
 }

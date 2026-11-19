@@ -77,6 +77,7 @@ export function TestPhotoList({ photos, running = false }: Props) {
         const name = e.name ?? t('ai.test.not_food');
         const waiting = p.result === 'pending' || p.result === 'not_run';
         const levels = p.levels ? p.levels.split(',') : [];
+        const got = p.got === undefined ? null : dishLabel(p.got);
         return (
           <li
             key={p.file}
@@ -98,13 +99,21 @@ export function TestPhotoList({ photos, running = false }: Props) {
               </span>
               {!waiting && (
                 <>
-                  <span className="test-photos__line">
+                  <span
+                    className="test-photos__line test-photos__got"
+                    title={got ?? undefined}
+                  >
                     <b>{t('ai.test.got')}:</b>{' '}
-                    {p.result.startsWith('error ')
-                      ? errorText(p.result.slice('error '.length))
-                      : isNone(p.got) || p.kcal === undefined
-                        ? t('ai.test.empty')
-                        : `${t('ai.test.got_kcal', { kcal: num(p.kcal) })} · ${level(levels.every((l) => l === 'exact'))}`}
+                    {p.result.startsWith('error ') ? (
+                      errorText(p.result.slice('error '.length))
+                    ) : !got || p.kcal === undefined ? (
+                      t('ai.test.empty')
+                    ) : (
+                      <>
+                        <span className="test-photos__dish">{got}</span>
+                        {` · ${t('ai.test.got_kcal', { kcal: num(p.kcal) })} · ${level(levels.every((l) => l === 'exact'))}`}
+                      </>
+                    )}
                   </span>
                   <span className="test-photos__line">
                     {p.result === 'ok' ? (
