@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react';
 import {
   Download,
   Globe,
+  GlobeLock,
   Image,
   KeyRound,
   Lock,
   Moon,
+  Plug,
   Ruler,
   Shield,
   Sparkle,
@@ -58,6 +60,7 @@ import { SegmentedRow } from '../../ui/SegmentedRow/SegmentedRow';
 import { useToast } from '../../ui/Toast/Toast';
 import { BLOCKS_API, blocksSchema } from '../admin/BlocksScreen';
 import { AI_STATUS_PATH } from './AiProviderScreen';
+import { INTEGRATIONS_PATH } from './IntegrationsScreen';
 import { enabledMethods } from './methods';
 import './settings.css';
 
@@ -234,6 +237,13 @@ export function SettingsScreen({ user, onLogout, platform: given }: Props) {
             >
               {t('settings.ai_provider')}
             </ListRow>
+            <ListRow
+              icon={<GlobeLock />}
+              disabled={!online}
+              onClick={adminRow('/settings/admin/integrations')}
+            >
+              {t('settings.server_integrations')}
+            </ListRow>
           </List>
         )}
 
@@ -260,6 +270,12 @@ export function SettingsScreen({ user, onLogout, platform: given }: Props) {
               void patchSettings(db, { theme: v }).finally(() => applyTheme(v))
             }
           />
+        </List>
+
+        <List>
+          <ListRow icon={<Plug />} onClick={go(INTEGRATIONS_PATH)}>
+            {t('settings.integrations')}
+          </ListRow>
         </List>
 
         <List

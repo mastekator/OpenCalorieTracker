@@ -9,9 +9,11 @@ import {
 import {
   aiStatusSchema,
   effectiveNorm,
+  integrationsSchema,
   nameKey,
   type AccountSettings,
   type AiStatus,
+  type Integrations,
   type Meal,
   type MeResponse,
   type ProfileResponse,
@@ -240,6 +242,36 @@ export function useAiStatus(ask = true) {
     status: fresh ?? stored,
     loading: online && fresh === undefined,
   };
+}
+
+/**
+ * Whether the admin forbade outbound requests (ADR-0034 §5). The user's own switch is
+ * `settings.offEnabled`; this only reads `blocked`, kept in kv so offline shows the last known.
+ */
+export function useOutboundBlocked() {
+  const db = useDb();
+  const online = useOnline();
+  const stored = useLocal(
+    (d) => d.get('kv', 'integrations') as Promise<Integrations | undefined>,
+    [],
+  );
+  const [fresh, setFresh] = useState<Integrations>();
+  useEffect(() => {
+    if (!online) return;
+    let live = true;
+    api('/api/integrations', integrationsSchema).then(
+      (s) => {
+        if (!live) return;
+        setFresh(s);
+        db.put('kv', s, 'integrations').catch(() => {});
+      },
+      () => {},
+    );
+    return () => {
+      live = false;
+    };
+  }, [db, online]);
+  return (fresh ?? stored)?.barcode.blocked ?? false;
 }
 
 /** A profile never saved (what GET /api/profile answers for it). */
