@@ -35,3 +35,24 @@
   grid-column: 1 / -1;
   justify-self: end;
 }
+
+/* The AI couldn't estimate it (OCT-160 §9): warning-soft, the reason under the row. */
+.list-row.ingredient-row--unsure {
+  background: var(--color-warning-soft);
+}
+
+.ingredient-row__unsure {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--color-warning);
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+}
+
+.ingredient-row__unsure svg {
+  flex: none;
+  width: 1.2em;
+  height: 1.2em;
+}

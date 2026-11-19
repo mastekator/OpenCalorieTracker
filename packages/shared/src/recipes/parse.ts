@@ -3,9 +3,12 @@ import { fromPer100, type Nutrients } from '../nutrition.js';
 import { nutrientsSchema, validPer100 } from './lighter.js';
 import type { RecipeInput } from './recipes.js';
 
+/** Longest pasted recipe text, characters (AC-6.5); the web counter uses it too. */
+export const RECIPE_TEXT_MAX = 10000;
+
 /** `POST /api/ai/recipes/parse` body (ADR-0023 §8, AC-6.5). */
 export const recipeParseRequestSchema = z.object({
-  text: z.string().trim().min(1).max(10000),
+  text: z.string().trim().min(1).max(RECIPE_TEXT_MAX),
 });
 
 /**

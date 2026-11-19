@@ -37,7 +37,9 @@ import { CookScreen } from '../features/kitchen/CookMode';
 import {
   KitchenScreen,
   NEW_RECIPE_PATH,
+  PASTE_PATH,
 } from '../features/kitchen/KitchenScreen';
+import { AiPasteScreen } from '../features/kitchen/AiPasteScreen';
 import { LighterScreen } from '../features/kitchen/LighterScreen';
 import { RecipeEditorScreen } from '../features/kitchen/RecipeEditor';
 import { RecipeScreen } from '../features/kitchen/RecipeScreen';
@@ -177,6 +179,9 @@ export function AppScreens() {
       </Route>
       <Route path={NEW_RECIPE_PATH}>
         <RecipeEditorScreen />
+      </Route>
+      <Route path={PASTE_PATH}>
+        <AiPasteScreen />
       </Route>
       <Route path="/kitchen/:id/edit">
         {({ id }) => <RecipeEditorScreen key={id} id={id} />}

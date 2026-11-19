@@ -20,7 +20,7 @@ export const List: Story = {};
 export const ListDark: Story = { globals: dark };
 export const ListRussian: Story = { globals: { locale: 'ru' } };
 export const ListDesktop: Story = { globals: desktop };
-/** «+»: wave 1 offers «Enter manually» only. */
+/** «+» without AI: «Enter manually» only. */
 export const Add: Story = {
   play: async ({ canvasElement }) => {
     fireEvent.click(
@@ -31,6 +31,13 @@ export const Add: Story = {
   },
 };
 export const AddDark: Story = { ...Add, globals: dark };
+/** «+» with AI set up: also «Paste recipe text». */
+export const AddWithAi: Story = { ...Add, args: { ai: true } };
+export const AddWithAiDark: Story = {
+  ...Add,
+  args: { ai: true },
+  globals: dark,
+};
 /** 1.4: «New recipe» opens the editor. */
 export const Empty: Story = { args: { recipes: [] } };
 export const EmptyDark: Story = { args: { recipes: [] }, globals: dark };

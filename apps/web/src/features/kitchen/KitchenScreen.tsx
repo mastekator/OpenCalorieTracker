@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Pencil, Plus } from 'lucide-react';
+import { ClipboardPaste, Pencil, Plus } from 'lucide-react';
 import { useLocation } from 'wouter';
 import type { Recipe } from '@oct/shared';
-import { useRecipes } from '../../data/DataContext';
+import { useAiStatus, useRecipes } from '../../data/DataContext';
 import { useT } from '../../i18n';
 import { Button } from '../../ui/Button/Button';
 import { DishIllustration } from '../../ui/DishIllustration/DishIllustration';
@@ -13,17 +13,31 @@ import { ScreenState } from '../../ui/ScreenState/ScreenState';
 import { Sheet } from '../../ui/Sheet/Sheet';
 
 export const NEW_RECIPE_PATH = '/kitchen/new';
+export const PASTE_PATH = '/kitchen/paste';
 
 /** /kitchen: recipes from the local copy, works offline (ADR-0023 §4). */
 export function KitchenScreen() {
-  return <KitchenView recipes={useRecipes()} />;
+  const ai = useAiStatus();
+  return (
+    <KitchenView
+      recipes={useRecipes()}
+      ai={!!ai.status && ai.status.recognition !== 'not_configured'}
+    />
+  );
 }
 
 /**
  * The recipe list (OCT-160 1.2, 1.4), recently logged first. Wave 1: no fridge, no filter;
- * «+» offers «Enter manually» only, the other ways come with 7/9 and 8/9.
+ * «+» offers «Enter manually» and, with AI set up, «Paste recipe text».
  */
-export function KitchenView({ recipes }: { recipes: Recipe[] | undefined }) {
+export function KitchenView({
+  recipes,
+  ai = false,
+}: {
+  recipes: Recipe[] | undefined;
+  /** An AI provider is set up: the AI ways to add a recipe (OCT-160 §9). */
+  ai?: boolean;
+}) {
   const { t } = useT();
   const [, navigate] = useLocation();
   const [add, setAdd] = useState(false);
@@ -72,6 +86,11 @@ export function KitchenView({ recipes }: { recipes: Recipe[] | undefined }) {
           <ListRow icon={<Pencil />} href={NEW_RECIPE_PATH}>
             {t('recipes.manual')}
           </ListRow>
+          {ai && (
+            <ListRow icon={<ClipboardPaste />} href={PASTE_PATH}>
+              {t('recipes.paste')}
+            </ListRow>
+          )}
         </List>
       </Sheet>
     </div>
