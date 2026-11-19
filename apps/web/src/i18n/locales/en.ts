@@ -885,6 +885,7 @@ export const en = {
     ok: 'Sign in',
   },
   manual_dish: {
+    recipes_footer: 'Or type a name — your recipes come first.',
     recipes_recent: 'My recipes · recent',
     recipes: 'My recipes',
     recipe: 'recipe',

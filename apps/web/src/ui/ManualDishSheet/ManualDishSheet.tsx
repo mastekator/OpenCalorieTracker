@@ -22,6 +22,7 @@ import { Field } from '../Field/Field';
 import { parseDecimal } from '../FormList/FormList';
 import { List, ListRow } from '../List/List';
 import { Segment } from '../Segment/Segment';
+import { RecipeThumb } from '../RecipeThumb/RecipeThumb';
 import { Sheet } from '../Sheet/Sheet';
 import './ManualDishSheet.css';
 
@@ -190,17 +191,23 @@ export function ManualDishSheet({
             title={t(
               name ? 'manual_dish.recipes' : 'manual_dish.recipes_recent',
             )}
+            footer={name ? undefined : t('manual_dish.recipes_footer')}
           >
             {found.map((r) => (
               <ListRow
                 key={r.id}
-                // Same names differ by kcal per 100 g (OCT-160 3.4).
-                description={t('recipes.per100', { k: num(per100(r).kcal) })}
-                value={
-                  <Badge>
-                    <ChefHat aria-hidden="true" />
-                    {t('manual_dish.recipe')}
-                  </Badge>
+                icon={<RecipeThumb recipe={r} />}
+                // Same names differ by kcal per 100 g (OCT-160 3.4); the recent group's title already says «recipes».
+                description={
+                  <>
+                    {name && (
+                      <Badge>
+                        <ChefHat aria-hidden="true" />
+                        {t('manual_dish.recipe')}
+                      </Badge>
+                    )}{' '}
+                    {t('recipes.per100', { k: num(per100(r).kcal) })}
+                  </>
                 }
                 onClick={() => onRecipe?.(r)}
               >

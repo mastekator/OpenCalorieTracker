@@ -15,6 +15,11 @@ type Props = {
 /** «Your recipe: Pilaf · 166 kcal/100 g» under a dish named like a recipe (OCT-160 3.6); HistoryHint's look. */
 export function RecipeHint({ recipe, onApply, onKeep }: Props) {
   const { t, num } = useT();
+  // The name in bold (OCT-160 3.5): split the phrase around it, any word order.
+  const [before, after] = t('edit.recipe.hint', {
+    name: '\u0000',
+    k: num(per100(recipe).kcal),
+  }).split('\u0000');
   return (
     <div className="history-hint">
       <p className="history-hint__text tabular-nums">
@@ -22,10 +27,9 @@ export function RecipeHint({ recipe, onApply, onKeep }: Props) {
           id={matchIllustration(recipe.name)}
           size="var(--hint-illo-size)"
         />
-        {t('edit.recipe.hint', {
-          name: recipe.name,
-          k: num(per100(recipe).kcal),
-        })}
+        {before}
+        <strong>{recipe.name}</strong>
+        {after}
       </p>
       <div className="history-hint__actions">
         <Button variant="plain" small onClick={onApply}>

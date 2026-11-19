@@ -1,0 +1,9 @@
+/* A photo is a rounded square, an illustration a round tile: never confused (OCT-33). */
+.recipe-thumb {
+  flex: none;
+  width: var(--thumb-size);
+  height: var(--thumb-size);
+  border-radius: var(--radius-md);
+  object-fit: cover;
+  background: var(--color-surface-2);
+}

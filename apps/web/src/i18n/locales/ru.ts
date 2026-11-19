@@ -910,6 +910,7 @@ const ru: DeepPartial<typeof en> = {
     ok: 'Войти',
   },
   manual_dish: {
+    recipes_footer: 'Или введите название — рецепты в подсказке первыми.',
     recipes_recent: 'Мои рецепты · недавние',
     recipes: 'Мои рецепты',
     recipe: 'рецепт',
