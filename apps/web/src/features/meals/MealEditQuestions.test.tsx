@@ -270,7 +270,7 @@ describe('AI questions under a dish (OCT-262)', () => {
     expect(groups()).toHaveLength(0);
     expect(
       document.querySelector('.meal-edit__estimate')!.textContent,
-    ).toContain('AI estimate from the photo');
+    ).toContain('AI estimate — check the weight.');
   });
 
   it('come back with a recalculation from history.state', async () => {

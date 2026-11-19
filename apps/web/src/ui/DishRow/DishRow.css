@@ -1,4 +1,5 @@
 .dish-row {
+  container-type: inline-size; /* the «was …» note moves under the weight on a narrow row */
   display: grid;
   gap: var(--space-2);
   padding: var(--space-3) var(--space-4);
@@ -91,11 +92,16 @@
   color: var(--color-text-secondary);
 }
 
+/* C.1: stepper, «was …» beside it, the pencil at the end. */
 .dish-row__weight {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
   gap: var(--space-2);
+}
+
+.dish-row__weight .dish-row__edit {
+  grid-column: 3;
 }
 
 .dish-row__edit {
@@ -229,12 +235,24 @@
 }
 
 .dish-row__was {
+  align-self: center;
   font-size: var(--text-footnote-size);
   line-height: var(--text-footnote-lh);
   color: var(--color-text-secondary);
   text-decoration: line-through;
+  overflow-wrap: break-word;
+  /* A long old name stops at two lines; the stepper keeps its size. */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
 }
 
-.dish-row--illo .dish-row__was {
-  grid-column: 2;
+/* Under 2.5rem left beside stepper and pencil (320 px phones): the note takes a line of its own. */
+@container (max-width: 18.75rem) {
+  .dish-row__was {
+    grid-row: 2;
+    grid-column: 1 / -1;
+  }
 }

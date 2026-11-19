@@ -134,11 +134,6 @@ export function DishRow({
             })}
           </span>
         </div>
-        {was && (
-          <p className="dish-row__was">
-            {t('edit.refine.mark.was', { what: was })}
-          </p>
-        )}
         <div className="dish-row__weight">
           <WeightStepper
             grams={dish.grams}
@@ -146,6 +141,11 @@ export function DishRow({
             label={t('edit.weight.label', { dish: dish.name })}
             onChange={onGramsChange}
           />
+          {was && (
+            <p className="dish-row__was">
+              {t('edit.refine.mark.was', { what: was })}
+            </p>
+          )}
           <button
             type="button"
             className="dish-row__edit"

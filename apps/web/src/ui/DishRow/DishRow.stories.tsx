@@ -173,6 +173,35 @@ export const MarkRenamedDark: Story = {
   ...MarkRenamed,
   globals: { theme: 'dark' },
 };
+/** A long old name wraps beside the stepper and never squeezes it (C.1). */
+export const MarkRenamedLong: Story = {
+  args: {
+    mark: {
+      kind: 'changed',
+      name: 'Roasted sweet potato with rosemary and olive oil',
+      grams: 150,
+    },
+  },
+};
+export const MarkRenamedLongDark: Story = {
+  ...MarkRenamedLong,
+  globals: { theme: 'dark' },
+};
+/** A 320 px phone: no room beside the stepper, «was» takes a line under it. */
+export const MarkChangedNarrow: Story = {
+  ...MarkChanged,
+  decorators: [
+    (Story) => (
+      <div style={{ width: 280 }}>
+        <Story />
+      </div>
+    ),
+  ],
+};
+export const MarkChangedNarrowDark: Story = {
+  ...MarkChangedNarrow,
+  globals: { theme: 'dark' },
+};
 /** An answer chip (OCT-234 H.2): same weight, other numbers — «was» shows the old kcal; the question under the weight. */
 export const MarkKcalWithQuestion: Story = {
   args: {
