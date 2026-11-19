@@ -34,6 +34,10 @@
   cursor: pointer;
 }
 
+.recipe-editor__photo--set {
+  border: 0;
+}
+
 .recipe-editor__photo:disabled {
   cursor: progress;
   opacity: 0.6;
@@ -88,6 +92,12 @@
 .list-row.recipe-editor__kv {
   justify-content: space-between;
   gap: var(--space-3);
+}
+
+.recipe-editor__unit {
+  color: var(--color-text-secondary);
+  font-size: var(--text-footnote-size);
+  font-weight: 400;
 }
 
 .recipe-editor__servings {

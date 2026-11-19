@@ -40,6 +40,8 @@ type Props = {
   units: Units;
   /** Starting name, e.g. what was typed in the ingredient search. */
   name?: string;
+  /** Sheet title; «Add dish manually» by default. */
+  title?: string;
   /** «Add» with a valid dish: totals for its weight. */
   onAdd: (dish: ManualDish) => void;
   /** Close button, Esc, scrim, swipe down: the draft is dropped. */
@@ -50,6 +52,7 @@ type Props = {
 export function ManualDishSheet({
   units,
   name: initialName = '',
+  title,
   onAdd,
   onClose,
 }: Props) {
@@ -159,7 +162,7 @@ export function ManualDishSheet({
     <Sheet
       open
       onClose={onClose}
-      title={t('manual_dish.title')}
+      title={title ?? t('manual_dish.title')}
       footer={<Button onClick={add}>{t('manual_dish.add')}</Button>}
     >
       <div className="manual-dish">

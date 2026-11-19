@@ -158,6 +158,7 @@ export function RecipeEditor({
   const [saving, setSaving] = useState(false);
   const saveLock = useRef(false);
   const cookedLabel = useId();
+  const portionsLabel = useId();
   const nameRef = useRef<HTMLInputElement>(null);
   const cookedRef = useRef<HTMLInputElement>(null);
   const photoInput = useRef<HTMLInputElement>(null);
@@ -300,7 +301,7 @@ export function RecipeEditor({
         <div className="recipe-editor__head">
           <button
             type="button"
-            className="recipe-editor__photo"
+            className={`recipe-editor__photo${photoId ? ' recipe-editor__photo--set' : ''}`}
             aria-label={t(
               photoId ? 'editor.photo_replace' : 'editor.photo_add',
             )}
@@ -353,7 +354,15 @@ export function RecipeEditor({
           ).map(([k, v]) => (
             <div key={k} className="recipe-editor__total">
               <dt>{t(`editor.totals.${k}`)}</dt>
-              <dd className="tabular-nums">{kcal(v)}</dd>
+              <dd className="tabular-nums">
+                {kcal(v)}
+                {v !== null && (
+                  <span className="recipe-editor__unit">
+                    {'\u00a0'}
+                    {t('today.kcal')}
+                  </span>
+                )}
+              </dd>
             </div>
           ))}
         </dl>
@@ -429,8 +438,12 @@ export function RecipeEditor({
             </li>
             <li className="list__item">
               <div className="list-row recipe-editor__kv">
-                <span>{t('editor.portions')}</span>
-                <div className="stepper__row">
+                <span id={portionsLabel}>{t('editor.portions')}</span>
+                <div
+                  className="stepper__row"
+                  role="group"
+                  aria-labelledby={portionsLabel}
+                >
                   <button
                     type="button"
                     className="stepper__button"
@@ -471,7 +484,7 @@ export function RecipeEditor({
                 cookedG! > totals.rawG
                   ? 'editor.check_weight.heavier'
                   : 'editor.check_weight.lighter',
-                { x: num(ratio), w: num(totals.rawG) },
+                { count: Math.round(ratio), w: num(totals.rawG) },
               )}
             </p>
           ) : (
@@ -507,6 +520,7 @@ export function RecipeEditor({
       {sheet?.kind === 'manual' && (
         <ManualDishSheet
           units="metric"
+          title={t('editor.manual_title')}
           name={sheet.name}
           onAdd={(d) => addRow({ ...d, source: 'manual' })}
           onClose={() => setSheet(null)}

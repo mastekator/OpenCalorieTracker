@@ -44,7 +44,8 @@ const view = async (
 };
 
 const total = (label: string) =>
-  screen.getByText(label, { selector: 'dt' }).nextElementSibling!.textContent;
+  screen.getByText(label, { selector: 'dt' }).nextElementSibling!.firstChild!
+    .textContent;
 const save = () =>
   fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 const grams = (name: string) => screen.getByLabelText(`${name}, grams`);
@@ -77,6 +78,30 @@ describe('RecipeEditor', () => {
     save();
     await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
     expect(onSave.mock.calls[0]![0].cookedG).toBe(1860);
+  });
+
+  it('the weight warning declines «раза / раз» by the ratio', async () => {
+    localStorage.setItem(LOCALE_STORAGE_KEY, 'ru');
+    await view({ recipe: SALAD });
+    const cooked = await screen.findByLabelText('Вес готового');
+    fireEvent.change(cooked, { target: { value: '1860' } });
+    expect(screen.getByText(/в 3 раза тяжелее/)).toBeTruthy();
+    fireEvent.change(cooked, { target: { value: '3100' } });
+    expect(screen.getByText(/в 5 раз тяжелее/)).toBeTruthy();
+  });
+
+  it('totals carry «kcal», «—» does not', async () => {
+    await view({ recipe: SALAD });
+    const dd = (label: string) =>
+      screen.getByText(label, { selector: 'dt' }).nextElementSibling!
+        .textContent;
+    expect(dd('Total')).toBe('534\u00a0kcal');
+    expect(dd('Serving')).toBe('—');
+  });
+
+  it('servings stepper is a group named «Servings»', async () => {
+    await view({ recipe: PILAF });
+    expect(screen.getByRole('group', { name: 'Servings' })).toBeTruthy();
   });
 
   it('cooked weight takes no minus and no 0 (E-10.1)', async () => {

@@ -1572,15 +1572,22 @@ export const en = {
     cooked_weight: 'Cooked weight',
     cooked_err: 'More than 0 g',
     portions: 'Servings',
+    manual_title: 'Ingredient, manually',
     portions_less: 'Fewer servings',
     portions_more: 'More servings',
     weigh:
       'Weigh the cooked dish for better accuracy. For now we use the raw weight: {w}\u00a0g.',
     check_weight: {
-      heavier:
-        'Check the weight: cooked is {x}× heavier than the ingredients ({w}\u00a0g). You can still save.',
-      lighter:
-        'Check the weight: cooked is {x}× lighter than the ingredients ({w}\u00a0g). You can still save.',
+      heavier: {
+        one: 'Check the weight: cooked is {count}× heavier than the ingredients ({w}\u00a0g). You can still save.',
+        other:
+          'Check the weight: cooked is {count}× heavier than the ingredients ({w}\u00a0g). You can still save.',
+      },
+      lighter: {
+        one: 'Check the weight: cooked is {count}× lighter than the ingredients ({w}\u00a0g). You can still save.',
+        other:
+          'Check the weight: cooked is {count}× lighter than the ingredients ({w}\u00a0g). You can still save.',
+      },
     },
     note: 'Note',
     note_ph: 'For example: in a 5 l pot',

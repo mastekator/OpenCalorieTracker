@@ -10,6 +10,7 @@ import { BASIS_KEY, ManualDishSheet, type ManualDish } from './ManualDishSheet';
 function Demo(props: {
   units: Units;
   name?: string;
+  title?: string;
   onAdd: (dish: ManualDish) => void;
 }) {
   const { t } = useT();
@@ -23,6 +24,7 @@ function Demo(props: {
         <ManualDishSheet
           units={props.units}
           name={props.name}
+          title={props.title}
           onAdd={(dish) => {
             props.onAdd(dish);
             setOpen(false);
@@ -113,4 +115,6 @@ export const DesktopDark: Story = {
 };
 export const Russian: Story = { globals: { locale: 'ru' } };
 /** From the recipe's ingredient search: the typed text is the name. */
-export const Prefilled: Story = { args: { name: 'Carrots' } };
+export const Prefilled: Story = {
+  args: { name: 'Carrots', title: 'Ingredient, manually' },
+};
