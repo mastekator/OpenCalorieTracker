@@ -19,7 +19,7 @@ export const PILAF: Recipe = {
   servings: 6,
   note: null,
   // A server test photo, served by Storybook's staticDirs as /api/photos/<id>.
-  photoId: 'plov.jpg',
+  photoId: 'pilaf.jpg',
   ingredients: [
     ing('Long-grain rice', 400, 1440, 28, 4, 312),
     ing('Pork shoulder', 500, 1300, 70, 112, 0),
@@ -37,7 +37,7 @@ export const PILAF: Recipe = {
     },
     {
       text: 'Heat the oil in a cauldron and brown the meat, 8–10 minutes.',
-      photoId: 'pilaf-and-meat.jpg',
+      photoId: 'spaghetti.jpg',
     },
     {
       text: 'Add the onion, after 5 minutes the carrots. Fry 7 more minutes, salt, add cumin.',

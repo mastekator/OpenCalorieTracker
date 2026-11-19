@@ -6,6 +6,7 @@ const run: ModelTestRun = {
   model: 'gemini-3.5-flash-lite',
   appVersion: '0.2.0',
   promptVersion: 1,
+  testSet: 2,
   startedAt: Date.UTC(2026, 10, 17, 23, 59),
   inputTokens: 12000,
   outputTokens: 900,
@@ -31,7 +32,7 @@ const run: ModelTestRun = {
 describe('modelsMdRow', () => {
   it('formats the docs/MODELS.md row (AC-2.2)', () => {
     expect(modelsMdRow(run)).toBe(
-      '| google | gemini-3.5-flash-lite | 8/9 | 2026-11-17 | 4.1 s/photo; OCT v0.2.0, prompt 1 |',
+      '| google | gemini-3.5-flash-lite | 8/9 | 2026-11-17 | 4.1 s/photo; OCT v0.2.0, prompt 1, set 2 |',
     );
   });
 

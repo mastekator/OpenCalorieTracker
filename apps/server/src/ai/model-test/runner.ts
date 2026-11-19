@@ -21,13 +21,18 @@ const RUNS_PER_HOUR = 10;
 // Every next photo fails the same way: stop early (ADR-0019 §3, AC-2.8).
 const FATAL = ['auth_error', 'model_not_found', 'quota_exceeded'] as const;
 
-/** The 9 test photos, none run yet. */
-export const pendingPhotos = async (): Promise<AiTestPhoto[]> =>
-  (await readExpected()).map((e) => ({
-    file: e.file,
-    expected: expectedText(e),
-    result: 'pending',
-  }));
+/** The test set version and its photos, none run yet. */
+export async function pendingPhotos() {
+  const { set, photos } = await readExpected();
+  return {
+    set,
+    photos: photos.map((e): AiTestPhoto => ({
+      file: e.file,
+      expected: expectedText(e),
+      result: 'pending',
+    })),
+  };
+}
 
 /**
  * Runs `photos` one by one in English (ADR-0019), filling each in place; shared by check-model
@@ -44,7 +49,7 @@ export async function testPhotos(
     onPhoto?: () => void;
   } = {},
 ): Promise<AiTestStopReason | undefined> {
-  const expected = await readExpected();
+  const expected = (await readExpected()).photos;
   for (const [i, photo] of photos.entries()) {
     if (opts.signal?.aborted) return 'user';
     const exp = expected.find((e) => e.file === photo.file)!;
@@ -115,7 +120,7 @@ export function createModelTestRunner(db: Database) {
     /** Throws 409 ai_test_running or 429 too_many_attempts; returns the new run id at once. */
     async start(settings: AiSettings, model: AiModel) {
       // The only await, before the checks: from them to `current = ...` nothing yields, so two starts can't race.
-      const photos = await pendingPhotos();
+      const { set, photos } = await pendingPhotos();
       // Before the limit: a refused start spends no attempt.
       if (current)
         throw new ApiError(409, 'ai_test_running', { id: current.id });
@@ -130,14 +135,15 @@ export function createModelTestRunner(db: Database) {
       const id = Number(
         db
           .prepare(
-            `INSERT INTO ai_test_runs (provider, model, status, app_version, prompt_version, started_at, photos)
-             VALUES (?, ?, 'running', ?, ?, ?, ?)`,
+            `INSERT INTO ai_test_runs (provider, model, status, app_version, prompt_version, test_set, started_at, photos)
+             VALUES (?, ?, 'running', ?, ?, ?, ?, ?)`,
           )
           .run(
             settings.provider,
             settings.model,
             appVersion,
             RECOGNIZE_PROMPT_VERSION,
+            set,
             now,
             JSON.stringify(photos),
           ).lastInsertRowid,

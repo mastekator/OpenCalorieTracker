@@ -15,6 +15,8 @@ type Why = 'range' | 'exact' | 'approx' | 'empty' | 'nothing' | 'error';
 /** The server's miss text (model-test/compare.ts) as a reason in words. */
 export function whyOf(result: string): Why {
   if (result.startsWith('kcal ')) return 'range';
+  // Set 2 (ADR-0033); its other single reasons keep the old texts, several at once are OCT-323.
+  if (result === 'Calories out of range') return 'range';
   if (result === 'not every dish is exact') return 'exact';
   if (result === 'a mixed dish is exact') return 'approx';
   if (result === 'expected no dishes') return 'empty';

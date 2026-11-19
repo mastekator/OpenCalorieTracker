@@ -26,6 +26,8 @@ const summary = (
   stopReason: null,
   appVersion: '0.2.0',
   promptVersion: 3,
+  testSet: 2,
+  currentSet: 2,
   startedAt: Date.UTC(2026, 10, 18),
   finishedAt: Date.UTC(2026, 10, 18),
   inputTokens: 100,

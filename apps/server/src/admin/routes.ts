@@ -66,6 +66,7 @@ interface TestRunRow {
   stop_reason: AiTestRun['stopReason'];
   app_version: string;
   prompt_version: number;
+  test_set: number;
   started_at: number;
   finished_at: number | null;
   input_tokens: number | null;
@@ -74,7 +75,7 @@ interface TestRunRow {
   photos: string;
 }
 
-function testRun(r: TestRunRow): AiTestRun {
+function testRun(r: TestRunRow, currentSet: number): AiTestRun {
   const photos = (JSON.parse(r.photos) as AiTestPhoto[]).map((p) =>
     // A run cut by a restart never got to mark its rest (E-9).
     r.status !== 'running' && p.result === 'pending'
@@ -90,6 +91,8 @@ function testRun(r: TestRunRow): AiTestRun {
     stopReason: r.stop_reason,
     appVersion: r.app_version,
     promptVersion: r.prompt_version,
+    testSet: r.test_set,
+    currentSet,
     startedAt: r.started_at,
     finishedAt: r.finished_at,
     inputTokens: r.input_tokens,
@@ -409,17 +412,19 @@ export function adminRoutes({ config, db, ai, secrets }: AppDeps) {
           return c.json({ id: testId }, 201);
         },
       )
-      .get('/admin/ai/tests', (c) => {
+      .get('/admin/ai/tests', async (c) => {
         const rows = db
           .prepare('SELECT * FROM ai_test_runs ORDER BY id DESC')
           .all() as TestRunRow[];
+        const { set } = await readExpected();
         return c.json(
-          rows.map((r) => aiTestRunSummarySchema.parse(testRun(r))),
+          rows.map((r) => aiTestRunSummarySchema.parse(testRun(r, set))),
         );
       })
-      .get('/admin/ai/tests/:id', (c) =>
-        c.json(testRun(testRow(c.req.param('id')))),
-      )
+      .get('/admin/ai/tests/:id', async (c) => {
+        const row = testRow(c.req.param('id'));
+        return c.json(testRun(row, (await readExpected()).set));
+      })
       .post('/admin/ai/tests/:id/stop', (c) => {
         tests.stop(testRow(c.req.param('id')).id);
         return c.body(null, 204);
@@ -439,7 +444,7 @@ export function adminRoutes({ config, db, ai, secrets }: AppDeps) {
       // Thumbnails for the model test table (ADR-0019): only names from expected.json, so no path tricks.
       .get('/admin/ai/test-photos/:file', async (c) => {
         const file = c.req.param('file');
-        if (!(await readExpected()).some((e) => e.file === file))
+        if (!(await readExpected()).photos.some((e) => e.file === file))
           throw new ApiError(404, 'not_found');
         const data = await readFile(new URL(file, TEST_PHOTOS_DIR));
         return c.body(new Uint8Array(data), 200, {

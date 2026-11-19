@@ -209,8 +209,5 @@ it('byLastLogged: recently logged first, then never logged by last edit', () => 
 });
 
 it('photoIds: meal, recipe and step photos', () => {
-  expect(photoIds([], [PILAF, SALAD])).toEqual([
-    'plov.jpg',
-    'pilaf-and-meat.jpg',
-  ]);
+  expect(photoIds([], [PILAF, SALAD])).toEqual(['pilaf.jpg', 'spaghetti.jpg']);
 });

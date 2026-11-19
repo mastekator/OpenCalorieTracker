@@ -30,9 +30,9 @@ export const TEST_PHOTOS: AiTestPhoto[] = [
     result: 'not every dish is exact',
   },
   {
-    file: 'plov.jpg',
-    expected: 'plov; 300-6000 kcal; notExact',
-    got: 'plov',
+    file: 'pilaf.jpg',
+    expected: 'pilaf; 455-845 kcal; notExact',
+    got: 'Pilaf with beef',
     kcal: 720,
     levels: 'medium',
     ms: 4600,

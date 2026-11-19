@@ -10,14 +10,16 @@ import { fail, modelFromEnv } from './model-from-env.js';
 
 const { model, settings } = await modelFromEnv('check-model');
 
+const { set, photos } = await pendingPhotos();
 const run: ModelTestRun = {
   // The settings id, never the base URL.
   provider: settings.provider,
   model: model.modelId,
   appVersion,
   promptVersion: RECOGNIZE_PROMPT_VERSION,
+  testSet: set,
   startedAt: Date.now(),
-  photos: await pendingPhotos(),
+  photos,
 };
 const tokens = { inputTokens: 0, outputTokens: 0 };
 const stopped = await testPhotos(model, run.photos, {
@@ -29,7 +31,16 @@ const stopped = await testPhotos(model, run.photos, {
 });
 for (const p of run.photos) if (p.result === 'pending') p.result = 'not_run';
 
-console.table(run.photos);
+// The same reasons as `result` on the admin screen; `misses` are its codes.
+console.table(run.photos, [
+  'file',
+  'expected',
+  'got',
+  'kcal',
+  'levels',
+  'ms',
+  'result',
+]);
 console.log(`\n${reportMarkdown({ ...run, ...tokens })}`);
 if (stopped || run.photos.every((p) => p.result.startsWith('error')))
   fail(

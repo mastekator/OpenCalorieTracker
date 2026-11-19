@@ -45,10 +45,9 @@ jobs:
           docker run --rm --entrypoint node oct:smoke --input-type=module -e "
             import { access } from 'node:fs/promises';
             const m = await import('/app/server/dist/ai/model-test/compare.js');
-            const e = await m.readExpected();
+            const { set, photos: e } = await m.readExpected();
             for (const p of e) await access(new URL(p.file, m.TEST_PHOTOS_DIR));
-            if (e.length !== 9) throw new Error('expected 9 photos, got ' + e.length);
-            console.log(e.length + ' test photos in', m.TEST_PHOTOS_DIR.pathname);"
+            console.log(e.length + ' test photos of set ' + set + ' in', m.TEST_PHOTOS_DIR.pathname);"
       - name: Image size and idle memory
         run: |
           sleep 10
