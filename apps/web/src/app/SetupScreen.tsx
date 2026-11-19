@@ -1,4 +1,4 @@
-import { useRef, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import {
   Check,
   ChevronDown,
@@ -7,11 +7,19 @@ import {
   Link2Off,
   Shield,
   ShieldAlert,
+  Sparkles,
+  UserPlus,
 } from 'lucide-react';
 import { Link } from 'wouter';
 import { z } from 'zod';
-import type { ConfigResponse } from '@oct/shared';
+import {
+  adminAiStatusSchema,
+  type AdminAiStatus,
+  type ConfigResponse,
+} from '@oct/shared';
 import { api } from '../api/client';
+import { INVITES_PATH } from '../features/admin/InvitesScreen';
+import { AI_STATUS_PATH } from '../features/settings/aiDraft';
 import { useT } from '../i18n';
 import { Banner } from '../ui/Banner/Banner';
 import { Button } from '../ui/Button/Button';
@@ -20,9 +28,11 @@ import { Field } from '../ui/Field/Field';
 import { LocaleToggle } from '../ui/LocaleToggle/LocaleToggle';
 import { Mark } from '../ui/Mark/Mark';
 import { OfflineBar, useOnline } from '../ui/OfflineBar/OfflineBar';
+import { AI_STATES, StatusLine } from '../ui/ProviderStatus/ProviderStatus';
 import { ScreenState } from '../ui/ScreenState/ScreenState';
 import { loginLayout } from './LoginScreen';
 import { noticeOf, useNotice, type Notice } from './notice';
+import { RegisterForm, type PasskeyNotice } from './RegisterScreen';
 import './SetupScreen.css';
 
 /** The compose service name from our docker-compose.yml. */
@@ -50,14 +60,20 @@ export const formatCode = (value: string) => {
   return s.length > 4 ? `${s.slice(0, 4)}-${s.slice(4)}` : s;
 };
 
+type Step = 1 | 2 | 3;
+
 type Props = {
   config: ConfigResponse;
+  /** Called after the server created the admin and set the session cookie. */
+  onSignedIn: () => Promise<void>;
   /** The page's origin; a prop only for stories and tests. */
   origin?: string;
-  /** Stories: «Where's the log?» opened, a notice or an end state shown on arrival. */
+  /** Stories: «Where's the log?» opened, a notice, an end state or a later step shown on arrival. */
   helpOpen?: boolean;
   notice?: Notice;
   end?: End;
+  step?: Step;
+  passkeyNotice?: PasskeyNotice;
 };
 
 /**
@@ -66,15 +82,18 @@ type Props = {
  */
 export function SetupScreen({
   config,
+  onSignedIn,
   origin = location.origin,
   helpOpen = false,
   notice: initialNotice,
   end: initialEnd,
+  step: initialStep = 1,
+  passkeyNotice,
 }: Props) {
   const { t } = useT();
   const online = useOnline();
   const [code, setCode] = useState('');
-  const [step, setStep] = useState<1 | 2>(1);
+  const [step, setStep] = useState<Step>(initialStep);
   const [end, setEnd] = useState<End | null>(initialEnd ?? null);
   const [fieldError, setFieldError] = useState<'short' | 'invalid' | null>(
     null,
@@ -108,17 +127,28 @@ export function SetupScreen({
       });
       setStep(2);
     } catch (err) {
-      const next = noticeOf(err, 'internal');
-      const ended = next.kind === 'error' ? ENDS[next.code] : undefined;
-      if (ended) setEnd(ended);
-      else if (next.kind === 'error' && next.code === 'setup_code_invalid') {
-        setFieldError('invalid');
-        // The whole code selected: easier to fix a typo (1.4).
-        requestAnimationFrame(() => inputRef.current?.select());
-      } else show(next);
+      if (!codeFailed(err)) show(noticeOf(err, 'internal'));
     } finally {
       setBusy(false);
     }
+  }
+
+  /** Errors of the code at step 1 or 2 (AC-2.2): its end state, or back to step 1 to say why. */
+  function codeFailed(err: unknown) {
+    const next = noticeOf(err, 'internal');
+    const ended = next.kind === 'error' ? ENDS[next.code] : undefined;
+    if (ended) setEnd(ended);
+    else if (next.kind === 'error' && next.code === 'setup_code_invalid') {
+      // A restart replaced the code while step 2 was open: it is wrong now.
+      setStep(1);
+      setFieldError('invalid');
+      // The whole code selected: easier to fix a typo (1.4).
+      requestAnimationFrame(() => inputRef.current?.select());
+    } else if (next.kind === 'timeout' || next.kind === 'blocked') {
+      setStep(1);
+      show(next);
+    } else return false;
+    return true;
   }
 
   const restart = () => {
@@ -212,13 +242,35 @@ export function SetupScreen({
       </div>
     );
 
+  if (step === 3)
+    return (
+      <div className="setup">
+        {header(3)}
+        <Ready />
+      </div>
+    );
+
   if (step === 2)
-    // shortcut: step 2 is a stub until OCT-286 brings the admin form.
+    // No way back to step 1: the code is taken; a closed tab enters it again (E-3.3).
     return (
       <div className="setup">
         {header(2)}
         <h1 className="setup__title">{t('setup.wizard.admin.title')}</h1>
         <p className="setup__lead">{t('setup.wizard.admin.lead')}</p>
+        <RegisterForm
+          kind="setup"
+          config={config}
+          email={null}
+          code={code}
+          origin={origin}
+          passkeyNotice={passkeyNotice}
+          onSetupError={codeFailed}
+          onSignedIn={async () => {
+            // Before the session refresh: the route then keeps the wizard on step 3.
+            setStep(3);
+            await onSignedIn();
+          }}
+        />
       </div>
     );
 
@@ -321,5 +373,82 @@ export function SetupScreen({
         )}
       </form>
     </div>
+  );
+}
+
+/** Step 3 «All set» (OCT-244 3.1–3.2): the admin is signed in; AI and invites can wait. */
+function Ready() {
+  const { t } = useT();
+  // undefined while loading, null when the status didn't come: offer the setup either way.
+  const [ai, setAi] = useState<AdminAiStatus | null>();
+  useEffect(() => {
+    api(AI_STATUS_PATH, adminAiStatusSchema).then(setAi, () => setAi(null));
+  }, []);
+  const on = ai && ai.state !== 'not_configured';
+  const tone = ai ? AI_STATES[ai.state].tone : 'off';
+  const name = ai && (ai.providerName ?? ai.provider ?? ai.baseUrlHost);
+
+  return (
+    <>
+      <span className="setup__done">
+        <Check aria-hidden="true" />
+      </span>
+      <h1 className="setup__title">{t('setup.wizard.ready.title')}</h1>
+      <p className="setup__lead">{t('setup.wizard.ready.lead')}</p>
+      <ul className="setup__next" aria-busy={ai === undefined || undefined}>
+        <li>
+          <span className={`provider__icon provider__icon--${tone}`}>
+            <Sparkles aria-hidden="true" />
+          </span>
+          <div>
+            <h2>
+              {t(on ? 'setup.wizard.ready.ai_on' : 'setup.wizard.ready.ai_off')}
+            </h2>
+            {ai && <StatusLine state={ai.state} />}
+            {on && name && (
+              <p className="setup__mono" translate="no">
+                {[name, ai.model].filter(Boolean).join(' · ')}
+              </p>
+            )}
+            <p>
+              {t(
+                !on
+                  ? 'setup.wizard.ready.ai_off_body'
+                  : tone === 'err' || tone === 'warn'
+                    ? 'setup.wizard.ready.ai_failing_body'
+                    : 'setup.wizard.ready.ai_on_body',
+              )}
+            </p>
+            {/* Configured and working needs nothing; off, failing or unknown — the AI screen. */}
+            {ai !== undefined && tone !== 'ok' && (
+              <Link
+                className="button button--tonal button--small"
+                href="/settings/admin/ai"
+              >
+                {t('setup.wizard.ready.ai_cta')}
+              </Link>
+            )}
+          </div>
+        </li>
+        <li>
+          <span className="provider__icon">
+            <UserPlus aria-hidden="true" />
+          </span>
+          <div>
+            <h2>{t('setup.wizard.ready.invite')}</h2>
+            <p>{t('setup.wizard.ready.invite_body')}</p>
+            <Link
+              className="button button--tonal button--small"
+              href={`${INVITES_PATH}?new`}
+            >
+              {t('setup.wizard.ready.invite_cta')}
+            </Link>
+          </div>
+        </li>
+      </ul>
+      <Link className="button button--primary setup__go" href="/">
+        {t('setup.wizard.ready.go')}
+      </Link>
+    </>
   );
 }

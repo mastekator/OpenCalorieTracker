@@ -36,12 +36,21 @@ function serve(error?: { code: string; status: number; details?: object }) {
 }
 
 function renderSetup(
-  props: Partial<{ config: ConfigResponse; origin: string }> = {},
+  props: Partial<{
+    config: ConfigResponse;
+    origin: string;
+    onSignedIn: () => Promise<void>;
+  }> = {},
 ) {
   localStorage.setItem(LOCALE_STORAGE_KEY, 'en');
   return render(
     <I18nProvider>
-      <SetupScreen config={config} origin={ORIGIN} {...props} />
+      <SetupScreen
+        config={config}
+        origin={ORIGIN}
+        onSignedIn={async () => {}}
+        {...props}
+      />
     </I18nProvider>,
   );
 }
@@ -202,5 +211,185 @@ describe('setup step 1', () => {
     await waitFor(() =>
       expect(screen.getByLabelText('Код установки')).toBeTruthy(),
     );
+  });
+});
+
+const me = {
+  id: 1,
+  email: 'anna@example.com',
+  name: 'Anna',
+  role: 'admin',
+  locale: 'en',
+  theme: 'system',
+  units: 'metric',
+  normDisclaimerHidden: false,
+  passwordFromConfig: false,
+  methods: ['password'],
+  enabledMethods: ['password', 'passkey'],
+};
+
+const PASSWORD = 'correct horse 7!';
+
+/** Step 1 passes; POST /api/setup/admin answers `admin`; GET /api/admin/ai answers 500. */
+function serveAdmin(admin: { code: string; status: number } | null) {
+  const fetch = vi.fn(async (path: string) =>
+    path === '/api/setup/code'
+      ? new Response(null, { status: 204 })
+      : path === '/api/setup/admin'
+        ? admin
+          ? Response.json(
+              { error: { code: admin.code } },
+              { status: admin.status },
+            )
+          : Response.json(me)
+        : Response.json({ error: { code: 'internal' } }, { status: 500 }),
+  );
+  vi.stubGlobal('fetch', fetch);
+  return fetch;
+}
+
+/** Enters the code, then fills step 2 with a password and submits. */
+async function createAdmin(onSignedIn = vi.fn(async () => {})) {
+  renderSetup({ config: { ...config, authMethods: ['password'] }, onSignedIn });
+  await enter('K7QM-3XRP');
+  fireEvent.change(await screen.findByLabelText('Email'), {
+    target: { value: 'anna@example.com' },
+  });
+  fireEvent.change(screen.getByLabelText('Your name'), {
+    target: { value: 'Anna' },
+  });
+  fireEvent.change(screen.getByLabelText('Password'), {
+    target: { value: PASSWORD },
+  });
+  fireEvent.change(screen.getByLabelText('Repeat password'), {
+    target: { value: PASSWORD },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Create account' }));
+  return onSignedIn;
+}
+
+describe('setup step 2 and 3', () => {
+  it('sends the code in the body of /setup/admin, signs in and shows step 3', async () => {
+    const fetch = serveAdmin(null);
+    const onSignedIn = await createAdmin();
+    expect(
+      await screen.findByRole('heading', {
+        name: 'All set — you’re the admin',
+      }),
+    ).toBeTruthy();
+    expect(onSignedIn).toHaveBeenCalledOnce();
+    const call = fetch.mock.calls.find(([p]) => p === '/api/setup/admin');
+    expect(
+      JSON.parse((call as unknown as [string, { body: string }])[1].body),
+    ).toEqual({
+      code: 'K7QM-3XRP',
+      email: 'anna@example.com',
+      name: 'Anna',
+      locale: 'en',
+      password: PASSWORD,
+    });
+    const stored = [localStorage, sessionStorage].flatMap((s) =>
+      Object.keys(s).map((k) => `${k}=${s.getItem(k)}`),
+    );
+    expect(stored.join('\n')).not.toMatch(/K7QM/i);
+    // The AI status didn't come: «Set up AI» anyway; invites open the new-invite sheet.
+    expect(
+      (await screen.findByRole('link', { name: 'Set up AI' })).getAttribute(
+        'href',
+      ),
+    ).toBe('/settings/admin/ai');
+    expect(
+      screen.getByRole('link', { name: 'Invite' }).getAttribute('href'),
+    ).toBe('/settings/admin/invites?new');
+    expect(
+      screen.getByRole('link', { name: 'Go to the app' }).getAttribute('href'),
+    ).toBe('/');
+  });
+
+  it.each([
+    ['setup_code_expired', 410, 'The code has expired'],
+    ['setup_code_burned', 410, 'Too many wrong attempts'],
+    ['setup_done', 409, 'Setup is already complete — sign in'],
+  ])(
+    '%s at step 2: the same end state as step 1',
+    async (code, status, title) => {
+      serveAdmin({ code, status });
+      const onSignedIn = await createAdmin();
+      expect(await screen.findByRole('heading', { name: title })).toBeTruthy();
+      expect(onSignedIn).not.toHaveBeenCalled();
+    },
+  );
+
+  it('shows provider and model when AI is configured, without «Set up AI»', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        Response.json({
+          provider: 'google',
+          providerName: 'Google',
+          model: 'gemini-3.8-flash',
+          keySet: true,
+          baseUrlHost: null,
+          source: 'env',
+          keyLast4: null,
+          keyUnreadable: false,
+          savedInactive: false,
+          rev: null,
+          refineLimit: null,
+          state: 'ok',
+          checkedAt: null,
+        }),
+      ),
+    );
+    localStorage.setItem(LOCALE_STORAGE_KEY, 'en');
+    render(
+      <I18nProvider>
+        <SetupScreen config={config} onSignedIn={async () => {}} step={3} />
+      </I18nProvider>,
+    );
+    expect(await screen.findByText('Google · gemini-3.8-flash')).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'AI connected' })).toBeTruthy();
+    expect(screen.queryByRole('link', { name: 'Set up AI' })).toBeNull();
+  });
+
+  it('a failing provider asks to check the key and model', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        Response.json({
+          provider: 'google',
+          providerName: 'Google',
+          model: 'gemini-3.8-flash',
+          keySet: true,
+          baseUrlHost: null,
+          source: 'env',
+          keyLast4: null,
+          keyUnreadable: false,
+          savedInactive: false,
+          rev: null,
+          refineLimit: null,
+          state: 'unavailable',
+          checkedAt: null,
+        }),
+      ),
+    );
+    localStorage.setItem(LOCALE_STORAGE_KEY, 'en');
+    render(
+      <I18nProvider>
+        <SetupScreen config={config} onSignedIn={async () => {}} step={3} />
+      </I18nProvider>,
+    );
+    expect(
+      await screen.findByText('Check the key and model in AI settings'),
+    ).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Set up AI' })).toBeTruthy();
+  });
+
+  it('both methods at another origin: password first and the reason', async () => {
+    renderSetup({ origin: 'http://192.168.1.5:3000' });
+    serve();
+    await enter('K7QM-3XRP');
+    expect(await screen.findByText('Passkeys won’t work here')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Create account' })).toBeTruthy();
   });
 });
