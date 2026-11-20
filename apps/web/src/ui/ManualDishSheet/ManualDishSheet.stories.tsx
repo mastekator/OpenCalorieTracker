@@ -17,6 +17,8 @@ function Demo(props: {
   recipes?: Recipe[];
   onRecipe?: (recipe: Recipe) => void;
   lookup?: (code: string) => Promise<BarcodeResult>;
+  barcode?: string;
+  photoNotFound?: 'admin' | 'user';
 }) {
   const { t } = useT();
   const [open, setOpen] = useState(true);
@@ -33,6 +35,8 @@ function Demo(props: {
           recipes={props.recipes}
           onRecipe={props.onRecipe}
           lookup={props.lookup}
+          barcode={props.barcode}
+          photoNotFound={props.photoNotFound}
           onAdd={(dish) => {
             props.onAdd(dish);
             setOpen(false);
@@ -191,4 +195,20 @@ export const BarcodeDesktop: Story = {
   args: withBarcode,
   play: scan,
   globals: { viewport: { value: 'desktop' } },
+};
+
+/** OCT-313 3.4: no AI, the photo's barcode not found — the sheet opens with it. */
+const fromPhoto = {
+  ...withBarcode,
+  barcode: '4607012345677',
+  photoNotFound: 'user',
+} as const;
+export const PhotoNotFound: Story = { args: fromPhoto };
+export const PhotoNotFoundDark: Story = { args: fromPhoto, globals: dark };
+export const PhotoNotFoundAdmin: Story = {
+  args: { ...fromPhoto, photoNotFound: 'admin' },
+};
+export const PhotoNotFoundRussian: Story = {
+  args: fromPhoto,
+  globals: { locale: 'ru' },
 };

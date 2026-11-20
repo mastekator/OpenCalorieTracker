@@ -37,7 +37,6 @@ import {
   type IllustrationId,
   type MealType,
   type AiQuestion,
-  type RecognizedDish,
   type RecognitionStatus,
   type Units,
   uuid,
@@ -108,7 +107,7 @@ import {
   toRows,
   withFixed,
   type Applied,
-  type Dish,
+  type Recognized,
   type Previous,
   type Row,
 } from './refine';
@@ -126,7 +125,7 @@ export type Draft = { rows: Row[]; mealType: MealType; when: string };
  */
 export type RecalcState = {
   draft: Draft;
-  dishes?: RecognizedDish[];
+  dishes?: Recognized[];
   questions?: AiQuestion[];
 };
 
@@ -181,7 +180,7 @@ const savedRow = (item: Meal['items'][number]): Row => ({
 
 type Props = {
   /** Recognized dishes; empty for manual entry. */
-  dishes: Dish[];
+  dishes: Recognized[];
   /** The AI's questions about `dishes` (ADR-0020 §4). */
   questions?: AiQuestion[];
   /** Set: the manual sheet opens at once; other than 'user', a banner says why (5.3). */
@@ -227,6 +226,8 @@ type Props = {
   onRecipe?: (state: RecipeEditorState) => void;
   /** Barcode lookup in the manual sheet (OCT-313 §3); none: no «Barcode» field. */
   onBarcode?: (code: string) => Promise<BarcodeResult>;
+  /** Read from the photo without AI and not found: the manual sheet opens with it (OCT-313 3.4). */
+  photoBarcode?: { code: string; admin: boolean };
 };
 
 /** Screen 4 (design OCT-16 §3, E.2): dishes, weights with live totals, meal type, save. */
@@ -254,6 +255,7 @@ export function MealEditScreen({
   recipes = [],
   onRecipe,
   onBarcode,
+  photoBarcode,
 }: Props) {
   const { t, num, locale } = useT();
   const online = useOnline();
@@ -301,6 +303,11 @@ export function MealEditScreen({
   const photoRow = useRef<string | null>(null);
   const [photoError, setPhotoError] = useState(false);
   const [adding, setAdding] = useState(manual !== undefined); // AC-5.5, 5.3
+  // Only the sheet that opens on arrival carries the photo's barcode.
+  const [photoCode, setPhotoCode] = useState(photoBarcode);
+  useEffect(() => {
+    if (!adding) setPhotoCode(undefined);
+  }, [adding]);
   // A recipe tapped in the manual sheet: its portion sheet (OCT-160 3.4).
   const [portion, setPortion] = useState<Recipe | null>(null);
   // Recognized, uploaded from the slot, or kept on the device when the upload failed.
@@ -1480,6 +1487,8 @@ export function MealEditScreen({
           units={units}
           onAdd={addManual}
           lookup={onBarcode}
+          barcode={photoCode?.code}
+          photoNotFound={photoCode && (photoCode.admin ? 'admin' : 'user')}
           onClose={() => setAdding(false)}
           recipes={recipes}
           onRecipe={(recipe) => {
@@ -1587,6 +1596,11 @@ export function MealEditRoute() {
       dishes={state && 'dishes' in state ? state.dishes : []}
       questions={state && 'dishes' in state ? state.questions : undefined}
       manual={state && 'manual' in state ? state.manual : undefined}
+      photoBarcode={
+        state && 'barcode' in state && state.barcode
+          ? { code: state.barcode, admin: user?.role === 'admin' }
+          : undefined
+      }
       photoId={photoId}
       recognition={ai.status?.recognition}
       date={date}
@@ -1711,7 +1725,7 @@ export function MealRecalc({ clientId }: { clientId: string }) {
   const to = `/meal/${encodeURIComponent(clientId)}`;
   // Reloaded without the draft, or no photo to read: back to the entry.
   if (!meal?.photo || !state) return <Redirect to={to} replace />;
-  const go = (dishes?: RecognizedDish[], questions?: AiQuestion[]) =>
+  const go = (dishes?: Recognized[], questions?: AiQuestion[]) =>
     navigate(to, {
       replace: true,
       state: { draft: state.draft, dishes, questions } satisfies RecalcState,
