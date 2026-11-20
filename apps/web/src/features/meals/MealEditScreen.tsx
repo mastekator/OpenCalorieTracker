@@ -44,8 +44,6 @@ import {
   type Product,
   type PhotoBarcodesResponse,
   barcodeLookupSchema,
-  mergePackages,
-  packageRecognitionSchema,
   uuid,
 } from '@oct/shared';
 import { api, ApiError, type ClientErrorCode } from '../../api/client';
@@ -130,6 +128,7 @@ import {
   type Previous,
   type Row,
 } from './refine';
+import { usePackages } from './usePackages';
 import { useRefine, type RefineInput } from './useRefine';
 import './MealEditScreen.css';
 
@@ -259,13 +258,6 @@ type Props = {
   draft?: Row[];
 };
 
-/** `history.state` of the edit screen while the label camera is open. */
-const keepDraft = (draft: Row[] | undefined) => {
-  const state = { ...(history.state ?? {}) } as { draft?: Row[] };
-  delete state.draft;
-  history.replaceState(draft ? { ...state, draft } : state, '');
-};
-
 /** Screen 4 (design OCT-16 §3, E.2): dishes, weights with live totals, meal type, save. */
 export function MealEditScreen({
   dishes,
@@ -374,13 +366,6 @@ export function MealEditScreen({
   // The url that failed to load: a new photo shows again without a reset.
   const [brokenUrl, setBrokenUrl] = useState<string>();
   const cameraInput = useRef<HTMLInputElement>(null);
-  // «Photograph the label»: the code it is read for (OCT-313 2.4).
-  const labelInput = useRef<HTMLInputElement>(null);
-  const labelCode = useRef<string | null>(null);
-  const [reading, setReading] = useState(false);
-  const [offLoading, setOffLoading] = useState(false);
-  const [suggest, setSuggest] = useState(!!offSuggest);
-  const [consent, setConsent] = useState(false);
   const saving = useRef(false);
   // Row whose pencil gets focus after a delete or «Undo», so it never drops to <body> (WCAG 2.4.3).
   const focusRow = useRef<string | null>(null);
@@ -410,8 +395,16 @@ export function MealEditScreen({
   }, [refineError]);
   const working =
     refine.state.status === 'busy' || refine.state.status === 'slow';
+  const packages = usePackages({
+    codes,
+    offSuggest,
+    onOffHint,
+    rows,
+    setRows,
+    onReplace: () => setApplied(null),
+  });
   // A label or Open Food Facts answer replaces rows: an edit or a save meanwhile would be lost.
-  const locked = working || reading || offLoading;
+  const locked = working || packages.reading || packages.offLoading;
 
   /** The hint is optional (AC-11.3): errors and offline show nothing. */
   function findPrevious(key: string, wanted: Lookup[], ms = 0) {
@@ -705,99 +698,6 @@ export function MealEditScreen({
           setRows((rs) => rs.map((r) => (r.id === row.id ? row : r))),
       },
     });
-
-  /**
-   * New package dishes in place of the rows with the same code, the rest added; «Undo» brings
-   * the whole list back (OCT-313 2.4, 4.4).
-   */
-  const replacePackages = (
-    found: Recognized[],
-    text: 'edit.label_updated' | 'edit.off_found',
-  ) => {
-    if (!found.length) return;
-    let before: Row[] = [];
-    setApplied(null);
-    setRows((rs) => {
-      before = rs;
-      const fresh = toRows(found);
-      const next = rs.map(
-        (r) =>
-          fresh.find(
-            (f) =>
-              !!f.original.barcode && f.original.barcode === r.original.barcode,
-          ) ?? r,
-      );
-      return [...next, ...fresh.filter((f) => !next.includes(f))];
-    });
-    toast({
-      text: t(text),
-      ms: 5000,
-      action: { label: t('common.undo'), onClick: () => setRows(before) },
-    });
-  };
-
-  const shootLabel = (code: string) => {
-    labelCode.current = code;
-    // The camera may unload the page: the edits come back from `history.state`.
-    keepDraft(rows);
-    labelInput.current?.click();
-  };
-
-  // Read as this package's label only (ADR-0034 §2); a failure leaves the list as it was.
-  const onLabel = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    event.target.value = '';
-    const code = labelCode.current;
-    if (!file || !code) return keepDraft(undefined);
-    setReading(true);
-    try {
-      const blob = await prepareImage(file);
-      const { photoId: id } = await api('/api/photos', photoSchema, {
-        method: 'POST',
-        body: blob,
-      });
-      const read = await api(
-        `/api/photos/${encodeURIComponent(id)}/recognize?mode=label&barcode=${code}`,
-        packageRecognitionSchema,
-        { method: 'POST' },
-      );
-      const found = mergePackages(
-        read.dishes
-          .slice(0, 1)
-          .map((d) => ({ ...d, barcode: code, label: true })),
-        codes.filter((c) => c.code === code),
-      );
-      if (found.length) replacePackages(found, 'edit.label_updated');
-      else toast({ text: t('edit.label_failed') });
-    } catch (err) {
-      if (err instanceof ImageDecodeError)
-        toast({ text: t('capture.err.open.title') });
-      else if (err instanceof ApiError && err.status === 0)
-        toast({ text: t('capture.upload_failed') });
-      else if (err instanceof ApiError) toast({ text: t('edit.label_failed') });
-      else throw err;
-    } finally {
-      keepDraft(undefined);
-      setReading(false);
-    }
-  };
-
-  const offLater = () => {
-    setSuggest(false);
-    setConsent(false);
-    void onOffHint?.(false);
-  };
-  const offEnable = async () => {
-    setSuggest(false);
-    setConsent(false);
-    setOffLoading(true);
-    try {
-      const found = await onOffHint?.(true);
-      if (found) replacePackages(mergePackages([], found), 'edit.off_found');
-    } finally {
-      setOffLoading(false);
-    }
-  };
 
   // The slot photo never goes to the AI (AC-5.7).
   const onPhoto = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -1418,17 +1318,17 @@ export function MealEditScreen({
                 />
               </label>
             )}
-            {suggest && onOffHint && (
+            {packages.suggest && onOffHint && (
               <OffSuggestCard
-                onEnable={() => setConsent(true)}
-                onLater={offLater}
+                onEnable={packages.askConsent}
+                onLater={packages.offLater}
               />
             )}
             {orphanCode && (
               // A package without kcal and no dish for it: the label adds one.
               <NoKcalHint
-                busy={reading}
-                onShoot={() => shootLabel(orphanCode)}
+                busy={packages.reading}
+                onShoot={() => packages.shootLabel(orphanCode)}
               />
             )}
             {rows.length > 0 ? (
@@ -1493,8 +1393,10 @@ export function MealEditScreen({
                       )}
                       {vision && row.original.check && row.original.barcode && (
                         <NoKcalHint
-                          busy={reading}
-                          onShoot={() => shootLabel(row.original.barcode!)}
+                          busy={packages.reading}
+                          onShoot={() =>
+                            packages.shootLabel(row.original.barcode!)
+                          }
                         />
                       )}
                     </li>
@@ -1663,18 +1565,18 @@ export function MealEditScreen({
         onChange={(e) => void onPhoto(e)}
       />
       <input
-        ref={labelInput}
+        ref={packages.labelInput}
         type="file"
         accept="image/*"
         capture="environment"
         hidden
         data-testid="edit-label"
-        onChange={(e) => void onLabel(e)}
+        onChange={(e) => void packages.onLabel(e)}
       />
       <BarcodeConsentSheet
-        open={consent}
-        onEnable={() => void offEnable()}
-        onClose={offLater}
+        open={packages.consent}
+        onEnable={() => void packages.offEnable()}
+        onClose={packages.offLater}
       />
       {pickingRow && (
         <IllustrationPicker
