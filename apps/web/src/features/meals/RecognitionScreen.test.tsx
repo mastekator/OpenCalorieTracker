@@ -314,6 +314,7 @@ describe('RecognitionScreen', () => {
           }),
           expect.objectContaining({ name: 'Bread', source: 'ai' }),
         ],
+        codes: [expect.objectContaining({ code: CODE })],
       });
     });
 
@@ -376,6 +377,7 @@ describe('RecognitionScreen', () => {
       await waitFor(() => expect(location.history.at(-1)).toBe(EDIT));
       expect(location.state).toEqual({
         dishes: [expect.objectContaining({ name: 'Porridge', source: 'ai' })],
+        codes: [],
       });
     });
 
@@ -390,6 +392,7 @@ describe('RecognitionScreen', () => {
       await waitFor(() => expect(location.history.at(-1)).toBe(EDIT));
       expect(location.state).toEqual({
         dishes: [expect.objectContaining({ source: 'barcode', from: 'mine' })],
+        codes: [expect.objectContaining({ code: CODE })],
       });
       expect(fetch).not.toHaveBeenCalled();
     });

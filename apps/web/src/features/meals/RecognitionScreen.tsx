@@ -31,7 +31,12 @@ export const MEAL_EDIT_PATH = `${MEAL_NEW_PATH}/edit`;
  * read but not found (OCT-313 3.4); empty after a reload → recognize the same photoId again.
  */
 export type MealEditState =
-  | { dishes: MergedDish[]; questions?: AiQuestion[] }
+  | {
+      dishes: MergedDish[];
+      questions?: AiQuestion[];
+      /** The photo's codes as looked up: the label and Open Food Facts hints (OCT-313 2.4, 2.5). */
+      codes?: PhotoBarcodesResponse['codes'];
+    }
   | {
       manual: 'user' | 'ai_down' | 'not_configured' | 'no_vision';
       barcode?: string;
@@ -135,7 +140,7 @@ export function RecognitionScreen({
       const found = await barcodes;
       if (ctrl.signal.aborted) return;
       const dishes = mergePackages([], found ?? []);
-      if (dishes.length > 0) return toEdit({ dishes });
+      if (dishes.length > 0) return toEdit({ dishes, codes: found ?? [] });
       const code = found?.[0]?.code;
       toEdit({ manual, ...(code && { barcode: code }) });
     };
@@ -162,7 +167,11 @@ export function RecognitionScreen({
         if (ctrl.signal.aborted) return;
         const dishes = mergePackages(recognized.dishes, found ?? []);
         if (dishes.length > 0)
-          toEdit({ dishes, questions: recognized.questions });
+          toEdit({
+            dishes,
+            questions: recognized.questions,
+            codes: found ?? [],
+          });
         else setState('empty'); // E-7.1
       } catch (err) {
         if (ctrl.signal.aborted) return;

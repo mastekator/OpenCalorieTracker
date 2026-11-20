@@ -52,6 +52,9 @@
 }
 
 .banner__actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
   min-height: var(--tap-min);
   padding: 0;
   border: none;
@@ -60,6 +63,11 @@
   font: inherit;
   font-weight: 500;
   cursor: pointer;
+}
+
+.banner__actions .lucide {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
 }
 
 .banner__actions button:first-child {

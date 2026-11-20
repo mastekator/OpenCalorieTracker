@@ -149,6 +149,35 @@ const packages = {
 export const Packages: Story = { args: packages };
 export const PackagesDark: Story = { args: packages, globals: dark };
 
+/** OCT-313 2.4, 2.5: a package without kcal (label hint) while the Open Food Facts lookup is off. */
+const packageHints = {
+  dishes: [
+    {
+      name: 'Granola bar',
+      grams: 40,
+      kcal: 180,
+      proteinG: 3,
+      fatG: 7,
+      carbsG: 26,
+      confidence: 0.6,
+      source: 'ai' as const,
+      barcode: '4006381333931',
+      check: true as const,
+    },
+    dishes[0]!,
+  ],
+  codes: [
+    {
+      code: '96385074',
+      result: { product: null, from: null, off: 'disabled' as const },
+    },
+  ],
+  offSuggest: true,
+  onOffHint: fn(async () => []),
+};
+export const PackageHints: Story = { args: packageHints };
+export const PackageHintsDark: Story = { args: packageHints, globals: dark };
+
 // Only the body scrolls; the footer stays at the bottom edge with nothing below it (OCT-239).
 const longList = { dishes: [...dishes, ...dishes, ...dishes] };
 export const LongList: Story = { args: longList };
