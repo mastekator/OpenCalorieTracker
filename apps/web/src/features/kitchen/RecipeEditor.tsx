@@ -4,7 +4,9 @@ import { Camera, CircleAlert, History, Minus, Plus, Scale } from 'lucide-react';
 import { Redirect, useLocation } from 'wouter';
 import { z } from 'zod';
 import {
+  fromPer100,
   per100,
+  recipeInputSchema,
   recipeTotals,
   round1,
   scaleItem,
@@ -39,6 +41,8 @@ import { ManualDishSheet } from '../../ui/ManualDishSheet/ManualDishSheet';
 import { NavBar } from '../../ui/NavBar/NavBar';
 import { Button } from '../../ui/Button/Button';
 import { Sheet } from '../../ui/Sheet/Sheet';
+import { Segment } from '../../ui/Segment/Segment';
+import { ConfirmDialog } from '../../ui/ConfirmDialog/ConfirmDialog';
 import { StepEditorRow } from '../../ui/StepEditorRow/StepEditorRow';
 import { useOnline } from '../../ui/OfflineBar/OfflineBar';
 import { usePressRepeat } from '../../ui/usePressRepeat';
@@ -47,6 +51,7 @@ import { ImageDecodeError, prepareImage } from '../meals/prepareImage';
 import '../../ui/WeightStepper/WeightStepper.css';
 import { useWeight, weightIn } from '../../ui/weightUnits';
 import { useUnits } from './units';
+import { Per100Fields, type MacroKey, type Per100Values } from './Per100Fields';
 import './RecipeEditor.css';
 
 /** `history.state` of /kitchen/new: a prefilled draft (from a meal, from text; 7/9, 8/9). */
@@ -54,6 +59,8 @@ export type RecipeEditorState = {
   draft?: RecipeInput;
   ai?: AiDraft;
   fromMeal?: FromMeal;
+  /** «Add ingredients» on a recipe without them: open in the ingredient mode (OCT-352 2.1). */
+  compose?: boolean;
 };
 
 /** A draft from «Save as recipe» / «From a meal»: the notice says which meal (OCT-160 3.7). */
@@ -88,6 +95,7 @@ export function RecipeEditorScreen({ id }: { id?: string }) {
       draft={state?.draft}
       ai={state?.ai}
       fromMeal={state?.fromMeal}
+      compose={state?.compose}
       online={online}
       units={units}
       search={search}
@@ -118,6 +126,8 @@ type Props = {
   ai?: AiDraft;
   /** The draft came from a meal: a notice with its type and date. */
   fromMeal?: FromMeal;
+  /** A recipe without ingredients opens in the ingredient mode, its values as a note. */
+  compose?: boolean;
   /** Offline «Save» is disabled (E-10.5, ADR-0023 §4). */
   online: boolean;
   /** Weights shown and typed in grams or ounces; saved in grams (AC-2.6). */
@@ -133,6 +143,9 @@ const MAX_INGREDIENT_G = 5000;
 type Weight = ReturnType<typeof weightIn>;
 
 const text = (n: number) => String(n);
+/** A typed number, NaN when it is not one: the shared schema reports it (ADR-0035 §2). */
+const numOr = (typed: string, blank: number) =>
+  typed.trim() ? (parseDecimal(typed.trim()) ?? NaN) : blank;
 
 /**
  * Grams of a typed weight, null when it is not a number. Untouched, it keeps
@@ -176,6 +189,7 @@ export function RecipeEditor({
   draft,
   ai,
   fromMeal,
+  compose,
   online,
   units,
   search,
@@ -199,6 +213,21 @@ export function RecipeEditor({
   );
   const [servings, setServings] = useState(start?.servings ?? null);
   const [note, setNote] = useState(start?.note ?? '');
+  const [mode, setMode] = useState<'ingredients' | 'per100'>(
+    start?.per100 && !compose ? 'per100' : 'ingredients',
+  );
+  const [p100In, setP100In] = useState<Per100Values>(() => {
+    const p = start?.per100;
+    const s = start?.servingG;
+    return {
+      kcal: p ? text(p.kcal) : '',
+      proteinG: p ? text(p.proteinG) : '',
+      fatG: p ? text(p.fatG) : '',
+      carbsG: p ? text(p.carbsG) : '',
+      serving: s == null ? '' : text(w.show(s)),
+    };
+  });
+  const [confirmMode, setConfirmMode] = useState(false);
   const [steps, setSteps] = useState<StepRow[]>(
     () => start?.steps.map((s) => ({ key: nextKey++, ...s })) ?? [],
   );
@@ -209,6 +238,7 @@ export function RecipeEditor({
     name?: boolean;
     cooked?: boolean;
     rows?: boolean;
+    per100?: boolean;
   }>({});
   const [sheet, setSheet] = useState<
     | { kind: 'picker' }
@@ -242,28 +272,40 @@ export function RecipeEditor({
   const p100 = per100(calc);
   const serving = servingG(calc);
 
+  const typedServing = p100In.serving.trim()
+    ? (typedG(p100In.serving, w, start?.servingG) ?? NaN)
+    : null;
+  const byIngredients = mode === 'ingredients';
   const input = (): RecipeInput => ({
     name: name.trim(),
-    cookedG,
-    servings,
+    cookedG: byIngredients ? cookedG : null,
+    servings: byIngredients ? servings : null,
     note: note.trim() || null,
     photoId,
-    ingredients: items.map(({ row, grams, kcal, proteinG, fatG, carbsG }) => ({
-      name: row.name,
-      grams,
-      kcal: round1(kcal),
-      proteinG: round1(proteinG),
-      fatG: round1(fatG),
-      carbsG: round1(carbsG),
-      source: row.source,
-    })),
+    ingredients: (byIngredients ? items : []).map(
+      ({ row, grams, kcal, proteinG, fatG, carbsG }) => ({
+        name: row.name,
+        grams,
+        kcal: round1(kcal),
+        proteinG: round1(proteinG),
+        fatG: round1(fatG),
+        carbsG: round1(carbsG),
+        source: row.source,
+      }),
+    ),
     // An empty step is dropped rather than an error: «+ Step» tapped and left blank.
     steps: steps
       .filter((s) => s.text.trim())
       .map((s) => ({ text: s.text.trim(), photoId: s.photoId })),
-    // shortcut: always the ingredient mode; the per-100-g mode lands in Recipes 10b.
-    per100: null,
-    servingG: null,
+    per100: byIngredients
+      ? null
+      : {
+          kcal: numOr(p100In.kcal, NaN),
+          proteinG: numOr(p100In.proteinG, 0),
+          fatG: numOr(p100In.fatG, 0),
+          carbsG: numOr(p100In.carbsG, 0),
+        },
+    servingG: byIngredients ? null : typedServing,
   });
   const [initial] = useState(() => JSON.stringify(input()));
   // A draft from elsewhere is unsaved work from the start (as new dishes, OCT-16 4.7).
@@ -275,11 +317,112 @@ export function RecipeEditor({
     rows: !rows.length ? t('editor.no_ingredients') : undefined,
   };
 
+  // The per-100-g fields are checked by the shared schema only; its paths map to the fields here.
+  const parsed = byIngredients ? null : recipeInputSchema.safeParse(input());
+  const bad = new Set(parsed?.error?.issues.map((i) => i.path.join('.')) ?? []);
+  // A bad kcal stops zod before the macro sum check; check the rest with a valid kcal too (OCT-352 1.4).
+  if (bad.has('per100.kcal')) {
+    const rest = input();
+    rest.per100 = { ...rest.per100!, kcal: 0 };
+    recipeInputSchema
+      .safeParse(rest)
+      .error?.issues.forEach((i) => bad.add(i.path.join('.')));
+  }
+  const p100Shown = (k: keyof Per100Values) =>
+    touched.per100 || p100In[k].trim() !== '';
+  const badMacros = (['proteinG', 'fatG', 'carbsG'] as const).filter(
+    (k) => bad.has(`per100.${k}`) && p100Shown(k),
+  );
+  const macroSum = (['proteinG', 'fatG', 'carbsG'] as const).reduce(
+    (sum, k) => sum + numOr(p100In[k], 0),
+    0,
+  );
+  const p100Errors: {
+    kcal?: string;
+    macros?: { text: string; bad: readonly MacroKey[] };
+    serving?: string;
+  } = {
+    kcal:
+      bad.has('per100.kcal') && p100Shown('kcal')
+        ? t('editor.per100.kcal_err')
+        : undefined,
+    macros: badMacros.length
+      ? { text: t('editor.per100.macro_err'), bad: badMacros }
+      : bad.has('per100')
+        ? {
+            text: t('editor.per100.macros_err', { g: num(macroSum) }),
+            bad: ['proteinG', 'fatG', 'carbsG'],
+          }
+        : undefined,
+    serving: bad.has('servingG')
+      ? t('editor.per100.serving_err', { max: w.fmt(5000), u: unit })
+      : undefined,
+  };
+  const p100Valid =
+    parsed?.success && parsed.data.per100 ? parsed.data.per100 : null;
+  const preview =
+    p100Valid && parsed?.data?.servingG
+      ? {
+          n: fromPer100(p100Valid, parsed.data.servingG),
+          g: w.fmt(parsed.data.servingG),
+        }
+      : null;
+  // «It was …» after switching back, until the first ingredient (OCT-352 1.6).
+  const wasNumbers = [
+    p100In.kcal,
+    p100In.proteinG,
+    p100In.fatG,
+    p100In.carbsG,
+  ].map((v) => numOr(v, 0));
+  const was =
+    byIngredients &&
+    !rows.length &&
+    p100In.kcal.trim() &&
+    !wasNumbers.some(Number.isNaN)
+      ? wasNumbers
+      : null;
+
+  /** «By ingredients» → «per 100 g» pre-fills the values from the calculation (AC-1.5). */
+  const toPer100 = () => {
+    if (rows.length) {
+      const s = servingG(calc);
+      setP100In({
+        kcal: text(Math.round(p100.kcal)),
+        proteinG: text(round1(p100.proteinG)),
+        fatG: text(round1(p100.fatG)),
+        carbsG: text(round1(p100.carbsG)),
+        serving: s === null ? '' : text(w.show(Math.round(s))),
+      });
+      setRows([]);
+      setCooked('');
+      setServings(null);
+    }
+    setConfirmMode(false);
+    setMode('per100');
+  };
+
   /** Resolves true once saved; invalid fields are marked and the first one focused. */
   async function save(leave: boolean) {
     if (saveLock.current || uploading || !online) return false;
-    const badRow = items.find((i) => i.g === null);
-    if (errors.name || errors.cooked || errors.rows || badRow) {
+    if (!byIngredients) {
+      if (errors.name || !parsed?.success) {
+        flushSync(() => setTouched({ name: true, per100: true }));
+        if (errors.name) nameRef.current?.focus();
+        else
+          document
+            .querySelector<HTMLInputElement>(
+              '.recipe-editor__per100 [aria-invalid="true"]',
+            )
+            ?.focus();
+        return false;
+      }
+    } else if (
+      errors.name ||
+      errors.cooked ||
+      errors.rows ||
+      items.some((i) => i.g === null)
+    ) {
+      const badRow = items.find((i) => i.g === null);
       // Render the errors first, so focus reads them via aria-describedby (WCAG 3.3.1).
       flushSync(() => setTouched({ name: true, cooked: true, rows: true }));
       if (errors.name) nameRef.current?.focus();
@@ -434,227 +577,270 @@ export function RecipeEditor({
             </Banner>
           </div>
         )}
-        <div className="recipe-editor__head">
-          <button
-            type="button"
-            className={`recipe-editor__photo${photoId ? ' recipe-editor__photo--set' : ''}`}
-            aria-label={t(
-              photoId ? 'editor.photo_replace' : 'editor.photo_add',
-            )}
-            aria-busy={busy.has(RECIPE_PHOTO)}
-            disabled={busy.has(RECIPE_PHOTO)}
-            onClick={() => photoInput.current?.click()}
-          >
-            {photoId ? (
-              <img src={thumbUrl(photoId)} alt="" />
-            ) : (
-              <>
-                <Camera aria-hidden="true" />
-                {t('editor.photo')}
-              </>
-            )}
-          </button>
-          <input
-            ref={photoInput}
-            type="file"
-            accept="image/*"
-            hidden
-            onChange={onPhoto}
-          />
-          <Field
-            ref={nameRef}
-            label={t('editor.name')}
-            value={name}
-            maxLength={80}
-            autoComplete="off"
-            error={touched.name ? errors.name : undefined}
-            onChange={(e) => setName(e.target.value)}
-            onBlur={() => setTouched((s) => ({ ...s, name: true }))}
-          />
-        </div>
-
-        <dl
-          className="recipe-editor__totals"
-          aria-label={t('editor.totals.label')}
-          aria-live="polite"
-        >
-          {(
-            [
-              [
-                'serving',
-                serving === null ? null : (p100.kcal * serving) / 100,
-              ],
-              ['per100', p100.kcal],
-              ['total', totals.kcal],
-            ] as const
-          ).map(([k, v]) => (
-            <div key={k} className="recipe-editor__total">
-              <dt>{t(`editor.totals.${k}`)}</dt>
-              <dd className="tabular-nums">
-                {kcal(v)}
-                {v !== null && (
-                  <span className="recipe-editor__unit">
-                    {'\u00a0'}
-                    {t('today.kcal')}
-                  </span>
-                )}
-              </dd>
-            </div>
-          ))}
-        </dl>
-
-        <div className="recipe-editor__ingredients">
-          <List
-            title={
-              <span className="recipe-editor__group">
-                <span>{t('editor.ingredients')}</span>
-                <span>
-                  {t(
-                    w.us
-                      ? 'editor.ingredients_cols_oz'
-                      : 'editor.ingredients_cols',
-                  )}
-                </span>
-              </span>
-            }
-          >
-            {items.map(({ row, g, kcal: k }) => (
-              <IngredientRow
-                key={row.key}
-                name={row.name}
-                kcal={k}
-                grams={row.grams}
-                units={units}
-                error={
-                  g === null && (touched.rows || row.grams.trim() !== '')
-                    ? t('editor.grams_err', {
-                        max: w.fmt(MAX_INGREDIENT_G),
-                        u: unit,
-                      })
-                    : undefined
-                }
-                estimate={row.source === 'ai'}
-                unsure={
-                  row.unsure && g === 0
-                    ? t('editor.ai.zero', { q: row.name })
-                    : undefined
-                }
-                onGramsChange={(grams) =>
-                  setRow(row.key, { grams, unsure: false })
-                }
-                onEdit={() => setSheet({ kind: 'edit', key: row.key })}
-              />
-            ))}
-            <ListRow
-              accent
-              icon={<Plus />}
-              onClick={() => setSheet({ kind: 'picker' })}
-            >
-              {t('editor.ingredient')}
-            </ListRow>
-          </List>
-          {touched.rows && errors.rows && (
-            <p className="recipe-editor__error" role="alert">
-              <CircleAlert aria-hidden="true" />
-              {errors.rows}
-            </p>
-          )}
-        </div>
-
-        <div className="recipe-editor__yield">
-          <List title={t('editor.yield')}>
-            <li className="list__item">
-              <div className="list-row recipe-editor__kv">
-                <span id={cookedLabel}>{t('editor.cooked_weight')}</span>
-                <label
-                  className={`stepper__box${touched.cooked && errors.cooked ? ' recipe-editor__invalid' : ''}`}
-                >
-                  <input
-                    ref={cookedRef}
-                    className="stepper__input tabular-nums"
-                    inputMode="decimal"
-                    autoComplete="off"
-                    placeholder="—"
-                    aria-labelledby={cookedLabel}
-                    aria-invalid={touched.cooked && !!errors.cooked}
-                    value={cooked}
-                    // E-10.1: a minus is never accepted; 0 is an error.
-                    onChange={(e) =>
-                      setCooked(e.target.value.replace(/-/g, ''))
-                    }
-                    onBlur={() => setTouched((s) => ({ ...s, cooked: true }))}
-                  />
-                  <span className="stepper__unit" aria-hidden="true">
-                    {unit}
-                  </span>
-                </label>
-              </div>
-            </li>
-            <li className="list__item">
-              <div className="list-row recipe-editor__kv">
-                <span id={portionsLabel}>{t('editor.portions')}</span>
-                <div
-                  className="stepper__row"
-                  role="group"
-                  aria-labelledby={portionsLabel}
-                >
-                  <button
-                    type="button"
-                    className="stepper__button"
-                    aria-label={t('editor.portions_less')}
-                    disabled={servings === null}
-                    {...servingsPress.bind(-1)}
-                  >
-                    <Minus aria-hidden="true" />
-                  </button>
-                  <span
-                    className="recipe-editor__servings tabular-nums"
-                    aria-live="polite"
-                  >
-                    {servings ?? '—'}
-                  </span>
-                  <button
-                    type="button"
-                    className="stepper__button"
-                    aria-label={t('editor.portions_more')}
-                    disabled={servings === MAX_SERVINGS}
-                    {...servingsPress.bind(1)}
-                  >
-                    <Plus aria-hidden="true" />
-                  </button>
-                </div>
-              </div>
-            </li>
-          </List>
-          {touched.cooked && errors.cooked ? (
-            <p className="recipe-editor__error">
-              <CircleAlert aria-hidden="true" />
-              {errors.cooked}
-            </p>
-          ) : weightWarning(calc) ? (
-            <p className="recipe-editor__note recipe-editor__note--warning">
-              <CircleAlert aria-hidden="true" />
-              {t(
-                cookedG! > totals.rawG
-                  ? 'editor.check_weight.heavier'
-                  : 'editor.check_weight.lighter',
-                {
-                  count: Math.round(ratio),
-                  w: w.fmt(totals.rawG),
-                  u: unit,
-                },
+        <div className="recipe-editor__mode">
+          <div className="recipe-editor__head">
+            <button
+              type="button"
+              className={`recipe-editor__photo${photoId ? ' recipe-editor__photo--set' : ''}`}
+              aria-label={t(
+                photoId ? 'editor.photo_replace' : 'editor.photo_add',
               )}
-            </p>
-          ) : (
-            cookedG === null &&
-            totals.rawG > 0 && (
-              <p className="recipe-editor__note">
-                <Scale aria-hidden="true" />
-                {t('editor.weigh', { w: w.fmt(totals.rawG), u: unit })}
-              </p>
-            )
+              aria-busy={busy.has(RECIPE_PHOTO)}
+              disabled={busy.has(RECIPE_PHOTO)}
+              onClick={() => photoInput.current?.click()}
+            >
+              {photoId ? (
+                <img src={thumbUrl(photoId)} alt="" />
+              ) : (
+                <>
+                  <Camera aria-hidden="true" />
+                  {t('editor.photo')}
+                </>
+              )}
+            </button>
+            <input
+              ref={photoInput}
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={onPhoto}
+            />
+            <Field
+              ref={nameRef}
+              label={t('editor.name')}
+              value={name}
+              maxLength={80}
+              autoComplete="off"
+              error={touched.name ? errors.name : undefined}
+              onChange={(e) => setName(e.target.value)}
+              onBlur={() => setTouched((s) => ({ ...s, name: true }))}
+            />
+          </div>
+          <Segment
+            label={t('editor.mode.label')}
+            options={[
+              { value: 'ingredients', label: t('editor.mode.ingredients') },
+              { value: 'per100', label: t('editor.mode.per100') },
+            ]}
+            value={mode}
+            onChange={(m) => {
+              if (m === mode) return;
+              if (m === 'ingredients') setMode(m);
+              else if (rows.length) setConfirmMode(true);
+              else toPer100();
+            }}
+          />
+          {was && (
+            <Banner
+              tone="notice"
+              icon={<History aria-hidden="true" />}
+              title={t('editor.was.title', { k: num(was[0]!) })}
+            >
+              {t('editor.was.body', {
+                p: num(was[1]!),
+                f: num(was[2]!),
+                c: num(was[3]!),
+              })}
+            </Banner>
           )}
         </div>
+
+        {byIngredients ? (
+          <>
+            <dl
+              className="recipe-editor__totals"
+              aria-label={t('editor.totals.label')}
+              aria-live="polite"
+            >
+              {(
+                [
+                  [
+                    'serving',
+                    serving === null ? null : (p100.kcal * serving) / 100,
+                  ],
+                  ['per100', p100.kcal],
+                  ['total', totals.kcal],
+                ] as const
+              ).map(([k, v]) => (
+                <div key={k} className="recipe-editor__total">
+                  <dt>{t(`editor.totals.${k}`)}</dt>
+                  <dd className="tabular-nums">
+                    {kcal(v)}
+                    {v !== null && (
+                      <span className="recipe-editor__unit">
+                        {'\u00a0'}
+                        {t('today.kcal')}
+                      </span>
+                    )}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+
+            <div className="recipe-editor__ingredients">
+              <List
+                title={
+                  <span className="recipe-editor__group">
+                    <span>{t('editor.ingredients')}</span>
+                    <span>
+                      {t(
+                        w.us
+                          ? 'editor.ingredients_cols_oz'
+                          : 'editor.ingredients_cols',
+                      )}
+                    </span>
+                  </span>
+                }
+              >
+                {items.map(({ row, g, kcal: k }) => (
+                  <IngredientRow
+                    key={row.key}
+                    name={row.name}
+                    kcal={k}
+                    grams={row.grams}
+                    units={units}
+                    error={
+                      g === null && (touched.rows || row.grams.trim() !== '')
+                        ? t('editor.grams_err', {
+                            max: w.fmt(MAX_INGREDIENT_G),
+                            u: unit,
+                          })
+                        : undefined
+                    }
+                    estimate={row.source === 'ai'}
+                    unsure={
+                      row.unsure && g === 0
+                        ? t('editor.ai.zero', { q: row.name })
+                        : undefined
+                    }
+                    onGramsChange={(grams) =>
+                      setRow(row.key, { grams, unsure: false })
+                    }
+                    onEdit={() => setSheet({ kind: 'edit', key: row.key })}
+                  />
+                ))}
+                <ListRow
+                  accent
+                  icon={<Plus />}
+                  onClick={() => setSheet({ kind: 'picker' })}
+                >
+                  {t('editor.ingredient')}
+                </ListRow>
+              </List>
+              {touched.rows && errors.rows && (
+                <p className="recipe-editor__error" role="alert">
+                  <CircleAlert aria-hidden="true" />
+                  {errors.rows}
+                </p>
+              )}
+            </div>
+
+            <div className="recipe-editor__yield">
+              <List title={t('editor.yield')}>
+                <li className="list__item">
+                  <div className="list-row recipe-editor__kv">
+                    <span id={cookedLabel}>{t('editor.cooked_weight')}</span>
+                    <label
+                      className={`stepper__box${touched.cooked && errors.cooked ? ' recipe-editor__invalid' : ''}`}
+                    >
+                      <input
+                        ref={cookedRef}
+                        className="stepper__input tabular-nums"
+                        inputMode="decimal"
+                        autoComplete="off"
+                        placeholder="—"
+                        aria-labelledby={cookedLabel}
+                        aria-invalid={touched.cooked && !!errors.cooked}
+                        value={cooked}
+                        // E-10.1: a minus is never accepted; 0 is an error.
+                        onChange={(e) =>
+                          setCooked(e.target.value.replace(/-/g, ''))
+                        }
+                        onBlur={() =>
+                          setTouched((s) => ({ ...s, cooked: true }))
+                        }
+                      />
+                      <span className="stepper__unit" aria-hidden="true">
+                        {unit}
+                      </span>
+                    </label>
+                  </div>
+                </li>
+                <li className="list__item">
+                  <div className="list-row recipe-editor__kv">
+                    <span id={portionsLabel}>{t('editor.portions')}</span>
+                    <div
+                      className="stepper__row"
+                      role="group"
+                      aria-labelledby={portionsLabel}
+                    >
+                      <button
+                        type="button"
+                        className="stepper__button"
+                        aria-label={t('editor.portions_less')}
+                        disabled={servings === null}
+                        {...servingsPress.bind(-1)}
+                      >
+                        <Minus aria-hidden="true" />
+                      </button>
+                      <span
+                        className="recipe-editor__servings tabular-nums"
+                        aria-live="polite"
+                      >
+                        {servings ?? '—'}
+                      </span>
+                      <button
+                        type="button"
+                        className="stepper__button"
+                        aria-label={t('editor.portions_more')}
+                        disabled={servings === MAX_SERVINGS}
+                        {...servingsPress.bind(1)}
+                      >
+                        <Plus aria-hidden="true" />
+                      </button>
+                    </div>
+                  </div>
+                </li>
+              </List>
+              {touched.cooked && errors.cooked ? (
+                <p className="recipe-editor__error">
+                  <CircleAlert aria-hidden="true" />
+                  {errors.cooked}
+                </p>
+              ) : weightWarning(calc) ? (
+                <p className="recipe-editor__note recipe-editor__note--warning">
+                  <CircleAlert aria-hidden="true" />
+                  {t(
+                    cookedG! > totals.rawG
+                      ? 'editor.check_weight.heavier'
+                      : 'editor.check_weight.lighter',
+                    {
+                      count: Math.round(ratio),
+                      w: w.fmt(totals.rawG),
+                      u: unit,
+                    },
+                  )}
+                </p>
+              ) : (
+                cookedG === null &&
+                totals.rawG > 0 && (
+                  <p className="recipe-editor__note">
+                    <Scale aria-hidden="true" />
+                    {t('editor.weigh', { w: w.fmt(totals.rawG), u: unit })}
+                  </p>
+                )
+              )}
+            </div>
+          </>
+        ) : (
+          <Per100Fields
+            values={p100In}
+            errors={p100Errors}
+            unit={unit}
+            preview={preview}
+            onChange={(patch) => setP100In((v) => ({ ...v, ...patch }))}
+          />
+        )}
 
         <div className="recipe-editor__more">
           <List
@@ -704,6 +890,23 @@ export function RecipeEditor({
         </div>
       </main>
 
+      <ConfirmDialog
+        open={confirmMode}
+        tone="primary"
+        stack
+        title={t('editor.switch.title')}
+        body={t('editor.switch.body', {
+          count: rows.length,
+          k: num(Math.round(p100.kcal)),
+          p: num(round1(p100.proteinG)),
+          f: num(round1(p100.fatG)),
+          c: num(round1(p100.carbsG)),
+        })}
+        confirmLabel={t('editor.switch.ok')}
+        cancelLabel={t('editor.switch.stay')}
+        onConfirm={toPer100}
+        onCancel={() => setConfirmMode(false)}
+      />
       <Sheet
         open={stepMenu >= 0}
         title={t('editor.step_text', { i: stepMenu + 1 })}

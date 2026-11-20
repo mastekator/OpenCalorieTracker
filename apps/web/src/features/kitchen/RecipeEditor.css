@@ -184,3 +184,43 @@
     grid-area: more;
   }
 }
+
+/* «Calories per 100 g» (OCT-352 1.2–1.4): the fields, three macros in a row, the serving card. */
+.recipe-editor__mode {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.recipe-editor__per100 {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.recipe-editor__macros {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.recipe-editor__preview-title {
+  color: var(--color-text-secondary);
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+}
+
+.recipe-editor__preview .recipe-editor__note {
+  margin: 0;
+  padding: 0;
+}
+
+@media (min-width: 1024px) {
+  .recipe-editor__mode {
+    grid-area: head;
+  }
+  .recipe-editor__per100 {
+    grid-area: ingr;
+  }
+  .recipe-editor__preview {
+    grid-area: totals;
+  }
+}

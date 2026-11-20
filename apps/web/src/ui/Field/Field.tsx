@@ -18,6 +18,10 @@ type Props = Omit<
   hint?: string;
   /** Error text under the field; also marks the input aria-invalid. */
   error?: string;
+  /** Red border and aria-invalid without a note: the error is shown for a group of fields. */
+  invalid?: boolean;
+  /** Short word at the end of the label row: «required». */
+  tag?: string;
   /** Value set by the server (email from an invite): read-only, lock icon. */
   locked?: boolean;
   /** Unit after the value: «g», «oz». */
@@ -33,6 +37,8 @@ export function Field({
   label,
   hint,
   error,
+  invalid = false,
+  tag,
   locked = false,
   suffix,
   revealLabels,
@@ -47,9 +53,15 @@ export function Field({
   const note = error ?? hint;
 
   return (
-    <div className={`field${error ? ' field--error' : ''}`}>
+    <div className={`field${error || invalid ? ' field--error' : ''}`}>
       <label className="field__label" htmlFor={id}>
         {label}
+        {tag && (
+          <>
+            {' '}
+            <span className="field__tag">{tag}</span>
+          </>
+        )}
       </label>
       <div className={`field__box${locked ? ' field__box--locked' : ''}`}>
         <input
@@ -58,8 +70,8 @@ export function Field({
           className="field__input"
           type={isPassword && shown ? 'text' : type}
           readOnly={locked}
-          aria-invalid={error ? true : undefined}
-          aria-describedby={note ? `${id}-note` : undefined}
+          aria-invalid={error || invalid ? true : undefined}
+          aria-describedby={note ? `${id}-note` : rest['aria-describedby']}
         />
         {suffix && (
           <span className="field__suffix" aria-hidden="true">

@@ -5,7 +5,7 @@ import { isDirty, saveDirty } from '../../app/dirty';
 import { I18nProvider, LOCALE_STORAGE_KEY } from '../../i18n';
 import { renderLoaded } from '../../test-utils';
 import { ToastProvider } from '../../ui/Toast/Toast';
-import { PILAF, SALAD } from './fixtures';
+import { CHEESECAKE, PILAF, SALAD } from './fixtures';
 import { RecipeEditor } from './RecipeEditor';
 
 // jsdom has no canvas: the photo is taken as is.
@@ -482,6 +482,134 @@ describe('RecipeEditor', () => {
       await view({ draft });
       expect(screen.queryByText('AI draft')).toBeNull();
       expect(screen.queryByText(zero)).toBeNull();
+    });
+  });
+
+  describe('calories per 100 g (OCT-356, ADR-0035 §2)', () => {
+    const mode = (name: string) =>
+      fireEvent.click(screen.getByRole('radio', { name: new RegExp(name) }));
+    const field = (label: string) =>
+      screen.getByLabelText(label) as HTMLInputElement;
+    const kcal100 = () => field('Calories per 100 g required');
+    const type = (label: string, value: string) =>
+      fireEvent.change(field(label), { target: { value } });
+
+    it('a saved recipe without ingredients opens in the mode and saves unchanged', async () => {
+      const { onSave } = await view({ recipe: CHEESECAKE });
+      expect(
+        screen
+          .getByRole('radio', { name: /Calories per 100.g/ })
+          .getAttribute('aria-checked'),
+      ).toBe('true');
+      expect(kcal100().value).toBe('160');
+      expect(field('Serving size, g').value).toBe('150');
+      expect(screen.getByText('240')).toBeTruthy(); // the serving card
+      expect(screen.queryByText('Cooked weight')).toBeNull();
+      expect(isDirty()).toBe(false);
+      save();
+      await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
+      expect(onSave.mock.calls[0]![0]).toMatchObject({
+        ingredients: [],
+        cookedG: null,
+        servings: null,
+        per100: CHEESECAKE.per100,
+        servingG: 150,
+      });
+    });
+
+    it('a new recipe: kcal only, blank macros as 0, no serving', async () => {
+      const { onSave } = await view();
+      type('Name', 'Cake');
+      mode('Calories per 100.g');
+      expect(screen.queryByRole('alertdialog')).toBeNull(); // nothing to lose
+      type('Calories per 100 g required', '160');
+      save();
+      await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
+      expect(onSave.mock.calls[0]![0]).toMatchObject({
+        ingredients: [],
+        per100: { kcal: 160, proteinG: 0, fatG: 0, carbsG: 0 },
+        servingG: null,
+      });
+    });
+
+    it('field errors block Save and focus the first one (E-1.a)', async () => {
+      const { onSave } = await view({ draft: { ...CHEESECAKE } });
+      type('Calories per 100 g required', '1200');
+      expect(screen.getByText('Calories per 100 g must be 0–900')).toBeTruthy();
+      type('Calories per 100 g required', '');
+      type('Protein', '60');
+      type('Fat', '40');
+      type('Carbs', '30');
+      expect(
+        screen.getByText(
+          'Protein + fat + carbs can’t exceed 100 g per 100 g. Now 130 g.',
+        ),
+      ).toBeTruthy();
+      expect(field('Fat').getAttribute('aria-invalid')).toBe('true');
+      type('Serving size, g', '0');
+      expect(screen.getByText(/More than 0, up to 5,000/)).toBeTruthy();
+      save();
+      // Blank kcal is shown only after Save.
+      expect(screen.getByText('Calories per 100 g must be 0–900')).toBeTruthy();
+      expect(document.activeElement).toBe(kcal100());
+      expect(onSave).not.toHaveBeenCalled();
+    });
+
+    it('by ingredients → per 100 g asks, then pre-fills from the calculation (AC-1.5)', async () => {
+      const { onSave } = await view({ recipe: PILAF });
+      mode('Calories per 100.g');
+      const dialog = screen.getByRole('alertdialog');
+      expect(dialog.textContent).toMatch(
+        /The 8 ingredients won’t be saved\..*166\u00a0kcal/,
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Switch' }));
+      expect(kcal100().value).toBe('166');
+      expect(field('Serving size, g').value).toBe('350');
+      expect(screen.queryByText('Cooked weight')).toBeNull();
+      save();
+      await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
+      const sent = onSave.mock.calls[0]![0];
+      expect(sent).toMatchObject({
+        ingredients: [],
+        cookedG: null,
+        servings: null,
+        servingG: 350,
+      });
+      expect(sent.per100!.kcal).toBe(166);
+    });
+
+    it('«Stay» changes neither the mode nor the ingredients', async () => {
+      await view({ recipe: PILAF });
+      mode('Calories per 100.g');
+      fireEvent.click(screen.getByRole('button', { name: 'Stay' }));
+      expect(
+        screen
+          .getByRole('radio', { name: 'By ingredients' })
+          .getAttribute('aria-checked'),
+      ).toBe('true');
+      expect(grams('Long-grain rice')).toBeTruthy();
+      expect(total('Serving')).toBe('581');
+      expect(isDirty()).toBe(false);
+    });
+
+    it('per 100 g → by ingredients: an empty list and the old values as a note (AC-1.5)', async () => {
+      await view({ recipe: CHEESECAKE });
+      mode('By ingredients');
+      expect(screen.queryByRole('alertdialog')).toBeNull();
+      expect(screen.getByText('It was 160 kcal per 100 g')).toBeTruthy();
+      expect(isDirty()).toBe(true);
+      save();
+      expect(screen.getByText('Add at least one ingredient')).toBeTruthy();
+    });
+
+    it('«Add ingredients» opens by ingredients, the values as a note', async () => {
+      await view({ recipe: CHEESECAKE, compose: true });
+      expect(
+        screen
+          .getByRole('radio', { name: 'By ingredients' })
+          .getAttribute('aria-checked'),
+      ).toBe('true');
+      expect(screen.getByText(/P 9 · F 8 · C 13/)).toBeTruthy();
     });
   });
 });

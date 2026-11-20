@@ -14,6 +14,7 @@ function Localized(args: Args) {
       label={password ? t('auth.password') : t('auth.email')}
       placeholder={password ? undefined : t('auth.email_ph')}
       hint={args.hint && t('update.stale')}
+      tag={args.tag && t('editor.per100.required')}
       error={
         args.error &&
         (password ? t('errors.password_invalid') : t('form.err.email'))
@@ -40,6 +41,15 @@ export const Focused: Story = {
 };
 export const Error: Story = {
   args: { hint: 'hint', error: 'error', defaultValue: 'me@example' },
+};
+/** A required field with its tag; `invalid` is a red border whose message sits under a group. */
+export const TagInvalid: Story = {
+  args: {
+    tag: 'required',
+    invalid: true,
+    suffix: 'kcal',
+    defaultValue: '1200',
+  },
 };
 export const Disabled: Story = {
   args: { disabled: true, defaultValue: 'me@example.com' },
@@ -71,6 +81,7 @@ export const Matrix: Story = {
       <Localized label="" />
       <Localized label="" hint="hint" defaultValue="me@example.com" />
       <Localized label="" hint="hint" error="error" defaultValue="me@example" />
+      <Localized label="" tag="required" invalid defaultValue="me@example" />
       <Localized label="" disabled defaultValue="me@example.com" />
       <Localized label="" locked defaultValue="me@example.com" />
       <Localized label="" type="password" defaultValue="Pasta-2-go" />
