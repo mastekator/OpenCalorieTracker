@@ -6,7 +6,11 @@ import { Button } from '../../ui/Button/Button';
 import { OfflineBar } from '../../ui/OfflineBar/OfflineBar';
 import { useBarVariant } from '../../app/connection';
 import { ScreenState } from '../../ui/ScreenState/ScreenState';
-import { Skeleton } from '../../ui/Skeleton/Skeleton';
+import {
+  RecognitionSteps,
+  type Step,
+} from '../../ui/RecognitionSteps/RecognitionSteps';
+import type { PhotoBarcodesResponse } from '@oct/shared';
 import './RecognitionState.css';
 
 /** Screen 3 states (design OCT-16 §2): 3.1 loading … 3.7 offline; `gone` is 3.5 without a retry. */
@@ -20,8 +24,87 @@ export type RecognitionStateKind =
   | 'empty'
   | 'offline';
 
+/** POST /photos/:id/barcodes: still going, failed, or the codes read and looked up. */
+export type PhotoCodes = PhotoBarcodesResponse['codes'] | 'pending' | 'failed';
+
+type T = ReturnType<typeof useT>['t'];
+
+/** The three steps of OCT-313 §1 from what the barcode lookup and the AI status say. */
+export function recognitionSteps(
+  t: T,
+  codes: PhotoCodes,
+  ai: 'run' | 'none',
+): Step[] {
+  type Mark = Omit<Step, 'title'>;
+  const found = typeof codes === 'string' ? [] : codes;
+  const mine = found.length > 0 && found.every((c) => c.result.from === 'mine');
+  const barcode: Mark =
+    codes === 'pending'
+      ? { mark: 'run' }
+      : codes === 'failed'
+        ? { mark: 'skip' }
+        : found.length === 0
+          ? { mark: 'skip', caption: t('recog.barcode.none') }
+          : {
+              mark: 'done',
+              caption: mine
+                ? t('recog.barcode.mine')
+                : found.length === 1
+                  ? found[0]!.code
+                  : t('recog.barcode.many', { count: found.length }),
+            };
+
+  // Own products need no Open Food Facts; the rest say what it answered.
+  const rest = found.filter((c) => c.result.from !== 'mine');
+  const offHit = rest.find((c) => c.result.from === 'off')?.result.product;
+  const offStatus = rest[0]?.result.off;
+  const off: Mark =
+    codes === 'pending'
+      ? { mark: 'wait' }
+      : codes === 'failed'
+        ? { mark: 'skip' }
+        : offHit
+          ? { mark: 'done', caption: offHit.name ?? offHit.brand ?? undefined }
+          : offStatus === 'down' || offStatus === 'missing'
+            ? { mark: 'warn', caption: t(`recog.off.${offStatus}`) }
+            : offStatus === 'disabled' || offStatus === 'blocked'
+              ? {
+                  mark: 'skip',
+                  caption: t(
+                    offStatus === 'disabled'
+                      ? 'recog.off.off'
+                      : 'recog.off.blocked',
+                  ),
+                }
+              : { mark: 'skip', caption: t('recog.off.not_needed') };
+
+  // The AI reads the nutrition table when no product numbers came (E-12).
+  const label =
+    off.mark === 'warn' ||
+    found.some((c) => c.result.product && c.result.product.kcal100 === null);
+  const aiStep: Mark =
+    ai === 'none'
+      ? { mark: 'skip', caption: t('recog.ai.none') }
+      : {
+          mark: 'run',
+          caption: found.length
+            ? t(label ? 'recog.ai.label' : 'recog.ai.rest')
+            : undefined,
+        };
+
+  return [
+    { ...barcode, title: t('recog.step.barcode') },
+    { ...off, title: t('recog.step.off') },
+    { ...aiStep, title: t('recog.step.ai') },
+  ];
+}
+
 type Props = {
   state: RecognitionStateKind;
+  /** Barcodes read from the photo (OCT-313 §1). */
+  codes?: PhotoCodes;
+  /** none: AI isn't set up, only the barcode steps run (AC-4.7). */
+  ai?: 'run' | 'none';
   photoUrl: string;
   onRetry: () => void;
   /** None: no «Retake» (recalculating a saved meal's photo). */
@@ -33,6 +116,8 @@ type Props = {
 /** The photo under recognition and what is happening to it; no requests here. */
 export function RecognitionState({
   state,
+  codes = 'pending',
+  ai = 'run',
   photoUrl,
   onRetry,
   onRetake,
@@ -160,12 +245,11 @@ export function RecognitionState({
               <p className="recog__hint">{t('recog.usual')}</p>
             )}
           </div>
-          {state === 'loading' ? (
-            <>
-              <Skeleton height="var(--control-height-lg)" />
-              <Skeleton height="var(--control-height-lg)" />
-            </>
-          ) : (
+          <RecognitionSteps
+            label={t('recog.steps_a11y')}
+            steps={recognitionSteps(t, codes, ai)}
+          />
+          {state === 'slow' && (
             <>
               <Banner tone="notice">
                 {t(recalc ? 'recalc.slow' : 'recog.slow')}

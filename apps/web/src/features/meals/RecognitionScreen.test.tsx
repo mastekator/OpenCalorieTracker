@@ -35,6 +35,23 @@ const dropped = () => {
 
 const STATUS = '/api/ai/status';
 let aiStatus: () => Response;
+const BARCODES = '/api/photos/p1/barcodes';
+let barcodes: () => Response;
+const CODE = '4607012345678';
+const product = {
+  code: CODE,
+  name: 'Greek yogurt 2%',
+  brand: null,
+  kcal100: 70,
+  protein100: 9,
+  fat100: 2,
+  carbs100: 4,
+  per: 'g',
+  servingG: 140,
+  servingText: null,
+};
+const codes = (...list: { code: string; result: unknown }[]) =>
+  json(200, { codes: list });
 const statusOf = (recognition: string) =>
   json(200, {
     recognition,
@@ -46,7 +63,7 @@ const statusOf = (recognition: string) =>
 
 /**
  * Answers fetch calls in order; a missing answer hangs until the request is aborted.
- * GET /api/ai/status is answered by `aiStatus` and not counted.
+ * GET /api/ai/status and POST …/barcodes are answered by `aiStatus` and `barcodes`, not counted.
  */
 function respond(...answers: (() => Response)[]) {
   const fetch = vi.fn(
@@ -67,7 +84,11 @@ function respond(...answers: (() => Response)[]) {
       }),
   );
   vi.stubGlobal('fetch', (url: string, init: RequestInit) =>
-    url === STATUS ? Promise.resolve(aiStatus()) : fetch(url, init),
+    url === STATUS
+      ? Promise.resolve(aiStatus())
+      : url === BARCODES
+        ? Promise.resolve(barcodes())
+        : fetch(url, init),
   );
   return fetch;
 }
@@ -99,6 +120,7 @@ async function setup(path = '/meal/new?photo=p1') {
 beforeEach(() => {
   localStorage.setItem(LOCALE_STORAGE_KEY, 'en');
   aiStatus = statusOf('ready');
+  barcodes = codes();
   visibility = 'visible';
   online = true;
   vi.spyOn(document, 'visibilityState', 'get').mockImplementation(
@@ -264,5 +286,108 @@ describe('RecognitionScreen', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Try again' }));
     await waitFor(() => expect(location.history.at(-1)).toBe(EDIT));
     expect(fetch.mock.calls.map(([url]) => url)).toEqual([URL, URL]);
+  });
+
+  describe('barcodes (OCT-313 §1)', () => {
+    it('glues the AI dishes with the product found by its barcode (ADR-0034 §2)', async () => {
+      barcodes = codes({
+        code: CODE,
+        result: { product, from: 'off', off: 'found' },
+      });
+      respond(
+        json(200, {
+          dishes: [
+            { ...dish, barcode: CODE },
+            { ...dish, name: 'Bread' },
+          ],
+        }),
+      );
+      const location = await setup();
+      await waitFor(() => expect(location.history.at(-1)).toBe(EDIT));
+      expect(location.state).toEqual({
+        dishes: [
+          expect.objectContaining({
+            name: 'Greek yogurt 2%',
+            grams: 140,
+            source: 'barcode',
+            barcode: CODE,
+          }),
+          expect.objectContaining({ name: 'Bread', source: 'ai' }),
+        ],
+      });
+    });
+
+    it('shows the steps while the AI reads the photo', async () => {
+      barcodes = codes({
+        code: CODE,
+        result: { product: null, from: null, off: 'down' },
+      });
+      respond();
+      await setup();
+      const steps = await screen.findByRole('list', {
+        name: 'Recognition steps',
+      });
+      await waitFor(() =>
+        expect(steps.textContent).toContain(
+          'Not responding — reading the label',
+        ),
+      );
+      expect(steps.textContent).toContain(CODE);
+      expect(steps.textContent).toContain(
+        'Nutrition table on the package and the rest of the food',
+      );
+    });
+
+    it('a failed barcode read skips steps 1–2, the AI dishes go on (OCT-16)', async () => {
+      barcodes = fail(500, 'internal');
+      respond(ok);
+      const location = await setup();
+      await waitFor(() => expect(location.history.at(-1)).toBe(EDIT));
+      expect(location.state).toEqual({
+        dishes: [expect.objectContaining({ name: 'Porridge', source: 'ai' })],
+      });
+    });
+
+    it('without AI a found product opens the edit screen, no recognize (AC-4.7)', async () => {
+      aiStatus = statusOf('not_configured');
+      barcodes = codes({
+        code: CODE,
+        result: { product, from: 'mine', off: 'skipped' },
+      });
+      const fetch = respond(ok);
+      const location = await setup();
+      await waitFor(() => expect(location.history.at(-1)).toBe(EDIT));
+      expect(location.state).toEqual({
+        dishes: [expect.objectContaining({ source: 'barcode', from: 'mine' })],
+      });
+      expect(fetch).not.toHaveBeenCalled();
+    });
+
+    it('without AI a code not found → manual entry with it (3.4)', async () => {
+      aiStatus = statusOf('no_vision');
+      barcodes = codes({
+        code: CODE,
+        result: { product: null, from: null, off: 'missing' },
+      });
+      respond();
+      const location = await setup();
+      await waitFor(() => expect(location.history.at(-1)).toBe(EDIT));
+      expect(location.state).toEqual({ manual: 'no_vision', barcode: CODE });
+    });
+
+    it('a 409 from recognize goes the same way without AI', async () => {
+      aiStatus = fail(500, 'internal');
+      barcodes = codes({
+        code: CODE,
+        result: { product: null, from: null, off: 'disabled' },
+      });
+      respond(fail(409, 'ai_not_configured'));
+      const location = await setup();
+      await waitFor(() => expect(location.history.at(-1)).toBe(EDIT));
+      expect(location.state).toEqual({
+        manual: 'not_configured',
+        barcode: CODE,
+      });
+    });
   });
 });

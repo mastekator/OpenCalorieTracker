@@ -208,10 +208,18 @@ function withQuestions(rows: Row[], questions: AiQuestion[] = []) {
 const unasked = (row: Row): Row =>
   row.question ? { ...row, question: undefined } : row;
 
+/** A recognized dish; glued with a package (`mergePackages`) it carries its source and code. */
+export type Recognized = Omit<Dish, 'barcode'> & {
+  source?: DishSource;
+  barcode?: string | null;
+};
+
 /** Initial rows of a recognition with its questions. */
-export const toRows = (dishes: Dish[], questions?: AiQuestion[]) =>
+export const toRows = (dishes: Recognized[], questions?: AiQuestion[]) =>
   withQuestions(
-    dishes.map((d) => toRow(d)),
+    dishes.map(({ source, barcode, ...d }) =>
+      toRow({ ...d, ...(barcode && { barcode }) }, source),
+    ),
     questions,
   );
 

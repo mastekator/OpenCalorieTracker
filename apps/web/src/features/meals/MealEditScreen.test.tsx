@@ -1094,4 +1094,36 @@ describe('MealEditScreen: recipes (OCT-160 §5, ADR-0023 §5–6)', () => {
     expect(item).toMatchObject({ name: 'Plov', source: 'manual' });
     expect(item).not.toHaveProperty('recipeId');
   });
+
+  describe('barcodes (OCT-313)', () => {
+    it('a product found by barcode is saved with its source and code in one tap', async () => {
+      const onSave = await open({
+        dishes: [{ ...buckwheat, source: 'barcode', barcode: '4607012345678' }],
+      });
+      await save();
+      expect(onSave.mock.calls[0]![0].items).toEqual([
+        expect.objectContaining({
+          name: 'Buckwheat',
+          source: 'barcode',
+          barcode: '4607012345678',
+        }),
+      ]);
+    });
+
+    it('no AI, the photo’s code not found: the manual sheet opens with it (3.4)', async () => {
+      await open({
+        dishes: [],
+        manual: 'not_configured',
+        photoBarcode: { code: '4607012345678', admin: false },
+        onBarcode: vi.fn(),
+      });
+      const sheet = screen.getByRole('dialog');
+      expect(
+        (within(sheet).getByLabelText('Barcode') as HTMLInputElement).value,
+      ).toBe('4607012345678');
+      expect(sheet.textContent).toContain(
+        'Ask your admin to connect AI to read labels.',
+      );
+    });
+  });
 });

@@ -49,6 +49,7 @@
   --recipe-hero-height: 200px; /* recipe photo on the recipe card, phone (OCT-160 §3) */
   --swipe-action-width: 96px;   /* «Delete» revealed by swiping a meal row (OCT-19 6.3) */
   --photo-preview-height: 280px; /* photo on the recognition screen (OCT-16 §2) */
+  --step-mark-size: 24px;       /* status mark of a recognition step (OCT-313 §1) */
   --stepper-value-width: 96px;  /* weight field between − and + on the edit screen (OCT-16 §3) */
   --period-label-width: 144px;  /* desktop week head: pager date, so arrows stay put while paging (OCT-19 D.3) */
   --progress-height: 8px;       /* kcal & macro bars on Today / Diary / Week */

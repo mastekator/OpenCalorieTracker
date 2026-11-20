@@ -56,6 +56,24 @@ it('itemOf passes the barcode of a manual dish (AC-4.5)', () => {
   expect('barcode' in itemOf(bread())).toBe(false);
 });
 
+it('toRows keeps the source and code of a glued package, itemOf sends them', () => {
+  const [found, ai] = toRows([
+    {
+      ...dish('Yogurt', 140, 98),
+      source: 'barcode',
+      barcode: '4607012345678',
+    },
+    { ...dish('Bread', 50, 130), confidence: 0.8, barcode: null },
+  ]).map(itemOf);
+  expect(found).toMatchObject({
+    source: 'barcode',
+    barcode: '4607012345678',
+  });
+  expect(found).not.toHaveProperty('confidence');
+  expect(ai).toMatchObject({ source: 'ai', confidence: 0.8 });
+  expect(ai).not.toHaveProperty('barcode');
+});
+
 describe('toRequest', () => {
   it('numbers the dishes d1…dN with the shown weight, one decimal', () => {
     const row = {

@@ -264,6 +264,28 @@ describe('ManualDishSheet: barcode (OCT-313 §3)', () => {
     await screen.findByText(/^Open Food Facts didn’t respond/);
   });
 
+  it('opens with the photo’s barcode and says it was not found (3.4)', async () => {
+    await renderLoaded(
+      <I18nProvider>
+        <ManualDishSheet
+          units="metric"
+          onAdd={() => {}}
+          onClose={() => {}}
+          lookup={vi.fn()}
+          barcode="4006381333931"
+          photoNotFound="admin"
+        />
+      </I18nProvider>,
+    );
+    expect((screen.getByLabelText('Barcode') as HTMLInputElement).value).toBe(
+      '4006381333931',
+    );
+    expect(
+      screen.getByText(/We couldn’t find the barcode from the photo/)
+        .textContent,
+    ).toContain('Turn on AI to read labels.');
+  });
+
   it('no lookup: no barcode field', async () => {
     await setup();
     expect(screen.queryByLabelText('Barcode')).toBeNull();

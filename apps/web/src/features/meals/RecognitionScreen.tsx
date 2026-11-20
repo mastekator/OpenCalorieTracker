@@ -3,9 +3,12 @@ import { useLocation, useSearch } from 'wouter';
 import { X } from 'lucide-react';
 import {
   aiStatusSchema,
-  recognitionSchema,
+  mergePackages,
+  packageRecognitionSchema,
+  photoBarcodesSchema,
   type AiQuestion,
-  type RecognizedDish,
+  type MergedDish,
+  type PhotoBarcodesResponse,
 } from '@oct/shared';
 import { api, ApiError } from '../../api/client';
 import { useT } from '../../i18n';
@@ -13,6 +16,7 @@ import { NavBar } from '../../ui/NavBar/NavBar';
 import { MEAL_NEW_PATH, useCapture } from './CaptureContext';
 import {
   RecognitionState,
+  type PhotoCodes,
   type RecognitionStateKind,
 } from './RecognitionState';
 
@@ -20,12 +24,16 @@ import {
 export const MEAL_EDIT_PATH = `${MEAL_NEW_PATH}/edit`;
 
 /**
- * `history.state` of MEAL_EDIT_PATH: recognized dishes, or why the manual sheet opens
- * (`ai_down` after 3.2–3.4); empty after a reload → recognize the same photoId again.
+ * `history.state` of MEAL_EDIT_PATH: recognized dishes glued with the photo's packages,
+ * or why the manual sheet opens (`ai_down` after 3.2–3.4) and, without AI, the barcode
+ * read but not found (OCT-313 3.4); empty after a reload → recognize the same photoId again.
  */
 export type MealEditState =
-  | { dishes: RecognizedDish[]; questions?: AiQuestion[] }
-  | { manual: 'user' | 'ai_down' | 'not_configured' | 'no_vision' };
+  | { dishes: MergedDish[]; questions?: AiQuestion[] }
+  | {
+      manual: 'user' | 'ai_down' | 'not_configured' | 'no_vision';
+      barcode?: string;
+    };
 
 export const SLOW_MS = 10_000;
 /** Client safety net over the server's 60 s (ADR-0007). */
@@ -54,11 +62,14 @@ export function whenBack(signal: AbortSignal) {
 
 /** Recalculating a saved meal (5.6): its dishes go back to it, every other way out returns to it as it was. */
 export type Recalc = {
-  onDishes: (dishes: RecognizedDish[], questions?: AiQuestion[]) => void;
+  onDishes: (dishes: MergedDish[], questions?: AiQuestion[]) => void;
   onBack: () => void;
 };
 
-/** Screen 3 (design OCT-16 §2): POST /api/photos/:id/recognize → edit screen or a state 3.2–3.7. */
+/**
+ * Screen 3 (design OCT-16 §2, OCT-313 §1): POST /api/photos/:id/barcodes and /recognize side
+ * by side, glued by `mergePackages` → edit screen or a state 3.2–3.7.
+ */
 export function RecognitionScreen({
   photoId,
   recalc,
@@ -70,6 +81,8 @@ export function RecognitionScreen({
   const [, navigate] = useLocation();
   const capture = useCapture();
   const [state, setState] = useState<RecognitionStateKind>('loading');
+  const [codes, setCodes] = useState<PhotoCodes>('pending');
+  const [ai, setAi] = useState<'run' | 'none'>('run');
   const [attempt, setAttempt] = useState(0); // «Try again»: same photoId (AC-6.4)
   // `?photo=` and the day of «Add an entry for this day» (`?date=`, AC-2.11) go on to the edit screen.
   const query = `?${useSearch()}`;
@@ -86,6 +99,32 @@ export function RecognitionScreen({
     // Aborted by «Cancel» (unmount) or «Try again»; a late answer is then ignored (AC-2.5).
     const ctrl = new AbortController();
     setState('loading');
+    setCodes('pending');
+    setAi('run');
+    const photo = `/api/photos/${encodeURIComponent(photoId)}`;
+    // Works without AI (ADR-0034 §1); a failed read skips steps 1–2, the rest is as before.
+    const barcodes: Promise<PhotoBarcodesResponse['codes'] | null> = api(
+      `${photo}/barcodes`,
+      photoBarcodesSchema,
+      { method: 'POST', signal: ctrl.signal },
+    ).then(
+      (r) => r.codes,
+      () => null,
+    );
+    void barcodes.then((c) => {
+      if (!ctrl.signal.aborted) setCodes(c ?? 'failed');
+    });
+
+    // No AI: a found product goes to the edit screen, a code not found to manual entry (AC-4.7).
+    const withoutAi = async (manual: 'not_configured' | 'no_vision') => {
+      setAi('none');
+      const found = await barcodes;
+      if (ctrl.signal.aborted) return;
+      const dishes = mergePackages([], found ?? []);
+      if (dishes.length > 0) return toEdit({ dishes });
+      const code = found?.[0]?.code;
+      toEdit({ manual, ...(code && { barcode: code }) });
+    };
     const slow = setTimeout(
       () => setState((s) => (s === 'loading' ? 'slow' : s)),
       SLOW_MS,
@@ -94,9 +133,9 @@ export function RecognitionScreen({
 
     const run = async (): Promise<void> => {
       try {
-        const { dishes, questions } = await api(
-          `/api/photos/${encodeURIComponent(photoId)}/recognize`,
-          recognitionSchema,
+        const recognized = await api(
+          `${photo}/recognize`,
+          packageRecognitionSchema,
           {
             method: 'POST',
             signal: AbortSignal.any([
@@ -105,8 +144,11 @@ export function RecognitionScreen({
             ]),
           },
         );
+        const found = await barcodes;
         if (ctrl.signal.aborted) return;
-        if (dishes.length > 0) toEdit({ dishes, questions });
+        const dishes = mergePackages(recognized.dishes, found ?? []);
+        if (dishes.length > 0)
+          toEdit({ dishes, questions: recognized.questions });
         else setState('empty'); // E-7.1
       } catch (err) {
         if (ctrl.signal.aborted) return;
@@ -126,9 +168,9 @@ export function RecognitionScreen({
           return setState(navigator.onLine ? 'unavailable' : 'offline');
         switch (err.code) {
           case 'ai_not_configured':
-            return toEdit({ manual: 'not_configured' });
+            return withoutAi('not_configured');
           case 'ai_no_vision':
-            return toEdit({ manual: 'no_vision' });
+            return withoutAi('no_vision');
           case 'ai_quota_exceeded':
             return setState('quota');
           case 'ai_invalid_response':
@@ -148,7 +190,7 @@ export function RecognitionScreen({
       .then((status) => {
         if (ctrl.signal.aborted) return;
         if (status && status.recognition !== 'ready')
-          return toEdit({ manual: status.recognition });
+          return withoutAi(status.recognition);
         return run();
       });
     return () => {
@@ -176,6 +218,8 @@ export function RecognitionScreen({
       <main className="screen__body">
         <RecognitionState
           state={state}
+          codes={codes}
+          ai={ai}
           photoUrl={`/api/photos/${encodeURIComponent(photoId)}`}
           onRetry={() => setAttempt((a) => a + 1)}
           // A retake would start a new meal: recalculating keeps to the entry's photo.

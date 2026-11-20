@@ -949,6 +949,12 @@ export const en = {
         'Not in your products. Open Food Facts lookup is off — you can turn it on in Integrations.',
       off_blocked:
         'Not in your products. Open Food Facts lookup is turned off by the admin.',
+      photo_not_found:
+        'We couldn’t find the barcode from the photo. Fill it in from the package — next time we’ll find it.',
+      ai_for_labels: {
+        admin: 'Turn on AI to read labels.',
+        user: 'Ask your admin to connect AI to read labels.',
+      },
       err: 'A barcode has 8 to 14 digits',
     },
     recipes_footer: 'Or type a name — your recipes come first.',
@@ -1006,6 +1012,29 @@ export const en = {
     },
   },
   recog: {
+    steps_a11y: 'Recognition steps',
+    step: {
+      barcode: 'Barcode',
+      off: 'Open Food Facts',
+      ai: 'AI reads the photo',
+    },
+    barcode: {
+      none: 'None in the photo',
+      many: { one: '{count} barcode', other: '{count} barcodes' },
+      mine: 'Your product',
+    },
+    off: {
+      not_needed: 'Not needed',
+      down: 'Not responding — reading the label',
+      missing: 'Not in the database — reading the label',
+      off: 'Off · turn it on in Integrations',
+      blocked: 'Turned off by the admin',
+    },
+    ai: {
+      rest: 'The rest of the food in the photo',
+      label: 'Nutrition table on the package and the rest of the food',
+      none: 'AI isn’t set up',
+    },
     not_configured:
       'Photo recognition isn’t set up — enter the dishes manually. The photo is saved with the entry, so you can recalculate once AI is connected.',
     no_vision:

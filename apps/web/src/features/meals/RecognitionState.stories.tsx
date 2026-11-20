@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { fn } from 'storybook/test';
-import { RecognitionState } from './RecognitionState';
+import type { BarcodeLookup, Product } from '@oct/shared';
+import { RecognitionState, type PhotoCodes } from './RecognitionState';
 
 // Stand-in meal photo; the `Gone` story shows the placeholder a deleted photo leaves.
 const photo = `data:image/svg+xml,${encodeURIComponent(
@@ -17,6 +18,8 @@ const meta = {
   component: RecognitionState,
   args: {
     state: 'loading',
+    codes: 'pending',
+    ai: 'run',
     photoUrl: photo,
     onRetry: fn(),
     onRetake: fn(),
@@ -112,5 +115,101 @@ export const Russian: Story = {
 };
 export const Desktop: Story = {
   args: { state: 'failed' },
+  globals: { viewport: { value: 'desktop' } },
+};
+
+// Steps of OCT-313 §1: what POST /photos/:id/barcodes answered.
+const yogurt: Product = {
+  code: '4607012345678',
+  name: 'Greek yogurt 2%',
+  brand: null,
+  kcal100: 66,
+  protein100: 8,
+  fat100: 2,
+  carbs100: 4,
+  per: 'g',
+  servingG: 140,
+  servingText: null,
+};
+const hit = (
+  result: BarcodeLookup,
+  code = '4607012345678',
+): Exclude<PhotoCodes, string>[number] => ({ code, result });
+const steps = {
+  /** 1.1 */
+  Searching: { codes: 'pending' },
+  /** 1.2 */
+  FoundOff: { codes: [hit({ product: yogurt, from: 'off', off: 'found' })] },
+  /** 1.3 */
+  OffDown: { codes: [hit({ product: null, from: null, off: 'down' })] },
+  OffMissing: { codes: [hit({ product: null, from: null, off: 'missing' })] },
+  /** 1.4 */
+  NoBarcode: { codes: [] },
+  /** 1.5 */
+  OffDisabled: { codes: [hit({ product: null, from: null, off: 'disabled' })] },
+  OffBlocked: { codes: [hit({ product: null, from: null, off: 'blocked' })] },
+  /** 1.6 */
+  NoAi: { codes: 'pending', ai: 'none' },
+  /** Own product: steps 2–3 not needed. */
+  Mine: { codes: [hit({ product: yogurt, from: 'mine', off: 'skipped' })] },
+  /** E-11 */
+  TwoBarcodes: {
+    codes: [
+      hit({ product: yogurt, from: 'off', off: 'found' }),
+      hit({ product: null, from: null, off: 'missing' }, '96385074'),
+    ],
+  },
+  /** The barcode read failed: steps 1–2 skipped. */
+  BarcodesFailed: { codes: 'failed' },
+} satisfies Record<string, Partial<Story['args']>>;
+export const StepsSearching: Story = { args: steps.Searching };
+export const StepsSearchingDark: Story = {
+  args: steps.Searching,
+  globals: dark,
+};
+export const StepsFoundOff: Story = { args: steps.FoundOff };
+export const StepsFoundOffDark: Story = { args: steps.FoundOff, globals: dark };
+export const StepsOffDown: Story = { args: steps.OffDown };
+export const StepsOffDownDark: Story = { args: steps.OffDown, globals: dark };
+export const StepsOffMissing: Story = { args: steps.OffMissing };
+export const StepsOffMissingDark: Story = {
+  args: steps.OffMissing,
+  globals: dark,
+};
+export const StepsNoBarcode: Story = { args: steps.NoBarcode };
+export const StepsNoBarcodeDark: Story = {
+  args: steps.NoBarcode,
+  globals: dark,
+};
+export const StepsOffDisabled: Story = { args: steps.OffDisabled };
+export const StepsOffDisabledDark: Story = {
+  args: steps.OffDisabled,
+  globals: dark,
+};
+export const StepsOffBlocked: Story = { args: steps.OffBlocked };
+export const StepsOffBlockedDark: Story = {
+  args: steps.OffBlocked,
+  globals: dark,
+};
+export const StepsNoAi: Story = { args: steps.NoAi };
+export const StepsNoAiDark: Story = { args: steps.NoAi, globals: dark };
+export const StepsMine: Story = { args: steps.Mine };
+export const StepsMineDark: Story = { args: steps.Mine, globals: dark };
+export const StepsTwoBarcodes: Story = { args: steps.TwoBarcodes };
+export const StepsTwoBarcodesDark: Story = {
+  args: steps.TwoBarcodes,
+  globals: dark,
+};
+export const StepsBarcodesFailed: Story = { args: steps.BarcodesFailed };
+export const StepsBarcodesFailedDark: Story = {
+  args: steps.BarcodesFailed,
+  globals: dark,
+};
+export const StepsRussian: Story = {
+  args: steps.OffDown,
+  globals: { locale: 'ru' },
+};
+export const StepsDesktop: Story = {
+  args: steps.FoundOff,
   globals: { viewport: { value: 'desktop' } },
 };

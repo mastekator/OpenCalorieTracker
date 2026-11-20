@@ -71,6 +71,8 @@ type Props = {
   lookup?: (code: string) => Promise<BarcodeResult>;
   /** Starting barcode, e.g. read from a photo. */
   barcode?: string;
+  /** `barcode` was read from a photo without AI and not found (OCT-313 3.4); who can turn AI on. */
+  photoNotFound?: 'admin' | 'user';
 };
 
 /** Screen 5 (OCT-16 §4): a dish entered by hand, per 100 g or per serving. The screen mounts it while open. */
@@ -84,6 +86,7 @@ export function ManualDishSheet({
   onRecipe,
   lookup,
   barcode: initialBarcode = '',
+  photoNotFound,
 }: Props) {
   const { t, num } = useT();
   const us = units === 'us';
@@ -229,6 +232,12 @@ export function ManualDishSheet({
       footer={<Button onClick={add}>{t('manual_dish.add')}</Button>}
     >
       <div className="manual-dish">
+        {photoNotFound && (
+          <Banner tone="notice">
+            {t('manual_dish.barcode.photo_not_found')}{' '}
+            {t(`manual_dish.barcode.ai_for_labels.${photoNotFound}`)}
+          </Banner>
+        )}
         {lookup && (
           <BarcodeField
             ref={(el) => {
