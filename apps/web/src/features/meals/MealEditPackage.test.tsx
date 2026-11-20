@@ -109,6 +109,37 @@ describe('«Photograph the label» (OCT-313 2.4)', () => {
     expect(kcalOfRow()).toContain('120');
   });
 
+  it('while the label is read: a spinner and its text, the list and «Save» locked', async () => {
+    let answer!: (r: Response) => void;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (path: string) =>
+        path === '/api/photos'
+          ? Response.json({ photoId: 'l1' })
+          : path.includes('recognize')
+            ? new Promise<Response>((r) => (answer = r))
+            : Response.json([]),
+      ),
+    );
+    await render({ codes: codes({ product, from: 'off', off: 'found' }) });
+    const save = screen.getByRole('button', { name: /^Save/ });
+    expect(save.hasAttribute('disabled')).toBe(false);
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Photograph the label' }),
+    );
+    fireEvent.change(screen.getByTestId('edit-label'), {
+      target: { files: [new File(['x'], 'label.jpg')] },
+    });
+    const reading = await screen.findByText('Reading the label…');
+    expect(reading.closest('button')!.hasAttribute('disabled')).toBe(true);
+    expect(reading.closest('[aria-busy]')).toBeTruthy();
+    expect(save.hasAttribute('disabled')).toBe(true);
+    expect(document.querySelector('.meal-edit__list[inert]')).toBeTruthy();
+    answer(Response.json({ dishes: [], questions: [] }));
+    await screen.findByText(/Couldn’t read the label/);
+    expect(save.hasAttribute('disabled')).toBe(false);
+  });
+
   it('nothing read: the dish stays, a toast says why', async () => {
     vi.stubGlobal(
       'fetch',

@@ -378,6 +378,7 @@ export function MealEditScreen({
   const labelInput = useRef<HTMLInputElement>(null);
   const labelCode = useRef<string | null>(null);
   const [reading, setReading] = useState(false);
+  const [offLoading, setOffLoading] = useState(false);
   const [suggest, setSuggest] = useState(!!offSuggest);
   const [consent, setConsent] = useState(false);
   const saving = useRef(false);
@@ -409,6 +410,8 @@ export function MealEditScreen({
   }, [refineError]);
   const working =
     refine.state.status === 'busy' || refine.state.status === 'slow';
+  // A label or Open Food Facts answer replaces rows: an edit or a save meanwhile would be lost.
+  const locked = working || reading || offLoading;
 
   /** The hint is optional (AC-11.3): errors and offline show nothing. */
   function findPrevious(key: string, wanted: Lookup[], ms = 0) {
@@ -787,8 +790,13 @@ export function MealEditScreen({
   const offEnable = async () => {
     setSuggest(false);
     setConsent(false);
-    const found = await onOffHint?.(true);
-    if (found) replacePackages(mergePackages([], found), 'edit.off_found');
+    setOffLoading(true);
+    try {
+      const found = await onOffHint?.(true);
+      if (found) replacePackages(mergePackages([], found), 'edit.off_found');
+    } finally {
+      setOffLoading(false);
+    }
   };
 
   // The slot photo never goes to the AI (AC-5.7).
@@ -1076,7 +1084,7 @@ export function MealEditScreen({
       !rows.some((r) => r.original.barcode === c.code),
   )?.code;
   const remembered = items.filter(remembers);
-  const refineOff = !online || working || refine.limitReached;
+  const refineOff = !online || locked || refine.limitReached;
   const asked = rows.filter(
     (r) => r.question && r.question.chosen === undefined,
   ).length;
@@ -1424,8 +1432,8 @@ export function MealEditScreen({
               // Locked while the AI works: its answer would overwrite an edit (AC-5.2).
               <ul
                 className="meal-edit__list"
-                inert={working}
-                aria-busy={working || undefined}
+                inert={locked}
+                aria-busy={locked || undefined}
               >
                 {rows.map((row, i) => {
                   const item = items[i]!;
@@ -1522,7 +1530,7 @@ export function MealEditScreen({
             {(rows.length > 0 || dishes.length === 0) && (
               <Button
                 variant="plain"
-                disabled={working}
+                disabled={locked}
                 onClick={() => setAdding(true)}
               >
                 <Plus aria-hidden="true" className="meal-edit__add-icon" />
@@ -1612,7 +1620,7 @@ export function MealEditScreen({
             ) : (
               <Button
                 onClick={() => void save()}
-                disabled={!valid || working}
+                disabled={!valid || locked}
                 loading={busy || (!!meal && uploading)}
               >
                 {t(

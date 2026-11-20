@@ -13,16 +13,22 @@ type Props = {
 export function NoKcalHint({ onShoot, busy }: Props) {
   const { t } = useT();
   return (
-    <Banner
-      tone="warning"
-      actions={
-        <button type="button" onClick={onShoot} disabled={busy}>
-          <Camera aria-hidden="true" />
-          {t('edit.shoot_label')}
-        </button>
-      }
-    >
-      {t('edit.no_kcal')}
-    </Banner>
+    <div aria-busy={busy || undefined}>
+      <Banner
+        tone="warning"
+        actions={
+          <button type="button" onClick={onShoot} disabled={busy}>
+            {busy ? (
+              <span className="button__spinner" aria-hidden="true" />
+            ) : (
+              <Camera aria-hidden="true" />
+            )}
+            {t(busy ? 'edit.reading_label' : 'edit.shoot_label')}
+          </button>
+        }
+      >
+        {t('edit.no_kcal')}
+      </Banner>
+    </div>
   );
 }

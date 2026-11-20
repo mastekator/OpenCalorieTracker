@@ -1446,6 +1446,7 @@ export const en = {
     no_kcal:
       'We found the barcode but without calories, and the nutrition table isn’t in the photo. Take a photo of it for exact numbers.',
     shoot_label: 'Photograph the label',
+    reading_label: 'Reading the label…',
     label_updated: 'Updated from the label',
     label_failed: 'Couldn’t read the label. Try a closer, sharper photo.',
     off_suggest:
