@@ -16,6 +16,7 @@ import {
   type RecognizedDish,
   type RefineDishIn,
 } from '@oct/shared';
+import type { BarcodeResult } from '../../data/products';
 import type { ManualDish } from '../../ui/ManualDishSheet/ManualDishSheet';
 
 /**
@@ -24,6 +25,8 @@ import type { ManualDish } from '../../ui/ManualDishSheet/ManualDishSheet';
  */
 export type Dish = ManualDish & {
   confidence?: number;
+  /** `source: 'barcode'` from `mergePackages`: whose product the numbers are. */
+  from?: BarcodeResult['from'];
   illustration?: IllustrationId;
 };
 
@@ -203,6 +206,10 @@ function withQuestions(rows: Row[], questions: AiQuestion[] = []) {
       rows[dish] = { ...rows[dish], question };
   return rows;
 }
+
+/** The server keeps it as the user's own product on save (ADR-0034 §6). */
+export const remembers = (i: MealItemInput) =>
+  !!i.barcode && i.kcal > 0 && (i.source === 'label' || i.source === 'manual');
 
 /** A new answer brings its own questions; the old ones go (ADR-0020 §4). */
 const unasked = (row: Row): Row =>

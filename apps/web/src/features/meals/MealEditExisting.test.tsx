@@ -28,7 +28,13 @@ import { ToastProvider } from '../../ui/Toast/Toast';
 import { localToday } from '../diary/day';
 import { UNDO_MS, UndoDeleteProvider } from '../diary/undoDelete';
 import type { RecipeEditorState } from '../kitchen/RecipeEditor';
-import { MealEditExisting, MealEditScreen, MealRecalc } from './MealEditScreen';
+import {
+  MealEditExisting,
+  MealEditRoute,
+  MealEditScreen,
+  MealRecalc,
+} from './MealEditScreen';
+import { MEAL_EDIT_PATH } from './RecognitionScreen';
 
 // jsdom has no canvas: the photo is taken as is.
 vi.mock('./prepareImage', async (original) => ({
@@ -259,7 +265,7 @@ describe('MealEditExisting (/meal/:clientId)', () => {
   const yesterday = addDays(today, -1);
   let sent: { method: string; url: string; body?: unknown }[];
 
-  function setup(meal: Meal) {
+  function setup(meal: Meal, path = `/meal/${meal.clientId}`) {
     sent = [];
     let first = true;
     vi.stubGlobal(
@@ -287,7 +293,7 @@ describe('MealEditExisting (/meal/:clientId)', () => {
         return Response.json(page);
       }),
     );
-    const at = memoryLocation({ path: `/meal/${meal.clientId}`, record: true });
+    const at = memoryLocation({ path, record: true });
     render(
       <I18nProvider>
         <ToastProvider>
@@ -305,6 +311,9 @@ describe('MealEditExisting (/meal/:clientId)', () => {
               >
                 <UndoDeleteProvider>
                   <Switch>
+                    <Route path={MEAL_EDIT_PATH}>
+                      <MealEditRoute />
+                    </Route>
                     <Route path="/meal/:clientId">
                       {({ clientId }) => (
                         <MealEditExisting clientId={clientId} />
@@ -407,6 +416,52 @@ describe('MealEditExisting (/meal/:clientId)', () => {
     ).toBe(twoAgo);
     fireEvent.click(button('Open'));
     expect(at.history.at(-1)).toBe(`/diary/${twoAgo}`);
+  });
+
+  describe('«Saved for next time» (OCT-313 2.2, AC-4.5)', () => {
+    const label = {
+      ...saved().items[0]!,
+      source: 'label' as const,
+      barcode: '96385074',
+    };
+    const toast = () => screen.queryByText('Saved “Buckwheat” for next time');
+
+    it('a new meal with a label dish says so on Today', async () => {
+      history.replaceState({ dishes: [label] }, '');
+      const at = setup(saved(), MEAL_EDIT_PATH);
+      fireEvent.click(
+        await screen.findByRole('button', { name: 'Save' }, { timeout: 5000 }),
+      );
+      await waitFor(() => expect(at.history.at(-1)).toBe('/'));
+      await screen.findByText('Saved “Buckwheat” for next time');
+      history.replaceState(null, '');
+      // The queue sends it before the next test clears the local copy.
+      await waitFor(() =>
+        expect(sent).toContainEqual(
+          expect.objectContaining({ method: 'POST', url: '/api/meals' }),
+        ),
+      );
+    });
+
+    it('an edit of a saved meal says nothing', async () => {
+      setup(saved({ items: [label] }));
+      fireEvent.change(
+        await screen.findByRole(
+          'textbox',
+          { name: 'Weight of Buckwheat' },
+          { timeout: 5000 },
+        ),
+        { target: { value: '300' } },
+      );
+      fireEvent.click(button('Save'));
+      await screen.findByText('Diary 2026-11-12');
+      await waitFor(() =>
+        expect(sent).toContainEqual(
+          expect.objectContaining({ method: 'PATCH', url: '/api/meals/5' }),
+        ),
+      );
+      expect(toast()).toBeNull();
+    });
   });
 
   it('«Delete entry» goes back to the day, one DELETE after the undo window', async () => {

@@ -10,6 +10,7 @@ import {
 import { Badge } from '../Badge/Badge';
 import { useT } from '../../i18n';
 import { ConfidenceBadge } from '../ConfidenceBadge/ConfidenceBadge';
+import { SourceBadge } from '../SourceBadge/SourceBadge';
 import {
   DishIllustration,
   illustrationLabel,
@@ -25,6 +26,8 @@ export type DishRowDish = Nutrients & {
   source: DishSource;
   /** AI only; dropped by the screen after a weight or name edit (AC-2.9). */
   confidence?: number;
+  /** `source: 'barcode'`: the numbers are the user's own product (E-8). */
+  mine?: boolean;
   /** Shown left of the name and macros (OCT-33). */
   illustration?: IllustrationId;
 };
@@ -125,7 +128,14 @@ export function DishRow({
               </Badge>
             </span>
           )}
-          <ConfidenceBadge source={dish.source} confidence={dish.confidence} />
+          {dish.source === 'barcode' || dish.source === 'label' ? (
+            <SourceBadge kind={dish.mine ? 'mine' : dish.source} />
+          ) : (
+            <ConfidenceBadge
+              source={dish.source}
+              confidence={dish.confidence}
+            />
+          )}
           <span className="tabular-nums">
             {t('edit.macros', {
               p: num(dish.proteinG),

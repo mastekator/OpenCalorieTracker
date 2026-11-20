@@ -80,3 +80,41 @@ export const Russian: Story = {
   },
   globals: { locale: 'ru' },
 };
+
+/** 2.6: a package found by barcode — its serving under the weight and the Open Food Facts credit. */
+const yogurt = {
+  original: {
+    name: 'Greek yogurt 2%',
+    grams: 140,
+    kcal: 92.4,
+    proteinG: 11.2,
+    fatG: 2.8,
+    carbsG: 5.6,
+  },
+  grams: 140,
+  source: { kind: 'barcode', code: '4607012345677', servingG: 140 },
+} as const;
+export const Package: Story = { args: yogurt };
+export const PackageDark: Story = { args: yogurt, globals: { theme: 'dark' } };
+const label = {
+  ...yogurt,
+  source: { kind: 'label', code: '4607012345677' },
+} as const;
+export const PackageLabel: Story = { args: label };
+export const PackageLabelDark: Story = {
+  args: label,
+  globals: { theme: 'dark' },
+};
+const mine = {
+  ...yogurt,
+  source: {
+    kind: 'mine',
+    code: '4607012345677',
+    savedAt: '2026-11-02T10:00:00Z',
+  },
+} as const;
+export const PackageMine: Story = { args: mine };
+export const PackageMineDark: Story = {
+  args: mine,
+  globals: { theme: 'dark' },
+};

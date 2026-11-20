@@ -1391,6 +1391,7 @@ export const en = {
     macro: { left: '{n}\u00a0g left', over: '{n}\u00a0g over' },
     week_left: '{n} kcal left this week',
     week_over: '{n} kcal over this week',
+    remembered: 'Saved “{name}” for next time',
     empty: {
       title: 'Nothing logged yet',
       body: 'Take a photo of your food — we’ll count calories and macros.',
@@ -1432,7 +1433,18 @@ export const en = {
         low: 'Confidence: low, check it',
       },
     },
-    source: { manual: 'manual', history: 'as last time', recipe: 'recipe' },
+    source: {
+      manual: 'manual',
+      history: 'as last time',
+      recipe: 'recipe',
+      barcode: 'barcode',
+      label: 'label',
+      mine: 'your product',
+    },
+    package_caption:
+      'Barcode and label numbers come from the package — just check the grams. The rest is an AI estimate from the photo.',
+    remember:
+      'After saving we’ll remember {name} with its barcode — next time it’s found at once, without AI.',
     weight: {
       label: 'Weight of {dish}',
       less: '{step} less',
@@ -1464,6 +1476,15 @@ export const en = {
       name_err: 'Enter a name',
       done: 'Done',
       delete: 'Delete dish',
+      serving: 'Serving on the package: {weight}',
+      src: {
+        off: 'Open Food Facts · by barcode',
+        label: 'From the label in the photo · AI',
+        mine: 'Your product · saved {date}',
+        mine_undated: 'Your product',
+      },
+      per100: 'Per 100 g: {kcal} · {macros}',
+      open_off: 'Open in Open Food Facts',
     },
     empty: {
       title: 'No dishes in the list',
