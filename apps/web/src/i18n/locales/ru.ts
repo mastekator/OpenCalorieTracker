@@ -1444,6 +1444,7 @@ const ru: DeepPartial<typeof en> = {
     macro: { left: 'осталось {n}\u00a0г', over: 'перебор {n}\u00a0г' },
     week_left: 'На неделю осталось {n} ккал',
     week_over: 'Перебор за неделю {n} ккал',
+    remembered: 'Запомнили «{name}»',
     empty: {
       title: 'Сегодня пока пусто',
       body: 'Сфотографируйте еду — калории и БЖУ посчитаем сами.',
@@ -1493,7 +1494,14 @@ const ru: DeepPartial<typeof en> = {
       manual: 'вручную',
       history: 'как в прошлый раз',
       recipe: 'рецепт',
+      barcode: 'штрихкод',
+      label: 'этикетка',
+      mine: 'ваш продукт',
     },
+    package_caption:
+      'Цифры по штрихкоду и с этикетки — с упаковки, проверьте только граммы. Остальное — оценка ИИ по фото.',
+    remember:
+      'После сохранения запомним {name} со штрихкодом — в следующий раз найдём его сразу, без ИИ.',
     weight: {
       label: 'Вес: {dish}',
       less: 'Меньше на {step}',
@@ -1525,6 +1533,15 @@ const ru: DeepPartial<typeof en> = {
       name_err: 'Введите название',
       done: 'Готово',
       delete: 'Удалить блюдо',
+      serving: 'Порция на упаковке — {weight}',
+      src: {
+        off: 'Open Food Facts · по штрихкоду',
+        label: 'С этикетки на фото · ИИ',
+        mine: 'Ваш продукт · сохранён {date}',
+        mine_undated: 'Ваш продукт',
+      },
+      per100: 'На 100 г: {kcal} · {macros}',
+      open_off: 'Открыть в Open Food Facts',
     },
     empty: {
       title: 'В списке нет блюд',

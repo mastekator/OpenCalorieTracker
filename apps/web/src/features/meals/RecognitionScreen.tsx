@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { useLocation, useSearch } from 'wouter';
 import { X } from 'lucide-react';
 import {
@@ -11,6 +11,8 @@ import {
   type PhotoBarcodesResponse,
 } from '@oct/shared';
 import { api, ApiError } from '../../api/client';
+import { DataContext } from '../../data/DataContext';
+import { keepProduct } from '../../data/products';
 import { useT } from '../../i18n';
 import { NavBar } from '../../ui/NavBar/NavBar';
 import { MEAL_NEW_PATH, useCapture } from './CaptureContext';
@@ -80,6 +82,8 @@ export function RecognitionScreen({
   const { t } = useT();
   const [, navigate] = useLocation();
   const capture = useCapture();
+  // None in view tests and stories: nothing is kept then.
+  const db = useContext(DataContext);
   const [state, setState] = useState<RecognitionStateKind>('loading');
   const [codes, setCodes] = useState<PhotoCodes>('pending');
   const [ai, setAi] = useState<'run' | 'none'>('run');
@@ -108,7 +112,17 @@ export function RecognitionScreen({
       photoBarcodesSchema,
       { method: 'POST', signal: ctrl.signal },
     ).then(
-      (r) => r.codes,
+      async (r) => {
+        // Kept before the edit screen opens, so its «Dish» sheet finds them (OCT-313 2.6).
+        if (db)
+          await Promise.all(
+            r.codes.map(
+              ({ result: { product } }) =>
+                product && keepProduct(db, product).catch(() => {}),
+            ),
+          );
+        return r.codes;
+      },
       () => null,
     );
     void barcodes.then((c) => {

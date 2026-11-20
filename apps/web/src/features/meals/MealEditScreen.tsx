@@ -8,6 +8,8 @@ import {
 import { Redirect, useLocation, useSearch } from 'wouter';
 import {
   Ban,
+  Barcode,
+  Bookmark,
   Calendar,
   Camera,
   ChefHat,
@@ -39,6 +41,7 @@ import {
   type AiQuestion,
   type RecognitionStatus,
   type Units,
+  type Product,
   uuid,
 } from '@oct/shared';
 import { api, ApiError, type ClientErrorCode } from '../../api/client';
@@ -48,6 +51,7 @@ import {
   useIllustrationChoices,
   useMeal,
   useMealError,
+  useProducts,
   useRecipes,
   useSettings,
 } from '../../data/DataContext';
@@ -101,6 +105,7 @@ import {
   applyRefine,
   itemOf,
   previousSchema,
+  remembers,
   requestDishes,
   toRequest,
   toRow,
@@ -228,6 +233,8 @@ type Props = {
   onBarcode?: (code: string) => Promise<BarcodeResult>;
   /** Read from the photo without AI and not found: the manual sheet opens with it (OCT-313 3.4). */
   photoBarcode?: { code: string; admin: boolean };
+  /** Products on this device by code: an own one, its serving and save date (OCT-313 2.6). */
+  products?: Map<string, Product>;
 };
 
 /** Screen 4 (design OCT-16 §3, E.2): dishes, weights with live totals, meal type, save. */
@@ -256,6 +263,7 @@ export function MealEditScreen({
   onRecipe,
   onBarcode,
   photoBarcode,
+  products,
 }: Props) {
   const { t, num, locale } = useT();
   const online = useOnline();
@@ -917,6 +925,23 @@ export function MealEditScreen({
   const vision = recognition === 'ready' && !noVision;
   const canAgain = canRefine && vision && !!serverPhoto;
   const aiRows = rows.some((r) => r.source === 'ai');
+  // Package numbers: where they come from (OCT-313 §2).
+  const packageOf = (row: Row) => {
+    if (row.source !== 'barcode' && row.source !== 'label') return undefined;
+    const code = row.original.barcode ?? null;
+    const product = code ? products?.get(code) : undefined;
+    const mine =
+      row.source === 'barcode' &&
+      (row.original.from === 'mine' || !!product?.savedAt);
+    return {
+      kind: mine ? ('mine' as const) : row.source,
+      code,
+      servingG: product?.servingG,
+      savedAt: product?.savedAt,
+    };
+  };
+  const mixed = aiRows && rows.some((r) => packageOf(r));
+  const remembered = items.filter(remembers);
   const refineOff = !online || working || refine.limitReached;
   const asked = rows.filter(
     (r) => r.question && r.question.chosen === undefined,
@@ -1169,10 +1194,16 @@ export function MealEditScreen({
               <div className="meal-edit__estimate-row">
                 {aiRows && (
                   <p className="meal-edit__estimate">
-                    <Sparkle aria-hidden="true" />
+                    {mixed && !asked ? (
+                      <Barcode aria-hidden="true" />
+                    ) : (
+                      <Sparkle aria-hidden="true" />
+                    )}
                     {asked
                       ? t('edit.question.count', { count: asked })
-                      : t('edit.estimate')}
+                      : mixed
+                        ? t('edit.package_caption')
+                        : t('edit.estimate')}
                   </p>
                 )}
                 {canAgain && (
@@ -1258,6 +1289,7 @@ export function MealEditScreen({
                           ...item,
                           grams: row.grams,
                           confidence: item.confidence,
+                          mine: packageOf(row)?.kind === 'mine',
                           illustration: illustrationOf(row),
                         }}
                         units={units}
@@ -1327,6 +1359,13 @@ export function MealEditScreen({
             ) : (
               <p className="meal-edit__empty">{t('edit.empty_manual')}</p>
             )}
+            {remembered.map((item, i) => (
+              // AC-4.5: saved with its barcode, found at once next time.
+              <p key={i} className="meal-edit__estimate">
+                <Bookmark aria-hidden="true" />
+                {t('edit.remember', { name: item.name })}
+              </p>
+            ))}
             {(rows.length > 0 || dishes.length === 0) && (
               <Button
                 variant="plain"
@@ -1511,6 +1550,7 @@ export function MealEditScreen({
           original={editingRow.original}
           grams={editingRow.grams ?? editingRow.shown}
           units={units}
+          source={packageOf(editingRow)}
           onDone={(name, grams) => applySheet(editingRow.id, name, grams)}
           onDelete={() => {
             setEditing(null);
@@ -1585,6 +1625,9 @@ export function MealEditRoute() {
   const [state] = useState(() => history.state as MealEditState | null);
   const ai = useAiStatus();
   const recipes = useRecipes();
+  const products = useProducts();
+  const { t } = useT();
+  const toast = useToast();
   if (!state && photoId)
     return <Redirect to={`${MEAL_NEW_PATH}?${search}`} replace />;
   // Read once on open: hints are matched then (the local copy answers within a frame).
@@ -1592,6 +1635,7 @@ export function MealEditRoute() {
   return (
     <MealEditScreen
       recipes={recipes}
+      products={products}
       onBarcode={(code) => lookupProduct(db, code)}
       dishes={state && 'dishes' in state ? state.dishes : []}
       questions={state && 'dishes' in state ? state.questions : undefined}
@@ -1609,11 +1653,16 @@ export function MealEditRoute() {
       onChoice={(name, id) => void putIllustrationChoice(db, name, id)}
       onSave={async (input, photo) => {
         await createMeal(db, input, photo);
-        if (date) return navigate(`/diary/${date}`, { replace: true });
-        navigate('/', {
-          replace: true,
-          state: { saved: input.clientId } satisfies TodayState,
-        });
+        // A new meal only: an edit of a saved one says nothing (AC-4.5).
+        const names = input.items.filter(remembers).map((i) => i.name);
+        if (date) navigate(`/diary/${date}`, { replace: true });
+        else
+          navigate('/', {
+            replace: true,
+            state: { saved: input.clientId } satisfies TodayState,
+          });
+        if (names.length)
+          toast({ text: t('today.remembered', { name: names.join(', ') }) });
       }}
       onClose={() => navigate('/')}
     />
@@ -1640,6 +1689,7 @@ export function MealEditExisting({ clientId }: { clientId: string }) {
   const online = useOnline();
   const [recalc] = useState(() => recalcState());
   const recipes = useRecipes();
+  const products = useProducts();
   // The local copy answers within a frame.
   if (meal === undefined || recipes === undefined) return null;
   if (!meal || undo.hidden.has(clientId)) return <Redirect to="/" replace />;
@@ -1656,6 +1706,7 @@ export function MealEditExisting({ clientId }: { clientId: string }) {
       key={meal.clientId}
       meal={meal}
       recipes={recipes}
+      products={products}
       onBarcode={(code) => lookupProduct(db, code)}
       refused={refused}
       recalc={recalc}

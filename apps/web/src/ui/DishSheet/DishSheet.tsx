@@ -3,6 +3,9 @@ import { flushSync } from 'react-dom';
 import { DISH_GRAMS, scaleItem, type Nutrients, type Units } from '@oct/shared';
 import { useT } from '../../i18n';
 import { Button } from '../Button/Button';
+import { DishSourceBlock } from '../DishSourceBlock/DishSourceBlock';
+import type { PackageKind } from '../SourceBadge/SourceBadge';
+import { useWeight } from '../weightUnits';
 import { Field } from '../Field/Field';
 import { Sheet } from '../Sheet/Sheet';
 import { WeightStepper } from '../WeightStepper/WeightStepper';
@@ -14,6 +17,13 @@ type Props = {
   /** Current weight on the screen. */
   grams: number;
   units: Units;
+  /** A package dish: where its numbers come from, and the package's serving if known (OCT-313 2.6). */
+  source?: {
+    kind: PackageKind;
+    code: string | null;
+    servingG?: number | null;
+    savedAt?: string;
+  };
   /** «Done» with a non-empty name and a valid weight. */
   onDone: (name: string, grams: number) => void;
   onDelete: () => void;
@@ -26,11 +36,13 @@ export function DishSheet({
   original,
   grams: initial,
   units,
+  source,
   onDone,
   onDelete,
   onClose,
 }: Props) {
   const { t, num } = useT();
+  const w = useWeight(units);
   const [name, setName] = useState(original.name);
   // An out-of-range AI weight starts invalid, so «Done» can't pass it on as valid (AC-3.4).
   const [grams, setGrams] = useState<number | null>(
@@ -83,6 +95,13 @@ export function DishSheet({
           label={t('edit.weight.label', { dish: name.trim() || original.name })}
           onChange={setGrams}
         />
+        {source?.servingG && (
+          <p className="dish-sheet__serving">
+            {t('edit.dish.serving', {
+              weight: `${w.fmt(source.servingG)}\u00a0${w.u}`,
+            })}
+          </p>
+        )}
         <p className="dish-sheet__numbers tabular-nums" aria-live="polite">
           <span className="dish-sheet__kcal">
             {t('meal.kcal', { n: num(shown.kcal) })}
@@ -93,6 +112,14 @@ export function DishSheet({
             c: num(shown.carbsG),
           })}
         </p>
+        {source && (
+          <DishSourceBlock
+            kind={source.kind}
+            code={source.code}
+            original={original}
+            savedAt={source.savedAt}
+          />
+        )}
       </div>
     </Sheet>
   );

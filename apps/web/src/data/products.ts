@@ -26,7 +26,7 @@ export async function lookupProduct(
   try {
     const res = await api(`/api/barcodes/${code}`, barcodeLookupSchema);
     if (res.product) {
-      await db.put('products', res.product);
+      await keepProduct(db, res.product);
       return res;
     }
     off = res.off;
@@ -37,6 +37,10 @@ export async function lookupProduct(
   const product = (await db.get('products', code)) ?? null;
   return { product, from: product && 'local', off };
 }
+
+/** A product found by barcode, kept on this device for the «Dish» sheet and offline (ADR-0034 §7). */
+export const keepProduct = (db: Db, product: Product) =>
+  db.put('products', product);
 
 /** GET /api/products/mine into this device: at start and after a dish with a barcode is saved. */
 export async function refreshMyProducts(db: Db) {

@@ -105,6 +105,50 @@ const failing = { onSave: fn(() => Promise.reject(new Error('quota'))) };
 export const Recognized: Story = {};
 export const RecognizedDark: Story = { globals: dark };
 
+/**
+ * OCT-313 §2: a package found by barcode, an own product and a label beside the AI's dish —
+ * source badges, the package caption and «we'll remember».
+ */
+const packages = {
+  dishes: [
+    {
+      name: 'Greek yogurt 2%',
+      grams: 140,
+      kcal: 92.4,
+      proteinG: 11.2,
+      fatG: 2.8,
+      carbsG: 5.6,
+      source: 'barcode' as const,
+      barcode: '4607012345677',
+      from: 'off' as const,
+    },
+    {
+      name: 'Home kefir',
+      grams: 200,
+      kcal: 80,
+      proteinG: 6,
+      fatG: 2,
+      carbsG: 8,
+      source: 'barcode' as const,
+      barcode: '96385074',
+      from: 'mine' as const,
+    },
+    {
+      name: 'Granola bar',
+      grams: 40,
+      kcal: 180,
+      proteinG: 3,
+      fatG: 7,
+      carbsG: 26,
+      source: 'label' as const,
+      barcode: '4006381333931',
+    },
+    dishes[0]!,
+  ],
+};
+export const Packages: Story = { args: packages };
+export const PackagesDark: Story = { args: packages, globals: dark };
+
 // Only the body scrolls; the footer stays at the bottom edge with nothing below it (OCT-239).
 const longList = { dishes: [...dishes, ...dishes, ...dishes] };
 export const LongList: Story = { args: longList };

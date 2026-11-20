@@ -92,6 +92,21 @@ export const History: Story = {
   args: { dish: { ...rice, source: 'history' } },
 };
 /** Weight field empty: danger border and hint, numbers stay as last valid. */
+/** Package numbers (OCT-313 §2): a source badge in place of the confidence one. */
+export const Barcode: Story = {
+  args: { dish: { ...rice, name: 'Greek yogurt 2%', source: 'barcode' } },
+};
+export const BarcodeDark: Story = { ...Barcode, globals: { theme: 'dark' } };
+export const Label: Story = {
+  args: { dish: { ...rice, name: 'Granola bar', source: 'label' } },
+};
+export const LabelDark: Story = { ...Label, globals: { theme: 'dark' } };
+export const Mine: Story = {
+  args: {
+    dish: { ...rice, name: 'Home kefir', source: 'barcode', mine: true },
+  },
+};
+export const MineDark: Story = { ...Mine, globals: { theme: 'dark' } };
 export const WeightError: Story = {
   args: { dish: { ...rice, grams: null, source: 'ai', confidence: 0.6 } },
 };

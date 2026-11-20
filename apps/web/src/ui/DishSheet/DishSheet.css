@@ -15,3 +15,10 @@
   font-weight: var(--text-headline-weight);
   color: var(--color-text);
 }
+
+.dish-sheet__serving {
+  margin-top: calc(-1 * var(--space-2));
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+  color: var(--color-text-secondary);
+}

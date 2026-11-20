@@ -1110,6 +1110,103 @@ describe('MealEditScreen: recipes (OCT-160 §5, ADR-0023 §5–6)', () => {
       ]);
     });
 
+    const code = '4607012345677';
+    const yogurt = {
+      ...buckwheat,
+      name: 'Yogurt',
+      source: 'barcode' as const,
+      barcode: code,
+      from: 'off' as const,
+    };
+    const badges = (dish: string) =>
+      screen
+        .getByRole('textbox', { name: `Weight of ${dish}` })
+        .closest('.dish-row')!
+        .querySelector('.dish-row__meta')!.textContent;
+
+    it('a package keeps its source badge after a weight and a name edit (2)', async () => {
+      await open({ dishes: [yogurt, rice] });
+      expect(badges('Yogurt')).toContain('barcode');
+      fireEvent.change(
+        screen.getByRole('textbox', { name: 'Weight of Yogurt' }),
+        {
+          target: { value: '200' },
+        },
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Edit Yogurt' }));
+      const sheet = screen.getByRole('dialog');
+      fireEvent.change(within(sheet).getByLabelText('Name'), {
+        target: { value: 'Greek yogurt' },
+      });
+      fireEvent.click(within(sheet).getByRole('button', { name: 'Done' }));
+      await act(async () => {});
+      expect(badges('Greek yogurt')).toContain('barcode');
+    });
+
+    it('mixed sources get the package caption; packages alone get none (2)', async () => {
+      await open({ dishes: [yogurt, rice] });
+      screen.getByText(/^Barcode and label numbers come from the package/);
+      cleanup();
+      await open({ dishes: [yogurt] });
+      expect(screen.queryByText(/^Barcode and label numbers/)).toBeNull();
+      expect(screen.queryByText('AI estimate — check the weight.')).toBeNull();
+    });
+
+    it('an own product shows «your product» and its save date in the sheet (E-8, 2.6)', async () => {
+      const savedAt = '2026-11-02T10:00:00Z';
+      await open({
+        dishes: [{ ...yogurt, from: 'mine' }],
+        products: new Map([
+          [
+            code,
+            {
+              code,
+              name: 'Yogurt',
+              brand: null,
+              kcal100: 200,
+              protein100: 8,
+              fat100: 2,
+              carbs100: 40,
+              per: 'g',
+              servingG: 150,
+              servingText: null,
+              savedAt,
+            },
+          ],
+        ]),
+      });
+      expect(badges('Yogurt')).toContain('your product');
+      fireEvent.click(screen.getByRole('button', { name: 'Edit Yogurt' }));
+      const sheet = screen.getByRole('dialog');
+      within(sheet).getByText('Serving on the package: 150 g');
+      within(sheet).getByText('Your product · saved November 2, 2026');
+      expect(within(sheet).queryByRole('link')).toBeNull();
+    });
+
+    it('an Open Food Facts product is credited in the sheet with a link (2.6)', async () => {
+      await open({ dishes: [yogurt] });
+      fireEvent.click(screen.getByRole('button', { name: 'Edit Yogurt' }));
+      const sheet = screen.getByRole('dialog');
+      within(sheet).getByText('Open Food Facts · by barcode');
+      within(sheet).getByText('Per 100 g: 200 kcal · P 8 · F 2 · C 40');
+      expect(
+        within(sheet)
+          .getByRole('link', { name: 'Open in Open Food Facts' })
+          .getAttribute('href'),
+      ).toBe(`https://world.openfoodfacts.org/product/${code}`);
+    });
+
+    it('says a label dish with a code will be remembered; a found one won’t (AC-4.5)', async () => {
+      await open({
+        dishes: [yogurt, { ...rice, source: 'label', barcode: '96385074' }],
+      });
+      screen.getByText(
+        'After saving we’ll remember Rice with its barcode — next time it’s found at once, without AI.',
+      );
+      expect(screen.queryByText(/remember Yogurt/)).toBeNull();
+      expect(badges('Rice')).toContain('label');
+    });
+
     it('no AI, the photo’s code not found: the manual sheet opens with it (3.4)', async () => {
       await open({
         dishes: [],

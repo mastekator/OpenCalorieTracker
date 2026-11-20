@@ -358,6 +358,14 @@ export const byLastLogged = (a: Recipe, b: Recipe) =>
 export const useRecipes = () =>
   useLocal(async (db) => (await db.getAll('recipes')).sort(byLastLogged), []);
 
+/** Products kept on this device (ADR-0034 §7) by code: own ones carry `savedAt`. */
+export const useProducts = () =>
+  useLocal(
+    async (db) =>
+      new Map((await db.getAll('products')).map((p) => [p.code, p])),
+    [],
+  );
+
 /** One recipe; null when it is not in the local copy (deleted, wrong id). */
 export const useRecipe = (id: number) =>
   useLocal(async (db) => (await db.get('recipes', id)) ?? null, [id]);
