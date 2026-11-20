@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { fromPer100, type Nutrients } from '../nutrition.js';
 import { nutrientsSchema, validPer100 } from './lighter.js';
-import type { RecipeInput } from './recipes.js';
+import { COOKED_G_MAX, type RecipeInput } from './recipes.js';
 
 /** Longest pasted recipe text, characters (AC-6.5); the web counter uses it too. */
 export const RECIPE_TEXT_MAX = 10000;
@@ -79,7 +79,7 @@ export function parsedDraft(m: RecipeParseModel): RecipeParseResponse | null {
   return {
     draft: {
       name,
-      cookedG: inRange(m.cookedG, 1, 50000) ? round1(m.cookedG!) : null,
+      cookedG: inRange(m.cookedG, 1, COOKED_G_MAX) ? round1(m.cookedG!) : null,
       servings: inRange(m.servings, 1, 100) ? Math.round(m.servings!) : null,
       note: null,
       photoId: null,

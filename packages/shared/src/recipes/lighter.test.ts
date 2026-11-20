@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { recipeInputSchema } from './recipes.js';
 import {
   lighterSaving,
   lightened,
@@ -157,6 +158,24 @@ describe('lighterSaving', () => {
       lightened({ cookedG: 220, servings: null, ingredients: original }, v)
         .cookedG,
     ).toBe(203.7);
+  });
+  it('lightened: the cooked weight stays within the recipe max of 50000 g', () => {
+    const r = lightened(
+      { cookedG: 49000, servings: null, ingredients: original },
+      { ingredients: [...original, ing('Nuts', 100, 600)] },
+    );
+    expect(r.cookedG).toBe(50000);
+    expect(
+      recipeInputSchema.safeParse({
+        ...r,
+        name: 'Rice',
+        note: null,
+        photoId: null,
+        steps: [],
+        per100: null,
+        servingG: null,
+      }).success,
+    ).toBe(true);
   });
   const v = { ingredients: [rice, cheese] };
   it('is per serving with servings', () => {
