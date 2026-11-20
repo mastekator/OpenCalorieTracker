@@ -34,6 +34,8 @@ type Props = {
     removed: string[];
     onUndo: () => void;
     answered?: boolean;
+    /** The answer was one of the user's recipes: «· by recipe» (OCT-352 3.2). */
+    byRecipe?: boolean;
   };
 };
 
@@ -108,6 +110,7 @@ export function RefineBar({
             <span className="tabular-nums">
               {[
                 delta,
+                result.byRecipe && t('edit.refine.by_recipe'),
                 result.removed.length > 0 &&
                   t('edit.refine.removed', {
                     names: result.removed.join(', '),

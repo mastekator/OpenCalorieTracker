@@ -60,6 +60,23 @@ const long = {
 };
 export const LongTexts: Story = { args: long };
 export const LongTextsDark: Story = { args: long, globals: dark };
+/** OCT-352 3.1: the user's recipe — a chef's hat and its kcal per 100 g. */
+const recipe = {
+  text: 'Is it your recipe?',
+  options: [
+    { label: 'My cheesecake', hint: '160\u00a0kcal/100\u00a0g' },
+    { label: 'Light cheesecake', hint: '160\u00a0kcal/100\u00a0g' },
+    { label: 'Regular cheesecake' },
+  ],
+  guess: 2,
+};
+export const Recipe: Story = { args: recipe };
+export const RecipeDark: Story = { args: recipe, globals: dark };
+export const RecipeChosen: Story = { args: { ...recipe, chosen: 0 } };
+export const RecipeChosenDark: Story = {
+  args: { ...recipe, chosen: 0 },
+  globals: dark,
+};
 export const FocusVisible: Story = {
   parameters: { pseudo: { focusVisible: true } },
 };

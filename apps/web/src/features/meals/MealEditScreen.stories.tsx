@@ -8,7 +8,7 @@ import { LeaveGuard } from '../../app/LeaveGuard';
 import { ToastProvider } from '../../ui/Toast/Toast';
 import { MealEditScreen } from './MealEditScreen';
 import { MEAL_EDIT_PATH } from './RecognitionScreen';
-import { QUESTION_CASES } from './questions.fixtures';
+import { CHEESECAKE, QUESTION_CASES } from './questions.fixtures';
 
 type Props = ComponentProps<typeof MealEditScreen>;
 
@@ -574,4 +574,57 @@ export const QuestionAnsweredOfflineDark: Story = {
 export const QuestionAnsweredOfflineRu: Story = {
   ...answeredOffline,
   globals: { locale: 'ru' },
+};
+
+/** OCT-352 3.1: «Is it your recipe?» — the user's recipe as a chip with its kcal per 100 g. */
+const recipeQuestion = {
+  ...refineReady,
+  ...QUESTION_CASES.k7,
+  recipes: [CHEESECAKE],
+} satisfies Partial<Props>;
+export const RecipeQuestion: Story = { args: recipeQuestion };
+export const RecipeQuestionDark: Story = {
+  args: recipeQuestion,
+  globals: dark,
+};
+/** 3.2: «My cheesecake» tapped — a recipe portion, «was 480 kcal», «Answer applied · by recipe». */
+const recipeAnswered: Story = {
+  args: recipeQuestion,
+  play: async ({ canvas, userEvent }) =>
+    userEvent.click(
+      await canvas.findByRole('radio', { name: /My cheesecake/ }),
+    ),
+};
+export const RecipeAnswered: Story = recipeAnswered;
+export const RecipeAnsweredDark: Story = { ...recipeAnswered, globals: dark };
+const k7 = QUESTION_CASES.k7;
+const [mine, regular] = k7.questions[0]!.options;
+export const RecipeAnsweredRu: Story = {
+  args: {
+    ...recipeQuestion,
+    dishes: [{ ...k7.dishes[0]!, name: 'Чизкейк' }],
+    questions: [
+      {
+        ...k7.questions[0]!,
+        text: 'Это ваш рецепт?',
+        options: [
+          {
+            ...mine!,
+            label: 'Мой чизкейк',
+            name: 'Мой чизкейк',
+            recipe: 'Мой чизкейк',
+          },
+          { ...regular!, label: 'Обычный чизкейк', name: 'Чизкейк' },
+        ],
+      },
+    ],
+    recipes: [{ ...CHEESECAKE, name: 'Мой чизкейк' }],
+  },
+  play: async ({ canvas, userEvent }) =>
+    userEvent.click(await canvas.findByRole('radio', { name: /Мой чизкейк/ })),
+  globals: { locale: 'ru' },
+};
+export const RecipeAnsweredDesktop: Story = {
+  ...recipeAnswered,
+  globals: { viewport: { value: 'desktop' } },
 };

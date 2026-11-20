@@ -1,11 +1,12 @@
 import { useId, useRef, type KeyboardEvent } from 'react';
-import { Check, Sparkle } from 'lucide-react';
+import { Check, ChefHat, Sparkle } from 'lucide-react';
 import { useT } from '../../i18n';
 import './AiQuestion.css';
 
 type Props = {
   text: string;
-  options: readonly { label: string }[];
+  /** `hint`: one of the user's recipes, «160 kcal/100 g» under its name (OCT-352 3.1). */
+  options: readonly { label: string; hint?: string }[];
   /** The AI's guess: checked until the user picks (OCT-234 H.1). */
   guess: number;
   /** The option the user tapped; none: not answered yet. */
@@ -82,8 +83,19 @@ export function AiQuestion({
             }
             onClick={() => pick(i)}
           >
-            {i === checked && <Check aria-hidden="true" />}
-            {option.label}
+            {i === checked ? (
+              <Check aria-hidden="true" />
+            ) : (
+              option.hint && <ChefHat aria-hidden="true" />
+            )}
+            {option.hint ? (
+              <span className="ai-question__recipe">
+                {option.label}
+                <span className="ai-question__hint">{option.hint}</span>
+              </span>
+            ) : (
+              option.label
+            )}
           </button>
         ))}
         <button

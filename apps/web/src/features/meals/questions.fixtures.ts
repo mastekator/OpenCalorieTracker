@@ -1,4 +1,4 @@
-import type { Recognition } from '@oct/shared';
+import type { Recipe, Recognition } from '@oct/shared';
 
 const d = (
   name: string,
@@ -130,4 +130,39 @@ export const QUESTION_CASES = {
       },
     ],
   },
+  /** K7: «Is it your recipe?» (OCT-352 3.1): the user's cheesecake, the guess the usual one. */
+  k7: {
+    dishes: [{ ...d('Cheesecake', 150, 480, 9, 34, 35), confidence: 0.6 }],
+    questions: [
+      {
+        dish: 0,
+        text: 'Is it your recipe?',
+        guess: 1,
+        options: [
+          {
+            ...o('My cheesecake', 'My cheesecake', 150, 400, 9, 30, 30),
+            recipe: 'My cheesecake',
+            recipeId: 10,
+          },
+          o('Regular cheesecake', 'Cheesecake', 150, 480, 9, 34, 35),
+        ],
+      },
+    ],
+  },
 } satisfies Record<string, Required<Recognition>>;
+
+/** K7's recipe, without ingredients: 160 kcal/100 g (ADR-0035 §2). */
+export const CHEESECAKE: Recipe = {
+  id: 10,
+  name: 'My cheesecake',
+  cookedG: null,
+  servings: null,
+  note: null,
+  photoId: null,
+  ingredients: [],
+  steps: [],
+  per100: { kcal: 160, proteinG: 9.3, fatG: 8, carbsG: 13.3 },
+  servingG: 150,
+  lastLoggedAt: null,
+  updatedAt: '2026-11-19T10:00:00.000Z',
+};

@@ -7,12 +7,17 @@ import {
   waitFor,
   within,
 } from '@testing-library/react';
-import type { MealInput, Recognition, RefineRequest } from '@oct/shared';
+import type {
+  MealInput,
+  Recipe,
+  Recognition,
+  RefineRequest,
+} from '@oct/shared';
 import { I18nProvider, LOCALE_STORAGE_KEY } from '../../i18n';
 import { renderLoaded } from '../../test-utils';
 import { ToastProvider } from '../../ui/Toast/Toast';
 import { MealEditScreen, type RecalcState } from './MealEditScreen';
-import { QUESTION_CASES } from './questions.fixtures';
+import { CHEESECAKE, QUESTION_CASES } from './questions.fixtures';
 
 type Call = { body: RefineRequest; settle: (r: Response) => void };
 let calls: Call[];
@@ -48,6 +53,7 @@ afterEach(() => {
 async function setup(
   { dishes, questions }: Recognition = QUESTION_CASES.k1,
   recalc?: RecalcState,
+  recipes?: Recipe[],
 ) {
   const onSave = vi.fn(async (input: MealInput) => void input);
   await renderLoaded(
@@ -60,6 +66,7 @@ async function setup(
           units="metric"
           recognition="ready"
           recalc={recalc}
+          recipes={recipes}
           onSave={onSave}
           onClose={() => {}}
           now={() => new Date(2026, 10, 15, 13, 24)}
@@ -283,5 +290,49 @@ describe('AI questions under a dish (OCT-262)', () => {
       },
     );
     expect(group('Not sure: What is this?')).toBeTruthy();
+  });
+});
+
+describe('a recipe option (ADR-0035 §6, OCT-352 3.x)', () => {
+  const CAKE = 'Not sure: Is it your recipe?';
+
+  it('a chip with kcal per 100 g; a tap makes a recipe portion offline, Undo brings the guess back', async () => {
+    online = false;
+    await setup(QUESTION_CASES.k7, undefined, [CHEESECAKE]);
+    const g = group(CAKE);
+    expect(chip(g, /My cheesecake/).textContent).toBe(
+      'My cheesecake160\u00a0kcal/100\u00a0g',
+    );
+    fireEvent.click(chip(g, /My cheesecake/));
+    expect(names()).toEqual(['My cheesecake']);
+    expect(total()).toContain('240');
+    expect(screen.getByText('was 480 kcal')).toBeTruthy();
+    expect(screen.getByText(/by recipe/)).toBeTruthy();
+    expect(refineCalls()).toBe(0);
+    fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(names()).toEqual(['Cheesecake']);
+    expect(total()).toContain('480');
+  });
+
+  it('saves the portion with its recipe link', async () => {
+    const { onSave } = await setup(QUESTION_CASES.k7, undefined, [CHEESECAKE]);
+    fireEvent.click(chip(group(CAKE), /My cheesecake/));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave.mock.calls[0]![0].items[0]).toMatchObject({
+      name: 'My cheesecake',
+      grams: 150,
+      kcal: 240,
+      source: 'recipe',
+      recipeId: 10,
+    });
+  });
+
+  it('a deleted recipe hides its option and the question left with one (E-2.b)', async () => {
+    await setup(QUESTION_CASES.k7, undefined, []);
+    expect(groups()).toHaveLength(0);
+    expect(
+      document.querySelector('.meal-edit__estimate')!.textContent,
+    ).not.toContain('question');
   });
 });

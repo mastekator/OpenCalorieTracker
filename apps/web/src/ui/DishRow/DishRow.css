@@ -50,8 +50,7 @@
   stroke-width: 2.25;
 }
 
-.dish-row--illo .dish-row__weight,
-.dish-row--illo .dish-row__extra {
+.dish-row--illo .dish-row__weight {
   grid-column: 1 / -1;
 }
 
@@ -256,4 +255,9 @@
   -webkit-line-clamp: 2;
   line-clamp: 2;
   overflow: hidden;
+}
+
+.dish-row__extra {
+  padding: 0 var(--space-4) var(--space-3);
+  background: var(--color-surface);
 }
