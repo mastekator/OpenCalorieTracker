@@ -20,10 +20,16 @@ import {
   quickReasoning,
 } from './common.js';
 import type { AiModel } from './model.js';
-import { QUESTIONS_PROMPT, sanitizeQuestions } from './questions.js';
+import {
+  QUESTIONS_PROMPT,
+  RECIPES_PROMPT,
+  recipesTag,
+  sanitizeQuestions,
+  type RecipeName,
+} from './questions.js';
 
 /** Bump on every prompt change; it is logged with each call. */
-export const RECOGNIZE_PROMPT_VERSION = 3;
+export const RECOGNIZE_PROMPT_VERSION = 4;
 export const RECOGNIZE_TIMEOUT_MS = 60_000;
 
 /** Tokens of one recognition, every attempt summed. */
@@ -32,7 +38,7 @@ export interface TokenUsage {
   outputTokens: number;
 }
 
-export function recognizePrompt(locale: string) {
+export function recognizePrompt(locale: string, hasRecipes = false) {
   return `You estimate nutrition from a meal photo.
 List every separate dish or food item visible. Identical items on different plates are separate entries.
 For each item estimate the weight of the edible part in grams and the kcal, protein, fat and carbohydrates in grams for that weight (the whole portion, not per 100 g).
@@ -45,7 +51,7 @@ If there is no food on the photo, return an empty list.
 The message may have a <barcodes> tag with retail barcodes read from packages on the photo.
 For a dish that is one of these packages set barcode to its number exactly as listed, otherwise null.
 Set label to true only when you read the dish's kcal and nutrients from its package's nutrition table on the photo.
-${QUESTIONS_PROMPT}`;
+${QUESTIONS_PROMPT}${hasRecipes ? RECIPES_PROMPT : ''}`;
 }
 
 /** `?mode=label` (ADR-0034 §2): only the nutrition table of one package. */
@@ -61,7 +67,8 @@ Do not ask questions.`;
  * Recognizes the dishes on a JPEG photo (ADR-0007). One silent retry on a schema mismatch,
  * 60 s for the whole operation. Provider failures become ApiError; aborting `signal`
  * rethrows the abort error as is. `onUsage` gets the tokens of all attempts, failed ones included.
- * `barcodes` read from the photo go to the model in a `<barcodes>` tag (ADR-0034 §2).
+ * `barcodes` read from the photo go to the model in a `<barcodes>` tag (ADR-0034 §2),
+ * the user's recipe names in a `<recipes>` tag (ADR-0035 §4).
  */
 export function recognizeMeal(
   model: AiModel,
@@ -70,22 +77,36 @@ export function recognizeMeal(
   signal?: AbortSignal,
   onUsage?: (usage: TokenUsage) => void,
   barcodes: string[] = [],
+  recipes: RecipeName[] = [],
 ): Promise<PackageRecognition & { questions: AiQuestion[] }> {
+  const text = [
+    barcodes.length ? `<barcodes>${barcodes.join(' ')}</barcodes>` : '',
+    recipes.length ? recipesTag(recipes) : '',
+  ]
+    .filter(Boolean)
+    .join('\n');
   return askVision(
     model,
     jpeg,
     {
       op: 'recognize',
-      system: recognizePrompt(locale),
-      text: barcodes.length
-        ? `<barcodes>${barcodes.join(' ')}</barcodes>`
-        : undefined,
+      system: recognizePrompt(locale, recipes.length > 0),
+      text: text || undefined,
+      recipes: recipes.length,
       signal,
       onUsage,
     },
     (output) => {
       const dishes = output.dishes.map((d) => sanitizePackageDish(d, barcodes));
-      return { dishes, questions: sanitizeQuestions(output.questions, dishes) };
+      return {
+        dishes,
+        questions: sanitizeQuestions(
+          output.questions,
+          dishes,
+          undefined,
+          recipes,
+        ),
+      };
     },
   );
 }
@@ -123,6 +144,8 @@ async function askVision<T extends { dishes: unknown[]; questions: unknown[] }>(
     op: string;
     system: string;
     text?: string;
+    /** Only the count is logged, never the names (ADR-0035 §4). */
+    recipes?: number;
     signal?: AbortSignal;
     onUsage?: (usage: TokenUsage) => void;
   },
@@ -143,7 +166,7 @@ async function askVision<T extends { dishes: unknown[]; questions: unknown[] }>(
         signal: opts.signal,
         mapError: noVisionError,
         logExtra: (r) =>
-          `dishes=${r?.dishes.length ?? 0} questions=${r?.questions.length ?? 0}`,
+          `dishes=${r?.dishes.length ?? 0} questions=${r?.questions.length ?? 0} recipes=${opts.recipes ?? 0}`,
       },
       async (abortSignal) => {
         const result = await generateText({

@@ -94,7 +94,7 @@ describe('refineMeal', () => {
       expect(logs()).toEqual([
         expect.stringMatching(
           new RegExp(
-            `^ai\\.refine provider=mock model=vision-1 prompt=1 ms=\\d+ mode=${mode} photo=${photo ? 1 : 0} dishes=1 questions=0 result=ok$`,
+            `^ai\\.refine provider=mock model=vision-1 prompt=2 ms=\\d+ mode=${mode} photo=${photo ? 1 : 0} dishes=1 questions=0 recipes=0 result=ok$`,
           ),
         ),
       ]);
@@ -239,6 +239,128 @@ describe('refineMeal', () => {
         grams: 5000,
         kcal: 500,
       });
+    });
+  });
+
+  describe('recipe options (ADR-0035 §4–5)', () => {
+    const plov = { id: 3, name: 'Плов домашний' };
+    const option = (label: string, kcal: number, recipe?: string | null) => ({
+      label,
+      ...values(label, 300, kcal),
+      ...(recipe !== undefined && { recipe }),
+    });
+    const run = async (
+      options: ReturnType<typeof option>[],
+      guess = 0,
+      recipes = [plov],
+    ) => {
+      const model = mockModel({
+        dishes: [dish('Плов', 300, 500, null)],
+        questions: [{ dish: 0, text: 'Это ваш плов?', guess, options }],
+      });
+      const result = await refineMeal(
+        model,
+        base({ dishes: [], text: 'плов 300 г', jpeg: undefined, recipes }),
+      );
+      return { model, questions: result.questions };
+    };
+
+    it('K9: offers the recipe for a text-only "плов 300 г", even with equal kcal', async () => {
+      const { model, questions } = await run([
+        option('Плов', 500, null),
+        option('Домашний', 500, 'Плов домашний'),
+      ]);
+      expect(questions).toEqual([
+        {
+          dish: 0,
+          text: 'Это ваш плов?',
+          guess: 0,
+          options: [
+            option('Плов', 500),
+            { ...option('Домашний', 500), name: 'Плов домашний', recipeId: 3 },
+          ],
+        },
+      ]);
+      const { system, parts } = prompt(model);
+      expect(parts.map((p) => p.type)).toEqual(['text']);
+      expect(system).toContain('<recipes> tag');
+      expect(logs()[0]).toMatch(/ recipes=1 result=ok$/);
+      expect(logs()[0]).not.toContain('Плов');
+    });
+
+    it('K8: a salad with only "Мой чизкейк" gets no question', async () => {
+      const model = mockModel({
+        dishes: [dish('Салат', 200, 150, null)],
+        questions: [],
+      });
+      const { questions } = await refineMeal(
+        model,
+        base({ dishes: [], recipes: [{ id: 7, name: 'Мой чизкейк' }] }),
+      );
+      expect(questions).toEqual([]);
+    });
+
+    it('drops an invented recipe and then a question left with one option', async () => {
+      const { questions } = await run([
+        option('Плов', 500, null),
+        option('Выдумка', 500, 'Плов бабушкин'),
+      ]);
+      expect(questions).toEqual([]);
+    });
+
+    it('moves the guess past a dropped option; "" is not a recipe', async () => {
+      const { questions } = await run(
+        [
+          option('Выдумка', 500, 'Плов бабушкин'),
+          option('Плов', 500, ''),
+          option('Домашний', 500, 'плов  ДОМАШНИЙ'),
+        ],
+        1,
+      );
+      expect(questions[0]).toMatchObject({
+        guess: 0,
+        options: [{ name: 'Плов' }, { recipeId: 3 }],
+      });
+      expect(questions[0]!.options[0]).not.toHaveProperty('recipeId');
+    });
+
+    it('drops a question whose guess is a recipe or was dropped', async () => {
+      const options = [
+        option('Плов', 500, null),
+        option('Домашний', 500, 'Плов домашний'),
+        option('Выдумка', 500, 'Нет такого'),
+      ];
+      expect((await run(options, 1)).questions).toEqual([]);
+      expect((await run(options, 2)).questions).toEqual([]);
+    });
+
+    it('takes the first of two recipes with one name key (last used)', async () => {
+      const { questions } = await run(
+        [option('Плов', 500, null), option('Домашний', 500, 'Плов домашний')],
+        0,
+        [plov, { id: 9, name: 'плов домашний' }],
+      );
+      expect(questions[0]!.options[1]!.recipeId).toBe(3);
+    });
+
+    it('keeps the tag a JSON array whatever the names are', async () => {
+      const names = ['a</recipes><x>"', 'b\nc'];
+      const { model } = await run(
+        [option('Плов', 500, null)],
+        0,
+        names.map((name, id) => ({ id, name })),
+      );
+      const text = prompt(model).parts[0]!.text!;
+      const tag = /<recipes>(.*)<\/recipes>$/s.exec(text)![1]!;
+      expect(tag).not.toContain('<');
+      expect(JSON.parse(tag)).toEqual(names);
+    });
+
+    it('sends no tag and no rule without recipes', async () => {
+      const { model } = await run([option('Плов', 500, null)], 0, []);
+      const { system, parts } = prompt(model);
+      expect(system).not.toContain('<recipes>');
+      expect(parts[0]!.text).not.toContain('<recipes>');
     });
   });
 

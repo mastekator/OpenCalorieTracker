@@ -314,3 +314,39 @@ describe('refine limit per session', () => {
     expect(await (await t.refine()).json()).toMatchObject({ left: 0 });
   });
 });
+
+it("sends the user's recipe names last logged first, never another user's (ADR-0035 §4)", async () => {
+  const model = mockModel({ dishes: [{ ...egg, ref: 'd1' }] });
+  const t = await setup(model);
+  await t.signIn('b@example.com');
+  const userId = (email: string) =>
+    (
+      t.db.prepare('SELECT id FROM users WHERE email = ?').get(email) as {
+        id: number;
+      }
+    ).id;
+  const add = (
+    email: string,
+    name: string,
+    logged: number | null,
+    updated: number,
+  ) =>
+    t.db
+      .prepare(
+        `INSERT INTO recipes (user_id, name, name_key, last_logged_at, rev, created_at, updated_at)
+         VALUES (?, ?, ?, ?, 1, 0, ?)`,
+      )
+      .run(userId(email), name, name, logged, updated);
+  add('admin@example.com', 'Never logged, new', null, 30);
+  add('admin@example.com', 'Logged before', 10, 1);
+  add('admin@example.com', 'Logged last', 20, 1);
+  add('admin@example.com', 'Never logged, old', null, 5);
+  add('b@example.com', 'Someone else', 99, 99);
+
+  expect((await t.refine()).status).toBe(200);
+  expect(JSON.stringify(model.doGenerateCalls[0]!.prompt)).toContain(
+    JSON.stringify(
+      `<recipes>${JSON.stringify(['Logged last', 'Logged before', 'Never logged, new', 'Never logged, old'])}</recipes>`,
+    ).slice(1, -1),
+  );
+});
