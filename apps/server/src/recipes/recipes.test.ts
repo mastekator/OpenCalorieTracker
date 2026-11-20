@@ -55,6 +55,15 @@ async function setup() {
       body: res.status === 204 ? null : await res.json(),
     };
   };
+  /** PUT from the stored version, as an up-to-date client does. */
+  const put = (id: number | string, body: RecipeInput, c = cookie) => {
+    const at = t.db
+      .prepare('SELECT updated_at FROM recipes WHERE id = ?')
+      .pluck()
+      .get(Number(id)) as number | undefined;
+    const updatedAt = new Date(at ?? 0).toISOString();
+    return call('PUT', `/recipes/${id}`, { ...body, updatedAt }, c);
+  };
   const upload = async (c = cookie) => {
     const img = await sharp({
       create: { width: 64, height: 48, channels: 3, background: '#a52' },
@@ -94,7 +103,18 @@ async function setup() {
     (await call('GET', `/sync?since=${since}`)).body as SyncResponse;
   const count = (table: string) =>
     t.db.prepare(`SELECT COUNT(*) FROM ${table}`).pluck().get();
-  return { ...t, cookie, call, upload, addUser, adminId, files, sync, count };
+  return {
+    ...t,
+    cookie,
+    call,
+    put,
+    upload,
+    addUser,
+    adminId,
+    files,
+    sync,
+    count,
+  };
 }
 
 const input = (patch: Partial<RecipeInput> = {}): RecipeInput => ({
@@ -167,9 +187,8 @@ describe('recipes', () => {
       'плов домашний',
     );
 
-    const put = await t.call(
-      'PUT',
-      `/recipes/${recipe.id}`,
+    const put = await t.put(
+      recipe.id,
       input({
         name: 'Плов',
         cookedG: null,
@@ -197,9 +216,7 @@ describe('recipes', () => {
     expect((await t.call('DELETE', `/recipes/${recipe.id}`)).status).toBe(204);
     expect([t.count('recipes'), t.count('recipe_ingredients')]).toEqual([0, 0]);
     expect(t.count('recipe_tombstones')).toBe(1);
-    expect((await t.call('PUT', `/recipes/${recipe.id}`, input())).status).toBe(
-      404,
-    );
+    expect((await t.put(recipe.id, input())).status).toBe(404);
   });
 
   it("hides another user's recipe: 404 on PUT, 204 on DELETE without a change", async () => {
@@ -211,8 +228,8 @@ describe('recipes', () => {
       .prepare('SELECT sync_rev FROM users WHERE id = ?')
       .pluck()
       .get(t.adminId);
-    expect((await t.call('PUT', `/recipes/${id}`, input())).status).toBe(404);
-    expect((await t.call('PUT', '/recipes/abc', input())).status).toBe(404);
+    expect((await t.put(id, input())).status).toBe(404);
+    expect((await t.put('abc', input())).status).toBe(404);
     expect((await t.call('DELETE', `/recipes/${id}`)).status).toBe(204);
     expect((await t.call('DELETE', '/recipes/999')).status).toBe(204);
     expect(t.count('recipes')).toBe(1);
@@ -277,9 +294,8 @@ describe('recipes', () => {
       expect(res.body).toMatchObject({ error: { code: 'validation_failed' } });
     }
     const twice = await t.upload();
-    const res = await t.call(
-      'PUT',
-      `/recipes/${id}`,
+    const res = await t.put(
+      id,
       input({ photoId: twice, steps: [{ text: 'a', photoId: twice }] }),
     );
     expect(res.body).toEqual({
@@ -289,9 +305,7 @@ describe('recipes', () => {
       },
     });
     // Keeping its own photo on PUT is fine.
-    expect(
-      (await t.call('PUT', `/recipes/${id}`, input({ photoId: mine }))).status,
-    ).toBe(200);
+    expect((await t.put(id, input({ photoId: mine }))).status).toBe(200);
   });
 
   it('a meal cannot take a recipe photo', async () => {
@@ -325,9 +339,8 @@ describe('recipes', () => {
       )
     ).body as Recipe;
     // The hero photo moves to the step, the step photo is dropped.
-    const put = await t.call(
-      'PUT',
-      `/recipes/${id}`,
+    const put = await t.put(
+      id,
       input({ photoId: spare, steps: [{ text: 'a', photoId: hero }] }),
     );
     expect(put.body).toMatchObject({
@@ -338,9 +351,8 @@ describe('recipes', () => {
     expect(t.files(step)).toEqual([false, false]);
     expect(t.files(spare)).toEqual([true, true]);
     // And back: from the step to the hero.
-    await t.call(
-      'PUT',
-      `/recipes/${id}`,
+    await t.put(
+      id,
       input({ photoId: hero, steps: [{ text: 'a', photoId: null }] }),
     );
     expect(t.files(hero)).toEqual([true, true]);
@@ -348,6 +360,31 @@ describe('recipes', () => {
 
     await t.call('DELETE', `/recipes/${id}`);
     expect(t.files(hero)).toEqual([false, false]);
+  });
+
+  it('refuses a PUT from an older version with 409, changing nothing', async () => {
+    const t = await setup();
+    const step = await t.upload();
+    const { id, updatedAt } = (await t.call('POST', '/recipes', input()))
+      .body as Recipe;
+    // Another device adds a step photo.
+    await t.put(id, input({ steps: [{ text: 'a', photoId: step }] }));
+    const before = t.db.prepare('SELECT * FROM recipes').get();
+    const stale = await t.call('PUT', `/recipes/${id}`, {
+      ...input({ note: 'Старая правка' }),
+      updatedAt,
+    });
+    expect(stale).toEqual({
+      status: 409,
+      body: { error: { code: 'recipe_changed' } },
+    });
+    expect(t.db.prepare('SELECT * FROM recipes').get()).toEqual(before);
+    expect(t.files(step)).toEqual([true, true]);
+    // No version at all is a validation error.
+    expect((await t.call('PUT', `/recipes/${id}`, input())).status).toBe(400);
+    // Two saves in a row from the fresh version each move it forward.
+    expect((await t.put(id, input())).status).toBe(200);
+    expect((await t.put(id, input())).status).toBe(200);
   });
 
   it("deletes a user's recipes with the user", async () => {
@@ -379,7 +416,7 @@ describe('recipes', () => {
     const all = await t.sync(first.rev);
     expect(all.recipes).toEqual([a, b]);
 
-    await t.call('PUT', `/recipes/${a.id}`, input({ name: 'Плов 2' }));
+    await t.put(a.id, input({ name: 'Плов 2' }));
     await t.call('DELETE', `/recipes/${b.id}`);
     const next = await t.sync(all.rev);
     expect(next.recipes?.map((r) => r.name)).toEqual(['Плов 2']);
@@ -431,7 +468,7 @@ describe('recipes', () => {
       serving_g: null,
     });
 
-    const typed = await t.call('PUT', `/recipes/${id}`, typedInput());
+    const typed = await t.put(id, typedInput());
     expect(typed.status).toBe(200);
     expect(typed.body).toMatchObject({
       ingredients: [],
@@ -444,7 +481,7 @@ describe('recipes', () => {
     const synced = await t.sync(0);
     expect(synced.recipes).toEqual([typed.body]);
 
-    const back = await t.call('PUT', `/recipes/${id}`, input());
+    const back = await t.put(id, input());
     expect(back.status).toBe(200);
     expect(back.body).toMatchObject({ per100: null, servingG: null });
     expect((back.body as Recipe).ingredients).toHaveLength(2);
@@ -565,7 +602,7 @@ describe('portions logged from a recipe (ADR-0023 §5)', () => {
     const saved = (await t.call('POST', '/meals', meal([portion(id)])))
       .body as Meal;
 
-    await t.call('PUT', `/recipes/${id}`, input({ name: 'Суп', cookedG: 900 }));
+    await t.put(id, input({ name: 'Суп', cookedG: 900 }));
     const edited = (await t.call('GET', `/meals/${saved.id}`)).body as Meal;
     expect(edited).toEqual(saved);
 

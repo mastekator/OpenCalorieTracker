@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
 import { gToOz, ozToG, type Recipe, type RecipeInput } from '@oct/shared';
+import { ApiError } from '../../api/client';
 import { isDirty, saveDirty } from '../../app/dirty';
 import { I18nProvider, LOCALE_STORAGE_KEY } from '../../i18n';
 import { renderLoaded } from '../../test-utils';
@@ -202,6 +203,23 @@ describe('RecipeEditor', () => {
     ).toBeTruthy();
     expect(onSaved).not.toHaveBeenCalled();
     expect(screen.getByLabelText('Name')).toBeTruthy();
+  });
+
+  it('saves from the version it opened; a newer one elsewhere is its own toast', async () => {
+    const onSave = vi.fn(async () => {
+      throw new ApiError(409, 'recipe_changed');
+    });
+    await view({ recipe: PILAF, onSave });
+    fireEvent.change(screen.getByLabelText('Name'), {
+      target: { value: 'Pilaf' },
+    });
+    save();
+    expect(
+      await screen.findByText(
+        'The recipe changed on another device — showing the latest version.',
+      ),
+    ).toBeTruthy();
+    expect(onSave).toHaveBeenCalledWith(expect.anything(), PILAF);
   });
 
   it('offline: Save is disabled (E-10.5)', async () => {

@@ -110,7 +110,7 @@ export function CookScreen({ id }: { id: string }) {
         awake={awake}
         onExit={() => navigate(card, { replace: true })}
         onSaveWeight={async (cookedG) => {
-          await saveRecipe(db, withCookedG(recipe, cookedG), recipe.id);
+          await saveRecipe(db, withCookedG(recipe, cookedG), recipe);
         }}
         onLog={() => setPortion(true)}
       />
