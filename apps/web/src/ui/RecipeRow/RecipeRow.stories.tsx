@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { List } from '../List/List';
-import { PILAF, SALAD } from '../../features/kitchen/fixtures';
+import { CHEESECAKE, PILAF, SALAD } from '../../features/kitchen/fixtures';
 import { RecipeRow } from './RecipeRow';
 
 const meta = {
@@ -34,4 +34,11 @@ export const LongName: Story = {
       name: 'Chicken with vegetables baked in the oven with rosemary and garlic',
     },
   },
+};
+
+/** OCT-352 2.2: no ingredients — kcal per serving and the «no ingredients» mark. */
+export const NoIngredients: Story = { args: { recipe: CHEESECAKE } };
+export const NoIngredientsDark: Story = {
+  args: { recipe: CHEESECAKE },
+  globals: dark,
 };

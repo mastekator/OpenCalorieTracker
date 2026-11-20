@@ -16,7 +16,8 @@ import '../MacroStat/MacroStat.css';
 import './NutritionCard.css';
 
 type Basis = 'portion' | 'per100' | 'whole';
-type Props = Pick<Recipe, 'cookedG' | 'servings' | 'ingredients'>;
+type Props = Pick<Recipe, 'cookedG' | 'servings' | 'ingredients'> &
+  Partial<Pick<Recipe, 'per100' | 'servingG'>>;
 
 /** What the card shows for a basis: nutrients and the grams they are for. All maths from shared (ADR-0023 §2). */
 export function nutritionFor(recipe: Props, basis: Basis) {
@@ -32,7 +33,7 @@ export function nutritionFor(recipe: Props, basis: Basis) {
   return { n: p100, g: 100 };
 }
 
-/** Recipe nutrition (OCT-160 2.1): Serving / 100 g / Whole; without servings 100 g, no Serving option. */
+/** Recipe nutrition (OCT-160 2.1): Serving / 100 g / Whole; without servings 100 g, no Serving option; no Whole without ingredients. */
 export function NutritionCard({ units, ...recipe }: Props & { units?: Units }) {
   const { t, num } = useT();
   const hasServings = servingG(recipe) !== null;
@@ -46,7 +47,10 @@ export function NutritionCard({ units, ...recipe }: Props & { units?: Units }) {
       ? [{ value: 'portion' as const, label: t('recipe.nut.portion') }]
       : []),
     { value: 'per100' as const, label: t('recipe.nut.per100') },
-    { value: 'whole' as const, label: t('recipe.nut.whole') },
+    // A recipe without ingredients has no whole weight (OCT-352 2.1).
+    ...(recipe.per100
+      ? []
+      : [{ value: 'whole' as const, label: t('recipe.nut.whole') }]),
   ];
   return (
     <section className="nutrition-card" aria-label={t('recipe.nut.label')}>

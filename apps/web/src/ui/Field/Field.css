@@ -1,5 +1,7 @@
 .field {
   display: grid;
+  /* Never wider than the parent: the input's intrinsic width would stretch an auto column. */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-2);
 }
 
@@ -7,6 +9,19 @@
   font-size: var(--text-subhead-size);
   line-height: var(--text-subhead-lh);
   font-weight: var(--text-caption-weight); /* 500 */
+}
+
+.field__label:has(.field__tag) {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.field__tag {
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+  font-weight: var(--text-footnote-weight);
+  color: var(--color-text-secondary);
 }
 
 .field__box {

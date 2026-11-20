@@ -8,7 +8,7 @@ import {
 } from '@testing-library/react';
 import { I18nProvider } from '../../i18n';
 import { renderLoaded } from '../../test-utils';
-import { PILAF, SALAD } from './fixtures';
+import { CHEESECAKE, PILAF, SALAD } from './fixtures';
 import { RecipeView } from './RecipeScreen';
 
 afterEach(cleanup);
@@ -117,6 +117,33 @@ describe('RecipeView', () => {
     expect(
       screen.queryByRole('button', { name: 'Make it lighter' }),
     ).toBeNull();
+  });
+
+  it('without ingredients: «No ingredients listed», no «Whole», «Make it lighter» unavailable (AC-1.4, 1.6)', async () => {
+    await view({ recipe: CHEESECAKE }).result;
+    expect(screen.getByText(/^serving 150.g$/)).toBeTruthy();
+    expect(screen.getByText('No ingredients listed')).toBeTruthy();
+    expect(screen.getByText(/160.kcal · P 9 · F 8 · C 13/)).toBeTruthy();
+    expect(screen.queryByRole('radio', { name: 'Whole' })).toBeNull();
+    expect(screen.getByRole('radio', { name: 'Serving' })).toBeTruthy();
+    const lighter = screen.getByText('Make it lighter').closest('.list-row')!;
+    expect(lighter.getAttribute('aria-disabled')).toBe('true');
+    expect(lighter.getAttribute('href')).toBeNull();
+    expect(lighter.textContent).toMatch(
+      /Add ingredients so AI can suggest swaps/,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'More' }));
+    await screen.findByRole('button', { name: 'Delete recipe' });
+    expect(
+      screen.queryByRole('button', { name: 'Make it lighter' }),
+    ).toBeNull();
+  });
+
+  it('«Add ingredients» opens the editor in the ingredient mode', async () => {
+    await view({ recipe: CHEESECAKE }).result;
+    fireEvent.click(screen.getByRole('button', { name: 'Add ingredients' }));
+    expect(location.pathname).toBe('/kitchen/3/edit');
+    expect(history.state).toMatchObject({ compose: true });
   });
 
   it('a step photo that fails to load is left out', async () => {

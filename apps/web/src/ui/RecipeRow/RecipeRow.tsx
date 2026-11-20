@@ -2,6 +2,7 @@ import { ChevronRight } from 'lucide-react';
 import { Link } from 'wouter';
 import { per100, servingG, fromPer100, type Recipe } from '@oct/shared';
 import { useT } from '../../i18n';
+import { Badge } from '../Badge/Badge';
 import { RecipeThumb } from '../RecipeThumb/RecipeThumb';
 import './RecipeRow.css';
 
@@ -26,6 +27,11 @@ export function RecipeRow({ recipe, href }: Props) {
         <span className="recipe-row__main">
           <span className="recipe-row__name">{recipe.name}</span>
           <span className="recipe-row__kcal">{kcal}</span>
+          {recipe.per100 && (
+            <span>
+              <Badge>{t('recipes.no_ingredients')}</Badge>
+            </span>
+          )}
         </span>
         <ChevronRight className="list-row__chevron" aria-hidden="true" />
       </Link>

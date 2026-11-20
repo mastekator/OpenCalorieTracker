@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { fireEvent, fn, within } from 'storybook/test';
 import { RecipeEditor } from './RecipeEditor';
-import { MEALS, PILAF, SALAD } from './fixtures';
+import { CHEESECAKE, MEALS, PILAF, SALAD } from './fixtures';
 import { recipeFromMeal } from './recipeFromMeal';
 
 const meta = {
@@ -131,3 +131,61 @@ export const FromMealDesktopDark: Story = {
   args: fromMealArgs,
   globals: { ...desktop, ...dark },
 };
+
+const ofField = async (
+  canvas: {
+    findByRole: (r: string, o: { name: RegExp }) => Promise<HTMLElement>;
+  },
+  name: RegExp,
+  value: string,
+) =>
+  fireEvent.change(await canvas.findByRole('textbox', { name }), {
+    target: { value },
+  });
+
+/** OCT-352 1.2: a recipe without ingredients, calories per 100 g and a serving preview. */
+export const Per100: Story = { args: { recipe: CHEESECAKE } };
+export const Per100Dark: Story = {
+  args: { recipe: CHEESECAKE },
+  globals: dark,
+};
+export const Per100Russian: Story = {
+  args: { recipe: CHEESECAKE },
+  globals: { locale: 'ru' },
+};
+export const Per100Desktop: Story = {
+  args: { recipe: CHEESECAKE },
+  globals: desktop,
+};
+/** 1.4: field errors (E-1.a) — kcal over 900, macros over 100 g. */
+export const Per100Errors: Story = {
+  args: { recipe: CHEESECAKE },
+  play: async ({ canvas }) => {
+    await ofField(canvas, /^Calories per 100.g/, '1200');
+    await ofField(canvas, /^Protein/, '60');
+    await ofField(canvas, /^Fat/, '40');
+    await ofField(canvas, /^Carbs/, '30');
+  },
+};
+export const Per100ErrorsDark: Story = { ...Per100Errors, globals: dark };
+/** 1.5: by ingredients → per 100 g asks first. */
+export const SwitchConfirm: Story = {
+  args: { recipe: PILAF },
+  play: async ({ canvas, canvasElement }) => {
+    fireEvent.click(
+      await canvas.findByRole('radio', { name: /Calories per 100.g/ }),
+    );
+    await within(canvasElement.ownerDocument.body).findByRole('dialog');
+  },
+};
+export const SwitchConfirmDark: Story = { ...SwitchConfirm, globals: dark };
+/** 1.6: per 100 g → by ingredients: an empty list, the old values as a note. */
+export const SwitchBack: Story = {
+  args: { recipe: CHEESECAKE },
+  play: async ({ canvas }) => {
+    fireEvent.click(
+      await canvas.findByRole('radio', { name: 'By ingredients' }),
+    );
+  },
+};
+export const SwitchBackDark: Story = { ...SwitchBack, globals: dark };

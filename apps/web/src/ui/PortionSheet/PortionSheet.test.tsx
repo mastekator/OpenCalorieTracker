@@ -5,7 +5,7 @@ import { en } from '../../i18n/locales/en';
 import ru from '../../i18n/locales/ru';
 import { translate } from '../../i18n/translate';
 import { renderLoaded } from '../../test-utils';
-import { PILAF, SALAD } from '../../features/kitchen/fixtures';
+import { CHEESECAKE, PILAF, SALAD } from '../../features/kitchen/fixtures';
 import { PortionSheet, stepServings, todayAt } from './PortionSheet';
 
 beforeEach(() => localStorage.setItem(LOCALE_STORAGE_KEY, 'en'));
@@ -144,6 +144,22 @@ describe('PortionSheet', () => {
     expect(total()).toMatch(/^86.kcal/);
     fireEvent.click(screen.getByRole('button', { name: 'Add' }));
     expect(onAdd.mock.calls[0]![0]).toMatchObject({ grams: 100, recipeId: 2 });
+  });
+
+  it('a recipe without ingredients: one serving of its weight, else 100 g (AC-1.4)', async () => {
+    const { onAdd, result } = open({ recipe: CHEESECAKE });
+    await result;
+    expect(total()).toMatch(/^240.kcal · 150.g$/);
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+    expect(onAdd).toHaveBeenCalledWith(
+      expect.objectContaining({ grams: 150, kcal: 240, recipeId: 3 }),
+      undefined,
+    );
+    cleanup();
+    await open({ recipe: { ...CHEESECAKE, servingG: null } }).result;
+    expect(screen.queryByRole('radiogroup')).toBeNull();
+    expect((screen.getByRole('textbox') as HTMLInputElement).value).toBe('100');
+    expect(total()).toMatch(/^160.kcal/);
   });
 
   it('from the card: meal by the hour and time, «Log to dinner»', async () => {

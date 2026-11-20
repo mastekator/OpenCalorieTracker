@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { fn, waitFor, within } from 'storybook/test';
 import { RecipeView } from './RecipeScreen';
-import { PILAF, SALAD } from './fixtures';
+import { CHEESECAKE, PILAF, SALAD } from './fixtures';
 
 const meta = {
   title: 'Screens/Kitchen/RecipeScreen',
@@ -70,4 +70,15 @@ export const Offline: Story = {
   play: async ({ canvas, userEvent }) => {
     await userEvent.click(await canvas.findByRole('button', { name: 'More' }));
   },
+};
+
+/** OCT-352 2.1: no ingredients — «No ingredients listed», «Make it lighter» unavailable. */
+export const NoIngredients: Story = { args: { recipe: CHEESECAKE } };
+export const NoIngredientsDark: Story = {
+  args: { recipe: CHEESECAKE },
+  globals: dark,
+};
+export const NoIngredientsDesktop: Story = {
+  args: { recipe: CHEESECAKE },
+  globals: desktop,
 };
