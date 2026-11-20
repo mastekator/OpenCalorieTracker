@@ -1423,7 +1423,7 @@ export const en = {
   },
   edit: {
     meal_label: 'Meal',
-    macros: 'P {p} · F {f} · C {c}',
+    macros: 'P\u00a0{p} · F\u00a0{f} · C\u00a0{c}',
     conf: {
       exact: 'exact',
       mid: 'approx.',
@@ -1677,7 +1677,7 @@ export const en = {
     add: 'Add a recipe',
     sort_note: 'Recently logged first.',
     per100: '{k}\u00a0kcal/100\u00a0g',
-    perPortion: '{k} per serving',
+    perPortion: '{k}\u00a0per\u00a0serving',
     no_ingredients: 'no ingredients',
     empty: {
       title: 'No recipes yet',
@@ -1696,7 +1696,7 @@ export const en = {
     serving: 'serving {g}\u00a0{u}',
     no_ingredients: {
       title: 'No ingredients listed',
-      body: 'Calories and macros are set per 100\u00a0g: {k}\u00a0kcal · P {p} · F {f} · C {c}.',
+      body: 'Calories and macros are set per 100\u00a0g: {k}\u00a0kcal · P\u00a0{p} · F\u00a0{f} · C\u00a0{c}.',
       add: 'Add ingredients',
     },
     nut: {
@@ -1862,16 +1862,16 @@ export const en = {
     switch: {
       title: 'Switch to calories per 100\u00a0g?',
       body: {
-        one: 'The {count} ingredient won’t be saved. Values per 100\u00a0g come from the calculation: {k}\u00a0kcal, P {p} · F {f} · C {c}. You can edit them.',
+        one: 'The {count} ingredient won’t be saved. Values per 100\u00a0g come from the calculation: {k}\u00a0kcal, P\u00a0{p} · F\u00a0{f} · C\u00a0{c}. You can edit them.',
         other:
-          'The {count} ingredients won’t be saved. Values per 100\u00a0g come from the calculation: {k}\u00a0kcal, P {p} · F {f} · C {c}. You can edit them.',
+          'The {count} ingredients won’t be saved. Values per 100\u00a0g come from the calculation: {k}\u00a0kcal, P\u00a0{p} · F\u00a0{f} · C\u00a0{c}. You can edit them.',
       },
       ok: 'Switch',
       stay: 'Stay',
     },
     was: {
       title: 'It was {k}\u00a0kcal per 100\u00a0g',
-      body: 'P {p} · F {f} · C {c}. Add ingredients and calories will be calculated from them, replacing these values.',
+      body: 'P\u00a0{p} · F\u00a0{f} · C\u00a0{c}. Add ingredients and calories will be calculated from them, replacing these values.',
     },
     no_ingredients: 'Add at least one ingredient',
     empty: 'No ingredients yet',
