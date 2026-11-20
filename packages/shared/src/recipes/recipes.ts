@@ -82,6 +82,12 @@ export const recipeInputSchema = z
   });
 export type RecipeInput = z.infer<typeof recipeInputSchema>;
 
+/** `PUT /api/recipes/:id`: `updatedAt` of the version the edit started from; a newer one → 409 `recipe_changed`. */
+export const recipeUpdateSchema = recipeInputSchema.extend({
+  updatedAt: z.iso.datetime(),
+});
+export type RecipeUpdate = z.infer<typeof recipeUpdateSchema>;
+
 export interface Recipe {
   id: number;
   name: string;

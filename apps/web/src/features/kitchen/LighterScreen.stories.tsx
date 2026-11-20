@@ -13,11 +13,16 @@ const meta = {
     recipe: PILAF,
     online: true,
     load: async () => PILAF_LIGHTER,
-    onSave: fn(async (input: RecipeInput, id?: number): Promise<Recipe> => ({
-      ...PILAF,
-      ...input,
-      id: id ?? 99,
-    })),
+    onSave: fn(
+      async (
+        input: RecipeInput,
+        base?: Pick<Recipe, 'id'>,
+      ): Promise<Recipe> => ({
+        ...PILAF,
+        ...input,
+        id: base?.id ?? 99,
+      }),
+    ),
     onSaved: fn(),
   },
 } satisfies Meta<typeof LighterView>;

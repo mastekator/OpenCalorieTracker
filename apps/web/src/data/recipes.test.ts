@@ -143,11 +143,36 @@ describe('saveRecipe', () => {
       { method: 'POST' },
     ]);
     expect(await db.get('recipes', 9)).toEqual({ ...SALAD, id: 9 });
-    await saveRecipe(db, input, 9);
+    await saveRecipe(db, input, { id: 9, updatedAt: SALAD.updatedAt });
     expect(vi.mocked(fetch).mock.calls[1]).toMatchObject([
       '/api/recipes/9',
       { method: 'PUT' },
     ]);
+    // The version the edit started from goes with the PUT.
+    expect(
+      JSON.parse(vi.mocked(fetch).mock.calls[1]![1]!.body as string),
+    ).toEqual({ ...input, updatedAt: SALAD.updatedAt });
+  });
+
+  it('409 recipe_changed pulls the newer version and throws', async () => {
+    db = await openUserDb(7);
+    await db.put('recipes', SALAD);
+    const fresh = { ...SALAD, note: 'From another device' };
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) =>
+        url.startsWith('/api/sync')
+          ? Response.json(page({ recipes: [fresh] }))
+          : Response.json(
+              { error: { code: 'recipe_changed' } },
+              { status: 409 },
+            ),
+      ),
+    );
+    await expect(saveRecipe(db, input, SALAD)).rejects.toMatchObject({
+      code: 'recipe_changed',
+    });
+    expect(await db.get('recipes', SALAD.id)).toEqual(fresh);
   });
 
   it('a 4xx / 5xx throws and writes nothing', async () => {
@@ -158,7 +183,7 @@ describe('saveRecipe', () => {
         Response.json({ error: { code: 'internal' } }, { status }),
       );
       await expect(
-        saveRecipe(db, { ...input, name: 'Changed' }, SALAD.id),
+        saveRecipe(db, { ...input, name: 'Changed' }, SALAD),
       ).rejects.toThrow();
     }
     expect(await db.getAll('recipes')).toEqual([SALAD]);
