@@ -168,9 +168,6 @@
   .recipe-editor__ai {
     grid-area: ai;
   }
-  .recipe-editor__head {
-    grid-area: head;
-  }
   .recipe-editor__totals {
     grid-area: totals;
   }
