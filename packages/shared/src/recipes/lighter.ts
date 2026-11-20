@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { round1 } from '../units.js';
 import { fromPer100, scaleItem, type Nutrients } from '../nutrition.js';
 import {
   COOKED_G_MAX,
@@ -74,7 +75,6 @@ export interface LighterResponse {
 
 const MAX_INGREDIENTS = 50;
 const MAX_GRAMS = 5000;
-const round1 = (v: number) => Math.round(v * 10) / 10;
 
 /** Per 100 g a food can have: no more than pure fat. */
 export const validPer100 = (n: Nutrients | null): n is Nutrients =>
