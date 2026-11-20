@@ -73,9 +73,9 @@
       <div class="cell rcell" role="button"><span class="rthumb illo" aria-hidden="true">${IL('sweets-pancakes')}</span><span class="main"><span class="t">${L('Сырники', 'Cheese pancakes')}</span><span class="sub">215 ${T().kcal}/100 ${T().g} · 301 ${L('на порцию', 'per serving')}</span></span>${CH}</div></div></div></div>`;
 
   /* ---- edit screen with AI questions ---- */
-  const aiDish = ({name, g, k, p, f, c, badge, extra = '', was = ''}) => `<div class="dish ${was ? 'answered' : ''}"><div class="dish-top"><span class="name">${name}</span><span class="kc num">${k} ${T().kcal}</span></div>
+  const aiDish = ({name, g, k, p, f, c, badge, extra = '', was = ''}) => `<div class="dish ${was ? 'answered' : ''}"><div class="dish-hl"><div class="dish-top"><span class="name">${name}</span><span class="kc num">${k} ${T().kcal}</span></div>
     <div class="dish-meta">${badge}<span>${T().P} ${p} · ${T().F} ${f} · ${T().C} ${c}</span></div>
-    <div class="dish-ctl"><span class="step" aria-label="${L('Меньше на 10 г', 'Less by 10 g')}">${I('minus')}</span><span class="wv">${g}<small>${T().g}</small></span><span class="step" aria-label="${L('Больше на 10 г', 'More by 10 g')}">${I('plus')}</span>${was ? `<span class="was-k" aria-hidden="true">${was}</span>` : ''}<span class="more" aria-label="${L('Изменить', 'Edit')} ${name}">${I('pencil', 'sm')}</span></div>${extra}</div>`;
+    <div class="dish-ctl"><span class="step" aria-label="${L('Меньше на 10 г', 'Less by 10 g')}">${I('minus')}</span><span class="wv">${g}<small>${T().g}</small></span><span class="step" aria-label="${L('Больше на 10 г', 'More by 10 g')}">${I('plus')}</span>${was ? `<span class="was-k" aria-hidden="true">${was}</span>` : ''}<span class="more" aria-label="${L('Изменить', 'Edit')} ${name}">${I('pencil', 'sm')}</span></div></div>${extra}</div>`;
   const bMid = () => `<span class="badge" aria-label="${L('Уверенность: средняя', 'Confidence: medium')}">${L('примерно', 'approx.')}</span>`;
   const bRec = () => `<span class="badge rcp" aria-label="${L('Источник: рецепт', 'Source: recipe')}">${I('chef')}${L('рецепт', 'recipe')}</span>`;
   const recChip = (name, k100, on = false) => `<span class="chip rec ${on ? 'on' : ''}" role="radio" aria-checked="${on}">${on ? I('check') : I('chef')}<span class="cap">${name}<small>${k100} ${T().kcal}/100 ${T().g}</small></span></span>`;
