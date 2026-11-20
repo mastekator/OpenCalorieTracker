@@ -348,6 +348,28 @@ describe('RecipeEditor', () => {
       ]);
     });
 
+    it('a step with a photo and no text blocks Save, keeps the photo, and saves once it has text', async () => {
+      const { onSave } = await view({ recipe: PILAF });
+      const step = screen.getByRole('textbox', { name: 'Step 2' });
+      expect(step.getAttribute('placeholder')).toBe('What to do in this step');
+      fireEvent.change(step, { target: { value: '  ' } });
+      save();
+      const alert = await screen.findByRole('alert');
+      expect(alert.textContent).toBe('Add text to step 2');
+      expect(document.activeElement).toBe(step);
+      expect(step.getAttribute('aria-invalid')).toBe('true');
+      expect(step.getAttribute('aria-describedby')).toBe(alert.id);
+      expect(onSave).not.toHaveBeenCalled();
+      fireEvent.change(step, { target: { value: 'Heat the pan' } });
+      expect(screen.queryByRole('alert')).toBeNull();
+      save();
+      await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
+      expect(onSave.mock.calls[0]![0].steps[1]).toEqual({
+        text: 'Heat the pan',
+        photoId: 'spaghetti.jpg',
+      });
+    });
+
     it('a step photo is uploaded and sent with the step', async () => {
       vi.stubGlobal('fetch', async () => Response.json({ photoId: 'p-step' }));
       const { onSave } = await view({ recipe: PILAF });

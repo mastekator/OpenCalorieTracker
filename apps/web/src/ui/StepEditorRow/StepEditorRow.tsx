@@ -1,7 +1,8 @@
-import { useRef, useState, type PointerEvent } from 'react';
-import { Camera, GripVertical } from 'lucide-react';
+import { useId, useRef, useState, type PointerEvent } from 'react';
+import { Camera, CircleAlert, GripVertical } from 'lucide-react';
 import { thumbUrl } from '../../data/thumbs';
 import { useT } from '../../i18n';
+import '../WeightStepper/WeightStepper.css';
 import './StepEditorRow.css';
 
 type Props = {
@@ -12,6 +13,8 @@ type Props = {
   /** A photo is uploading: its button is disabled. */
   busy?: boolean;
   autoFocus?: boolean;
+  /** Under the text; also marks it invalid. */
+  error?: string;
   onTextChange: (text: string) => void;
   onPhoto: (file: File) => void;
   /** Tap on the handle (also Enter / VoiceOver): «Move up / Move down / Delete». */
@@ -30,6 +33,7 @@ export function StepEditorRow({
   photoId,
   busy = false,
   autoFocus,
+  error,
   onTextChange,
   onPhoto,
   onMenu,
@@ -39,6 +43,7 @@ export function StepEditorRow({
   const fileInput = useRef<HTMLInputElement>(null);
   const row = useRef<HTMLLIElement>(null);
   const dragged = useRef(false);
+  const errorId = useId();
   const [dragging, setDragging] = useState(false);
   // Read by the window listeners of a drag in progress, which outlive this render.
   const latest = useRef({ index, onMove });
@@ -89,14 +94,23 @@ export function StepEditorRow({
         </span>
         <div className="step-editor-row__body">
           <textarea
-            className="step-editor-row__text"
+            className={`step-editor-row__text${error ? ' step-editor-row__text--error' : ''}`}
             aria-label={t('editor.step_text', { i })}
+            aria-invalid={!!error}
+            aria-describedby={error ? errorId : undefined}
+            placeholder={t('editor.step_ph')}
             value={text}
             maxLength={1000}
             rows={1}
             autoFocus={autoFocus}
             onChange={(e) => onTextChange(e.target.value)}
           />
+          {error && (
+            <p id={errorId} className="stepper__error" role="alert">
+              <CircleAlert aria-hidden="true" />
+              {error}
+            </p>
+          )}
           <div className="step-editor-row__photo">
             {photoId && <img src={thumbUrl(photoId)} alt="" />}
             <button

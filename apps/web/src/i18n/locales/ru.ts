@@ -1960,6 +1960,8 @@ const ru: DeepPartial<typeof en> = {
     optional: 'необязательно',
     step: 'Шаг',
     step_text: 'Шаг {i}',
+    step_text_err: 'Добавьте текст к шагу {i}',
+    step_ph: 'Что сделать на этом шаге',
     step_photo: 'Фото',
     step_photo_replace: 'Заменить',
     step_photo_add_label: 'Добавить фото к шагу {i}',
