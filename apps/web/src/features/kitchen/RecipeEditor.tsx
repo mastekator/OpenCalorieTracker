@@ -203,6 +203,8 @@ export function RecipeEditor({
     () => start?.steps.map((s) => ({ key: nextKey++, ...s })) ?? [],
   );
   const [focusStep, setFocusStep] = useState<number | null>(null);
+  // Key of the step with a photo but no text that blocked the last save; shown while it still has no text.
+  const [stepErr, setStepErr] = useState<number | null>(null);
   const [touched, setTouched] = useState<{
     name?: boolean;
     cooked?: boolean;
@@ -284,6 +286,17 @@ export function RecipeEditor({
         );
         fields[items.indexOf(badRow)]?.focus();
       } else if (errors.cooked) cookedRef.current?.focus();
+      return false;
+    }
+    // A step's photo is never dropped silently: it needs text, or the step deleted.
+    const mute = steps.findIndex((s) => s.photoId && !s.text.trim());
+    if (mute >= 0) {
+      flushSync(() => setStepErr(steps[mute]!.key));
+      const field = document.querySelectorAll<HTMLTextAreaElement>(
+        '.step-editor-row__text',
+      )[mute];
+      field?.focus();
+      field?.scrollIntoView?.({ block: 'center' });
       return false;
     }
     saveLock.current = true;
@@ -657,6 +670,11 @@ export function RecipeEditor({
                 photoId={s.photoId}
                 busy={busy.has(s.key)}
                 autoFocus={s.key === focusStep}
+                error={
+                  s.key === stepErr && !s.text.trim()
+                    ? t('editor.step_text_err', { i: i + 1 })
+                    : undefined
+                }
                 onTextChange={(v) => setStep(s.key, { text: v })}
                 onPhoto={(file) =>
                   void upload(s.key, file, (id) =>

@@ -102,3 +102,13 @@
 .step-editor-row--dragging .step-editor-row__grip {
   cursor: grabbing;
 }
+
+.step-editor-row__text::placeholder {
+  color: var(--color-text-secondary);
+}
+
+.step-editor-row__text--error {
+  padding-inline: var(--space-2);
+  border-radius: var(--radius-md);
+  box-shadow: inset 0 0 0 1px var(--color-danger);
+}

@@ -1866,6 +1866,8 @@ export const en = {
     optional: 'optional',
     step: 'Step',
     step_text: 'Step {i}',
+    step_text_err: 'Add text to step {i}',
+    step_ph: 'What to do in this step',
     step_photo: 'Photo',
     step_photo_replace: 'Replace',
     step_photo_add_label: 'Add a photo to step {i}',
