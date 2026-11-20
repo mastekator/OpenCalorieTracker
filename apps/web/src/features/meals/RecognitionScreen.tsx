@@ -134,13 +134,19 @@ export function RecognitionScreen({
       if (!ctrl.signal.aborted) setCodes(c ?? 'failed');
     });
 
+    // Found products without the AI's dishes go to the edit screen; false when none was found.
+    const foundToEdit = (found: PhotoBarcodesResponse['codes'] | null) => {
+      const dishes = mergePackages([], found ?? []);
+      if (dishes.length === 0) return false;
+      setAi('none');
+      toEdit({ dishes, codes: found ?? [] });
+      return true;
+    };
     // No AI: a found product goes to the edit screen, a code not found to manual entry (AC-4.7).
     const withoutAi = async (manual: 'not_configured' | 'no_vision') => {
       setAi('none');
       const found = await barcodes;
-      if (ctrl.signal.aborted) return;
-      const dishes = mergePackages([], found ?? []);
-      if (dishes.length > 0) return toEdit({ dishes, codes: found ?? [] });
+      if (ctrl.signal.aborted || foundToEdit(found)) return;
       const code = found?.[0]?.code;
       toEdit({ manual, ...(code && { barcode: code }) });
     };
@@ -186,6 +192,9 @@ export function RecognitionScreen({
           return run();
         }
         clearTimeout(slow);
+        // Recognition failed but the barcodes found products: keep them (OCT-348).
+        const found = await barcodes;
+        if (ctrl.signal.aborted || foundToEdit(found)) return;
         if (!(err instanceof ApiError)) return setState('unavailable'); // TimeoutError
         if (err.status === 0)
           return setState(navigator.onLine ? 'unavailable' : 'offline');
