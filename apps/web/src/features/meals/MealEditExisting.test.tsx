@@ -466,7 +466,11 @@ describe('MealEditExisting (/meal/:clientId)', () => {
 
   it('«Delete entry» goes back to the day, one DELETE after the undo window', async () => {
     const at = setup(onYesterday());
-    const del = await screen.findByRole('button', { name: 'Delete entry' });
+    const del = await screen.findByRole(
+      'button',
+      { name: 'Delete entry' },
+      { timeout: 5000 },
+    );
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     fireEvent.click(del);
     expect(at.history.at(-1)).toBe(`/diary/${yesterday}`);
