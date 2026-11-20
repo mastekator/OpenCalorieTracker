@@ -178,6 +178,18 @@ const answered = {
 } satisfies Partial<Props>;
 export const Answered: Story = { args: answered };
 export const AnsweredDark: Story = { args: answered, globals: dark };
+/** OCT-352 3.2: the answer was the user's recipe — «· by recipe». */
+const byRecipe = {
+  result: {
+    kcalDelta: -240,
+    removed: [],
+    onUndo: fn(),
+    answered: true,
+    byRecipe: true,
+  },
+} satisfies Partial<Props>;
+export const AnsweredByRecipe: Story = { args: byRecipe };
+export const AnsweredByRecipeDark: Story = { args: byRecipe, globals: dark };
 const added = {
   result: { kcalDelta: 48, removed: [], onUndo: fn() },
 } satisfies Partial<Props>;

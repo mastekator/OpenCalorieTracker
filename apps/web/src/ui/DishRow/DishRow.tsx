@@ -115,7 +115,8 @@ export function DishRow({
           </span>
         </div>
         <div className="dish-row__meta">
-          {mark && (
+          {/* A recipe answer: its «recipe» badge says it instead (OCT-352 3.2). */}
+          {mark && !(mark.kind === 'changed' && dish.source === 'recipe') && (
             // Not by colour only: an icon and a word (AC-3.1).
             <span className={`dish-row__mark dish-row__mark--${mark.kind}`}>
               <Badge tone="ok">

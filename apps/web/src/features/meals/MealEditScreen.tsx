@@ -29,6 +29,7 @@ import {
   matchIllustration,
   mealTypeAt,
   nameKey,
+  per100,
   recipePortion,
   type Meal,
   type MealInput,
@@ -119,6 +120,7 @@ import {
   previousSchema,
   remembers,
   requestDishes,
+  shownQuestion,
   toRequest,
   toRow,
   toRows,
@@ -127,6 +129,7 @@ import {
   type Recognized,
   type Previous,
   type Row,
+  type ShownQuestion,
 } from './refine';
 import { usePackages } from './usePackages';
 import { useRefine, type RefineInput } from './useRefine';
@@ -379,7 +382,7 @@ export function MealEditScreen({
   // The last step's marks, «Removed» and kcal shift; gone with the next edit (OCT-234 C.2).
   // `answered`: the step was an answer chip, not a request (OCT-234 H.2).
   const [applied, setApplied] = useState<
-    (Applied & { answered?: boolean }) | null
+    (Applied & { answered?: boolean; byRecipe?: boolean }) | null
   >(null);
   // Where focus goes once rendered: the field after «Other…» (H.6), the restored chip or the field after «Undo» (WCAG 2.4.3).
   const [focusOn, setFocusOn] = useState<{ selector: string } | null>(null);
@@ -767,12 +770,13 @@ export function MealEditScreen({
     if (fresh.length) findHints('refine', fresh);
   }
   // Local, no request: works offline and costs no refinement (ADR-0020 §4).
-  const answerRow = (row: Row, option: number) => {
+  const answerRow = (row: Row, shown: ShownQuestion, option: number) => {
     refine.remember({ rows, recalced });
     answeredRow.current = row.id;
-    const next = answer(rows, row.id, option);
+    const recipe = shown.options[option]!.recipe;
+    const next = answer(rows, row.id, shown.at[option]!, recipe);
     setRows(next.rows);
-    setApplied({ ...next, answered: true });
+    setApplied({ ...next, answered: true, byRecipe: !!recipe });
   };
   const other = (row: Row) => {
     const prefix = `${row.original.name}: `;
@@ -988,9 +992,9 @@ export function MealEditScreen({
     )?.code;
   const remembered = items.filter(remembers);
   const refineOff = !online || locked || refine.limitReached;
-  const asked = rows.filter(
-    (r) => r.question && r.question.chosen === undefined,
-  ).length;
+  // A question with a deleted recipe may be gone: shown ones only (E-2.b).
+  const shown = rows.map((r) => shownQuestion(r, recipes));
+  const asked = shown.filter((q) => q && q.chosen === undefined).length;
   // «Other…» needs a request: offline or at the limit it says why (OCT-234 H.8).
   const otherOff = !online
     ? t('edit.refine.offline')
@@ -1360,13 +1364,20 @@ export function MealEditScreen({
                         }}
                         mark={applied?.marks[row.id]}
                       >
-                        {row.question && (
+                        {shown[i] && (
                           <Question
-                            text={row.question.text}
-                            options={row.question.options}
-                            guess={row.question.guess}
-                            chosen={row.question.chosen}
-                            onChoose={(o) => answerRow(row, o)}
+                            text={shown[i].text}
+                            options={shown[i].options.map((o) => ({
+                              label: o.label,
+                              ...(o.recipe && {
+                                hint: t('recipes.per100', {
+                                  k: num(per100(o.recipe).kcal),
+                                }),
+                              }),
+                            }))}
+                            guess={shown[i].guess}
+                            chosen={shown[i].chosen}
+                            onChoose={(o) => answerRow(row, shown[i]!, o)}
                             onOther={() => other(row)}
                             otherOff={otherOff}
                           />
@@ -1502,6 +1513,7 @@ export function MealEditScreen({
                       removed: applied.removed,
                       onUndo: undoRefine,
                       answered: applied.answered,
+                      byRecipe: applied.byRecipe,
                     }
                   : undefined
               }

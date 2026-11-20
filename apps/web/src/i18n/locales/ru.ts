@@ -1640,6 +1640,7 @@ const ru: DeepPartial<typeof en> = {
       slow: 'Дольше обычного…',
       updated: 'Список обновлён',
       answered: 'Ответ учтён',
+      by_recipe: 'по рецепту',
       undo: 'Отменить',
       removed: 'Убрано: {names}',
       offline: 'Нужна сеть',

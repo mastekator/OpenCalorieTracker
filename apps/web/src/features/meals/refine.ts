@@ -3,6 +3,7 @@ import {
   DISH_GRAMS,
   illustrationIdSchema,
   nameKey,
+  recipePortion,
   round1,
   scaleItem,
   sumDay,
@@ -194,8 +195,8 @@ function result(
   };
 }
 
-const changedMark = (row: Row): Mark => ({
-  kind: 'changed',
+const changedMark = (row: Row) => ({
+  kind: 'changed' as const,
   name: row.original.name,
   grams: row.shown,
   kcal: itemOf(row).kcal,
@@ -235,20 +236,51 @@ export const toRows = (dishes: Recognized[], questions?: AiQuestion[]) =>
 /**
  * A tapped option: the dish takes its name and numbers, locally, and is the user's now
  * (ADR-0020 §4). A weight set by hand stays and the option's numbers follow it.
+ * A recipe option (`recipeId`, ADR-0035 §6) makes the dish a portion of `recipe` at the
+ * row's weight; the option's own numbers are unused.
  */
-export function answer(rows: Row[], id: string, option: number): Applied {
+export function answer(
+  rows: Row[],
+  id: string,
+  option: number,
+  recipe?: Recipe,
+): Applied {
   const marks: Applied['marks'] = {};
   const next = rows.map((row) => {
     const o = row.question?.options[option];
-    if (row.id !== id || !o) return row;
+    if (row.id !== id || !o || (o.recipeId && o.recipeId !== recipe?.id))
+      return row;
+    const q = row.question!;
+    const common = {
+      previous: undefined,
+      recipe: undefined,
+      question: { ...q, chosen: option },
+    };
+    marks[row.id] = changedMark(row);
+    if (o.recipeId && recipe) {
+      const { name, grams, kcal, proteinG, fatG, carbsG } = recipePortion(
+        recipe,
+        row.shown,
+      );
+      // «was 480 kcal», not the old name: the «recipe» badge already tells what it is (OCT-352 3.2).
+      marks[row.id] = { ...changedMark(row), name };
+      return {
+        ...row,
+        ...common,
+        original: { name, grams, kcal, proteinG, fatG, carbsG },
+        source: 'recipe' as const,
+        recipeId: recipe.id,
+        // As «Use the recipe»: a weight edit recalculates from the recipe.
+        fixed: [],
+      };
+    }
     const { name, grams, kcal, proteinG, fatG, carbsG } = o;
     // Moved off the dish's own weight: the user's, not the AI's (the guess's grams may differ).
-    const q = row.question!;
     const keep = row.grams !== null && row.shown !== round1(row.original.grams);
     const g = keep ? row.shown : round1(grams);
-    marks[row.id] = changedMark(row);
     return {
       ...row,
+      ...common,
       original: {
         name,
         grams,
@@ -263,15 +295,52 @@ export function answer(rows: Row[], id: string, option: number): Applied {
           }),
       },
       source: 'ai' as const,
+      recipeId: undefined,
       grams: keep || inRange(g) ? g : null,
       shown: g,
       fixed: ALL,
-      previous: undefined,
-      recipe: undefined,
-      question: { ...q, chosen: option },
     };
   });
   return result(rows, next, marks, []);
+}
+
+/** A question as shown: `at` maps a shown option back to its index in `row.question`. */
+export type ShownQuestion = {
+  text: string;
+  options: { label: string; recipe?: Recipe }[];
+  at: number[];
+  guess: number;
+  chosen?: number;
+};
+
+/**
+ * The options left to show: a recipe option needs its recipe in the local copy (E-2.b) and
+ * goes when «Your recipe» already offers it (AC-2.6). Fewer than two left, or the guess gone:
+ * no question. The tapped one stays, so the answer can still be seen and switched.
+ */
+export function shownQuestion(
+  row: Row,
+  recipes: readonly Recipe[],
+): ShownQuestion | null {
+  const q = row.question;
+  if (!q) return null;
+  const at: number[] = [];
+  const options: ShownQuestion['options'] = [];
+  q.options.forEach((o, i) => {
+    const recipe = o.recipeId
+      ? recipes.find((r) => r.id === o.recipeId)
+      : undefined;
+    const hidden =
+      o.recipeId !== undefined && (!recipe || o.recipeId === row.recipe?.id);
+    if (hidden && i !== q.chosen) return;
+    at.push(i);
+    // The local name: the same as the badge and after a rename.
+    options.push(recipe ? { label: recipe.name, recipe } : { label: o.label });
+  });
+  const guess = at.indexOf(q.guess);
+  if (at.length < 2 || guess < 0) return null;
+  const chosen = q.chosen === undefined ? undefined : at.indexOf(q.chosen);
+  return { text: q.text, options, at, guess, chosen };
 }
 
 // `ref` belongs to the request only.

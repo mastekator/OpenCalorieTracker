@@ -1582,6 +1582,7 @@ export const en = {
       slow: 'Taking longer than usual…',
       updated: 'List updated',
       answered: 'Answer applied',
+      by_recipe: 'by recipe',
       undo: 'Undo',
       removed: 'Removed: {names}',
       offline: 'Needs a connection',

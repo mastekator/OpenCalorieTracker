@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { RecognizedDish } from '@oct/shared';
-import { QUESTION_CASES } from './questions.fixtures';
+import { PILAF } from '../kitchen/fixtures';
+import { CHEESECAKE, QUESTION_CASES } from './questions.fixtures';
 import {
   answer,
   applyAgain,
@@ -8,6 +9,7 @@ import {
   fixedOf,
   itemOf,
   requestDishes,
+  shownQuestion,
   toRequest,
   toRow,
   toRows,
@@ -319,5 +321,126 @@ describe('questions', () => {
       k4k5.dishes.map((dish, i) => ({ ...dish, ref: `d${i + 1}` })),
     );
     expect(kept.rows.every((r) => !r.question)).toBe(true);
+  });
+});
+
+describe('a recipe option (ADR-0035 §6)', () => {
+  const { k7 } = QUESTION_CASES;
+  const rows = () => toRows(k7.dishes, k7.questions);
+
+  it('makes the dish a portion of the recipe at its weight, saved with the link', () => {
+    const before = rows();
+    const res = answer(before, before[0]!.id, 0, CHEESECAKE);
+    const row = res.rows[0]!;
+    // 150 g × 160 kcal/100 g, not the option's 400 kcal.
+    expect(itemOf(row)).toEqual({
+      name: 'My cheesecake',
+      grams: 150,
+      kcal: 240,
+      proteinG: 13.95,
+      fatG: 12,
+      carbsG: 19.95,
+      source: 'recipe',
+      recipeId: 10,
+    });
+    expect(res.kcalDelta).toBe(240 - 480);
+    expect(res.marks[row.id]).toMatchObject({
+      kind: 'changed',
+      name: 'My cheesecake',
+      kcal: 480,
+    });
+    // A weight edit recalculates from the recipe.
+    expect(itemOf({ ...row, grams: 300, shown: 300 }).kcal).toBe(480);
+  });
+
+  it('a recipe with ingredients: kcal per 100 g of its cooked weight', () => {
+    const q = {
+      ...k7.questions[0]!,
+      options: [
+        { ...k7.questions[0]!.options[0]!, recipeId: PILAF.id },
+        k7.questions[0]!.options[1]!,
+      ],
+    };
+    const [row] = toRows(k7.dishes, [q]);
+    const res = answer([row!], row!.id, 0, PILAF);
+    // 3 487 kcal over 2 100 g cooked.
+    expect(itemOf(res.rows[0]!).kcal).toBeCloseTo((3487 / 2100) * 150);
+    expect(res.rows[0]!.original.name).toBe('Homemade pilaf');
+  });
+
+  it('keeps a weight set by hand', () => {
+    const [row] = rows();
+    const set: Row = { ...row!, grams: 200, shown: 200, fixed: ['grams'] };
+    expect(itemOf(answer([set], set.id, 0, CHEESECAKE).rows[0]!).kcal).toBe(
+      320,
+    );
+  });
+
+  it('switching back to the guess gives the AI dish without the link', () => {
+    const before = rows();
+    const id = before[0]!.id;
+    const recipe = answer(before, id, 0, CHEESECAKE).rows;
+    const back = answer(recipe, id, 1).rows[0]!;
+    expect(back.source).toBe('ai');
+    expect(back.recipeId).toBeUndefined();
+    expect(itemOf(back)).toMatchObject({
+      name: 'Cheesecake',
+      grams: 150,
+      kcal: 480,
+    });
+  });
+
+  it('without its recipe the option does nothing', () => {
+    const before = rows();
+    expect(answer(before, before[0]!.id, 0).rows).toEqual(before);
+  });
+});
+
+describe('shownQuestion', () => {
+  const { k1, k7 } = QUESTION_CASES;
+  const [row] = toRows(k7.dishes, k7.questions);
+
+  it('names a recipe option by the local recipe, indices map back', () => {
+    const renamed = { ...CHEESECAKE, name: 'Grandma’s cheesecake' };
+    expect(shownQuestion(row!, [renamed])).toEqual({
+      text: 'Is it your recipe?',
+      options: [
+        { label: 'Grandma’s cheesecake', recipe: renamed },
+        { label: 'Regular cheesecake' },
+      ],
+      at: [0, 1],
+      guess: 1,
+      chosen: undefined,
+    });
+  });
+
+  it('a deleted recipe hides its option, and a question left with one (E-2.b)', () => {
+    expect(shownQuestion(row!, [])).toBeNull();
+    const three = {
+      ...k7.questions[0]!,
+      guess: 2,
+      options: [...k7.questions[0]!.options, k1.questions[0]!.options[0]!],
+    };
+    const [r] = toRows(k7.dishes, [three]);
+    expect(shownQuestion(r!, [])).toMatchObject({ at: [1, 2], guess: 1 });
+  });
+
+  it('drops the recipe «Your recipe» already offers (AC-2.6)', () => {
+    expect(
+      shownQuestion({ ...row!, recipe: CHEESECAKE }, [CHEESECAKE]),
+    ).toBeNull();
+  });
+
+  it('keeps the tapped option even after its recipe is gone', () => {
+    const answered = answer([row!], row!.id, 0, CHEESECAKE).rows[0]!;
+    expect(shownQuestion(answered, [])).toMatchObject({
+      options: [{ label: 'My cheesecake' }, { label: 'Regular cheesecake' }],
+      chosen: 0,
+    });
+  });
+
+  it('a plain question is shown as is', () => {
+    const [plain] = toRows(k1.dishes, k1.questions);
+    expect(shownQuestion(plain!, [])?.at).toEqual([0, 1, 2, 3]);
   });
 });
