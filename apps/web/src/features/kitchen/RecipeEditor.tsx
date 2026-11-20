@@ -647,35 +647,37 @@ export function RecipeEditor({
 
         {byIngredients ? (
           <>
-            <dl
-              className="recipe-editor__totals"
-              aria-label={t('editor.totals.label')}
-              aria-live="polite"
-            >
-              {(
-                [
+            {!was && (
+              <dl
+                className="recipe-editor__totals"
+                aria-label={t('editor.totals.label')}
+                aria-live="polite"
+              >
+                {(
                   [
-                    'serving',
-                    serving === null ? null : (p100.kcal * serving) / 100,
-                  ],
-                  ['per100', p100.kcal],
-                  ['total', totals.kcal],
-                ] as const
-              ).map(([k, v]) => (
-                <div key={k} className="recipe-editor__total">
-                  <dt>{t(`editor.totals.${k}`)}</dt>
-                  <dd className="tabular-nums">
-                    {kcal(v)}
-                    {v !== null && (
-                      <span className="recipe-editor__unit">
-                        {'\u00a0'}
-                        {t('today.kcal')}
-                      </span>
-                    )}
-                  </dd>
-                </div>
-              ))}
-            </dl>
+                    [
+                      'serving',
+                      serving === null ? null : (p100.kcal * serving) / 100,
+                    ],
+                    ['per100', p100.kcal],
+                    ['total', totals.kcal],
+                  ] as const
+                ).map(([k, v]) => (
+                  <div key={k} className="recipe-editor__total">
+                    <dt>{t(`editor.totals.${k}`)}</dt>
+                    <dd className="tabular-nums">
+                      {kcal(v)}
+                      {v !== null && (
+                        <span className="recipe-editor__unit">
+                          {'\u00a0'}
+                          {t('today.kcal')}
+                        </span>
+                      )}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            )}
 
             <div className="recipe-editor__ingredients">
               <List
@@ -719,6 +721,12 @@ export function RecipeEditor({
                     onEdit={() => setSheet({ kind: 'edit', key: row.key })}
                   />
                 ))}
+                {was && (
+                  <li className="list__item recipe-editor__empty">
+                    <b>{t('editor.empty')}</b>
+                    {t('editor.empty_body')}
+                  </li>
+                )}
                 <ListRow
                   accent
                   icon={<Plus />}
@@ -735,102 +743,104 @@ export function RecipeEditor({
               )}
             </div>
 
-            <div className="recipe-editor__yield">
-              <List title={t('editor.yield')}>
-                <li className="list__item">
-                  <div className="list-row recipe-editor__kv">
-                    <span id={cookedLabel}>{t('editor.cooked_weight')}</span>
-                    <label
-                      className={`stepper__box${touched.cooked && errors.cooked ? ' recipe-editor__invalid' : ''}`}
-                    >
-                      <input
-                        ref={cookedRef}
-                        className="stepper__input tabular-nums"
-                        inputMode="decimal"
-                        autoComplete="off"
-                        placeholder="—"
-                        aria-labelledby={cookedLabel}
-                        aria-invalid={touched.cooked && !!errors.cooked}
-                        value={cooked}
-                        // E-10.1: a minus is never accepted; 0 is an error.
-                        onChange={(e) =>
-                          setCooked(e.target.value.replace(/-/g, ''))
-                        }
-                        onBlur={() =>
-                          setTouched((s) => ({ ...s, cooked: true }))
-                        }
-                      />
-                      <span className="stepper__unit" aria-hidden="true">
-                        {unit}
-                      </span>
-                    </label>
-                  </div>
-                </li>
-                <li className="list__item">
-                  <div className="list-row recipe-editor__kv">
-                    <span id={portionsLabel}>{t('editor.portions')}</span>
-                    <div
-                      className="stepper__row"
-                      role="group"
-                      aria-labelledby={portionsLabel}
-                    >
-                      <button
-                        type="button"
-                        className="stepper__button"
-                        aria-label={t('editor.portions_less')}
-                        disabled={servings === null}
-                        {...servingsPress.bind(-1)}
+            {!was && (
+              <div className="recipe-editor__yield">
+                <List title={t('editor.yield')}>
+                  <li className="list__item">
+                    <div className="list-row recipe-editor__kv">
+                      <span id={cookedLabel}>{t('editor.cooked_weight')}</span>
+                      <label
+                        className={`stepper__box${touched.cooked && errors.cooked ? ' recipe-editor__invalid' : ''}`}
                       >
-                        <Minus aria-hidden="true" />
-                      </button>
-                      <span
-                        className="recipe-editor__servings tabular-nums"
-                        aria-live="polite"
-                      >
-                        {servings ?? '—'}
-                      </span>
-                      <button
-                        type="button"
-                        className="stepper__button"
-                        aria-label={t('editor.portions_more')}
-                        disabled={servings === MAX_SERVINGS}
-                        {...servingsPress.bind(1)}
-                      >
-                        <Plus aria-hidden="true" />
-                      </button>
+                        <input
+                          ref={cookedRef}
+                          className="stepper__input tabular-nums"
+                          inputMode="decimal"
+                          autoComplete="off"
+                          placeholder="—"
+                          aria-labelledby={cookedLabel}
+                          aria-invalid={touched.cooked && !!errors.cooked}
+                          value={cooked}
+                          // E-10.1: a minus is never accepted; 0 is an error.
+                          onChange={(e) =>
+                            setCooked(e.target.value.replace(/-/g, ''))
+                          }
+                          onBlur={() =>
+                            setTouched((s) => ({ ...s, cooked: true }))
+                          }
+                        />
+                        <span className="stepper__unit" aria-hidden="true">
+                          {unit}
+                        </span>
+                      </label>
                     </div>
-                  </div>
-                </li>
-              </List>
-              {touched.cooked && errors.cooked ? (
-                <p className="recipe-editor__error">
-                  <CircleAlert aria-hidden="true" />
-                  {errors.cooked}
-                </p>
-              ) : weightWarning(calc) ? (
-                <p className="recipe-editor__note recipe-editor__note--warning">
-                  <CircleAlert aria-hidden="true" />
-                  {t(
-                    cookedG! > totals.rawG
-                      ? 'editor.check_weight.heavier'
-                      : 'editor.check_weight.lighter',
-                    {
-                      count: Math.round(ratio),
-                      w: w.fmt(totals.rawG),
-                      u: unit,
-                    },
-                  )}
-                </p>
-              ) : (
-                cookedG === null &&
-                totals.rawG > 0 && (
-                  <p className="recipe-editor__note">
-                    <Scale aria-hidden="true" />
-                    {t('editor.weigh', { w: w.fmt(totals.rawG), u: unit })}
+                  </li>
+                  <li className="list__item">
+                    <div className="list-row recipe-editor__kv">
+                      <span id={portionsLabel}>{t('editor.portions')}</span>
+                      <div
+                        className="stepper__row"
+                        role="group"
+                        aria-labelledby={portionsLabel}
+                      >
+                        <button
+                          type="button"
+                          className="stepper__button"
+                          aria-label={t('editor.portions_less')}
+                          disabled={servings === null}
+                          {...servingsPress.bind(-1)}
+                        >
+                          <Minus aria-hidden="true" />
+                        </button>
+                        <span
+                          className="recipe-editor__servings tabular-nums"
+                          aria-live="polite"
+                        >
+                          {servings ?? '—'}
+                        </span>
+                        <button
+                          type="button"
+                          className="stepper__button"
+                          aria-label={t('editor.portions_more')}
+                          disabled={servings === MAX_SERVINGS}
+                          {...servingsPress.bind(1)}
+                        >
+                          <Plus aria-hidden="true" />
+                        </button>
+                      </div>
+                    </div>
+                  </li>
+                </List>
+                {touched.cooked && errors.cooked ? (
+                  <p className="recipe-editor__error">
+                    <CircleAlert aria-hidden="true" />
+                    {errors.cooked}
                   </p>
-                )
-              )}
-            </div>
+                ) : weightWarning(calc) ? (
+                  <p className="recipe-editor__note recipe-editor__note--warning">
+                    <CircleAlert aria-hidden="true" />
+                    {t(
+                      cookedG! > totals.rawG
+                        ? 'editor.check_weight.heavier'
+                        : 'editor.check_weight.lighter',
+                      {
+                        count: Math.round(ratio),
+                        w: w.fmt(totals.rawG),
+                        u: unit,
+                      },
+                    )}
+                  </p>
+                ) : (
+                  cookedG === null &&
+                  totals.rawG > 0 && (
+                    <p className="recipe-editor__note">
+                      <Scale aria-hidden="true" />
+                      {t('editor.weigh', { w: w.fmt(totals.rawG), u: unit })}
+                    </p>
+                  )
+                )}
+              </div>
+            )}
           </>
         ) : (
           <Per100Fields

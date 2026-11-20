@@ -1847,7 +1847,7 @@ export const en = {
       kcal_ph: 'e.g. 160',
       required: 'required',
       kcal_err: 'Calories per 100\u00a0g must be 0–900',
-      macros_note: 'Protein, fat, carbs are optional. Empty counts as 0.',
+      macros_note: 'Protein, fat, carbs are optional. Empty counts as\u00a00.',
       macro_err: 'Protein, fat and carbs: from 0 to 100\u00a0g each',
       macros_err:
         'Protein + fat + carbs can’t exceed 100\u00a0g per 100\u00a0g. Now {g}\u00a0g.',
@@ -1874,6 +1874,8 @@ export const en = {
       body: 'P {p} · F {f} · C {c}. Add ingredients and calories will be calculated from them, replacing these values.',
     },
     no_ingredients: 'Add at least one ingredient',
+    empty: 'No ingredients yet',
+    empty_body: 'Add at least one ingredient.',
     grams: '{name}, grams',
     ounces: '{name}, ounces',
     grams_err: 'From 0 to {max}\u00a0{u}',
