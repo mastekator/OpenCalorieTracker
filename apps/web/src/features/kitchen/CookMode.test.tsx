@@ -296,6 +296,8 @@ it('withCookedG: the saved recipe as a PUT body with the new weight', () => {
     photoId: PILAF.photoId,
     ingredients: PILAF.ingredients,
     steps: PILAF.steps,
+    per100: null,
+    servingG: null,
   });
 });
 

@@ -470,7 +470,9 @@ describe('RecipeEditor', () => {
         'ingredients',
         'name',
         'note',
+        'per100',
         'photoId',
+        'servingG',
         'servings',
         'steps',
       ]);

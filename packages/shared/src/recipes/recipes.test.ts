@@ -32,6 +32,14 @@ const recipe = (
   photoId: null,
   ingredients,
   steps: [],
+  per100: null,
+  servingG: null,
+});
+/** A recipe without ingredients, nutrients typed in per 100 g (ADR-0035). */
+const typed = (kcal: number, servingG: number | null = null): RecipeInput => ({
+  ...recipe([]),
+  per100: { kcal, proteinG: 4, fatG: 20, carbsG: 25 },
+  servingG,
 });
 
 describe('recipe calculation (AC-2.5)', () => {
@@ -83,6 +91,8 @@ describe('recipe calculation (AC-2.5)', () => {
       (3487 * 100) / 2100,
       350,
     ],
+    ['typed per 100 g, with a serving', typed(321, 120), 0, 0, 321, 120],
+    ['typed per 100 g, grams only', typed(321), 0, 0, 321, null],
   ])('%s', (_, r, kcal, basis, kcal100, serving) => {
     expect(recipeTotals(r.ingredients).kcal).toBeCloseTo(kcal, 9);
     expect(recipeBasisG(r)).toBe(basis);
@@ -139,6 +149,17 @@ describe('recipePortion', () => {
     });
   });
 
+  it('a recipe without ingredients uses its typed values', () => {
+    expect(recipePortion({ ...typed(300, 150), id: 3 }, 150)).toMatchObject({
+      grams: 150,
+      kcal: 450,
+      proteinG: 6,
+      fatG: 30,
+      carbsG: 37.5,
+      recipeId: 3,
+    });
+  });
+
   it('passes mealItemInputSchema', () => {
     expect(mealItemInputSchema.safeParse(recipePortion(r, 200)).success).toBe(
       true,
@@ -162,6 +183,7 @@ describe('weightWarning (E-10.2)', () => {
     expect(w(299.9, 100)).toBe(false);
     expect(w(100, null)).toBe(false);
     expect(w(0, 100)).toBe(false);
+    expect(weightWarning(typed(300))).toBe(false);
   });
 });
 
@@ -234,5 +256,52 @@ describe('recipeInputSchema (AC-6.5, E-10.1)', () => {
     expect(ok({ servings: 1.5 })).toBe(false);
     expect(ok({ servings: 100 })).toBe(true);
     expect(ok({ servings: 101 })).toBe(false);
+  });
+
+  describe('without ingredients (ADR-0035, E-1.a)', () => {
+    const t = (patch: Partial<RecipeInput>) =>
+      recipeInputSchema.safeParse({ ...typed(300), ...patch });
+
+    it('accepts per100 with no ingredients, with or without a serving', () => {
+      expect(t({}).success).toBe(true);
+      expect(t({ servingG: 120 }).success).toBe(true);
+      expect(t({ servingG: 5000 }).success).toBe(true);
+    });
+
+    it('blank macros count as 0', () => {
+      const r = recipeInputSchema.parse({
+        ...typed(300),
+        per100: { kcal: 300, proteinG: null },
+      });
+      expect(r.per100).toEqual({ kcal: 300, proteinG: 0, fatG: 0, carbsG: 0 });
+    });
+
+    it('rejects no ingredients without per100, and both at once', () => {
+      expect(ok({ ingredients: [], per100: null })).toBe(false);
+      expect(t({ ingredients: [ing(10, 10)] }).success).toBe(false);
+    });
+
+    it('rejects weights and servings of the ingredient mode', () => {
+      expect(t({ cookedG: 500 }).success).toBe(false);
+      expect(t({ servings: 2 }).success).toBe(false);
+      expect(ok({ servingG: 100 })).toBe(false);
+    });
+
+    it('kcal 0..900, macros >= 0 summing to at most 100', () => {
+      const n = (kcal: number, p: number, f: number, c: number) =>
+        t({ per100: { kcal, proteinG: p, fatG: f, carbsG: c } }).success;
+      expect(n(0, 0, 0, 0)).toBe(true);
+      expect(n(900, 0, 100, 0)).toBe(true);
+      expect(n(900.1, 0, 0, 0)).toBe(false);
+      expect(n(300, -1, 0, 0)).toBe(false);
+      expect(n(300, 33.3, 33.3, 33.4)).toBe(true);
+      expect(n(300, 40, 40, 20.1)).toBe(false);
+    });
+
+    it('serving: 1..5000 with one decimal', () => {
+      expect(t({ servingG: 0.5 }).success).toBe(false);
+      expect(t({ servingG: 5000.1 }).success).toBe(false);
+      expect(t({ servingG: 12.25 }).success).toBe(false);
+    });
   });
 });

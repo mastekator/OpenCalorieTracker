@@ -30,6 +30,8 @@ const recipe = {
     },
   ],
   steps: [],
+  per100: null,
+  servingG: null,
 };
 
 const lighter = {
@@ -62,7 +64,7 @@ let cleanup: (() => Promise<void>) | undefined;
 async function setup(model: Parameters<typeof aiSetup>[0]) {
   const t = await aiSetup(model);
   cleanup = t.cleanup;
-  const create = async (as = t.cookie) => {
+  const create = async (as = t.cookie, body: object = recipe) => {
     const res = await t.app.request('/api/recipes', {
       method: 'POST',
       headers: {
@@ -70,7 +72,7 @@ async function setup(model: Parameters<typeof aiSetup>[0]) {
         origin: 'http://localhost:3000',
         'content-type': 'application/json',
       },
-      body: JSON.stringify(recipe),
+      body: JSON.stringify(body),
     });
     return ((await res.json()) as { id: number }).id;
   };
@@ -147,6 +149,23 @@ it("is 404 for another user's or a missing recipe", async () => {
   expect((await t.ask(other)).status).toBe(404);
   expect((await t.ask(999)).status).toBe(404);
   expect((await t.ask('abc')).status).toBe(404);
+});
+
+it('is 400 for a recipe without ingredients, without calling the model', async () => {
+  const model = mockModel(lighter);
+  const t = await setup(model);
+  const id = await t.create(t.cookie, {
+    ...recipe,
+    servings: null,
+    ingredients: [],
+    per100: { kcal: 321, proteinG: 6, fatG: 22, carbsG: 25 },
+  });
+  const res = await t.ask(id);
+  expect(res.status).toBe(400);
+  expect(await res.json()).toMatchObject({
+    error: { code: 'validation_failed' },
+  });
+  expect(model.doGenerateCalls).toHaveLength(0);
 });
 
 it('is 409 ai_not_configured without AI', async () => {

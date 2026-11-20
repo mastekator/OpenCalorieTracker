@@ -92,6 +92,15 @@ export function recipeRoutes({ config, db }: AppDeps) {
     input.steps.forEach((s, pos) => step.run(recipeId, pos, s.text, s.photoId));
   };
 
+  /** The five per-100-g columns; all null for a recipe with ingredients. */
+  const per100Cols = ({ per100: n, servingG }: RecipeInput) => [
+    n?.kcal ?? null,
+    n?.proteinG ?? null,
+    n?.fatG ?? null,
+    n?.carbsG ?? null,
+    servingG,
+  ];
+
   const removePhotos = (userId: number, ids: string[]) =>
     Promise.all(
       ids.flatMap((id) =>
@@ -111,8 +120,10 @@ export function recipeRoutes({ config, db }: AppDeps) {
         const now = Date.now();
         const id = db
           .prepare(
-            `INSERT INTO recipes (user_id, name, name_key, cooked_g, servings, note, photo_id, rev,
-                 created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+            `INSERT INTO recipes (user_id, name, name_key, cooked_g, servings, note, photo_id,
+                 per100_kcal, per100_protein_g, per100_fat_g, per100_carbs_g, serving_g, rev,
+                 created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
           )
           .pluck()
           .get(
@@ -123,6 +134,7 @@ export function recipeRoutes({ config, db }: AppDeps) {
             input.servings,
             input.note || null,
             input.photoId,
+            ...per100Cols(input),
             bumpRev(db, userId),
             now,
             now,
@@ -147,7 +159,8 @@ export function recipeRoutes({ config, db }: AppDeps) {
           db.prepare('DELETE FROM recipe_steps WHERE recipe_id = ?').run(id);
           db.prepare(
             `UPDATE recipes SET name = ?, name_key = ?, cooked_g = ?, servings = ?, note = ?,
-               photo_id = ?, rev = ?, updated_at = ? WHERE id = ?`,
+               photo_id = ?, per100_kcal = ?, per100_protein_g = ?, per100_fat_g = ?,
+               per100_carbs_g = ?, serving_g = ?, rev = ?, updated_at = ? WHERE id = ?`,
           ).run(
             input.name,
             nameKey(input.name),
@@ -155,6 +168,7 @@ export function recipeRoutes({ config, db }: AppDeps) {
             input.servings,
             input.note || null,
             input.photoId,
+            ...per100Cols(input),
             bumpRev(db, userId),
             Date.now(),
             id,

@@ -44,6 +44,8 @@ export const PILAF: Recipe = {
       photoId: null,
     },
   ],
+  per100: null,
+  servingG: null,
   lastLoggedAt: '2026-11-18T12:00:00.000Z',
   updatedAt: '2026-11-10T10:00:00.000Z',
 };
@@ -63,6 +65,8 @@ export const SALAD: Recipe = {
     ing('Olive oil', 20, 180, 0, 20, 0),
   ],
   steps: [],
+  per100: null,
+  servingG: null,
   lastLoggedAt: null,
   updatedAt: '2026-11-12T10:00:00.000Z',
 };

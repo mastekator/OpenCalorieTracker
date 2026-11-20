@@ -89,6 +89,8 @@ export function parsedDraft(m: RecipeParseModel): RecipeParseResponse | null {
         .filter(Boolean)
         .slice(0, 30)
         .map((text) => ({ text, photoId: null })),
+      per100: null,
+      servingG: null,
     },
     unsure,
   };
