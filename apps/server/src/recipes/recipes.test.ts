@@ -124,8 +124,28 @@ const input = (patch: Partial<RecipeInput> = {}): RecipeInput => ({
     },
   ],
   steps: [{ text: 'Промыть рис', photoId: null }],
+  per100: null,
+  servingG: null,
   ...patch,
 });
+/** A recipe without ingredients (ADR-0035). */
+const typedInput = (patch: Partial<RecipeInput> = {}) =>
+  input({
+    name: 'Мой чизкейк',
+    cookedG: null,
+    servings: null,
+    ingredients: [],
+    per100: { kcal: 321, proteinG: 6, fatG: 22, carbsG: 25 },
+    servingG: 120,
+    ...patch,
+  });
+/** The five per-100-g columns of a recipe as stored. */
+const per100Row = (t: { db: import('better-sqlite3').Database }, id: number) =>
+  t.db
+    .prepare(
+      'SELECT per100_kcal, per100_protein_g, per100_fat_g, per100_carbs_g, serving_g FROM recipes WHERE id = ?',
+    )
+    .get(id);
 
 describe('recipes', () => {
   it('creates, replaces and deletes a recipe', async () => {
@@ -371,6 +391,70 @@ describe('recipes', () => {
       undefined,
       undefined,
     ]);
+  });
+
+  it('saves a recipe without ingredients, blank macros as 0, and syncs it', async () => {
+    const t = await setup();
+    const first = await t.sync(0);
+    const created = await t.call(
+      'POST',
+      '/recipes',
+      // Blank macros may come as null or be left out (ADR-0035 §2).
+      {
+        ...typedInput(),
+        per100: { kcal: 321, proteinG: null },
+        servingG: null,
+      },
+    );
+    expect(created.status).toBe(201);
+    const r = created.body as Recipe;
+    expect(r).toMatchObject({
+      ingredients: [],
+      per100: { kcal: 321, proteinG: 0, fatG: 0, carbsG: 0 },
+      servingG: null,
+    });
+    expect((await t.sync(first.rev)).recipes).toEqual([r]);
+    expect(
+      (await t.call('POST', '/recipes', { ...typedInput(), per100: null }))
+        .status,
+    ).toBe(400);
+  });
+
+  it('PUT switches between ingredients and per 100 g both ways', async () => {
+    const t = await setup();
+    const { id } = (await t.call('POST', '/recipes', input())).body as Recipe;
+    expect(per100Row(t, id)).toEqual({
+      per100_kcal: null,
+      per100_protein_g: null,
+      per100_fat_g: null,
+      per100_carbs_g: null,
+      serving_g: null,
+    });
+
+    const typed = await t.call('PUT', `/recipes/${id}`, typedInput());
+    expect(typed.status).toBe(200);
+    expect(typed.body).toMatchObject({
+      ingredients: [],
+      cookedG: null,
+      servings: null,
+      per100: { kcal: 321, proteinG: 6, fatG: 22, carbsG: 25 },
+      servingG: 120,
+    });
+    expect(t.count('recipe_ingredients')).toBe(0);
+    const synced = await t.sync(0);
+    expect(synced.recipes).toEqual([typed.body]);
+
+    const back = await t.call('PUT', `/recipes/${id}`, input());
+    expect(back.status).toBe(200);
+    expect(back.body).toMatchObject({ per100: null, servingG: null });
+    expect((back.body as Recipe).ingredients).toHaveLength(2);
+    expect(per100Row(t, id)).toEqual({
+      per100_kcal: null,
+      per100_protein_g: null,
+      per100_fat_g: null,
+      per100_carbs_g: null,
+      serving_g: null,
+    });
   });
 
   it('is 401 without a session', async () => {

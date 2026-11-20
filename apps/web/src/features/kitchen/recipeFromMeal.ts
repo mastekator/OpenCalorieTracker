@@ -33,6 +33,8 @@ export function recipeFromMeal(meal: Source): RecipeEditorState {
       photoId: null,
       ingredients,
       steps: [],
+      per100: null,
+      servingG: null,
     },
     fromMeal: { mealType: meal.mealType, localDate: meal.localDate },
   };

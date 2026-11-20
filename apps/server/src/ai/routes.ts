@@ -229,13 +229,19 @@ export function aiRoutes({ config, db, ai, photoBarcodes }: RouteDeps) {
       const user = c.var.user;
       const id = c.req.param('id');
       // The recipe is read here, never taken from the client (ADR-0023 §8).
-      const rev = /^\d+$/.test(id)
+      const row = /^\d+$/.test(id)
         ? (db
-            .prepare('SELECT rev FROM recipes WHERE id = ? AND user_id = ?')
-            .pluck()
-            .get(Number(id), user.id) as number | undefined)
+            .prepare(
+              'SELECT rev, per100_kcal FROM recipes WHERE id = ? AND user_id = ?',
+            )
+            .get(Number(id), user.id) as
+            { rev: number; per100_kcal: number | null } | undefined)
         : undefined;
-      if (rev === undefined) throw new ApiError(404, 'not_found');
+      if (row === undefined) throw new ApiError(404, 'not_found');
+      // No ingredients to make lighter (ADR-0035 §3).
+      if (row.per100_kcal !== null)
+        throw new ApiError(400, 'validation_failed');
+      const { rev } = row;
       // By rev: a retry of the same recipe joins the call, an edited recipe asks afresh.
       const result = once<LighterResponse>(
         `${user.id}:lighter:${id}:${rev}`,

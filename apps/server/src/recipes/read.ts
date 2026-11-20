@@ -8,6 +8,11 @@ interface RecipeRow {
   servings: number | null;
   note: string | null;
   photo_id: string | null;
+  per100_kcal: number | null;
+  per100_protein_g: number | null;
+  per100_fat_g: number | null;
+  per100_carbs_g: number | null;
+  serving_g: number | null;
   last_logged_at: number | null;
   updated_at: number;
 }
@@ -47,6 +52,17 @@ function selectRecipes(db: Database, where: string, ...params: unknown[]) {
     photoId: r.photo_id,
     ingredients: ingredients.get(r.id) ?? [],
     steps: steps.get(r.id) ?? [],
+    // The mode is set by per100_kcal alone (ADR-0035 §1).
+    per100:
+      r.per100_kcal === null
+        ? null
+        : {
+            kcal: r.per100_kcal,
+            proteinG: r.per100_protein_g ?? 0,
+            fatG: r.per100_fat_g ?? 0,
+            carbsG: r.per100_carbs_g ?? 0,
+          },
+    servingG: r.serving_g,
     lastLoggedAt:
       r.last_logged_at === null
         ? null

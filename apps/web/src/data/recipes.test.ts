@@ -127,6 +127,8 @@ describe('saveRecipe', () => {
     photoId: null,
     ingredients: SALAD.ingredients,
     steps: [],
+    per100: null,
+    servingG: null,
   };
 
   it('POST for a new one, PUT for a saved one; the answer goes into the copy', async () => {

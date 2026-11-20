@@ -1,5 +1,6 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { readRecipe } from '../recipes/read.js';
 import { migrate } from './migrate.js';
 import { openDb } from './open.js';
 
@@ -15,7 +16,7 @@ describe('migrate', () => {
   it('brings an empty database to the latest version', () => {
     const db = openDb(':memory:');
     migrate(db);
-    expect(db.pragma('user_version', { simple: true })).toBe(18);
+    expect(db.pragma('user_version', { simple: true })).toBe(19);
     expect(tables(db)).toEqual([
       'agent_drafts',
       'agent_messages',
@@ -65,7 +66,7 @@ describe('migrate', () => {
       .pluck()
       .all();
     migrate(db);
-    expect(db.pragma('user_version', { simple: true })).toBe(18);
+    expect(db.pragma('user_version', { simple: true })).toBe(19);
     expect(
       db.prepare('SELECT sql FROM sqlite_master ORDER BY name').pluck().all(),
     ).toEqual(before);
@@ -151,7 +152,7 @@ describe('migrate', () => {
     const before = db.prepare('SELECT * FROM meal_items ORDER BY id').all();
 
     migrate(db);
-    expect(db.pragma('user_version', { simple: true })).toBe(18);
+    expect(db.pragma('user_version', { simple: true })).toBe(19);
     expect(db.prepare('SELECT * FROM meal_items ORDER BY id').all()).toEqual(
       before.map((r) => ({ ...(r as object), recipe_id: null, barcode: null })),
     );
@@ -178,6 +179,37 @@ describe('migrate', () => {
     ).toEqual({ recipe_id: null });
     db.prepare('DELETE FROM meals').run();
     expect(db.prepare('SELECT COUNT(*) FROM meal_items').pluck().get()).toBe(0);
+  });
+
+  it('reads recipes saved before 0019 as before, computed from ingredients', () => {
+    const db = openDb(':memory:');
+    const dir = new URL('./migrations/', import.meta.url);
+    for (const f of readdirSync(dir)
+      .filter((f) => /^\d{4}_\w+\.sql$/.test(f) && f < '0019')
+      .sort())
+      db.exec(readFileSync(new URL(f, dir), 'utf8'));
+    db.pragma('user_version = 18');
+    db.prepare(
+      "INSERT INTO users (id, email, role, webauthn_user_id, created_at) VALUES (1, 'a@b.c', 'user', x'01', 0)",
+    ).run();
+    db.prepare(
+      `INSERT INTO recipes (id, user_id, name, name_key, cooked_g, servings, rev, created_at, updated_at)
+       VALUES (1, 1, 'Плов', 'плов', 900, 3, 1, 0, 0)`,
+    ).run();
+    db.prepare(
+      `INSERT INTO recipe_ingredients (recipe_id, position, name, grams, kcal, protein_g, fat_g,
+         carbs_g, source) VALUES (1, 0, 'Рис', 500, 1750, 35, 5, 390, 'manual')`,
+    ).run();
+
+    migrate(db);
+    expect(readRecipe(db, 1)).toMatchObject({
+      name: 'Плов',
+      cookedG: 900,
+      servings: 3,
+      ingredients: [{ name: 'Рис', grams: 500, kcal: 1750 }],
+      per100: null,
+      servingG: null,
+    });
   });
 
   it('turns foreign keys back on when a migration fails', () => {

@@ -125,6 +125,8 @@ export function LighterView({
       photoId: recipe.photoId,
       ingredients: l.ingredients,
       steps: recipe.steps,
+      per100: null,
+      servingG: null,
     };
     setSaving(true);
     try {

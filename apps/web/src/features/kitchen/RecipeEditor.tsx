@@ -261,6 +261,9 @@ export function RecipeEditor({
     steps: steps
       .filter((s) => s.text.trim())
       .map((s) => ({ text: s.text.trim(), photoId: s.photoId })),
+    // shortcut: always the ingredient mode; the per-100-g mode lands in Recipes 10b.
+    per100: null,
+    servingG: null,
   });
   const [initial] = useState(() => JSON.stringify(input()));
   // A draft from elsewhere is unsaved work from the start (as new dishes, OCT-16 4.7).
