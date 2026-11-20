@@ -1078,11 +1078,14 @@ export function MealEditScreen({
     };
   };
   const mixed = aiRows && rows.some((r) => packageOf(r));
-  const orphanCode = codes.find(
-    (c) =>
-      c.result.product?.kcal100 === null &&
-      !rows.some((r) => r.original.barcode === c.code),
-  )?.code;
+  // Reading a label needs a vision model (AC-4.7): without one, no label button.
+  const orphanCode =
+    vision &&
+    codes.find(
+      (c) =>
+        c.result.product?.kcal100 === null &&
+        !rows.some((r) => r.original.barcode === c.code),
+    )?.code;
   const remembered = items.filter(remembers);
   const refineOff = !online || locked || refine.limitReached;
   const asked = rows.filter(
@@ -1488,7 +1491,7 @@ export function MealEditScreen({
                           />
                         )
                       )}
-                      {row.original.check && row.original.barcode && (
+                      {vision && row.original.check && row.original.barcode && (
                         <NoKcalHint
                           busy={reading}
                           onShoot={() => shootLabel(row.original.barcode!)}

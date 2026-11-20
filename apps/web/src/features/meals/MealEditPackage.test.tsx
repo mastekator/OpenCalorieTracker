@@ -57,6 +57,7 @@ const render = (props: Partial<Parameters<typeof MealEditScreen>[0]>) =>
           dishes={[estimate]}
           photoId="p1"
           units="metric"
+          recognition="ready"
           onSave={async () => {}}
           onClose={() => {}}
           {...props}
@@ -162,6 +163,22 @@ describe('«Photograph the label» (OCT-313 2.4)', () => {
     });
     await screen.findByText(/Couldn’t read the label/);
     expect(kcalOfRow()).toContain('120');
+  });
+
+  it('without AI no label button: a label cannot be read (AC-4.7)', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => Response.json([])),
+    );
+    const off = codes({ product, from: 'off', off: 'found' });
+    // Under a dish to check and above the list for a package with no dish.
+    for (const dishes of [[estimate], []]) {
+      await render({ dishes, codes: off, recognition: 'not_configured' });
+      expect(
+        screen.queryByRole('button', { name: 'Photograph the label' }),
+      ).toBeNull();
+      cleanup();
+    }
   });
 });
 
