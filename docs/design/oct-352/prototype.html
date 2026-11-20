@@ -1,0 +1,1401 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OCT-352 · My cheesecake: recipe without ingredients, recipe in AI questions</title>
+<link rel="stylesheet" href="../oct-13/tokens.css">
+<script src="../preview-bar.js"></script>
+<style>
+/* Base components = ../oct-13 + ../oct-16 prototypes (same spec) */
+/* ===== Prototype canvas (not part of the app) ===== */
+*{box-sizing:border-box;margin:0}
+html{background:var(--color-bg);color:var(--color-text);font-family:var(--font-sans);-webkit-font-smoothing:antialiased}
+::selection{background:var(--color-selection)}
+body{padding:var(--space-10) var(--space-8)}
+.doc-h1{font-size:var(--text-large-title-size);line-height:var(--text-large-title-lh);font-weight:700;letter-spacing:var(--tracking-tight)}
+.doc-lead{font-size:var(--text-subhead-size);color:var(--color-text-secondary);max-width:70ch;margin-top:var(--space-2)}
+.doc-section{margin-top:var(--space-12)}
+.doc-h2{font-size:var(--text-title-size);font-weight:600;margin-bottom:var(--space-2)}
+.row{display:flex;flex-wrap:wrap;gap:var(--space-8);align-items:flex-start;margin-top:var(--space-6)}
+.frame{display:flex;flex-direction:column;gap:var(--space-3);width:390px}
+.frame>figcaption{font-size:var(--text-footnote-size);color:var(--color-text-secondary);line-height:var(--text-footnote-lh)}
+.frame>figcaption b{color:var(--color-text);font-weight:600}
+
+/* ===== Device chrome (prototype only) ===== */
+.phone{position:relative;width:390px;height:844px;border-radius:48px;overflow:hidden;background:var(--color-bg);outline:1px solid var(--color-separator);display:flex;flex-direction:column}
+.status{height:54px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 32px 0 40px;font-size:var(--text-body-size);font-weight:600}
+.status::after{content:"";width:68px;height:12px;border-radius:var(--radius-full);background:currentColor;opacity:.85;-webkit-mask:linear-gradient(90deg,#000 0 30%,transparent 30% 38%,#000 38% 62%,transparent 62% 70%,#000 70%)}
+.island{position:absolute;top:11px;left:50%;translate:-50% 0;width:124px;height:36px;border-radius:var(--radius-full);background:#000;z-index:100}
+.home-ind{position:absolute;bottom:8px;left:50%;translate:-50% 0;width:134px;height:5px;border-radius:var(--radius-full);background:var(--color-text);z-index:100}
+
+/* ===== App components (tokens only) ===== */
+.icon{width:var(--icon-size);height:var(--icon-size);flex:none;fill:none;stroke:currentColor;stroke-width:var(--icon-stroke);stroke-linecap:round;stroke-linejoin:round}
+.icon.sm{width:var(--icon-size-sm);height:var(--icon-size-sm)}
+.scroll{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.navbar{height:var(--navbar-height);flex:none;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 var(--space-2)}
+.navbar .title{font-size:var(--text-headline-size);font-weight:600}
+.navbar .back{display:flex;align-items:center;gap:2px;color:var(--color-accent);font-size:var(--text-body-size);min-height:var(--tap-min);padding-right:var(--space-2)}
+.navbar .act{justify-self:end;color:var(--color-accent);font-size:var(--text-body-size);min-height:var(--tap-min);display:flex;align-items:center;padding:0 var(--space-2)}
+.large-title{font-size:var(--text-large-title-size);line-height:var(--text-large-title-lh);font-weight:700;letter-spacing:var(--tracking-tight);padding:var(--space-1) var(--screen-gutter) var(--space-2)}
+.pad{padding:0 var(--screen-gutter)}
+.stack{display:flex;flex-direction:column;gap:var(--space-4)}
+.stack-sm{display:flex;flex-direction:column;gap:var(--space-2)}
+.grow{flex:1}
+.bottom{padding:var(--space-4) var(--screen-gutter) calc(34px + var(--space-2));display:flex;flex-direction:column;gap:var(--space-3)}
+.t-title{font-size:var(--text-title-size);line-height:var(--text-title-lh);font-weight:600}
+.t-headline{font-size:var(--text-headline-size);line-height:var(--text-headline-lh);font-weight:600}
+.t-body{font-size:var(--text-body-size);line-height:var(--text-body-lh)}
+.t-sub{font-size:var(--text-subhead-size);line-height:var(--text-subhead-lh)}
+.t-foot{font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh)}
+.t-cap{font-size:var(--text-caption-size);line-height:var(--text-caption-lh);font-weight:500}
+.muted{color:var(--color-text-secondary)}
+.center{text-align:center}
+.num{font-variant-numeric:tabular-nums}
+
+/* brand */
+.brand{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-headline-size);font-weight:600}
+.brand .mark{width:32px;height:32px;border-radius:var(--radius-sm);background:var(--color-accent);color:var(--color-on-accent);display:grid;place-items:center}
+
+/* buttons */
+.btn{appearance:none;border:0;font:inherit;width:100%;min-height:var(--control-height-lg);border-radius:var(--radius-md);font-size:var(--text-headline-size);font-weight:600;display:flex;align-items:center;justify-content:center;gap:var(--space-2);padding:0 var(--space-4);cursor:pointer;transition:transform var(--duration-fast) var(--ease-out),background var(--duration-fast) var(--ease-out)}
+.btn:active{transform:scale(var(--press-scale))}
+.btn:focus-visible{outline:2px solid var(--color-focus-ring);outline-offset:2px}
+.btn-primary{background:var(--color-accent);color:var(--color-on-accent)}
+.btn-primary.pressed{background:var(--color-accent-pressed)}
+.btn-tonal{background:var(--color-accent-soft);color:var(--color-accent)}
+.btn-plain{background:transparent;color:var(--color-accent);min-height:var(--tap-min)}
+.btn-danger{background:var(--color-danger);color:var(--color-on-danger)}
+.btn-danger-plain{background:transparent;color:var(--color-danger);min-height:var(--tap-min)}
+.btn[disabled],.btn.disabled{background:var(--color-surface-2);color:var(--color-text-disabled);cursor:default}
+.btn-plain.disabled{background:transparent}
+.btn-sm{min-height:var(--control-height);width:auto;font-size:var(--text-subhead-size);padding:0 var(--space-4)}
+.link{color:var(--color-accent);font-weight:500;text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px}
+.spinner{width:20px;height:20px;border-radius:50%;border:2px solid currentColor;border-right-color:transparent;animation:spin 800ms linear infinite}
+@keyframes spin{to{rotate:360deg}}
+
+/* fields */
+.field{display:flex;flex-direction:column;gap:var(--space-2)}
+.field label{font-size:var(--text-subhead-size);font-weight:500}
+.input{display:flex;align-items:center;gap:var(--space-2);min-height:var(--control-height-lg);padding:0 var(--space-4);border-radius:var(--radius-md);background:var(--color-surface);border:1px solid var(--color-border-strong);font-size:var(--text-body-size)}
+.input .ph{color:var(--color-text-secondary)}
+.input .val{flex:1}
+.input .trail{color:var(--color-text-secondary);display:grid;place-items:center;width:var(--tap-min);height:var(--tap-min);margin-right:calc(-1 * var(--space-3))}
+.input.focus{border-color:var(--color-accent);box-shadow:inset 0 0 0 1px var(--color-accent)}
+.input.caret .val::after{content:"";display:inline-block;width:2px;height:1.1em;background:var(--color-accent);vertical-align:-3px;margin-left:1px}
+.input.error{border-color:var(--color-danger);box-shadow:inset 0 0 0 1px var(--color-danger)}
+.input.locked{background:var(--color-surface-2);border-color:transparent;color:var(--color-text-secondary)}
+.field .msg{display:flex;gap:var(--space-1);align-items:flex-start;font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);color:var(--color-text-secondary)}
+.field .msg.err{color:var(--color-danger)}
+.rules{list-style:none;padding:0;display:grid;gap:var(--space-1);font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh)}
+.rules li{display:flex;gap:var(--space-2);align-items:center;color:var(--color-text-secondary)}
+.rules li.ok{color:var(--color-accent)}
+.rules li.bad{color:var(--color-danger)}
+
+/* segmented */
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;padding:2px;border-radius:var(--radius-md);background:var(--color-surface-2);min-height:var(--control-height)}
+.seg span{display:grid;place-items:center;border-radius:calc(var(--radius-md) - 2px);font-size:var(--text-subhead-size);font-weight:500;color:var(--color-text-secondary)}
+.seg span.on{background:var(--color-surface);color:var(--color-text);font-weight:600;box-shadow:0 1px 3px rgb(0 0 0 / .12)}
+
+/* grouped lists */
+.group-h{font-size:var(--text-footnote-size);color:var(--color-text-secondary);padding:0 var(--space-4) var(--space-2);margin-top:var(--space-6)}
+.group{background:var(--color-surface);border-radius:var(--radius-md);overflow:hidden}
+.group-f{font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);color:var(--color-text-secondary);padding:var(--space-2) var(--space-4) 0}
+.cell{display:flex;align-items:center;gap:var(--space-3);min-height:var(--control-height);padding:var(--space-3) var(--space-4);position:relative;font-size:var(--text-body-size)}
+.cell+.cell::before{content:"";position:absolute;top:0;right:0;left:var(--space-4);border-top:1px solid var(--color-separator)}
+.cell.ic+.cell::before,.cell.ic+.cell.ic::before{left:calc(var(--space-4) + 30px + var(--space-3))}
+.cell .lead-ic{width:30px;height:30px;border-radius:var(--radius-sm);display:grid;place-items:center;background:var(--color-accent-soft);color:var(--color-accent);flex:none}
+.cell .lead-ic.danger{background:var(--color-danger-soft);color:var(--color-danger)}
+.cell .main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.cell .main .sub{font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.cell .val{color:var(--color-text-secondary)}
+.cell .chev{color:var(--color-text-secondary)}
+.cell.danger{color:var(--color-danger)}
+.cell.accent{color:var(--color-accent)}
+.cell.dis{color:var(--color-text-disabled)}
+.badge{font-size:var(--text-caption-size);font-weight:600;padding:2px var(--space-2);border-radius:var(--radius-sm);background:var(--color-surface-2);color:var(--color-text-secondary);white-space:nowrap}
+.badge.ok{background:var(--color-accent-soft);color:var(--color-accent)}
+.badge.warn{background:var(--color-warning-soft);color:var(--color-warning)}
+.badge.err{background:var(--color-danger-soft);color:var(--color-danger)}
+
+/* banners */
+.banner{display:flex;gap:var(--space-3);align-items:flex-start;padding:var(--space-3) var(--space-4);border-radius:var(--radius-lg);font-size:var(--text-subhead-size);line-height:var(--text-subhead-lh)}
+.banner .b-title{font-weight:600}
+.banner.notice{background:var(--color-notice)}
+.banner.warning{background:var(--color-warning-soft)}
+.banner.warning .icon{color:var(--color-warning)}
+.banner.danger{background:var(--color-danger-soft)}
+.banner.danger .icon{color:var(--color-danger)}
+.banner.accent{background:var(--color-accent-soft)}
+.banner.accent .icon{color:var(--color-accent)}
+.banner .close{margin:-10px -12px -10px auto;width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;color:var(--color-text-secondary);flex:none}
+.offline-bar{display:flex;gap:var(--space-2);align-items:center;justify-content:center;min-height:32px;padding:var(--space-1) var(--space-4);background:var(--color-notice);font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+
+/* divider "или" */
+.or{display:flex;align-items:center;gap:var(--space-3);font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.or::before,.or::after{content:"";flex:1;border-top:1px solid var(--color-separator)}
+
+/* overlays */
+.scrim{position:absolute;inset:0;background:var(--color-scrim);z-index:var(--z-sheet)}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:var(--z-sheet);background:var(--color-surface);border-radius:var(--radius-xl) var(--radius-xl) 0 0;box-shadow:var(--shadow-sheet);padding:var(--space-2) var(--screen-gutter) calc(34px + var(--space-4));display:flex;flex-direction:column;gap:var(--space-4)}
+.sheet .grab{width:36px;height:5px;border-radius:var(--radius-full);background:var(--color-separator);margin:0 auto var(--space-1)}
+.sheet .sheet-head{display:flex;align-items:center;justify-content:space-between}
+.sheet .x{width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;margin-right:calc(-1 * var(--space-3));color:var(--color-text-secondary)}
+.sheet .inset{background:var(--color-surface-2)}
+.alert{position:absolute;left:50%;top:50%;translate:-50% -50%;width:300px;z-index:var(--z-alert);background:var(--color-surface);border-radius:var(--radius-lg);padding:var(--space-5) var(--space-4) var(--space-4);display:flex;flex-direction:column;gap:var(--space-2);text-align:center;box-shadow:var(--shadow-toast)}
+.alert .btns{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-2);margin-top:var(--space-3)}
+.alert .btns.col{grid-template-columns:1fr}
+.toast{position:absolute;left:var(--screen-gutter);right:var(--screen-gutter);bottom:calc(34px + var(--tabbar-height) + var(--space-3));z-index:var(--z-toast);display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);background:var(--color-text);color:var(--color-bg);box-shadow:var(--shadow-toast);font-size:var(--text-subhead-size)}
+.toast .act{margin-left:auto;font-weight:600;min-height:var(--tap-min);display:flex;align-items:center}
+
+/* state blocks */
+.state{display:flex;flex-direction:column;align-items:center;text-align:center;gap:var(--space-2);padding:var(--space-8) var(--space-6)}
+.state .s-ic{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;background:var(--color-surface-2);color:var(--color-text-secondary);margin-bottom:var(--space-2)}
+.state .s-ic.danger{background:var(--color-danger-soft);color:var(--color-danger)}
+.state .s-ic.warning{background:var(--color-warning-soft);color:var(--color-warning)}
+.state p{max-width:30ch}
+.state .btn{margin-top:var(--space-3)}
+.skel{background:var(--color-surface-2);border-radius:var(--radius-sm);height:14px;position:relative;overflow:hidden}
+.skel::after{content:"";position:absolute;inset:0;translate:-100% 0;background:linear-gradient(90deg,transparent,var(--color-surface),transparent);animation:shimmer 1.4s var(--ease-in-out) infinite}
+@keyframes shimmer{to{translate:100% 0}}
+
+/* tab bar */
+.tabbar{position:absolute;left:0;right:0;bottom:0;z-index:var(--z-tabbar);height:calc(var(--tabbar-height) + 34px);padding-bottom:34px;background:var(--tabbar-bg);-webkit-backdrop-filter:var(--tabbar-blur);backdrop-filter:var(--tabbar-blur);border-top:1px solid var(--color-separator);display:grid;grid-template-columns:repeat(5,1fr);align-items:center}
+.tab{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:var(--text-tab-size);font-weight:var(--text-tab-weight);color:var(--color-text-secondary);min-height:var(--tabbar-height);justify-content:center}
+.tab.on{color:var(--color-accent)}
+.cam{justify-self:center;width:var(--camera-button-size);height:var(--camera-button-size);border-radius:50%;background:var(--color-accent);color:var(--color-on-accent);display:grid;place-items:center;box-shadow:var(--shadow-camera);translate:0 -14px}
+.cam .icon{width:30px;height:30px}
+
+/* swatches (docs only) */
+.sw-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-2)}
+.sw{border-radius:var(--radius-md);overflow:hidden;background:var(--color-surface);font-size:var(--text-caption-size);outline:1px solid var(--color-separator)}
+.sw i{display:block;height:44px}
+.sw div{padding:var(--space-2);line-height:1.3}
+.sheetdoc{width:390px;background:var(--color-surface);border-radius:var(--radius-lg);padding:var(--space-5);display:flex;flex-direction:column;gap:var(--space-4);outline:1px solid var(--color-separator)}
+.sheetdoc h3{font-size:var(--text-headline-size)}
+.doc-note{font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.navmap{width:820px;background:var(--color-surface);border-radius:var(--radius-lg);padding:var(--space-6);outline:1px solid var(--color-separator);display:grid;grid-template-columns:repeat(5,1fr);gap:var(--space-3);font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh)}
+.navmap .col{display:flex;flex-direction:column;gap:var(--space-2)}
+.navmap .nd{padding:var(--space-2) var(--space-3);border-radius:var(--radius-sm);background:var(--color-surface-2)}
+.navmap .nd.tab{background:var(--color-accent-soft);color:var(--color-accent);font-weight:600;align-items:flex-start;font-size:var(--text-footnote-size)}
+.navmap .nd.modal{outline:1px dashed var(--color-border-strong);background:transparent}
+.navmap .arrow{color:var(--color-text-secondary);text-align:center}
+
+/* ===== Desktop (≥ 1024px) — section 6 ===== */
+.frame.wide{width:1280px}
+.desk{position:relative;width:1280px;height:800px;border-radius:var(--radius-lg);overflow:hidden;background:var(--color-bg);outline:1px solid var(--color-separator);display:flex;flex-direction:column}
+.desk .chrome{height:36px;flex:none;display:flex;align-items:center;gap:var(--space-2);padding:0 var(--space-4);background:var(--color-surface-2);border-bottom:1px solid var(--color-separator);font-size:var(--text-caption-size);color:var(--color-text-secondary)}
+.desk .chrome i{width:12px;height:12px;border-radius:50%;background:var(--color-separator)}
+.desk .chrome .url{margin-left:var(--space-6);padding:var(--space-1) var(--space-3);border-radius:var(--radius-sm);background:var(--color-surface)}
+.desk .body{flex:1;display:flex;min-height:0}
+.side{width:var(--sidebar-width);flex:none;display:flex;flex-direction:column;gap:var(--space-1);padding:var(--space-6) var(--space-4);border-right:1px solid var(--color-separator)}
+.side .brand{padding:0 var(--space-3) var(--space-6)}
+.side .btn{margin-bottom:var(--space-4)}
+.nav-i{display:flex;align-items:center;gap:var(--space-3);min-height:var(--tap-min);padding:0 var(--space-3);border-radius:var(--radius-md);font-size:var(--text-body-size);color:var(--color-text)}
+.nav-i .icon{color:var(--color-text-secondary)}
+.nav-i.hover{background:var(--color-hover)}
+.nav-i.on{background:var(--color-accent-soft);color:var(--color-accent);font-weight:600}
+.nav-i.on .icon{color:var(--color-accent)}
+.side .foot{margin-top:auto;display:flex;flex-direction:column;gap:var(--space-1)}
+.side .who{padding:var(--space-2) var(--space-3);font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.main-area{flex:1;overflow:hidden;padding:var(--space-8) var(--desktop-gutter)}
+.main-area .inner{max-width:var(--content-max-width-wide);margin:0 auto;display:flex;flex-direction:column;gap:var(--space-6)}
+.main-area .large-title{padding:0}
+.cols{display:grid;grid-template-columns:3fr 2fr;gap:var(--space-6)}
+.drop{display:flex;flex-direction:column;align-items:center;gap:var(--space-2);padding:var(--space-8);border:2px dashed var(--color-border-strong);border-radius:var(--radius-lg);color:var(--color-text-secondary);text-align:center;font-size:var(--text-subhead-size)}
+.auth-desk{flex:1;display:grid;place-items:center}
+.auth-card{width:var(--content-max-width);background:var(--color-surface);border-radius:var(--radius-lg);padding:var(--space-10);box-shadow:var(--shadow-toast)}
+.dialog{position:absolute;left:50%;top:50%;translate:-50% -50%;width:var(--dialog-max-width);z-index:var(--z-sheet);background:var(--color-surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-toast);padding:var(--space-6);display:flex;flex-direction:column;gap:var(--space-4)}
+.dialog .sheet-head{display:flex;align-items:center;justify-content:space-between}
+.dialog .x{width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;margin-right:calc(-1 * var(--space-3));color:var(--color-text-secondary)}
+.kbd{font-size:var(--text-caption-size);padding:1px var(--space-1);border-radius:var(--radius-sm);outline:1px solid var(--color-separator);color:var(--color-text-secondary)}
+.toast.desk-toast{left:50%;right:auto;translate:-50% 0;bottom:var(--space-6);width:auto;max-width:var(--dialog-max-width)}
+
+/* ===== OCT-16 additions (tokens only; prototype-only bits marked) ===== */
+.frame.sm{width:390px}
+.phone .content{flex:1;overflow:hidden;display:flex;flex-direction:column;gap:var(--space-4);padding-bottom:var(--space-4)}
+.navbar .x-btn{width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;color:var(--color-text-secondary)}
+.navbar .txt-btn{color:var(--color-accent);font-size:var(--text-body-size);min-height:var(--tap-min);display:flex;align-items:center;padding:0 var(--space-2)}
+.bottom.bar{background:var(--color-bg);border-top:1px solid var(--color-separator);margin-top:auto}
+.foot-note{display:flex;gap:var(--space-2);align-items:flex-start;font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);color:var(--color-text-secondary)}
+.foot-note .icon{color:var(--color-accent)}
+
+/* photo (user content) */
+.photo{display:block;width:100%;height:var(--photo-preview-height);border-radius:var(--radius-lg);overflow:hidden;position:relative;background:var(--color-surface-2)}
+.photo svg{width:100%;height:100%;display:block}
+.photo.scan::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgb(255 255 255 / .28) 50%,transparent 70%);translate:-100% 0;animation:sweep 1.8s var(--ease-in-out) infinite}
+@keyframes sweep{to{translate:100% 0}}
+.photo.dim{height:calc(var(--photo-preview-height) * .6)}
+.thumb{width:var(--thumb-size);height:var(--thumb-size);border-radius:var(--radius-md);overflow:hidden;flex:none;background:var(--color-surface-2)}
+.thumb svg{width:100%;height:100%;display:block}
+.thumb.add{display:grid;place-items:center;color:var(--color-accent);background:var(--color-accent-soft);font-size:var(--text-caption-size);font-weight:600;text-align:center;align-content:center;gap:2px}
+
+/* totals header */
+.totals{display:flex;gap:var(--space-4);align-items:center}
+.kcal-big{display:flex;align-items:baseline;gap:var(--space-1)}
+.kcal-big b{font-size:var(--text-large-title-size);line-height:var(--text-large-title-lh);font-weight:700;letter-spacing:var(--tracking-tight);font-variant-numeric:tabular-nums}
+.macros{display:flex;gap:var(--space-3);font-size:var(--text-footnote-size);color:var(--color-text-secondary);font-variant-numeric:tabular-nums}
+.macros span{display:flex;align-items:center;gap:var(--space-1)}
+.macros i{width:var(--space-2);height:var(--space-2);border-radius:var(--radius-full)}
+.m-p{background:var(--color-protein)} .m-f{background:var(--color-fat)} .m-c{background:var(--color-carbs)}
+
+/* dish row */
+.dish{display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-3) var(--space-4);position:relative;background:var(--color-surface)}
+.dish+.dish::before{content:"";position:absolute;top:0;right:0;left:var(--space-4);border-top:1px solid var(--color-separator)}
+.dish-top{display:flex;justify-content:space-between;align-items:baseline;gap:var(--space-3)}
+.dish-top .name{font-size:var(--text-headline-size);font-weight:600;line-height:var(--text-headline-lh)}
+.dish-top .kc{font-size:var(--text-headline-size);font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.dish-meta{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-footnote-size);color:var(--color-text-secondary);font-variant-numeric:tabular-nums}
+.badge{display:inline-flex;align-items:center;gap:2px}
+.badge .icon{width:14px;height:14px}
+.dish-ctl{display:flex;align-items:center;gap:var(--space-2)}
+.step{width:var(--tap-min);height:var(--tap-min);border-radius:var(--radius-full);background:var(--color-surface-2);color:var(--color-accent);display:grid;place-items:center;flex:none}
+.step.dis{color:var(--color-text-disabled)}
+.wv{width:var(--stepper-value-width);height:var(--control-height);border:1px solid var(--color-border-strong);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;gap:var(--space-1);font-size:var(--text-body-size);font-variant-numeric:tabular-nums;background:var(--color-surface)}
+.wv small{font-size:var(--text-subhead-size);color:var(--color-text-secondary)}
+.wv.focus{border-color:var(--color-accent);box-shadow:inset 0 0 0 1px var(--color-accent)}
+.wv.error{border-color:var(--color-danger);box-shadow:inset 0 0 0 1px var(--color-danger)}
+.dish .more{margin-left:auto;width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;color:var(--color-text-secondary)}
+.dish .err-msg{display:flex;gap:var(--space-1);align-items:center;font-size:var(--text-footnote-size);color:var(--color-danger)}
+.hint{display:flex;flex-direction:column;gap:var(--space-1);padding:var(--space-2) var(--space-3);border-radius:var(--radius-md);background:var(--color-accent-soft);font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh)}
+.hint .acts{display:flex;gap:var(--space-4)}
+.hint .acts span{color:var(--color-accent);font-weight:600;min-height:var(--tap-min);display:flex;align-items:center}
+.hint .acts span+span{color:var(--color-text-secondary);font-weight:500}
+/* swipe-to-delete reveal */
+.swipe{position:relative;background:var(--color-danger);overflow:hidden}
+.swipe .dish{translate:-96px 0}
+.swipe .del{position:absolute;right:0;top:0;bottom:0;width:96px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--color-on-danger);font-size:var(--text-footnote-size);font-weight:600}
+.add-row{display:flex;align-items:center;gap:var(--space-2);color:var(--color-accent);font-size:var(--text-body-size);font-weight:500;min-height:var(--tap-min);padding:0 var(--space-4)}
+
+/* recognition */
+.recog-title{display:flex;align-items:center;gap:var(--space-3)}
+.skel-dish{display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-3) var(--space-4);background:var(--color-surface);border-radius:var(--radius-md)}
+.state.compact{padding:var(--space-4) var(--space-6) 0}
+
+/* today (minimal stand-in; full screen is OCT-19) */
+.today-card{background:var(--color-surface);border-radius:var(--radius-lg);padding:var(--space-5);display:flex;flex-direction:column;gap:var(--space-2)}
+.display{font-size:var(--text-display-size);line-height:var(--text-display-lh);font-weight:700;letter-spacing:var(--tracking-tight);font-variant-numeric:tabular-nums}
+.quick{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3)}
+.quick .btn{width:100%}
+.meal{display:flex;align-items:center;gap:var(--space-3)}
+.meal .thumb{width:44px;height:44px;border-radius:var(--radius-sm)}
+.meal.new{background:var(--color-accent-soft)}
+.action-sheet{position:absolute;left:var(--space-2);right:var(--space-2);bottom:calc(34px + var(--space-2));z-index:var(--z-sheet);display:flex;flex-direction:column;gap:var(--space-2)}
+.action-sheet .grp{background:var(--color-surface);border-radius:var(--radius-lg);overflow:hidden}
+.action-sheet .it{display:flex;align-items:center;justify-content:center;gap:var(--space-2);min-height:var(--control-height-lg);font-size:var(--text-body-size);color:var(--color-accent);position:relative}
+.action-sheet .it+.it::before{content:"";position:absolute;top:0;left:0;right:0;border-top:1px solid var(--color-separator)}
+.action-sheet .cancel{font-weight:600}
+
+/* manual form */
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-3)}
+.field .input.num .val{font-variant-numeric:tabular-nums}
+.field .input .unit{color:var(--color-text-secondary);font-size:var(--text-subhead-size)}
+.field .msg.warn{color:var(--color-warning)}
+.result{display:flex;justify-content:space-between;align-items:baseline;padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);background:var(--color-surface-2);font-size:var(--text-subhead-size);font-variant-numeric:tabular-nums}
+.result b{font-size:var(--text-headline-size)}
+.req{color:var(--color-text-secondary);font-weight:400}
+
+/* ===== Prototype-only: system camera of iOS & tap markers ===== */
+.sys{background:#000;color:#fff}
+.sys .viewfinder{flex:1;margin-top:var(--space-12);overflow:hidden}
+.sys .viewfinder svg{width:100%;height:100%;display:block}
+.sys .shutter-row{height:180px;display:flex;align-items:center;justify-content:space-around;padding-bottom:34px;font-size:var(--text-body-size)}
+.sys .shutter{width:72px;height:72px;border-radius:50%;border:4px solid #fff;display:grid;place-items:center}
+.sys .shutter::after{content:"";width:58px;height:58px;border-radius:50%;background:#fff}
+.tap{position:absolute;z-index:200;width:64px;height:64px;border-radius:50%;border:3px solid var(--color-accent);box-shadow:0 0 0 6px var(--color-accent-soft);pointer-events:none}
+.tap b{position:absolute;top:-14px;right:-14px;width:28px;height:28px;border-radius:50%;background:var(--color-accent);color:var(--color-on-accent);display:grid;place-items:center;font-size:var(--text-subhead-size)}
+.flow-arrow{align-self:center;color:var(--color-text-secondary)}
+.auto{position:absolute;z-index:200;top:64px;right:16px;padding:var(--space-1) var(--space-3);border-radius:var(--radius-full);background:var(--color-accent);color:var(--color-on-accent);font-size:var(--text-footnote-size);font-weight:600}
+
+/* ===== Desktop modal flow ===== */
+.flow-win{position:absolute;left:50%;top:50%;translate:-50% -50%;width:var(--modal-flow-max-width);max-height:90%;z-index:var(--z-sheet);background:var(--color-bg);border-radius:var(--radius-lg);box-shadow:var(--shadow-toast);display:flex;flex-direction:column;overflow:hidden}
+.flow-win .wh{display:flex;align-items:center;justify-content:space-between;padding:var(--space-3) var(--space-3) var(--space-3) var(--space-6);border-bottom:1px solid var(--color-separator)}
+.flow-win .wb{display:grid;grid-template-columns:240px 1fr;gap:var(--space-6);padding:var(--space-6);overflow:hidden}
+.flow-win .wf{display:flex;justify-content:flex-end;gap:var(--space-3);padding:var(--space-4) var(--space-6);border-top:1px solid var(--color-separator)}
+.flow-win .wf .btn{width:auto;min-width:160px}
+.flow-win .photo{height:240px}
+.dish .trash{width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;color:var(--color-danger);border-radius:var(--radius-md);background:var(--color-hover)}
+.dropzone{position:absolute;inset:var(--space-4);z-index:var(--z-sheet);border:2px dashed var(--color-accent);border-radius:var(--radius-lg);background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--space-2);color:var(--color-accent);font-size:var(--text-title-size);font-weight:600}
+.dropzone .icon{width:48px;height:48px}
+
+
+/* ===== OCT-19 additions: Today, Diary, Week (tokens only) ===== */
+.phone .content{padding-bottom:calc(var(--tabbar-height) + 34px + var(--space-4))}
+.phone .content.modal{padding-bottom:var(--space-4)}
+.phone .bottom.bar{flex:none}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.large-title .date{display:block;font-size:var(--text-subhead-size);font-weight:400;letter-spacing:0;color:var(--color-text-secondary);margin-top:2px}
+.title-row{display:flex;align-items:flex-end;justify-content:space-between;gap:var(--space-2)}
+.title-row .txt-btn{color:var(--color-accent);font-size:var(--text-body-size);min-height:var(--tap-min);display:flex;align-items:center;padding:0 var(--screen-gutter);font-weight:500}
+
+/* card + numbers */
+.card{background:var(--color-surface);border-radius:var(--radius-lg);padding:var(--space-5);display:flex;flex-direction:column;gap:var(--space-3)}
+.card .lbl{display:flex;align-items:center;gap:var(--space-1);font-size:var(--text-subhead-size);color:var(--color-text-secondary)}
+.card .lbl.over{color:var(--color-warning);font-weight:600}
+.big{display:flex;align-items:baseline;gap:var(--space-2)}
+.big .unit{font-size:var(--text-subhead-size);color:var(--color-text-secondary)}
+.big .display.sm{font-size:var(--text-large-title-size);line-height:var(--text-large-title-lh)}
+.week-line{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);min-height:var(--tap-min);margin:0 calc(-1 * var(--space-5)) calc(-1 * var(--space-5));padding:0 var(--space-3) 0 var(--space-5);border-top:1px solid var(--color-separator);font-size:var(--text-subhead-size);font-variant-numeric:tabular-nums}
+.week-line b{font-weight:600}
+.week-line .icon{color:var(--color-text-secondary)}
+.week-line.over b{color:var(--color-warning)}
+.invite{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);background:var(--color-accent-soft);font-size:var(--text-subhead-size)}
+.invite .icon{color:var(--color-accent)}
+.invite .go{margin-left:auto;color:var(--color-accent);font-weight:600;min-height:var(--tap-min);display:flex;align-items:center;white-space:nowrap}
+
+/* progress bars: fill = eaten up to the norm; hatched tail = over the norm (pattern, not only colour) */
+.pbar{height:var(--progress-height);border-radius:var(--radius-full);background:var(--color-surface-2);display:flex;overflow:hidden}
+.pbar i{display:block;height:100%;background:var(--color-accent)}
+.pbar i.p{background:var(--color-protein)} .pbar i.f{background:var(--color-fat)} .pbar i.c{background:var(--color-carbs)}
+.pbar i.ov,.hatch{background-image:repeating-linear-gradient(-45deg,var(--color-warning) 0 calc(var(--hatch-size) / 2),transparent 0 var(--hatch-size))}
+.pbar.none{background:transparent;outline:1px dashed var(--color-separator)}
+
+/* macros block */
+.mac-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-3)}
+.mac{display:flex;flex-direction:column;gap:var(--space-1);min-width:0}
+.mac-h{display:flex;align-items:center;gap:var(--space-1);font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.mac-h i{width:var(--space-2);height:var(--space-2);border-radius:var(--radius-full)}
+.mac-v{font-size:var(--text-headline-size);font-weight:600;font-variant-numeric:tabular-nums}
+.mac-v small{font-size:var(--text-footnote-size);font-weight:400;color:var(--color-text-secondary)}
+.mac .pbar{margin:var(--space-1) 0}
+.mac .rest{white-space:nowrap;font-size:var(--text-footnote-size);color:var(--color-text-secondary);font-variant-numeric:tabular-nums;display:flex;align-items:center;gap:2px}
+.mac .rest.over{color:var(--color-warning);font-weight:600}
+.mac .rest .icon{width:14px;height:14px}
+.mac-rows{display:flex;flex-direction:column;gap:var(--space-3)}
+.mac-row{display:grid;grid-template-columns:auto 1fr;gap:var(--space-1) var(--space-3);align-items:center}
+.mac-row .mac-h{font-size:var(--text-subhead-size);color:var(--color-text)}
+.mac-row .mac-v{justify-self:end;font-size:var(--text-subhead-size)}
+.mac-row .pbar{grid-column:1 / -1}
+
+/* meal rows (Today / Diary) */
+.sec-h{display:flex;justify-content:space-between;align-items:baseline;font-size:var(--text-footnote-size);color:var(--color-text-secondary);padding:0 var(--space-4) var(--space-2)}
+.cell.meal .thumb{width:var(--meal-thumb-size);height:var(--meal-thumb-size);border-radius:var(--radius-sm)}
+.cell.meal .thumb.icon-only{display:grid;place-items:center;color:var(--color-text-secondary)}
+.cell.meal .main .t{display:flex;gap:var(--space-2);align-items:center;font-weight:600;font-size:var(--text-body-size)}
+.cell.meal .main .t small{font-weight:400;color:var(--color-text-secondary);font-size:var(--text-subhead-size);font-variant-numeric:tabular-nums}
+.cell.meal .main .sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cell.meal .main .st{display:flex;gap:var(--space-1);margin-top:2px}
+.cell.meal .val{color:var(--color-text);font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.cell.meal .val.zero{color:var(--color-text-secondary);font-weight:400}
+.cell.meal.queued .thumb{opacity:.7}
+.swipe .cell.meal{translate:-96px 0;background:var(--color-surface)}
+.cell.meal .trash{width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;color:var(--color-danger);border-radius:var(--radius-md);background:var(--color-hover);flex:none}
+.cell.meal.hover{background:var(--color-hover)}
+
+/* day / period switcher */
+.pager{display:grid;grid-template-columns:var(--tap-min) 1fr var(--tap-min);align-items:center;gap:var(--space-2)}
+.pager .ib{width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;border-radius:var(--radius-full);color:var(--color-accent);background:var(--color-surface)}
+.pager .ib.dis{color:var(--color-text-disabled);background:transparent}
+.pager .pick{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:var(--tap-min);text-align:center}
+.pager .pick .t-headline{display:flex;align-items:center;gap:var(--space-1)}
+.pager .pick .icon{width:16px;height:16px;color:var(--color-text-secondary)}
+.sum-line{display:flex;justify-content:space-between;align-items:baseline;gap:var(--space-2);font-variant-numeric:tabular-nums}
+.sum-line .rest{font-size:var(--text-subhead-size);color:var(--color-text-secondary)}
+.sum-line .rest.over{color:var(--color-warning);font-weight:600}
+
+/* chart */
+.chart{display:flex;flex-direction:column;gap:var(--space-2)}
+.plot{position:relative;height:var(--chart-height);display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:var(--space-2);align-items:end;border-bottom:1px solid var(--color-separator)}
+.plot.month{gap:2px}
+.plot.wide{height:var(--chart-height-wide);gap:var(--space-4)}
+.plot .norm{position:absolute;left:0;right:0;border-top:2px dashed var(--color-text-secondary);z-index:1;pointer-events:none}
+.plot .norm span{position:absolute;right:0;bottom:2px;font-size:var(--text-caption-size);color:var(--color-text-secondary);background:var(--color-surface);padding:0 var(--space-1);font-variant-numeric:tabular-nums}
+.col{position:relative;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:stretch;min-height:var(--tap-min);border-radius:var(--radius-sm) var(--radius-sm) 0 0}
+.col .b{display:flex;flex-direction:column-reverse;border-radius:var(--radius-sm) var(--radius-sm) 0 0;overflow:hidden;min-height:2px}
+.col .b .in{background:var(--color-accent);flex:none}
+.col .b .ov{flex:none;background-color:var(--color-warning-soft)}
+.col .b .ov.hatch{background-color:var(--color-warning-soft)}
+.col.today .b .in{background:var(--color-accent)}
+.col.past .b .in{opacity:1}
+.col .v{font-size:var(--text-caption-size);font-weight:500;color:var(--color-text-secondary);text-align:center;font-variant-numeric:tabular-nums;margin-bottom:var(--space-1);white-space:nowrap}
+.col .v.over{color:var(--color-warning);font-weight:600}
+.col.zero .b{background:var(--color-separator);height:2px}
+.col.sel{outline:2px solid var(--color-focus-ring);outline-offset:2px}
+.col .clip{position:absolute;left:-2px;right:-2px;height:8px;background:var(--color-surface);clip-path:polygon(0 50%,15% 0,30% 50%,45% 0,60% 50%,75% 0,90% 50%,100% 0,100% 50%,85% 100%,70% 50%,55% 100%,40% 50%,25% 100%,10% 50%,0 100%)}
+.xl{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:var(--space-2);font-size:var(--text-caption-size);color:var(--color-text-secondary);text-align:center;font-variant-numeric:tabular-nums;line-height:var(--text-caption-lh)}
+.xl.month{gap:2px}
+.xl.wide{gap:var(--space-4)}
+.xl span em{display:block;font-style:normal;margin-top:2px;color:var(--color-text-secondary)}
+.xl span em.over{color:var(--color-warning);font-weight:600}
+.xl span b{display:block;font-weight:600;color:var(--color-text)}
+.xl span.today{color:var(--color-accent)}
+.xl span.today b{color:var(--color-accent)}
+.xl span.future{color:var(--color-text-disabled)}
+.xl span.future b{color:var(--color-text-disabled)}
+.legend{display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-3);font-size:var(--text-caption-size);color:var(--color-text-secondary)}
+.legend span{display:flex;align-items:center;gap:var(--space-1)}
+.legend i{width:14px;height:10px;border-radius:2px;background-color:var(--color-accent)}
+.legend i.ov{background-color:var(--color-warning-soft)}
+.legend i.ln{height:0;border-top:2px dashed var(--color-text-secondary);border-radius:0}
+.chart-empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--space-1);text-align:center;color:var(--color-text-secondary);font-size:var(--text-subhead-size)}
+.tip{position:absolute;z-index:2;translate:-50% 0;padding:var(--space-2) var(--space-3);border-radius:var(--radius-md);background:var(--color-text);color:var(--color-bg);font-size:var(--text-footnote-size);white-space:nowrap;box-shadow:var(--shadow-toast);font-variant-numeric:tabular-nums}
+.avg-note{font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.callout{display:flex;flex-direction:column;gap:2px;padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);background:var(--color-accent-soft);font-size:var(--text-subhead-size);font-variant-numeric:tabular-nums}
+.callout b{font-size:var(--text-headline-size);color:var(--color-accent)}
+.callout.over{background:var(--color-warning-soft)}
+.callout.over b{color:var(--color-warning)}
+
+/* edit-record additions (screen 4 opened from Diary) */
+.when{display:flex;align-items:center;gap:var(--space-3);min-height:var(--control-height);padding:0 var(--space-4);border-radius:var(--radius-md);background:var(--color-surface);font-size:var(--text-body-size)}
+.when .v{margin-left:auto;color:var(--color-accent);font-variant-numeric:tabular-nums}
+.when .icon{color:var(--color-text-secondary)}
+.late{display:flex;flex-direction:column;gap:var(--space-2)}
+.picker{position:absolute;left:0;right:0;bottom:0;z-index:var(--z-sheet);background:var(--color-surface-2);border-radius:var(--radius-xl) var(--radius-xl) 0 0;padding:var(--space-3) var(--space-4) calc(34px + var(--space-3));display:flex;flex-direction:column;gap:var(--space-2);box-shadow:var(--shadow-sheet)}
+.picker .ph{display:flex;justify-content:space-between;font-size:var(--text-body-size);color:var(--color-accent);min-height:var(--tap-min);align-items:center}
+.picker .wheel{display:grid;grid-template-columns:2fr 1fr 1fr;text-align:center;font-size:var(--text-body-size);color:var(--color-text-secondary);font-variant-numeric:tabular-nums}
+.picker .wheel div{display:flex;flex-direction:column;gap:var(--space-2)}
+.picker .wheel .on{color:var(--color-text);font-weight:600;background:var(--color-surface);border-radius:var(--radius-sm);padding:var(--space-1) 0}
+
+/* desktop */
+.desk .cols.even{grid-template-columns:1fr 1fr}
+.desk .cols.side-r{grid-template-columns:3fr 2fr}
+.desk-title{display:flex;align-items:flex-end;justify-content:space-between;gap:var(--space-4)}
+.desk-title .large-title .date{display:inline;margin-left:var(--space-3)}
+.desk .pager{grid-template-columns:var(--tap-min) auto var(--tap-min)}
+.desk .seg{min-width:240px}
+
+/* ===== OCT-157 additions: sync conflict (tokens only) ===== */
+.badge.warn .icon,.invite.warn .icon{color:var(--color-warning)}
+.invite.warn{background:var(--color-warning-soft)}
+.navbar .prog{justify-self:end;padding:0 var(--space-3);font-size:var(--text-subhead-size);color:var(--color-text-secondary);font-variant-numeric:tabular-nums}
+.vq{padding:0 var(--screen-gutter)}
+.vq .t-sub{color:var(--color-text-secondary)}
+.vcard{background:var(--color-surface);border-radius:var(--radius-lg);padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-3)}
+.vhead{display:flex;align-items:center;gap:var(--space-3)}
+.vhead .vic{width:36px;height:36px;border-radius:var(--radius-full);display:grid;place-items:center;background:var(--color-accent-soft);color:var(--color-accent);flex:none}
+.vhead .vic.other{background:var(--color-surface-2);color:var(--color-text-secondary)}
+.vhead .vic.gone{background:var(--color-danger-soft);color:var(--color-danger)}
+.vhead .vt{flex:1;min-width:0;display:flex;flex-direction:column}
+.vhead .vt b{font-size:var(--text-headline-size);line-height:var(--text-headline-lh);font-weight:600}
+.vhead .vt b{white-space:nowrap}
+.vhead .vt span{font-size:var(--text-footnote-size);color:var(--color-text-secondary);font-variant-numeric:tabular-nums;display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-2);align-items:center;white-space:nowrap}
+.drow .dk.field{flex-direction:row;align-items:center;gap:var(--space-3);color:var(--color-text-secondary)}
+.vhead .vk{font-size:var(--text-headline-size);font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;letter-spacing:var(--tracking-tight)}
+.vhead .vk small{font-size:var(--text-footnote-size);font-weight:400;color:var(--color-text-secondary);letter-spacing:0}
+.dlist{display:flex;flex-direction:column}
+.drow{display:flex;align-items:center;gap:var(--space-3);min-height:var(--tap-min);padding:var(--space-2) 0;border-top:1px solid var(--color-separator);font-size:var(--text-subhead-size);line-height:var(--text-subhead-lh)}
+.drow .dk{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.drow .dk .lb{font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.drow .dv{font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right}
+.drow .dv.zero{color:var(--color-text-secondary);font-weight:400}
+.drow.gone .dk .nm{text-decoration:line-through;color:var(--color-text-secondary)}
+.drow.gone .dv{color:var(--color-text-secondary);font-weight:400}
+.drow .thumb{width:var(--meal-thumb-size);height:var(--meal-thumb-size);border-radius:var(--radius-sm)}
+.drow .thumb.icon-only{display:grid;place-items:center;color:var(--color-text-secondary)}
+.unch{display:flex;align-items:center;gap:var(--space-2);min-height:var(--tap-min);border-top:1px solid var(--color-separator);font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.unch .icon{margin-left:auto}
+.vcard .btn{min-height:var(--control-height)}
+.btn-danger-tonal{background:var(--color-danger-soft);color:var(--color-danger)}
+.gone-note{display:flex;gap:var(--space-2);align-items:center;padding:var(--space-3);border-radius:var(--radius-md);background:var(--color-surface-2);font-size:var(--text-subhead-size);color:var(--color-text-secondary)}
+.phone .content.cf{gap:var(--space-3);overflow:hidden}
+.vstack{display:flex;flex-direction:column;gap:var(--space-3);padding:0 var(--screen-gutter)}
+/* desktop: versions side by side, same row order → rows line up */
+.cf-dialog{position:absolute;left:50%;top:50%;translate:-50% -50%;width:var(--modal-flow-max-width);z-index:var(--z-sheet);background:var(--color-bg);border-radius:var(--radius-lg);box-shadow:var(--shadow-toast);display:flex;flex-direction:column;overflow:hidden}
+.cf-dialog .wh{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-3) var(--space-3) var(--space-6);border-bottom:1px solid var(--color-separator)}
+.cf-dialog .wh .prog{margin-left:auto;font-size:var(--text-subhead-size);color:var(--color-text-secondary);font-variant-numeric:tabular-nums}
+.cf-dialog .wb{display:flex;flex-direction:column;gap:var(--space-4);padding:var(--space-5) var(--space-6) var(--space-6)}
+.cf-dialog .pair{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4)}
+
+/* switch (OCT-22) */
+.switch{width:var(--switch-width);height:var(--switch-height);border-radius:var(--radius-full);background:var(--color-border-strong);position:relative;flex:none;margin-left:auto;transition:background var(--duration-fast) var(--ease-out)}
+.switch::after{content:"";position:absolute;top:2px;left:2px;width:calc(var(--switch-height) - 4px);height:calc(var(--switch-height) - 4px);border-radius:50%;background:var(--color-surface);box-shadow:0 2px 4px rgb(0 0 0 / .2);transition:translate var(--duration-fast) var(--ease-out)}
+.switch.on{background:var(--color-accent)}
+.switch.on::after{translate:calc(var(--switch-width) - var(--switch-height)) 0}
+.switch.dis{opacity:.5}
+
+/* ===== OCT-153 additions: period report (tokens only, no new tokens) ===== */
+.phone .content.rep{padding-bottom:var(--space-4);gap:var(--space-4)}
+.rep-head{padding:var(--space-1) var(--screen-gutter) 0;display:flex;flex-direction:column;gap:var(--space-1)}
+.rep-head .kicker{font-size:var(--text-footnote-size);font-weight:600;color:var(--color-accent);letter-spacing:.04em;text-transform:uppercase}
+.rep-head h2{font-size:var(--text-large-title-size);line-height:var(--text-large-title-lh);font-weight:700;letter-spacing:var(--tracking-tight)}
+.rep-head .meta{font-size:var(--text-subhead-size);color:var(--color-text-secondary);font-variant-numeric:tabular-nums}
+.navbar .ib-nav{justify-self:end;width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;color:var(--color-accent)}
+
+/* period calendar: 4 states, each = fill + glyph + label (never colour only) */
+.cal{display:flex;flex-direction:column;gap:var(--space-2)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:var(--space-1)}
+.cal-grid .wd{font-size:var(--text-caption-size);color:var(--color-text-secondary);text-align:center;padding-bottom:2px}
+.cal-grid .mlab{grid-column:1 / -1;font-size:var(--text-footnote-size);font-weight:600;color:var(--color-text-secondary);padding:var(--space-1) 0 0}
+.day{position:relative;min-height:var(--tap-min);aspect-ratio:1;border-radius:var(--radius-sm);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-size:var(--text-footnote-size);font-weight:600;font-variant-numeric:tabular-nums;background:var(--color-surface-2);color:var(--color-text)}
+.day .g{width:var(--space-3);height:var(--space-3);stroke-width:2.5}
+.day.in{background:var(--color-accent-soft);color:var(--color-accent)}
+.day.above{background-color:var(--color-warning-soft);color:var(--color-warning);background-image:repeating-linear-gradient(-45deg,rgb(from var(--color-warning) r g b / .14) 0 calc(var(--hatch-size) / 2),transparent 0 var(--hatch-size))}
+.day.below{background:var(--color-surface-2);color:var(--color-text)}
+.day.none{background:transparent;outline:1px dashed var(--color-border-strong);outline-offset:-1px;color:var(--color-text-secondary);font-weight:400}
+.day.plain{background:var(--color-surface-2);color:var(--color-text)}
+.day.out{background:transparent;color:var(--color-text);font-weight:400}
+.day.future{background:transparent;color:var(--color-text-disabled);font-weight:400}
+.day.blank{background:transparent;outline:0}
+.day.sel{box-shadow:0 0 0 2px var(--color-bg),0 0 0 4px var(--color-focus-ring)}
+.day.rng{border-radius:0;background:var(--color-accent-soft);color:var(--color-accent)}
+.day.rng.s{border-radius:var(--radius-sm) 0 0 var(--radius-sm);background:var(--color-accent);color:var(--color-on-accent)}
+.day.rng.e{border-radius:0 var(--radius-sm) var(--radius-sm) 0;background:var(--color-accent);color:var(--color-on-accent)}
+.cal-grid.rangepick{gap:var(--space-1) 0}
+.cal-legend{display:flex;flex-wrap:wrap;gap:var(--space-2) var(--space-4);font-size:var(--text-caption-size);color:var(--color-text-secondary);font-variant-numeric:tabular-nums}
+.cal-legend span{display:flex;align-items:center;gap:var(--space-1)}
+.cal-legend .day{min-height:0;width:18px;height:18px;aspect-ratio:auto;border-radius:4px}
+.cal-legend .day .g{width:10px;height:10px}
+.cal-tip{position:absolute;z-index:3;left:50%;translate:-50% 0;bottom:calc(100% + var(--space-2));display:flex;flex-direction:column;gap:2px;padding:var(--space-2) var(--space-3);border-radius:var(--radius-md);background:var(--color-text);color:var(--color-bg);font-size:var(--text-footnote-size);font-weight:400;white-space:nowrap;box-shadow:var(--shadow-toast);text-align:left}
+.cal-tip b{font-weight:600}
+.cal-tip .go{display:flex;align-items:center;gap:2px;font-weight:600;min-height:var(--space-6)}
+.cal-tip .go .icon{width:14px;height:14px}
+
+/* series chips under the calendar */
+.series{display:flex;flex-direction:column;gap:var(--space-2);font-size:var(--text-subhead-size);line-height:var(--text-subhead-lh);font-variant-numeric:tabular-nums}
+.series li{display:flex;gap:var(--space-2);align-items:flex-start;list-style:none}
+.series li .day{min-height:0;width:20px;height:20px;aspect-ratio:auto;flex:none;border-radius:5px;margin-top:1px}
+.series li .day .g{width:11px;height:11px}
+.series{padding:0;margin:0}
+
+/* AI text blocks */
+.ai-card{background:var(--color-surface);border-radius:var(--radius-lg);padding:var(--space-5);display:flex;flex-direction:column;gap:var(--space-4)}
+.ai-h{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-headline-size);font-weight:600}
+.ai-h .icon{color:var(--color-accent)}
+.ai-list{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:var(--space-3);font-size:var(--text-body-size);line-height:1.4}
+.ai-list li{display:flex;gap:var(--space-3)}
+.ai-list li::before{content:"";flex:none;width:6px;height:6px;border-radius:50%;background:var(--color-text-secondary);margin-top:.55em}
+.ai-list b{font-weight:600;font-variant-numeric:tabular-nums}
+.ai-steps{margin:0;padding:0;list-style:none;counter-reset:st;display:flex;flex-direction:column;gap:var(--space-3);font-size:var(--text-body-size);line-height:1.4}
+.ai-steps li{display:flex;gap:var(--space-3);counter-increment:st}
+.ai-steps li::before{content:counter(st);flex:none;width:var(--chat-avatar-size);height:var(--chat-avatar-size);border-radius:50%;background:var(--color-accent-soft);color:var(--color-accent);display:grid;place-items:center;font-size:var(--text-footnote-size);font-weight:700}
+.ai-steps b{font-weight:600;font-variant-numeric:tabular-nums}
+.ai-by{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);margin:0 calc(-1 * var(--space-5)) calc(-1 * var(--space-5));padding:0 var(--space-3) 0 var(--space-5);min-height:var(--tap-min);border-top:1px solid var(--color-separator);font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.ai-by .act{color:var(--color-accent);font-weight:600;min-height:var(--tap-min);display:flex;align-items:center;gap:var(--space-1);font-size:var(--text-subhead-size)}
+.gen-row{display:flex;align-items:center;gap:var(--space-3);min-height:var(--tap-min);font-size:var(--text-body-size)}
+.sent{display:flex;gap:var(--space-2);align-items:flex-start;font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);color:var(--color-text-secondary)}
+.sent .icon{color:var(--color-text-secondary);margin-top:1px}
+.gen-progress{display:flex;align-items:center;gap:var(--space-3);color:var(--color-accent);font-weight:600}
+.skel-lines{display:flex;flex-direction:column;gap:var(--space-2)}
+
+/* numbers */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3)}
+.stat{display:flex;flex-direction:column;gap:2px;padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);background:var(--color-surface-2);font-variant-numeric:tabular-nums}
+.stat .k{font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.stat .v{font-size:var(--text-title-size);font-weight:700;letter-spacing:var(--tracking-tight)}
+.stat .v small{font-size:var(--text-footnote-size);font-weight:400;color:var(--color-text-secondary);letter-spacing:0}
+.share-row{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.skew{display:inline-flex;align-items:center;gap:2px;font-size:var(--text-footnote-size);color:var(--color-warning);font-weight:600}
+.skew .icon{width:14px;height:14px}
+.list-row{display:flex;justify-content:space-between;align-items:center;gap:var(--space-3);min-height:var(--tap-min);border-top:1px solid var(--color-separator);font-size:var(--text-subhead-size);font-variant-numeric:tabular-nums}
+.list-row:first-of-type{border-top:0}
+.list-row .r{display:flex;align-items:center;gap:var(--space-2);white-space:nowrap}
+.list-row .r .icon{color:var(--color-text-secondary)}
+.list-row .over{color:var(--color-warning);font-weight:600}
+.list-row .muted{white-space:nowrap}
+.disclaimer{display:flex;gap:var(--space-2);align-items:flex-start;padding:0 var(--space-1);font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);color:var(--color-text-secondary)}
+
+/* report entry on the Week screen */
+.rep-entry{display:flex;flex-direction:column;gap:0;background:var(--color-surface);border-radius:var(--radius-lg);overflow:hidden}
+.rep-entry .btn{border-radius:0;min-height:var(--control-height-lg);justify-content:flex-start;padding:0 var(--space-4)}
+.rep-entry .btn .icon:last-child{margin-left:auto;color:var(--color-accent)}
+.rep-entry .cell{min-height:var(--tap-min)}
+
+/* report list */
+.cell .lead-ic.round{border-radius:50%}
+.cell.rep .main .sub{font-variant-numeric:tabular-nums}
+
+/* share image (PNG 1080 × 1920, shown at 1/3) — always light, see doc */
+.png{width:360px;height:640px;border-radius:var(--radius-md);overflow:hidden;outline:1px solid var(--color-separator);background:#F8FAF9;color:#18211D;display:flex;flex-direction:column;gap:10px;padding:18px 18px 14px;font-family:var(--font-sans)}
+.png.light-vars{--color-bg:#F8FAF9;--color-surface:#FFFFFF;--color-surface-2:#F1F4F2;--color-separator:#E7ECEA;--color-border-strong:#7C8782;--color-text:#18211D;--color-text-secondary:#5A6661;--color-text-disabled:#7F8A85;--color-accent:#13784A;--color-on-accent:#FFFFFF;--color-accent-soft:#E5F5EC;--color-warning:#8A5A00;--color-warning-soft:#FFF4DB}
+.png .p-k{font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-accent)}
+.png .p-t{font-size:22px;font-weight:700;letter-spacing:var(--tracking-tight);line-height:1.1}
+.png .p-m{font-size:10px;color:var(--color-text-secondary)}
+.png .cal-grid{gap:3px}
+.png .day{min-height:0;border-radius:4px;font-size:8.5px;gap:0}
+.png .day .g{width:7px;height:7px}
+.png .cal-grid .wd{font-size:8px}
+.png .cal-legend{font-size:7.5px;gap:4px 8px}
+.png .cal-legend .day{width:10px;height:10px;border-radius:2px}
+.png .cal-legend .day .g{width:6px;height:6px}
+.png .p-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.png .p-stats div{background:var(--color-surface);border-radius:6px;padding:6px 8px;display:flex;flex-direction:column;font-variant-numeric:tabular-nums}
+.png .p-stats span{font-size:7.5px;color:var(--color-text-secondary)}
+.png .p-stats b{font-size:13px}
+.png .p-sec{background:var(--color-surface);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:4px}
+.png .p-sec h4{font-size:10px;margin:0}
+.png .p-sec ul,.png .p-sec ol{margin:0;padding-left:12px;font-size:8.5px;line-height:1.35;display:flex;flex-direction:column;gap:2px}
+.png .p-foot{margin-top:auto;display:flex;justify-content:space-between;align-items:center;font-size:7.5px;color:var(--color-text-secondary)}
+.png .p-foot .brand{font-size:8.5px;gap:4px}
+.png .p-foot .brand .mark{width:14px;height:14px;border-radius:4px}
+.png .p-foot .brand .mark .icon{width:9px;height:9px}
+.txtshare{width:390px;background:var(--color-surface);border-radius:var(--radius-lg);padding:var(--space-5);outline:1px solid var(--color-separator);font:var(--text-footnote-size)/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;color:var(--color-text)}
+
+/* iOS share sheet stand-in (prototype only) */
+.ios-share{position:absolute;left:0;right:0;bottom:0;z-index:var(--z-sheet);background:var(--color-surface-2);border-radius:var(--radius-xl) var(--radius-xl) 0 0;padding:var(--space-4) var(--space-4) calc(34px + var(--space-4));display:flex;flex-direction:column;gap:var(--space-4);box-shadow:var(--shadow-sheet)}
+.ios-share .hd{display:flex;gap:var(--space-3);align-items:center}
+.ios-share .hd .pv{width:44px;height:78px;border-radius:6px;overflow:hidden;flex:none;outline:1px solid var(--color-separator);background:#F8FAF9}
+.ios-share .apps{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-2);text-align:center;font-size:var(--text-caption-size);color:var(--color-text-secondary)}
+.ios-share .apps i{display:block;width:56px;height:56px;margin:0 auto var(--space-1);border-radius:14px;background:var(--color-surface)}
+.ios-share .acts{background:var(--color-surface);border-radius:var(--radius-md)}
+.ios-share .acts div{min-height:var(--control-height);display:flex;align-items:center;justify-content:space-between;padding:0 var(--space-4);font-size:var(--text-body-size)}
+.ios-share .acts div+div{border-top:1px solid var(--color-separator)}
+.proto-tag{position:absolute;top:var(--space-2);right:var(--space-3);font-size:var(--text-caption-size);color:var(--color-text-secondary)}
+
+/* desktop report */
+.desk .rep-cols{display:grid;grid-template-columns:3fr 2fr;gap:var(--space-6);align-items:start}
+.desk .rep-actions{display:flex;gap:var(--space-2);align-items:center}
+.desk .rep-actions .btn{width:auto}
+
+.desk .rep-actions .btn{white-space:nowrap}
+.desk .desk-title .large-title .date{display:block;margin:var(--space-1) 0 0}
+
+/* ================= OCT-160: recipes & fridge (tokens only) ================= */
+/* Illustration tile from OCT-33: round plate, art inset 80 % */
+.illo{display:grid;place-items:center;flex:none;border-radius:var(--radius-full);background:var(--illo-tile);overflow:hidden}
+.illo svg{width:80%;height:80%;display:block}
+.rthumb{width:var(--thumb-size);height:var(--thumb-size);flex:none;border-radius:var(--radius-md);overflow:hidden;display:grid;place-items:center;background:var(--color-surface-2)}
+.rthumb svg{width:100%;height:100%;display:block}
+.rthumb.illo{border-radius:var(--radius-full);background:var(--illo-tile)}
+.rthumb.illo svg{width:80%;height:80%}
+.rthumb.sm{width:var(--meal-thumb-size);height:var(--meal-thumb-size)}
+.cell.rcell{align-items:center}
+.cell.rcell+.cell.rcell::before{left:calc(var(--space-4) + var(--thumb-size) + var(--space-3))}
+.cell .main .t{font-weight:600;font-size:var(--text-body-size)}
+.cell .main .sub{font-size:var(--text-footnote-size);color:var(--color-text-secondary);font-variant-numeric:tabular-nums}
+.cell .main .miss{font-size:var(--text-footnote-size);color:var(--color-warning);display:flex;gap:var(--space-1);align-items:center}
+.cell .main .have{font-size:var(--text-footnote-size);color:var(--color-accent);display:flex;gap:var(--space-1);align-items:center;font-weight:600}
+.cell.zero .main>span:first-child,.cell.zero .val{color:var(--color-text-disabled)}
+.cell .val.num{font-variant-numeric:tabular-nums}
+.badge.rcp{background:var(--color-accent-soft);color:var(--color-accent)}
+.badge .icon{width:var(--space-3);height:var(--space-3)}
+
+.chips{display:flex;gap:var(--space-2);flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:var(--space-1);min-height:var(--tap-min);padding:0 var(--space-4);border-radius:var(--radius-full);background:var(--color-surface);border:1px solid var(--color-separator);font-size:var(--text-subhead-size);font-weight:500;color:var(--color-text)}
+.chip.on{background:var(--color-text);color:var(--color-bg);border-color:transparent}
+.chip.sm{min-height:var(--space-8);padding:0 var(--space-3);font-size:var(--text-footnote-size)}
+.over-note{display:flex;gap:var(--space-1);align-items:center;justify-content:center;color:var(--color-warning);text-align:left}
+.chip.miss{color:var(--color-warning);background:var(--color-warning-soft);border-color:transparent}
+
+/* recipe screen */
+.hero{height:var(--recipe-hero-height);border-radius:var(--radius-lg);overflow:hidden;display:grid;place-items:center;background:var(--illo-tile);flex:none}
+.hero>svg{width:100%;height:100%}
+.hero.illo-hero svg{width:56%;height:80%}
+.r-title{display:flex;flex-direction:column;gap:var(--space-1)}
+.r-title h2{margin:0;font-size:var(--text-title-size);line-height:var(--text-title-lh);font-weight:700}
+.nut .seg span{font-size:var(--text-footnote-size)}
+.act-row{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3)}
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:var(--space-4)}
+.steps li{display:grid;grid-template-columns:var(--chat-avatar-size) 1fr;gap:var(--space-3);font-size:var(--text-body-size);line-height:var(--text-body-lh)}
+.steps .n{width:var(--chat-avatar-size);height:var(--chat-avatar-size);border-radius:var(--radius-full);background:var(--color-accent-soft);color:var(--color-accent);display:grid;place-items:center;font-size:var(--text-footnote-size);font-weight:700}
+.steps .sph{width:100%;height:calc(var(--space-12) * 2);border-radius:var(--radius-md);overflow:hidden;margin-top:var(--space-2)}
+.steps .sph svg{width:100%;height:100%;display:block}
+.ing-src{color:var(--color-accent);display:inline-flex;vertical-align:-2px}
+.ing-src .icon{width:var(--space-4);height:var(--space-4)}
+
+/* editor */
+.ed-head{display:flex;gap:var(--space-3);align-items:stretch}
+.ed-head .field{flex:1}
+.totals3{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-2)}
+.totals3 .stat .v{font-size:var(--text-headline-size);font-weight:700}
+.stat .k{font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.stat .v small{font-weight:400;font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.ing-ed{display:grid;grid-template-columns:1fr auto;gap:var(--space-1) var(--space-3);align-items:center;padding:var(--space-3) var(--space-4);position:relative;background:var(--color-surface)}
+.ing-ed+.ing-ed::before{content:"";position:absolute;top:0;left:var(--space-4);right:0;border-top:1px solid var(--color-separator)}
+.ing-ed .nm{font-size:var(--text-body-size)}
+.ing-ed .sub{font-size:var(--text-footnote-size);color:var(--color-text-secondary);display:flex;gap:var(--space-2);align-items:center;font-variant-numeric:tabular-nums}
+.ing-ed .wv{width:auto;min-width:var(--stepper-value-width);padding:0 var(--space-3);height:var(--control-height)}
+.ing-ed.flag{background:var(--color-warning-soft)}
+.ing-ed .why{grid-column:1/-1;font-size:var(--text-footnote-size);color:var(--color-warning);display:flex;gap:var(--space-1);align-items:center}
+.kv{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);min-height:var(--control-height-lg);padding:var(--space-2) var(--space-4);background:var(--color-surface);position:relative}
+.kv+.kv::before{content:"";position:absolute;top:0;left:var(--space-4);right:0;border-top:1px solid var(--color-separator)}
+.kv .wv{width:auto;min-width:var(--stepper-value-width);padding:0 var(--space-3)}
+.kv .stepper{display:flex;align-items:center;gap:var(--space-2)}
+.kv .stepper .wv{min-width:var(--space-12)}
+.field-note{display:flex;gap:var(--space-2);align-items:flex-start;font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);color:var(--color-text-secondary);padding:var(--space-2) var(--space-4) 0}
+.field-note.warn{color:var(--color-warning)}
+.field-note .icon{flex:none;width:var(--space-4);height:var(--space-4);margin-top:0}
+.step-ed{display:grid;grid-template-columns:var(--chat-avatar-size) 1fr auto;gap:var(--space-3);align-items:start;padding:var(--space-3) var(--space-4);background:var(--color-surface);position:relative;font-size:var(--text-subhead-size);line-height:var(--text-subhead-lh)}
+.step-ed+.step-ed::before{content:"";position:absolute;top:0;left:var(--space-4);right:0;border-top:1px solid var(--color-separator)}
+.step-ed .grip{color:var(--color-text-secondary);width:var(--tap-min);height:var(--tap-min);display:grid;place-items:center;margin:calc(-1 * var(--space-2)) calc(-1 * var(--space-3)) 0 0}
+.step-ed .sp{display:flex;gap:var(--space-2);align-items:center;margin-top:var(--space-2)}
+.step-ed .sp .thumb{width:var(--meal-thumb-size);height:var(--meal-thumb-size)}
+.step-ed .sp .add-ph{display:inline-flex;gap:var(--space-1);align-items:center;color:var(--color-accent);font-weight:500;font-size:var(--text-footnote-size);min-height:var(--tap-min)}
+.textarea{min-height:var(--recipe-hero-height);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);background:var(--color-surface);border:1px solid var(--color-border-strong);font-size:var(--text-body-size);line-height:var(--text-body-lh);white-space:pre-line}
+.textarea.focus{border-color:var(--color-accent);box-shadow:0 0 0 1px var(--color-accent)}
+.textarea.sm{min-height:auto}
+
+/* portion sheet */
+.qty{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:var(--space-4)}
+.qty .step{width:var(--control-height-lg);height:var(--control-height-lg)}
+.qty .qv{display:flex;flex-direction:column;align-items:center;gap:2px;font-variant-numeric:tabular-nums}
+.qty .qv b{font-size:var(--text-large-title-size);line-height:var(--text-large-title-lh);font-weight:700;letter-spacing:var(--tracking-tight)}
+.qty .qv small{font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.res{display:flex;justify-content:space-between;align-items:center;padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);background:var(--color-surface-2)}
+.res b{font-size:var(--text-headline-size);font-variant-numeric:tabular-nums}
+.ph-h{display:flex;gap:var(--space-3);align-items:center}
+.sheet .chips{justify-content:center}
+
+/* cooking mode */
+.cook{flex:1;display:flex;flex-direction:column;gap:var(--space-5);padding:var(--space-2) var(--screen-gutter) 0}
+.cook-prog{display:grid;grid-auto-flow:column;gap:var(--space-1)}
+.cook-prog i{height:var(--space-1);border-radius:var(--radius-full);background:var(--color-separator)}
+.cook-prog i.on{background:var(--color-accent)}
+.cook .kick{font-size:var(--text-subhead-size);font-weight:600;color:var(--color-accent);font-variant-numeric:tabular-nums}
+.cook p{margin:0;font-size:var(--text-cook-size);line-height:var(--text-cook-lh);font-weight:500}
+.cook .sph{height:var(--recipe-hero-height);border-radius:var(--radius-lg);overflow:hidden}
+.cook .sph svg{width:100%;height:100%;display:block}
+.cook .use{display:flex;flex-wrap:wrap;gap:var(--space-2)}
+.awake{display:flex;gap:var(--space-2);align-items:center;justify-content:center;font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.nav2{display:grid;grid-template-columns:1fr 2fr;gap:var(--space-3)}
+.btn-sec{background:var(--color-surface-2);color:var(--color-text)}
+
+/* write-off */
+.wo{display:grid;grid-template-columns:1fr auto;gap:var(--space-1) var(--space-3);align-items:center;padding:var(--space-3) var(--space-4);background:var(--color-surface);position:relative}
+.wo+.wo::before{content:"";position:absolute;top:0;left:var(--space-4);right:0;border-top:1px solid var(--color-separator)}
+.wo .t{font-size:var(--text-body-size);font-weight:600}
+.wo .map{display:inline-flex;align-items:center;gap:var(--space-1);font-size:var(--text-footnote-size);color:var(--color-text-secondary);min-height:var(--space-8);font-variant-numeric:tabular-nums}
+.wo .map b{color:var(--color-accent);font-weight:600}
+.wo .map .icon{width:var(--space-4);height:var(--space-4)}
+.wo .wv{width:auto;min-width:var(--stepper-value-width);padding:0 var(--space-3)}
+.wo .note{grid-column:1/-1;display:flex;gap:var(--space-1);align-items:center;font-size:var(--text-footnote-size);color:var(--color-warning)}
+.wo .note .icon{width:var(--space-4);height:var(--space-4)}
+.wo.flag{background:var(--color-warning-soft)}
+.wo.skip .t,.wo.skip .map{color:var(--color-text-disabled)}
+.wo.skip .t{text-decoration:line-through}
+.wo .skipv{font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+
+/* AI */
+.ba{display:flex;align-items:baseline;gap:var(--space-2);font-variant-numeric:tabular-nums}
+.ba .was{font-size:var(--text-headline-size);color:var(--color-text-secondary);text-decoration:line-through}
+.ba b{font-size:var(--text-title-size)}
+.ba .delta{margin-left:auto;font-size:var(--text-subhead-size);font-weight:600;color:var(--color-accent)}
+.chg{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:var(--space-3)}
+.chg li{display:flex;flex-direction:column;gap:2px;padding-left:var(--space-3);border-left:2px solid var(--color-accent-soft);font-size:var(--text-subhead-size)}
+.chg li span{font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.btn-row{display:flex;gap:var(--space-2);flex-wrap:wrap}
+.var-n{font-size:var(--text-caption-size);font-weight:600;color:var(--color-text-secondary);text-transform:uppercase}
+.fit{display:inline-flex;align-items:center;gap:var(--space-1);font-size:var(--text-footnote-size);font-weight:600}
+.fit.ok{color:var(--color-accent)}
+.fit.over{color:var(--color-warning)}
+.fit .icon{width:var(--space-4);height:var(--space-4)}
+.sent{display:flex;gap:var(--space-2);align-items:flex-start;font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);color:var(--color-text-secondary)}
+.sent .icon{flex:none;width:var(--space-4);height:var(--space-4);margin-top:0}
+
+/* desktop */
+.kcols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-6);align-items:start}
+.kcols .hero{height:auto;aspect-ratio:16 / 10}
+.desk-title .btn-row{align-self:flex-end}
+
+</style><link rel="stylesheet" href="oct352.css">
+</head><body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-key" viewBox="0 0 24 24"><path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"/><circle cx="16.5" cy="7.5" r=".5"/></symbol>
+  <symbol id="i-chev-r" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="i-chev-l" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+  <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 2v13"/><path d="m16 6-4-4-4 4"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-camera" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></symbol>
+  <symbol id="i-wifi-off" viewBox="0 0 24 24"><path d="M12 20h.01"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/><path d="M5 12.859a10 10 0 0 1 5.17-2.69"/><path d="M19 12.859a10 10 0 0 0-2.007-1.523"/><path d="M2 8.82a15 15 0 0 1 4.177-2.643"/><path d="M22 8.82a15 15 0 0 0-11.288-3.764"/><path d="m2 2 20 20"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
+  <symbol id="i-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></symbol>
+  <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+  <symbol id="i-user-plus" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6"/><path d="M22 11h-6"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></symbol>
+  <symbol id="i-plate" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/></symbol>
+</svg>
+<!-- Extra icons for OCT-16 (Lucide geometry; lucide-react names in the doc) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></symbol>
+  <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/></symbol>
+  <symbol id="i-retake" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></symbol>
+  <symbol id="i-history" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></symbol>
+  <symbol id="i-gauge" viewBox="0 0 24 24"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></symbol>
+  <symbol id="i-cloud-off" viewBox="0 0 24 24"><path d="m2 2 20 20"/><path d="M5.782 5.782A7 7 0 0 0 9 19h8.5a4.5 4.5 0 0 0 1.307-.193"/><path d="M21.532 16.5A4.5 4.5 0 0 0 17.5 10h-1.79A7.008 7.008 0 0 0 10 5.07"/></symbol>
+  <symbol id="i-search-x" viewBox="0 0 24 24"><path d="m13.5 8.5-5 5"/><path d="m8.5 8.5 5 5"/><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m17 8-5-5-5 5"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></symbol>
+  <!-- Prototype-only stand-in for the user's photo (real app shows the actual photo) -->
+  <symbol id="ph-food" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice">
+    <rect width="400" height="300" fill="#7a6552"/><rect width="400" height="300" fill="url(#wood)" opacity=".35"/>
+    <ellipse cx="200" cy="160" rx="150" ry="118" fill="#e9e5dc"/><ellipse cx="200" cy="160" rx="118" ry="92" fill="#f5f2ea"/>
+    <path d="M110 150c10-40 60-52 90-40 20 8 22 40 6 58-22 24-74 22-90 6-8-8-9-16-6-24z" fill="#8a5b37"/>
+    <g fill="#6e4528"><circle cx="135" cy="140" r="5"/><circle cx="160" cy="128" r="4"/><circle cx="180" cy="150" r="5"/><circle cx="150" cy="160" r="4"/></g>
+    <path d="M210 110c30-18 76-10 88 10 10 18-6 40-40 44-30 4-56-6-58-24-1-12 2-22 10-30z" fill="#d9a86a"/>
+    <path d="M222 122l60 6M220 138l66 4M226 152l52 2" stroke="#b5803f" stroke-width="5" stroke-linecap="round"/>
+    <ellipse cx="236" cy="210" rx="28" ry="20" fill="#fbfaf5"/><circle cx="236" cy="210" r="11" fill="#f2b632"/>
+    <ellipse cx="282" cy="196" rx="26" ry="19" fill="#fbfaf5"/><circle cx="282" cy="196" r="10" fill="#f2b632"/>
+    <ellipse cx="160" cy="212" rx="24" ry="14" fill="#f4eedb"/>
+    <defs><pattern id="wood" width="40" height="300" patternUnits="userSpaceOnUse"><path d="M0 0v300M20 0v300" stroke="#5a4636" stroke-width="2"/></pattern></defs>
+  </symbol>
+</svg>
+<!-- Extra icons for OCT-19 (Lucide geometry; lucide-react names in the doc) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-calendar" viewBox="0 0 24 24"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></symbol>
+  <symbol id="i-chev-d" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></symbol>
+  <symbol id="i-utensils" viewBox="0 0 24 24"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 3 2h3Zm0 0v7"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></symbol>
+  <symbol id="i-moon-star" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+  <symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol>
+</svg>
+
+<!-- Extra icons for OCT-157 (Lucide geometry: git-compare, smartphone, cloud, laptop, rotate-ccw) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-versions" viewBox="0 0 24 24"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><path d="M11 18H8a2 2 0 0 1-2-2V9"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><rect width="14" height="20" x="5" y="2" rx="2"/><path d="M12 18h.01"/></symbol>
+  <symbol id="i-laptop" viewBox="0 0 24 24"><path d="M18 5a2 2 0 0 1 2 2v8.526a2 2 0 0 0 .212.897l1.068 2.127a1 1 0 0 1-.9 1.45H3.62a1 1 0 0 1-.9-1.45l1.068-2.127A2 2 0 0 0 4 15.526V7a2 2 0 0 1 2-2z"/><path d="M20.054 15.987H3.946"/></symbol>
+  <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></symbol>
+  <symbol id="i-restore" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></symbol>
+</svg>
+<!-- Extra icons for OCT-153 (Lucide geometry: arrow-up, arrow-down, file-chart-column, lock-keyhole) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></symbol>
+  <symbol id="i-report" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M8 18v-2"/><path d="M12 18v-4"/><path d="M16 18v-6"/></symbol>
+</svg>
+<!-- Extra icons for OCT-160 (Lucide geometry: chef-hat, refrigerator, grip-vertical, search, ellipsis, play, sun, feather, clipboard-paste, undo-2, package-minus, arrow-left-right, list-ordered, scale) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-chef" viewBox="0 0 24 24"><path d="M17 21a1 1 0 0 0 1-1v-5.35c0-.457.316-.844.727-1.041a4 4 0 0 0-2.134-7.589 5 5 0 0 0-9.186 0 4 4 0 0 0-2.134 7.588c.411.198.727.585.727 1.041V20a1 1 0 0 0 1 1Z"/><path d="M6 17h12"/></symbol>
+  <symbol id="i-fridge" viewBox="0 0 24 24"><path d="M5 6a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6Z"/><path d="M5 10h14"/><path d="M15 7v6"/></symbol>
+  <symbol id="i-grip" viewBox="0 0 24 24"><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M6 3 20 12 6 21Z"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></symbol>
+  <symbol id="i-feather" viewBox="0 0 24 24"><path d="M12.67 19a2 2 0 0 0 1.416-.588l6.154-6.172a6 6 0 0 0-8.49-8.49L5.586 9.914A2 2 0 0 0 5 11.328V18a1 1 0 0 0 1 1z"/><path d="M16 8 2 22"/><path d="M17.5 15H9"/></symbol>
+  <symbol id="i-paste" viewBox="0 0 24 24"><path d="M15 2H9a1 1 0 0 0-1 1v2c0 .6.4 1 1 1h6c.6 0 1-.4 1-1V3c0-.6-.4-1-1-1Z"/><path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2M16 4h2a2 2 0 0 1 2 2v2M11 14h10"/><path d="m17 10 4 4-4 4"/></symbol>
+  <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11"/></symbol>
+  <symbol id="i-pkg" viewBox="0 0 24 24"><path d="M16 16h6"/><path d="M21 10V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l2-1.14"/><path d="m7.5 4.27 9 5.15"/><path d="M3.29 7 12 12l8.71-5"/><path d="M12 22V12"/></symbol>
+  <symbol id="i-swap" viewBox="0 0 24 24"><path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M10 12h11"/><path d="M10 18h11"/><path d="M10 6h11"/><path d="M4 10h2"/><path d="M4 6h1v4"/><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"/></symbol>
+  <symbol id="i-scale" viewBox="0 0 24 24"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></symbol>
+</svg>
+<div id="sprite" hidden></div>
+
+<h1 class="doc-h1">OCT-160 · Рецепты и холодильник</h1>
+<p class="doc-lead">Этап 2 эпика OCT-138 по документу «Продукт OCT-107» (номера AC, E — оттуда), обе волны. Только токены OCT-13 (<code>../oct-13/tokens.css</code>; новые — <code>--recipe-hero-height</code> и <code>--text-cook-size/lh</code>), иллюстрации OCT-33, компоненты OCT-16, OCT-19, OCT-22, OCT-25, OCT-153. iPhone 14/15, 390 × 844 pt. Спецификация и тексты RU/EN — документ «Дизайн OCT-160» в проекте. Пример: «Плов домашний» — 8 ингредиентов, 6 порций, готовое 2 100 г.</p>
+
+<section class="doc-section" id="kitchen">
+  <h2 class="doc-h2">1 · «Кухня»: где живут рецепты и холодильник</h2>
+  <div class="row" id="kitchen-row"></div>
+</section>
+<section class="doc-section" id="recipe">
+  <h2 class="doc-h2">2 · Рецепт: карточка и редактор</h2>
+  <div class="row" id="recipe-row"></div>
+</section>
+<section class="doc-section" id="diary">
+  <h2 class="doc-h2">3 · Порция в дневник, «Ваш рецепт», приём пищи → рецепт</h2>
+  <div class="row" id="diary-row"></div>
+</section>
+<section class="doc-section" id="cook">
+  <h2 class="doc-h2">4 · Режим «Готовлю»</h2>
+  <div class="row" id="cook-row"></div>
+</section>
+<section class="doc-section" id="fridge">
+  <h2 class="doc-h2">5 · Холодильник</h2>
+  <div class="row" id="fridge-row"></div>
+</section>
+<section class="doc-section" id="cooked">
+  <h2 class="doc-h2">6 · «Приготовил»: списание с подтверждением и отмена</h2>
+  <div class="row" id="cooked-row"></div>
+</section>
+<section class="doc-section" id="ready">
+  <h2 class="doc-h2">8 · Готовое блюдо: остаток в граммах, порция вычитается</h2>
+  <p class="doc-lead">Запрос владельца: приготовил салат → беру из готового, указываю граммы в тарелке → они вычитаются из салата, в «Сегодня» — салат с этими граммами. Меняет AC-4.6 («из холодильника ничего не списывается») — только для готового блюда; продукты по-прежнему списывает «Приготовил».</p>
+  <div class="row" id="ready-row"></div>
+</section>
+<section class="doc-section" id="ai">
+  <h2 class="doc-h2">7 · ИИ-помощник: разбор текста, «Сделать легче», «Придумать из того, что есть»</h2>
+  <div class="row" id="ai-row"></div>
+</section>
+<section class="doc-section" id="modules">
+  <h2 class="doc-h2">9 · Разделы можно выключить в настройках</h2>
+  <p class="doc-lead">Запрос владельца: кому раздел не нужен — выключает его, и раздел исчезает отовсюду. Настройка у каждого пользователя своя. Данные не удаляются: включили снова — всё на месте, поэтому подтверждения нет.</p>
+  <div class="row" id="modules-row"></div>
+</section>
+<section class="doc-section" id="desktop">
+  <h2 class="doc-h2">D · Десктоп ≥ 1024 px</h2>
+  <div class="row" id="desk-row"></div>
+</section>
+
+<script>
+const I = (id, cls='') => `<svg class="icon ${cls}" aria-hidden="true"><use href="#i-${id}"/></svg>`;
+const PHOTO = `<svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Фото еды"><use href="#ph-food"/></svg>`;
+const frame = (id, title, note, inner, cls='') => `<figure class="frame"><div class="phone ${cls}">${inner}</div><figcaption><b>${id} ${title}.</b> ${note}</figcaption></figure>`;
+const arrow = `<div class="flow-arrow">${I('chev-r')}</div>`;
+
+/* ---------- data ---------- */
+const D = {
+  egg:  {n:'Яйцо варёное, 2 шт', g:100, k:155, p:13, f:11, c:1,  conf:'exact'},
+  buck: {n:'Гречка с грибами',  g:180, k:230, p:8,  f:6,  c:36, conf:'high'},
+  chick:{n:'Куриная грудка гриль', g:150, k:248, p:46, f:6, c:0, conf:'mid'},
+  sauce:{n:'Сметанный соус',     g:40,  k:84,  p:1,  f:8,  c:2,  conf:'low'},
+};
+const BADGE = {
+  exact:`<span class="badge ok" aria-label="Уверенность: точно">${I('check')}точно</span>`,
+  high:'',
+  mid:`<span class="badge" aria-label="Уверенность: средняя">примерно</span>`,
+  low:`<span class="badge warn" aria-label="Уверенность: низкая, проверьте">${I('alert')}проверьте</span>`,
+  manual:`<span class="badge">вручную</span>`,
+  history:`<span class="badge">${I('history')}как в прошлый раз</span>`,
+  edited:'',
+};
+function dish(d, o={}){
+  const unit = o.oz ? 'oz' : 'г';
+  const w = o.oz ? (d.g/28.35).toFixed(1).replace('.',',') : (o.w ?? d.g);
+  const wcls = o.focus ? 'focus' : o.err ? 'error' : '';
+  const conf = o.conf ?? d.conf;
+  const ctl = o.desk
+    ? `<div class="dish-ctl"><span class="step" aria-label="Меньше на 10 г">${I('minus')}</span><span class="wv ${wcls}">${w}<small>${unit}</small></span><span class="step" aria-label="Больше на 10 г">${I('plus')}</span><span class="more" style="margin-left:auto" aria-label="Изменить">${I('pencil','sm')}</span><span class="trash" aria-label="Удалить ${d.n}">${I('trash','sm')}</span></div>`
+    : `<div class="dish-ctl"><span class="step ${o.min?'dis':''}" aria-label="Меньше на 10 г">${I('minus')}</span><span class="wv ${wcls}">${w}<small>${unit}</small></span><span class="step" aria-label="Больше на 10 г">${I('plus')}</span><span class="more" aria-label="Изменить ${d.n}">${I('pencil','sm')}</span></div>`;
+  const hint = o.hint ? `<div class="hint"><span>${I('history','sm')} Похоже на запись 12 нояб.: <b class="num">250 г · 420 ккал</b></span><div class="acts"><span>Как в прошлый раз</span><span>Оставить оценку</span></div></div>` : '';
+  return `<div class="dish"><div class="dish-top"><span class="name">${o.name ?? d.n}</span><span class="kc">${o.k ?? d.k} ккал</span></div>
+    <div class="dish-meta">${BADGE[conf]}<span>Б ${o.p ?? d.p} · Ж ${o.f ?? d.f} · У ${o.c ?? d.c}</span></div>
+    ${ctl}${o.err?`<div class="err-msg">${I('alert','sm')}Вес от 1 до 5000 г</div>`:''}${hint}</div>`;
+}
+const nav = (title, left=`<span class="x-btn" aria-label="Закрыть">${I('x')}</span>`) => `<div class="navbar"><div>${left}</div><div class="title num">${title}</div><div></div></div>`;
+const seg = (on='Обед') => `<div class="seg" role="radiogroup" aria-label="Приём пищи">${['Завтрак','Обед','Ужин','Перекус'].map(x=>`<span class="${x===on?'on':''}">${x}</span>`).join('')}</div>`;
+const totals = (k='717', p=68, f=31, c=39, thumb=PHOTO) => `<div class="totals"><div class="thumb">${thumb}</div><div class="stack-sm"><div class="kcal-big"><b>${k}</b><span class="t-sub muted">ккал</span></div><div class="macros"><span><i class="m-p"></i>Б ${p} г</span><span><i class="m-f"></i>Ж ${f} г</span><span><i class="m-c"></i>У ${c} г</span></div></div></div>`;
+const estimate = `<div class="foot-note">${I('spark','sm')}<span>Оценка ИИ по фото — проверьте вес. Ккал и БЖУ пересчитаются сами.</span></div>`;
+const saveBar = (btn=`<button class="btn btn-primary">Сохранить</button>`, note='') => `<div class="bottom bar">${note}${btn}</div>`;
+function editScreen({title='Сегодня, 13:24', meal='Обед', dishes, top='', note=estimate, totalsHtml=totals(), bar=saveBar(), extra=''}){
+  return `${nav(title)}${top}<div class="content"><div class="pad stack">${totalsHtml}${seg(meal)}${note}</div>
+    <div class="pad"><div class="group">${dishes}</div><div class="add-row">${I('plus','sm')}Добавить блюдо вручную</div></div></div>${bar}${extra}`;
+}
+
+/* ================= OCT-19 ================= */
+const fmt = n => Math.round(n).toLocaleString('ru-RU').replace(/ /g,' ');
+const NORM = {k:2100, p:120, f:70, c:240};
+const ICON_ONLY = `<span class="thumb icon-only">${I('utensils','sm')}</span>`;
+const pct = (v, n) => Math.min(100, v / n * 100);
+
+function tabbar(on='Сегодня'){
+  const t = (ic, l) => `<span class="tab ${l===on?'on':''}" ${l===on?'aria-current="page"':''}>${I(ic)}${l}</span>`;
+  return `<nav class="tabbar">${t('home','Сегодня')}${t('book','Дневник')}<span class="cam" aria-label="Сфотографировать еду">${I('camera')}</span>${t('chart','Неделя')}${t('user','Профиль')}</nav>`;
+}
+/* kcal bar: fill up to the norm, hatched tail beyond it */
+function bar(v, n, cls=''){
+  if (!n) return `<div class="pbar none" aria-hidden="true"></div>`;
+  if (v <= n) return `<div class="pbar" aria-hidden="true"><i class="${cls}" style="width:${pct(v,n)}%"></i></div>`;
+  return `<div class="pbar" aria-hidden="true"><i class="${cls}" style="width:${n/v*100}%"></i><i class="ov" style="width:${(v-n)/v*100}%"></i></div>`;
+}
+function kcalCard({eaten=1240, norm=NORM.k, week='Осталось на неделю', weekVal=7270, weekOver=false, macros=[68,52,141], macroNorm=NORM, compact=false}={}){
+  let head;
+  if (!norm) head = `<span class="lbl">Съедено сегодня</span><div class="big"><span class="display num">${fmt(eaten)}</span><span class="unit">ккал</span></div>`;
+  else if (eaten > norm) head = `<span class="lbl over">${I('alert','sm')}Перебор</span><div class="big"><span class="display num">${fmt(eaten-norm)}</span><span class="unit">ккал</span></div>${bar(eaten,norm)}<span class="t-foot muted num">${fmt(eaten)} из ${fmt(norm)} ккал</span>`;
+  else head = `<span class="lbl">Осталось</span><div class="big"><span class="display num">${fmt(norm-eaten)}</span><span class="unit">ккал</span></div>${bar(eaten,norm)}<span class="t-foot muted num">${fmt(eaten)} из ${fmt(norm)} ккал</span>`;
+  const mac = macroBlock(macros, macroNorm);
+  const wl = norm ? `<a class="week-line ${weekOver?'over':''}" aria-label="${weekOver?'Перебор за неделю':'На неделю осталось'} ${fmt(weekVal)} ккал. Открыть неделю"><span>${weekOver?'Перебор за неделю':'На неделю осталось'} <b>${fmt(weekVal)} ккал</b></span>${I('chev-r','sm')}</a>` : '';
+  return `<section class="card" aria-label="Итог дня">${head}${mac}${wl}</section>`;
+}
+function macroBlock([p,f,c], n=NORM){
+  const one = (name, cls, v, nv) => {
+    let rest = '';
+    if (nv) rest = v > nv ? `<span class="rest over">${I('alert')}перебор ${fmt(v-nv)} г</span>` : `<span class="rest">осталось ${fmt(nv-v)} г</span>`;
+    return `<div class="mac"><span class="mac-h"><i class="m-${cls}"></i>${name}</span><span class="mac-v">${fmt(v)}${nv?`<small> / ${nv} г</small>`:'<small> г</small>'}</span>${nv?bar(v,nv,cls):''}${rest}</div>`;
+  };
+  return `<div class="mac-grid">${one('Белки','p',p,n&&n.p)}${one('Жиры','f',f,n&&n.f)}${one('Углеводы','c',c,n&&n.c)}</div>`;
+}
+const quick = `<div class="quick"><button class="btn btn-tonal btn-sm">${I('image','sm')}Из галереи</button><button class="btn btn-tonal btn-sm">${I('pencil','sm')}Вручную</button></div>`;
+function meal({type, time, sub, k, photo=true, st='', cls='', late=false}){
+  const kc = k===null ? `<span class="val zero num">— ккал</span>` : `<span class="val num">${fmt(k)} ккал</span>`;
+  return `<div class="cell meal ${cls}" role="button"><span class="thumb ${photo?'':'icon-only'}">${photo?PHOTO:I('utensils','sm')}</span><span class="main"><span class="t">${type}<small>${time}</small></span><span class="sub">${sub}</span>${st||late?`<span class="st">${late?`<span class="badge">${I('moon')}поздний</span>`:''}${st}</span>`:''}</span>${kc}</div>`;
+}
+const M = {
+  lunch: meal({type:'Обед', time:'13:24', sub:'Гречка с грибами, куриная грудка гриль, яйцо…', k:717}),
+  bf: meal({type:'Завтрак', time:'08:12', sub:'Овсянка на молоке, кофе с молоком', k:523, photo:false}),
+};
+const ST = {
+  queued: `<span class="badge">${I('cloud-off')}Ждёт отправки</span>`,
+  photoq: `<span class="badge">${I('cloud-off')}Распознаем, когда появится сеть</span>`,
+  check: `<span class="badge warn">${I('alert')}Проверьте</span>`,
+  failed: `<span class="badge err">${I('alert')}Не распознано</span>`,
+};
+const mealsGroup = (rows, h='Приёмы пищи', right='') => `<div><div class="sec-h"><span>${h}</span><span class="num">${right}</span></div><div class="group">${rows}</div></div>`;
+function todayScreen({card=kcalCard(), meals=mealsGroup(M.lunch+M.bf), top='', extra='', invite=''}={}){
+  return `<div class="large-title">Сегодня<span class="date">четверг, 13 ноября</span></div>${top}<div class="content"><div class="pad stack">${invite}${card}${quick}${meals}</div></div>${tabbar('Сегодня')}${extra}`;
+}
+const emptyMeals = `<div class="card" style="align-items:center;text-align:center;gap:var(--space-2)"><span class="s-ic" style="width:56px;height:56px;border-radius:50%;display:grid;place-items:center;background:var(--color-surface-2);color:var(--color-text-secondary)">${I('camera')}</span><span class="t-headline">Сегодня пока пусто</span><span class="t-sub muted" style="max-width:30ch">Сфотографируйте еду — калории и БЖУ посчитаем сами.</span></div>`;
+const invite = `<div class="invite">${I('target')}<span>Задайте норму — покажем, сколько осталось</span><span class="go">Задать</span></div>`;
+const offBar = (t='Офлайн · данные на 12:40') => `<div class="offline-bar">${I('wifi-off','sm')}${t}</div>`;
+const skelCard = `<div class="card"><div class="skel" style="width:40%"></div><div class="skel" style="width:55%;height:48px"></div><div class="skel" style="height:var(--progress-height)"></div><div class="mac-grid"><div class="skel" style="height:44px"></div><div class="skel" style="height:44px"></div><div class="skel" style="height:44px"></div></div></div>`;
+const skelRows = `<div class="group">${[1,2].map(()=>`<div class="cell"><div class="skel" style="width:var(--meal-thumb-size);height:var(--meal-thumb-size)"></div><div class="main"><div class="skel" style="width:50%"></div><div class="skel" style="width:80%"></div></div></div>`).join('')}</div>`;
+const errState = (title='Не удалось загрузить день', body='Проверьте сеть и попробуйте ещё раз.') => `<div class="state" role="alert"><span class="s-ic danger">${I('alert')}</span><span class="t-headline">${title}</span><p class="t-sub muted">${body}</p><button class="btn btn-primary btn-sm">${I('refresh','sm')}Повторить</button></div>`;
+const toast = (txt, act='Вернуть', ic='trash') => `<div class="toast" role="status">${I(ic,'sm')}<span>${txt}</span>${act?`<span class="act">${act}</span>`:''}</div>`;
+
+function pager(title, sub, {next=true, cal=true}={}){
+  return `<div class="pager"><span class="ib" role="button" aria-label="Предыдущий день">${I('chev-l')}</span><span class="pick" role="button" aria-label="${title}, ${sub}. Выбрать дату"><span class="t-headline">${title}${cal?I('chev-d'):''}</span><span class="t-foot muted">${sub}</span></span><span class="ib ${next?'':'dis'}" role="button" aria-label="Следующий день" ${next?'':'aria-disabled="true"'}>${I('chev-r')}</span></div>`;
+}
+/* ---------- 7. Week & Month ---------- */
+/* scale: max(maxDay, norm) × 1.15, capped at 2 × norm; taller days are clipped with a break mark (E-3.4) */
+function chart(days, {norm=NORM.k, month=false, wide=false, sel=-1, values=false, tip=''}={}){
+  const max = Math.max(norm||0, ...days.map(d=>d.k||0));
+  const top = norm ? Math.min(max*1.15, norm*2) : max*1.15 || 1;
+  const cols = days.map((d,i)=>{
+    const lab = `${d.w} ${d.d} нояб.: ${d.k==null?'нет данных':fmt(d.k)+' ккал'}${norm&&d.k!=null?' из '+fmt(norm):''}${norm&&d.k>norm?', перебор '+fmt(d.k-norm):''}`;
+    if (d.k==null) return `<span class="col" role="listitem" aria-label="${d.w} ${d.d} нояб.: ещё не наступил"></span>`;
+    if (d.k===0) return `<span class="col zero" role="listitem" aria-label="${lab}"><span class="b"></span></span>`;
+    const h = Math.min(d.k, top)/top*100;
+    const inn = norm ? Math.min(d.k, norm)/Math.min(d.k, top) : 1;
+    const over = norm && d.k>norm;
+    const clip = d.k>top ? `<span class="clip" style="bottom:calc(${h}% - 28px)"></span>` : '';
+    return `<span class="col ${i===sel?'sel':''}" role="listitem" tabindex="0" aria-label="${lab}">${values?`<span class="v ${over?'over':''}">${fmt(d.k)}</span>`:''}<span class="b" style="height:${values?`calc(${h}% * (1 - 20 / ${wide?280:184}))`:h+'%'}">${'<span class="in" style="height:'+(inn*100)+'%"></span>'}${over?`<span class="ov hatch" style="height:${(1-inn)*100}%"></span>`:''}</span>${clip}</span>`;
+  }).join('');
+  const nl = norm ? `<span class="norm" style="bottom:${norm/top*100}%"></span>` : '';
+  const tIdx = days.findIndex(d=>d.t);
+  const tick = d => d.t || ([1,5,10,15,20,25,30].includes(d.d) && (tIdx<0 || Math.abs(days[tIdx].d-d.d)>2));
+  const xl = days.map(d=> month ? `<span class="${d.t?'today':''}${d.k==null?' future':''}">${tick(d)?d.d:''}</span>` : `<span class="${d.t?'today':''}${d.k==null?' future':''}">${d.w}<b>${d.d}</b><em class="${norm&&d.k>norm?'over':''}">${d.k?fmt(d.k):d.k===0?'0':''}</em></span>`).join('');
+  return `<div class="chart"><div class="plot ${month?'month':''} ${wide?'wide':''}" role="list" aria-label="Ккал по дням${norm?', норма '+fmt(norm)+' в день':''}">${nl}${cols}${tip}</div><div class="xl ${month?'month':''} ${wide?'wide':''}" aria-hidden="true">${xl}</div>
+  <div class="legend" aria-hidden="true"><span><i></i>съедено</span>${norm?`<span><i class="ln"></i>норма ${fmt(norm)} в день</span><span><i class="ov hatch"></i>сверх нормы</span>`:''}</div></div>`;
+}
+const W = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+const wk = (ks, start=10, today=3) => ks.map((k,i)=>({w:W[i], d:start+i, k, t:i===today}));
+const CUR = wk([1850,2380,1960,1240,null,null,null]);
+const PREV = wk([2050,1890,2600,2200,1720,2900,2400],3,-1);
+function budget({eaten=7430, days=4, past=false, norm=NORM.k}={}){
+  const total = norm*7, rest = total-eaten;
+  if (!norm) return `<section class="card"><span class="lbl">Съедено за неделю</span><div class="big"><span class="display sm num">${fmt(eaten)}</span><span class="unit">ккал</span></div></section>`;
+  const head = rest>=0
+    ? `<span class="lbl">${past?'Итог недели':'Осталось на неделю'}</span><div class="big"><span class="display sm num">${fmt(past?eaten:rest)}</span><span class="unit">${past?`из ${fmt(total)} `:''}ккал</span></div>`
+    : `<span class="lbl over">${I('alert','sm')}Перебор за неделю</span><div class="big"><span class="display sm num">${fmt(-rest)}</span><span class="unit">ккал</span></div>`;
+  const foot = past ? (rest<0?`<span class="t-foot muted num">Съедено ${fmt(eaten)} из ${fmt(total)} ккал</span>`:`<span class="t-foot muted num">${fmt(rest)} ккал осталось неиспользованными</span>`) : `<span class="t-foot muted num">Съедено ${fmt(eaten)} из ${fmt(total)} ккал (${fmt(norm)} × 7)</span>`;
+  const call = past || rest<0 ? '' : `<div class="callout"><span>В среднем на оставшиеся ${days} дн.</span><b>${fmt(rest/days)} ккал в день</b></div>`;
+  return `<section class="card" aria-label="Недельный бюджет">${head}${bar(eaten,total)}${foot}${call}</section>`;
+}
+function avg(m=[92,68,206], n=4, norm=NORM){
+  const row = (name, cls, v, nv) => `<div class="mac-row"><span class="mac-h"><i class="m-${cls}"></i>${name}</span><span class="mac-v">${v} г${nv?` <small>из ${nv}</small>`:''}</span>${nv?bar(v,nv,cls):''}</div>`;
+  return `<section class="card" aria-label="Средние БЖУ"><div class="sum-line"><span class="t-headline">В среднем за день</span><span class="avg-note">за ${n} дн. с записями</span></div><div class="mac-rows">${row('Белки','p',m[0],norm&&norm.p)}${row('Жиры','f',m[1],norm&&norm.f)}${row('Углеводы','c',m[2],norm&&norm.c)}</div></section>`;
+}
+function weekScreen({mode='Неделя', title='Эта неделя', sub='10–16 ноября', next=false, ch=chart(CUR,{}), cards=budget()+avg(), top='', extra='', inv=''}={}){
+  return `<div class="large-title">Неделя</div>${top}<div class="content"><div class="pad stack"><div class="seg" role="radiogroup" aria-label="Период"><span class="${mode==='Неделя'?'on':''}">Неделя</span><span class="${mode==='Месяц'?'on':''}">Месяц</span></div>${pager(title,sub,{next,cal:false}).replace(/день/g, mode==='Неделя'?'неделя':'месяц').replace('Предыдущий неделя','Предыдущая неделя').replace('Следующий неделя','Следующая неделя')}${inv}<section class="card">${ch}</section>${cards}</div></div>${tabbar('Неделя')}${extra}`;
+}
+const MONTH = Array.from({length:30},(_,i)=>({w:W[(i+5)%7], d:i+1, k: i>12?null: [1980,2150,1700,0,2240,2600,1900,2050,1890,1850,2380,1960,1240][i], t:i===12}));
+const BIG = wk([1850,6000,1960,1240,null,null,null]);
+const EMPTYW = wk([0,0,0,0,null,null,null]);
+
+const back = (t='Неделя') => `<span class="back" role="button">${I('chev-l')}${t}</span>`;
+const repNav = (title='', left=back(), right='') => `<div class="navbar"><div>${left}</div><div class="title num">${title}</div>${right||'<div></div>'}</div>`;
+const segP = (on='Неделя') => `<div class="seg" role="radiogroup" aria-label="Период">${['Неделя','Месяц','Свой'].map(x=>`<span class="${x===on?'on':''}" role="radio" aria-checked="${x===on}">${x}</span>`).join('')}</div>`;
+const pagerP = (t, s, next=true) => pager(t, s, {next, cal:false}).replace('Предыдущий день','Предыдущий период').replace('Следующий день','Следующий период');
+const head = (kicker, title, meta) => `<div class="rep-head">${kicker?`<span class="kicker">${kicker}</span>`:''}<h2>${title}</h2><span class="meta">${meta}</span></div>`;
+const card = (inner, label='') => `<section class="card"${label?` aria-label="${label}"`:''}>${inner}</section>`;
+const stat = (k, v, small='', sub='') => `<div class="stat"><span class="k">${k}</span><span class="v">${v}${small?`<small> ${small}</small>`:''}</span>${sub?`<span class="k">${sub}</span>`:''}</div>`;
+
+/* ================= OCT-160: recipes & fridge ================= */
+const CH = I('chev-r','sm').replace('class="icon','class="icon chev');
+const IL = id => `<svg aria-hidden="true"><use href="#illo-${id}"/></svg>`;
+BADGE.recipe = `<span class="badge rcp" aria-label="Источник: рецепт">${I('chef')}рецепт</span>`;
+BADGE.est = `<span class="badge" aria-label="Оценка ИИ">оценка</span>`;
+
+/* recipes — numbers are consistent with AC-2.3/2.4 (sum ÷ ready weight; portion = ready ÷ portions) */
+const R = {
+  plov:  {n:'Плов домашний', img:'photo', k100:166, kp:581, por:6, pg:350, used:'вчера'},
+  syr:   {n:'Сырники', img:'sweets-pancakes', k100:215, kp:301, por:4, pg:140, used:'15 нояб.'},
+  borsch:{n:'Борщ', img:'soup-borscht', k100:52, kp:182, por:8, pg:350, used:'12 нояб.'},
+  chick: {n:'Курица с овощами в духовке', img:'poultry', k100:128, kp:null, used:'10 нояб.'},
+  oat:   {n:'Овсянка с бананом', img:'grains-porridge', k100:112, kp:336, por:1, pg:300, used:'9 нояб.'},
+  lasag: {n:'Лазанья', img:'pasta', k100:178, kp:445, por:8, pg:250, used:'2 нояб.'},
+};
+const rthumb = (r, sm='') => r.img==='photo' ? `<span class="rthumb ${sm}">${PHOTO.replace('aria-label="Фото еды"','aria-label="Фото блюда"')}</span>` : `<span class="rthumb illo ${sm}" aria-hidden="true">${IL(r.img)}</span>`;
+const rsub = r => `${r.k100} ккал/100 г${r.kp?` · ${r.kp} на порцию`:''}`;
+const rcell = (r, extra='', cls='') => `<div class="cell rcell ${cls}" role="button">${rthumb(r)}<span class="main"><span class="t">${r.n}</span><span class="sub">${rsub(r)}</span>${extra}</span>${CH}</div>`;
+const plusNav = (label='Новый рецепт') => `<span class="ib-nav" role="button" aria-label="${label}">${I('plus')}</span>`;
+const kSeg = (on='Рецепты') => `<div class="seg" role="tablist" aria-label="Раздел кухни"><span class="${on==='Рецепты'?'on':''}" role="tab" aria-selected="${on==='Рецепты'}">Рецепты</span><span class="${on==='Холодильник'?'on':''}" role="tab" aria-selected="${on==='Холодильник'}">Холодильник</span></div>`;
+const kitchen = (tab, inner, {right=plusNav(tab==='Рецепты'?'Новый рецепт':'Добавить продукт'), top='', extra=''}={}) =>
+  `${repNav('', back('Профиль'), right)}<div class="large-title">Кухня</div>${top}<div class="content"><div class="pad stack">${kSeg(tab)}${inner}</div></div>${tabbar('Профиль')}${extra}`;
+const filt = (on='Все', n=2) => `<div class="chips" role="radiogroup" aria-label="Фильтр"><span class="chip sm ${on==='Все'?'on':''}" role="radio" aria-checked="${on==='Все'}">Все · 6</span><span class="chip sm ${on!=='Все'?'on':''}" role="radio" aria-checked="${on!=='Все'}">${I('fridge','sm')}Можно приготовить · ${n}</span></div>`;
+const LIST_ALL = `<div class="group">${[R.plov,R.syr,R.borsch,R.chick,R.oat,R.lasag].map(r=>rcell(r)).join('')}</div><p class="group-f">Сверху — те, что записывали недавно.</p>`;
+
+/* 1 · Kitchen */
+const profile = () => `<div class="large-title">Профиль</div><div class="content"><div class="pad stack">
+  <section class="card"><div class="sum-line"><span class="t-headline">Норма</span><span class="avg-note">${I('target','sm')}</span></div><div class="big"><span class="display sm num">2 100</span><span class="unit">ккал в день</span></div><span class="t-foot muted num">Б 120 · Ж 70 · У 240 г — как в OCT-22</span></section>
+  <div class="group"><div class="cell ic" role="button"><span class="lead-ic">${I('chef','sm')}</span><span class="main"><span>Кухня</span><span class="sub">6 рецептов · 11 продуктов</span></span>${CH}</div><div class="cell ic" role="button"><span class="lead-ic">${I('report','sm')}</span><span class="main"><span>Мои отчёты</span></span><span class="val num">3</span>${CH}</div><div class="cell ic" role="button"><span class="lead-ic">${I('settings','sm')}</span><span class="main"><span>Настройки</span></span>${CH}</div></div>
+  <p class="group-f">Рецепт для дневника искать здесь не нужно: он есть в «Вручную» и при распознавании (раздел 3).</p></div></div>${tabbar('Профиль')}`;
+
+const CAN = `<div class="group">${rcell(R.chick,`<span class="have">${I('check','sm')}Всё есть дома</span>`)}${rcell(R.borsch,`<span class="have">${I('check','sm')}Всё есть дома</span>`)}</div>
+  <div class="sec-h" style="margin-top:var(--space-2)"><span>Почти — не хватает 1–2</span></div><div class="group">${rcell(R.syr,`<span class="miss">${I('alert','sm')}Не хватает: творог</span>`)}${rcell(R.oat,`<span class="miss">${I('alert','sm')}Не хватает: банан</span>`)}</div>
+  <p class="group-f">Считается на 1 порцию; соль и специи с 0 г не учитываются.</p>`;
+
+const emptyRecipes = (ai=true) => `<div class="state"><span class="illo" style="width:calc(var(--thumb-size) * 1.5);height:calc(var(--thumb-size) * 1.5)" aria-hidden="true">${IL('soup')}</span><span class="t-headline">Рецептов пока нет</span><p class="t-sub muted" style="max-width:32ch">Для блюд, которые готовите дома: один раз внесите состав и вес готового — потом записывайте порцию точно и за пару касаний.</p>
+  <div class="stack-sm" style="width:100%;gap:var(--space-2)"><button class="btn btn-primary">${I('plus','sm')}Новый рецепт</button><button class="btn btn-tonal">${I('history','sm')}Из приёма пищи</button>${ai?`<button class="btn btn-tonal">${I('spark','sm')}Придумать из того, что есть</button>`:''}</div></div>`;
+
+const newSheet = `<div class="scrim"></div><div class="action-sheet" role="dialog" aria-label="Новый рецепт"><div class="grp"><div class="it">${I('pencil','sm')}Ввести вручную</div><div class="it">${I('paste','sm')}Вставить текст рецепта</div><div class="it">${I('history','sm')}Из приёма пищи</div><div class="it">${I('spark','sm')}Придумать из того, что есть</div></div><div class="grp"><div class="it cancel">Отмена</div></div></div>`;
+
+document.getElementById('kitchen-row').innerHTML = [
+  frame('1.1','Вход: «Профиль» → «Кухня»','AC-7.1: новой вкладки нет, «Сегодня» и камера не меняются. «Кухня» — первая строка в «Профиле», рядом с «Моими отчётами» (OCT-153): с «Сегодня» 2 касания. На десктопе — пункт боковой панели, 1 клик (D.1).', profile()),
+  frame('1.2','Рецепты','Сегмент «Рецепты / Холодильник» — одна «Кухня» на оба. Строка: фото или иллюстрация OCT-33 (круглая подложка, не спутать с фото), ккал на 100 г и на порцию, если порции заданы (AC-7.3). Сортировка — по последней записи. «+» в навбаре — новый рецепт (кадр 1.5). Фильтр «Можно приготовить» появляется, только когда холодильник не пуст.', kitchen('Рецепты', filt()+LIST_ALL)),
+  frame('1.3','Можно приготовить','AC-8.6, без ИИ: код сравнивает ингредиенты на 1 порцию с остатками. Сверху — «Всё есть дома», ниже — «Почти» с перечнем, чего не хватает (1–2 продукта). Не цветом: значок + текст.', kitchen('Рецепты', filt('Можно')+CAN)),
+  frame('1.4','Пусто','AC-7.4: зачем рецепт — одной фразой, и три пути: вручную, из записанного приёма пищи, с ИИ — «Придумать из того, что есть» (кнопка есть, только если настроен ИИ и в холодильнике есть продукты; иначе её нет). Фильтра нет — нечего фильтровать.', kitchen('Рецепты', emptyRecipes())),
+  frame('1.5','«+» — новый рецепт','Четыре способа (AC-6): вручную; вставить текст (ИИ, кадр 7.1); из приёма пищи — лист с последними 20 приёмами, выбор → редактор (кадр 3.6); придумать (ИИ, кадр 7.4). Без ИИ — только «Ввести вручную» и «Из приёма пищи».', kitchen('Рецепты', filt()+LIST_ALL, {extra:newSheet})),
+].join('');
+
+/* 2 · Recipe */
+const ING = [
+  ['Рис длиннозёрный',400,1440,true],['Свинина, лопатка',500,1300,true],['Морковь',400,140,true],['Лук репчатый',200,82,true],
+  ['Масло подсолнечное',50,450,true],['Чеснок',50,75,false],['Соль',0,0,false],['Зира',0,0,false],
+];
+const ingRow = ([n,g,k,fr]) => `<div class="cell"><span class="main"><span>${n}${fr?` <span class="ing-src" aria-label="из холодильника">${I('fridge','sm')}</span>`:''}</span><span class="sub">${g?fmt(k)+' ккал':'не учитывается в ккал'}</span></span><span class="val num">${g} г</span></div>`;
+const STEPS = [
+  ['Мясо нарежьте кубиком 2–3 см, морковь — соломкой, лук — полукольцами.', false],
+  ['Разогрейте масло в казане, обжарьте мясо до корочки, 8–10 минут.', true],
+  ['Добавьте лук, через 5 минут — морковь. Жарьте ещё 7 минут, посолите, добавьте зиру.', false],
+  ['Залейте горячей водой на 1 см выше, тушите 30 минут.', false],
+  ['Всыпьте промытый рис, разровняйте, долейте воду на палец выше риса. Вставьте головку чеснока.', false],
+  ['Готовьте под крышкой на малом огне 25 минут, дайте постоять 10 минут.', false],
+];
+const stepsList = (n=STEPS.length) => `<ol class="steps">${STEPS.slice(0,n).map(([t,ph],i)=>`<li><span class="n" aria-hidden="true">${i+1}</span><span>${t}${ph?`<div class="sph">${PHOTO}</div>`:''}</span></li>`).join('')}</ol>`;
+const nutSeg = (on=0) => `<div class="seg" role="radiogroup" aria-label="Показать на">${['Порция','100 г','Целиком'].map((x,i)=>`<span class="${i===on?'on':''}" role="radio" aria-checked="${i===on}">${x}</span>`).join('')}</div>`;
+const NUT = card(`${nutSeg()}<div class="big"><span class="display sm num">581</span><span class="unit">ккал · порция 350 г</span></div><div class="macros"><span><i class="m-p"></i>Б 20 г</span><span><i class="m-f"></i>Ж 26 г</span><span><i class="m-c"></i>У 62 г</span></div>`,'Пищевая ценность');
+const lighter = `<div class="invite" role="button">${I('feather')}<span>Сделать легче<br><span class="t-foot muted">ИИ предложит замены</span></span><span class="go">${I('chev-r','sm')}</span></div>`;
+const barLog = `<div class="bottom bar"><button class="btn btn-primary">${I('plus','sm')}Записать порцию</button></div>`;
+const recipeNav = (title='') => repNav(title, back('Кухня'), `<span class="ib-nav" role="button" aria-label="Ещё: изменить, удалить">${I('more')}</span>`);
+const recipe = ({part=0, extra='', top='', bottom=barLog, ai=true}={}) => {
+  const p0 = `<div class="hero">${PHOTO}</div><div class="r-title"><h2>Плов домашний</h2><span class="t-sub muted num">6 порций по 350 г · готовое 2 100 г · записывали вчера</span></div>${NUT}<div class="act-row"><button class="btn btn-tonal">${I('play','sm')}Готовлю</button><button class="btn btn-tonal">${I('pkg','sm')}Приготовил</button></div>${ai?lighter:''}`;
+  const p1 = `<div><div class="sec-h"><span>Ингредиенты · 8</span><span class="num">3 487 ккал</span></div><div class="group">${ING.map(ingRow).join('')}</div></div><div><div class="sec-h"><span>Шаги · 6</span></div>${card(stepsList(4))}</div>`;
+  return `${recipeNav(part?'Плов домашний':'')}${top}<div class="content" style="padding-bottom:var(--space-4)"><div class="pad stack">${part?p1:p0}</div></div>${bottom}${extra}`;
+};
+
+/* editor */
+const edIng = (n, g, k, {src='', badge='', flag='', why=''}={}) => `<div class="ing-ed ${flag}"><span class="nm">${n}${src}</span><span class="wv">${g}<small>г</small></span><span class="sub">${badge}${k}</span>${why?`<span class="why">${I('alert','sm')}${why}</span>`:''}</div>`;
+const FR = ` <span class="ing-src" aria-label="из холодильника">${I('fridge','sm')}</span>`;
+const editor = ({title='Новый рецепт', name='Плов домашний', part=0, banner='', ings=null, weight='', note='', portions=6, totals=['581','166','3 487'], extra='', top=''}={}) => {
+  const rows = ings ?? ING.slice(0,6).map(([n,g,k,fr])=>edIng(n,fmt(g),fmt(k)+' ккал',{src:fr?FR:''})).join('');
+  const t3 = `<div class="totals3">${stat(portions?'Порция':'Порция','<span class="num">'+totals[0]+'</span>','ккал')}${stat('100 г','<span class="num">'+totals[1]+'</span>','ккал')}${stat('Всего','<span class="num">'+totals[2]+'</span>','ккал')}</div>`;
+  const p0 = `${banner}<div class="ed-head"><div class="thumb add" role="button" aria-label="Добавить фото блюда">${I('camera','sm')}Фото</div><div class="field"><label>Название</label><div class="input"><span class="val">${name}</span></div></div></div>${t3}
+    <div><div class="sec-h"><span>Ингредиенты</span><span class="num">граммы · ккал</span></div><div class="group">${rows}</div><div class="add-row">${I('plus','sm')}Ингредиент</div></div>`;
+  const p1 = `<div><div class="sec-h"><span>Выход</span></div><div class="group"><div class="kv"><span>Вес готового</span><span class="wv ${weight?'':'ph'}">${weight||'<span class="muted">—</span>'}<small>г</small></span></div><div class="kv"><span>Порции</span><span class="stepper"><span class="step" aria-label="Меньше">${I('minus')}</span><span class="wv">${portions}</span><span class="step" aria-label="Больше">${I('plus')}</span></span></div></div>${note}</div>
+    <div><div class="sec-h"><span>Шаги</span><span>необязательно</span></div><div class="group">${STEPS.slice(0,3).map(([t,ph],i)=>`<div class="step-ed"><span class="steps"><span class="n" style="display:grid">${i+1}</span></span><span>${t}<span class="sp">${ph?`<span class="thumb">${PHOTO}</span>`:''}<span class="add-ph" role="button">${I('camera','sm')}${ph?'Заменить':'Фото'}</span></span></span><span class="grip" role="button" aria-label="Перетащить шаг ${i+1}">${I('grip')}</span></div>`).join('')}</div><div class="add-row">${I('plus','sm')}Шаг</div></div>
+    <div class="field"><label>Заметка</label><div class="input"><span class="ph">Например: в казане 5 л</span></div></div>`;
+  return `${nav(title, `<span class="txt-btn">Отмена</span>`).replace('<div></div></div>', `<div style="justify-self:end"><span class="txt-btn" style="font-weight:600">Сохранить</span></div></div>`)}${top}<div class="content" style="padding-bottom:var(--space-4)"><div class="pad stack">${part?p1:p0}</div></div>${extra}`;
+};
+const WEIGH = `<p class="field-note">${I('scale')}<span>Взвесьте готовое блюдо — так точнее. Пока считаем по сырому весу: 1 600 г.</span></p>`;
+const W3 = `<p class="field-note warn">${I('alert')}<span>Проверьте вес: готовое в 3 раза тяжелее ингредиентов (1 600 г). Сохранить можно.</span></p>`;
+
+const ingSheet = `<div class="scrim"></div><div class="sheet" role="dialog" aria-labelledby="ish" style="top:var(--space-12)"><div class="grab"></div><div class="sheet-head"><b class="t-headline" id="ish">Ингредиент</b><span class="x" aria-label="Закрыть">${I('x')}</span></div>
+  <div class="input focus caret"><span class="trail" style="margin:0;width:auto">${I('search','sm')}</span><span class="val">мор</span></div>
+  <div><div class="sec-h"><span>${I('fridge','sm')} Из холодильника</span></div><div class="group inset">${['Морковь|1 000 г дома · 35 ккал/100 г'].map(s=>{const [a,b]=s.split('|');return `<div class="cell" role="button"><span class="main"><span>${a}</span><span class="sub">${b}</span></span>${I('plus','sm')}</div>`}).join('')}</div></div>
+  <div><div class="sec-h"><span>${I('history','sm')} Из истории</span></div><div class="group inset"><div class="cell" role="button"><span class="main"><span>Морковь по-корейски</span><span class="sub">130 ккал/100 г · 3 нояб.</span></span>${I('plus','sm')}</div><div class="cell" role="button"><span class="main"><span>Морс клюквенный</span><span class="sub">41 ккал/100 г · 28 окт.</span></span>${I('plus','sm')}</div></div></div>
+  <div class="add-row" style="padding:0">${I('pencil','sm')}Ввести «мор» вручную</div>
+  <p class="t-foot muted">Дальше — граммы. Вручную — те же поля, что в ручном вводе блюда: ккал и БЖУ на 100 г или на указанное количество (AC-2.2).</p></div>`;
+
+const unsaved = `<div class="scrim"></div><div class="action-sheet" role="alertdialog" aria-label="Несохранённые изменения"><div class="grp"><div class="it" style="flex-direction:column;gap:2px;min-height:auto;padding:var(--space-3) var(--space-4);color:var(--color-text-secondary);font-size:var(--text-footnote-size)">Изменения в рецепте не сохранены</div><div class="it" style="font-weight:600">Сохранить и выйти</div><div class="it" style="color:var(--color-danger)">Не сохранять</div></div><div class="grp"><div class="it">Остаться</div></div></div>`;
+const delAlert = `<div class="scrim"></div><div class="alert" role="alertdialog"><b class="t-headline">Удалить «Плов домашний»?</b><p class="t-foot">Записи в дневнике останутся как есть. Фото рецепта удалятся.</p><div class="btns"><button class="btn btn-plain">Отмена</button><button class="btn btn-danger-plain">Удалить</button></div></div>`;
+const moreSheet = `<div class="scrim"></div><div class="action-sheet" role="dialog" aria-label="Действия с рецептом"><div class="grp"><div class="it">${I('pencil','sm')}Изменить</div><div class="it">${I('feather','sm')}Сделать легче</div><div class="it" style="color:var(--color-danger)">${I('trash','sm')}Удалить рецепт</div></div><div class="grp"><div class="it cancel">Отмена</div></div></div>`;
+
+document.getElementById('recipe-row').innerHTML = [
+  frame('2.1','Карточка рецепта','Сверху фото (нет фото — иллюстрация OCT-33 на подложке). Пищевая ценность — переключатель «Порция / 100 г / Весь», по умолчанию порция (без порций — 100 г). Действия: «Готовлю» и «Приготовил» (раздел 4, 6), «Сделать легче» — только с ИИ (7.3). Главное действие — «Записать порцию», закреплено внизу: лист 3.2.', recipe()),
+  frame('2.2','Карточка: ингредиенты и шаги','Ингредиенты с граммами и ккал; значок холодильника — связь с продуктом (AC-8.5). 0 г — «не учитывается в ккал» (соль, специи). Шаги — номера в кружках, фото шага во всю ширину. Рецепт без шагов — блока нет (AC-3a.5). «⋯» — «Изменить», «Сделать легче», «Удалить».', recipe({part:1})),
+  frame('2.3','Редактор: состав','AC-6.1, без ИИ. Итоги на порцию / 100 г / весь рецепт пересчитываются на каждый ввод. Граммы — поле прямо в строке; касание названия — правка ингредиента (лист 2.5). «Сохранить» всегда активна: пустое название — подсветка поля после касания, остальное необязательно.', editor()),
+  frame('2.4','Редактор: выход и шаги','«Вес готового» пуст — подсказка «Взвесьте готовое блюдо — так точнее» и по какому весу считаем сейчас (AC-2.3). Порции — степпер; без порций — запись только в граммах (AC-2.4). Шаги: текст, фото шага, перетаскивание за ручку (VoiceOver: действия «Выше / Ниже»). До 50 ингредиентов и 30 шагов (AC-6.5).', editor({part:1, note:WEIGH})),
+  frame('2.5','Добавить ингредиент','Поиск сразу по двум источникам (AC-2.2): холодильник (связь с продуктом для списания) и история (похожие блюда). Нет совпадения — «Ввести вручную» с теми же полями, что ручной ввод блюда.', editor({extra:ingSheet})),
+  frame('2.6','Проверка и выход без сохранения','E-10.2: готовое в 3+ раза отличается от сырого — предупреждение под полем, но «Сохранить» работает. E-10.1: 0 и минус поле не примет. E-10.8: уход с изменениями — «Сохранить и выйти / Не сохранять / Остаться».', editor({part:1, weight:'4 900', note:W3, extra:unsaved})),
+  frame('2.7','Удаление','Из «⋯» → «Удалить рецепт» → подтверждение (E-10.4): прошлые записи — снимки, они не меняются; подсказки по рецепту пропадают, фото удаляются.', recipe({extra:delAlert})),
+].join('');
+
+/* 3 · Diary */
+const manual = (q='', rows='') => `${nav('Блюдо вручную')}<div class="content" style="padding-bottom:var(--space-4)"><div class="pad stack"><div class="field"><label>Название</label><div class="input focus caret"><span class="val">${q}</span></div></div>${rows}</div></div>`;
+const sugg = (r, badge=true) => `<div class="cell rcell" role="button">${rthumb(r,'sm')}<span class="main"><span class="t">${r.n}</span><span class="sub" style="display:flex;gap:var(--space-2);align-items:center">${badge?BADGE.recipe:''}${r.k100} ккал/100 г</span></span></div>`;
+const RECENT = `<div><div class="sec-h"><span>Мои рецепты</span><span>недавние</span></div><div class="group">${sugg(R.plov,false)}${sugg(R.syr,false)}${sugg(R.borsch,false)}</div></div><p class="group-f">Или введите название — рецепты в подсказке первыми.</p>`;
+const R2 = {n:'Плов с курицей', img:'grains', k100:142, kp:497, por:4, pg:350};
+const TYPED = `<div class="group">${sugg(R.plov)}${sugg(R2)}<div class="cell" role="button"><span class="rthumb sm illo" aria-hidden="true">${IL('grains')}</span><span class="main"><span class="t">Плов из ресторана</span><span class="sub" style="display:flex;gap:var(--space-2);align-items:center"><span class="badge">${I('history')}запись 12 нояб.</span>300 г · 540 ккал</span></span></div></div>`;
+const portionSheet = ({mode='Порции', btn='Добавить', meal=false}={}) => `<div class="scrim"></div><div class="sheet" role="dialog" aria-labelledby="psh"><div class="grab"></div><div class="sheet-head"><span class="ph-h">${rthumb(R.plov,'sm')}<b class="t-headline" id="psh">Плов домашний</b></span><span class="x" aria-label="Закрыть">${I('x')}</span></div>
+  <div class="seg" role="radiogroup" aria-label="Единицы"><span class="${mode==='Порции'?'on':''}" role="radio" aria-checked="${mode==='Порции'}">Порции</span><span class="${mode!=='Порции'?'on':''}" role="radio" aria-checked="${mode!=='Порции'}">Граммы</span></div>
+  <div class="qty"><span class="step" aria-label="Меньше на ½ порции">${I('minus')}</span><span class="qv" aria-live="polite"><b>${mode==='Порции'?'1':'350'}</b><small>${mode==='Порции'?'порция · 350 г':'г · 1 порция'}</small></span><span class="step" aria-label="Больше на ½ порции">${I('plus')}</span></div>
+  <div class="chips">${['½','1','1½','2'].map(x=>`<span class="chip sm ${x==='1'?'on':''}">${x}</span>`).join('')}</div>
+  <div class="res"><b>581 ккал</b><span class="macros"><span><i class="m-p"></i>Б 20</span><span><i class="m-f"></i>Ж 26</span><span><i class="m-c"></i>У 62</span></span></div>
+  ${meal?seg('Ужин')+`<span class="t-foot muted center">Сегодня, 19:40 · время и день — как в ручном вводе</span>`:''}<button class="btn btn-primary">${btn}</button></div>`;
+const plovDish = {n:'Плов домашний', g:350, k:581, p:20, f:26, c:62, conf:'recipe'};
+const recHint = `<div class="hint"><span>${I('chef','sm')} Ваш рецепт: <b>Плов домашний</b> · 166 ккал/100 г</span><div class="acts"><span>Взять из рецепта</span><span>Оставить оценку</span></div></div>`;
+const aiPlov = {n:'Плов', g:320, k:576, p:18, f:22, c:70, conf:'mid'};
+const mealSheet = `<div class="scrim"></div><div class="action-sheet" role="dialog" aria-label="Действия с приёмом пищи"><div class="grp"><div class="it">${I('chef','sm')}Сохранить как рецепт</div><div class="it">${I('copy','sm')}Повторить сегодня</div><div class="it" style="color:var(--color-danger)">${I('trash','sm')}Удалить приём пищи</div></div><div class="grp"><div class="it cancel">Отмена</div></div></div>`;
+const fromMealBanner = `<div class="banner notice" role="status">${I('history')}<div><div class="b-title">Из обеда 13 нояб.</div>Блюда стали ингредиентами. Проверьте название и, если нужно, добавьте вес готового и порции.</div></div>`;
+const fromMealIngs = [['Куриная грудка гриль',150,248],['Гречка с грибами',180,230],['Яйцо варёное, 2 шт',100,155],['Сметанный соус',40,84]].map(([n,g,k])=>edIng(n,g,k+' ккал')).join('');
+
+document.getElementById('diary-row').innerHTML = [
+  frame('3.1','«Вручную»: рецепты сразу','AC-4.1. Касание «Вручную» на «Сегодня» или «+ Добавить блюдо» на экране правки — поле названия, а под ним недавние рецепты: печатать не нужно. Путь AC-4.5: «Вручную» → рецепт → «Добавить» → «Сохранить» = 4 касания.', manual('', RECENT)),
+  frame('3.2','Порция','Лист: «Порции / Граммы», по умолчанию 1 порция (без порций — 100 г, только граммы, AC-4.2). Степпер — по ½ порции или по 10 г, быстрые ½ · 1 · 1½ · 2. Ккал и БЖУ — сразу. Из карточки рецепта лист тот же, плюс выбор приёма пищи, и кнопка сразу пишет в дневник: «Записать в ужин».', manual('', RECENT)+portionSheet()),
+  frame('3.3','В приёме пищи','Порция — одно блюдо с названием рецепта и бейджем «рецепт» (AC-4.3), ингредиенты не раскладываются. Вес правится обычным степпером, ккал считаются по рецепту. Запись — снимок (AC-4.4). Из холодильника ничего не списывается (AC-4.6).', editScreen({title:'Сегодня, 19:40', meal:'Ужин', dishes:dish(plovDish), note:'', totalsHtml:totals('581',20,26,62,`<span class="rthumb">${PHOTO}</span>`)})),
+  frame('3.4','Поиск: два рецепта и история','Рецепты — первыми с бейджем «рецепт» (AC-4.1), потом прошлые записи. Два рецепта с похожими названиями различаются ккал/100 г (E-10.3). Без ИИ работает так же (AC-5.3).', manual('пло', TYPED)),
+  frame('3.5','«Ваш рецепт» при распознавании','AC-5.1–5.3: название блюда совпало с рецептом — в карточке подсказка вместо «как в прошлый раз» (у рецепта приоритет). «Взять из рецепта»: вес остаётся из оценки ИИ (320 г), ккал и БЖУ — по рецепту (531 ккал), бейдж «рецепт». Касаний не добавляет; рецептов нет — подсказки нет.', editScreen({dishes:dish(aiPlov,{hint:false}).replace(/<\/div>$/, recHint+'</div>')+dish(D.egg)})),
+  frame('3.6','Приём пищи → рецепт','AC-6.2: «⋯» у сохранённого приёма → «Сохранить как рецепт». Открывается редактор: блюда — ингредиенты, название — блюдо с наибольшими ккал. Дальше обычная правка.', editScreen({title:'Обед, 13 нояб.', dishes:dish(D.buck)+dish(D.chick)+dish(D.egg), note:'', bar:'', extra:mealSheet}).replace(`<span class="x-btn" aria-label="Закрыть">${I('x')}</span>`, back('Дневник'))),
+  frame('3.7','Редактор после приёма пищи','Название — «Куриная грудка гриль» (самое калорийное блюдо), подписано, откуда рецепт. Вес готового пуст — считаем по сумме граммов.', editor({name:'Куриная грудка гриль', banner:fromMealBanner, ings:fromMealIngs, portions:0, totals:['—','184','717']})),
+].join('');
+
+/* 4 · Cooking mode */
+const cook = ({i=1, extra=''}={}) => {
+  const [t] = STEPS[i];
+  return `${repNav(`<span class="num">Шаг ${i+1} из 6</span>`, `<span class="x-btn" aria-label="Выйти из режима">${I('x')}</span>`, `<span class="ib-nav" role="button" aria-label="Все шаги списком">${I('list')}</span>`)}<div class="cook"><div class="cook-prog" aria-hidden="true">${STEPS.map((_,k)=>`<i class="${k<=i?'on':''}"></i>`).join('')}</div><span class="kick">Плов домашний</span><p>${t}</p>${STEPS[i][1]?`<div class="sph">${PHOTO}</div>`:''}<div class="use"><span class="chip sm">Свинина 500 г</span><span class="chip sm">Масло 50 г</span></div></div>
+  <div class="bottom bar"><span class="awake">${I('sun','sm')}Экран не погаснет, пока открыт режим</span><div class="nav2"><button class="btn btn-sec">${I('chev-l','sm')}Назад</button><button class="btn btn-primary">Дальше${I('chev-r','sm')}</button></div></div>${extra}`;
+};
+const doneSheet = `<div class="scrim"></div><div class="sheet" role="dialog" aria-labelledby="dsh"><div class="grab"></div><div class="sheet-head"><b class="t-headline" id="dsh">Готово!</b><span class="x" aria-label="Закрыть">${I('x')}</span></div>
+  <div class="group inset"><div class="kv" style="background:transparent"><span>Вес готового</span><span class="wv">2 100<small>г</small></span></div></div><p class="t-foot muted" style="margin-top:calc(-1 * var(--space-2))">Взвесьте кастрюлю без крышки минус её вес — ккал на 100 г станут точнее. Было 2 100 г.</p>
+  <button class="btn btn-primary">${I('pkg','sm')}Списать продукты</button><button class="btn btn-tonal">${I('plus','sm')}Записать порцию</button><button class="btn btn-plain">Просто закрыть</button></div>`;
+document.getElementById('cook-row').innerHTML = [
+  frame('4.1','Шаг крупно','AC-3a.4: один шаг на экран, текст 26 pt (<code>--text-cook-size</code>) — читается с вытянутой руки. Полоса прогресса, ингредиенты шага — чипами (если шаг их упоминает). Свайп влево/вправо = «Дальше / Назад»; кнопки крупные внизу. Экран не гаснет (Wake Lock; где нет — строки нет). Значок списка — все шаги одной лентой.', cook({i:1})),
+  frame('4.2','Готово','После последнего шага «Дальше» → «Готово». Лист: вес готового (уточнить), «Списать продукты» (раздел 6, только если холодильник не пуст), «Записать порцию». Таймеров нет. Работает офлайн (E-10.5).', cook({i:5, extra:doneSheet})),
+].join('');
+
+/* 5 · Fridge */
+const FRIDGE = [['Рис длиннозёрный','1 200 г','360'],['Свинина, лопатка','350 г','253'],['Морковь','1 000 г','35'],['Лук репчатый','6 шт','41'],['Курица, филе','800 г','113'],['Яйца','10 шт','157'],['Молоко 2,5%','1 000 мл','52'],['Масло подсолнечное','850 мл','899'],['Помидоры','4 шт','20'],['Сметана 15%','180 г','']];
+const fcell = ([n,q,k], zero=false) => `<div class="cell ${zero?'zero':''}" role="button"><span class="main"><span>${n}</span>${k?`<span class="sub">${k} ккал/100 г</span>`:''}</span><span class="val num">${q}</span>${CH}</div>`;
+const fridgeList = (ai=true) => `${ai?`<button class="btn btn-tonal">${I('spark','sm')}Придумать рецепт из этого</button>`:''}<div class="group">${FRIDGE.slice(0,6).map(x=>fcell(x)).join('')}<div class="unch" style="padding:0 var(--space-4);border-top:1px solid var(--color-separator)">Ещё 4 продукта${I('chev-d','sm')}</div></div>
+  <div><div class="sec-h"><span>Закончились</span><span>напоминание, что купить</span></div><div class="group">${fcell(['Творог 5%','0 г','121'],true)}${fcell(['Бананы','0 шт',''],true)}</div><p class="group-f">Удалить — свайп влево.</p></div>
+  <div class="group"><div class="cell ic" role="button"><span class="lead-ic">${I('history','sm')}</span><span class="main"><span>Готовка за 7 дней</span><span class="sub">отменить списание</span></span><span class="val num">2</span>${CH}</div></div>`;
+const prodSheet = `<div class="scrim"></div><div class="sheet" role="dialog" aria-labelledby="fsh"><div class="grab"></div><div class="sheet-head"><b class="t-headline" id="fsh">Продукт</b><span class="x" aria-label="Закрыть">${I('x')}</span></div>
+  <div class="field"><label>Название</label><div class="input"><span class="val">Яйца</span></div></div>
+  <div class="field"><label>Сколько дома</label><div class="ed-head"><div class="input" style="flex:1"><span class="val num">10</span></div><div class="seg" style="flex:1.4"><span>г</span><span>мл</span><span class="on">шт</span></div></div></div>
+  <div class="field"><label>Вес одной штуки, г <span class="muted">— необязательно</span></label><div class="input"><span class="val num">55</span></div><span class="t-foot muted">Нужен, чтобы списать «2 шт» по рецепту, где яйца в граммах.</span></div>
+  <div class="cell" style="padding:0;min-height:var(--tap-min)"><span class="main"><span>Ккал и БЖУ на 100 г</span><span class="sub">157 ккал · Б 12,7 · Ж 10,9 · У 0,7 — из истории</span></span>${CH}</div>
+  <button class="btn btn-primary">Сохранить</button></div>`;
+const fridgeEmpty = `<div class="state"><span class="illo" style="width:calc(var(--thumb-size) * 1.5);height:calc(var(--thumb-size) * 1.5)" aria-hidden="true">${IL('vegetables')}</span><span class="t-headline">Холодильник пуст</span><p class="t-sub muted" style="max-width:32ch">Добавьте, что есть дома: покажем, какие рецепты можно приготовить, а готовка сама спишет продукты.</p><div class="stack-sm" style="width:100%;gap:var(--space-2)"><button class="btn btn-primary">${I('plus','sm')}Продукт</button><button class="btn btn-tonal">${I('paste','sm')}Вставить списком</button></div><p class="t-foot muted">Холодильник не влияет на дневник и норму.</p></div>`;
+document.getElementById('fridge-row').innerHTML = [
+  frame('5.1','Список продуктов','AC-8.1: название, остаток, ккал/100 г (если есть). Закончившиеся (0) — внизу серым до удаления, «чтобы помнить, что купить» (AC-8.3). Касание — правка количества. «Придумать рецепт» — только с ИИ (7.4). Внизу — «Готовка за 7 дней» для отмены списаний (AC-8.7).', kitchen('Холодильник', fridgeList())),
+  frame('5.2','Продукт','AC-8.1: количество + единица г / мл / шт; для «шт» — вес одной штуки (необязательно). Ккал и БЖУ — свернуты, подставляются из истории (AC-8.2). Тот же лист — для правки.', kitchen('Холодильник', fridgeList(), {extra:prodSheet})),
+  frame('5.3','Пусто','Объясняем пользу одной фразой. «Вставить списком» — с ИИ: экран как 7.1 («молоко 1 л, яйца 10…»), результат — черновик списка с правкой количества (AC-8.2); без ИИ этой кнопки нет. Фото чека и штрихкоды — позже.', kitchen('Холодильник', fridgeEmpty)),
+  frame('5.4','Офлайн','E-10.5: холодильник, создание и правка рецептов, списание и ИИ — только онлайн. Список виден из кэша, правка выключена, причина — в полосе OCT-25 и вместо «+». Записать порцию и открыть рецепт с шагами можно.', kitchen('Холодильник', fridgeList(false).replace('Удалить — свайп влево.','Без сети — только просмотр.'), {right:`<span class="ib-nav" aria-disabled="true" style="color:var(--color-text-disabled)">${I('plus')}</span>`, top:offBar('Офлайн · холодильник на 12:40, правка — когда появится сеть')})),
+].join('');
+
+/* 6 · Cooked → write-off */
+const cookedSheet = `<div class="scrim"></div><div class="sheet" role="dialog" aria-labelledby="csh"><div class="grab"></div><div class="sheet-head"><b class="t-headline" id="csh">Приготовил</b><span class="x" aria-label="Закрыть">${I('x')}</span></div>
+  <span class="t-sub muted">Сколько порций «Плова домашнего»? Продукты спишем после проверки.</span>
+  <div class="qty"><span class="step" aria-label="Меньше">${I('minus')}</span><span class="qv"><b>6</b><small>порций · как в рецепте</small></span><span class="step" aria-label="Больше">${I('plus')}</span></div>
+  <button class="btn btn-primary">Дальше</button></div>`;
+const wo = (t, map, v, {flag='', note='', skip=false}={}) => `<div class="wo ${flag} ${skip?'skip':''}"><span class="stack-sm" style="gap:0"><span class="t">${t}</span><span class="map" role="button">${map}</span></span>${skip?`<span class="skipv">не списываем</span>`:`<span class="wv">${v}</span>`}${note?`<span class="note">${I('alert')}${note}</span>`:''}</div>`;
+const WO = `<div class="group">
+  ${wo('Рис · 400 г',`${I('fridge')}<b>Рис длиннозёрный</b> · есть 1 200 г`,'400<small>г</small>')}
+  ${wo('Свинина · 500 г',`${I('fridge')}<b>Свинина, лопатка</b> · есть 350 г`,'350<small>г</small>',{flag:'flag', note:'Было меньше — останется 0 г'})}
+  ${wo('Морковь · 400 г',`${I('fridge')}<b>Морковь</b> · есть 1 000 г`,'400<small>г</small>')}
+  ${wo('Лук · 200 г',`${I('swap')}<b>Лук репчатый</b> · 1 шт = 100 г`,'2<small>шт</small>')}
+  ${wo('Масло · 50 г',`${I('swap')}<b>Масло подсолнечное</b> · г = мл`,'50<small>мл</small>')}
+  ${wo('Чеснок · 50 г',`${I('alert')}<b>Нет в холодильнике · выбрать</b>`,'',{skip:true})}
+</div><p class="group-f">Соль и зира — 0 г, не списываются. Касание продукта — сменить или «Не списывать».</p>`;
+const woScreen = (extra='') => `${repNav('Списать продукты', back('Рецепт'))}<div class="content" style="padding-bottom:var(--space-4)"><div class="pad stack"><span class="t-sub muted">Плов домашний × 6 порций. Проверьте, сколько ушло — остатки в холодильнике уменьшатся.</span>${WO}</div></div><div class="bottom bar"><button class="btn btn-primary">${I('pkg','sm')}Списать 5 продуктов</button></div>${extra}`;
+const histScreen = `${repNav('', back('Холодильник'))}<div class="large-title">Готовка за 7 дней</div><div class="content"><div class="pad stack"><div class="group">
+  <div class="cell rcell">${rthumb(R.plov,'sm')}<span class="main"><span class="t">Плов домашний</span><span class="sub">× 6 порций · сегодня, 19:10 · 5 продуктов</span></span><button class="btn btn-plain btn-sm" style="width:auto;padding:0 var(--space-2)">Отменить</button></div>
+  <div class="cell rcell">${rthumb(R.syr,'sm')}<span class="main"><span class="t">Сырники</span><span class="sub">× 4 порции · 12 нояб., 09:30 · 4 продукта</span></span><button class="btn btn-plain btn-sm" style="width:auto;padding:0 var(--space-2)">Отменить</button></div>
+  </div><p class="group-f">Отмена вернёт продукты в холодильник в том количестве, в каком их списали. Старше 7 дней — не отменить.</p></div></div>${tabbar('Профиль')}`;
+document.getElementById('cooked-row').innerHTML = [
+  frame('6.1','Сколько приготовили','AC-8.4: «Приготовил» на рецепте или «Списать продукты» в конце «Готовлю». N по умолчанию — порции рецепта; без порций — «× 1 рецепт».', recipe({extra:cookedSheet})),
+  frame('6.2','Проверка списания','Ингредиенты × N/порции ↔ продукты. Количество правится в строке. Перевод единиц подписан: шт↔г через вес штуки, г↔мл 1:1 (AC-8.5). Не нашли продукт — строка «не списываем», касание — выбрать. Есть меньше, чем нужно, — подсветка «останется 0 г», не минус (E-10.10). Без «Списать» ничего не меняется.', woScreen()),
+  frame('6.3','Списано · Отменить','После «Списать» — назад на рецепт и тост «Списано 5 продуктов · Отменить» (6 с). AC-8.7.', recipe({bottom:barLog, extra:toast('Списано 5 продуктов','Отменить','pkg').replace('class="toast"','class="toast" style="bottom:calc(34px + var(--control-height-lg) + var(--space-8))"')})),
+  frame('6.4','Готовка за 7 дней','Второй путь отмены (AC-8.7): «Холодильник» → «Готовка за 7 дней». Отмена — без подтверждения: её можно повторить списанием.', histScreen),
+].join('');
+
+/* 8 · Ready dish: leftover in grams, a portion subtracts from it */
+const RS = {n:'Салат с тунцом', img:'salad', k100:118, kp:236, por:4, pg:200};
+const RP = {...R.plov, n:'Плов домашний'};
+const readyCell = (r, left, sub, {warn=''}={}) => `<div class="cell rcell" role="button" aria-label="${r.n}, осталось ${left} г. Записать порцию">${rthumb(r,'sm')}<span class="main"><span class="t">${r.n}</span><span class="sub num">${sub}</span>${warn?`<span class="miss">${I('alert','sm')}${warn}</span>`:''}</span><span class="val num">${left} г</span><span class="step" aria-hidden="true">${I('plus')}</span></div>`;
+const READY_TODAY = `<div><div class="sec-h"><span>Готово дома</span><span>касание — записать порцию</span></div><div class="group">${readyCell(RS,'800','118 ккал/100 г · сегодня, 12:10')}${readyCell(RP,'1 050','166 ккал/100 г · вчера')}</div></div>`;
+const cookedReady = `<div class="scrim"></div><div class="sheet" role="dialog" aria-labelledby="crs"><div class="grab"></div><div class="sheet-head"><b class="t-headline" id="crs">Приготовил</b><span class="x" aria-label="Закрыть">${I('x')}</span></div>
+  <span class="t-sub muted">Сколько порций «Салата с тунцом»?</span>
+  <div class="qty"><span class="step" aria-label="Меньше">${I('minus')}</span><span class="qv"><b>4</b><small>порции · как в рецепте</small></span><span class="step" aria-label="Больше">${I('plus')}</span></div>
+  <div class="group inset"><div class="cell" style="background:transparent"><span class="main"><span>Готовое — в холодильник</span><span class="sub">чтобы записывать порции из него</span></span><span class="switch on" role="switch" aria-checked="true"></span></div><div class="kv" style="background:transparent"><span>Вес готового</span><span class="wv">800<small>г</small></span></div></div>
+  <p class="t-foot muted" style="margin-top:calc(-1 * var(--space-2))">Взвесьте миску без посуды — остаток будет точным. По рецепту — 800 г.</p>
+  <button class="btn btn-primary">Дальше</button></div>`;
+const readySheet = ({g='250', left='550', over=false}={}) => `<div class="scrim"></div><div class="sheet" role="dialog" aria-labelledby="rsh"><div class="grab"></div><div class="sheet-head"><span class="ph-h">${rthumb(RS,'sm')}<b class="t-headline" id="rsh">Салат с тунцом</b></span><span class="x" aria-label="Закрыть">${I('x')}</span></div>
+  <div class="qty"><span class="step" aria-label="Меньше на 10 г">${I('minus')}</span><span class="qv" aria-live="polite"><b>${g}</b><small>г в тарелке</small></span><span class="step" aria-label="Больше на 10 г">${I('plus')}</span></div>
+  <div class="chips">${['150','200','250','300'].map(x=>`<span class="chip sm ${x===g?'on':''}">${x} г</span>`).join('')}<span class="chip sm ${over?'':''}">Всё · 800 г</span></div>
+  <div class="res"><b>${over?'1 062':Math.round(+g*1.18)} ккал</b><span class="macros"><span><i class="m-p"></i>Б ${over?71:Math.round(+g*0.08)}</span><span><i class="m-f"></i>Ж ${over?59:Math.round(+g*0.066)}</span><span><i class="m-c"></i>У ${over?59:Math.round(+g*0.066)}</span></span></div>
+  ${over?`<span class="t-foot over-note">${I('alert','sm')}<span>Больше, чем осталось (800 г) — запишем 900 г, салат закончится</span></span>`:`<span class="t-foot muted center num">Осталось 800 г → останется <b>${left} г</b></span>`}
+  ${seg('Обед')}<button class="btn btn-primary">Записать в обед</button></div>`;
+const manualReady = `<div><div class="sec-h"><span>Готово дома</span><span>остаток</span></div><div class="group">${readyCell(RS,'800','118 ккал/100 г · сегодня').replace(/<span class="step"[^]*?<\/span><\/div>$/,'</div>')}${readyCell(RP,'1 050','166 ккал/100 г · вчера').replace(/<span class="step"[^]*?<\/span><\/div>$/,'</div>')}</div></div>`+RECENT;
+const saladDish = {n:'Салат с тунцом', g:250, k:295, p:20, f:17, c:17, conf:'ready'};
+BADGE.ready = `<span class="badge rcp">${I('fridge')}из готового</span>`;
+const readyNote = `<div class="foot-note">${I('fridge','sm')}<span>Вес меняет остаток салата: сейчас осталось 550 г. Удалите блюдо — 250 г вернутся.</span></div>`;
+const FR_READY = `<div><div class="sec-h"><span>Готовое</span><span>сверху, пока не съедено</span></div><div class="group">${readyCell(RS,'550','сегодня, 12:10 · 4 порции')}${readyCell(RP,'1 050','вчера · 3 порции')}${readyCell({n:'Борщ',img:'soup-borscht'},'700','4 дня назад',{warn:'Стоит 4 дня — проверьте'})}</div><p class="group-f">Закончилось — строка пропадает сама. Свайп влево — «Выбросить остаток».</p></div>`;
+const readyAct = `<div class="scrim"></div><div class="action-sheet" role="dialog" aria-label="Салат с тунцом, осталось 550 г"><div class="grp"><div class="it">${I('plus','sm')}Записать порцию</div><div class="it">${I('pencil','sm')}Изменить остаток</div><div class="it">${I('chef','sm')}Открыть рецепт</div><div class="it" style="color:var(--color-danger)">${I('trash','sm')}Выбросить остаток</div></div><div class="grp"><div class="it cancel">Отмена</div></div></div>`;
+document.getElementById('ready-row').innerHTML = [
+  frame('8.1','Приготовил → в холодильник','Тот же лист 6.1 плюс переключатель «Готовое — в холодильник» (включён) и вес готового. Дальше — проверка списания продуктов (6.2), если холодильник не пуст; иначе сразу «Готово». То же в конце «Готовлю» (4.2). Готовое без рецепта (купили, приготовили «на глаз») — «+» в холодильнике → «Готовое блюдо»: название, вес, ккал/100 г из истории.', recipe({extra:cookedReady}).replace(/Плов домашний<\/h2>/,'Салат с тунцом</h2>').replace('6 порций по 350 г · готовое 2 100 г · записывали вчера','4 порции по 200 г · готовое 800 г')),
+  frame('8.2','«Сегодня»: Готово дома','Пока в холодильнике есть готовое, на «Сегодня» под «Вручную» — блок «Готово дома»: блюдо, ккал/100 г, когда приготовлено, остаток. Касание строки — лист порции 8.3. Путь: касание → граммы → «Записать в обед» = 2–3 касания. Нет готового — блока нет.', todayScreen({meals:READY_TODAY+mealsGroup(M.bf)})),
+  frame('8.3','Сколько в тарелке','По умолчанию — порция рецепта (200 г) или граммы прошлой записи из этого блюда. Степпер по 10 г, быстрые значения и «Всё». Видно, сколько останется. Приём пищи — по времени. «Записать» сразу пишет в дневник, без экрана правки; тост «Салат с тунцом, 250 г — в обед · Отменить».', todayScreen({meals:READY_TODAY+mealsGroup(M.bf), extra:readySheet()})),
+  frame('8.4','Больше, чем осталось','Не запрещаем (весы врут, добавили ещё): пишем введённые граммы, остаток → 0, блюдо пропадает из «Готово дома». Предупреждение — текстом и значком.', todayScreen({meals:READY_TODAY+mealsGroup(M.bf), extra:readySheet({g:'900', over:true})})),
+  frame('8.5','«Вручную» и экран правки','Готовое — первым блоком в «Вручную» и в «+ Добавить блюдо» (над рецептами): если сфоткали тарелку, салат добавляется туда же. Распознали «салат» и он есть среди готового — подсказка «Из готового: Салат с тунцом» (как «Ваш рецепт», 3.5).', manual('', manualReady)),
+  frame('8.6','В приёме пищи','Блюдо с бейджем «из готового». Изменили вес — остаток пересчитался; удалили блюдо или приём — граммы вернулись. Ккал — снимок по рецепту на момент записи. Офлайн запись работает, остаток уменьшится при синхронизации.', editScreen({title:'Сегодня, 13:05', meal:'Обед', dishes:dish(saladDish), note:readyNote, totalsHtml:totals('295',20,17,17,rthumb(RS))})),
+  frame('8.7','Где видно, что приготовлено','«Кухня → Холодильник»: блок «Готовое» сверху — что есть, сколько осталось, когда приготовлено. Старше 3 дней — пометка текстом (без блокировки). Касание — действия: записать порцию, поправить остаток, выбросить.', kitchen('Холодильник', FR_READY+`<div class="group">${FRIDGE.slice(0,3).map(x=>fcell(x)).join('')}</div>`, {extra:readyAct})),
+].join('');
+
+/* 7 · AI */
+const SENT_R = `<div class="sent">${I('lock')}<span>Провайдеру уйдёт только этот текст — без фото и дневника.</span></div>`;
+const PASTED = `Плов узбекский на 6 порций\nрис девзира 400 г, баранина 500 г, морковь 3 шт, лук 2 шт, масло 1/4 стакана, чеснок 1 головка, зира, соль по вкусу.\nМясо обжарить в казане до корочки, добавить лук и морковь…`;
+const pasteScreen = ({banner='', busy=false, bottom=null}={}) => `${nav('Рецепт из текста', `<span class="txt-btn">Отмена</span>`)}<div class="content" style="padding-bottom:var(--space-4)"><div class="pad stack">${banner}<div class="field"><label>Текст рецепта</label><div class="textarea ${busy?'':'focus'}">${PASTED}</div><span class="t-foot muted num" style="display:flex;justify-content:space-between"><span>Ссылки не открываем — вставьте сам текст</span><span style="white-space:nowrap">312 / 10 000</span></span></div>${SENT_R}${busy?`<div class="gen-progress" role="status" style="display:flex;gap:var(--space-2);align-items:center"><span class="spinner"></span>Разбираем рецепт…</div>`:''}</div></div>${bottom ?? `<div class="bottom bar"><button class="btn btn-primary ${busy?'disabled':''}">${I('spark','sm')}Разобрать</button></div>`}`;
+const aiBanner = `<div class="banner accent" role="status">${I('spark')}<div><div class="b-title">Черновик от ИИ</div>Граммы — оценка, проверьте. Ккал считает приложение по ингредиентам.</div></div>`;
+const aiIngs = [
+  edIng('Рис девзира','400','1 440 ккал',{badge:BADGE.est}),
+  edIng('Баранина','500','1 045 ккал',{badge:BADGE.est}),
+  edIng('Морковь · 3 шт','300','105 ккал',{badge:BADGE.est}),
+  edIng('Масло · ¼ стакана','55','495 ккал',{badge:BADGE.est}),
+  edIng('Зира','0','—',{flag:'flag', why:'«по вкусу» — не смогли оценить, впишите или оставьте 0 г'}),
+].join('');
+const lightScreen = `${repNav('Сделать легче', back('Рецепт'))}<div class="content" style="padding-bottom:var(--space-4)"><div class="pad stack">
+  <span class="t-sub muted">Сейчас <b class="num">581 ккал</b> на порцию. Исходный рецепт не изменится, пока вы не нажмёте «Применить».</span>
+  <section class="ai-card"><span class="var-n">Вариант 1 из 3</span><div class="ba"><span class="was">581</span>${I('arrow-right','sm')}<b>412 ккал</b><span class="delta">−169 на порцию</span></div>
+  <ul class="chg"><li><b>Свинина 500 г → куриное бедро без кожи 500 г</b><span>Вдвое меньше жира, плов остаётся мясным</span></li><li><b>Масло 50 → 20 г</b><span>Казан с толстым дном, обжаривайте под крышкой</span></li><li><b>Морковь 400 → 500 г</b><span>Объём тот же, ккал меньше</span></li></ul>
+  <div class="btn-row"><button class="btn btn-primary btn-sm">Сохранить как новый</button><button class="btn btn-plain btn-sm" style="width:auto">Применить к этому</button></div></section>
+  <section class="ai-card"><span class="var-n">Вариант 2 из 3</span><div class="ba"><span class="was">581</span>${I('arrow-right','sm')}<b>506 ккал</b><span class="delta">−75 на порцию</span></div><ul class="chg"><li><b>Рис 400 → 300 г, нут 100 г</b><span>Больше белка и клетчатки</span></li></ul></section>
+  <p class="t-foot muted">${I('lock','sm')} Провайдеру ушёл только состав рецепта. Ккал «стало» пересчитаны приложением.</p></div></div>`;
+const inventForm = `${repNav('Придумать', back('Кухня'))}<div class="content" style="padding-bottom:var(--space-4)"><div class="pad stack">
+  <div class="r-title"><h2>Что приготовить из того, что есть</h2><span class="t-sub muted">ИИ предложит до 3 рецептов. Сохраните понравившийся — он станет черновиком.</span></div>
+  <div><div class="sec-h"><span>Из холодильника · 10 продуктов</span><span class="link">Изменить</span></div><div class="chips">${['Рис 1 200 г','Свинина 350 г','Морковь 1 кг','Лук 6 шт','Курица 800 г','Яйца 10 шт','Молоко 1 л','Помидоры 4 шт','…ещё 2'].map(x=>`<span class="chip sm">${x}</span>`).join('')}</div></div>
+  <div class="field"><label>Пожелание <span class="muted">— необязательно</span></label><div class="textarea sm focus">на ужин, до 500 ккал на порцию</div></div>
+  <div class="sent">${I('lock')}<span>Провайдеру уйдут названия и количество продуктов и пожелание. Без фото и дневника.</span></div></div></div><div class="bottom bar"><button class="btn btn-primary">${I('spark','sm')}Придумать</button></div>`;
+const idea = (name, meta, fit, chips, open=false) => `<section class="ai-card"><div class="stack-sm"><span class="t-headline">${name}</span><span class="t-sub muted num">${meta}</span>${fit}</div><div class="chips">${chips}</div>${open?`<div class="btn-row"><button class="btn btn-primary btn-sm">Сохранить черновик</button><button class="btn btn-plain btn-sm" style="width:auto">Шаги</button></div>`:`<button class="btn btn-tonal btn-sm">Сохранить черновик</button>`}</section>`;
+const chipF = x => `<span class="chip sm">${I('fridge','sm')}${x}</span>`;
+const chipM = x => `<span class="chip sm miss" aria-label="${x}: нет дома">${x} · нет дома</span>`;
+const inventRes = `${repNav('Придумать', back('Кухня'))}<div class="content" style="padding-bottom:var(--space-4)"><div class="pad stack">
+  <span class="t-sub muted">«на ужин, до 500 ккал на порцию»</span>
+  ${idea('Курица с рисом и овощами в духовке','4 порции · 438 ккал на порцию',`<span class="fit ok">${I('check')}В пределах 500 ккал</span>`, chipF('Курица 600 г')+chipF('Рис 200 г')+chipF('Морковь 200 г')+chipF('Помидоры 2 шт'), true)}
+  ${idea('Омлет с помидорами','2 порции · 310 ккал на порцию',`<span class="fit ok">${I('check')}В пределах 500 ккал</span>`, chipF('Яйца 4 шт')+chipF('Молоко 100 мл')+chipF('Помидоры 2 шт'))}
+  ${idea('Свинина в сливочном соусе','3 порции · 620 ккал на порцию',`<span class="fit over">${I('alert')}Больше 500 ккал — на 120</span>`, chipF('Свинина 350 г')+chipF('Лук 1 шт')+chipM('Сливки 20%'))}
+  <button class="btn btn-plain">${I('refresh','sm')}Придумать ещё</button></div></div>`;
+const aiErr = `<div class="banner danger" role="status">${I('alert')}<div><div class="b-title">Не получилось разобрать</div>Провайдер не ответил. Текст на месте — повторите или заполните вручную.</div></div>`;
+document.getElementById('ai-row').innerHTML = [
+  frame('7.1','Вставить текст рецепта','AC-6.3. Только с ИИ (без ИИ пункта нет в «+»). Ссылки не открываем — пользователь вставляет текст. Что уйдёт провайдеру — одной строкой. Лимит 10 000 символов виден счётчиком (AC-6.5). Во время разбора — «Разбираем рецепт…», текст не теряется.', pasteScreen()),
+  frame('7.2','Черновик','Обычный редактор (2.3) с плашкой «Черновик от ИИ». У каждого ингредиента — «оценка». «по вкусу», «щепотка» — 0 г с подсветкой и причиной (AC-6.4); сохранить с 0 г можно. Ккал считает код, не модель (AC-2.5).', editor({title:'Новый рецепт', name:'Плов узбекский', banner:aiBanner, ings:aiIngs, totals:['597','170','3 585']})),
+  frame('7.3','Сделать легче','AC-9.1, 9.3: 1–3 варианта карточками. Было → стало на порцию и разница — числа пересчитаны кодом. Каждое изменение — строкой с объяснением. «Сохранить как новый» (имя «Плов домашний — лёгкий») — основное; «Применить к этому» — вторично, исходник по умолчанию не трогаем.', lightScreen),
+  frame('7.4','Придумать из того, что есть','AC-9.2, 9.4: какие продукты уйдут — чипами (можно убрать лишнее), пожелание — необязательно. Пустой холодильник — кнопка неактивна с подписью «Добавьте продукты» (AC-9.5).', inventForm),
+  frame('7.5','Варианты','До 3 рецептов: ккал на порцию считает код и честно сверяет с пожеланием — не укладывается, так и пишем (AC-9.3). Продукты из холодильника — со значком, недостающие — «нет дома» (текстом, не только цветом). «Сохранить черновик» → редактор.', inventRes),
+  frame('7.6','Ошибка ИИ','E-10.6: баннер с причиной, введённый текст на месте, два выхода — «Повторить» и «Заполнить вручную» (открывает пустой редактор, текст остаётся в заметке рецепта). То же для «Сделать легче», «Придумать» и списка продуктов.', pasteScreen({banner:aiErr, bottom:`<div class="bottom bar"><button class="btn btn-primary">${I('refresh','sm')}Повторить</button><button class="btn btn-plain">Заполнить вручную</button></div>`})),
+].join('');
+
+/* D · desktop */
+const sideK = on => `<aside class="side"><div class="brand"><span class="mark">${I('plate','sm')}</span>OpenCalorieTracker</div><button class="btn btn-primary">${I('camera','sm')}Добавить еду</button>${[['home','Сегодня'],['book','Дневник'],['chart','Неделя'],['chef','Кухня'],['user','Профиль']].map(([ic,l])=>`<span class="nav-i ${l===on?'on':''}">${I(ic)}${l}</span>`).join('')}<div class="foot"><span class="nav-i">${I('settings')}Настройки</span></div></aside>`;
+
+/* 9 · Modules on/off */
+const sw = (on) => `<span class="switch ${on?'on':''}" role="switch" aria-checked="${on}"></span>`;
+const mcell = (ic, t, sub, on) => `<div class="cell ic"><span class="lead-ic">${I(ic,'sm')}</span><span class="main"><span>${t}</span><span class="sub">${sub}</span></span>${sw(on)}</div>`;
+const settingsScr = (rec=true, fr=true, rep=true) => `${repNav('Настройки', back('Профиль'))}<div class="content"><div class="pad stack">
+  <div class="group"><div class="cell ic" role="button"><span class="lead-ic">${I('spark','sm')}</span><span class="main"><span>ИИ-провайдер</span></span><span class="val">настроен</span>${CH}</div></div>
+  <div><div class="sec-h"><span>Разделы</span></div><div class="group">${mcell('chef','Рецепты','порция из рецепта, «Приготовил»',rec)}${mcell('fridge','Холодильник','продукты, готовое, «Можно приготовить»',fr)}${mcell('report','Отчёты за период','неделя или месяц, картинка для врача',rep)}</div>
+  <p class="group-f">Выключенный раздел пропадает из меню и подсказок. Данные остаются: включите снова — всё на месте.</p></div></div></div>${tabbar('Профиль')}`;
+const profileOff = `<div class="large-title">Профиль</div><div class="content"><div class="pad stack">
+  <section class="card"><div class="sum-line"><span class="t-headline">Норма</span><span class="avg-note">${I('target','sm')}</span></div><div class="big"><span class="display sm num">2 100</span><span class="unit">ккал в день</span></div><span class="t-foot muted num">Б 120 · Ж 70 · У 240 г — как в OCT-22</span></section>
+  <div class="group"><div class="cell ic" role="button"><span class="lead-ic">${I('settings','sm')}</span><span class="main"><span>Настройки</span><span class="sub">Рецепты, холодильник, отчёты — включаются здесь</span></span>${CH}</div></div></div></div>${tabbar('Профиль')}`;
+document.getElementById('modules-row').innerHTML = [
+  frame('9.1','Настройки → «Разделы»','Три переключателя, по умолчанию включены: новый пользователь видит, что умеет приложение. Касание переключателя — сразу применяется, без «Сохранить». Офлайн переключатели недоступны, причина — в полосе OCT-25, как в 5.4.', settingsScr()),
+  frame('9.2','Всё выключено','«Кухни» и «Моих отчётов» в «Профиле» нет; на десктопе нет пункта «Кухня» в боковой панели. В подписи «Настроек» — где включить обратно, чтобы раздел не потерялся.', profileOff),
+  frame('9.3','Выключены «Рецепты»','«Вручную» — как до OCT-160: только поле названия, без «Мои рецепты»; распознавание не предлагает «Ваш рецепт». В «Кухне» — только холодильник, без сегмента и без «Приготовил»; готовое добавляется «+» → «Готовое блюдо». Выключен «Холодильник» — нет фильтра «Можно приготовить», списания, переключателя «Готовое — в холодильник» и блока «Готово дома». Выключены оба — нет «Кухни».', manual('', '<p class="group-f">Введите название блюда — подскажем из записанного раньше.</p>')),
+].join('');
+document.getElementById('desk-row').innerHTML = `<figure class="frame wide"><div class="desk"><div class="chrome"><i></i><i></i><i></i><span class="url">calories.home.lan/kitchen/recipes/plov</span></div><div class="body">${sideK('Кухня')}<main class="main-area"><div class="inner">
+<div class="desk-title"><div><span class="link t-sub">‹ Кухня</span><div class="large-title" style="padding:0">Плов домашний<span class="date">6 порций по 350 г · готовое 2 100 г · записывали вчера</span></div></div><div class="btn-row"><button class="btn btn-tonal btn-sm" style="width:auto">${I('pkg','sm')}Приготовил</button><button class="btn btn-tonal btn-sm" style="width:auto">${I('feather','sm')}Сделать легче</button><button class="btn btn-plain btn-sm" style="width:auto">${I('pencil','sm')}Изменить</button></div></div>
+<div class="kcols"><div class="stack"><div class="hero">${PHOTO}</div>${NUT}<button class="btn btn-primary">${I('plus','sm')}Записать порцию</button><button class="btn btn-tonal">${I('play','sm')}Готовлю</button></div>
+<div><div class="sec-h"><span>Ингредиенты · 8</span><span class="num">3 487 ккал</span></div><div class="group">${ING.map(ingRow).join('')}</div></div>
+<div><div class="sec-h"><span>Шаги · 6</span></div>${card(stepsList(4))}</div></div></div></main></div></div><figcaption><b>D.1 Десктоп.</b> «Кухня» — пункт боковой панели между «Неделей» и «Профилем» (1 клик). Список рецептов и холодильник — те же экраны в колонке <code>--content-max-width-wide</code>. Рецепт — страница в три колонки: фото, ценность и главные действия · ингредиенты · шаги. Действия из «⋯» на телефоне здесь — кнопками в шапке. Листы (порция, ингредиент, продукт, «Приготовил») — центрированные диалоги <code>--dialog-max-width</code>; редактор — та же раскладка на месте карточки; «Готовлю» — на всю основную область, ←/→ листают шаги, Esc — выход.</figcaption></figure>`;
+
+document.querySelectorAll('.phone').forEach(p=>{p.insertAdjacentHTML('afterbegin','<div class="status"><span>9:41</span></div><div class="island"></div>');p.insertAdjacentHTML('beforeend','<div class="home-ind"></div>');});
+fetch('../oct-33/sprite.svg').then(r=>r.text()).then(s=>{document.getElementById('sprite').innerHTML=s;});
+const only = new URLSearchParams(location.search).get('section');
+if(only) document.querySelectorAll('.doc-section').forEach(s=>{ if(s.id!==only) s.remove(); });
+if(only) document.querySelectorAll('.doc-h1,.doc-lead').forEach(e=>e.remove());
+
+</script>
+<script src="oct352.js"></script>
+</body>
+</html>

@@ -1,0 +1,56 @@
+/* OCT-352 additions on top of OCT-160 components. Tokens only (../oct-13/tokens.css). */
+.lang-bar{display:inline-flex;margin-left:var(--space-4)}
+.doc-note{max-width:70ch;font-size:var(--text-subhead-size);line-height:var(--text-subhead-lh);color:var(--color-text-secondary);margin-top:var(--space-2)}
+.doc-note b{color:var(--color-text)}
+.phone.tall{height:auto;min-height:844px}
+
+/* editor: mode switch + per-100 g fields */
+.mode-seg{margin-top:var(--space-1)}
+.f-head{display:flex;justify-content:space-between;align-items:baseline;gap:var(--space-2)}
+.f-head .req{font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.f3{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-3)}
+.f3 .field label{font-size:var(--text-footnote-size)}
+.input.num .val{font-variant-numeric:tabular-nums}
+.input .unit{color:var(--color-text-secondary);font-size:var(--text-subhead-size)}
+.field .msg .icon{flex:none;margin-top:1px}
+.pv-card{gap:var(--space-2)}
+.pv-card .big .display.sm{font-size:var(--text-title-size);line-height:var(--text-title-lh)}
+.empty-ing{display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-4);background:var(--color-surface);border-radius:var(--radius-md);font-size:var(--text-subhead-size);color:var(--color-text-secondary)}
+.empty-ing b{color:var(--color-text);font-weight:600}
+
+/* recipe card without ingredients */
+.invite.off{background:var(--color-surface-2);color:var(--color-text-secondary)}
+.invite.off .icon{color:var(--color-text-secondary)}
+.invite.off .t-foot{color:var(--color-text-secondary)}
+.nocomp{display:flex;gap:var(--space-3);align-items:flex-start;padding:var(--space-4);border-radius:var(--radius-lg);background:var(--color-surface);font-size:var(--text-subhead-size);line-height:var(--text-subhead-lh)}
+.nocomp .icon{color:var(--color-text-secondary);margin-top:2px}
+.nocomp .go{display:inline-flex;align-items:center;min-height:var(--tap-min);color:var(--color-accent);font-weight:600}
+.badge.nc{background:var(--color-surface-2);color:var(--color-text-secondary)}
+
+/* AI question: recipe options (product OCT-232 §10 + OCT-258) */
+.ask{display:flex;flex-direction:column;gap:var(--space-2);padding-top:var(--space-1)}
+.ask-q{display:flex;align-items:center;gap:var(--space-1);font-size:var(--text-subhead-size);line-height:var(--text-subhead-lh);font-weight:600}
+.ask-q .icon{color:var(--color-accent)}
+.ask-l{color:var(--color-text-secondary);font-weight:400}
+.ask .chips{display:flex;flex-wrap:wrap;gap:var(--space-2)}
+.ask .chip{position:relative;display:inline-flex;align-items:center;gap:var(--space-1);min-height:var(--tap-min);padding:var(--space-1) var(--space-3);border-radius:var(--radius-lg);border:0;background:var(--color-surface-2);color:var(--color-text);font-size:var(--text-subhead-size);line-height:var(--text-subhead-lh)}
+.ask .chip .icon{width:var(--icon-size-sm);height:var(--icon-size-sm);flex:none}
+.ask .chip.on{background:var(--color-accent-soft);color:var(--color-accent);font-weight:600;box-shadow:inset 0 0 0 1px var(--color-accent)}
+.ask .chip.other{background:transparent;color:var(--color-accent);box-shadow:inset 0 0 0 1px var(--color-border-strong)}
+.ask .chip.rec{flex-direction:row}
+.ask .chip .cap{display:flex;flex-direction:column}
+.ask .chip .cap small{font-size:var(--text-footnote-size);font-weight:400;color:var(--color-text-secondary)}
+.ask .chip.on .cap small{color:var(--color-accent)}
+.dish .was{font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.undo{display:flex;align-items:center;gap:var(--space-2);min-height:var(--tap-min);padding:0 var(--space-1) 0 var(--space-3);border-radius:var(--radius-md);background:var(--color-notice);font-size:var(--text-subhead-size)}
+.undo .icon{color:var(--color-accent)}
+.undo .ut{flex:1;min-width:0;display:flex;flex-direction:column;padding:var(--space-2) 0}
+.undo .ut b{font-weight:600}
+.undo .us{font-size:var(--text-footnote-size);color:var(--color-text-secondary)}
+.undo .act{color:var(--color-accent);font-weight:600;min-height:var(--tap-min);display:flex;align-items:center;padding:0 var(--space-3)}
+.delta{font-size:var(--text-footnote-size);font-weight:600;color:var(--color-accent)}
+
+.stack-sm>.msg{display:flex;gap:var(--space-1);align-items:flex-start;font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);color:var(--color-text-secondary)}
+.stack-sm>.msg.err{color:var(--color-danger)}
+.ask .chip.rec:not(.on) .icon{color:var(--color-accent)}
+.desk-title .btn-row{align-items:center}
