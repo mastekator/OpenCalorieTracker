@@ -12,6 +12,9 @@ import { fromPer100, type Nutrients } from '../nutrition.js';
 /** Cooked weight that differs from the raw one this many times or more gets a warning (E-10.2). */
 export const WEIGHT_WARNING_RATIO = 3;
 
+/** Largest cooked weight of a recipe, grams (E-10.1). */
+export const COOKED_G_MAX = 50000;
+
 const photoId = z.string().min(1).nullable();
 
 /** A blank macro of a recipe without ingredients counts as 0 (ADR-0035 §2). */
@@ -30,7 +33,7 @@ export const recipeInputSchema = z
   .object({
     name: z.string().trim().min(1).max(80),
     /** Null: totals per 100 g use the raw weight (AC-2.3). */
-    cookedG: z.number().min(1).max(50000).refine(oneDecimal).nullable(),
+    cookedG: z.number().min(1).max(COOKED_G_MAX).refine(oneDecimal).nullable(),
     /** Null: the recipe is logged in grams only (AC-2.4). */
     servings: z.number().int().min(1).max(100).nullable(),
     note: z.string().trim().max(2000).nullable(),

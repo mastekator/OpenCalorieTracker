@@ -2,6 +2,7 @@ import { useState, type MouseEvent } from 'react';
 import { Clock, Minus, Plus } from 'lucide-react';
 import {
   DISH_GRAMS,
+  mealItemInputSchema,
   mealTypeAt,
   recipePortion,
   servingG,
@@ -42,13 +43,14 @@ export function todayAt(time: string, now: Date) {
   return at > now ? now : at;
 }
 
-/** ±½ serving from `grams`: to the next half on the way, within 1–5000 g. */
+/** ±½ serving from `grams`: to the next half on the way, at most 5000 g but never under half a serving. */
 export function stepServings(grams: number, serving: number, dir: 1 | -1) {
   // Grams are whole, so a typed weight is rarely an exact half: round off the noise first.
   const halves = Math.round((grams / serving) * 200) / 100;
   const next = (dir > 0 ? Math.floor(halves) + 1 : Math.ceil(halves) - 1) / 2;
   const max = Math.floor((DISH_GRAMS.max / serving) * 2) / 2;
-  return Math.round(Math.min(max, Math.max(0.5, next)) * serving);
+  // Half a serving is the floor even past the max: a serving over 5000 g must not step to 0 g.
+  return Math.round(Math.max(0.5, Math.min(max, next)) * serving);
 }
 
 type Props = {
@@ -97,6 +99,8 @@ export function PortionSheet({
   );
 
   const item = grams === null ? null : recipePortion(recipe, grams);
+  // The exact dish the outbox gets: past the meal limits it would be refused with 400.
+  const valid = !!item && mealItemInputSchema.safeParse(item).success;
   // Rounded as shown, so the plural form matches the number: «1 serving», not «1 servings».
   const servings =
     serving && grams !== null ? Math.round((grams / serving) * 10) / 10 : null;
@@ -115,8 +119,9 @@ export function PortionSheet({
       onClose={onClose}
       footer={
         <Button
-          disabled={!item}
+          disabled={!valid}
           onClick={() =>
+            valid &&
             item &&
             onAdd(
               item,

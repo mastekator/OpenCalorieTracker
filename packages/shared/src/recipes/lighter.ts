@@ -1,6 +1,11 @@
 import { z } from 'zod';
 import { fromPer100, scaleItem, type Nutrients } from '../nutrition.js';
-import { per100, recipeTotals, type RecipeInput } from './recipes.js';
+import {
+  COOKED_G_MAX,
+  per100,
+  recipeTotals,
+  type RecipeInput,
+} from './recipes.js';
 
 export const lighterChangeSchema = z.enum([
   'same',
@@ -158,9 +163,12 @@ export function lightened<T extends Calc>(
   const cookedG =
     r.cookedG === null || rawG === 0
       ? null
-      : Math.max(
-          1,
-          round1((r.cookedG * recipeTotals(v.ingredients).rawG) / rawG),
+      : Math.min(
+          COOKED_G_MAX,
+          Math.max(
+            1,
+            round1((r.cookedG * recipeTotals(v.ingredients).rawG) / rawG),
+          ),
         );
   return { ...r, cookedG, ingredients: v.ingredients };
 }

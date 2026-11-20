@@ -63,6 +63,9 @@ describe('stepServings', () => {
   it('stays within ½ serving and 5000 g', () => {
     expect(stepServings(175, 350, -1)).toBe(175);
     expect(stepServings(4900, 350, 1)).toBe(4900);
+    // A serving over 5000 g: half of it, never 0 g.
+    expect(stepServings(6000, 6000, 1)).toBe(3000);
+    expect(stepServings(6000, 6000, -1)).toBe(3000);
   });
 });
 
@@ -160,6 +163,40 @@ describe('PortionSheet', () => {
     expect(screen.queryByRole('radiogroup')).toBeNull();
     expect((screen.getByRole('textbox') as HTMLInputElement).value).toBe('100');
     expect(total()).toMatch(/^160.kcal/);
+  });
+
+  it('cannot add a portion past the meal limits: over 5000 g or 10000 kcal', async () => {
+    // 12000 g yield on 2 servings: one serving is 6000 g.
+    const { onAdd, result } = open({
+      recipe: { ...PILAF, cookedG: 12000, servings: 2 },
+    });
+    await result;
+    const add = screen.getByRole('button', { name: 'Add' });
+    expect(add).toHaveProperty('disabled', true);
+    fireEvent.click(add);
+    expect(onAdd).not.toHaveBeenCalled();
+    // The stepper goes down to half a serving, which fits.
+    fireEvent.pointerDown(
+      screen.getByRole('button', { name: 'Half a serving more' }),
+    );
+    fireEvent.pointerUp(
+      screen.getByRole('button', { name: 'Half a serving more' }),
+    );
+    expect(total()).toMatch(/· 3,000.g$/);
+    expect(add).toHaveProperty('disabled', false);
+    cleanup();
+    // 400 kcal / 100 g × 3000 g = 12000 kcal.
+    await open({
+      recipe: {
+        ...CHEESECAKE,
+        per100: { kcal: 400, proteinG: 9, fatG: 8, carbsG: 13 },
+        servingG: 3000,
+      },
+    }).result;
+    expect(screen.getByRole('button', { name: 'Add' })).toHaveProperty(
+      'disabled',
+      true,
+    );
   });
 
   it('from the card: meal by the hour and time, «Log to dinner»', async () => {
