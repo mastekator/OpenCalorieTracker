@@ -122,9 +122,12 @@ export function LighterView({
       cookedG: l.cookedG,
       servings: recipe.servings,
       note: recipe.note,
-      photoId: recipe.photoId,
+      // A copy can't reuse the original's photos: the server rejects a photo owned by another recipe.
+      photoId: apply ? recipe.photoId : null,
       ingredients: l.ingredients,
-      steps: recipe.steps,
+      steps: apply
+        ? recipe.steps
+        : recipe.steps.map((s) => ({ ...s, photoId: null })),
       per100: null,
       servingG: null,
     };

@@ -95,7 +95,12 @@ describe('LighterView', () => {
     expect(id).toBeUndefined();
     expect(input.name).toBe('Homemade pilaf — light');
     expect(input.ingredients).toEqual(PILAF_LIGHTER.variants[0]!.ingredients);
-    expect(input.steps).toEqual(PILAF.steps);
+    // The copy goes without the original's photos, the step texts stay.
+    expect(PILAF.photoId).not.toBeNull();
+    expect(input.photoId).toBeNull();
+    expect(input.steps).toEqual(
+      PILAF.steps.map((s) => ({ ...s, photoId: null })),
+    );
     expect(input.servings).toBe(6);
     // The cooked weight follows the raw one: 1 600 → 1 570 g raw.
     expect(input.cookedG).toBe(2060.6);
@@ -111,6 +116,8 @@ describe('LighterView', () => {
     expect(id).toBe(PILAF.id);
     expect(input.name).toBe(PILAF.name);
     expect(input.ingredients).toEqual(PILAF_LIGHTER.variants[1]!.ingredients);
+    expect(input.photoId).toBe(PILAF.photoId);
+    expect(input.steps).toEqual(PILAF.steps);
   });
 
   it('a failed save: a toast, the variants stay', async () => {
