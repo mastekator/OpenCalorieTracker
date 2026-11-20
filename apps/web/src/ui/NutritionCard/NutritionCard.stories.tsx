@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { PILAF, SALAD } from '../../features/kitchen/fixtures';
+import { CHEESECAKE, PILAF, SALAD } from '../../features/kitchen/fixtures';
 import { NutritionCard } from './NutritionCard';
 
 const meta = {
@@ -26,3 +26,7 @@ export const WholeDark: Story = { ...Whole, globals: dark };
 /** No servings: 100 g by default, the segment has no Serving. */
 export const NoServings: Story = { args: SALAD };
 export const NoServingsDark: Story = { args: SALAD, globals: dark };
+
+/** OCT-352 2.1: no ingredients — Serving / 100 g, no Whole. */
+export const NoIngredients: Story = { args: CHEESECAKE };
+export const NoIngredientsDark: Story = { args: CHEESECAKE, globals: dark };

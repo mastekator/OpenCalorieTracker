@@ -131,7 +131,7 @@ export function Per100Fields({
                     aria-hidden="true"
                   />
                   {t(`recipe.nut.${k}`, {
-                    g: `${num(v)} ${t('macro.g')}`,
+                    g: `${num(v)}\u00a0${t('macro.g')}`,
                   })}
                 </span>
               ))}

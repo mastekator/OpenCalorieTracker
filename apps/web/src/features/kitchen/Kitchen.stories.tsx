@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { fireEvent, within } from 'storybook/test';
 import { KitchenView } from './KitchenScreen';
-import { MEALS, RECIPES } from './fixtures';
+import { CHEESECAKE, MEALS, RECIPES } from './fixtures';
 
 const meta = {
   title: 'Screens/Kitchen/KitchenScreen',
@@ -57,3 +57,12 @@ const pickMeal: Story = {
 export const PickMeal: Story = pickMeal;
 export const PickMealDark: Story = { ...pickMeal, globals: dark };
 export const PickMealDesktop: Story = { ...pickMeal, globals: desktop };
+
+/** OCT-352 2.2: a recipe without ingredients is marked «no ingredients». */
+export const WithoutIngredients: Story = {
+  args: { recipes: [CHEESECAKE, ...RECIPES] },
+};
+export const WithoutIngredientsDark: Story = {
+  args: { recipes: [CHEESECAKE, ...RECIPES] },
+  globals: dark,
+};

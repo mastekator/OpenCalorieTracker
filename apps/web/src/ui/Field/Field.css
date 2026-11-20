@@ -1,5 +1,7 @@
 .field {
   display: grid;
+  /* Never wider than the parent: the input's intrinsic width would stretch an auto column. */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-2);
 }
 
