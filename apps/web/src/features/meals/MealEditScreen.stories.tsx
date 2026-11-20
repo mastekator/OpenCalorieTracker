@@ -597,8 +597,31 @@ const recipeAnswered: Story = {
 };
 export const RecipeAnswered: Story = recipeAnswered;
 export const RecipeAnsweredDark: Story = { ...recipeAnswered, globals: dark };
+const k7 = QUESTION_CASES.k7;
+const [mine, regular] = k7.questions[0]!.options;
 export const RecipeAnsweredRu: Story = {
-  ...recipeAnswered,
+  args: {
+    ...recipeQuestion,
+    dishes: [{ ...k7.dishes[0]!, name: 'Чизкейк' }],
+    questions: [
+      {
+        ...k7.questions[0]!,
+        text: 'Это ваш рецепт?',
+        options: [
+          {
+            ...mine!,
+            label: 'Мой чизкейк',
+            name: 'Мой чизкейк',
+            recipe: 'Мой чизкейк',
+          },
+          { ...regular!, label: 'Обычный чизкейк', name: 'Чизкейк' },
+        ],
+      },
+    ],
+    recipes: [{ ...CHEESECAKE, name: 'Мой чизкейк' }],
+  },
+  play: async ({ canvas, userEvent }) =>
+    userEvent.click(await canvas.findByRole('radio', { name: /Мой чизкейк/ })),
   globals: { locale: 'ru' },
 };
 export const RecipeAnsweredDesktop: Story = {
