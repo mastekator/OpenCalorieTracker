@@ -16,7 +16,7 @@ import type { AppDeps } from '../app.js';
 import { requireUser, type AuthEnv } from '../auth/session.js';
 import { ApiError } from '../http/errors.js';
 import { validate } from '../http/validate.js';
-import { photoPath, type PhotoSize } from '../photos/store.js';
+import { photoPath, photoTaken, type PhotoSize } from '../photos/store.js';
 import { bumpRev } from '../sync/rev.js';
 import { CHOICE_JOIN, resolveIllustration } from '../illustrations/routes.js';
 import { readMeal, type MealRow } from './read.js';
@@ -158,15 +158,7 @@ export function mealRoutes({ config, db, ai }: AppDeps) {
   ) => {
     const preview = photoPath(config.dataDir, userId, photoId, 'preview');
     if (!preview || !existsSync(preview)) throw new ApiError(404, 'not_found');
-    if (
-      mealHasPhoto ||
-      db
-        .prepare(
-          `SELECT 1 FROM meals WHERE photo_id = @p UNION ALL SELECT 1 FROM recipes WHERE photo_id = @p
-           UNION ALL SELECT 1 FROM recipe_steps WHERE photo_id = @p`,
-        )
-        .get({ p: photoId })
-    )
+    if (mealHasPhoto || photoTaken(db, photoId, null))
       throw new ApiError(409, 'photo_in_use');
     const days = db
       .prepare('SELECT photo_retention_days FROM users WHERE id = ?')

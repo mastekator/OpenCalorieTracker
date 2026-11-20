@@ -11,7 +11,7 @@ import type { AppDeps } from '../app.js';
 import { requireUser, type AuthEnv } from '../auth/session.js';
 import { ApiError } from '../http/errors.js';
 import { validate } from '../http/validate.js';
-import { photoPath } from '../photos/store.js';
+import { photoPath, photoTaken } from '../photos/store.js';
 import { bumpRev } from '../sync/rev.js';
 import { readRecipe } from './read.js';
 
@@ -35,13 +35,6 @@ export function recipeRoutes({ config, db }: AppDeps) {
       .pluck()
       .all(recipeId, recipeId) as string[];
 
-  // A photo already owned by a meal, another recipe or another recipe's step.
-  const taken = db.prepare(
-    `SELECT 1 FROM meals WHERE photo_id = @p
-     UNION ALL SELECT 1 FROM recipes WHERE photo_id = @p AND id IS NOT @r
-     UNION ALL SELECT 1 FROM recipe_steps WHERE photo_id = @p AND recipe_id IS NOT @r`,
-  );
-
   /** Each photo must be the user's upload, used once in the input and free of other owners. */
   const checkPhotos = (
     userId: number,
@@ -60,7 +53,7 @@ export function recipeRoutes({ config, db }: AppDeps) {
         seen.has(id) ||
         !preview ||
         !existsSync(preview) ||
-        taken.get({ p: id, r: recipeId })
+        photoTaken(db, id, recipeId)
       )
         throw new ApiError(400, 'validation_failed', [
           { path, code: 'custom' },
