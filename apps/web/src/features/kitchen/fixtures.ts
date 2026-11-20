@@ -71,6 +71,22 @@ export const SALAD: Recipe = {
   updatedAt: '2026-11-12T10:00:00.000Z',
 };
 
+/** A recipe without ingredients (OCT-352): 160 kcal/100 g, a 150 g serving → 240 kcal. */
+export const CHEESECAKE: Recipe = {
+  id: 3,
+  name: 'My cheesecake',
+  cookedG: null,
+  servings: null,
+  note: null,
+  photoId: null,
+  ingredients: [],
+  steps: [],
+  per100: { kcal: 160, proteinG: 9, fatG: 8, carbsG: 13 },
+  servingG: 150,
+  lastLoggedAt: null,
+  updatedAt: '2026-11-20T10:00:00.000Z',
+};
+
 export const RECIPES: Recipe[] = [
   PILAF,
   {

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Ellipsis, Feather, Play } from 'lucide-react';
+import { BookOpen, Ellipsis, Feather, Play, Plus } from 'lucide-react';
 import { Link, Redirect, useLocation } from 'wouter';
 import {
   matchIllustration,
@@ -32,6 +32,7 @@ import { useToday } from '../diary/useToday';
 import { useWeightFormat } from '../weight/format';
 import { useWeight } from '../../ui/weightUnits';
 import { logPortion } from './portion';
+import type { RecipeEditorState } from './RecipeEditor';
 import { useUnits } from './units';
 import './RecipeScreen.css';
 
@@ -140,6 +141,9 @@ export function RecipeView({
         g: w.fmt(serving),
         u,
       }),
+    recipe.per100 &&
+      serving !== null &&
+      t('recipe.serving', { g: w.fmt(serving), u }),
     recipe.cookedG !== null &&
       t('recipe.cooked', { w: w.fmt(recipe.cookedG), u }),
     recipe.lastLoggedAt &&
@@ -204,10 +208,16 @@ export function RecipeView({
         {lighter && (
           <div className="recipe__lighter">
             <List>
+              {/* AC-1.6: nothing to swap without ingredients; the reason is in the row, no tooltip on a phone. */}
               <ListRow
                 icon={<Feather aria-hidden="true" />}
-                description={t('lighter.sub')}
-                href={`/kitchen/${recipe.id}/lighter`}
+                description={
+                  recipe.per100 ? t('lighter.no_ingredients') : t('lighter.sub')
+                }
+                disabled={!!recipe.per100}
+                href={
+                  recipe.per100 ? undefined : `/kitchen/${recipe.id}/lighter`
+                }
               >
                 {t('lighter.title')}
               </ListRow>
@@ -215,30 +225,57 @@ export function RecipeView({
           </div>
         )}
         <div className="recipe__ingredients">
-          <List
-            title={
-              <span className="recipe__group">
-                <span>
-                  {t('recipe.ingredients', { n: recipe.ingredients.length })}
-                </span>
-                <span>{t('meal.kcal', { n: num(totalKcal) })}</span>
-              </span>
-            }
-          >
-            {recipe.ingredients.map((i, n) => (
+          {recipe.per100 ? (
+            <List>
               <ListRow
-                key={n}
-                description={
-                  i.grams === 0
-                    ? t('recipe.zero_kcal')
-                    : t('meal.kcal', { n: num(i.kcal) })
-                }
-                value={`${w.fmt(i.grams)}\u00a0${u}`}
+                icon={<BookOpen aria-hidden="true" />}
+                description={t('recipe.no_ingredients.body', {
+                  k: num(recipe.per100.kcal),
+                  p: num(recipe.per100.proteinG),
+                  f: num(recipe.per100.fatG),
+                  c: num(recipe.per100.carbsG),
+                })}
               >
-                {i.name}
+                {t('recipe.no_ingredients.title')}
               </ListRow>
-            ))}
-          </List>
+              <ListRow
+                accent
+                icon={<Plus aria-hidden="true" />}
+                onClick={() =>
+                  navigate(`/kitchen/${recipe.id}/edit`, {
+                    state: { compose: true } satisfies RecipeEditorState,
+                  })
+                }
+              >
+                {t('recipe.no_ingredients.add')}
+              </ListRow>
+            </List>
+          ) : (
+            <List
+              title={
+                <span className="recipe__group">
+                  <span>
+                    {t('recipe.ingredients', { n: recipe.ingredients.length })}
+                  </span>
+                  <span>{t('meal.kcal', { n: num(totalKcal) })}</span>
+                </span>
+              }
+            >
+              {recipe.ingredients.map((i, n) => (
+                <ListRow
+                  key={n}
+                  description={
+                    i.grams === 0
+                      ? t('recipe.zero_kcal')
+                      : t('meal.kcal', { n: num(i.kcal) })
+                  }
+                  value={`${w.fmt(i.grams)}\u00a0${u}`}
+                >
+                  {i.name}
+                </ListRow>
+              ))}
+            </List>
+          )}
         </div>
         {recipe.steps.length > 0 && (
           <div className="recipe__steps">
@@ -289,7 +326,7 @@ export function RecipeView({
             >
               {t('recipe.edit')}
             </Button>
-            {lighter && (
+            {lighter && !recipe.per100 && (
               <Button
                 variant="plain"
                 onClick={() => {

@@ -1677,6 +1677,7 @@ export const en = {
     sort_note: 'Recently logged first.',
     per100: '{k}\u00a0kcal/100\u00a0g',
     perPortion: '{k} per serving',
+    no_ingredients: 'no ingredients',
     empty: {
       title: 'No recipes yet',
       body: 'For dishes you cook at home: add the ingredients and cooked weight once — then log a serving accurately in a couple of taps.',
@@ -1691,6 +1692,12 @@ export const en = {
     },
     cooked: 'cooked {w}\u00a0{u}',
     logged: 'logged {when}',
+    serving: 'serving {g}\u00a0{u}',
+    no_ingredients: {
+      title: 'No ingredients listed',
+      body: 'Calories and macros are set per 100\u00a0g: {k}\u00a0kcal · P {p} · F {f} · C {c}.',
+      add: 'Add ingredients',
+    },
     nut: {
       label: 'Nutrition',
       portion: 'Serving',
@@ -1734,6 +1741,7 @@ export const en = {
     back: 'Recipe',
     title: 'Make it lighter',
     sub: 'AI suggests swaps',
+    no_ingredients: 'Add ingredients so AI can suggest swaps',
     lead: 'Now {k}\u00a0kcal per serving. The original won’t change unless you tap Apply.',
     lead_100:
       'Now {k}\u00a0kcal/100\u00a0g. The original won’t change unless you tap Apply.',
@@ -1828,6 +1836,42 @@ export const en = {
     ingredients_cols: 'grams · kcal',
     ingredients_cols_oz: 'ounces · kcal',
     ingredient: 'Ingredient',
+    mode: {
+      label: 'How to set calories',
+      ingredients: 'By ingredients',
+      per100: 'Calories per 100\u00a0g',
+    },
+    per100: {
+      kcal: 'Calories per 100\u00a0g',
+      kcal_ph: 'e.g. 160',
+      required: 'required',
+      kcal_err: 'Calories per 100\u00a0g must be 0–900',
+      macros_note: 'Protein, fat, carbs are optional. Empty counts as 0.',
+      macro_err: 'Protein, fat and carbs: from 0 to 100\u00a0g each',
+      macros_err:
+        'Protein + fat + carbs can’t exceed 100\u00a0g per 100\u00a0g. Now {g}\u00a0g.',
+      serving: 'Serving size, {u}',
+      serving_note: 'Optional. Without it a serving is logged as 100\u00a0g.',
+      serving_err: 'More than 0, up to {max}\u00a0{u}',
+      preview: 'Per serving',
+      preview_kcal: 'kcal · {g}\u00a0{u}',
+      preview_empty:
+        'Enter calories per 100\u00a0g and a serving size to see a serving. Without a serving size, entries default to 100\u00a0g.',
+    },
+    switch: {
+      title: 'Switch to calories per 100\u00a0g?',
+      body: {
+        one: 'The {count} ingredient won’t be saved. Values per 100\u00a0g come from the calculation: {k}\u00a0kcal, P {p} · F {f} · C {c}. You can edit them.',
+        other:
+          'The {count} ingredients won’t be saved. Values per 100\u00a0g come from the calculation: {k}\u00a0kcal, P {p} · F {f} · C {c}. You can edit them.',
+      },
+      ok: 'Switch',
+      stay: 'Stay',
+    },
+    was: {
+      title: 'It was {k}\u00a0kcal per 100\u00a0g',
+      body: 'P {p} · F {f} · C {c}. Add ingredients and calories will be calculated from them, replacing these values.',
+    },
     no_ingredients: 'Add at least one ingredient',
     grams: '{name}, grams',
     ounces: '{name}, ounces',
