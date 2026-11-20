@@ -602,6 +602,33 @@ describe('RecipeEditor', () => {
       expect(screen.getByText('Add at least one ingredient')).toBeTruthy();
     });
 
+    it('per 100 g → by ingredients: an empty state instead of totals and yield, until the first ingredient', async () => {
+      await view({ recipe: CHEESECAKE });
+      mode('By ingredients');
+      expect(screen.getByText('No ingredients yet')).toBeTruthy();
+      expect(screen.queryByText('Serving', { selector: 'dt' })).toBeNull();
+      expect(screen.queryByText('Yield')).toBeNull();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Ingredient' }));
+      fireEvent.change(await screen.findByRole('searchbox'), {
+        target: { value: 'Quark' },
+      });
+      fireEvent.click(
+        await screen.findByRole('button', { name: 'Enter “Quark” manually' }),
+      );
+      fireEvent.change(await screen.findByLabelText(/^Weight/), {
+        target: { value: '500' },
+      });
+      fireEvent.change(screen.getByLabelText(/^Calories ·/), {
+        target: { value: '104' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+
+      await screen.findByText('Yield');
+      expect(screen.queryByText('No ingredients yet')).toBeNull();
+      expect(total('Total')).toBe('520');
+    });
+
     it('«Add ingredients» opens by ingredients, the values as a note', async () => {
       await view({ recipe: CHEESECAKE, compose: true });
       expect(

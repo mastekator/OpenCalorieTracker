@@ -208,6 +208,12 @@
   line-height: var(--text-footnote-lh);
 }
 
+/* OCT-352 1.2: a field's note sits a step below the boxes and wraps without a lone last word. */
+.recipe-editor__per100 .recipe-editor__note {
+  margin-top: var(--space-4);
+  text-wrap: pretty;
+}
+
 .recipe-editor__preview .recipe-editor__note {
   margin: 0;
   padding: 0;
@@ -223,4 +229,19 @@
   .recipe-editor__preview {
     grid-area: totals;
   }
+}
+
+/* No ingredients after switching back from «Calories per 100 g» (OCT-352 1.6). */
+.recipe-editor__empty {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  color: var(--color-text-secondary);
+  font-size: var(--text-subhead-size);
+  line-height: var(--text-subhead-lh);
+}
+
+.recipe-editor__empty b {
+  color: var(--color-text);
+  font-weight: var(--text-headline-weight);
 }

@@ -47,6 +47,7 @@ export function Per100Fields({
 }: Props) {
   const { t, num } = useT();
   const macrosNote = useId();
+  const servingNote = useId();
   // E-10.1: a minus is never accepted.
   const typed = (k: keyof Per100Values) => ({
     value: values[k],
@@ -92,14 +93,22 @@ export function Per100Fields({
             </p>
           )}
         </div>
-        <Field
-          {...typed('serving')}
-          label={t('editor.per100.serving', { u: unit })}
-          placeholder="100"
-          suffix={unit}
-          hint={t('editor.per100.serving_note')}
-          error={errors.serving}
-        />
+        <div>
+          <Field
+            {...typed('serving')}
+            label={t('editor.per100.serving', { u: unit })}
+            placeholder="100"
+            suffix={unit}
+            error={errors.serving}
+            aria-describedby={servingNote}
+          />
+          {!errors.serving && (
+            <p id={servingNote} className="recipe-editor__note">
+              <Scale aria-hidden="true" />
+              {t('editor.per100.serving_note')}
+            </p>
+          )}
+        </div>
       </div>
       <section
         className="nutrition-card recipe-editor__preview"
