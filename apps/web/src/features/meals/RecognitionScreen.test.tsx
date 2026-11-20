@@ -423,5 +423,50 @@ describe('RecognitionScreen', () => {
         barcode: CODE,
       });
     });
+
+    describe('recognize fails, a found product is kept (OCT-348)', () => {
+      const found = () =>
+        (barcodes = codes({
+          code: CODE,
+          result: { product, from: 'off', off: 'found' },
+        }));
+      const keptOnEdit = async () => {
+        const location = await setup();
+        await waitFor(() => expect(location.history.at(-1)).toBe(EDIT));
+        expect(location.state).toEqual({
+          dishes: [
+            expect.objectContaining({ source: 'barcode', barcode: CODE }),
+          ],
+          codes: [expect.objectContaining({ code: CODE })],
+        });
+      };
+
+      it('quota exceeded → the edit screen with the product', async () => {
+        found();
+        respond(fail(429, 'ai_quota_exceeded'));
+        await keptOnEdit();
+      });
+
+      it('a timeout → the edit screen with the product', async () => {
+        found();
+        const timeout = new AbortController();
+        vi.spyOn(AbortSignal, 'timeout').mockReturnValue(timeout.signal);
+        respond();
+        const kept = keptOnEdit();
+        await waitFor(() => expect(AbortSignal.timeout).toHaveBeenCalled());
+        act(() => timeout.abort(new DOMException('timed out', 'TimeoutError')));
+        await kept;
+      });
+
+      it('nothing found → the error screen as before', async () => {
+        barcodes = codes({
+          code: CODE,
+          result: { product: null, from: null, off: 'missing' },
+        });
+        respond(fail(429, 'ai_quota_exceeded'));
+        await setup();
+        expect(await alertText()).toContain('AI request limit reached');
+      });
+    });
   });
 });
