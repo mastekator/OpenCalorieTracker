@@ -14,7 +14,12 @@ import {
   type Units,
 } from '@oct/shared';
 import { api } from '../../api/client';
-import { saveRecipe, useDb, useRecipe } from '../../data/DataContext';
+import {
+  isRecipeChanged,
+  saveRecipe,
+  useDb,
+  useRecipe,
+} from '../../data/DataContext';
 import { useT } from '../../i18n';
 import { Banner } from '../../ui/Banner/Banner';
 import { Button } from '../../ui/Button/Button';
@@ -49,7 +54,14 @@ export function LighterScreen({ id }: { id: string }) {
           method: 'POST',
         })
       }
-      onSave={(input, recipeId) => saveRecipe(db, input, recipeId)}
+      onSave={(input, base) =>
+        saveRecipe(db, input, base).catch((err: unknown) => {
+          // Variants of an older version: back to the fresh card.
+          if (isRecipeChanged(err))
+            navigate(`/kitchen/${id}`, { replace: true });
+          throw err;
+        })
+      }
       onSaved={(r) => navigate(`/kitchen/${r.id}`, { replace: true })}
     />
   );
@@ -68,8 +80,11 @@ type Props = {
   units?: Units;
   /** POST /api/ai/recipes/:id/lighter. */
   load: () => Promise<LighterResponse>;
-  /** POST (no id) or PUT; throws on failure. */
-  onSave: (input: RecipeInput, id?: number) => Promise<Recipe>;
+  /** POST (no base) or PUT from `base`; throws on failure. */
+  onSave: (
+    input: RecipeInput,
+    base?: Pick<Recipe, 'id' | 'updatedAt'>,
+  ) => Promise<Recipe>;
   onSaved: (recipe: Recipe) => void;
 };
 
@@ -88,6 +103,8 @@ export function LighterView({
   const [attempt, setAttempt] = useState(0);
   const [state, setState] = useState<State>({ status: 'loading' });
   const [saving, setSaving] = useState(false);
+  // The version the variants are built from, not a newer one synced in meanwhile.
+  const [opened] = useState(recipe);
   // Only a retry asks again: `load` is a new function on every render.
   useEffect(() => {
     let live = true;
@@ -133,9 +150,11 @@ export function LighterView({
     };
     setSaving(true);
     try {
-      onSaved(await onSave(input, apply ? recipe.id : undefined));
-    } catch {
-      toast({ text: t('editor.save_error') });
+      onSaved(await onSave(input, apply ? opened : undefined));
+    } catch (err) {
+      toast({
+        text: t(isRecipeChanged(err) ? 'editor.changed' : 'editor.save_error'),
+      });
       setSaving(false);
     }
   };

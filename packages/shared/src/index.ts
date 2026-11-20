@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { authMethodSchema } from './auth.js';
 
 /** Raised only on a breaking API change; older web clients then get 409 client_outdated (ADR-0012). */
-export const API_VERSION = 2;
+export const API_VERSION = 3;
 
 /** Stable error codes in `{ error: { code } }` bodies; clients translate them (ADR-0001). */
 export type ErrorCode =
@@ -47,6 +47,7 @@ export type ErrorCode =
   | 'photo_expired'
   | 'payload_too_large'
   | 'photo_in_use'
+  | 'recipe_changed'
   | 'agent_not_ready'
   | 'agent_closed'
   | 'cannot_delete_self'

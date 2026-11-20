@@ -1909,6 +1909,8 @@ export const en = {
     picker_note:
       'Then set the grams. Entering manually has the same fields as a dish entered by hand.',
     save_error: 'Couldn’t save the recipe. Try again.',
+    changed:
+      'The recipe changed on another device — showing the latest version.',
     steps: 'Steps',
     optional: 'optional',
     step: 'Step',
@@ -1987,6 +1989,7 @@ export const en = {
     photo_expired: 'The full photo is no longer stored. Take a new one',
     payload_too_large: 'The request is too large',
     photo_in_use: 'This photo is already attached to another meal',
+    recipe_changed: 'The recipe changed on another device',
     agent_not_ready: 'Finish the dialog up to the summary first',
     agent_closed: 'This dialog is closed. Use the form or start over',
     cannot_delete_self: 'You cannot delete your own account here',

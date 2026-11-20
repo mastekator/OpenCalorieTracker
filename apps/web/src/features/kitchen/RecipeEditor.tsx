@@ -23,6 +23,7 @@ import { api, ApiError } from '../../api/client';
 import { useDirty } from '../../app/dirty';
 import {
   findHistoryDishes,
+  isRecipeChanged,
   saveRecipe,
   useDb,
   useRecipe,
@@ -99,7 +100,14 @@ export function RecipeEditorScreen({ id }: { id?: string }) {
       online={online}
       units={units}
       search={search}
-      onSave={(input) => saveRecipe(db, input, recipe?.id)}
+      onSave={(input, base) =>
+        saveRecipe(db, input, base).catch((err: unknown) => {
+          // The form holds an older version: back to the fresh card.
+          if (isRecipeChanged(err))
+            navigate(`/kitchen/${id}`, { replace: true });
+          throw err;
+        })
+      }
       onSaved={(r) => navigate(`/kitchen/${r.id}`, { replace: true })}
     />
   );
@@ -134,7 +142,11 @@ type Props = {
   units?: Units;
   search: (query: string) => Promise<HistoryDish[]>;
   /** POST / PUT and the local copy; throws on failure. */
-  onSave: (input: RecipeInput) => Promise<Recipe>;
+  /** POST (no base) or PUT from `base`, the recipe as the editor opened it. */
+  onSave: (
+    input: RecipeInput,
+    base?: Pick<Recipe, 'id' | 'updatedAt'>,
+  ) => Promise<Recipe>;
   /** After «Save» in the navbar. */
   onSaved: (recipe: Recipe) => void;
 };
@@ -198,6 +210,8 @@ export function RecipeEditor({
 }: Props) {
   const { t, num, locale } = useT();
   const toast = useToast();
+  // Fixed on open: a version synced in meanwhile must not pass the form's edits as fresh.
+  const [opened, setOpened] = useState(recipe);
   const w = useWeight(units);
   const unit = w.u;
   const start = recipe ?? draft;
@@ -448,11 +462,14 @@ export function RecipeEditor({
     saveLock.current = true;
     setSaving(true);
     try {
-      const saved = await onSave(input());
+      const saved = await onSave(input(), opened);
+      setOpened(saved);
       if (leave) onSaved(saved);
       return true;
-    } catch {
-      toast({ text: t('editor.save_error') });
+    } catch (err) {
+      toast({
+        text: t(isRecipeChanged(err) ? 'editor.changed' : 'editor.save_error'),
+      });
       return false;
     } finally {
       saveLock.current = false;

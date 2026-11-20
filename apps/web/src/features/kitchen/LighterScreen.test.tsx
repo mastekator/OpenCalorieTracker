@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
 import type { LighterResponse, Recipe, RecipeInput } from '@oct/shared';
+import { ApiError } from '../../api/client';
 import { I18nProvider } from '../../i18n';
 import { renderLoaded } from '../../test-utils';
 import { ToastProvider } from '../../ui/Toast/Toast';
@@ -25,10 +26,13 @@ const view = async ({
   load?: () => Promise<LighterResponse>;
 } = {}) => {
   const onSave = vi.fn(
-    async (input: RecipeInput, id?: number): Promise<Recipe> => ({
+    async (
+      input: RecipeInput,
+      base?: Pick<Recipe, 'id' | 'updatedAt'>,
+    ): Promise<Recipe> => ({
       ...recipe,
       ...input,
-      id: id ?? 99,
+      id: base?.id ?? 99,
     }),
   );
   const onSaved = vi.fn();
@@ -91,8 +95,8 @@ describe('LighterView', () => {
       (await screen.findAllByRole('button', { name: 'Save as new' }))[0]!,
     );
     await waitFor(() => expect(onSaved).toHaveBeenCalledOnce());
-    const [input, id] = onSave.mock.calls[0]!;
-    expect(id).toBeUndefined();
+    const [input, base] = onSave.mock.calls[0]!;
+    expect(base).toBeUndefined();
     expect(input.name).toBe('Homemade pilaf — light');
     expect(input.ingredients).toEqual(PILAF_LIGHTER.variants[0]!.ingredients);
     // The copy goes without the original's photos, the step texts stay.
@@ -112,8 +116,8 @@ describe('LighterView', () => {
       (await screen.findAllByRole('button', { name: 'Apply to this one' }))[1]!,
     );
     await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
-    const [input, id] = onSave.mock.calls[0]!;
-    expect(id).toBe(PILAF.id);
+    const [input, base] = onSave.mock.calls[0]!;
+    expect(base).toEqual(PILAF);
     expect(input.name).toBe(PILAF.name);
     expect(input.ingredients).toEqual(PILAF_LIGHTER.variants[1]!.ingredients);
     expect(input.photoId).toBe(PILAF.photoId);
@@ -131,6 +135,19 @@ describe('LighterView', () => {
     ).toBeTruthy();
     expect(onSaved).not.toHaveBeenCalled();
     expect(screen.getByText('Option 1 of 2')).toBeTruthy();
+  });
+
+  it('a recipe changed on another device: its own toast', async () => {
+    const { onSave } = await view();
+    onSave.mockRejectedValueOnce(new ApiError(409, 'recipe_changed'));
+    fireEvent.click(
+      (await screen.findAllByRole('button', { name: 'Apply to this one' }))[0]!,
+    );
+    expect(
+      await screen.findByText(
+        'The recipe changed on another device — showing the latest version.',
+      ),
+    ).toBeTruthy();
   });
 
   it('error: the banner, «Try again» asks again (E-10.6)', async () => {

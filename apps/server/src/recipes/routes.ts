@@ -1,7 +1,12 @@
 import { existsSync } from 'node:fs';
 import { rm } from 'node:fs/promises';
 import { Hono } from 'hono';
-import { nameKey, recipeInputSchema, type RecipeInput } from '@oct/shared';
+import {
+  nameKey,
+  recipeInputSchema,
+  recipeUpdateSchema,
+  type RecipeInput,
+} from '@oct/shared';
 import type { AppDeps } from '../app.js';
 import { requireUser, type AuthEnv } from '../auth/session.js';
 import { ApiError } from '../http/errors.js';
@@ -147,13 +152,20 @@ export function recipeRoutes({ config, db }: AppDeps) {
     .put(
       '/recipes/:id',
       requireUser,
-      validate('json', recipeInputSchema),
+      validate('json', recipeUpdateSchema),
       async (c) => {
         const userId = c.var.user.id;
         const input = c.req.valid('json');
         const id = findRecipe(userId, c.req.param('id'));
         if (id === undefined) throw new ApiError(404, 'not_found');
         const dropped = db.transaction(() => {
+          // Edited from an older version: replacing would drop the newer edits and their photos.
+          const updatedAt = db
+            .prepare('SELECT updated_at FROM recipes WHERE id = ?')
+            .pluck()
+            .get(id) as number;
+          if (updatedAt !== Date.parse(input.updatedAt))
+            throw new ApiError(409, 'recipe_changed');
           checkPhotos(userId, input, id);
           const before = photosOf(id);
           db.prepare('DELETE FROM recipe_steps WHERE recipe_id = ?').run(id);
@@ -170,7 +182,8 @@ export function recipeRoutes({ config, db }: AppDeps) {
             input.photoId,
             ...per100Cols(input),
             bumpRev(db, userId),
-            Date.now(),
+            // Strictly newer, so two saves in one millisecond still tell versions apart.
+            Math.max(Date.now(), updatedAt + 1),
             id,
           );
           write(id, input);

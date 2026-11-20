@@ -37,6 +37,7 @@ import {
   type MealStatus,
 } from './outbox';
 import { refreshMyProducts } from './products';
+import { pull } from './sync';
 import { photoIds, prefetchThumbs } from './thumbs';
 
 /** Exported for stories: a stub database shows queue states without IndexedDB. */
@@ -384,16 +385,33 @@ export async function deleteRecipe(db: Db, id: number) {
   emitChange();
 }
 
+/** The recipe was saved on another device since the edit started (409). */
+export const isRecipeChanged = (err: unknown) =>
+  err instanceof ApiError && err.code === 'recipe_changed';
+
 /**
- * POST (new) or PUT (`id`) /api/recipes, then the server's recipe into the local copy.
- * A failure throws and leaves the copy as it is.
+ * POST (new) or PUT (`base`, the version the edit started from) /api/recipes, then the
+ * server's recipe into the local copy. A failure throws and leaves the copy as it is;
+ * a newer version on the server is pulled first.
  */
-export async function saveRecipe(db: Db, input: RecipeInput, id?: number) {
-  const recipe = await api(
-    id === undefined ? '/api/recipes' : `/api/recipes/${id}`,
-    z.custom<Recipe>((v) => typeof (v as Recipe | null)?.id === 'number'),
-    { method: id === undefined ? 'POST' : 'PUT', body: input },
-  );
+export async function saveRecipe(
+  db: Db,
+  input: RecipeInput,
+  base?: Pick<Recipe, 'id' | 'updatedAt'>,
+) {
+  let recipe: Recipe;
+  try {
+    recipe = await api(
+      base ? `/api/recipes/${base.id}` : '/api/recipes',
+      z.custom<Recipe>((v) => typeof (v as Recipe | null)?.id === 'number'),
+      base
+        ? { method: 'PUT', body: { ...input, updatedAt: base.updatedAt } }
+        : { method: 'POST', body: input },
+    );
+  } catch (err) {
+    if (isRecipeChanged(err)) await pull(db).catch(() => {});
+    throw err;
+  }
   await db.put('recipes', recipe);
   emitChange();
   return recipe;
