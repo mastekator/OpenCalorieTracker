@@ -27,6 +27,8 @@ export type Dish = ManualDish & {
   confidence?: number;
   /** `source: 'barcode'` from `mergePackages`: whose product the numbers are. */
   from?: BarcodeResult['from'];
+  /** Found by barcode without kcal, no label: the AI's estimate to check (E-12). */
+  check?: true;
   illustration?: IllustrationId;
 };
 

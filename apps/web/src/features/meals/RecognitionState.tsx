@@ -66,7 +66,13 @@ export function recognitionSteps(
         : offHit
           ? { mark: 'done', caption: offHit.name ?? offHit.brand ?? undefined }
           : offStatus === 'down' || offStatus === 'missing'
-            ? { mark: 'warn', caption: t(`recog.off.${offStatus}`) }
+            ? {
+                mark: 'warn',
+                // Without AI nobody reads the label.
+                caption: t(
+                  `recog.off.${offStatus}${ai === 'none' ? '_plain' : ''}`,
+                ),
+              }
             : offStatus === 'disabled' || offStatus === 'blocked'
               ? {
                   mark: 'skip',

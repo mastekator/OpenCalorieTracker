@@ -2,8 +2,9 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { cleanup, fireEvent } from '@testing-library/react';
 import { I18nProvider, LOCALE_STORAGE_KEY } from '../../i18n';
 import { renderLoaded } from '../../test-utils';
-import { loadDict } from '../../i18n/translate';
-import { RecognitionState } from './RecognitionState';
+import { loadDict, translate, type Key } from '../../i18n/translate';
+import { en } from '../../i18n/locales/en';
+import { RecognitionState, recognitionSteps } from './RecognitionState';
 
 const noop = () => {};
 const states = [
@@ -93,4 +94,25 @@ describe('RecognitionState quota actions', () => {
       'Close',
     ]);
   });
+});
+
+describe('recognitionSteps', () => {
+  const t = ((key: Key) => translate('en', en, key)) as Parameters<
+    typeof recognitionSteps
+  >[0];
+  const codes = (off: 'down' | 'missing') => [
+    { code: '4006381333931', result: { product: null, from: null, off } },
+  ];
+
+  it.each(['down', 'missing'] as const)(
+    'without AI the OFF step (%s) says nothing about the label',
+    (off) => {
+      const steps = recognitionSteps(t, codes(off), 'none');
+      expect(steps.map((s) => s.caption).join(' ')).not.toMatch(/label/i);
+      expect(steps[1]!.mark).toBe('warn');
+      expect(recognitionSteps(t, codes(off), 'run')[1]!.caption).toMatch(
+        /reading the label/,
+      );
+    },
+  );
 });

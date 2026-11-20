@@ -42,6 +42,10 @@ import {
   type RecognitionStatus,
   type Units,
   type Product,
+  type PhotoBarcodesResponse,
+  barcodeLookupSchema,
+  mergePackages,
+  packageRecognitionSchema,
   uuid,
 } from '@oct/shared';
 import { api, ApiError, type ClientErrorCode } from '../../api/client';
@@ -55,11 +59,17 @@ import {
   useRecipes,
   useSettings,
 } from '../../data/DataContext';
-import { lookupProduct, type BarcodeResult } from '../../data/products';
+import {
+  keepProduct,
+  lookupProduct,
+  type BarcodeResult,
+} from '../../data/products';
 import type { Choices } from '../../data/db';
 import {
   createMeal,
+  flush,
   patchMeal,
+  patchSettings,
   putIllustrationChoice,
 } from '../../data/outbox';
 import { useT } from '../../i18n';
@@ -68,6 +78,7 @@ import { useSession } from '../../app/SessionContext';
 import { useDirty } from '../../app/dirty';
 import { AiQuestion as Question } from '../../ui/AiQuestion/AiQuestion';
 import { Badge } from '../../ui/Badge/Badge';
+import { BarcodeConsentSheet } from '../../ui/BarcodeConsentSheet/BarcodeConsentSheet';
 import { Banner } from '../../ui/Banner/Banner';
 import { Button } from '../../ui/Button/Button';
 import { DishRow } from '../../ui/DishRow/DishRow';
@@ -79,6 +90,8 @@ import {
   ManualDishSheet,
   type ManualDish,
 } from '../../ui/ManualDishSheet/ManualDishSheet';
+import { NoKcalHint } from '../../ui/NoKcalHint/NoKcalHint';
+import { OffSuggestCard } from '../../ui/OffSuggestCard/OffSuggestCard';
 import { MealTypeSegment } from '../../ui/MealTypeSegment/MealTypeSegment';
 import { NavBar } from '../../ui/NavBar/NavBar';
 import { OfflineBar, useOnline } from '../../ui/OfflineBar/OfflineBar';
@@ -99,6 +112,7 @@ import { UNDO_MS, useUndoDelete } from '../diary/undoDelete';
 import { MEAL_NEW_PATH, useCapture } from './CaptureContext';
 import { RecognitionScreen, type MealEditState } from './RecognitionScreen';
 import { ImageDecodeError, prepareImage } from './prepareImage';
+import { showOffSuggest } from './offSuggest';
 import {
   answer,
   applyAgain,
@@ -235,6 +249,21 @@ type Props = {
   photoBarcode?: { code: string; admin: boolean };
   /** Products on this device by code: an own one, its serving and save date (OCT-313 2.6). */
   products?: Map<string, Product>;
+  /** The photo's codes as looked up: label hints for those without kcal (OCT-313 2.4). */
+  codes?: PhotoBarcodesResponse['codes'];
+  /** Show «Turn on Open Food Facts» (OCT-313 2.5). */
+  offSuggest?: boolean;
+  /** «Turn on» (true) or «Not now»: writes the settings; turned on, the photo's codes looked up again. */
+  onOffHint?: (enable: boolean) => Promise<PhotoBarcodesResponse['codes']>;
+  /** Rows kept in `history.state` while the label camera was open (the page may be unloaded). */
+  draft?: Row[];
+};
+
+/** `history.state` of the edit screen while the label camera is open. */
+const keepDraft = (draft: Row[] | undefined) => {
+  const state = { ...(history.state ?? {}) } as { draft?: Row[] };
+  delete state.draft;
+  history.replaceState(draft ? { ...state, draft } : state, '');
 };
 
 /** Screen 4 (design OCT-16 §3, E.2): dishes, weights with live totals, meal type, save. */
@@ -264,6 +293,10 @@ export function MealEditScreen({
   onBarcode,
   photoBarcode,
   products,
+  codes = [],
+  offSuggest,
+  onOffHint,
+  draft,
 }: Props) {
   const { t, num, locale } = useT();
   const online = useOnline();
@@ -277,11 +310,13 @@ export function MealEditScreen({
   const [day, setDay] = useState<DayChoice>('yesterday');
   // The idempotency key lives as long as the screen: «Try again» resends the same meal (4.8).
   const [clientId] = useState(uuid);
-  const [rows, setRows] = useState(() =>
-    recalc?.dishes
-      ? toRows(recalc.dishes, recalc.questions)
-      : (recalc?.draft.rows ??
-        (meal ? meal.items.map(savedRow) : toRows(dishes, questions))),
+  const [rows, setRows] = useState(
+    () =>
+      draft ??
+      (recalc?.dishes
+        ? toRows(recalc.dishes, recalc.questions)
+        : (recalc?.draft.rows ??
+          (meal ? meal.items.map(savedRow) : toRows(dishes, questions)))),
   );
   // The AI's dishes replace the entry's: saved with the offer cleared, «Restore my numbers» undoes it.
   const [recalced, setRecalced] = useState(!!recalc?.dishes);
@@ -339,6 +374,13 @@ export function MealEditScreen({
   // The url that failed to load: a new photo shows again without a reset.
   const [brokenUrl, setBrokenUrl] = useState<string>();
   const cameraInput = useRef<HTMLInputElement>(null);
+  // «Photograph the label»: the code it is read for (OCT-313 2.4).
+  const labelInput = useRef<HTMLInputElement>(null);
+  const labelCode = useRef<string | null>(null);
+  const [reading, setReading] = useState(false);
+  const [offLoading, setOffLoading] = useState(false);
+  const [suggest, setSuggest] = useState(!!offSuggest);
+  const [consent, setConsent] = useState(false);
   const saving = useRef(false);
   // Row whose pencil gets focus after a delete or «Undo», so it never drops to <body> (WCAG 2.4.3).
   const focusRow = useRef<string | null>(null);
@@ -368,6 +410,8 @@ export function MealEditScreen({
   }, [refineError]);
   const working =
     refine.state.status === 'busy' || refine.state.status === 'slow';
+  // A label or Open Food Facts answer replaces rows: an edit or a save meanwhile would be lost.
+  const locked = working || reading || offLoading;
 
   /** The hint is optional (AC-11.3): errors and offline show nothing. */
   function findPrevious(key: string, wanted: Lookup[], ms = 0) {
@@ -662,6 +706,99 @@ export function MealEditScreen({
       },
     });
 
+  /**
+   * New package dishes in place of the rows with the same code, the rest added; «Undo» brings
+   * the whole list back (OCT-313 2.4, 4.4).
+   */
+  const replacePackages = (
+    found: Recognized[],
+    text: 'edit.label_updated' | 'edit.off_found',
+  ) => {
+    if (!found.length) return;
+    let before: Row[] = [];
+    setApplied(null);
+    setRows((rs) => {
+      before = rs;
+      const fresh = toRows(found);
+      const next = rs.map(
+        (r) =>
+          fresh.find(
+            (f) =>
+              !!f.original.barcode && f.original.barcode === r.original.barcode,
+          ) ?? r,
+      );
+      return [...next, ...fresh.filter((f) => !next.includes(f))];
+    });
+    toast({
+      text: t(text),
+      ms: 5000,
+      action: { label: t('common.undo'), onClick: () => setRows(before) },
+    });
+  };
+
+  const shootLabel = (code: string) => {
+    labelCode.current = code;
+    // The camera may unload the page: the edits come back from `history.state`.
+    keepDraft(rows);
+    labelInput.current?.click();
+  };
+
+  // Read as this package's label only (ADR-0034 §2); a failure leaves the list as it was.
+  const onLabel = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    const code = labelCode.current;
+    if (!file || !code) return keepDraft(undefined);
+    setReading(true);
+    try {
+      const blob = await prepareImage(file);
+      const { photoId: id } = await api('/api/photos', photoSchema, {
+        method: 'POST',
+        body: blob,
+      });
+      const read = await api(
+        `/api/photos/${encodeURIComponent(id)}/recognize?mode=label&barcode=${code}`,
+        packageRecognitionSchema,
+        { method: 'POST' },
+      );
+      const found = mergePackages(
+        read.dishes
+          .slice(0, 1)
+          .map((d) => ({ ...d, barcode: code, label: true })),
+        codes.filter((c) => c.code === code),
+      );
+      if (found.length) replacePackages(found, 'edit.label_updated');
+      else toast({ text: t('edit.label_failed') });
+    } catch (err) {
+      if (err instanceof ImageDecodeError)
+        toast({ text: t('capture.err.open.title') });
+      else if (err instanceof ApiError && err.status === 0)
+        toast({ text: t('capture.upload_failed') });
+      else if (err instanceof ApiError) toast({ text: t('edit.label_failed') });
+      else throw err;
+    } finally {
+      keepDraft(undefined);
+      setReading(false);
+    }
+  };
+
+  const offLater = () => {
+    setSuggest(false);
+    setConsent(false);
+    void onOffHint?.(false);
+  };
+  const offEnable = async () => {
+    setSuggest(false);
+    setConsent(false);
+    setOffLoading(true);
+    try {
+      const found = await onOffHint?.(true);
+      if (found) replacePackages(mergePackages([], found), 'edit.off_found');
+    } finally {
+      setOffLoading(false);
+    }
+  };
+
   // The slot photo never goes to the AI (AC-5.7).
   const onPhoto = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -941,8 +1078,16 @@ export function MealEditScreen({
     };
   };
   const mixed = aiRows && rows.some((r) => packageOf(r));
+  // Reading a label needs a vision model (AC-4.7): without one, no label button.
+  const orphanCode =
+    vision &&
+    codes.find(
+      (c) =>
+        c.result.product?.kcal100 === null &&
+        !rows.some((r) => r.original.barcode === c.code),
+    )?.code;
   const remembered = items.filter(remembers);
-  const refineOff = !online || working || refine.limitReached;
+  const refineOff = !online || locked || refine.limitReached;
   const asked = rows.filter(
     (r) => r.question && r.question.chosen === undefined,
   ).length;
@@ -1273,12 +1418,25 @@ export function MealEditScreen({
                 />
               </label>
             )}
+            {suggest && onOffHint && (
+              <OffSuggestCard
+                onEnable={() => setConsent(true)}
+                onLater={offLater}
+              />
+            )}
+            {orphanCode && (
+              // A package without kcal and no dish for it: the label adds one.
+              <NoKcalHint
+                busy={reading}
+                onShoot={() => shootLabel(orphanCode)}
+              />
+            )}
             {rows.length > 0 ? (
               // Locked while the AI works: its answer would overwrite an edit (AC-5.2).
               <ul
                 className="meal-edit__list"
-                inert={working}
-                aria-busy={working || undefined}
+                inert={locked}
+                aria-busy={locked || undefined}
               >
                 {rows.map((row, i) => {
                   const item = items[i]!;
@@ -1333,6 +1491,12 @@ export function MealEditScreen({
                           />
                         )
                       )}
+                      {vision && row.original.check && row.original.barcode && (
+                        <NoKcalHint
+                          busy={reading}
+                          onShoot={() => shootLabel(row.original.barcode!)}
+                        />
+                      )}
                     </li>
                   );
                 })}
@@ -1369,7 +1533,7 @@ export function MealEditScreen({
             {(rows.length > 0 || dishes.length === 0) && (
               <Button
                 variant="plain"
-                disabled={working}
+                disabled={locked}
                 onClick={() => setAdding(true)}
               >
                 <Plus aria-hidden="true" className="meal-edit__add-icon" />
@@ -1459,7 +1623,7 @@ export function MealEditScreen({
             ) : (
               <Button
                 onClick={() => void save()}
-                disabled={!valid || working}
+                disabled={!valid || locked}
                 loading={busy || (!!meal && uploading)}
               >
                 {t(
@@ -1497,6 +1661,20 @@ export function MealEditScreen({
         hidden
         data-testid="edit-camera"
         onChange={(e) => void onPhoto(e)}
+      />
+      <input
+        ref={labelInput}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        hidden
+        data-testid="edit-label"
+        onChange={(e) => void onLabel(e)}
+      />
+      <BarcodeConsentSheet
+        open={consent}
+        onEnable={() => void offEnable()}
+        onClose={offLater}
       />
       {pickingRow && (
         <IllustrationPicker
@@ -1622,7 +1800,14 @@ export function MealEditRoute() {
   const today = localToday();
   const day = diaryDay(params.get('date') ?? today, today);
   const date = day === today ? undefined : day;
-  const [state] = useState(() => history.state as MealEditState | null);
+  const [state] = useState(
+    () => history.state as (MealEditState & { draft?: Row[] }) | null,
+  );
+  const codes = (state && 'codes' in state && state.codes) || [];
+  // Read once on open, like the hints: «Not now» hides it until the next photo anyway.
+  const [offSuggest] = useState(() =>
+    showOffSuggest(codes, settings?.offHintAt, new Date()),
+  );
   const ai = useAiStatus();
   const recipes = useRecipes();
   const products = useProducts();
@@ -1638,6 +1823,31 @@ export function MealEditRoute() {
       products={products}
       onBarcode={(code) => lookupProduct(db, code)}
       dishes={state && 'dishes' in state ? state.dishes : []}
+      draft={state?.draft}
+      codes={codes}
+      offSuggest={offSuggest}
+      onOffHint={async (enable) => {
+        const offHintAt = new Date().toISOString();
+        await patchSettings(
+          db,
+          enable ? { offEnabled: true, offHintAt } : { offHintAt },
+        );
+        if (!enable) return [];
+        // The server looks up only once the switch got there.
+        await flush(db).catch(() => {});
+        const unique = [...new Set(codes.map((c) => c.code))];
+        return Promise.all(
+          unique.map(async (code) => {
+            const result = await api(
+              `/api/barcodes/${code}`,
+              barcodeLookupSchema,
+            ).catch(() => null);
+            if (result?.product)
+              await keepProduct(db, result.product).catch(() => {});
+            return result && { code, result };
+          }),
+        ).then((found) => found.filter((f) => f !== null));
+      }}
       questions={state && 'dishes' in state ? state.questions : undefined}
       manual={state && 'manual' in state ? state.manual : undefined}
       photoBarcode={

@@ -1035,6 +1035,8 @@ export const en = {
       not_needed: 'Not needed',
       down: 'Not responding — reading the label',
       missing: 'Not in the database — reading the label',
+      down_plain: 'Not responding',
+      missing_plain: 'Not in the database',
       off: 'Off · turn it on in Integrations',
       blocked: 'Turned off by the admin',
     },
@@ -1441,6 +1443,15 @@ export const en = {
       label: 'label',
       mine: 'your product',
     },
+    no_kcal:
+      'We found the barcode but without calories, and the nutrition table isn’t in the photo. Take a photo of it for exact numbers.',
+    shoot_label: 'Photograph the label',
+    reading_label: 'Reading the label…',
+    label_updated: 'Updated from the label',
+    label_failed: 'Couldn’t read the label. Try a closer, sharper photo.',
+    off_suggest:
+      'There’s a barcode in the photo. Turn on Open Food Facts lookup for more accurate package numbers.',
+    off_found: 'Found in Open Food Facts',
     package_caption:
       'Barcode and label numbers come from the package — just check the grams. The rest is an AI estimate from the photo.',
     remember:
