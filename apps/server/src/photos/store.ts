@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { mkdir, rename, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import type { Database } from 'better-sqlite3';
 import sharp from 'sharp';
 import { ApiError } from '../http/errors.js';
 
@@ -9,6 +10,20 @@ sharp.concurrency(1);
 sharp.cache(false);
 
 export type PhotoSize = 'full' | 'preview';
+
+/** A photo already owned by a meal, another recipe or another recipe's step; `recipeId` is the owner to skip, null for none. */
+export const photoTaken = (
+  db: Database,
+  photoId: string,
+  recipeId: number | null,
+) =>
+  !!db
+    .prepare(
+      `SELECT 1 FROM meals WHERE photo_id = @p
+       UNION ALL SELECT 1 FROM recipes WHERE photo_id = @p AND id IS NOT @r
+       UNION ALL SELECT 1 FROM recipe_steps WHERE photo_id = @p AND recipe_id IS NOT @r`,
+    )
+    .get({ p: photoId, r: recipeId });
 
 const PHOTO_ID_RE = /^[A-Za-z0-9_-]{22}$/;
 const EXT: Record<PhotoSize, string> = { full: 'jpg', preview: 'webp' };

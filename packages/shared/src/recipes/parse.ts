@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { round1 } from '../units.js';
 import { fromPer100, type Nutrients } from '../nutrition.js';
 import { nutrientsSchema, validPer100 } from './lighter.js';
 import { COOKED_G_MAX, type RecipeInput } from './recipes.js';
@@ -38,7 +39,6 @@ export interface RecipeParseResponse {
 }
 
 const ZERO: Nutrients = { kcal: 0, proteinG: 0, fatG: 0, carbsG: 0 };
-const round1 = (v: number) => Math.round(v * 10) / 10;
 const inRange = (v: number | null, min: number, max: number) =>
   v !== null && Number.isFinite(v) && v >= min && v <= max;
 
