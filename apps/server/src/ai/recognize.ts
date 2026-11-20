@@ -5,10 +5,12 @@ import {
   type LanguageModelUsage,
 } from 'ai';
 import {
-  recognitionSchema,
+  normalizeGtin,
+  packageRecognitionSchema,
   round1,
   type AiQuestion,
-  type Recognition,
+  type PackageDish,
+  type PackageRecognition,
   type RecognizedDish,
 } from '@oct/shared';
 import {
@@ -21,7 +23,7 @@ import type { AiModel } from './model.js';
 import { QUESTIONS_PROMPT, sanitizeQuestions } from './questions.js';
 
 /** Bump on every prompt change; it is logged with each call. */
-export const RECOGNIZE_PROMPT_VERSION = 2;
+export const RECOGNIZE_PROMPT_VERSION = 3;
 export const RECOGNIZE_TIMEOUT_MS = 60_000;
 
 /** Tokens of one recognition, every attempt summed. */
@@ -40,21 +42,92 @@ Confidence is 0..1:
 - mixed dishes, sauces and oil: at most 0.9;
 - blurry, dark or partial photos: below 0.5.
 If there is no food on the photo, return an empty list.
+The message may have a <barcodes> tag with retail barcodes read from packages on the photo.
+For a dish that is one of these packages set barcode to its number exactly as listed, otherwise null.
+Set label to true only when you read the dish's kcal and nutrients from its package's nutrition table on the photo.
 ${QUESTIONS_PROMPT}`;
+}
+
+/** `?mode=label` (ADR-0034 §2): only the nutrition table of one package. */
+export function labelPrompt(locale: string, code: string) {
+  return `You read the nutrition table of the package with barcode ${code} on the photo.
+Return one dish: the product name in ${languageName(locale)}; grams is one serving if the table states it, otherwise 100;
+kcal, protein, fat and carbohydrates in grams for that weight, computed from the table; confidence 1.
+If the photo has no readable nutrition table, return an empty list.
+Do not ask questions.`;
 }
 
 /**
  * Recognizes the dishes on a JPEG photo (ADR-0007). One silent retry on a schema mismatch,
  * 60 s for the whole operation. Provider failures become ApiError; aborting `signal`
  * rethrows the abort error as is. `onUsage` gets the tokens of all attempts, failed ones included.
+ * `barcodes` read from the photo go to the model in a `<barcodes>` tag (ADR-0034 §2).
  */
-export async function recognizeMeal(
+export function recognizeMeal(
   model: AiModel,
   jpeg: Uint8Array,
   locale: string,
   signal?: AbortSignal,
   onUsage?: (usage: TokenUsage) => void,
-): Promise<Recognition & { questions: AiQuestion[] }> {
+  barcodes: string[] = [],
+): Promise<PackageRecognition & { questions: AiQuestion[] }> {
+  return askVision(
+    model,
+    jpeg,
+    {
+      op: 'recognize',
+      system: recognizePrompt(locale),
+      text: barcodes.length
+        ? `<barcodes>${barcodes.join(' ')}</barcodes>`
+        : undefined,
+      signal,
+      onUsage,
+    },
+    (output) => {
+      const dishes = output.dishes.map((d) => sanitizePackageDish(d, barcodes));
+      return { dishes, questions: sanitizeQuestions(output.questions, dishes) };
+    },
+  );
+}
+
+/** `?mode=label`: one dish with `label: true` from the package's table, or none (ADR-0034 §2). */
+export function readLabel(
+  model: AiModel,
+  jpeg: Uint8Array,
+  locale: string,
+  code: string,
+  signal?: AbortSignal,
+): Promise<PackageRecognition & { questions: AiQuestion[] }> {
+  return askVision(
+    model,
+    jpeg,
+    {
+      op: 'label',
+      system: labelPrompt(locale, code),
+      text: `<barcodes>${code}</barcodes>`,
+      signal,
+    },
+    (output) => ({
+      dishes: output.dishes
+        .slice(0, 1)
+        .map((d) => ({ ...sanitizeDish(d), barcode: code, label: true })),
+      questions: [],
+    }),
+  );
+}
+
+async function askVision<T extends { dishes: unknown[]; questions: unknown[] }>(
+  model: AiModel,
+  jpeg: Uint8Array,
+  opts: {
+    op: string;
+    system: string;
+    text?: string;
+    signal?: AbortSignal;
+    onUsage?: (usage: TokenUsage) => void;
+  },
+  finish: (output: PackageRecognition) => T,
+): Promise<T> {
   const total: TokenUsage = { inputTokens: 0, outputTokens: 0 };
   const add = (u: LanguageModelUsage | undefined) => {
     total.inputTokens += u?.inputTokens ?? 0;
@@ -64,10 +137,10 @@ export async function recognizeMeal(
     return await callModel(
       model,
       {
-        op: 'recognize',
+        op: opts.op,
         promptVersion: RECOGNIZE_PROMPT_VERSION,
         timeoutMs: RECOGNIZE_TIMEOUT_MS,
-        signal,
+        signal: opts.signal,
         mapError: noVisionError,
         logExtra: (r) =>
           `dishes=${r?.dishes.length ?? 0} questions=${r?.questions.length ?? 0}`,
@@ -75,14 +148,19 @@ export async function recognizeMeal(
       async (abortSignal) => {
         const result = await generateText({
           model,
-          system: recognizePrompt(locale),
+          system: opts.system,
           messages: [
             {
               role: 'user',
-              content: [{ type: 'file', data: jpeg, mediaType: 'image/jpeg' }],
+              content: [
+                { type: 'file', data: jpeg, mediaType: 'image/jpeg' },
+                ...(opts.text
+                  ? [{ type: 'text' as const, text: opts.text }]
+                  : []),
+              ],
             },
           ],
-          output: Output.object({ schema: recognitionSchema }),
+          output: Output.object({ schema: packageRecognitionSchema }),
           maxRetries: 0,
           reasoning: quickReasoning(model),
           abortSignal,
@@ -92,16 +170,25 @@ export async function recognizeMeal(
           throw err;
         });
         add(result.usage);
-        const dishes = result.output.dishes.map(sanitizeDish);
-        return {
-          dishes,
-          questions: sanitizeQuestions(result.output.questions, dishes),
-        };
+        return finish(result.output);
       },
     );
   } finally {
-    onUsage?.(total);
+    opts.onUsage?.(total);
   }
+}
+
+/** `sanitizeDish` plus the package hints, set only when present: a barcode not from the tag is dropped. */
+export function sanitizePackageDish(
+  d: PackageDish,
+  barcodes: string[],
+): PackageDish {
+  const code = d.barcode ? normalizeGtin(d.barcode) : null;
+  return {
+    ...sanitizeDish(d),
+    ...(code && barcodes.includes(code) && { barcode: code }),
+    ...(d.label === true && { label: true }),
+  };
 }
 
 /**

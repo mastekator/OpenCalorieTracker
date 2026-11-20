@@ -1,4 +1,5 @@
-import { rm } from 'node:fs/promises';
+import { readFile, rm } from 'node:fs/promises';
+import { join } from 'node:path';
 import { MockLanguageModelV4 } from 'ai/test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { photoPath } from '../photos/store.js';
@@ -205,5 +206,75 @@ describe('POST /api/photos/:id/recognize', () => {
     expect((await t.recognize(id)).status).toBe(503);
     expect((await t.recognize(id)).status).toBe(200);
     expect(model.doGenerateCalls).toHaveLength(2);
+  });
+});
+
+describe('barcodes in recognition (ADR-0034 §2)', () => {
+  const CODE = '4006381333931';
+  const uploadPackage = async (t: Awaited<ReturnType<typeof setup>>) => {
+    const photo = await readFile(
+      join(import.meta.dirname, '../barcodes/fixtures/ean13.jpg'),
+    );
+    const res = await t.app.request('/api/photos', {
+      method: 'POST',
+      headers: { 'content-type': 'image/jpeg', cookie: t.cookie },
+      body: new Uint8Array(photo),
+    });
+    return ((await res.json()) as { photoId: string }).photoId;
+  };
+  const label = (
+    t: Awaited<ReturnType<typeof setup>>,
+    id: string,
+    barcode: string,
+  ) =>
+    t.app.request(`/api/photos/${id}/recognize?mode=label&barcode=${barcode}`, {
+      method: 'POST',
+      headers: { cookie: t.cookie, origin: 'http://localhost:3000' },
+    });
+
+  it('does not wait for Open Food Facts (AC-4.13)', async () => {
+    const off = vi.fn(() => new Promise<Response>(() => {}));
+    const model = mockModel({ dishes: [{ ...egg, barcode: CODE }] });
+    const t = await aiSetup(model, {}, off as unknown as typeof fetch);
+    cleanup = t.cleanup;
+    t.db.prepare('UPDATE users SET off_enabled = 1').run();
+    const id = await uploadPackage(t);
+
+    let barcodesDone = false;
+    void t.app
+      .request(`/api/photos/${id}/barcodes`, {
+        method: 'POST',
+        headers: { cookie: t.cookie, origin: 'http://localhost:3000' },
+      })
+      .then(() => (barcodesDone = true));
+    await vi.waitFor(() => expect(off).toHaveBeenCalled());
+
+    const res = await t.recognize(id);
+    expect(await res.json()).toEqual({
+      dishes: [{ ...egg, barcode: CODE }],
+      questions: [],
+    });
+    expect(barcodesDone).toBe(false);
+    expect(JSON.stringify(model.doGenerateCalls[0]!.prompt)).toContain(
+      `<barcodes>${CODE}</barcodes>`,
+    );
+  });
+
+  it('reads the label of one code; a bad code is 400', async () => {
+    const model = mockModel({ dishes: [egg] });
+    const t = await setup(model);
+    const id = await t.upload();
+    const bad = await label(t, id, '123');
+    expect(bad.status).toBe(400);
+    expect(await bad.json()).toEqual({ error: { code: 'barcode_invalid' } });
+
+    const res = await label(t, id, CODE);
+    expect(await res.json()).toEqual({
+      dishes: [{ ...egg, barcode: CODE, label: true }],
+      questions: [],
+    });
+    // Cached apart from the plain recognition, and served again from memory.
+    expect((await label(t, id, CODE)).status).toBe(200);
+    expect(model.doGenerateCalls).toHaveLength(1);
   });
 });

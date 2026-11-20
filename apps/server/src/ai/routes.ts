@@ -3,23 +3,24 @@ import { access, readFile } from 'node:fs/promises';
 import { Hono } from 'hono';
 import {
   AI_PROVIDERS,
+  normalizeGtin,
   recipeParseRequestSchema,
   refineRequestSchema,
   type AiStatus,
   type LighterResponse,
-  type Recognition,
   type RecipeParseResponse,
   type RefineResponse,
 } from '@oct/shared';
-import type { AppDeps } from '../app.js';
+import type { RouteDeps } from '../app.js';
 import { requireUser, type AuthEnv } from '../auth/session.js';
+import { readBarcodes } from '../barcodes/read.js';
 import { ApiError } from '../http/errors.js';
 import { validate } from '../http/validate.js';
 import { photoPath } from '../photos/store.js';
 import { readRecipe } from '../recipes/read.js';
 import { lighterRecipe } from './lighter.js';
 import { parseRecipe } from './parse.js';
-import { recognizeMeal } from './recognize.js';
+import { readLabel, recognizeMeal } from './recognize.js';
 import { refineMeal, type Refined } from './refine.js';
 import { baseUrlHost, refineLimit } from './settings.js';
 import { interviewStatus, recognitionStatus } from './status.js';
@@ -28,7 +29,7 @@ export const RESULT_TTL_MS = 10 * 60_000;
 const SESSION_TTL_MS = 24 * 3600_000;
 
 /** AI status, photo recognition and refining (ADR-0007 "HTTP", ADR-0020 §5). State is per app instance. */
-export function aiRoutes({ config, db, ai }: AppDeps) {
+export function aiRoutes({ config, db, ai, photoBarcodes }: RouteDeps) {
   // Successful and in-flight AI calls by "userId:photoId" or "userId:refine:requestId"; failures are dropped at once.
   const results = new Map<string, Promise<unknown>>();
   // Users with an AI call running now: one call per user at a time, recognize and refine alike.
@@ -82,15 +83,35 @@ export function aiRoutes({ config, db, ai }: AppDeps) {
 
       const user = c.var.user;
       const photoId = c.req.param('id');
+      const label = c.req.query('mode') === 'label';
+      const code = label ? normalizeGtin(c.req.query('barcode') ?? '') : null;
+      if (label && !code) throw new ApiError(400, 'barcode_invalid');
       const jpg = photoPath(config.dataDir, user.id, photoId, 'full');
       if (!jpg) throw new ApiError(404, 'not_found');
 
       const preview = photoPath(config.dataDir, user.id, photoId, 'preview')!;
-      const result = once<Recognition>(`${user.id}:${photoId}`, user.id, () =>
-        readJpeg(jpg, preview).then((bytes) =>
-          recognizeMeal(model!, bytes, user.locale),
-        ),
-      );
+      const photoKey = `${user.id}:${photoId}`;
+      const result = code
+        ? once(`${photoKey}:label:${code}`, user.id, () =>
+            readJpeg(jpg, preview).then((bytes) =>
+              readLabel(model!, bytes, user.locale, code),
+            ),
+          )
+        : once(photoKey, user.id, async () => {
+            const bytes = await readJpeg(jpg, preview);
+            // Waits for decoding only, never for Open Food Facts (AC-4.13); a failed read means no codes.
+            const codes = await photoBarcodes(photoKey, () =>
+              readBarcodes(bytes),
+            ).catch(() => []);
+            return recognizeMeal(
+              model!,
+              bytes,
+              user.locale,
+              undefined,
+              undefined,
+              codes,
+            );
+          });
       return c.json(await result);
     })
     .post(
