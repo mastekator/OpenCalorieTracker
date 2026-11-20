@@ -429,7 +429,9 @@ body{padding:var(--space-10) var(--space-8)}
 .group.locked{opacity:var(--disabled-opacity,.5);pointer-events:none}
 .slow{font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);color:var(--color-text-secondary);padding:0 var(--space-1)}
 /* result: changed rows, removed line, delta, undo strip */
-.dish.chg{background:var(--color-accent-soft)}
+.dish-hl{display:flex;flex-direction:column;gap:var(--space-2)}
+/* only the dish row is highlighted, a question block under it stays on the card surface */
+.dish.chg .dish-hl{margin:calc(-1 * var(--space-3)) calc(-1 * var(--space-4)) 0;padding:var(--space-3) var(--space-4);background:var(--color-accent-soft)}
 .badge.new{background:var(--color-accent);color:var(--color-on-accent)}
 .badge.mod{background:var(--color-surface);color:var(--color-accent);box-shadow:inset 0 0 0 1px var(--color-accent)}
 .was{margin-left:var(--space-1);font-size:var(--text-footnote-size);color:var(--color-text-secondary);text-decoration:line-through}
@@ -603,9 +605,9 @@ function dish(d, o={}){
   const mark = o.isNew ? `<span class="badge new" aria-label="${T.srNew}">${I('plus-c')}${T.newB}</span>`
     : o.was ? `<span class="badge mod" aria-label="${T.srMod(o.was)}">${I('pencil')}${T.modB}</span>` : '';
   const was = o.was ? `<span class="was" aria-hidden="true">${T.was(o.was)}</span>` : '';
-  return `<div class="dish ${mark?'chg':''}"><div class="dish-top"><span class="name">${d.n}</span><span class="kc num">${d.k} ${T.kcal}</span></div>
+  return `<div class="dish ${mark?'chg':''}"><div class="dish-hl"><div class="dish-top"><span class="name">${d.n}</span><span class="kc num">${d.k} ${T.kcal}</span></div>
     <div class="dish-meta">${mark}${badge(d.conf)}<span>${T.P} ${d.p} · ${T.F} ${d.f} · ${T.C} ${d.c}</span></div>
-    <div class="dish-ctl"><span class="step">${I('minus')}</span><span class="wv">${d.g}<small>${T.g}</small></span><span class="step">${I('plus')}</span>${was}<span class="more">${I('pencil','sm')}</span></div>${o.ask||''}</div>`;
+    <div class="dish-ctl"><span class="step">${I('minus')}</span><span class="wv">${d.g}<small>${T.g}</small></span><span class="step">${I('plus')}</span>${was}<span class="more">${I('pencil','sm')}</span></div></div>${o.ask||''}</div>`;
 }
 /* AI question under a dish: q text, options, index of the selected one (AI guess by default), last chip = free text */
 const ask = (q, opts, on=0, last=T.other, lastCls='other') => `<div class="ask" role="radiogroup" aria-label="${q}"><div class="ask-q">${I('spark','sm')}<span><span class="ask-l">${T.notSure}:</span> ${q}</span></div><div class="chips">${opts.map((o,i)=>`<span class="chip ${i===on?'on':''}" role="radio" aria-checked="${i===on}">${i===on?I('check'):''}${o}</span>`).join('')}<span class="chip ${lastCls}">${last}</span></div></div>`;
