@@ -131,7 +131,9 @@ describe('«Photograph the label» (OCT-313 2.4)', () => {
       target: { files: [new File(['x'], 'label.jpg')] },
     });
     const reading = await screen.findByText('Reading the label…');
-    expect(reading.closest('button')!.hasAttribute('disabled')).toBe(true);
+    expect(reading.closest('button')!.getAttribute('aria-disabled')).toBe(
+      'true',
+    );
     expect(reading.closest('[aria-busy]')).toBeTruthy();
     expect(save.hasAttribute('disabled')).toBe(true);
     expect(document.querySelector('.meal-edit__list[inert]')).toBeTruthy();

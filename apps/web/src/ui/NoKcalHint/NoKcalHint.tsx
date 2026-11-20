@@ -1,6 +1,7 @@
 import { Camera } from 'lucide-react';
 import { useT } from '../../i18n';
 import { Banner } from '../Banner/Banner';
+import '../Button/Button.css';
 
 type Props = {
   /** «Photograph the label»: the camera, the photo is read as this package's label only. */
@@ -17,7 +18,13 @@ export function NoKcalHint({ onShoot, busy }: Props) {
       <Banner
         tone="warning"
         actions={
-          <button type="button" onClick={onShoot} disabled={busy}>
+          // aria-disabled, not disabled: loading keeps its colours and the focus.
+          <button
+            type="button"
+            onClick={busy ? undefined : onShoot}
+            aria-disabled={busy || undefined}
+            aria-busy={busy || undefined}
+          >
             {busy ? (
               <span className="button__spinner" aria-hidden="true" />
             ) : (

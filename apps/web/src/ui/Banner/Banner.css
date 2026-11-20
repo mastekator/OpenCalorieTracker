@@ -80,6 +80,11 @@
   cursor: default;
 }
 
+/* Loading keeps its colours; only a disabled button fades. */
+.banner__actions button[aria-busy] {
+  cursor: default;
+}
+
 .banner__close {
   display: grid;
   place-items: center;
