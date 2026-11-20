@@ -415,6 +415,12 @@ describe('MealEditScreen', () => {
     });
 
     it('focus goes to the next row after a delete and to the restored row after «Undo»', async () => {
+      // The history answer lands after the delete: its render's effect runs right after the «Undo» click (OCT-368).
+      const answer = historyApi();
+      vi.stubGlobal('fetch', async (path: string, init?: RequestInit) => {
+        await new Promise((r) => setTimeout(r, 0));
+        return answer(path, init);
+      });
       await setup(undefined, [buckwheat, rice]);
       fireEvent.click(screen.getByRole('button', { name: 'Delete Buckwheat' }));
       expect(document.activeElement).toBe(
