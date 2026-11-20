@@ -234,7 +234,8 @@ export function ManualDishSheet({
       <div className="manual-dish">
         {photoNotFound && (
           <Banner tone="notice">
-            {t('manual_dish.barcode.photo_not_found')}{' '}
+            {t('manual_dish.barcode.photo_not_found')}
+            <br />
             {t(`manual_dish.barcode.ai_for_labels.${photoNotFound}`)}
           </Banner>
         )}

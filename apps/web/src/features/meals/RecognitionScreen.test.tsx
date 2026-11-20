@@ -338,6 +338,37 @@ describe('RecognitionScreen', () => {
       );
     });
 
+    it('with Open Food Facts off the AI reads the label (1.5)', async () => {
+      barcodes = codes({
+        code: CODE,
+        result: { product: null, from: null, off: 'disabled' },
+      });
+      respond();
+      await setup();
+      const steps = await screen.findByRole('list', {
+        name: 'Recognition steps',
+      });
+      await waitFor(() =>
+        expect(steps.textContent).toContain(
+          'Nutrition table on the package and the rest of the food',
+        ),
+      );
+    });
+
+    it('a failed barcode read says steps 1–2 are skipped, states are spoken', async () => {
+      barcodes = fail(500, 'internal');
+      respond();
+      await setup();
+      const steps = await screen.findByRole('list', {
+        name: 'Recognition steps',
+      });
+      await waitFor(() =>
+        expect(steps.textContent).toBe(
+          'BarcodeSkippedOpen Food FactsSkippedAI reads the photoin progress',
+        ),
+      );
+    });
+
     it('a failed barcode read skips steps 1–2, the AI dishes go on (OCT-16)', async () => {
       barcodes = fail(500, 'internal');
       respond(ok);

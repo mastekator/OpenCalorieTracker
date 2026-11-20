@@ -1012,6 +1012,14 @@ export const en = {
     },
   },
   recog: {
+    skipped: 'Skipped',
+    mark: {
+      wait: 'waiting',
+      run: 'in progress',
+      done: 'done',
+      skip: 'skipped',
+      warn: 'failed',
+    },
     steps_a11y: 'Recognition steps',
     step: {
       barcode: 'Barcode',

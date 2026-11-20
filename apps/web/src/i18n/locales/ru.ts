@@ -1041,6 +1041,14 @@ const ru: DeepPartial<typeof en> = {
     },
   },
   recog: {
+    skipped: 'Пропущен',
+    mark: {
+      wait: 'ждёт',
+      run: 'идёт',
+      done: 'готово',
+      skip: 'пропущен',
+      warn: 'сбой',
+    },
     steps_a11y: 'Шаги распознавания',
     step: {
       barcode: 'Штрихкод',

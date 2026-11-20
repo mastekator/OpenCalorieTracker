@@ -6,6 +6,13 @@ const meta = {
   component: RecognitionSteps,
   args: {
     label: 'Recognition steps',
+    marks: {
+      wait: 'waiting',
+      run: 'in progress',
+      done: 'done',
+      skip: 'skipped',
+      warn: 'failed',
+    },
     steps: [
       { title: 'Barcode', caption: '4607012345678', mark: 'done' },
       {

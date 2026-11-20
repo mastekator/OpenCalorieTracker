@@ -25,9 +25,12 @@ export type Step = { title: string; caption?: string; mark: StepMarkKind };
 export function RecognitionSteps({
   steps,
   label,
+  marks,
 }: {
   steps: Step[];
   label: string;
+  /** Spoken state of a step without a caption — the mark itself is hidden. */
+  marks: Record<StepMarkKind, string>;
 }) {
   return (
     <ol className="recog-steps" aria-label={label} aria-live="polite">
@@ -35,8 +38,10 @@ export function RecognitionSteps({
         <li key={s.title} className={`recog-steps__step is-${s.mark}`}>
           <StepMark kind={s.mark} />
           <span className="recog-steps__title">{s.title}</span>
-          {s.caption && (
+          {s.caption ? (
             <span className="recog-steps__caption">{s.caption}</span>
+          ) : (
+            <span className="recog-steps__sr">{marks[s.mark]}</span>
           )}
         </li>
       ))}

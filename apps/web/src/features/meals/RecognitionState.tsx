@@ -42,7 +42,7 @@ export function recognitionSteps(
     codes === 'pending'
       ? { mark: 'run' }
       : codes === 'failed'
-        ? { mark: 'skip' }
+        ? { mark: 'skip', caption: t('recog.skipped') }
         : found.length === 0
           ? { mark: 'skip', caption: t('recog.barcode.none') }
           : {
@@ -62,7 +62,7 @@ export function recognitionSteps(
     codes === 'pending'
       ? { mark: 'wait' }
       : codes === 'failed'
-        ? { mark: 'skip' }
+        ? { mark: 'skip', caption: t('recog.skipped') }
         : offHit
           ? { mark: 'done', caption: offHit.name ?? offHit.brand ?? undefined }
           : offStatus === 'down' || offStatus === 'missing'
@@ -81,6 +81,7 @@ export function recognitionSteps(
   // The AI reads the nutrition table when no product numbers came (E-12).
   const label =
     off.mark === 'warn' ||
+    (!offHit && (offStatus === 'disabled' || offStatus === 'blocked')) ||
     found.some((c) => c.result.product && c.result.product.kcal100 === null);
   const aiStep: Mark =
     ai === 'none'
@@ -247,6 +248,13 @@ export function RecognitionState({
           </div>
           <RecognitionSteps
             label={t('recog.steps_a11y')}
+            marks={{
+              wait: t('recog.mark.wait'),
+              run: t('recog.mark.run'),
+              done: t('recog.mark.done'),
+              skip: t('recog.mark.skip'),
+              warn: t('recog.mark.warn'),
+            }}
             steps={recognitionSteps(t, codes, ai)}
           />
           {state === 'slow' && (
