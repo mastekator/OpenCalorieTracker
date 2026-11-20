@@ -36,6 +36,10 @@ export const aiQuestionSchema = z.object({
       proteinG: z.number(),
       fatG: z.number(),
       carbsG: z.number(),
+      /** From the model: the name of one of the user's recipes this option is (ADR-0035 §5). */
+      recipe: z.string().nullable().optional(),
+      /** From the server: the matched recipe; the option's numbers are then unused. */
+      recipeId: z.number().optional(),
     }),
   ),
 });

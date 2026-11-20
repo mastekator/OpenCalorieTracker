@@ -87,7 +87,7 @@ describe('recognizeMeal', () => {
     });
     expect(logs()).toEqual([
       expect.stringMatching(
-        /^ai\.recognize provider=mock model=vision-1 prompt=3 ms=\d+ dishes=1 questions=0 result=ok$/,
+        /^ai\.recognize provider=mock model=vision-1 prompt=4 ms=\d+ dishes=1 questions=0 recipes=0 result=ok$/,
       ),
     ]);
   });
@@ -185,7 +185,7 @@ describe('recognizeMeal', () => {
     );
   });
 
-  it('sends no barcodes tag without codes', async () => {
+  it('sends no barcodes or recipes tag without codes and recipes', async () => {
     vi.spyOn(console, 'log').mockImplementation(() => {});
     const model = mockModel({ dishes: [] });
     await recognizeMeal(model, jpeg, 'en');
@@ -193,6 +193,9 @@ describe('recognizeMeal', () => {
       (m) => m.role === 'user',
     )!;
     expect(user.content).toHaveLength(1);
+    expect(JSON.stringify(model.doGenerateCalls[0]!.prompt)).not.toContain(
+      '<recipes>',
+    );
   });
 
   it('sends the codes in a tag and keeps only their barcodes (ADR-0034 §2)', async () => {
@@ -217,6 +220,48 @@ describe('recognizeMeal', () => {
     ]);
   });
 
+  it('K7: offers the user recipe for a cheesecake photo, next to the barcodes (ADR-0035)', async () => {
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    const cake = { ...egg, name: 'Чизкейк', grams: 150, kcal: 480 };
+    const option = { ...cake, confidence: undefined };
+    const model = mockModel({
+      dishes: [cake],
+      questions: [
+        {
+          dish: 0,
+          text: 'Это ваш рецепт?',
+          guess: 0,
+          options: [
+            { label: 'Чизкейк', ...option, recipe: null },
+            { label: 'Мой', ...option, recipe: ' мой  ЧИЗКЕЙК ' },
+          ],
+        },
+      ],
+    });
+    const got = await recognizeMeal(
+      model,
+      jpeg,
+      'ru',
+      undefined,
+      undefined,
+      ['4006381333931'],
+      [{ id: 7, name: 'Мой чизкейк' }],
+    );
+    expect(got.questions[0]!.options[1]).toMatchObject({
+      label: 'Мой',
+      name: 'Мой чизкейк',
+      recipeId: 7,
+    });
+    expect(got.questions[0]!.options[1]).not.toHaveProperty('recipe');
+    const [system, user] = model.doGenerateCalls[0]!.prompt;
+    expect(system!.content).toContain('<recipes> tag');
+    expect(JSON.stringify(user!.content)).toContain(
+      '<barcodes>4006381333931</barcodes>\\n<recipes>[\\"Мой чизкейк\\"]</recipes>',
+    );
+    expect(logs()[0]).toMatch(/ recipes=1 result=ok$/);
+    expect(logs()[0]).not.toContain('чизкейк');
+  });
+
   it('reads one label dish with the code, or none', async () => {
     vi.spyOn(console, 'log').mockImplementation(() => {});
     const model = mockModel({ dishes: [egg, egg] }, { dishes: [] });
@@ -232,7 +277,7 @@ describe('recognizeMeal', () => {
     await expect(
       readLabel(model, jpeg, 'en', '4006381333931'),
     ).resolves.toEqual({ dishes: [], questions: [] });
-    expect(logs()[0]).toMatch(/^ai\.label .* prompt=3 /);
+    expect(logs()[0]).toMatch(/^ai\.label .* prompt=4 /);
   });
 
   it('maps a no-image error to ai_no_vision and remembers it', async () => {

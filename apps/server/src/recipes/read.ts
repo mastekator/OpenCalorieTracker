@@ -88,3 +88,12 @@ export const readRecipesByRev = (
     since,
     upTo,
   );
+
+/** Names sent to the model for recipe options: last logged first, at most 100 (ADR-0035 §4). */
+export const recipeNames = (db: Database, userId: number) =>
+  db
+    .prepare(
+      `SELECT id, name FROM recipes WHERE user_id = ?
+       ORDER BY last_logged_at IS NULL, last_logged_at DESC, updated_at DESC LIMIT 100`,
+    )
+    .all(userId) as { id: number; name: string }[];

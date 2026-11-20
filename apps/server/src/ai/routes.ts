@@ -17,7 +17,7 @@ import { readBarcodes } from '../barcodes/read.js';
 import { ApiError } from '../http/errors.js';
 import { validate } from '../http/validate.js';
 import { photoPath } from '../photos/store.js';
-import { readRecipe } from '../recipes/read.js';
+import { readRecipe, recipeNames } from '../recipes/read.js';
 import { lighterRecipe } from './lighter.js';
 import { parseRecipe } from './parse.js';
 import { readLabel, recognizeMeal } from './recognize.js';
@@ -110,6 +110,7 @@ export function aiRoutes({ config, db, ai, photoBarcodes }: RouteDeps) {
               undefined,
               undefined,
               codes,
+              recipeNames(db, user.id),
             );
           });
       return c.json(await result);
@@ -193,6 +194,7 @@ export function aiRoutes({ config, db, ai, photoBarcodes }: RouteDeps) {
             dishes,
             text,
             locale: user.locale,
+            recipes: recipeNames(db, user.id),
           });
           // Thrown inside the call so an empty answer is never cached (ADR-0020 §5).
           if (!refined.dishes.length)
