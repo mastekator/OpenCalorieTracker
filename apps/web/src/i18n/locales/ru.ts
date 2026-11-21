@@ -1623,7 +1623,7 @@ const ru: DeepPartial<typeof en> = {
         pieces: 'Сколько штук в упаковке?',
         pieces_ph: 'Например, 12',
         pieces_hint: 'Упаковка {w} — посчитаем вес одной штуки и запомним.',
-        err: { weight: 'Вес от 1 до 5000 г', pieces: 'Целое число, от 1' },
+        err: { weight: 'Вес от 1 до 5000 г', pieces: 'Целое число от 1 до 1000' },
       },
       src: {
         off: 'Open Food Facts · по штрихкоду',

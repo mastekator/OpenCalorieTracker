@@ -1549,7 +1549,7 @@ export const en = {
           'Package {w}: we’ll work out the weight of one piece and remember it.',
         err: {
           weight: 'Weight 1–5,000 g',
-          pieces: 'A whole number, 1 or more',
+          pieces: 'A whole number, 1–1,000',
         },
       },
       src: {

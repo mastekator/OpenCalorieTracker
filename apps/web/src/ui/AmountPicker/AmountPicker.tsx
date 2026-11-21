@@ -5,6 +5,7 @@ import {
   amountModes,
   defaultAmount,
   packPrefsSchema,
+  round1,
   type Amount,
   type AmountMode,
   type PackPrefs,
@@ -138,7 +139,8 @@ export function AmountPicker({
   const open = (next: Ask) => {
     setAsk(next);
     setBase({ p, amount });
-    setPackText(null);
+    // «Change» starts from the known weight in the user's units (E-7.2).
+    setPackText(next.packG && p.packG ? String(round1(w.show(p.packG))) : null);
     setPiecesText(null);
   };
   // Whole grams before the check, so 1–5000 g holds for ounces too (E-7.6).

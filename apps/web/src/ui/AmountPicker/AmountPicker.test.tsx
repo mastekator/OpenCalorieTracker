@@ -221,7 +221,7 @@ describe('AmountPicker: unknown package data (OCT-380 3.1–3.4)', () => {
     const onDone = await sheet({ ...COOKIES, pieces: null });
     fireEvent.click(radio('Pieces'));
     keys(PIECES, '1200');
-    screen.getByText('A whole number, 1 or more');
+    screen.getByText('A whole number, 1–1,000');
     done();
     expect(onDone.mock.calls[0]![4]).toEqual({});
   });
@@ -260,7 +260,7 @@ describe('AmountPicker: unknown package data (OCT-380 3.1–3.4)', () => {
       'Package 200 g: we’ll work out the weight of one piece and remember it.',
     );
     type(PIECES, '2,5');
-    screen.getByText('A whole number, 1 or more');
+    screen.getByText('A whole number, 1–1,000');
     expect(document.querySelector('.amount__value')).toBeNull();
     type(PIECES, '12');
     expect(value()).toBe('1of 12 · 17 g');
@@ -288,9 +288,15 @@ describe('AmountPicker: unknown package data (OCT-380 3.1–3.4)', () => {
   it('«Change» edits a known weight (E-7.2)', async () => {
     await sheet();
     fireEvent.click(screen.getByRole('button', { name: 'Change' }));
-    expect(field(WEIGHT).value).toBe('');
+    expect(field(WEIGHT).value).toBe('200');
     type(WEIGHT, '300');
     expect(value()).toBe('1pack · 300 g');
+  });
+
+  it('«Change» starts from the known weight in ounces', async () => {
+    await sheet(COOKIES, 'us');
+    fireEvent.click(screen.getByRole('button', { name: 'Change' }));
+    expect(field(WEIGHT).value).toBe('7.1');
   });
 });
 
