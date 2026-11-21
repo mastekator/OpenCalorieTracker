@@ -42,13 +42,29 @@ async function apply(db: Db, page: SyncResponse) {
   );
   const meals = tx.objectStore('meals');
   const kv = tx.objectStore('kv');
-  const pending = tx.objectStore('outbox').index('clientId');
-  for (const meal of page.meals)
+  const outbox = tx.objectStore('outbox');
+  const pending = outbox.index('clientId');
+  const parked = async (clientId: string) =>
+    (await pending.getAll(clientId)).find((o) => o.conflict);
+  for (const meal of page.meals) {
+    const op = await parked(meal.clientId);
+    // A parked edit is compared with the newest version there (ADR-0022 §3).
+    if (op)
+      await outbox.put({ ...op, conflict: { kind: 'edit', theirs: meal } });
     // A local unsent change wins over the server copy until it is sent (OCT-77).
-    if (!(await pending.count(meal.clientId))) await meals.put(meal);
-  // Deletion beats a local edit.
-  for (const clientId of page.deletedMealClientIds)
-    await meals.delete(clientId);
+    else if (!(await pending.count(meal.clientId))) await meals.put(meal);
+  }
+  for (const clientId of page.deletedMealClientIds) {
+    const op = await parked(clientId);
+    // A parked edit keeps its local copy: the user may restore it.
+    if (op)
+      await outbox.put({
+        ...op,
+        conflict: { kind: 'deleted', deletedAt: Date.now() },
+      });
+    // Otherwise deletion beats a local edit.
+    else await meals.delete(clientId);
+  }
   if (page.settings && !(await settingsQueued(pending)))
     await kv.put(page.settings, 'settings');
   // A save answered while this page was in flight is newer: keep it.

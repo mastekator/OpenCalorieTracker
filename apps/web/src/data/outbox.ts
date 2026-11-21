@@ -9,6 +9,8 @@ import {
   type IllustrationId,
   type Meal,
   type MealInput,
+  type MealItem,
+  type MealItemInput,
   type MealPatch,
   type PhotoRetentionDays,
   type Product,
@@ -19,7 +21,7 @@ import {
 import { api, ApiError } from '../api/client';
 import { emitChange } from './changes';
 import { refreshMyProducts } from './products';
-import type { Choices, Db, Op, OctDb } from './db';
+import type { Choices, Conflict, Db, Op, OctDb } from './db';
 import { followLatest, pull, settingsQueued, weighingsQueued } from './sync';
 
 const MIN_DELAY = 5_000;
@@ -50,15 +52,16 @@ type Tx = IDBPTransaction<
 >;
 
 /** Changes the local copy and the queue in one transaction, then sends (ADR-0011 §4). */
-async function local(db: Db, change: (tx: Tx) => Promise<void>) {
+async function local<T>(db: Db, change: (tx: Tx) => Promise<T>) {
   const tx = db.transaction(
     ['meals', 'outbox', 'kv', 'photos', 'weighings', 'products'],
     'readwrite',
   );
-  await change(tx);
+  const result = await change(tx);
   await tx.done;
   emitChange();
   void flush(db).catch(() => {}); // offline: retried on backoff or the next trigger
+  return result;
 }
 
 /** Queued ops of one clientId that are not being sent right now, in order. */
@@ -178,7 +181,10 @@ export function createMeal(db: Db, input: MealInput, photo?: Blob) {
   });
 }
 
-/** Edits a meal; last edit wins on the server by `editedAt` = now. */
+/**
+ * Edits a meal. The op carries `baseRev`, the `editRev` it was made on; a merged edit keeps the
+ * first one's (ADR-0022 §3). A meal cached before v0.4 has none: then the later `editedAt` wins.
+ */
 export function patchMeal(
   db: Db,
   clientId: string,
@@ -197,6 +203,7 @@ export function patchMeal(
     const create = ops.find((o) => o.kind === 'createMeal');
     const last = ops.at(-1);
     // Merge into the last op only: an older op after it would overwrite this edit.
+    // A parked op takes the edit too: the choice is then made on the latest local version.
     // A sent createMeal may be on the server already, and a resend ignores its body.
     if (last?.kind === 'createMeal' && !last.error && !last.sent)
       await outbox.put({ ...last, body: { ...last.body, ...patch } });
@@ -211,7 +218,7 @@ export function patchMeal(
         clientId,
         // id 0 while its createMeal is in flight: the answer fills it in.
         id: meal.id,
-        body: { ...patch, editedAt } as MealPatch,
+        body: { ...patch, editedAt, baseRev: meal.editRev } as MealPatch,
         // A meal the server refused to create cannot be edited there either.
         error: create?.error,
       });
@@ -247,22 +254,24 @@ async function retry(tx: Tx, ops: Op[]) {
   return kept;
 }
 
-export function deleteMeal(db: Db, clientId: string) {
-  return local(db, async (tx) => {
-    const meal = await tx.objectStore('meals').get(clientId);
-    if (!meal) return;
-    await tx.objectStore('meals').delete(clientId);
-    await tx.objectStore('photos').delete(clientId);
-    const outbox = tx.objectStore('outbox');
-    const ops = await queued(db, tx, clientId);
-    const create = ops.find((o) => o.kind === 'createMeal');
-    // A sent createMeal stays: its resend gives the id the delete needs.
-    const keep = create?.sent && !create.error ? create : undefined;
-    for (const o of ops) if (o !== keep) await outbox.delete(o.seq!);
-    // Never sent or refused: the server has nothing to delete.
-    if (create && !keep) return;
-    await outbox.add({ kind: 'deleteMeal', clientId, id: meal.id });
-  });
+export const deleteMeal = (db: Db, clientId: string) =>
+  local(db, (tx) => drop(db, tx, clientId));
+
+async function drop(db: Db, tx: Tx, clientId: string) {
+  const meal = await tx.objectStore('meals').get(clientId);
+  if (!meal) return;
+  await tx.objectStore('meals').delete(clientId);
+  await tx.objectStore('photos').delete(clientId);
+  const outbox = tx.objectStore('outbox');
+  const ops = await queued(db, tx, clientId);
+  const create = ops.find((o) => o.kind === 'createMeal');
+  // A sent createMeal stays: its resend gives the id the delete needs.
+  const keep = create?.sent && !create.error ? create : undefined;
+  for (const o of ops) if (o !== keep) await outbox.delete(o.seq!);
+  // Never sent or refused, or deleted there already: the server has nothing to delete.
+  if ((create && !keep) || ops.some((o) => o.conflict?.kind === 'deleted'))
+    return;
+  await outbox.add({ kind: 'deleteMeal', clientId, id: meal.id });
 }
 
 export function patchSettings(
@@ -394,7 +403,8 @@ async function send(db: Db, s: State): Promise<boolean> {
   if (s.outdated) return false;
   clearTimeout(s.timer);
   for (;;) {
-    let op = (await db.getAll('outbox')).find((o) => !o.error);
+    // Refused and parked ops wait; the rest of the queue goes on.
+    let op = (await db.getAll('outbox')).find((o) => !o.error && !o.conflict);
     if (!op) break;
     s.sending = op.seq;
     if (op.kind === 'createMeal' && !op.sent)
@@ -523,7 +533,10 @@ async function upload(db: Db, op: Op) {
   await tx.done;
 }
 
-/** The server's meal: later ops of it learn its id; with none left it replaces the local copy. */
+/**
+ * The server's meal: later ops of it learn its id and build on its `editRev`;
+ * with none left it replaces the local copy.
+ */
 async function saved(db: Db, op: Op, meal: Meal) {
   const tx = db.transaction(['outbox', 'meals'], 'readwrite');
   const outbox = tx.objectStore('outbox');
@@ -531,11 +544,18 @@ async function saved(db: Db, op: Op, meal: Meal) {
   await outbox.delete(op.seq!);
   const later = await outbox.index('clientId').getAll(op.clientId);
   for (const o of later)
-    if ((o.kind === 'patchMeal' || o.kind === 'deleteMeal') && !o.id)
+    if (o.kind === 'deleteMeal' && !o.id)
       await outbox.put({ ...o, id: meal.id });
+    else if (o.kind === 'patchMeal')
+      await outbox.put({
+        ...o,
+        id: o.id || meal.id,
+        body: { ...o.body, baseRev: meal.editRev ?? o.body.baseRev },
+      });
   const local = await meals.get(op.clientId);
   if (!later.length) await meals.put(meal);
-  else if (local) await meals.put({ ...local, id: meal.id });
+  else if (local)
+    await meals.put({ ...local, id: meal.id, editRev: meal.editRev });
   await tx.done;
 }
 
@@ -558,6 +578,26 @@ async function refuse(db: Db, op: Op, err: ApiError) {
   const tx = db.transaction(['outbox', 'meals'], 'readwrite');
   const outbox = tx.objectStore('outbox');
   const creates = op.kind === 'createMeal' || op.kind === 'uploadPhoto';
+  const here = !!(await tx.objectStore('meals').get(op.clientId));
+  // Made on an older version, or deleted there: park it for the user's choice, the local copy stays (ADR-0022 §3).
+  if (
+    op.kind === 'patchMeal' &&
+    (err.code === 'edit_conflict' || (err.status === 404 && here))
+  ) {
+    const conflict: Conflict =
+      err.code === 'edit_conflict'
+        ? { kind: 'edit', theirs: (err.details as { meal: Meal }).meal }
+        : { kind: 'deleted', deletedAt: Date.now() };
+    // Edits made while it was in flight fold in: one parked op per meal.
+    let body = op.body;
+    for (const o of await outbox.index('clientId').getAll(op.clientId))
+      if (o.kind === 'patchMeal' && o.seq !== op.seq) {
+        body = { ...body, ...o.body, baseRev: op.body.baseRev } as MealPatch;
+        await outbox.delete(o.seq!);
+      }
+    await outbox.put({ ...op, body, conflict });
+    return tx.done;
+  }
   // Nothing marks a refused settings or choice op: drop it, restore() takes the server's value back.
   // 404 on an edit or delete: the meal is already gone on the server.
   if (
@@ -567,7 +607,7 @@ async function refuse(db: Db, op: Op, err: ApiError) {
   )
     await outbox.delete(op.seq!);
   // A refused create of a meal deleted here: no badge can show it, so drop all its ops.
-  else if (creates && !(await tx.objectStore('meals').get(op.clientId)))
+  else if (creates && !here)
     for (const o of await outbox.index('clientId').getAll(op.clientId))
       await outbox.delete(o.seq!);
   else {
@@ -611,17 +651,135 @@ async function restore(db: Db, op: Op) {
   }
 }
 
-export type MealStatus = 'pending' | 'error' | 'synced';
+export type MealStatus = 'pending' | 'error' | 'conflict' | 'synced';
 
-/** For the meal badge: unsent, refused by the server, or saved there. */
+/** For the meal badge: unsent, refused by the server, waiting for a version choice, or saved there. */
 export async function mealStatus(
   db: Db,
   clientId: string,
 ): Promise<MealStatus> {
   const ops = await db.getAllFromIndex('outbox', 'clientId', clientId);
   if (!ops.length) return 'synced';
-  return ops.some((o) => o.error) ? 'error' : 'pending';
+  if (ops.some((o) => o.error)) return 'error';
+  return ops.some((o) => o.conflict) ? 'conflict' : 'pending';
 }
+
+/** Meals waiting for a version choice. */
+export const conflictCount = async (db: Db) =>
+  (await db.getAll('outbox')).filter((o) => o.conflict).length;
+
+/** The conflict of a meal as the screen shows it; pass it back to the choice. */
+export const conflictOf = async (db: Db, clientId: string) =>
+  (await db.getAllFromIndex('outbox', 'clientId', clientId)).find(
+    (o) => o.conflict,
+  )?.conflict ?? null;
+
+/** A stored dish as the API takes it back; `illustration` only when picked by hand, or it freezes. */
+const inputItem = (i: MealItem): MealItemInput => ({
+  name: i.name,
+  grams: i.grams,
+  unit: i.unit,
+  kcal: i.kcal,
+  proteinG: i.proteinG,
+  fatG: i.fatG,
+  carbsG: i.carbsG,
+  source: i.source,
+  ...(i.source === 'ai' &&
+    i.confidence !== null && { confidence: i.confidence }),
+  ...(i.source === 'recipe' && i.recipeId && { recipeId: i.recipeId }),
+  ...(i.barcode && { barcode: i.barcode }),
+  ...(i.illustrationManual && { illustration: i.illustration }),
+});
+
+const contentOf = (meal: Meal) => ({
+  mealType: meal.mealType,
+  eatenAt: meal.eatenAt,
+  tzOffsetMin: meal.tzOffsetMin,
+  localDate: meal.localDate,
+  items: meal.items.map(inputItem),
+});
+
+/** `stale`: the conflict changed since it was shown (a pull brought a newer version); nothing is done. */
+export type Choice = 'done' | 'stale';
+
+/** One choice: a local transaction and the queue, so it works offline (ADR-0022 §4). */
+function choose<K extends Conflict['kind']>(
+  db: Db,
+  clientId: string,
+  shown: Conflict,
+  kinds: K[],
+  act: (
+    tx: Tx,
+    op: Op & { kind: 'patchMeal' },
+    conflict: Conflict & { kind: K },
+    meal: Meal,
+  ) => Promise<void>,
+) {
+  return local(db, async (tx): Promise<Choice> => {
+    const op = (await queued(db, tx, clientId)).find((o) => o.conflict);
+    const meal = await tx.objectStore('meals').get(clientId);
+    const c = op?.conflict;
+    if (
+      op?.kind !== 'patchMeal' ||
+      !c ||
+      !meal ||
+      !kinds.includes(c.kind as K) ||
+      c.kind !== shown.kind ||
+      (c.kind === 'edit' &&
+        c.theirs.editRev !== (shown as typeof c).theirs.editRev)
+    )
+      return 'stale';
+    await act(tx, op, c as Conflict & { kind: K }, meal);
+    return 'done';
+  });
+}
+
+/** Mine over theirs: the whole local version goes on top of theirs, not the merged patch. */
+export const keepMine = (db: Db, clientId: string, shown: Conflict) =>
+  choose(db, clientId, shown, ['edit'], async (tx, op, c, meal) => {
+    const next: Op = {
+      kind: 'patchMeal',
+      clientId,
+      seq: op.seq,
+      id: c.theirs.id,
+      body: {
+        ...contentOf(meal),
+        // Theirs has another photo or none: mine goes with it; the same id changes nothing.
+        ...(meal.photo && { photoId: meal.photo.id }),
+        editedAt: Date.now(),
+        baseRev: c.theirs.editRev,
+      },
+    };
+    await tx.objectStore('outbox').put(next);
+  });
+
+/** Theirs replaces the local copy; nothing is sent. */
+export const keepTheirs = (db: Db, clientId: string, shown: Conflict) =>
+  choose(db, clientId, shown, ['edit'], async (tx, op, c) => {
+    await tx.objectStore('meals').put(c.theirs);
+    await tx.objectStore('outbox').delete(op.seq!);
+  });
+
+/** Deletes the meal; deleted there already, only the local copy goes. */
+export const deleteConflicted = (db: Db, clientId: string, shown: Conflict) =>
+  choose(db, clientId, shown, ['edit', 'deleted'], (tx) =>
+    drop(db, tx, clientId),
+  );
+
+/** Deleted there, mine comes back: one createMeal with the same clientId, without the photo. */
+export const restoreMine = (db: Db, clientId: string, shown: Conflict) =>
+  choose(db, clientId, shown, ['deleted'], async (tx, _op, _c, meal) => {
+    const outbox = tx.objectStore('outbox');
+    for (const o of await queued(db, tx, clientId)) await outbox.delete(o.seq!);
+    await outbox.add({
+      kind: 'createMeal',
+      clientId,
+      body: { clientId, ...contentOf(meal), recalcOffer: meal.recalcOffer },
+    });
+    await tx
+      .objectStore('meals')
+      .put({ ...meal, id: 0, photo: null, editRev: undefined });
+  });
 
 /** The code the server refused a meal's first op with; null when none was refused. */
 export async function mealError(db: Db, clientId: string) {

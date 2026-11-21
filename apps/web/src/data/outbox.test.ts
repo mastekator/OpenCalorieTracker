@@ -520,7 +520,7 @@ describe('flush', () => {
     ]);
   });
 
-  it('drops an edit or delete answered 404', async () => {
+  it('drops a delete answered 404 and parks an edit as `deleted` (ADR-0022 §3)', async () => {
     await db.put('meals', { ...(await localMeal(A)), id: 5 });
     await db.put('meals', { ...(await localMeal(B)), id: 6 });
     await patchMeal(db, A, { mealType: 'dinner' });
@@ -531,7 +531,10 @@ describe('flush', () => {
       'DELETE /api/meals/6': () => status(404, 'not_found'),
     });
     await flush(db);
-    expect(await ops()).toEqual([]);
+    expect(await ops()).toMatchObject([
+      { kind: 'patchMeal', clientId: A, conflict: { kind: 'deleted' } },
+    ]);
+    expect(await db.get('meals', A)).toMatchObject({ mealType: 'dinner' });
   });
 
   it('marks a refused createMeal and the meal’s later ops, and goes on', async () => {
