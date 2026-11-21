@@ -5,7 +5,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { loadConfig } from '../config.js';
 import { createModel } from './model.js';
 import {
+  labelPrompt,
+  PET_FOOD_RULE,
   readLabel,
+  recognizePrompt,
   recognizeMeal,
   RECOGNIZE_TIMEOUT_MS,
   sanitizeDish,
@@ -87,7 +90,7 @@ describe('recognizeMeal', () => {
     });
     expect(logs()).toEqual([
       expect.stringMatching(
-        /^ai\.recognize provider=mock model=vision-1 prompt=4 ms=\d+ dishes=1 questions=0 recipes=0 result=ok$/,
+        /^ai\.recognize provider=mock model=vision-1 prompt=5 ms=\d+ dishes=1 questions=0 recipes=0 result=ok$/,
       ),
     ]);
   });
@@ -185,6 +188,12 @@ describe('recognizeMeal', () => {
     );
   });
 
+  it('omits pet food in both the photo and the label prompt (OCT-372)', () => {
+    expect(PET_FOOD_RULE).toContain('pet food is not food');
+    expect(recognizePrompt('en')).toContain(PET_FOOD_RULE);
+    expect(labelPrompt('en', '8853301000246')).toContain(PET_FOOD_RULE);
+  });
+
   it('sends no barcodes or recipes tag without codes and recipes', async () => {
     vi.spyOn(console, 'log').mockImplementation(() => {});
     const model = mockModel({ dishes: [] });
@@ -277,7 +286,7 @@ describe('recognizeMeal', () => {
     await expect(
       readLabel(model, jpeg, 'en', '4006381333931'),
     ).resolves.toEqual({ dishes: [], questions: [] });
-    expect(logs()[0]).toMatch(/^ai\.label .* prompt=4 /);
+    expect(logs()[0]).toMatch(/^ai\.label .* prompt=5 /);
   });
 
   it('maps a no-image error to ai_no_vision and remembers it', async () => {
