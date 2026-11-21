@@ -1,0 +1,13 @@
+/* OCT-378 additions on top of the OCT-313 prototype. Tokens only (../oct-13/tokens.css). */
+:root { --unit-seg-width: 112px; /* OCT-378 new token: g / ml switch next to the amount field */ }
+.amount { display: grid; grid-template-columns: 1fr var(--unit-seg-width); gap: var(--space-2); align-items: end; }
+.seg2.unit span { min-height: calc(var(--control-height-lg) - 4px); }
+.seg2.unit { padding: 2px; }
+.ing { margin: 0; padding: 0 var(--space-4); list-style: none; border-radius: var(--radius-lg); background: var(--color-surface); }
+.ing li { display: flex; justify-content: space-between; gap: var(--space-3); min-height: var(--control-height-lg); align-items: center; font-variant-numeric: tabular-nums; }
+.ing li + li { border-top: 1px solid var(--color-separator); }
+.ing .v { color: var(--color-text-secondary); white-space: nowrap; }
+.copy { border-collapse: collapse; font-size: var(--text-footnote-size); line-height: var(--text-footnote-lh); max-width: 1100px; }
+.copy th, .copy td { text-align: left; vertical-align: top; padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--color-separator); }
+.copy th { color: var(--color-text-secondary); font-weight: 600; }
+.copy code { font-size: var(--text-caption-size); }
