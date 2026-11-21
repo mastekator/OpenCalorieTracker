@@ -78,6 +78,13 @@ export const mealItemInputSchema = z
     illustration: illustrationIdSchema.optional(),
     /** Remembered for `barcode` (ADR-0037 §2); omitted fields keep their stored value. */
     pack: packPrefsSchema.optional(),
+    /** The edible share the user chose for a reference key, remembered per user (ADR-0039 §4). */
+    edible: z
+      .object({
+        key: z.string().trim().min(1).max(80),
+        pct: z.number().int().min(10).max(100).multipleOf(5),
+      })
+      .optional(),
   })
   .refine((i) => i.confidence === undefined || i.source === 'ai', {
     path: ['confidence'],

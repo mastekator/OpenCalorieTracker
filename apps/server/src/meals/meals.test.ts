@@ -12,6 +12,7 @@ import { hashPassword } from '../auth/password.js';
 import { photoPath } from '../photos/store.js';
 import { mockModel } from '../test/ai.js';
 import { setCookie, testApp } from '../test/app.js';
+import { readEdiblePrefs } from '../edible/prefs.js';
 import { checkWhen } from './routes.js';
 
 const PASSWORD = 'Correct-horse-battery-9';
@@ -509,6 +510,74 @@ describe('meals', () => {
     ).toBe(400);
     expect(
       t.db.prepare('SELECT COUNT(*) FROM product_prefs').pluck().get(),
+    ).toBe(0);
+  });
+
+  it('remembers the edible percent per user and key (ADR-0039 §4)', async () => {
+    const t = await setup();
+    await t.addUser('b@example.com');
+    const otherId = t.db
+      .prepare("SELECT id FROM users WHERE email = 'b@example.com'")
+      .pluck()
+      .get() as number;
+    const dish = { ...input().items[1]!, edible: { key: ' banana ', pct: 65 } };
+
+    // Without edible nothing is written.
+    expect((await t.call(t.cookie, 'POST', '/meals', input())).status).toBe(
+      201,
+    );
+    expect(
+      t.db.prepare('SELECT COUNT(*) FROM edible_prefs').pluck().get(),
+    ).toBe(0);
+
+    const meal = (await (
+      await t.call(t.cookie, 'POST', '/meals', input({ items: [dish] }))
+    ).json()) as Meal;
+    const all = () =>
+      t.db.prepare('SELECT user_id, key, pct FROM edible_prefs').all();
+    expect(all()).toEqual([
+      { user_id: expect.any(Number), key: 'banana', pct: 65 },
+    ]);
+    const owner = (all()[0] as { user_id: number }).user_id;
+
+    // An edit updates the percent.
+    const res = await t.call(t.cookie, 'PATCH', `/meals/${meal.id}`, {
+      items: [{ ...dish, edible: { key: 'banana', pct: 70 } }],
+    });
+    expect(res.status).toBe(200);
+    expect(all()).toEqual([{ user_id: owner, key: 'banana', pct: 70 }]);
+
+    // Only the owner reads it.
+    expect(readEdiblePrefs(t.db, owner, ['banana', 'kiwi'])).toEqual(
+      new Map([['banana', 70]]),
+    );
+    expect(readEdiblePrefs(t.db, otherId, ['banana'])).toEqual(new Map());
+    expect(readEdiblePrefs(t.db, owner, [])).toEqual(new Map());
+  });
+
+  it('rejects a bad edible with 400', async () => {
+    const t = await setup();
+    const item = input().items[1]!;
+    for (const edible of [
+      { key: 'banana', pct: 0 },
+      { key: 'banana', pct: 105 },
+      { key: 'banana', pct: 33 },
+      { key: 'banana', pct: 62.5 },
+      { key: '  ', pct: 50 },
+      { key: 'x'.repeat(81), pct: 50 },
+    ])
+      expect(
+        (
+          await t.call(
+            t.cookie,
+            'POST',
+            '/meals',
+            input({ items: [{ ...item, edible }] }),
+          )
+        ).status,
+      ).toBe(400);
+    expect(
+      t.db.prepare('SELECT COUNT(*) FROM edible_prefs').pluck().get(),
     ).toBe(0);
   });
 
