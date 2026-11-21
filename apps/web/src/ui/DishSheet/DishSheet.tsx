@@ -2,10 +2,14 @@ import { useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import {
   DISH_GRAMS,
+  amountGrams,
+  defaultAmount,
   fromProduct,
   scaleItem,
+  type Amount,
   type MergedDish,
   type Nutrients,
+  type Product,
   type Units,
 } from '@oct/shared';
 import type { BarcodeResult } from '../../data/products';
@@ -14,6 +18,8 @@ import {
   AltBarcodeHint,
   type AltHintState,
 } from '../AltBarcodeHint/AltBarcodeHint';
+import { AmountPicker } from '../AmountPicker/AmountPicker';
+import { hasShares } from '../AmountPicker/amount';
 import { Button } from '../Button/Button';
 import { DishSourceBlock } from '../DishSourceBlock/DishSourceBlock';
 import type { PackageKind } from '../SourceBadge/SourceBadge';
@@ -50,8 +56,17 @@ type Props = {
   /** Another code the AI read on the package (ADR-0036 §5); `lookup` searches it when it has no product. */
   alt?: MergedDish['alt'];
   lookup?: (code: string) => Promise<BarcodeResult>;
-  /** «Done» with a non-empty name and a valid weight; `replaced` after «Replace». */
-  onDone: (name: string, grams: number, replaced?: Replaced) => void;
+  /** The dish's product: with a package or serving the weight becomes «How much you ate» (ADR-0037 §5). */
+  product?: Product;
+  /** The amount the dish is at; none: its grams. */
+  amount?: Amount;
+  /** «Done» with a non-empty name and a valid weight; `replaced` after «Replace»; `amount` with a product. */
+  onDone: (
+    name: string,
+    grams: number,
+    replaced?: Replaced,
+    amount?: Amount,
+  ) => void;
   onDelete: () => void;
   /** Close button, Esc, scrim, swipe down: the draft is dropped. */
   onClose: () => void;
@@ -65,6 +80,8 @@ export function DishSheet({
   source,
   alt,
   lookup,
+  product,
+  amount: initialAmount,
   onDone,
   onDelete,
   onClose,
@@ -80,6 +97,12 @@ export function DishSheet({
   const nameRef = useRef<HTMLInputElement>(null);
   // «Replace» is part of the draft: «Close» drops it (OCT-383 2.2).
   const [replaced, setReplaced] = useState<Replaced>();
+  // «Replace» brings another product: its amount starts over (AC-5.2).
+  const [prod, setProd] = useState(product);
+  const [amount, setAmount] = useState<Amount>(
+    initialAmount ?? { mode: 'weight', value: initial },
+  );
+  const shares = hasShares(prod);
   const [hint, setHint] = useState<AltHintState | undefined>(
     alt && {
       kind: 'offer',
@@ -110,7 +133,10 @@ export function DishSheet({
     setReplaced({ barcode: code, dish });
     setName(dish.name);
     setNameErr(false);
-    setGrams(dish.grams);
+    setProd(r.product);
+    const a = defaultAmount(r.product);
+    setAmount(a);
+    setGrams(hasShares(r.product) ? amountGrams(r.product, a) : dish.grams);
     return true;
   };
 
@@ -147,7 +173,8 @@ export function DishSheet({
       flushSync(() => setNameErr(true));
       return nameRef.current?.focus();
     }
-    if (grams !== null) onDone(trimmed, grams, replaced);
+    if (grams !== null)
+      onDone(trimmed, grams, replaced, shares ? amount : undefined);
   };
 
   return (
@@ -176,13 +203,27 @@ export function DishSheet({
             setNameErr(false);
           }}
         />
-        <WeightStepper
-          grams={grams}
-          units={units}
-          label={t('edit.weight.label', { dish: name.trim() || base.name })}
-          onChange={setGrams}
-        />
-        {servingG && (
+        {shares ? (
+          <AmountPicker
+            product={prod}
+            amount={amount}
+            grams={grams}
+            units={units}
+            label={t('edit.weight.label', { dish: name.trim() || base.name })}
+            onChange={(a, g) => {
+              setAmount(a);
+              setGrams(g);
+            }}
+          />
+        ) : (
+          <WeightStepper
+            grams={grams}
+            units={units}
+            label={t('edit.weight.label', { dish: name.trim() || base.name })}
+            onChange={setGrams}
+          />
+        )}
+        {servingG && !shares && (
           <p className="dish-sheet__serving">
             {t('edit.dish.serving', {
               weight: `${w.fmt(servingG)}\u00a0${w.u}`,

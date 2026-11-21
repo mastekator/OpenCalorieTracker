@@ -1,7 +1,13 @@
 import { useState, type ComponentProps } from 'react';
 import { fn } from 'storybook/test';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { scaleItem, type Units } from '@oct/shared';
+import {
+  amountGrams,
+  scaleItem,
+  type Amount,
+  type Product,
+  type Units,
+} from '@oct/shared';
 import { AiQuestion } from '../AiQuestion/AiQuestion';
 import { DishRow, type DishRowDish } from './DishRow';
 
@@ -22,6 +28,7 @@ function Demo({
   onIllustration,
   mark,
   children,
+  share,
 }: {
   dish: DishRowDish;
   units: Units;
@@ -29,8 +36,11 @@ function Demo({
   onIllustration?: () => void;
   mark?: ComponentProps<typeof DishRow>['mark'];
   children?: ComponentProps<typeof DishRow>['children'];
+  /** A package share instead of grams (OCT-389). */
+  share?: { product: Product; amount: Amount };
 }) {
   const [row, setRow] = useState(dish);
+  const [amount, setAmount] = useState(share?.amount);
   const original = { ...dish, grams: dish.grams ?? 1 };
   return (
     <DishRow
@@ -47,6 +57,20 @@ function Demo({
       onDelete={onDelete}
       onIllustration={onIllustration}
       mark={mark}
+      share={
+        share &&
+        amount && {
+          product: share.product,
+          amount,
+          onChange: (a) => {
+            setAmount(a);
+            setRow({
+              ...scaleItem(original, amountGrams(share.product, a)),
+              confidence: undefined,
+            });
+          },
+        }
+      }
     >
       {children}
     </DishRow>
@@ -246,4 +270,58 @@ export const OtherBarcode: Story = {
 export const OtherBarcodeDark: Story = {
   ...OtherBarcode,
   globals: { theme: 'dark' },
+};
+
+/** OCT-389: a barcode dish counted in shares of its package: «1 pack · 200 g», ± in the mode. */
+const cookies: Product = {
+  code: '4607012345678',
+  name: 'Oat cookies',
+  brand: null,
+  kcal100: 440,
+  protein100: 6,
+  fat100: 16,
+  carbs100: 68,
+  per: 'g',
+  servingG: 30,
+  servingText: null,
+  packG: 200,
+  pieces: 12,
+};
+const cookieDish = {
+  name: 'Oat cookies',
+  grams: 200,
+  kcal: 880,
+  proteinG: 12,
+  fatG: 32,
+  carbsG: 136,
+  source: 'barcode',
+} as const;
+export const SharePack: Story = {
+  args: {
+    dish: cookieDish,
+    share: { product: cookies, amount: { mode: 'pack', value: 1 } },
+  },
+};
+export const SharePackDark: Story = {
+  ...SharePack,
+  globals: { theme: 'dark' },
+};
+/** Repeat scan: the remembered «2 of 12», tagged «same as last time» until changed. */
+const last = { mode: 'piece', value: 2 } as const;
+const piecesArgs = {
+  dish: { ...cookieDish, ...scaleItem(cookieDish, 33.3) },
+  share: { product: { ...cookies, last }, amount: last },
+};
+export const SharePiecesLast: Story = { args: piecesArgs };
+export const SharePiecesLastDark: Story = {
+  args: piecesArgs,
+  globals: { theme: 'dark' },
+};
+export const SharePiecesRussian: Story = {
+  args: piecesArgs,
+  globals: { locale: 'ru' },
+};
+export const ShareDesktop: Story = {
+  ...SharePack,
+  globals: { viewport: { value: 'desktop' } },
 };

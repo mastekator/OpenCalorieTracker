@@ -25,6 +25,8 @@ import {
 } from 'lucide-react';
 import { z } from 'zod';
 import {
+  amountGrams,
+  defaultAmount,
   entryDay,
   matchIllustration,
   mealTypeAt,
@@ -43,6 +45,7 @@ import {
   type RecognitionStatus,
   type Units,
   type Product,
+  type Amount,
   type PhotoBarcodesResponse,
   barcodeLookupSchema,
   uuid,
@@ -80,6 +83,7 @@ import { Badge } from '../../ui/Badge/Badge';
 import { BarcodeConsentSheet } from '../../ui/BarcodeConsentSheet/BarcodeConsentSheet';
 import { Banner } from '../../ui/Banner/Banner';
 import { Button } from '../../ui/Button/Button';
+import { hasShares } from '../../ui/AmountPicker/amount';
 import { DishRow } from '../../ui/DishRow/DishRow';
 import { DishSheet, type Replaced } from '../../ui/DishSheet/DishSheet';
 import { HistoryHint } from '../../ui/HistoryHint/HistoryHint';
@@ -500,7 +504,8 @@ export function MealEditScreen({
   const dirty =
     changed.items || changed.mealType || changed.when || !!changed.photoId;
 
-  const setGrams = (index: number, grams: number | null) => {
+  /** A typed weight puts a product dish into «Grams» (AC-3.6). */
+  const setGrams = (index: number, grams: number | null, amount?: Amount) => {
     setApplied(null);
     setRows((rs) =>
       rs.map((r, i) =>
@@ -509,6 +514,7 @@ export function MealEditScreen({
               ...r,
               grams,
               shown: grams ?? r.shown,
+              amount: amount ?? { mode: 'weight', value: grams ?? r.shown },
               fixed: withFixed(r.fixed, 'grams'),
             }
           : r,
@@ -543,6 +549,7 @@ export function MealEditScreen({
     name: string,
     grams: number,
     replaced?: Replaced,
+    amount?: Amount,
   ) => {
     setEditing(null);
     const row = rows.find((r) => r.id === id);
@@ -571,6 +578,7 @@ export function MealEditScreen({
               ...(replaced?.dish && { source: 'barcode' as const }),
               grams,
               shown: grams,
+              amount,
               fixed: [
                 ...(renamed ? ['name' as const] : []),
                 ...(grams !== r.grams ? ['grams' as const] : []),
@@ -1004,6 +1012,22 @@ export function MealEditScreen({
     };
   };
   const mixed = aiRows && rows.some((r) => packageOf(r));
+  // A product with a package or serving: the row counts in shares (OCT-380 1.1).
+  const shareOf = (row: Row) => {
+    if (row.source !== 'barcode' && row.source !== 'manual') return undefined;
+    const product = row.original.barcode
+      ? products?.get(row.original.barcode)
+      : undefined;
+    if (!hasShares(product)) return undefined;
+    const d = defaultAmount(product);
+    // Not stored with the meal (AC-3.7): grams equal to the default read as it.
+    const amount: Amount =
+      row.amount ??
+      (row.grams === amountGrams(product, d)
+        ? d
+        : { mode: 'weight', value: row.grams ?? row.shown });
+    return { product, amount };
+  };
   // Reading a label needs a vision model (AC-4.7): without one, no label button.
   const orphanCode =
     vision &&
@@ -1366,6 +1390,7 @@ export function MealEditScreen({
               >
                 {rows.map((row, i) => {
                   const item = items[i]!;
+                  const share = shareOf(row);
                   return (
                     <li key={row.id} data-row={row.id}>
                       <DishRow
@@ -1379,6 +1404,13 @@ export function MealEditScreen({
                         }}
                         units={units}
                         onGramsChange={(g) => setGrams(i, g)}
+                        share={
+                          share && {
+                            ...share,
+                            onChange: (a) =>
+                              setGrams(i, amountGrams(share.product, a), a),
+                          }
+                        }
                         onEdit={() => setEditing(row.id)}
                         onDelete={() => remove(row.id)}
                         onIllustration={() => {
@@ -1674,8 +1706,10 @@ export function MealEditScreen({
           }
           alt={editingRow.original.alt}
           lookup={onBarcode}
-          onDone={(name, grams, replaced) =>
-            applySheet(editingRow.id, name, grams, replaced)
+          product={shareOf(editingRow)?.product}
+          amount={shareOf(editingRow)?.amount}
+          onDone={(name, grams, replaced, amount) =>
+            applySheet(editingRow.id, name, grams, replaced, amount)
           }
           onDelete={() => {
             setEditing(null);

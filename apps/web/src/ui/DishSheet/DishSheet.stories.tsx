@@ -189,3 +189,107 @@ const ai = {
 } as const;
 export const OtherCodeAi: Story = { args: ai };
 export const OtherCodeAiDark: Story = { args: ai, globals: { theme: 'dark' } };
+
+/** OCT-389: «How much you ate» for a product with a package, pieces and a serving. */
+const cookies = {
+  code: '4607012345678',
+  name: 'Oat cookies',
+  brand: null,
+  kcal100: 440,
+  protein100: 6,
+  fat100: 16,
+  carbs100: 68,
+  per: 'g',
+  servingG: 30,
+  servingText: null,
+  packG: 200,
+  pieces: 12,
+} as const;
+const amount = {
+  original: {
+    name: 'Oat cookies',
+    grams: 200,
+    kcal: 880,
+    proteinG: 12,
+    fatG: 32,
+    carbsG: 136,
+  },
+  grams: 200,
+  source: { kind: 'barcode', code: cookies.code },
+  product: cookies,
+  amount: { mode: 'pack', value: 1 },
+} as const;
+export const AmountPack: Story = { args: amount };
+export const AmountPackDark: Story = {
+  args: amount,
+  globals: { theme: 'dark' },
+};
+export const AmountPackRussian: Story = {
+  args: amount,
+  globals: { locale: 'ru' },
+};
+export const AmountPackDesktop: Story = {
+  args: amount,
+  globals: { viewport: { value: 'desktop' } },
+};
+const pieces = {
+  ...amount,
+  grams: 33.3,
+  amount: { mode: 'piece', value: 2 },
+} as const;
+export const AmountPieces: Story = { args: pieces };
+export const AmountPiecesDark: Story = {
+  args: pieces,
+  globals: { theme: 'dark' },
+};
+const servings = {
+  ...amount,
+  grams: 45,
+  amount: { mode: 'serving', value: 1.5 },
+} as const;
+export const AmountServings: Story = { args: servings };
+export const AmountServingsRussian: Story = {
+  args: servings,
+  globals: { locale: 'ru' },
+};
+const grams = {
+  ...amount,
+  grams: 45,
+  amount: { mode: 'weight', value: 45 },
+} as const;
+export const AmountGrams: Story = { args: grams };
+export const AmountGramsDark: Story = {
+  args: grams,
+  globals: { theme: 'dark' },
+};
+/** A drink in ml, its last pick remembered: «same as last time». */
+const juiceLast = { mode: 'pack', value: 0.25 } as const;
+const juice = {
+  ...amount,
+  original: {
+    name: 'Orange juice',
+    grams: 250,
+    kcal: 112.5,
+    proteinG: 2,
+    fatG: 0.5,
+    carbsG: 25,
+  },
+  grams: 250,
+  product: {
+    ...cookies,
+    name: 'Orange juice',
+    per: 'ml',
+    kcal100: 45,
+    packG: 1000,
+    servingG: 250,
+    pieces: null,
+    last: juiceLast,
+  },
+  amount: juiceLast,
+} as const;
+export const AmountMlLast: Story = { args: juice };
+export const AmountMlLastDark: Story = {
+  args: juice,
+  globals: { theme: 'dark' },
+};
+export const AmountOunces: Story = { args: { ...amount, units: 'us' } };

@@ -1,12 +1,23 @@
 import type { ReactNode } from 'react';
-import { CircleAlert, CirclePlus, Pencil, Trash2 } from 'lucide-react';
+import {
+  CircleAlert,
+  CirclePlus,
+  Minus,
+  Pencil,
+  Plus,
+  Trash2,
+} from 'lucide-react';
 import {
   gToOz,
+  type Amount,
   type DishSource,
   type IllustrationId,
   type Nutrients,
+  type Product,
   type Units,
 } from '@oct/shared';
+import { useAmountText } from '../AmountPicker/AmountPicker';
+import { STEP, isLast, stepAmount } from '../AmountPicker/amount';
 import { Badge } from '../Badge/Badge';
 import { useT } from '../../i18n';
 import { ConfidenceBadge } from '../ConfidenceBadge/ConfidenceBadge';
@@ -15,6 +26,7 @@ import {
   DishIllustration,
   illustrationLabel,
 } from '../DishIllustration/DishIllustration';
+import { usePressRepeat } from '../usePressRepeat';
 import { useSwipeDelete } from '../useSwipeDelete';
 import { WeightStepper } from '../WeightStepper/WeightStepper';
 import './DishRow.css';
@@ -50,6 +62,8 @@ type Props = {
     | { kind: 'changed'; name: string; grams: number; kcal?: number };
   /** Under the row's weight: the AI's question (OCT-234 H). */
   children?: ReactNode;
+  /** A package share instead of grams: «1 pack · 120 g», ± in its mode (OCT-380 1.1). */
+  share?: { product: Product; amount: Amount; onChange: (a: Amount) => void };
 };
 
 /** One dish on the edit screen: name and kcal, source badge and macros, weight stepper, delete. */
@@ -62,8 +76,19 @@ export function DishRow({
   onIllustration,
   mark,
   children,
+  share,
 }: Props) {
   const { t, num, locale } = useT();
+  const text = useAmountText(units, share?.product.per ?? 'g');
+  const press = usePressRepeat((dir) => {
+    if (!share) return;
+    const next = stepAmount(share.product, share.amount, dir);
+    if (next.value === share.amount.value) return press.stop();
+    share.onChange(next);
+  });
+  const shareMode =
+    share && share.amount.mode !== 'weight' ? share.amount.mode : null;
+  const step = shareMode ? t(`edit.amount.step.${shareMode}`) : '';
   const was =
     mark?.kind !== 'changed'
       ? null
@@ -140,6 +165,9 @@ export function DishRow({
                 confidence={dish.confidence}
               />
             )}
+            {share && isLast(share.product, share.amount) && (
+              <Badge>{t('edit.amount.last')}</Badge>
+            )}
             {dish.check && (
               <Badge tone="warn">
                 <CircleAlert aria-hidden="true" />
@@ -156,12 +184,40 @@ export function DishRow({
           </div>
           <div className="dish-row__weight">
             <div className="dish-row__weight-main">
-              <WeightStepper
-                grams={dish.grams}
-                units={units}
-                label={t('edit.weight.label', { dish: dish.name })}
-                onChange={onGramsChange}
-              />
+              {share && shareMode ? (
+                <div className="stepper__row">
+                  <button
+                    type="button"
+                    className="stepper__button"
+                    aria-label={t('edit.amount.less', { step })}
+                    disabled={share.amount.value <= STEP[shareMode]}
+                    {...press.bind(-1)}
+                  >
+                    <Minus aria-hidden="true" />
+                  </button>
+                  <span
+                    className="stepper__box dish-row__share tabular-nums"
+                    aria-live="polite"
+                  >
+                    {text.row(share.product, share.amount)}
+                  </span>
+                  <button
+                    type="button"
+                    className="stepper__button"
+                    aria-label={t('edit.amount.more', { step })}
+                    {...press.bind(1)}
+                  >
+                    <Plus aria-hidden="true" />
+                  </button>
+                </div>
+              ) : (
+                <WeightStepper
+                  grams={dish.grams}
+                  units={units}
+                  label={t('edit.weight.label', { dish: dish.name })}
+                  onChange={onGramsChange}
+                />
+              )}
               {was && (
                 <p
                   className={`dish-row__was${mark?.kind === 'changed' && mark.name !== dish.name ? ' dish-row__was--name' : ''}`}
