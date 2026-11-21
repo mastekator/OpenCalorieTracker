@@ -18,6 +18,7 @@ import { session } from './auth/session.js';
 import { diaryRoutes } from './diary/routes.js';
 import { exportRoutes } from './export/routes.js';
 import { mealRoutes } from './meals/routes.js';
+import { importRoutes } from './imports/routes.js';
 import { illustrationRoutes } from './illustrations/routes.js';
 import { integrationRoutes } from './integrations/routes.js';
 import { normAgentRoutes } from './norm-agent/routes.js';
@@ -33,7 +34,7 @@ import { appVersion as version } from './version.js';
 import { ApiError, onError } from './http/errors.js';
 import type { Secrets } from './secrets.js';
 
-/** Cap for every /api/* body except photo upload; JSON bodies are read whole into memory. */
+/** Cap for every /api/* body except photo and import uploads; JSON bodies are read whole into memory. */
 export const MAX_JSON_BYTES = 64 * 1024;
 const jsonLimit = bodyLimit({
   maxSize: MAX_JSON_BYTES,
@@ -66,9 +67,10 @@ export function createApp(appDeps: AppDeps) {
   // Warm up now so the first unknown-email sign-in is not slower than the rest (AC-5.2).
   void dummyHash();
 
-  // First, so oversized anonymous bodies are cut before any DB work. Photo upload has its own limit.
+  // First, so oversized anonymous bodies are cut before any DB work. Photo and import uploads have their own limits.
   app.use('/api/*', (c, next) =>
-    c.req.method === 'POST' && c.req.path === '/api/photos'
+    c.req.method === 'POST' &&
+    (c.req.path === '/api/photos' || c.req.path === '/api/imports')
       ? next()
       : jsonLimit(c, next),
   );
@@ -99,6 +101,7 @@ export function createApp(appDeps: AppDeps) {
   app.route('/api', syncRoutes(deps));
   app.route('/api', weightRoutes(deps));
   app.route('/api', exportRoutes(deps));
+  app.route('/api', importRoutes(deps));
 
   app.get('/api/health', (c) => c.json({ ok: true, version }));
   app.get('/api/config', (c) =>
