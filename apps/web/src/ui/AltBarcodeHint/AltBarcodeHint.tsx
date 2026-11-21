@@ -29,13 +29,14 @@ export function AltBarcodeHint({ state, onReplace }: Props) {
     );
   if (state.kind === 'result') {
     const { result, ai } = state;
-    if (result.product && result.from)
+    // A product without kcal is not taken (the sheet keeps its numbers): say so, not «found».
+    if (result.product?.kcal100 != null && result.from)
       return (
         <Banner tone="accent" icon={<Barcode aria-hidden="true" />}>
           {t(`manual_dish.barcode.found.${result.from}`)}
         </Banner>
       );
-    const note = missingNote(result)!;
+    const note = missingNote(result) ?? 'not_found';
     return (
       <Banner tone={note === 'off_down' ? 'warning' : 'notice'}>
         {t(
