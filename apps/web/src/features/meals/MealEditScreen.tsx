@@ -894,11 +894,13 @@ export function MealEditScreen({
   // Runs after the sheet's cleanup, which returns focus to its (possibly deleted) opener.
   useEffect(() => {
     const id = focusRow.current;
+    const el =
+      id &&
+      document.querySelector<HTMLElement>(`[data-row="${id}"] .dish-row__edit`);
+    // A late history answer's effect can run between «Undo» and its render: keep the target until the row is there.
+    if (!el) return;
     focusRow.current = null;
-    if (id)
-      document
-        .querySelector<HTMLElement>(`[data-row="${id}"] .dish-row__edit`)
-        ?.focus();
+    el.focus();
   }, [rows]);
 
   const keys = useRef({ save, onClose });
