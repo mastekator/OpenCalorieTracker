@@ -15,7 +15,7 @@ import { DataContext } from '../../data/DataContext';
 import { keepProduct } from '../../data/products';
 import { useT } from '../../i18n';
 import { NavBar } from '../../ui/NavBar/NavBar';
-import { MEAL_NEW_PATH, useCapture } from './CaptureContext';
+import { MEAL_NEW_PATH, useCapture, type Pending } from './CaptureContext';
 import {
   RecognitionState,
   type PhotoCodes,
@@ -79,9 +79,12 @@ export type Recalc = {
  */
 export function RecognitionScreen({
   photoId,
+  pending,
   recalc,
 }: {
-  photoId: string;
+  photoId?: string;
+  /** No photoId yet: the photo is being prepared and uploaded (OCT-370), nothing is requested here. */
+  pending?: Pending;
   recalc?: Recalc;
 }) {
   const { t } = useT();
@@ -105,6 +108,7 @@ export function RecognitionScreen({
       : navigate(MEAL_EDIT_PATH + query, { replace: true, state: editState });
 
   useEffect(() => {
+    if (!photoId) return;
     // Aborted by «Cancel» (unmount) or «Try again»; a late answer is then ignored (AC-2.5).
     const ctrl = new AbortController();
     setState('loading');
@@ -249,11 +253,16 @@ export function RecognitionScreen({
       />
       <main className="screen__body">
         <RecognitionState
-          state={state}
+          state={
+            !pending || pending.status === 'uploading' ? state : pending.status
+          }
+          uploading={pending?.status === 'uploading'}
           codes={codes}
           ai={ai}
-          photoUrl={`/api/photos/${encodeURIComponent(photoId)}`}
-          onRetry={() => setAttempt((a) => a + 1)}
+          photoUrl={
+            pending?.url ?? `/api/photos/${encodeURIComponent(photoId!)}`
+          }
+          onRetry={pending ? capture.retry : () => setAttempt((a) => a + 1)}
           // A retake would start a new meal: recalculating keeps to the entry's photo.
           onRetake={recalc ? undefined : capture.camera}
           onManual={() => toEdit({ manual: aiDown ? 'ai_down' : 'user' })}

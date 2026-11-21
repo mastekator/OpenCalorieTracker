@@ -29,6 +29,8 @@ function Probe() {
     <>
       <button onClick={() => capture.addTo('2026-11-10')}>Add to day</button>
       <button onClick={capture.manual}>Direct manual</button>
+      <button onClick={capture.retry}>Retry upload</button>
+      <output data-testid="pending">{capture.pending?.status ?? 'none'}</output>
     </>
   );
 }
@@ -59,6 +61,27 @@ const respond = (...responses: (() => Response)[]) => {
   vi.stubGlobal('fetch', fetch);
   return fetch;
 };
+const failed = (status: number, code: string) => () =>
+  new Response(JSON.stringify({ error: { code } }), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
+const held = () => {
+  let finish!: (r: Response) => void;
+  const fetch = vi.fn(
+    () => new Promise<Response>((resolve) => (finish = resolve)),
+  );
+  vi.stubGlobal('fetch', fetch);
+  return {
+    fetch,
+    finish: async (r: Response) => {
+      await waitFor(() => expect(fetch).toHaveBeenCalled());
+      await act(async () => finish(r));
+    },
+  };
+};
+const pending = () => screen.getByTestId('pending').textContent;
+
 const created = () =>
   new Response('{"photoId":"abc"}', {
     status: 201,
@@ -68,6 +91,9 @@ const created = () =>
 beforeEach(() => {
   localStorage.setItem(LOCALE_STORAGE_KEY, 'en');
   vi.mocked(prepareImage).mockReset().mockResolvedValue(jpeg);
+  let n = 0;
+  URL.createObjectURL = () => `blob:photo-${++n}`;
+  URL.revokeObjectURL = () => {};
 });
 afterEach(() => {
   cleanup();
@@ -146,12 +172,64 @@ describe('CaptureProvider', () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
+  it('opens the flow before the upload answers, then replaces it with the photoId (OCT-370)', async () => {
+    const { finish } = held();
+    const location = await setup();
+    choose([photo]);
+    expect(location.history.at(-1)).toBe('/meal/new');
+    expect(pending()).toBe('uploading');
+    await finish(created());
+    expect(location.history).toEqual(['/', '/meal/new?photo=abc']);
+    expect(pending()).toBe('none');
+  });
+
+  it('a late photoId after «Cancel» leads nowhere', async () => {
+    const { fetch, finish } = held();
+    const location = await setup();
+    choose([photo]);
+    await waitFor(() => expect(fetch).toHaveBeenCalled());
+    act(() => location.navigate('/'));
+    expect(pending()).toBe('none');
+    await finish(created());
+    expect(location.history.at(-1)).toBe('/');
+  });
+
+  it('a rejected photo goes back from the flow and shows dialog 3.8', async () => {
+    respond(failed(400, 'photo_invalid'));
+    const back = vi.spyOn(history, 'back').mockImplementation(() => {});
+    await setup();
+    choose([photo]);
+    expect(
+      await screen.findByRole('heading', { name: 'Couldn’t open the photo' }),
+    ).toBeTruthy();
+    expect(back).toHaveBeenCalledOnce();
+    expect(pending()).toBe('none');
+    back.mockRestore();
+  });
+
+  it('a rejected retake puts the old photo back instead of leaving the flow', async () => {
+    respond(failed(413, 'photo_too_large'));
+    const back = vi.spyOn(history, 'back');
+    const location = await setup('/meal/new?photo=old&date=2026-11-10');
+    choose([photo]);
+    expect(
+      await screen.findByRole('heading', { name: 'Couldn’t open the photo' }),
+    ).toBeTruthy();
+    expect(location.history.at(-1)).toBe('/meal/new?photo=old&date=2026-11-10');
+    expect(back).not.toHaveBeenCalled();
+    back.mockRestore();
+  });
+
+  it('any other upload error is shown on the screen, not left uploading', async () => {
+    respond(failed(429, 'rate_limited'));
+    const location = await setup();
+    choose([photo]);
+    await waitFor(() => expect(pending()).toBe('upload_failed'));
+    expect(location.history.at(-1)).toBe('/meal/new');
+  });
+
   it('ignores another photo while one is being uploaded', async () => {
-    let finish!: (r: Response) => void;
-    const fetch = vi.fn(
-      () => new Promise<Response>((resolve) => (finish = resolve)),
-    );
-    vi.stubGlobal('fetch', fetch);
+    const { fetch, finish } = held();
     const location = await setup();
     choose([photo]);
     await waitFor(() => expect(fetch).toHaveBeenCalledOnce());
@@ -159,7 +237,7 @@ describe('CaptureProvider', () => {
     fireEvent.drop(window, {
       dataTransfer: { types: ['Files'], files: [photo] },
     });
-    await act(async () => finish(created()));
+    await finish(created());
     await waitFor(() =>
       expect(location.history.at(-1)).toBe('/meal/new?photo=abc'),
     );
@@ -167,14 +245,14 @@ describe('CaptureProvider', () => {
     expect(prepareImage).toHaveBeenCalledOnce();
   });
 
-  it('on a network error offers «Try again», which resends the same blob', async () => {
+  it('a network error is shown on the screen; «Try again» resends the same blob', async () => {
     const fetch = respond(() => {
       throw new TypeError('offline');
     }, created);
     const location = await setup();
     choose([photo]);
-    expect(await screen.findByText('Couldn’t upload the photo')).toBeTruthy();
-    fireEvent.click(await screen.findByRole('button', { name: 'Try again' }));
+    await waitFor(() => expect(pending()).toBe('upload_failed'));
+    fireEvent.click(screen.getByText('Retry upload'));
     await waitFor(() =>
       expect(location.history.at(-1)).toBe('/meal/new?photo=abc'),
     );

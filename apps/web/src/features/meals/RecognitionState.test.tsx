@@ -116,3 +116,32 @@ describe('recognitionSteps', () => {
     },
   );
 });
+
+describe('RecognitionState while the photo uploads (OCT-370)', () => {
+  it('runs «Uploading the photo» first, the rest wait', async () => {
+    localStorage.setItem(LOCALE_STORAGE_KEY, 'en');
+    await loadDict('en');
+    const { getByRole } = await renderLoaded(
+      <I18nProvider>
+        <RecognitionState
+          state="loading"
+          uploading
+          photoUrl=""
+          onRetry={noop}
+          onRetake={noop}
+          onManual={noop}
+          onClose={noop}
+        />
+      </I18nProvider>,
+    );
+    const steps = getByRole('list', { name: 'Recognition steps' });
+    expect(
+      Array.from(steps.querySelectorAll('li'), (li) => li.textContent),
+    ).toEqual([
+      expect.stringMatching(/^Uploading the photo.*in progress/),
+      expect.stringMatching(/^Barcode.*waiting/),
+      expect.stringMatching(/^Open Food Facts.*waiting/),
+      expect.stringMatching(/^AI reads the photo.*waiting/),
+    ]);
+  });
+});

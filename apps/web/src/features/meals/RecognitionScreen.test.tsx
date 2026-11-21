@@ -470,3 +470,22 @@ describe('RecognitionScreen', () => {
     });
   });
 });
+
+describe('RecognitionScreen before the photo is uploaded (OCT-370)', () => {
+  it('shows the local preview and asks the server nothing', async () => {
+    const fetch = vi.fn();
+    vi.stubGlobal('fetch', fetch);
+    await renderLoaded(
+      <I18nProvider>
+        <RecognitionScreen
+          pending={{ url: 'blob:photo', status: 'upload_failed' }}
+        />
+      </I18nProvider>,
+    );
+    expect(await alertText()).toContain('Couldn’t upload the photo');
+    expect(
+      document.querySelector('.recog__photo img')?.getAttribute('src'),
+    ).toBe('blob:photo');
+    expect(fetch).not.toHaveBeenCalled();
+  });
+});

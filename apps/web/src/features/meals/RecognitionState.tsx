@@ -22,7 +22,9 @@ export type RecognitionStateKind =
   | 'failed'
   | 'gone'
   | 'empty'
-  | 'offline';
+  | 'offline'
+  /** The photo didn't reach the server (OCT-370). */
+  | 'upload_failed';
 
 /** POST /photos/:id/barcodes: still going, failed, or the codes read and looked up. */
 export type PhotoCodes = PhotoBarcodesResponse['codes'] | 'pending' | 'failed';
@@ -112,6 +114,8 @@ type Props = {
   codes?: PhotoCodes;
   /** none: AI isn't set up, only the barcode steps run (AC-4.7). */
   ai?: 'run' | 'none';
+  /** The photo is still being prepared and uploaded: an «Uploading photo» step runs before the rest. */
+  uploading?: boolean;
   photoUrl: string;
   onRetry: () => void;
   /** None: no «Retake» (recalculating a saved meal's photo). */
@@ -125,6 +129,7 @@ export function RecognitionState({
   state,
   codes = 'pending',
   ai = 'run',
+  uploading = false,
   photoUrl,
   onRetry,
   onRetake,
@@ -208,6 +213,13 @@ export function RecognitionState({
       body: t(recalc ? 'recalc.empty' : 'recog.empty.body'),
       actions: [retake('primary'), manual('tonal')],
     },
+    upload_failed: {
+      icon: <CircleAlert />,
+      tone: 'danger',
+      title: t('capture.upload_failed'),
+      body: t('recog.upload_failed'),
+      actions: [retry('primary'), retake('tonal'), manual('tonal')],
+    },
     offline: {
       icon: <WifiOff />,
       tone: 'neutral',
@@ -261,7 +273,16 @@ export function RecognitionState({
               skip: t('recog.mark.skip'),
               warn: t('recog.mark.warn'),
             }}
-            steps={recognitionSteps(t, codes, ai)}
+            steps={
+              uploading
+                ? [
+                    { title: t('recog.step.upload'), mark: 'run' },
+                    ...recognitionSteps(t, codes, ai).map(
+                      ({ title }): Step => ({ title, mark: 'wait' }),
+                    ),
+                  ]
+                : recognitionSteps(t, codes, ai)
+            }
           />
           {state === 'slow' && (
             <>

@@ -64,6 +64,21 @@ export const EmptyDark: Story = { args: { state: 'empty' }, globals: dark };
 /** 3.7 */
 export const Offline: Story = { args: { state: 'offline' } };
 export const OfflineDark: Story = { args: { state: 'offline' }, globals: dark };
+/** OCT-370: the chosen photo is still being prepared and uploaded. */
+export const Uploading: Story = { args: { uploading: true } };
+export const UploadingDark: Story = {
+  args: { uploading: true },
+  globals: dark,
+};
+/** A preview the browser can't show (HEIC on desktop): the placeholder. */
+export const UploadingNoPreview: Story = {
+  args: { uploading: true, photoUrl: 'blob:unreadable' },
+};
+export const UploadFailed: Story = { args: { state: 'upload_failed' } };
+export const UploadFailedDark: Story = {
+  args: { state: 'upload_failed' },
+  globals: dark,
+};
 /** Recalculating a saved meal: no «Retake», every way out leads back to the entry. */
 const recalc = { onRetake: undefined };
 export const RecalcSlow: Story = { args: { ...recalc, state: 'slow' } };
