@@ -1877,7 +1877,8 @@ const ru: DeepPartial<typeof en> = {
   recipes: {
     new: 'Новый рецепт',
     manual: 'Ввести вручную',
-    paste: 'Вставить текст рецепта',
+    paste: 'Рецепт из текста',
+    paste_desc: 'ИИ разберёт ингредиенты и граммы',
     from_meal: 'Из приёма пищи',
     pick_meal: {
       title: 'Выберите приём пищи',
