@@ -84,6 +84,17 @@ export function mealRoutes({ config, db, ai }: AppDeps) {
          fat_100 = excluded.fat_100, carbs_100 = excluded.carbs_100, per = excluded.per,
          updated_at = excluded.updated_at`,
     );
+    // Fields the client did not send keep their stored value; mode and value go as a pair.
+    const prefs = db.prepare(
+      `INSERT INTO product_prefs (user_id, code, pack_g, pieces, amount_mode, amount_value, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT (user_id, code) DO UPDATE SET
+         pack_g = COALESCE(excluded.pack_g, pack_g),
+         pieces = COALESCE(excluded.pieces, pieces),
+         amount_mode = COALESCE(excluded.amount_mode, amount_mode),
+         amount_value = COALESCE(excluded.amount_value, amount_value),
+         updated_at = excluded.updated_at`,
+    );
     const per100 = (v: number, g: number) => Math.round((v * 1000) / g) / 10;
     const now = Date.now();
     // Another user's or a deleted recipe (the meal waited in the offline queue) → no link, no error.
@@ -113,6 +124,16 @@ export function mealRoutes({ config, db, ai }: AppDeps) {
           : ((ownRecipe.get(i.recipeId, userId) as number | undefined) ?? null),
         i.barcode ?? null,
       );
+      if (i.barcode && i.pack)
+        prefs.run(
+          userId,
+          i.barcode,
+          i.pack.packG ?? null,
+          i.pack.pieces ?? null,
+          i.pack.amount?.mode ?? null,
+          i.pack.amount?.value ?? null,
+          now,
+        );
       if (
         i.barcode &&
         i.kcal > 0 &&

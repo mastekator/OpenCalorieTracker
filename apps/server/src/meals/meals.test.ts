@@ -374,6 +374,144 @@ describe('meals', () => {
     ).toBe(1);
   });
 
+  it('remembers the package weight, pieces and last amount per user (ADR-0037 §2, §3)', async () => {
+    const t = await setup();
+    const other = await t.addUser('b@example.com');
+    const OFF = '4006381333931';
+    const OWN = '0036000291452';
+    // A fresh Open Food Facts answer with its own package weight.
+    t.db
+      .prepare(
+        `INSERT INTO food_products (code, status, names, kcal_100, per, pack_g, fetched_at)
+         VALUES (?, 'found', '{"default":"Choco bar"}', 530, 'g', 100, ?)`,
+      )
+      .run(OFF, Date.now());
+    const dish = (patch: Partial<MealInput['items'][number]>) => ({
+      ...input().items[1]!,
+      ...patch,
+    });
+    const product = async (code: string, cookie = t.cookie) =>
+      (
+        (await (await t.call(cookie, 'GET', `/barcodes/${code}`)).json()) as {
+          product: Record<string, unknown> | null;
+        }
+      ).product;
+    const mine = async (cookie = t.cookie) =>
+      (
+        (await (await t.call(cookie, 'GET', '/products/mine')).json()) as {
+          products: Record<string, unknown>[];
+        }
+      ).products;
+
+    const res = await t.call(
+      t.cookie,
+      'POST',
+      '/meals',
+      input({
+        items: [
+          dish({
+            source: 'barcode',
+            barcode: OFF,
+            pack: {
+              packG: 120,
+              pieces: 4,
+              amount: { mode: 'pack', value: 0.5 },
+            },
+          }),
+          dish({
+            name: 'Yogurt',
+            kcal: 90,
+            source: 'label',
+            barcode: OWN,
+            pack: { pieces: 2 },
+          }),
+        ],
+      }),
+    );
+    expect(res.status).toBe(201);
+    const meal = (await res.json()) as Meal;
+    // The user's weight beats the one from OFF.
+    expect(await product(OFF)).toMatchObject({
+      packG: 120,
+      pieces: 4,
+      last: { mode: 'pack', value: 0.5 },
+    });
+    expect(await product(OWN)).toMatchObject({
+      name: 'Yogurt',
+      packG: null,
+      pieces: 2,
+      last: null,
+    });
+    // Own products first, then cached OFF products with prefs, which have no savedAt.
+    const list = await mine();
+    expect(list.map((p) => [p.code, p.pieces, 'savedAt' in p])).toEqual([
+      [OWN, 2, true],
+      [OFF, 4, false],
+    ]);
+
+    // An edit that sends only the amount keeps the weight and pieces.
+    await t.call(t.cookie, 'PATCH', `/meals/${meal.id}`, {
+      items: [
+        dish({
+          source: 'barcode',
+          barcode: OFF,
+          pack: { amount: { mode: 'piece', value: 1 } },
+        }),
+      ],
+    });
+    expect(await product(OFF)).toMatchObject({
+      packG: 120,
+      pieces: 4,
+      last: { mode: 'piece', value: 1 },
+    });
+
+    // Another user sees OFF's product without these prefs (AC-2.5).
+    expect(await product(OFF, other)).toMatchObject({
+      packG: 100,
+      pieces: null,
+      last: null,
+    });
+    expect(await mine(other)).toEqual([]);
+  });
+
+  it('rejects a bad pack with 400', async () => {
+    const t = await setup();
+    const item = { ...input().items[1]!, barcode: '4006381333931' };
+    for (const pack of [
+      { packG: 0.5 },
+      { packG: 5001 },
+      { pieces: 1.5 },
+      { pieces: 1001 },
+      { amount: { mode: 'pack', value: 10.5 } },
+      { amount: { mode: 'piece', value: 1.5 } },
+      { amount: { mode: 'weight', value: 0 } },
+    ])
+      expect(
+        (
+          await t.call(
+            t.cookie,
+            'POST',
+            '/meals',
+            input({ items: [{ ...item, pack }] }),
+          )
+        ).status,
+      ).toBe(400);
+    const noCode = { ...item, barcode: undefined };
+    expect(
+      (
+        await t.call(
+          t.cookie,
+          'POST',
+          '/meals',
+          input({ items: [{ ...noCode, pack: { pieces: 2 } }] }),
+        )
+      ).status,
+    ).toBe(400);
+    expect(
+      t.db.prepare('SELECT COUNT(*) FROM product_prefs').pluck().get(),
+    ).toBe(0);
+  });
+
   it("hides another user's meal: 404 on GET/PATCH, 204 on DELETE without deleting (AC-4.4)", async () => {
     const t = await setup();
     const other = await t.addUser('b@example.com');
