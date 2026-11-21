@@ -35,6 +35,22 @@ export const kcalSchema = z.number().min(0).max(10000);
 export const macroSchema = z.number().min(0).max(1000);
 const macro = macroSchema;
 
+/** The package weight, pieces and amount the user chose for a barcode (ADR-0037 §2, E-7.6). */
+const packPrefsSchema = z.object({
+  packG: z.number().min(1).max(5000).optional(),
+  pieces: z.number().int().min(1).max(1000).optional(),
+  amount: z
+    .object({
+      mode: z.enum(['pack', 'serving', 'piece', 'weight']),
+      value: z.number().positive(),
+    })
+    .refine((a) => a.mode !== 'pack' || a.value <= 10, { path: ['value'] })
+    .refine((a) => a.mode !== 'piece' || Number.isInteger(a.value), {
+      path: ['value'],
+    })
+    .optional(),
+});
+
 export const mealItemInputSchema = z
   .object({
     name: z.string().trim().min(1).max(80),
@@ -59,12 +75,17 @@ export const mealItemInputSchema = z
       .optional(),
     /** Manual choice on this dish; omitted = automatic. */
     illustration: illustrationIdSchema.optional(),
+    /** Remembered for `barcode` (ADR-0037 §2); omitted fields keep their stored value. */
+    pack: packPrefsSchema.optional(),
   })
   .refine((i) => i.confidence === undefined || i.source === 'ai', {
     path: ['confidence'],
   })
   .refine((i) => i.recipeId === undefined || i.source === 'recipe', {
     path: ['recipeId'],
+  })
+  .refine((i) => i.pack === undefined || i.barcode !== undefined, {
+    path: ['pack'],
   });
 export type MealItemInput = z.infer<typeof mealItemInputSchema>;
 

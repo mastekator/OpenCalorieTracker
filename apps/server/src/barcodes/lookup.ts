@@ -26,6 +26,12 @@ type CacheRow = ProductRow & {
   fetched_at: number;
 };
 type MineRow = ProductRow & { name: string; updated_at: number };
+interface PrefsRow {
+  pack_g: number | null;
+  pieces: number | null;
+  amount_mode: NonNullable<Product['last']>['mode'] | null;
+  amount_value: number | null;
+}
 
 const fromRow = (
   r: ProductRow,
@@ -52,8 +58,25 @@ export const mineToProduct = (r: MineRow): Product => ({
   savedAt: new Date(r.updated_at).toISOString(),
 });
 
+/** The user's package weight, pieces and last amount over the product (ADR-0037 §3). */
+export function withPrefs(db: Database, userId: number, p: Product): Product {
+  const r = db
+    .prepare('SELECT * FROM product_prefs WHERE user_id = ? AND code = ?')
+    .get(userId, p.code) as PrefsRow | undefined;
+  if (!r) return p;
+  return {
+    ...p,
+    packG: r.pack_g ?? p.packG,
+    pieces: r.pieces,
+    last:
+      r.amount_mode && r.amount_value
+        ? { mode: r.amount_mode, value: r.amount_value }
+        : null,
+  };
+}
+
 /** The name in the user's language, else product_name (AC-4.12). */
-const cachedProduct = (r: CacheRow, locale: Locale) => {
+export const cachedProduct = (r: CacheRow, locale: Locale) => {
   const names = JSON.parse(r.names ?? '{}') as Record<string, string>;
   return {
     ...fromRow(r, names[locale] ?? names.default ?? null, r.serving_text),
@@ -84,8 +107,21 @@ function storeOff(db: Database, code: string, off: OffResult, now: number) {
   });
 }
 
-/** Own product → cache → Open Food Facts (ADR-0034 §3, §4). `code` is already normalized. */
+/** Own product → cache → Open Food Facts (ADR-0034 §3, §4), with the user's prefs on top. */
 export async function lookupBarcode(
+  deps: Parameters<typeof findProduct>[0],
+  user: { id: number; locale: Locale },
+  code: string,
+  now = Date.now(),
+): Promise<BarcodeLookup> {
+  const found = await findProduct(deps, user, code, now);
+  return found.product
+    ? { ...found, product: withPrefs(deps.db, user.id, found.product) }
+    : found;
+}
+
+/** `code` is already normalized. */
+async function findProduct(
   {
     db,
     config,

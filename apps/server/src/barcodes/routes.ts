@@ -9,7 +9,12 @@ import type { RouteDeps } from '../app.js';
 import { requireUser, type AuthEnv } from '../auth/session.js';
 import { ApiError } from '../http/errors.js';
 import { photoPath } from '../photos/store.js';
-import { lookupBarcode, mineToProduct } from './lookup.js';
+import {
+  cachedProduct,
+  lookupBarcode,
+  mineToProduct,
+  withPrefs,
+} from './lookup.js';
 import { offClient } from './off.js';
 import { readBarcodes } from './read.js';
 
@@ -49,8 +54,20 @@ export function barcodeRoutes({ db, config, fetch, photoBarcodes }: RouteDeps) {
             'SELECT * FROM user_products WHERE user_id = ? ORDER BY updated_at DESC',
           )
           .all(c.var.user.id) as Parameters<typeof mineToProduct>[0][];
+        // Cached OFF products the user set a package weight or amount for; no savedAt, not "mine".
+        const off = db
+          .prepare(
+            `SELECT f.* FROM product_prefs p JOIN food_products f ON f.code = p.code
+             WHERE p.user_id = ? AND f.status = 'found' AND NOT EXISTS
+               (SELECT 1 FROM user_products u WHERE u.user_id = p.user_id AND u.code = p.code)
+             ORDER BY p.updated_at DESC`,
+          )
+          .all(c.var.user.id) as Parameters<typeof cachedProduct>[0][];
         return c.json({
-          products: rows.map(mineToProduct),
+          products: [
+            ...rows.map(mineToProduct),
+            ...off.map((r) => cachedProduct(r, c.var.user.locale)),
+          ].map((p) => withPrefs(db, c.var.user.id, p)),
         } satisfies MyProducts);
       })
   );
