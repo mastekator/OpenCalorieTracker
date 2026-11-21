@@ -1,0 +1,663 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OCT-420 · Edible part in the dish card</title>
+<link rel="stylesheet" href="../oct-13/tokens.css">
+<script src="../preview-bar.js"></script>
+<link rel="stylesheet" href="../oct-378/oct378.css">
+<style>
+/* Prototype-only page chrome. Screen parts use tokens only; new tokens: --step-mark-size. */
+:root { --step-mark-size: 24px; /* OCT-313: status mark of a recognition step */ }
+body { margin: 0; padding: var(--space-10) var(--space-8); background: var(--color-bg); color: var(--color-text);
+  font: var(--text-body-size)/var(--text-body-lh) var(--font-sans); }
+.doc-h1 { margin: 0 0 var(--space-2); font-size: var(--text-title-size); line-height: var(--text-title-lh); }
+.doc-h2 { margin: var(--space-12) 0 var(--space-2); font-size: var(--text-headline-size); }
+.doc-lead { max-width: 80ch; margin: 0 0 var(--space-4); color: var(--color-text-secondary); font-size: var(--text-subhead-size); line-height: var(--text-subhead-lh); }
+.doc-list { max-width: 86ch; padding-left: var(--space-6); font-size: var(--text-subhead-size); line-height: var(--text-subhead-lh); }
+.doc-list li + li { margin-top: var(--space-2); }
+.frames { display: flex; flex-wrap: wrap; gap: var(--space-8); align-items: flex-start; }
+figure { margin: 0; }
+figcaption { width: 375px; margin-top: var(--space-3); font-size: var(--text-footnote-size); line-height: var(--text-footnote-lh); color: var(--color-text-secondary); }
+figcaption b { color: var(--color-text); }
+.lang-bar { display: inline-flex; margin-left: var(--space-4); }
+
+/* ---- frames ---- */
+.phone { position: relative; width: 375px; min-height: 740px; box-sizing: border-box; overflow: hidden; border-radius: 40px;
+  background: var(--color-bg); outline: 1px solid var(--color-separator); display: flex; flex-direction: column; }
+.phone__body { flex: 1; display: flex; flex-direction: column; gap: var(--space-4); padding: 0 var(--screen-gutter) var(--space-6); }
+.desk { width: 1040px; height: 720px; position: relative; border-radius: var(--radius-lg); overflow: hidden; outline: 1px solid var(--color-separator);
+  background: var(--color-scrim); display: grid; place-items: center; }
+.desk + figcaption, .desk ~ figcaption { width: 640px; }
+
+.nav { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; height: var(--navbar-height); padding: var(--space-6) var(--space-2) 0; }
+.nav__title { font: 600 var(--text-headline-size)/var(--text-headline-lh) var(--font-sans); text-align: center; }
+.nav__l { justify-self: start; } .nav__r { justify-self: end; }
+.large { margin: 0; font: 700 var(--text-large-title-size)/1.15 var(--font-sans); letter-spacing: var(--tracking-tight); }
+
+.ibtn { display: inline-flex; align-items: center; justify-content: center; width: var(--tap-min); height: var(--tap-min); border: 0; border-radius: var(--radius-full);
+  background: none; color: var(--color-accent); }
+.ibtn svg, .btn svg { width: var(--icon-size); height: var(--icon-size); }
+.ibtn--soft { background: var(--color-surface-2); color: var(--color-text); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); min-height: var(--control-height); padding: 0 var(--space-4);
+  border: 0; border-radius: var(--radius-md); font: 600 var(--text-body-size) var(--font-sans); background: none; color: var(--color-accent); }
+.btn--primary { background: var(--color-accent); color: var(--color-on-accent); min-height: var(--control-height-lg); }
+.btn--tonal { background: var(--color-accent-soft); color: var(--color-accent); }
+.btn--sm { min-height: 36px; padding: 0 var(--space-3); font-size: var(--text-subhead-size); }
+.btn--plain { padding: 0 var(--space-2); }
+.btn--danger { color: var(--color-danger); }
+.btn--wide { width: 100%; }
+.btn[disabled] { background: var(--color-surface-2); color: var(--color-text-disabled); }
+.foot { margin-top: auto; display: grid; gap: var(--space-2); }
+
+/* ---- photo (a drawn stand-in for the user's photo) ---- */
+.photo { position: relative; height: var(--photo-preview-height); border-radius: var(--radius-lg); overflow: hidden; background: var(--illo-tile); }
+.photo svg { width: 100%; height: 100%; display: block; }
+.photo--sm { height: calc(var(--photo-preview-height) * .6); }
+.photo__mark { position: absolute; border: 2px solid var(--color-accent); border-radius: var(--radius-sm); box-shadow: 0 0 0 999px rgb(0 0 0 / 0); }
+.thumb { flex: none; width: var(--thumb-size); height: var(--thumb-size); border-radius: var(--radius-md); overflow: hidden; background: var(--illo-tile); }
+.thumb svg { width: 100%; height: 100%; display: block; }
+
+/* ---- recognition steps (new: RecognitionSteps) ---- */
+.status { display: grid; gap: 2px; text-align: center; }
+.status__t { font: 600 var(--text-title-size)/var(--text-title-lh) var(--font-sans); }
+.status__s { font-size: var(--text-subhead-size); color: var(--color-text-secondary); }
+.steps { margin: 0; padding: var(--space-1) var(--space-4); list-style: none; border-radius: var(--radius-lg); background: var(--color-surface); }
+.step { display: grid; grid-template-columns: var(--step-mark-size) 1fr; column-gap: var(--space-3); align-items: center; min-height: var(--control-height-lg); padding: var(--space-2) 0; }
+.step + .step { border-top: 1px solid var(--color-separator); }
+.step__t { font: 500 var(--text-body-size)/var(--text-body-lh) var(--font-sans); }
+.step__s { display: block; font-size: var(--text-footnote-size); line-height: var(--text-footnote-lh); color: var(--color-text-secondary); font-variant-numeric: tabular-nums; }
+.mark { display: grid; place-items: center; width: var(--step-mark-size); height: var(--step-mark-size); border-radius: var(--radius-full); box-sizing: border-box; }
+.mark svg { width: 14px; height: 14px; }
+.mark--wait { border: 2px solid var(--color-border-strong); }
+.mark--run { border: 2.5px solid var(--color-accent-soft); border-top-color: var(--color-accent); animation: spin 0.9s linear infinite; }
+.mark--done { background: var(--color-accent); color: var(--color-on-accent); }
+.mark--skip { background: var(--color-surface-2); color: var(--color-text-secondary); }
+.mark--warn { background: var(--color-warning-soft); color: var(--color-warning); }
+.step--skip .step__t, .step--wait .step__t { color: var(--color-text-secondary); }
+.step--run .step__t { font-weight: 600; }
+.step--warn .step__s { color: var(--color-warning); }
+.step--done .step__s b { color: var(--color-text); font-weight: 500; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .mark--run { animation: none; border-color: var(--color-accent); border-style: dotted; } }
+
+/* ---- edit screen ---- */
+.head { display: flex; gap: var(--space-3); align-items: center; }
+.total { display: grid; }
+.total__k { font: 700 var(--text-large-title-size)/1.1 var(--font-sans); font-variant-numeric: tabular-nums; }
+.total__k small { font-size: var(--text-body-size); font-weight: 500; color: var(--color-text-secondary); }
+.macros { display: flex; gap: var(--space-3); font-size: var(--text-footnote-size); color: var(--color-text-secondary); font-variant-numeric: tabular-nums; }
+.dot { display: inline-block; width: 8px; height: 8px; margin-right: 4px; border-radius: 50%; }
+.seg { display: grid; grid-template-columns: repeat(4, 1fr); padding: 2px; border-radius: var(--radius-md); background: var(--color-surface-2); }
+.seg span { display: grid; place-items: center; min-height: 36px; border-radius: var(--radius-sm); font-size: var(--text-subhead-size); font-weight: 500; }
+.seg .on { background: var(--color-surface); box-shadow: var(--shadow-toast); font-weight: 600; }
+.cap { display: flex; gap: var(--space-2); margin: 0; font-size: var(--text-footnote-size); line-height: var(--text-footnote-lh); color: var(--color-text-secondary); }
+.cap svg { flex: none; width: 16px; height: 16px; margin-top: 1px; }
+.list { margin: 0; padding: 0 var(--space-4); list-style: none; border-radius: var(--radius-lg); background: var(--color-surface); }
+.dish { display: grid; gap: var(--space-1); padding: var(--space-3) 0; }
+.dish + .dish { border-top: 1px solid var(--color-separator); }
+.dish__1 { display: flex; justify-content: space-between; gap: var(--space-3); font: 600 var(--text-headline-size)/var(--text-headline-lh) var(--font-sans); }
+.dish__1 .num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.dish__2 { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); font-size: var(--text-footnote-size); color: var(--color-text-secondary); font-variant-numeric: tabular-nums; }
+.dish__3 { display: flex; align-items: center; justify-content: space-between; margin-top: var(--space-1); }
+.stepper { display: flex; align-items: center; gap: var(--space-2); }
+.stepper .ibtn { background: var(--color-surface-2); color: var(--color-text); }
+.stepper__v { display: grid; place-items: center; width: var(--stepper-value-width); height: var(--tap-min); box-sizing: border-box; border: 1px solid var(--color-border-strong); border-radius: var(--radius-md);
+  font: 600 var(--text-body-size) var(--font-sans); font-variant-numeric: tabular-nums; }
+.badge { display: inline-flex; align-items: center; gap: 3px; padding: 2px var(--space-2); border-radius: var(--radius-sm);
+  font-size: var(--text-caption-size); line-height: var(--text-caption-lh); font-weight: 600; white-space: nowrap; }
+.badge svg { width: 12px; height: 12px; }
+.badge--src { background: var(--color-accent-soft); color: var(--color-accent); }
+.badge--n { background: var(--color-surface-2); color: var(--color-text-secondary); }
+.badge--warn { background: var(--color-warning-soft); color: var(--color-warning); }
+.badge--ok { background: var(--color-accent-soft); color: var(--color-accent); }
+.hint { display: grid; gap: var(--space-2); padding: var(--space-3) var(--space-4); border-radius: var(--radius-lg); background: var(--color-accent-soft); font-size: var(--text-subhead-size); line-height: var(--text-subhead-lh); }
+.hint--warn { background: var(--color-warning-soft); }
+.hint--n { background: var(--color-notice); }
+.hint__row { display: flex; gap: var(--space-2); align-items: flex-start; }
+.hint__row > svg { flex: none; width: 18px; height: 18px; margin-top: 2px; color: var(--color-accent); }
+.hint--warn .hint__row > svg { color: var(--color-warning); }
+.hint--n .hint__row > svg { color: var(--color-text-secondary); }
+.hint__acts { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-left: calc(18px + var(--space-2)); }
+.inline-hint { margin: calc(-1 * var(--space-1)) 0 var(--space-2); padding: var(--space-2) var(--space-3); border-radius: var(--radius-md); background: var(--color-warning-soft);
+  font-size: var(--text-footnote-size); line-height: var(--text-footnote-lh); }
+.inline-hint .btn { margin-left: calc(-1 * var(--space-2)); }
+
+/* ---- sheet ---- */
+.dim { position: absolute; inset: 0; background: var(--color-scrim); }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; gap: var(--space-4); max-height: 92%; box-sizing: border-box;
+  padding: var(--space-2) var(--screen-gutter) var(--space-8); border-radius: var(--radius-xl) var(--radius-xl) 0 0; background: var(--color-bg); box-shadow: var(--shadow-sheet); }
+.sheet__grab { width: 36px; height: 5px; margin: 0 auto; border-radius: var(--radius-full); background: var(--color-border-strong); }
+.sheet__h { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; }
+.sheet__h .nav__title { grid-column: 2; }
+.sheet__h .nav__r { grid-column: 3; }
+.under { position: absolute; inset: 0; padding: 0 var(--screen-gutter); opacity: 1; }
+
+/* ---- form ---- */
+.field { display: grid; gap: var(--space-1); }
+.field__l { font-size: var(--text-footnote-size); font-weight: 600; color: var(--color-text-secondary); }
+.field__l i { font-style: normal; font-weight: 400; }
+.input { display: flex; align-items: center; gap: var(--space-2); min-height: var(--control-height-lg); padding: 0 var(--space-2) 0 var(--space-4); box-sizing: border-box;
+  border: 1px solid var(--color-border-strong); border-radius: var(--radius-md); background: var(--color-surface); font-variant-numeric: tabular-nums; }
+.input__v { flex: 1; min-width: 0; }
+.input__v.ph { color: var(--color-text-disabled); }
+.input__sfx { color: var(--color-text-secondary); padding-right: var(--space-2); }
+.input--mono .input__v { font-family: var(--font-numeric, var(--font-sans)); letter-spacing: .04em; }
+.field__h { font-size: var(--text-footnote-size); line-height: var(--text-footnote-lh); color: var(--color-text-secondary); }
+.field__h--warn { color: var(--color-warning); }
+.row3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-2); }
+.seg2 { display: grid; grid-template-columns: 1fr 1fr; padding: 2px; border-radius: var(--radius-md); background: var(--color-surface-2); }
+.seg2 span { display: grid; place-items: center; min-height: 36px; border-radius: var(--radius-sm); font-size: var(--text-subhead-size); font-weight: 500; }
+.seg2 .on { background: var(--color-surface); box-shadow: var(--shadow-toast); font-weight: 600; }
+.sum { padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--color-surface-2); font-size: var(--text-subhead-size); font-variant-numeric: tabular-nums; }
+.spin { width: 16px; height: 16px; box-sizing: border-box; border-radius: 50%; border: 2px solid var(--color-accent-soft); border-top-color: var(--color-accent); animation: spin .9s linear infinite; }
+
+/* ---- source block in the dish sheet ---- */
+.src { display: grid; gap: var(--space-1); padding: var(--space-3) var(--space-4); border-radius: var(--radius-lg); background: var(--color-surface); font-size: var(--text-subhead-size); line-height: var(--text-subhead-lh); }
+.src__h { display: flex; align-items: center; gap: var(--space-2); font-weight: 600; }
+.src__h svg { width: 18px; height: 18px; color: var(--color-accent); }
+.src__l { color: var(--color-text-secondary); font-size: var(--text-footnote-size); line-height: var(--text-footnote-lh); font-variant-numeric: tabular-nums; }
+.src a { color: var(--color-accent); font-weight: 500; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; min-height: var(--tap-min); }
+.src a svg { width: 14px; height: 14px; }
+
+/* ---- settings ---- */
+.cell-group { margin: 0; padding: 0 var(--space-4); list-style: none; border-radius: var(--radius-lg); background: var(--color-surface); }
+.cell { display: flex; align-items: center; gap: var(--space-3); min-height: var(--control-height-lg); padding: var(--space-2) 0; }
+.cell + .cell { border-top: 1px solid var(--color-separator); }
+.cell__m { flex: 1; display: grid; gap: 2px; }
+.cell__t { font-weight: 500; }
+.cell__s { font-size: var(--text-footnote-size); line-height: var(--text-footnote-lh); color: var(--color-text-secondary); }
+.ico { display: grid; place-items: center; flex: none; width: 32px; height: 32px; border-radius: var(--radius-sm); background: var(--color-accent-soft); color: var(--color-accent); }
+.ico svg { width: 18px; height: 18px; }
+.sw { flex: none; position: relative; width: var(--switch-width); height: var(--switch-height); border-radius: var(--radius-full); background: var(--color-border-strong); }
+.sw::after { content: ''; position: absolute; top: 2px; left: 2px; width: calc(var(--switch-height) - 4px); height: calc(var(--switch-height) - 4px); border-radius: 50%; background: var(--color-surface); box-shadow: var(--shadow-toast); }
+.sw.on { background: var(--color-accent); }
+.sw.on::after { left: auto; right: 2px; }
+.sw.dis { background: var(--color-surface-2); }
+.sw.dis::after { background: var(--color-bg); box-shadow: none; }
+.statusline { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-subhead-size); font-weight: 600; }
+.statusline svg { width: 16px; height: 16px; }
+.st-ok { color: var(--color-accent); } .st-off { color: var(--color-text-secondary); } .st-lock { color: var(--color-text-secondary); }
+.kv { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: var(--space-2) var(--space-4); padding: var(--space-3) var(--space-4); border-radius: var(--radius-lg); background: var(--color-surface);
+  font-size: var(--text-subhead-size); line-height: var(--text-subhead-lh); }
+.kv dt { color: var(--color-text-secondary); }
+.kv dd { margin: 0; }
+.note { margin: 0; padding: 0 var(--space-1); font-size: var(--text-footnote-size); line-height: var(--text-footnote-lh); color: var(--color-text-secondary); }
+.sec-h { margin: var(--space-2) 0 calc(-1 * var(--space-2)); padding: 0 var(--space-1); font-size: var(--text-footnote-size); font-weight: 600; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: .02em; }
+.offline { display: flex; align-items: center; justify-content: center; gap: var(--space-2); min-height: 32px; background: var(--color-notice); font-size: var(--text-footnote-size); font-weight: 600; color: var(--color-text-secondary); }
+.offline svg { width: 14px; height: 14px; }
+.toast { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-lg); background: var(--color-surface); box-shadow: var(--shadow-toast); font-size: var(--text-subhead-size); line-height: var(--text-subhead-lh); }
+.toast svg { flex: none; width: 18px; height: 18px; color: var(--color-accent); }
+
+/* ---- desktop modal ---- */
+.modal { width: min(var(--modal-flow-max-width), 900px); height: 560px; display: grid; grid-template-columns: 240px 1fr; grid-template-rows: auto 1fr auto; border-radius: var(--radius-xl);
+  background: var(--color-bg); box-shadow: var(--shadow-sheet); overflow: hidden; }
+.modal__h { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; padding: var(--space-4) var(--space-6); border-bottom: 1px solid var(--color-separator); }
+.modal__l { display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-6); border-right: 1px solid var(--color-separator); }
+.modal__l .photo { height: 180px; }
+.modal__r { display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-6); overflow: hidden; }
+.modal__f { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: var(--space-2); padding: var(--space-4) var(--space-6); border-top: 1px solid var(--color-separator); }
+.dialog { width: var(--dialog-max-width); display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-6); border-radius: var(--radius-xl); background: var(--color-bg); box-shadow: var(--shadow-sheet); box-sizing: border-box; }
+.dialog .foot { flex-direction: row; display: flex; justify-content: flex-end; }
+
+/* ---- OCT-380: amount switch in the dish card (reuses the OCT-160/OCT-333 portion sheet layout). Tokens only. ---- */
+.seg.modes { grid-template-columns: repeat(var(--n), 1fr); }
+.qty { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: var(--space-4); }
+.qty .ibtn { width: var(--control-height-lg); height: var(--control-height-lg); background: var(--color-surface-2); color: var(--color-text); }
+.qty .ibtn[disabled] { color: var(--color-text-disabled); }
+.qv { display: flex; flex-direction: column; align-items: center; gap: 2px; font-variant-numeric: tabular-nums; }
+.qv b { font-size: var(--text-large-title-size); line-height: var(--text-large-title-lh); font-weight: 700; letter-spacing: var(--tracking-tight); }
+.qv small { font-size: var(--text-footnote-size); color: var(--color-text-secondary); }
+.chips { display: flex; justify-content: center; flex-wrap: wrap; gap: var(--space-2); }
+.chip { border: 0; color: var(--color-text); display: grid; place-items: center; min-width: var(--tap-min); min-height: var(--tap-min); padding: 0 var(--space-3); box-sizing: border-box; border-radius: var(--radius-full);
+  background: var(--color-surface-2); font: 600 var(--text-subhead-size) var(--font-sans); font-variant-numeric: tabular-nums; }
+.chip.on { background: var(--color-accent); color: var(--color-on-accent); }
+.res { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--color-surface-2); }
+.res b { font-size: var(--text-headline-size); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.packline { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); font-size: var(--text-footnote-size); line-height: var(--text-footnote-lh); color: var(--color-text-secondary); font-variant-numeric: tabular-nums; }
+.packline .btn { margin-right: calc(-1 * var(--space-2)); }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); }
+.stepper__v.auto { width: auto; padding: 0 var(--space-3); white-space: nowrap; }
+.input.focus { border-color: var(--color-accent); box-shadow: 0 0 0 3px var(--color-accent-soft); }
+.input.bad { border-color: var(--color-danger); }
+.field__h--err { color: var(--color-danger); }
+
+/* ---- OCT-420: edible part (gross → edible). Tokens only, no new tokens. ---- */
+.edcap { display: flex; align-items: center; gap: var(--space-1); width: 100%; min-height: var(--tap-min); margin: calc(-1 * var(--space-2)) 0; padding: 0; border: 0; background: none; text-align: left;
+  font: var(--text-footnote-size)/var(--text-footnote-lh) var(--font-sans); color: var(--color-text-secondary); font-variant-numeric: tabular-nums; }
+.edcap > span { flex: 1; min-width: 0; }
+.edcap .l2 { display: block; }
+.edcap b { color: var(--color-text); font-weight: 600; }
+.edcap .s { color: var(--color-accent); font-weight: 600; white-space: nowrap; }
+.edcap .s.ai { color: var(--color-text-secondary); }
+.edcap > svg { flex: none; width: 16px; height: 16px; color: var(--color-text-secondary); }
+.edcap--man { justify-content: space-between; }
+.edcap--man .btn { margin-right: calc(-1 * var(--space-2)); }
+.edline { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--color-surface); font-variant-numeric: tabular-nums; }
+.edline__m { flex: 1; display: grid; gap: 2px; }
+.edline__m b { font-size: var(--text-headline-size); }
+.edline__m span { font-size: var(--text-footnote-size); line-height: var(--text-footnote-lh); color: var(--color-text-secondary); }
+.edline__m .s { color: var(--color-accent); font-weight: 600; }
+.edline__m .s.ai { color: var(--color-text-secondary); }
+.res small { font-size: var(--text-footnote-size); color: var(--color-text-secondary); font-weight: 400; }
+/* AI question in the dish row (OCT-234 pattern) */
+.ask { display: flex; flex-direction: column; gap: var(--space-2); padding-top: var(--space-1); }
+.ask-q { display: flex; align-items: flex-start; gap: var(--space-2); font-size: var(--text-subhead-size); line-height: var(--text-subhead-lh); font-weight: 600; }
+.ask-q svg { flex: none; width: 18px; height: 18px; margin-top: 1px; color: var(--color-accent); }
+.ask-c { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.achip { display: inline-flex; flex-direction: column; align-items: flex-start; justify-content: center; min-height: var(--tap-min); padding: var(--space-1) var(--space-3); box-sizing: border-box; border: 0;
+  border-radius: var(--radius-full); background: var(--color-surface-2); color: var(--color-text); font: 500 var(--text-subhead-size)/var(--text-subhead-lh) var(--font-sans); text-align: left; }
+.achip small { font-size: var(--text-caption-size); line-height: var(--text-caption-lh); color: var(--color-text-secondary); font-variant-numeric: tabular-nums; }
+.achip.on { background: var(--color-accent-soft); color: var(--color-accent); font-weight: 600; box-shadow: inset 0 0 0 1px var(--color-accent); }
+.achip.on small { color: var(--color-accent); }
+.achip.other { background: transparent; color: var(--color-accent); box-shadow: inset 0 0 0 1px var(--color-border-strong); }
+.ask-l { font-size: var(--text-footnote-size); line-height: var(--text-footnote-lh); color: var(--color-text-secondary); }
+.dish.answered { margin: 0 calc(-1 * var(--space-4)); padding-left: var(--space-4); padding-right: var(--space-4); background: var(--color-accent-soft); }
+.list > .dish.answered:first-child { border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+.was { font-size: var(--text-footnote-size); color: var(--color-text-secondary); text-decoration: line-through; }
+.rowsonly .list { margin-top: var(--space-4); }
+.tag { display: block; margin: var(--space-3) 0 0; font-size: var(--text-caption-size); font-weight: 600; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: .02em; }
+code { font-size: var(--text-caption-size); }
+</style>
+</head>
+<body>
+<div id="doc"></div>
+<script>
+const NB = ' ';
+const KEY = 'oct-preview-lang';
+let lang = new URLSearchParams(location.search).get('lang');
+try { lang = lang || localStorage.getItem(KEY); } catch (e) {}
+lang = lang === 'en' ? 'en' : 'ru';
+const L = (ru, en) => lang === 'en' ? en : ru;
+const n = v => v.toLocaleString(lang === 'en' ? 'en-US' : 'ru-RU', { maximumFractionDigits: 1 }).replace(/\s/g, NB);
+const g = v => `${n(v)}${NB}${L('г', 'g')}`;
+const kc = v => `${n(v)}${NB}${L('ккал', 'kcal')}`;
+const BC = '4607012345678';
+
+const sv = d => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const I = {
+  check: sv('<path d="M20 6 9 17l-5-5"/>'), minus: sv('<path d="M5 12h14"/>'), plus: sv('<path d="M5 12h14M12 5v14"/>'), x: sv('<path d="M18 6 6 18M6 6l12 12"/>'),
+  alert: sv('<circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>'),
+  sparkle: sv('<path d="M9.94 15.5A2 2 0 0 0 8.5 14.06l-6.14-1.58a.5.5 0 0 1 0-.96L8.5 9.94A2 2 0 0 0 9.94 8.5l1.58-6.14a.5.5 0 0 1 .96 0l1.58 6.14a2 2 0 0 0 1.44 1.44l6.14 1.58a.5.5 0 0 1 0 .96l-6.14 1.58a2 2 0 0 0-1.44 1.44l-1.58 6.14a.5.5 0 0 1-.96 0z"/>'),
+  pencil: sv('<path d="M21.17 6.81a1 1 0 0 0-3.99-3.99L3.84 16.17a2 2 0 0 0-.5.83l-1.32 4.35a.5.5 0 0 0 .62.62l4.35-1.32a2 2 0 0 0 .83-.5z"/><path d="m15 5 4 4"/>'),
+  barcode: sv('<path d="M3 5v14M8 5v14M12 5v14M17 5v14M21 5v14"/>'),
+  label: sv('<path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8h8M7 12h10M7 16h6"/>'),
+  mine: sv('<path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>'),
+  lock: sv('<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>'),
+  info: sv('<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>'),
+  wifiOff: sv('<path d="M12 20h.01M8.5 16.43a5 5 0 0 1 7 0M5 12.86a10 10 0 0 1 5.17-2.69M19 12.86a10 10 0 0 0-2-1.52M2 8.82a15 15 0 0 1 4.18-2.64M22 8.82a15 15 0 0 0-11.29-3.76M2 2l20 20"/>'),
+  camera: sv('<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/>'),
+  chev: sv('<path d="m9 18 6-6-6-6"/>'), back: sv('<path d="m15 18-6-6 6-6"/>'),
+  ext: sv('<path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>'),
+  trash: sv('<path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>'),
+};
+
+// A drawn stand-in for the photo: a yogurt cup with a barcode next to a plate with an omelette.
+const PHOTO = (opts = {}) => {
+  // EAN-style pattern in modules: [bar, gap, bar, gap, ...]; guard bars (g) run longer
+  const mods = [1,1,1, 2,1,1,2, 1,3,1,1, 2,2,1,1, 1,1,3,1, 1,1,1,1,1, 3,1,1,2, 1,1,2,2, 2,1,1,1, 1,3,1,1, 1,1,1];
+  const guards = new Set([0, 2, 22, 24, mods.length - 3, mods.length - 1]);
+  const u = 50 / mods.reduce((a, b) => a + b, 0);
+  let bx = 249, bars = '';
+  mods.forEach((m, i) => { if (i % 2 === 0) bars += `<rect x="${bx.toFixed(2)}" y="146" width="${(m * u).toFixed(2)}" height="${guards.has(i) ? 38 : 34}" fill="var(--illo-cocoa)"/>`; bx += m * u; });
+  const plate = opts.noPack ? 0 : 1;
+  return `<svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <rect width="400" height="300" fill="var(--illo-tile)"/>
+    <circle cx="${plate ? 120 : 200}" cy="160" r="${plate ? 98 : 120}" fill="var(--illo-plate)"/><circle cx="${plate ? 120 : 200}" cy="160" r="${plate ? 72 : 90}" fill="var(--illo-white)"/>
+    <ellipse cx="${plate ? 120 : 200}" cy="160" rx="${plate ? 54 : 68}" ry="${plate ? 40 : 50}" fill="var(--illo-yellow)"/>
+    <circle cx="${plate ? 104 : 182}" cy="150" r="5" fill="var(--illo-leaf)"/><circle cx="${plate ? 134 : 220}" cy="168" r="4" fill="var(--illo-leaf)"/><circle cx="${plate ? 118 : 198}" cy="178" r="4" fill="var(--illo-green)"/>
+    ${opts.noPack ? '' : `<path d="M226 80h96l-9 170q-1 8-9 8h-60q-8 0-9-8z" fill="var(--illo-white)"/>
+    <rect x="226" y="84" width="96" height="5" fill="var(--illo-shade)"/>
+    <rect x="219" y="66" width="110" height="18" rx="9" fill="var(--illo-blue)"/>
+    <rect x="240" y="100" width="68" height="28" rx="8" fill="var(--illo-blue)"/>
+    <rect x="250" y="109" width="36" height="4" rx="2" fill="var(--illo-white)"/><rect x="250" y="117" width="24" height="4" rx="2" fill="var(--illo-white)"/>
+    ${opts.blur ? '' : `<rect x="242" y="140" width="64" height="60" rx="6" fill="var(--illo-white)" stroke="var(--illo-shade)" stroke-width="2"/>${bars}
+    <rect x="253" y="189" width="17" height="4" rx="2" fill="var(--illo-cocoa)" opacity=".45"/><rect x="278" y="189" width="17" height="4" rx="2" fill="var(--illo-cocoa)" opacity=".45"/>`}`}
+  </svg>`;
+};
+const thumb = () => `<span class="thumb">${PHOTO()}</span>`;
+
+// ---- building blocks ----
+const phone = (inner, cap, opts = {}) => `<figure id="${opts.id || ''}"><div class="phone"${opts.tall ? ` style="min-height:${opts.h || 812}px"` : ''}>${inner}</div><figcaption>${cap}</figcaption></figure>`;
+const nav = (l, title, r) => `<div class="nav"><span class="nav__l">${l || ''}</span><span class="nav__title">${title || ''}</span><span class="nav__r">${r || ''}</span></div>`;
+const cancel = () => `<button class="btn btn--plain">${L('Отмена', 'Cancel')}</button>`;
+const closeX = () => `<button class="ibtn ibtn--soft" aria-label="${L('Закрыть', 'Close')}">${I.x}</button>`;
+
+// one recognition step: k = done | run | wait | skip | warn
+const STEP_ICON = { done: I.check, run: '', wait: '', skip: I.minus, warn: I.alert };
+const step = (k, t, s) => `<li class="step step--${k}"><span class="mark mark--${k}">${STEP_ICON[k]}</span><span><span class="step__t">${t}</span>${s ? `<span class="step__s">${s}</span>` : ''}</span></li>`;
+const steps = (a, b, c) => `<ol class="steps" aria-label="${L('Шаги распознавания', 'Recognition steps')}">${[a, b, c].filter(Boolean).join('')}</ol>`;
+const S1 = L('Штрихкод', 'Barcode'), S2 = 'Open Food Facts', S3 = L('ИИ разбирает фото', 'AI reads the photo');
+
+const recog = (stepList, title, sub) => `${nav(cancel(), '', '')}<div class="phone__body">
+  <div class="photo">${PHOTO()}</div>
+  <div class="status" role="status"><span class="status__t">${title || L('Распознаём…', 'Recognizing…')}</span><span class="status__s">${sub || L('Обычно до 10 секунд', 'Usually under 10 seconds')}</span></div>
+  ${stepList}</div>`;
+
+const badge = (k) => ({
+  barcode: `<span class="badge badge--src">${I.barcode}${L('штрихкод', 'barcode')}</span>`,
+  label: `<span class="badge badge--src">${I.label}${L('этикетка', 'label')}</span>`,
+  mine: `<span class="badge badge--src">${I.mine}${L('ваш продукт', 'your product')}</span>`,
+  check: `<span class="badge badge--warn">${I.alert}${L('проверьте', 'check')}</span>`,
+  approx: `<span class="badge badge--n">${L('примерно', 'approx.')}</span>`,
+  manual: `<span class="badge badge--n">${L('вручную', 'manual')}</span>`,
+}[k] || '');
+const mac = (p, f, c) => `${L('Б', 'P')}${NB}${n(p)} · ${L('Ж', 'F')}${NB}${n(f)} · ${L('У', 'C')}${NB}${n(c)}`;
+const OML = { name: L('Омлет с зеленью', 'Omelette with herbs'), w: 180, k: 250, p: 17, f: 19, c: 3, b: 'approx' };
+const meals = () => `<div class="seg" role="radiogroup"><span>${L('Завтрак', 'Breakfast')}</span><span class="on">${L('Обед', 'Lunch')}</span><span>${L('Ужин', 'Dinner')}</span><span>${L('Перекус', 'Snack')}</span></div>`;
+
+const field = (label, value, o = {}) => `<label class="field"><span class="field__l">${label}${o.opt ? ` <i>· ${o.opt}</i>` : ''}</span>
+  <span class="input${o.mono ? ' input--mono' : ''}"><span class="input__v${o.ph ? ' ph' : ''}">${value}</span>${o.sfx ? `<span class="input__sfx">${o.sfx}</span>` : ''}${o.btn || ''}</span>${o.hint ? `<span class="field__h${o.warn ? ' field__h--warn' : ''}">${o.hint}</span>` : ''}</label>`;
+const findBtn = (busy) => busy ? `<button class="btn btn--tonal btn--sm" aria-busy="true"><span class="spin" aria-hidden="true"></span>${L('Ищем', 'Searching')}</button>` : `<button class="btn btn--tonal btn--sm">${L('Найти', 'Find')}</button>`;
+const bcField = (value, o = {}) => field(L('Штрихкод', 'Barcode'), value || L('Цифры под штрихкодом', 'Digits under the barcode'), { opt: L('необязательно', 'optional'), mono: !!value, ph: !value, btn: findBtn(o.busy), hint: o.hint, warn: o.warn });
+const hint = (kind, icon, text, acts = '') => `<div class="hint${kind ? ' hint--' + kind : ''}"><div class="hint__row">${icon}<span>${text}</span></div>${acts ? `<div class="hint__acts">${acts}</div>` : ''}</div>`;
+
+// ---------- OCT-378: unit g / ml ----------
+const OZ_G = 28.3495, FLOZ_ML = 29.5735;
+// q(value, unit, us): amount with its unit. Metric: g / ml; imperial: oz / fl oz (to 0.1).
+const q = (v, u, us) => us ? `${n(Math.round(v / (u === 'ml' ? FLOZ_ML : OZ_G) * 10) / 10)}${NB}${u === 'ml' ? 'fl oz' : 'oz'}` : `${n(v)}${NB}${u === 'ml' ? L('мл', 'ml') : L('г', 'g')}`;
+const per100 = u => u === 'ml' ? L('На 100 мл', 'Per 100 ml') : L('На 100 г', 'Per 100 g');
+const amountLabel = u => u === 'ml' ? L('Объём', 'Volume') : L('Вес', 'Weight');
+const stepTxt = (u, us) => us ? `0,5${NB}${u === 'ml' ? 'fl oz' : 'oz'}`.replace(',', lang === 'en' ? '.' : ',') : q(10, u, false);
+
+const OML2 = { name: L('Омлет с зеленью', 'Omelette with herbs'), w: 180, u: 'g', k: 250, p: 17, f: 19, c: 3, b: 'approx' };
+const CAP = { name: L('Капучино', 'Cappuccino'), w: 300, u: 'ml', k: 120, p: 6, f: 6, c: 9, b: 'approx' };
+const JUICE = { name: L('Сок апельсиновый', 'Orange juice'), w: 500, u: 'ml', k: 225, p: 4, f: 1, c: 50, b: 'barcode' };
+const KEFIR = { name: L('Кефир 1 %', 'Kefir 1%'), w: 250, u: 'ml', k: 100, p: 7.5, f: 2.5, c: 10 };
+
+const dish2 = (d, { us = false, extra = '' } = {}) => `<li class="dish"><div class="dish__1"><span>${d.name}</span><span class="num">${kc(d.k)}</span></div>
+  <div class="dish__2">${badge(d.b)}<span>${mac(d.p, d.f, d.c)}</span></div>${extra}
+  <div class="dish__3"><span class="stepper"><button class="ibtn" aria-label="${L('Меньше на', 'Less by')} ${stepTxt(d.u, us)}">${I.minus}</button><span class="stepper__v" style="${us ? 'width:auto;padding:0 var(--space-3)' : ''}">${q(d.w, d.u, us)}</span><button class="ibtn" aria-label="${L('Больше на', 'More by')} ${stepTxt(d.u, us)}">${I.plus}</button></span>
+  <button class="ibtn" aria-label="${L('Изменить', 'Edit')} ${d.name}">${I.pencil}</button></div></li>`;
+const edit2 = ({ dishes, us = false, cap = '', total = 595, m = [27, 26, 62] }) => `${nav(closeX(), L('Сегодня, 8:40', 'Today, 8:40 AM'), '')}<div class="phone__body">
+  <div class="head">${thumb()}<div class="total"><span class="total__k">${n(total)} <small>${L('ккал', 'kcal')}</small></span>
+  <span class="macros"><span><i class="dot" style="background:var(--color-protein)"></i>${L('Б', 'P')}${NB}${n(m[0])}</span><span><i class="dot" style="background:var(--color-fat)"></i>${L('Ж', 'F')}${NB}${n(m[1])}</span><span><i class="dot" style="background:var(--color-carbs)"></i>${L('У', 'C')}${NB}${n(m[2])}</span></span></div></div>
+  ${meals().replace('<span>' + L('Завтрак', 'Breakfast'), '<span class="on">' + L('Завтрак', 'Breakfast')).replace('<span class="on">' + L('Обед', 'Lunch'), '<span>' + L('Обед', 'Lunch'))}
+  <p class="cap">${I.sparkle}<span>${cap || L('Цифры по штрихкоду — с упаковки. Остальное — оценка ИИ по фото, проверьте вес и объём.', 'Barcode numbers come from the package. The rest is an AI estimate from the photo — check the weight and volume.')}</span></p>
+  <ul class="list">${dishes.join('')}</ul>
+  <div class="foot"><button class="btn btn--primary btn--wide">${L('Сохранить', 'Save')}</button></div></div>`;
+const histHint = (us) => `<div class="inline-hint">${L(`Похоже на запись вчера: ${q(300, 'ml', us)} · 120${NB}ккал`, `Looks like yesterday’s entry: ${q(300, 'ml', us)} · 120${NB}kcal`)}<div><button class="btn btn--sm">${L('Как в прошлый раз', 'Same as last time')}</button><button class="btn btn--sm">${L('Оставить оценку', 'Keep the estimate')}</button></div></div>`;
+
+const dishSheet2 = (d, { us = false, err = '' } = {}) => `<div class="under">${nav('', L('Сегодня, 8:40', 'Today, 8:40 AM'), '')}</div><div class="dim"></div>
+  <div class="sheet"><span class="sheet__grab"></span><div class="sheet__h"><span class="nav__title">${L('Блюдо', 'Dish')}</span><span class="nav__r">${closeX()}</span></div>
+  ${field(L('Название', 'Name'), d.name)}
+  <div class="field"><span class="field__l">${amountLabel(d.u)}: ${d.name}</span><span class="stepper"><button class="ibtn ibtn--soft" aria-label="${L('Меньше на', 'Less by')} ${stepTxt(d.u, us)}">${I.minus}</button><span class="stepper__v" style="${err ? 'border-color:var(--color-danger)' : ''}">${err ? '0' : q(d.w, d.u, us)}</span><button class="ibtn ibtn--soft" aria-label="${L('Больше на', 'More by')} ${stepTxt(d.u, us)}">${I.plus}</button></span>
+  ${err ? `<span class="field__h" style="color:var(--color-danger)" role="alert">${err}</span>` : `<span class="field__h">${L(`Порция на упаковке — ${q(250, d.u, us)}`, `Serving on the package: ${q(250, d.u, us)}`)}</span>`}</div>
+  <p class="num" style="margin:0"><b>${kc(d.k)}</b> <span class="macros" style="display:inline">${mac(d.p, d.f, d.c)}</span></p>
+  <div class="src"><span class="src__h">${I.barcode}${L('Open Food Facts · по штрихкоду', 'Open Food Facts · by barcode')}</span>
+    <span class="src__l">4601234567893</span><span class="src__l">${per100(d.u)}: ${kc(45)} · ${mac(0.8, 0.2, 10)}</span>
+    <a href="#" aria-label="${L('Открыть продукт в Open Food Facts', 'Open the product in Open Food Facts')}">${L('Открыть в Open Food Facts', 'Open in Open Food Facts')}${I.ext}</a></div>
+  <button class="btn btn--primary btn--wide">${L('Готово', 'Done')}</button><button class="btn btn--danger btn--wide">${L('Удалить блюдо', 'Delete dish')}</button></div>`;
+
+// unit switch next to the amount field; locked = unit comes from the package, no switch
+const amount = ({ u = 'g', val = '', locked = false, err = '' }) => {
+  const input = `<label class="field"><span class="field__l">${amountLabel(u)} <i>· ${L('обязательно', 'required')}</i></span>
+    <span class="input" style="${err ? 'border-color:var(--color-danger)' : ''}"><span class="input__v${val ? '' : ' ph'}">${val}</span>${locked ? `<span class="input__sfx">${u === 'ml' ? L('мл', 'ml') : L('г', 'g')}</span>` : ''}</span>
+    ${err ? `<span class="field__h" style="color:var(--color-danger)" role="alert">${err}</span>` : locked ? `<span class="field__h">${L('Единица с упаковки', 'Unit from the package')}</span>` : ''}</label>`;
+  if (locked) return input;
+  return `<div class="amount" style="${err ? 'align-items:start' : ''}">${input}<div class="seg2 unit" role="radiogroup" aria-label="${L('Единица', 'Unit')}" style="${err ? 'margin-top:calc(var(--text-footnote-lh) + var(--space-1))' : ''}"><span class="${u === 'g' ? 'on' : ''}" role="radio" aria-checked="${u === 'g'}" aria-label="${L('Граммы', 'Grams')}">${L('г', 'g')}</span><span class="${u === 'ml' ? 'on' : ''}" role="radio" aria-checked="${u === 'ml'}" aria-label="${L('Миллилитры', 'Milliliters')}">${L('мл', 'ml')}</span></div></div>`;
+};
+const manual2 = ({ bc = '', banner = '', u = 'g', f = null, locked = false, err = '', desk = false }) => {
+  const body = `${banner}${bcField(bc, { hint: bc ? '' : L('Цифры под штрихкодом — найдём продукт и заполним остальное', 'Digits under the barcode — we’ll find the product and fill in the rest') })}
+  ${field(L('Название', 'Name'), f ? f.name : L('Например, творог 5 %', 'e.g. Greek yogurt 2%'), { ph: !f })}
+  ${amount({ u, val: err ? '' : f ? n(f.w) : '', locked, err })}
+  <div class="field"><span class="field__l">${L('Ккал и БЖУ указаны', 'Calories and macros are')}</span><div class="seg2"><span class="on">${per100(u)}</span><span>${L('На порцию', 'Per serving')}</span></div></div>
+  ${field(L('Ккал', 'Calories'), f ? n(f.k / f.w * 100) : '', { opt: L('обязательно', 'required') })}
+  <div class="row3">${field(L('Белки', 'Protein'), f ? n(f.p / f.w * 100) : '', { sfx: L('г', 'g') })}${field(L('Жиры', 'Fat'), f ? n(Math.round(f.f / f.w * 1000) / 10) : '', { sfx: L('г', 'g') })}${field(L('Углев.', 'Carbs'), f ? n(f.c / f.w * 100) : '', { sfx: L('г', 'g') })}</div>
+  ${f && !err ? `<div class="sum">${L(`Итого на ${q(f.w, u)} — ${kc(f.k)}`, `Total for ${q(f.w, u)}: ${kc(f.k)}`)}</div>` : ''}`;
+  if (desk) return `<div class="desk" style="height:860px"><div class="dialog"><div class="sheet__h" style="grid-template-columns:1fr auto"><span class="nav__title" style="grid-column:1;text-align:left">${L('Блюдо вручную', 'Add dish manually')}</span>${closeX()}</div>
+    ${body}<div class="foot"><button class="btn">${L('Отмена', 'Cancel')}</button><button class="btn btn--primary">${L('Добавить', 'Add')}</button></div></div></div>`;
+  return `<div class="under">${nav('', L('Сегодня, 8:40', 'Today, 8:40 AM'), '')}</div><div class="dim"></div>
+  <div class="sheet"><span class="sheet__grab"></span><div class="sheet__h"><span class="nav__title">${L('Блюдо вручную', 'Add dish manually')}</span><span class="nav__r">${closeX()}</span></div>
+  ${body}<button class="btn btn--primary btn--wide">${L('Добавить', 'Add')}</button></div>`;
+};
+
+
+// ---------- OCT-380: how much of the package ----------
+// Products: per 100 g/ml values, package weight, package serving, pieces in the package (null = unknown).
+const PR = {
+  cookie: { name: L('Печенье овсяное', 'Oat cookies'), u: 'g', k: 440, p: 6, f: 16, c: 68, pack: 200, serv: 30, pcs: 12, bc: '4607012345678' },
+  yog: { name: L('Йогурт клубничный 2,5 %', 'Strawberry yogurt 2.5%'), u: 'g', k: 95, p: 3, f: 2.5, c: 15, pack: 120, serv: 120, pcs: null, bc: '4601234500017' },
+  bar: { name: L('Батончик мюсли', 'Muesli bar'), u: 'g', k: 400, p: 5, f: 12, c: 66, pack: null, serv: null, pcs: null, bc: '4600000123457' },
+  juice: { name: L('Сок апельсиновый', 'Orange juice'), u: 'ml', k: 45, p: 0.8, f: 0.2, c: 10, pack: 1000, serv: 250, pcs: null, bc: '4601234567893' },
+};
+const FR = { 0: '', 0.25: '¼', 0.33: '⅓', 0.5: '½', 0.67: '⅔', 0.75: '¾' };
+const fr = v => { const w = Math.floor(v + 1e-6), r = Math.round((v - w) * 100) / 100; return (w ? n(w) : (r ? '' : '0')) + (FR[r] ?? ''); };
+// RU plural: integer → 1 / 2–4 / 5+; any fraction takes the genitive singular (½ упаковки)
+const pl = (v, one, few, many) => { if (v % 1) return few; const m10 = v % 10, m100 = v % 100; return m10 === 1 && m100 !== 11 ? one : m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? few : many; };
+const W = {
+  pack: v => L(pl(v, 'упаковка', 'упаковки', 'упаковок'), v > 1 ? 'packs' : 'pack'),
+  serv: v => L(pl(v, 'порция', 'порции', 'порций'), v > 1 ? 'servings' : 'serving'),
+};
+const ABBR = { pack: v => L('уп.', v > 1 ? 'packs' : 'pack'), serv: v => L('порц.', v > 1 ? 'servings' : 'serving') };
+const grams = (p, m, v) => Math.round(m === 'pack' ? v * p.pack : m === 'serv' ? v * p.serv : m === 'pcs' ? v * p.pack / p.pcs : v);
+const nut = (p, w) => ({ k: Math.round(p.k * w / 100), p: Math.round(p.p * w / 10) / 10, f: Math.round(p.f * w / 10) / 10, c: Math.round(p.c * w / 10) / 10 });
+const modes = p => [p.pack && 'pack', p.serv && (!p.pack || p.serv < p.pack) && 'serv', 'pcs', 'g'].filter(Boolean); // E-7.1: no Servings when serving ≥ package
+const modeName = (m, u, us) => ({ pack: L('Упаковка', 'Package'), serv: L('Порции', 'Servings'), pcs: L('Штуки', 'Pieces'),
+  g: us ? (u === 'ml' ? 'fl oz' : 'oz') : u === 'ml' ? L('мл', 'ml') : L('Граммы', 'Grams') }[m]);
+const stepAria = (m, u, us) => ({ pack: L('¼ упаковки', '¼ package'), serv: L('½ порции', '½ serving'), pcs: L('1 штуку', '1 piece'), g: stepTxt(u, us) }[m]);
+// short label for the dish row stepper: "½ уп. · 100 г", "2 из 12 · 33 г"
+const rowLabel = (p, m, v, us) => { const w = q(grams(p, m, v), p.u, us);
+  return m === 'pack' || m === 'serv' ? `${fr(v)}${NB}${ABBR[m](v)} · ${w}` : m === 'pcs' ? (v <= p.pcs ? `${n(v)}${NB}${L('из', 'of')}${NB}${n(p.pcs)} · ${w}` : `${n(v)}${NB}${L('шт.', 'pcs')} · ${w}`) : w; };
+
+// row in the edit list; for barcode products the stepper value carries the share
+const qdish = (p, m, v, { us = false, badges = '' } = {}) => { const t = nut(p, grams(p, m, v));
+  return `<li class="dish"><div class="dish__1"><span>${p.name}</span><span class="num">${kc(t.k)}</span></div>
+  <div class="dish__2">${badge('barcode')}${badges}<span>${mac(t.p, t.f, t.c)}</span></div>
+  <div class="dish__3"><span class="stepper"><button class="ibtn" aria-label="${L('Меньше на', 'Less by')} ${stepAria(m, p.u, us)}">${I.minus}</button><span class="stepper__v auto">${rowLabel(p, m, v, us)}</span><button class="ibtn" aria-label="${L('Больше на', 'More by')} ${stepAria(m, p.u, us)}">${I.plus}</button></span>
+  <button class="ibtn" aria-label="${L('Изменить', 'Edit')} ${p.name}">${I.pencil}</button></div></li>`; };
+const remembered = `<span class="badge badge--n">${L('как в прошлый раз', 'same as last time')}</span>`;
+
+// the amount block: mode switch, big stepper, chips, result
+const qty = (p, m, v, o = {}) => {
+  const us = !!o.us, ms = o.modes || modes(p), w = grams(p, m, v), t = nut(p, o.keepW ?? w);
+  const seg = `<div class="seg modes" style="--n:${ms.length}" role="radiogroup" aria-label="${L('Как считать', 'Count by')}">${ms.map(x => `<span class="${x === m ? 'on' : ''}" role="radio" aria-checked="${x === m}">${modeName(x, p.u, us)}</span>`).join('')}</div>`;
+  let big, sub;
+  if (m === 'pack' || m === 'serv') { big = fr(v); sub = `${W[m](v)} · ${q(w, p.u, us)}`; }
+  else if (m === 'pcs') { big = n(v); sub = v <= p.pcs ? `${L('из', 'of')} ${n(p.pcs)} · ${q(w, p.u, us)}` : `${L('шт.', 'pcs')} · ${q(w, p.u, us)}`; }
+  else { const s = q(v, p.u, us).split(NB); big = s[0]; sub = s[1]; }
+  const atMin = (m === 'pack' && v <= 0.25) || (m === 'serv' && v <= 0.5) || (m === 'pcs' && v <= 1);
+  const stepper = `<div class="qty"><button class="ibtn" aria-label="${L('Меньше на', 'Less by')} ${stepAria(m, p.u, us)}"${atMin ? ' disabled' : ''}>${I.minus}</button><span class="qv" aria-live="polite"><b>${big}</b><small>${sub}</small></span><button class="ibtn" aria-label="${L('Больше на', 'More by')} ${stepAria(m, p.u, us)}">${I.plus}</button></div>`;
+  const CH = m === 'pack' ? [['¼', .25], ['⅓', .33], ['½', .5], ['¾', .75], [L('Вся', 'Whole'), 1]] : m === 'serv' ? [['½', .5], ['1', 1], ['1½', 1.5], ['2', 2]] : null;
+  const chips = CH ? `<div class="chips" role="group" aria-label="${L('Быстрый выбор', 'Quick pick')}">${CH.map(([l, x]) => `<button class="chip${Math.abs(x - v) < .01 ? ' on' : ''}" aria-pressed="${Math.abs(x - v) < .01}">${l}</button>`).join('')}</div>` : '';
+  const res = `<div class="res"><b>${kc(t.k)}</b><span class="macros"><span><i class="dot" style="background:var(--color-protein)"></i>${L('Б', 'P')}${NB}${n(t.p)}</span><span><i class="dot" style="background:var(--color-fat)"></i>${L('Ж', 'F')}${NB}${n(t.f)}</span><span><i class="dot" style="background:var(--color-carbs)"></i>${L('У', 'C')}${NB}${n(t.c)}</span></span></div>`;
+  return `<div class="field"><span class="field__l">${L('Сколько съели', 'How much you ate')}</span>${seg}</div>${o.body ?? stepper + chips}${res}${o.noLine ? '' : packLine(p, us)}`;
+};
+// what we know about the package + the way to fix it (E-7.2) or fill it in (AC-4.1)
+const packLine = (p, us) => p.pack
+  ? `<div class="packline"><span>${L('Упаковка', 'Package')}: ${q(p.pack, p.u, us)}${p.pcs ? ` · ${n(p.pcs)}${NB}${L('шт.', 'pcs')}` : ''}${p.serv ? ` · ${L('порция', 'serving')} ${q(p.serv, p.u, us)}` : ''}</span><button class="btn btn--sm">${L('Изменить', 'Change')}</button></div>`
+  : `<div class="packline"><span>${L('Вес упаковки не знаем', 'Package weight unknown')}</span><button class="btn btn--tonal btn--sm">${L('Указать вес упаковки', 'Add package weight')}</button></div>`;
+const srcBlock = p => `<div class="src"><span class="src__h">${I.barcode}${L('Open Food Facts · по штрихкоду', 'Open Food Facts · by barcode')}</span>
+  <span class="src__l">${p.bc} · ${per100(p.u)}: ${kc(p.k)} · ${mac(p.p, p.f, p.c)}</span></div>`;
+const qSheet = (p, m, v, o = {}) => `<div class="under">${nav('', L('Сегодня, 8:40', 'Today, 8:40 AM'), '')}</div><div class="dim"></div>
+  <div class="sheet"><span class="sheet__grab"></span><div class="sheet__h"><span class="nav__title">${p.name}</span><span class="nav__r">${closeX()}</span></div>
+  ${qty(p, m, v, o)}${o.noSrc ? '' : srcBlock(p)}
+  <button class="btn btn--primary btn--wide">${L('Готово', 'Done')}</button>${o.noDel ? '' : `<button class="btn btn--danger btn--wide">${L('Удалить блюдо', 'Delete dish')}</button>`}</div>`;
+const inp = (label, val, sfx, o = {}) => `<label class="field"><span class="field__l">${label}</span><span class="input${o.focus ? ' focus' : ''}${o.err ? ' bad' : ''}"><span class="input__v${val ? '' : ' ph'}">${val || o.ph || ''}</span><span class="input__sfx">${sfx}</span></span>${o.err ? `<span class="field__h field__h--err" role="alert">${o.err}</span>` : o.hint ? `<span class="field__h">${o.hint}</span>` : ''}</label>`;
+const G = () => L('г', 'g'), PCS = () => L('шт.', 'pcs');
+
+
+// ---------- OCT-420: edible part ----------
+const pc = v => lang === 'en' ? `${n(v)}%` : `${n(v)}${NB}%`;
+// A drawn stand-in for the photo: fruit in a bag with a store receipt next to it.
+const FRUIT = (o = {}) => `<svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+  <rect width="400" height="300" fill="var(--illo-tile)"/>
+  <path d="M40 92q8-22 30-22h120q22 0 30 22l14 150q2 22-20 22H46q-22 0-20-22z" fill="var(--illo-white)" opacity=".55"/>
+  ${[[92, 168, 38], [160, 178, 40], [126, 222, 36], [190, 228, 34], [76, 226, 30]].map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="var(--illo-brown)"/><ellipse cx="${x - r * .3}" cy="${y - r * .35}" rx="${r * .32}" ry="${r * .2}" fill="var(--illo-tan)" opacity=".7"/>`).join('')}
+  <g transform="rotate(6 320 150)"><rect x="262" y="52" width="112" height="196" rx="4" fill="var(--illo-white)" stroke="var(--illo-shade)" stroke-width="2"/>
+  ${[74, 88, 102, 150, 164, 214, 228].map((y, i) => `<rect x="276" y="${y}" width="${[70, 56, 80, 64, 48, 74, 40][i]}" height="5" rx="2.5" fill="var(--illo-shade)"/>`).join('')}
+  <text x="276" y="132" font-family="system-ui, sans-serif" font-size="15" font-weight="700" fill="var(--illo-cocoa)">${o.name || 'BUAH SALJU'}</text>
+  <text x="276" y="196" font-family="system-ui, sans-serif" font-size="22" font-weight="700" fill="var(--illo-cocoa)">0,772 kg</text></g>
+</svg>`;
+const fthumb = () => `<span class="thumb">${FRUIT()}</span>`;
+
+// Products: per 100 g of the edible part; refuse % from the reference (USDA) when known.
+const FP = {
+  sap: { name: L('Саподилла', 'Sapodilla'), k: 83, p: 0.4, f: 1.1, c: 20, pct: 80, src: 'usda', waste: L('кожура и семена', 'skin and seeds') },
+  inga: { name: L('Инга', 'Ice-cream bean'), rcpt: 'Buah Salju', k: 60, p: 1, f: 0.1, c: 15, pct: 25, src: 'ai', waste: L('стручок и семена', 'pod and seeds') },
+  apple: { name: L('Яблоко', 'Apple'), k: 52, p: 0.3, f: 0.2, c: 14, pct: 90, src: 'usda', waste: L('сердцевина', 'core') },
+};
+const BAN = { name: L('Банан', 'Banana'), w: 120, u: 'g', k: 107, p: 1.3, f: 0.4, c: 27.4, b: 'approx' };
+const SRC = s => ({ usda: 'USDA', ai: L('оценка ИИ', 'AI estimate'), mine: L('ваш', 'yours') }[s]);
+const SRC_LONG = s => ({ usda: L('справочник USDA', 'USDA reference'), ai: L('оценка ИИ', 'AI estimate'), mine: L('ваш процент', 'your percentage') }[s]);
+const srcSpan = s => `<span class="s${s === 'ai' ? ' ai' : ''}">${SRC(s)}</span>`;
+const rcptBadge = () => `<span class="badge badge--src">${I.label}${L('вес с чека', 'weight from receipt')}</span>`;
+// o: gross, pct, src, part (share of what was bought), whole, manual (edible grams typed by hand)
+const edOf = o => Math.round(o.gross * (o.part || 1) * (o.whole ? 100 : o.pct) / 100);
+const edCap = o => {
+  if (o.manual) return `<div class="edcap edcap--man"><span>${L('Вес вручную · было', 'Weight set by hand · was')} ${g(o.gross)} ${L('с кожурой', 'with skin')}</span><button class="btn btn--sm">${L('Вернуть', 'Restore')}</button></div>`;
+  const ed = edOf(o), part = o.part ? `${fr(o.part)}${NB}${L('из', 'of')} ` : '';
+  const text = o.whole
+    ? `${part}${g(o.gross)} ${L('целиком', 'whole')} → ${L('съедобно', 'edible')} <b>${g(ed)}</b><span class="l2">${pc(100)} · ${srcSpan('mine')}</span>`
+    : `${part}${g(o.gross)} ${L('с кожурой', 'with skin')} → ${L('съедобно', 'edible')} <b>${g(ed)}</b><span class="l2">${pc(o.pct)} · ${srcSpan(o.src)}</span>`;
+  const aria = o.whole ? L(`${o.gross} граммов целиком, съедобно 100 процентов, ваш выбор. Изменить`, `${o.gross} grams whole, 100 percent edible, your choice. Change`)
+    : L(`${o.gross} граммов с кожурой, съедобно ${ed} граммов, ${o.pct} процентов, ${SRC_LONG(o.src)}. Изменить`, `${o.gross} grams with skin, ${ed} grams edible, ${o.pct} percent, ${SRC_LONG(o.src)}. Change`);
+  return `<button class="edcap" aria-label="${aria}"><span>${text}</span>${I.chev}</button>`;
+};
+const edDish = (p, o, extra = {}) => { const w = o.manual || edOf(o), t = nut(p, w);
+  return `<li class="dish${extra.answered ? ' answered' : ''}"><div class="dish__1"><span>${p.name}${extra.was ? ` <span class="was">${extra.was}</span>` : ''}</span><span class="num">${kc(t.k)}</span></div>
+  <div class="dish__2">${o.noRcpt ? '' : rcptBadge()}<span>${mac(t.p, t.f, t.c)}</span></div>${edCap(o)}${extra.ask || ''}
+  <div class="dish__3"><span class="stepper"><button class="ibtn" aria-label="${L('Меньше на 10 г', 'Less by 10 g')}">${I.minus}</button><span class="stepper__v">${g(w)}</span><button class="ibtn" aria-label="${L('Больше на 10 г', 'More by 10 g')}">${I.plus}</button></span>
+  <button class="ibtn" aria-label="${L('Изменить', 'Edit')} ${p.name}">${I.pencil}</button></div></li>`; };
+const ask = (q, chips, note) => `<div class="ask" role="group" aria-label="${q}"><span class="ask-q">${I.sparkle}<span>${q}</span></span>
+  <div class="ask-c">${chips.map(([t, s, k]) => `<button class="achip${k ? ' ' + k : ''}" aria-pressed="${k === 'on'}"><span>${t}</span>${s ? `<small>${s}</small>` : ''}</button>`).join('')}</div>${note ? `<span class="ask-l">${note}</span>` : ''}</div>`;
+const EDQ = gross => [[L('Почти всё', 'Nearly all'), pc(90)], ['¾', pc(75)], [L('Половина', 'Half'), pc(50)], [L('Четверть', 'A quarter'), pc(25), 'on'], [L('Меньше', 'Less'), pc(10)]]
+  .map(([t, s, k]) => [t, `${s} · ${g(Math.round(gross * parseInt(s) / 100))}`, k]);
+
+const fedit = ({ rows, cap, total }) => `${nav(closeX(), L('Сегодня, 13:10', 'Today, 1:10 PM'), '')}<div class="phone__body">
+  <div class="head">${fthumb()}<div class="total"><span class="total__k">${n(total.k)} <small>${L('ккал', 'kcal')}</small></span>
+  <span class="macros"><span><i class="dot" style="background:var(--color-protein)"></i>${L('Б', 'P')}${NB}${n(total.p)}</span><span><i class="dot" style="background:var(--color-fat)"></i>${L('Ж', 'F')}${NB}${n(total.f)}</span><span><i class="dot" style="background:var(--color-carbs)"></i>${L('У', 'C')}${NB}${n(total.c)}</span></span></div></div>
+  ${meals().replace('<span>' + L('Перекус', 'Snack'), '<span class="on">' + L('Перекус', 'Snack')).replace('<span class="on">' + L('Обед', 'Lunch'), '<span>' + L('Обед', 'Lunch'))}
+  <p class="cap">${I.sparkle}<span>${cap || L('Вес с чека — с кожурой и семенами. В дневник пойдёт только съедобная часть.', 'The receipt weight includes skin and seeds. Only the edible part goes to the diary.')}</span></p>
+  <ul class="list">${rows.join('')}</ul>
+  <div class="foot"><button class="btn btn--primary btn--wide">${L('Сохранить', 'Save')}</button></div></div>`;
+
+// the edible block of the dish sheet
+const edBody = (p, o) => {
+  const ed = edOf(o), t = nut(p, ed), pct = o.whole ? 100 : o.pct;
+  const seg = `<div class="field"><span class="field__l">${L('Как ели', 'How you ate it')}</span><div class="seg2" role="radiogroup" aria-label="${L('Как ели', 'How you ate it')}"><span class="${o.whole ? '' : 'on'}" role="radio" aria-checked="${!o.whole}">${L('Очищенный', 'Peeled')}</span><span class="${o.whole ? 'on' : ''}" role="radio" aria-checked="${!!o.whole}">${L('Целиком', 'Whole')}</span></div></div>`;
+  const gross = `<div class="field"><span class="field__l">${o.whole ? L('Вес', 'Weight') : L('Вес с кожурой', 'Weight with skin')}</span><div class="qty"><button class="ibtn" aria-label="${L('Меньше на 10 г', 'Less by 10 g')}">${I.minus}</button><span class="qv" aria-live="polite"><b>${n(o.gross)}</b><small>${L('г', 'g')} · ${L('с чека', 'from the receipt')}</small></span><button class="ibtn" aria-label="${L('Больше на 10 г', 'More by 10 g')}">${I.plus}</button></div></div>`;
+  let mid;
+  if (o.err) mid = inp(L('Сколько съедобно', 'How much is edible'), o.err, '%', { err: L('От 10 до 100 %', '10–100%') });
+  else if (o.edit) { const v = o.pct;
+    mid = `<div class="field"><span class="field__l">${L('Сколько съедобно', 'How much is edible')}</span><div class="qty"><button class="ibtn" aria-label="${L('Меньше на 5 %', 'Less by 5%')}">${I.minus}</button><span class="qv" aria-live="polite"><b>${pc(v)}</b><small>${L('съедобно', 'edible')} · ${g(ed)}</small></span><button class="ibtn" aria-label="${L('Больше на 5 %', 'More by 5%')}">${I.plus}</button></div>
+    <div class="chips" role="group" aria-label="${L('Быстрый выбор', 'Quick pick')}">${[90, 75, 50, 25].map(x => `<button class="chip${x === v ? ' on' : ''}" aria-pressed="${x === v}">${pc(x)}</button>`).join('')}</div>
+    <span class="field__h">${L(`От 10 до 100 %, шаг 5 %. Запомним для «${p.name}» при сохранении — только у вас.`, `10–100%, steps of 5%. Saved for “${p.name}” when you save the meal, just for you.`)}</span></div>`; }
+  else mid = `<div class="edline"><span class="edline__m"><span>${L('Съедобно', 'Edible')}</span><b>${g(ed)}</b><span>${pc(pct)} · <span class="s${o.whole ? '' : o.src === 'ai' ? ' ai' : ''}">${o.whole ? L('весь вес, ваш выбор', 'all of it, your choice') : SRC_LONG(o.src)}</span></span></span>${o.whole ? '' : `<button class="btn btn--tonal btn--sm" aria-label="${L(`Изменить процент, сейчас ${pct}`, `Change the percentage, now ${pct}`)}">${L('Изменить %', 'Change %')}</button>`}</div>`;
+  const res = `<div class="res"><b>${kc(t.k)}</b><span class="macros"><span><i class="dot" style="background:var(--color-protein)"></i>${L('Б', 'P')}${NB}${n(t.p)}</span><span><i class="dot" style="background:var(--color-fat)"></i>${L('Ж', 'F')}${NB}${n(t.f)}</span><span><i class="dot" style="background:var(--color-carbs)"></i>${L('У', 'C')}${NB}${n(t.c)}</span></span></div>`;
+  const src = o.whole ? '' : `<div class="src"><span class="src__h">${o.src === 'ai' ? I.sparkle : I.info}${o.src === 'usda' ? L('Справочник USDA · съедобная часть', 'USDA reference · edible part') : o.src === 'ai' ? L('Оценка ИИ · в справочнике нет', 'AI estimate · not in the reference') : L('Ваш процент для этого продукта', 'Your percentage for this product')}</span>
+    <span class="src__l">${L('Отход', 'Waste')} ${pc(100 - p.pct)}: ${p.waste}</span><span class="src__l">${L('На 100 г съедобной части', 'Per 100 g of the edible part')}: ${kc(p.k)} · ${mac(p.p, p.f, p.c)}</span></div>`;
+  return seg + gross + mid + res + src;
+};
+const edSheet = (p, o) => `<div class="under">${nav('', L('Сегодня, 13:10', 'Today, 1:10 PM'), '')}</div><div class="dim"></div>
+  <div class="sheet"><span class="sheet__grab"></span><div class="sheet__h"><span class="nav__title">${p.name}</span><span class="nav__r">${closeX()}</span></div>
+  ${edBody(p, o)}<button class="btn btn--primary btn--wide">${L('Готово', 'Done')}</button><button class="btn btn--danger btn--wide">${L('Удалить блюдо', 'Delete dish')}</button></div>`;
+
+function render() {
+  document.documentElement.lang = lang;
+  const R = {}, S = FP.sap, A = FP.apple, N = FP.inga;
+  const sum = (...xs) => xs.reduce((a, b) => ({ k: a.k + b.k, p: Math.round((a.p + b.p) * 10) / 10, f: Math.round((a.f + b.f) * 10) / 10, c: Math.round((a.c + b.c) * 10) / 10 }));
+  const so = { gross: 772, pct: 80, src: 'usda' }, ban = { k: BAN.k, p: BAN.p, f: BAN.f, c: BAN.c };
+
+  // 1 · edit screen
+  R.e1 = phone(fedit({ rows: [edDish(S, so), dish2(BAN)], total: sum(nut(S, edOf(so)), ban) }),
+    L('<b>1.1 Вес прочитан с чека.</b> Под весом — одна строка: «772 г с кожурой → съедобно 618 г (80 %) · USDA» (AC-3.1). Ккал, БЖУ и степпер — для съедобных 618 г. Источник выделен: USDA и «ваш» — акцентом, «оценка ИИ» — серым, со sparkle-значком в листе (AC-3.2). Метка «вес с чека» — откуда брутто. Банан без цифр на фото — как сейчас, без строки брутто (AC-2.2). Подсказка верна — ничего не трогаешь, Сохранить (AC-3.7).',
+      '<b>1.1 Weight read from the receipt.</b> One line under the weight: “772 g with skin → edible 618 g (80%) · USDA” (AC-3.1). Calories, macros and the stepper are for the edible 618 g. The source stands out: USDA and “yours” in accent, “AI estimate” in grey, with a sparkle in the sheet (AC-3.2). The “weight from receipt” tag says where the gross came from. A banana with no numbers in the photo stays as today, no gross line (AC-2.2). If it’s right, touch nothing and Save (AC-3.7).'), { tall: true, h: 700 });
+  const one = (o, p = S, tag = '') => `${tag ? `<span class="tag">${tag}</span>` : ''}<ul class="list">${edDish(p, o)}</ul>`;
+  R.e2 = phone(`<div class="phone__body rowsonly">${[
+      one(so, S, L('Справочник', 'Reference')),
+      one({ ...so, src: 'mine', pct: 75 }, S, L('Ваш процент (введён или запомнен)', 'Your percentage (typed or remembered)')),
+      one({ gross: 1240, pct: 70, src: 'ai', noRcpt: false }, { ...S, name: L('Помело', 'Pomelo'), k: 38, p: 0.8, f: 0, c: 9.6 }, L('Оценка ИИ', 'AI estimate')),
+      one({ gross: 180, pct: 90, whole: true }, A, L('«Целиком»', '“Whole”')),
+      one({ ...so, part: 0.5 }, S, L('Съел часть купленного (E-8.3)', 'Ate part of it (E-8.3)')),
+      one({ ...so, manual: 500 }, S, L('Съедобный вес поправили руками', 'Edible weight edited by hand')),
+    ].join('')}</div>`,
+    L('<b>1.2 Состояния строки.</b> «Целиком» — «180 г целиком → съедобно 180 г (100 %) · ваш». Часть купленного — «½ из 772 г…»: сначала доля, потом съедобная часть. Правка съедобного веса в степпере или листе отвязывает его от брутто (AC-3.5): строка превращается в «Вес вручную · было 772 г с кожурой» и кнопку «Вернуть» — вернуть расчёт одним касанием. Вся строка — кнопка в лист блюда, зона ≥ 44 pt.',
+      '<b>1.2 Row states.</b> “Whole”: “180 g whole → edible 180 g (100%) · yours”. Part of the purchase: “½ of 772 g…”: the share first, then the edible part. Editing the edible weight in the stepper or the sheet unlinks it from the gross (AC-3.5): the line becomes “Weight set by hand · was 772 g with skin” with “Restore” to bring the calculation back in one tap. The whole line is a button into the dish sheet, hit area ≥ 44 pt.'), { tall: true, h: 940 });
+
+  // 2 · dish sheet
+  R.s1 = phone(edSheet(S, so), L('<b>2.1 Лист блюда: очищенный.</b> Тап по строке брутто или карандашу. Сверху — «Очищенный · Целиком» (AC-3.3), под ним брутто большим степпером (шаг 10 г; правка брутто пересчитывает съедобный вес с тем же процентом, AC-3.5), ниже — итог «Съедобно 618 г · 80 % · справочник USDA» и «Изменить %». Блок источника объясняет процент: «Отход 20 %: кожура и семена» и ккал на 100 г съедобной части (AC-4.5).',
+    '<b>2.1 Dish sheet: peeled.</b> Tap the gross line or the pencil. On top: “Peeled · Whole” (AC-3.3); below, the gross in a big stepper (steps of 10 g; editing the gross recalculates the edible weight at the same percentage, AC-3.5); then the result “Edible 618 g · 80% · USDA reference” with “Change %”. The source block explains the number: “Waste 20%: skin and seeds” and calories per 100 g of the edible part (AC-4.5).'), { tall: true, h: 820 });
+  R.s2 = phone(edSheet(A, { gross: 180, pct: 90, whole: true }), L('<b>2.2 Целиком.</b> Яблоко с кожурой: «Целиком» = 100 %, граммы и ккал пересчитываются сразу. Подпись поля — просто «Вес», блок источника прячется. Выбор запомнится для «Яблоко» при сохранении (AC-6.1). Обратно на «Очищенный» — снова процент справочника.',
+    '<b>2.2 Whole.</b> An apple eaten with the skin: “Whole” = 100%, grams and calories update at once. The field label is just “Weight”; the source block hides. The choice is saved for “Apple” when the meal is saved (AC-6.1). Back to “Peeled” brings back the reference percentage.'), { tall: true, h: 820 });
+  R.s3 = phone(edSheet(S, { ...so, pct: 75, src: 'mine', edit: true }), L('<b>2.3 Правка процента.</b> «Изменить %» раскрывает на месте итога степпер процента: 10–100 %, шаг 5 % (AC-3.4), быстрые 90 · 75 · 50 · 25, под числом — съедобные граммы. Тап по числу — цифровая клавиатура. Источник сразу становится «ваш»; запоминается при сохранении приёма пищи, не при каждом касании (AC-6.1). У 10 % и 100 % кнопка − / + неактивна.',
+    '<b>2.3 Changing the percentage.</b> “Change %” opens a percentage stepper in place of the result: 10–100%, steps of 5% (AC-3.4), quick 90 · 75 · 50 · 25, edible grams under the number. Tap the number to type. The source turns “yours” at once; it is saved with the meal, not on every tap (AC-6.1). − / + is disabled at 10% and 100%.'), { tall: true, h: 860 });
+  R.s4 = phone(edSheet(S, { ...so, err: '0' }), L('<b>2.4 Ошибка.</b> Ввели 0 или больше 100 — «От 10 до 100 %» под полем (E-8.7). Итог считается по прежнему проценту, «Готово» не блокируем — сохранится прежнее значение.',
+    '<b>2.4 Error.</b> 0 or over 100 typed: “10–100%” under the field (E-8.7). The result keeps the previous percentage; Done is not blocked and the previous value is kept.'), { tall: true, h: 820 });
+
+  // 3 · AI questions
+  const no = { gross: 772, pct: 25, src: 'ai' };
+  const nameQ = ask(L('На чеке «Buah Salju» (инга), а на фото похоже на саподиллу. Что это?', 'The receipt says “Buah Salju” (ice-cream bean), but the photo looks like sapodilla. Which is it?'),
+    [[L('Инга', 'Ice-cream bean'), L('как на чеке', 'as on the receipt'), 'on'], [L('Саподилла', 'Sapodilla'), L('по фото', 'from the photo')], [L('Другое…', 'Something else…'), '', 'other']],
+    L('Не ответите — оставим «Инга».', 'No answer: we’ll keep “Ice-cream bean”.'));
+  R.q1 = phone(fedit({ rows: [edDish(N, no, { ask: nameQ })], total: nut(N, edOf(no)), cap: L('ИИ не уверен в двух вещах — ответьте, это одно касание.', 'The AI isn’t sure about two things. One tap each.') }),
+    L('<b>3.1 Чек против фото.</b> ИИ не подменяет название молча (AC-5.2): вопрос в строке блюда, как у других вопросов ИИ (OCT-234). Угадан вариант с чека, он же применён, пока нет ответа. «Саподилла» сразу пересчитает блюдо по справочнику (80 %). «Другое…» — поле названия.',
+      '<b>3.1 Receipt vs photo.</b> The AI doesn’t swap the name silently (AC-5.2): a question in the dish row, like other AI questions (OCT-234). The receipt option is pre-picked and applied until answered. “Sapodilla” recalculates the dish from the reference (80%). “Something else…” opens the name field.'), { tall: true, h: 760 });
+  const edQ = ask(L('Сколько примерно съедобно?', 'Roughly how much is edible?'), EDQ(772), L('Инги нет в справочнике. Не ответите — оставим «Четверть».', 'Not in the reference. No answer: we’ll keep “A quarter”.'));
+  R.q2 = phone(fedit({ rows: [edDish(N, no, { ask: edQ, answered: false })], total: nut(N, edOf(no)), cap: L('ИИ не уверен в двух вещах — ответьте, это одно касание.', 'The AI isn’t sure about two things. One tap each.') }),
+    L('<b>3.2 Сколько съедобно.</b> Продукта нет в справочнике или ИИ не уверен (AC-4.4, AC-5.3): вопрос с долями — «Почти всё · ¾ · Половина · Четверть · Меньше», под каждой процент и граммы, чтобы выбор был предметным. Угаданный вариант выделен и уже применён, источник — «оценка ИИ». Точное число — «Изменить %» в листе.',
+      '<b>3.2 How much is edible.</b> Not in the reference or the AI isn’t sure (AC-4.4, AC-5.3): a question with shares, “Nearly all · ¾ · Half · A quarter · Less”, each with its percentage and grams so the choice is concrete. The guess is highlighted and already applied, source “AI estimate”. For an exact number, “Change %” in the sheet.'), { tall: true, h: 760 });
+  const na = { gross: 772, pct: 50, src: 'mine' };
+  R.q3 = phone(fedit({ rows: [edDish(N, na, { answered: true, was: kc(nut(N, edOf(no)).k) }), dish2(BAN)], total: sum(nut(N, edOf(na)), ban) }),
+    L('<b>3.3 Ответили «Половина».</b> Строка подсвечивается, как другие отвеченные вопросы, рядом — прежние ккал зачёркнуто. Ответ пользователя — источник «ваш», запомнится для «Инга» при сохранении (AC-6.1). Следующая покупка инги посчитается сразу, без вопроса (AC-6.2).',
+      '<b>3.3 Answered “Half”.</b> The row is highlighted like other answered questions, with the old calories struck through. The user’s answer is “yours” and is saved for “Ice-cream bean” with the meal (AC-6.1). The next purchase is calculated right away, no question (AC-6.2).'), { tall: true, h: 700 });
+
+  // 4 · desktop
+  const desk1 = `<div class="desk"><div class="modal"><div class="modal__h"><span class="nav__title">${L('Сегодня, 13:10', 'Today, 1:10 PM')}</span>${closeX()}</div>
+    <div class="modal__l"><div class="photo">${FRUIT()}</div><div class="total"><span class="total__k">${n(sum(nut(S, edOf(so)), ban).k)} <small>${L('ккал', 'kcal')}</small></span></div></div>
+    <div class="modal__r"><ul class="list">${edDish(S, so)}${dish2(BAN)}</ul></div>
+    <div class="modal__f"><button class="btn">${L('Отмена', 'Cancel')}</button><button class="btn btn--primary">${L('Сохранить', 'Save')}</button></div></div></div>`;
+  const desk2 = `<div class="desk" style="height:860px"><div class="dialog"><div class="sheet__h" style="grid-template-columns:1fr auto"><span class="nav__title" style="grid-column:1;text-align:left">${S.name}</span>${closeX()}</div>
+    ${edBody(S, { ...so, pct: 75, src: 'mine', edit: true })}<div class="foot"><button class="btn btn--danger">${L('Удалить блюдо', 'Delete dish')}</button><span style="flex:1"></span><button class="btn btn--primary">${L('Готово', 'Done')}</button></div></div></div>`;
+
+  const copy = [
+    ['dish.edible.line', '{gross} с кожурой → съедобно {edible} ({pct}) · {source}', '{gross} with skin → edible {edible} ({pct}) · {source}'],
+    ['dish.edible.gross_kind', 'с кожурой · в скорлупе · на кости · в панцире · в початке', 'with skin · in shell · on the bone · in shell · on the cob'],
+    ['dish.edible.whole_line', '{gross} целиком → съедобно {gross} (100 %) · ваш', '{gross} whole → edible {gross} (100%) · yours'],
+    ['dish.edible.part', '{share} из {gross} …', '{share} of {gross} …'],
+    ['dish.edible.manual / restore', 'Вес вручную · было {gross} с кожурой · Вернуть', 'Weight set by hand · was {gross} with skin · Restore'],
+    ['dish.edible.source.short', 'USDA · оценка ИИ · ваш', 'USDA · AI estimate · yours'],
+    ['dish.edible.source.long', 'справочник USDA · оценка ИИ · ваш процент', 'USDA reference · AI estimate · your percentage'],
+    ['dish.edible.badge', 'вес с чека · вес с весов · вес с ценника', 'weight from receipt · from scales · from price tag'],
+    ['dish.edible.how / peeled / whole', 'Как ели · Очищенный · Целиком', 'How you ate it · Peeled · Whole'],
+    ['dish.edible.gross_label', 'Вес с кожурой', 'Weight with skin'],
+    ['dish.edible.result / change', 'Съедобно · Изменить %', 'Edible · Change %'],
+    ['dish.edible.pct_label / hint', 'Сколько съедобно · От 10 до 100 %, шаг 5 %. Запомним для «{name}» при сохранении — только у вас.', 'How much is edible · 10–100%, steps of 5%. Saved for “{name}” when you save the meal, just for you.'],
+    ['dish.edible.err', 'От 10 до 100 %', '10–100%'],
+    ['dish.edible.src.usda / ai / mine', 'Справочник USDA · съедобная часть · Оценка ИИ · в справочнике нет · Ваш процент для этого продукта', 'USDA reference · edible part · AI estimate · not in the reference · Your percentage for this product'],
+    ['dish.edible.waste / per100', 'Отход {pct}: {what} · На 100 г съедобной части', 'Waste {pct}: {what} · Per 100 g of the edible part'],
+    ['ai.q.edible', 'Сколько примерно съедобно? · Почти всё · ¾ · Половина · Четверть · Меньше', 'Roughly how much is edible? · Nearly all · ¾ · Half · A quarter · Less'],
+    ['ai.q.receipt_name', 'На чеке «{receipt}» ({product}), а на фото похоже на {photo}. Что это? · как на чеке · по фото · Другое…', 'The receipt says “{receipt}” ({product}), but the photo looks like {photo}. Which is it? · as on the receipt · from the photo · Something else…'],
+    ['ai.q.default', 'Не ответите — оставим «{option}».', 'No answer: we’ll keep “{option}”.'],
+    ['edit.cap.edible', 'Вес с чека — с кожурой и семенами. В дневник пойдёт только съедобная часть.', 'The receipt weight includes skin and seeds. Only the edible part goes to the diary.'],
+  ].map(([k, ru, en]) => `<tr><td><code>${k}</code></td><td>${ru}</td><td>${en}</td></tr>`).join('');
+
+  document.getElementById('doc').innerHTML = `
+<h1 class="doc-h1">OCT-420 · ${L('Съедобная часть в карточке блюда', 'Edible part in the dish card')}</h1>
+<p class="doc-lead">${L('По проработке OCT-416. Если вес прочитан с чека, весов или ценника, это брутто: под весом блюда — строка «брутто → съедобно (процент) · источник», ккал и граммы — для съедобной части. В листе блюда — «Очищенный · Целиком» и правка процента. Стиль строки — как строка количества OCT-380, вопросы — как вопросы ИИ OCT-234. В дневник пишутся только съедобные граммы, брутто и процент не хранятся и не показываются (AC-3.6). Язык и тема — в панели сверху. Цифры: саподилла 772 г, отход 20 % по USDA, 83 ккал/100 г.',
+  'From the OCT-416 spec. A weight read from a receipt, scales or a price tag is the gross: under the dish weight a line “gross → edible (percentage) · source”; calories and grams are for the edible part. The dish sheet has “Peeled · Whole” and a percentage editor. The line follows the OCT-380 amount line; questions follow the OCT-234 AI questions. Only edible grams go to the diary; gross and percentage are not stored or shown (AC-3.6). Language and theme: the bar on top. Numbers: sapodilla 772 g, 20% waste per USDA, 83 kcal/100 g.')}</p>
+<section id="edit"><h2 class="doc-h2">1 · ${L('Экран правки', 'Edit screen')}</h2><div class="frames">${R.e1}${R.e2}</div></section>
+<section id="sheet"><h2 class="doc-h2">2 · ${L('Лист блюда', 'Dish sheet')}</h2><div class="frames">${R.s1}${R.s2}${R.s3}${R.s4}</div></section>
+<section id="ask"><h2 class="doc-h2">3 · ${L('Вопросы ИИ', 'AI questions')}</h2><div class="frames">${R.q1}${R.q2}${R.q3}</div></section>
+<section id="desktop"><h2 class="doc-h2">4 · ${L('Компьютер', 'Desktop')}</h2><div class="frames">
+  <figure id="dk1">${desk1}<figcaption>${L('<b>4.1 Правка в окне.</b> Та же строка брутто под весом; клик — диалог блюда.', '<b>4.1 Edit window.</b> The same gross line under the weight; click opens the dish dialog.')}</figcaption></figure>
+  <figure id="dk2">${desk2}<figcaption>${L('<b>4.2 Блюдо в диалоге.</b> Тот же блок. С клавиатуры: Tab в «Очищенный · Целиком», стрелки — выбор; ↑ / ↓ на брутто — 10 г, на проценте — 5 %; быстрые проценты — кнопки.', '<b>4.2 Dish dialog.</b> The same block. Keyboard: Tab into “Peeled · Whole”, arrows to pick; ↑ / ↓ on the gross steps 10 g, on the percentage 5%; quick percentages are buttons.')}</figcaption></figure>
+</div></section>
+<section id="copy"><h2 class="doc-h2">5 · ${L('Тексты', 'Copy')}</h2><p class="doc-lead">${L('Ключи — предложение, финальные даст разработка. Слово брутто зависит от вида отхода (кожура, скорлупа, кости, панцирь, початок) — его отдаёт справочник.', 'Keys are a suggestion; development picks the final ones. The gross word depends on the kind of waste (skin, shell, bone, husk, cob); the reference provides it.')}</p>
+<table class="copy"><thead><tr><th>${L('Ключ', 'Key')}</th><th>RU</th><th>EN</th></tr></thead><tbody>${copy}</tbody></table></section>`;
+
+  const bar = document.querySelector('.pv-bar');
+  if (bar && !bar.querySelector('.lang-bar')) {
+    const seg = document.createElement('div');
+    seg.className = 'pv-seg lang-bar';
+    seg.innerHTML = '<button data-l="ru">RU</button><button data-l="en">EN</button>';
+    seg.addEventListener('click', e => { const l = e.target.dataset.l; if (!l) return; lang = l; try { localStorage.setItem(KEY, l); } catch (er) {} render(); });
+    bar.appendChild(seg);
+  }
+  document.querySelectorAll('.lang-bar button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.l === lang)));
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', render); else render();
+</script>
+</body>
+</html>
