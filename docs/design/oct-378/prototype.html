@@ -318,7 +318,7 @@ const edit2 = ({ dishes, us = false, cap = '', total = 595, m = [27, 26, 62] }) 
   <p class="cap">${I.sparkle}<span>${cap || L('Цифры по штрихкоду — с упаковки. Остальное — оценка ИИ по фото, проверьте вес и объём.', 'Barcode numbers come from the package. The rest is an AI estimate from the photo — check the weight and volume.')}</span></p>
   <ul class="list">${dishes.join('')}</ul>
   <div class="foot"><button class="btn btn--primary btn--wide">${L('Сохранить', 'Save')}</button></div></div>`;
-const histHint = (us) => `<div class="inline-hint">${L(`Похоже на запись вчера: ${q(300, 'ml', us)} · 120${NB}ккал`, `Looks like yesterday’s entry: ${q(300, 'ml', us)} · 120${NB}kcal`)}<div><button class="btn btn--sm">${L('Как в прошлый раз', 'Same as last time')}</button><button class="btn btn--sm">${L('Оставить оценку', 'Keep the estimate')}</button></div></div>`;
+const histHint = (us) => `<div class="hint"><span>${L('Похоже на запись вчера:', 'Looks like yesterday’s entry:')} <b class="num">${q(300, 'ml', us)} · 120${NB}${L('ккал', 'kcal')}</b></span><div class="acts"><span>${L('Как в прошлый раз', 'Same as last time')}</span><span>${L('Оставить оценку', 'Keep the estimate')}</span></div></div>`;
 
 const dishSheet2 = (d, { us = false, err = '' } = {}) => `<div class="under">${nav('', L('Сегодня, 8:40', 'Today, 8:40 AM'), '')}</div><div class="dim"></div>
   <div class="sheet"><span class="sheet__grab"></span><div class="sheet__h"><span class="nav__title">${L('Блюдо', 'Dish')}</span><span class="nav__r">${closeX()}</span></div>
