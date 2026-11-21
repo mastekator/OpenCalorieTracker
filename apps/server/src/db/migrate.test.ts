@@ -16,7 +16,7 @@ describe('migrate', () => {
   it('brings an empty database to the latest version', () => {
     const db = openDb(':memory:');
     migrate(db);
-    expect(db.pragma('user_version', { simple: true })).toBe(24);
+    expect(db.pragma('user_version', { simple: true })).toBe(26);
     expect(tables(db)).toEqual([
       'agent_drafts',
       'agent_messages',
@@ -26,6 +26,7 @@ describe('migrate', () => {
       'edible_prefs',
       'food_products',
       'illustration_choices',
+      'imports',
       'integration_settings',
       'invites',
       'login_guards',
@@ -49,6 +50,21 @@ describe('migrate', () => {
     ]);
   });
 
+  it('accepts import and api dish sources (ADR-0026 §5)', () => {
+    const db = openDb(':memory:');
+    migrate(db);
+    db.exec(
+      "INSERT INTO users (id, email, role, webauthn_user_id, created_at) VALUES (1, 'a@b.c', 'user', randomblob(16), 0);" +
+        "INSERT INTO meals (id, user_id, client_id, eaten_at, tz_offset_min, local_date, meal_type, created_at, updated_at) VALUES (1, 1, 'c', 0, 0, '2024-01-01', 'lunch', 0, 0);",
+    );
+    const add = db.prepare(
+      "INSERT INTO meal_items (meal_id, position, name, name_key, grams, kcal, protein_g, fat_g, carbs_g, source) VALUES (1, 0, 'x', 'x', 0, 0, 0, 0, 0, ?)",
+    );
+    add.run('import');
+    add.run('api');
+    expect(() => add.run('other')).toThrow(/CHECK/);
+  });
+
   it('gives every migration its own number', () => {
     // migrate() skips a file whose number is <= user_version, so a duplicate is never applied
     // on a database that already took its twin. The 0005 pair predates any release.
@@ -68,7 +84,7 @@ describe('migrate', () => {
       .pluck()
       .all();
     migrate(db);
-    expect(db.pragma('user_version', { simple: true })).toBe(24);
+    expect(db.pragma('user_version', { simple: true })).toBe(26);
     expect(
       db.prepare('SELECT sql FROM sqlite_master ORDER BY name').pluck().all(),
     ).toEqual(before);
@@ -175,7 +191,7 @@ describe('migrate', () => {
     const before = db.prepare('SELECT * FROM meal_items ORDER BY id').all();
 
     migrate(db);
-    expect(db.pragma('user_version', { simple: true })).toBe(24);
+    expect(db.pragma('user_version', { simple: true })).toBe(26);
     // Old dishes are grams (ADR-0038 §1).
     expect(db.prepare('SELECT * FROM meal_items ORDER BY id').all()).toEqual(
       before.map((r) => ({

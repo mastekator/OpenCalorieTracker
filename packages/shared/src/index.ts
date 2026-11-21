@@ -56,6 +56,9 @@ export type ErrorCode =
   | 'setup_code_expired'
   | 'setup_code_burned'
   | 'setup_done'
+  | 'import_too_large'
+  | 'already_imported'
+  | 'export_version_unsupported'
   | 'internal';
 
 export interface ErrorBody {
