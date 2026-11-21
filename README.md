@@ -106,7 +106,7 @@ Yes. Send an invite link — each person gets their own diary and goal.
 
 </details>
 
-[Self-hosting](docs/SELF_HOSTING.md) · [How the daily goal is calculated](docs/DAILY_GOAL.md) · [Tested models](docs/MODELS.md) · [Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md)
+[Self-hosting](docs/SELF_HOSTING.md) · [How the daily goal is calculated](docs/DAILY_GOAL.md) · [Export format](docs/export-format.md) · [Tested models](docs/MODELS.md) · [Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md)
 
 ## License
 
