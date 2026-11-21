@@ -46,7 +46,7 @@ describe('ManualDishSheet', () => {
     add();
     expect(onAdd).not.toHaveBeenCalled();
     expect(screen.getByText('Enter a name')).toBeTruthy();
-    expect(screen.getByText('Weight from 1 to 5000 g')).toBeTruthy();
+    expect(screen.getByText('Enter the weight')).toBeTruthy();
     expect(screen.getByText('Enter calories')).toBeTruthy();
     expect(screen.queryByText('Enter a number, like 12.5')).toBeNull();
     expect(document.activeElement).toBe(screen.getByLabelText(/^Name/));
@@ -116,10 +116,58 @@ describe('ManualDishSheet', () => {
   });
 
   it('names only ounces in the weight error for US units', async () => {
-    const { add } = await setup('us');
+    const { type, add } = await setup('us');
+    type(/^Weight/, '500');
     add();
     expect(screen.getByText('Weight from 0.1 to 176.4 oz')).toBeTruthy();
     expect(screen.queryByText(/5000 g/)).toBeNull();
+  });
+
+  it('grams by default: no unit on the dish (ADR-0038 §3)', async () => {
+    const { onAdd, type, add } = await setup();
+    expect(
+      screen.getByRole('radio', { name: 'Grams' }).getAttribute('aria-checked'),
+    ).toBe('true');
+    fill(type);
+    add();
+    expect(onAdd.mock.calls[0]![0]).not.toHaveProperty('unit');
+  });
+
+  it('«ml»: volume per 100 ml, the dish comes with unit ml (AC-1)', async () => {
+    const { onAdd, type, add } = await setup();
+    fireEvent.click(screen.getByRole('radio', { name: 'Milliliters' }));
+    add();
+    expect(screen.getByText('Enter the volume')).toBeTruthy();
+    type(/^Name/, 'Kefir');
+    type(/^Volume/, '6000');
+    expect(screen.getByText('Volume 1–5,000 ml')).toBeTruthy();
+    type(/^Volume/, '250');
+    type(/^Calories ·/, '40');
+    expect(screen.getByRole('radio', { name: 'Per 100 ml' })).toBeTruthy();
+    expect(screen.getByText('Total for 250 ml: 100 kcal')).toBeTruthy();
+    add();
+    expect(onAdd.mock.calls[0]![0]).toMatchObject({
+      name: 'Kefir',
+      grams: 250,
+      unit: 'ml',
+      kcal: 100,
+    });
+  });
+
+  it('US «ml»: fluid ounces to millilitres, fl oz in the error', async () => {
+    const { onAdd, type, add } = await setup('us');
+    fireEvent.click(screen.getByRole('radio', { name: 'Milliliters' }));
+    type(/^Name/, 'Juice');
+    type(/^Volume/, '200');
+    type(/^Calories ·/, '45');
+    add();
+    expect(screen.getByText('Volume 0.1–169 fl oz')).toBeTruthy();
+    type(/^Volume/, '10');
+    add();
+    expect(onAdd.mock.calls[0]![0]).toMatchObject({
+      grams: 295.7,
+      unit: 'ml',
+    });
   });
 
   it('warns when macros disagree by more than 30 %, and still adds', async () => {
@@ -240,6 +288,50 @@ describe('ManualDishSheet: barcode (OCT-313 §3)', () => {
     await screen.findByText('Found in Open Food Facts — check the weight.');
     add();
     expect(onAdd.mock.calls[0]![0]).toMatchObject({ grams: 400, kcal: 264 });
+  });
+
+  it('a product per ml sets the unit: no switch, «Unit from the package» (AC-3)', async () => {
+    const lookup = async () =>
+      ({
+        product: { ...YOGURT, name: 'Orange juice', per: 'ml', servingG: 250 },
+        from: 'off',
+        off: 'found',
+      }) as const;
+    const { onAdd, add } = await setup('metric', lookup);
+    find('4006381333931');
+    await screen.findByText('Found in Open Food Facts — check the volume.');
+    expect(screen.queryByRole('radio', { name: 'Grams' })).toBeNull();
+    expect(screen.getByText('Unit from the package')).toBeTruthy();
+    expect(screen.getByLabelText(/^Volume/)).toBeTruthy();
+    add();
+    expect(onAdd.mock.calls[0]![0]).toMatchObject({
+      name: 'Orange juice',
+      grams: 250,
+      unit: 'ml',
+    });
+    // Another code: the unit is the user's again, still on ml for the 250 typed.
+    fireEvent.change(screen.getByLabelText('Barcode'), {
+      target: { value: '5000112637922' },
+    });
+    expect(screen.getByRole('radio', { name: 'Grams' })).toBeTruthy();
+    expect(
+      screen
+        .getByRole('radio', { name: 'Milliliters' })
+        .getAttribute('aria-checked'),
+    ).toBe('true');
+    add();
+    expect(onAdd.mock.calls[1]![0]).toMatchObject({ grams: 250, unit: 'ml' });
+  });
+
+  it('a product per g hides the switch too', async () => {
+    const lookup = async () =>
+      ({ product: YOGURT, from: 'local', off: 'skipped' }) as const;
+    await setup('metric', lookup);
+    fireEvent.click(screen.getByRole('radio', { name: 'Milliliters' }));
+    find('4006381333931');
+    await screen.findByText('Found on this phone — check the weight.');
+    expect(screen.queryByRole('radiogroup', { name: 'Unit' })).toBeNull();
+    expect(screen.getByLabelText(/^Weight/)).toBeTruthy();
   });
 
   it('not found: says so and moves focus to the name', async () => {

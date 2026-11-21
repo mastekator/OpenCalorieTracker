@@ -6,13 +6,12 @@ import {
   defaultAmount,
   DISH_GRAMS,
   fromPer100,
-  gToOz,
   kcalFromMacros,
   macrosMismatch,
   normalizeGtin,
-  ozToG,
   per100,
   round1,
+  type DishUnit,
   type Nutrients,
   type Recipe,
   type Units,
@@ -30,13 +29,19 @@ import { List, ListRow } from '../List/List';
 import { Segment } from '../Segment/Segment';
 import { RecipeThumb } from '../RecipeThumb/RecipeThumb';
 import { Sheet } from '../Sheet/Sheet';
+import { unitOf, useWeight, weightIn } from '../weightUnits';
 import './ManualDishSheet.css';
 
-/** `barcode`: normalized; the server remembers the dish as the user's product (AC-4.5). */
+/**
+ * `barcode`: normalized; the server remembers the dish as the user's product (AC-4.5),
+ * `unit` as its `per` (ADR-0038 §3).
+ */
 export type ManualDish = Nutrients & {
   name: string;
   grams: number;
   barcode?: string;
+  /** 'ml': `grams` are millilitres (ADR-0038); none: grams, as older records. */
+  unit?: DishUnit;
 };
 type Basis = 'per100' | 'portion';
 
@@ -91,8 +96,12 @@ export function ManualDishSheet({
   photoNotFound,
 }: Props) {
   const { t, num } = useT();
-  const us = units === 'us';
-  const unit = t(us ? 'unit.oz' : 'unit.g');
+  // The switch's choice; a product found by the current barcode sets its own (AC-4).
+  const [chosen, setChosen] = useState<DishUnit>('g');
+  const [packUnit, setPackUnit] = useState<DishUnit | null>(null);
+  const dishUnit = packUnit ?? chosen;
+  const w = useWeight(units, dishUnit);
+  const { us, ml } = w;
   const [text, setText] = useState<Record<Fields, string>>({
     barcode: initialBarcode,
     name: initialName,
@@ -114,7 +123,7 @@ export function ManualDishSheet({
   const name = text.name.trim();
   const found = onRecipe ? matchRecipes(recipes, name) : [];
   const weight = parse(text.weight);
-  const g = weight === null ? null : us ? ozToG(weight) : weight;
+  const g = weight === null ? null : w.toG(weight);
   const grams =
     g !== null && g >= DISH_GRAMS.min && g <= DISH_GRAMS.max ? g : null;
   const entered = {
@@ -128,7 +137,19 @@ export function ManualDishSheet({
     ...(badCode && { barcode: t(badCode) }),
     ...(!name && { name: t('edit.dish.name_err') }),
     ...(grams === null && {
-      weight: t(us ? 'edit.weight.err_oz' : 'edit.weight.err_g'),
+      weight: t(
+        !text.weight.trim()
+          ? ml
+            ? 'manual_dish.err.volume_empty'
+            : 'manual_dish.err.weight_empty'
+          : ml
+            ? us
+              ? 'edit.weight.err_fl_oz'
+              : 'edit.weight.err_ml'
+            : us
+              ? 'edit.weight.err_oz'
+              : 'edit.weight.err_g',
+      ),
     }),
   };
   const values = entered as Nutrients;
@@ -181,6 +202,7 @@ export function ManualDishSheet({
       ...(code && { barcode: code }),
       name,
       grams: round1(grams),
+      ...unitOf(dishUnit),
       kcal: round1(totals.kcal),
       proteinG: round1(totals.proteinG),
       fatG: round1(totals.fatG),
@@ -200,12 +222,12 @@ export function ManualDishSheet({
       empty(k) && v !== null && (per100 || k === 'name' || k === 'weight')
         ? String(v)
         : text[k];
-    // shortcut: a per-ml product counts 1 ml as 1 g; fine for drinks, convert by density if users ask.
+    setPackUnit(product.per);
     const g = amountGrams(product, defaultAmount(product));
     setText({
       barcode: text.barcode,
       name: put('name', product.name ?? product.brand),
-      weight: put('weight', us ? gToOz(g) : g),
+      weight: put('weight', weightIn(units, product.per).show(g)),
       kcal: put('kcal', product.kcal100),
       proteinG: put('proteinG', product.protein100),
       fatG: put('fatG', product.fat100),
@@ -247,7 +269,12 @@ export function ManualDishSheet({
               refs.current.barcode = el;
             }}
             value={text.barcode}
-            onChange={(v) => setText((s) => ({ ...s, barcode: v }))}
+            onChange={(v) => {
+              setText((s) => ({ ...s, barcode: v }));
+              // Another code: the switch opens on the unit the amount is in.
+              if (packUnit) setChosen(packUnit);
+              setPackUnit(null);
+            }}
             onBlur={blur('barcode')}
             error={shown('barcode')}
             lookup={lookup}
@@ -290,18 +317,48 @@ export function ManualDishSheet({
             ))}
           </List>
         )}
-        <Field
-          {...field('weight')}
-          label={required(t('manual_dish.weight'))}
-          inputMode={us ? 'decimal' : 'numeric'}
-          suffix={unit}
-        />
+        <div
+          className={`manual-dish__amount${packUnit ? ' manual-dish__amount--pack' : ''}`}
+        >
+          <Field
+            {...field('weight')}
+            label={required(
+              t(ml ? 'manual_dish.volume' : 'manual_dish.weight'),
+            )}
+            inputMode={us ? 'decimal' : 'numeric'}
+            // The switch already names g / ml; ounces still need theirs.
+            suffix={packUnit || us ? w.u : undefined}
+            hint={packUnit ? t('manual_dish.unit_from_pack') : undefined}
+          />
+          {!packUnit && (
+            <Segment
+              label={t('manual_dish.unit')}
+              options={[
+                {
+                  value: 'g',
+                  label: t('unit.g'),
+                  aria: t('manual_dish.grams'),
+                },
+                {
+                  value: 'ml',
+                  label: t('unit.ml'),
+                  aria: t('manual_dish.milliliters'),
+                },
+              ]}
+              value={chosen}
+              onChange={setChosen}
+            />
+          )}
+        </div>
         <div className="manual-dish__basis">
           <span className="manual-dish__label">{t('manual_dish.basis')}</span>
           <Segment
             label={t('manual_dish.basis')}
             options={[
-              { value: 'per100', label: t('manual_dish.per100') },
+              {
+                value: 'per100',
+                label: t(ml ? 'manual_dish.per100ml' : 'manual_dish.per100'),
+              },
               { value: 'portion', label: t('manual_dish.perPortion') },
             ]}
             value={basis}
@@ -342,7 +399,7 @@ export function ManualDishSheet({
         {basis === 'per100' && totals && entered.kcal !== null && (
           <p className="manual-dish__total tabular-nums" aria-live="polite">
             {t('manual_dish.total', {
-              weight: `${text.weight.trim()} ${unit}`,
+              weight: `${text.weight.trim()}\u00a0${w.u}`,
               kcal: num(totals.kcal),
             })}
           </p>
