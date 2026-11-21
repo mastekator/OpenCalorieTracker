@@ -2112,6 +2112,8 @@ export const en = {
     client_outdated: 'The app has been updated. Please save again',
     photo_expired: 'The full photo is no longer stored. Take a new one',
     payload_too_large: 'The request is too large',
+    export_too_large:
+      'The export is over 4 GB. Choose a shorter period or leave out photos',
     photo_in_use: 'This photo is already attached to another meal',
     recipe_changed: 'The recipe changed on another device',
     edit_conflict: 'The meal was changed on another device',

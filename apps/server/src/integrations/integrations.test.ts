@@ -41,6 +41,7 @@ describe('outbound switches (ADR-0034 §5)', () => {
     ).toEqual({ outbound: true, outboundFromEnv: false });
     expect(await t.summary()).toEqual({
       barcode: { enabled: false, blocked: false },
+      export: { lastAt: null, lastFormat: null },
     });
   });
 
@@ -56,12 +57,14 @@ describe('outbound switches (ADR-0034 §5)', () => {
     });
     expect(await t.summary()).toEqual({
       barcode: { enabled: true, blocked: true },
+      export: { lastAt: null, lastFormat: null },
     });
     await t.call('PUT', '/api/admin/integrations', t.cookie, {
       outbound: true,
     });
     expect(await t.summary()).toEqual({
       barcode: { enabled: true, blocked: false },
+      export: { lastAt: null, lastFormat: null },
     });
   });
 
