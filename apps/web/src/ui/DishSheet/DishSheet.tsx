@@ -221,6 +221,8 @@ export function DishSheet({
         />
         {merged ? (
           <AmountPicker
+            // Another product after «Replace»: the typing form starts closed.
+            key={merged.code}
             product={merged}
             amount={amount}
             grams={grams}

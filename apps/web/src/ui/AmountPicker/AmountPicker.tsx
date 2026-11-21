@@ -133,8 +133,11 @@ export function AmountPicker({
   // null: not typed yet, so no error before the first key.
   const [packText, setPackText] = useState<string | null>(null);
   const [piecesText, setPiecesText] = useState<string | null>(null);
+  // The product and amount when the form opened: an invalid entry falls back to them.
+  const [base, setBase] = useState({ p, amount });
   const open = (next: Ask) => {
     setAsk(next);
+    setBase({ p, amount });
     setPackText(null);
     setPiecesText(null);
   };
@@ -164,17 +167,23 @@ export function AmountPicker({
           : defaultAmount(next);
     onChange(a, amountGrams(next, a));
   };
+  /** An invalid entry: back to what the product had, so «Done» never keeps a half-typed value. */
+  const revert = (k: keyof Pack) => {
+    const was = base.p[k] ?? undefined;
+    onPack({ [k]: was });
+    onChange(base.amount, amountGrams({ ...p, [k]: was }, base.amount));
+  };
   const typePack = (s: string) => {
     setPackText(s);
     const g = packG(s);
-    if (g === null) return;
+    if (g === null) return revert('packG');
     onPack({ packG: g });
     land({ ...p, packG: g });
   };
   const typePieces = (s: string) => {
     setPiecesText(s);
     const n = pieces(s);
-    if (n === null) return;
+    if (n === null) return revert('pieces');
     onPack({ pieces: n });
     if (p.packG) land({ ...p, pieces: n });
   };

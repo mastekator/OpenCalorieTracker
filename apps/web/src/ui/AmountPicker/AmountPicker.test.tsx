@@ -182,6 +182,50 @@ describe('AmountPicker: unknown package data (OCT-380 3.1–3.4)', () => {
     );
   });
 
+  // Typed key by key: «600» is valid on the way to «6000».
+  const keys = (name: string, v: string) => {
+    for (let i = 1; i <= v.length; i++) type(name, v.slice(0, i));
+  };
+
+  it('a weight that turns invalid while typed is not kept', async () => {
+    const onDone = await sheet(BAR);
+    fireEvent.click(screen.getByRole('button', { name: 'Add package weight' }));
+    keys(WEIGHT, '6000');
+    screen.getByText('Weight 1–5,000 g');
+    expect(screen.queryByRole('radio', { name: 'Package' })).toBeNull();
+    done();
+    expect(onDone).toHaveBeenCalledWith(
+      'Oat cookies',
+      100,
+      undefined,
+      { mode: 'weight', value: 100 },
+      {},
+    );
+  });
+
+  it('«Change» typed past 5000 g keeps the product weight', async () => {
+    const onDone = await sheet();
+    fireEvent.click(screen.getByRole('button', { name: 'Change' }));
+    keys(WEIGHT, '6000');
+    done();
+    expect(onDone).toHaveBeenCalledWith(
+      'Oat cookies',
+      200,
+      undefined,
+      { mode: 'pack', value: 1 },
+      { packG: 200 },
+    );
+  });
+
+  it('a piece count that turns invalid while typed is not kept', async () => {
+    const onDone = await sheet({ ...COOKIES, pieces: null });
+    fireEvent.click(radio('Pieces'));
+    keys(PIECES, '1200');
+    screen.getByText('A whole number, 1 or more');
+    done();
+    expect(onDone.mock.calls[0]![4]).toEqual({});
+  });
+
   it('refuses 0 and 6000 g and keeps the amount (E-7.6)', async () => {
     const onDone = await sheet(BAR);
     fireEvent.click(screen.getByRole('button', { name: 'Add package weight' }));
