@@ -629,9 +629,10 @@ export function MealEditScreen({
     onChoice?.(row.original.name, illustration);
   };
 
-  const addManual = (dish: ManualDish) => {
+  const addManual = ({ amount, pack, ...dish }: ManualDish) => {
     setAdding(false);
-    const row = toRow(dish, 'manual');
+    // A found product's amount and typed package go with the meal, as from the dish sheet (OCT-417).
+    const row = { ...toRow(dish, 'manual'), amount, pack };
     focusRow.current = row.id;
     setApplied(null);
     setRows((rs) => [...rs, row]);

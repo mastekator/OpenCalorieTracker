@@ -167,7 +167,7 @@ export const RecipesRussian: Story = {
   globals: { locale: 'ru' },
 };
 
-/** OCT-313 3.2 / 5.2: digits → Enter → the empty fields are filled per 100 g, the weight is the serving. */
+/** OCT-313 3.2 / 5.2, OCT-418: digits → Enter → «How much you ate» instead of the weight and per 100 g. */
 const withBarcode = {
   lookup: async (code: string): Promise<BarcodeResult> => ({
     product: {
@@ -207,6 +207,35 @@ export const BarcodeDesktop: Story = {
   globals: { viewport: { value: 'desktop' } },
 };
 
+/** OCT-418: a known package with pieces — Package · Servings · Pieces · Grams. */
+const withPack = {
+  lookup: async (code: string): Promise<BarcodeResult> => {
+    const found = await withBarcode.lookup(code);
+    return {
+      ...found,
+      product: {
+        ...found.product!,
+        name: 'Oat cookies',
+        kcal100: 450,
+        servingG: 25,
+        packG: 300,
+        pieces: 12,
+      },
+    };
+  },
+};
+export const BarcodeFoundPack: Story = { args: withPack, play: scan };
+export const BarcodeFoundPackDark: Story = {
+  args: withPack,
+  play: scan,
+  globals: dark,
+};
+export const BarcodeFoundPackRussian: Story = {
+  args: withPack,
+  play: scan,
+  globals: { locale: 'ru' },
+};
+
 /** OCT-378 2.2: the user's own product in ml — «Volume», «Per 100 ml», the total in ml. */
 const kefir = async ({ canvasElement }: { canvasElement: HTMLElement }) => {
   const body = canvasElement.ownerDocument.body;
@@ -228,17 +257,17 @@ const noVolume = async ({ canvasElement }: { canvasElement: HTMLElement }) => {
 export const VolumeError: Story = { play: noVolume };
 export const VolumeErrorDark: Story = { play: noVolume, globals: dark };
 
-/** OCT-378 2.3: found per ml — no switch, the unit comes from the package. */
+/** OCT-378 2.3: found per ml without kcal — no switch, the unit comes from the package. */
 const withJuice = {
   lookup: async (code: string): Promise<BarcodeResult> => ({
     product: {
       code,
       name: 'Orange juice',
       brand: null,
-      kcal100: 45,
-      protein100: 0.8,
-      fat100: 0.2,
-      carbs100: 10,
+      kcal100: null,
+      protein100: null,
+      fat100: null,
+      carbs100: null,
       per: 'ml',
       servingG: 250,
       servingText: '250 ml',

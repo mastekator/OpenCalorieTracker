@@ -126,7 +126,8 @@ export function BarcodeField({
       {result?.product && result.from && (
         <Banner tone="accent" icon={<Barcode aria-hidden="true" />}>
           {t(
-            `manual_dish.barcode.${result.product.per === 'ml' ? 'found_ml' : 'found'}.${result.from}`,
+            // With kcal the sheet asks «How much you ate», not the weight (OCT-418).
+            `manual_dish.barcode.${result.product.kcal100 != null ? 'found_amount' : result.product.per === 'ml' ? 'found_ml' : 'found'}.${result.from}`,
           )}
         </Banner>
       )}

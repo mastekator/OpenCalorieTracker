@@ -949,6 +949,11 @@ export const en = {
         mine: 'Found your product — check the weight.',
         local: 'Found on this phone — check the weight.',
       },
+      found_amount: {
+        off: 'Found in Open Food Facts — check the amount.',
+        mine: 'Found your product — check the amount.',
+        local: 'Found on this phone — check the amount.',
+      },
       found_ml: {
         off: 'Found in Open Food Facts — check the volume.',
         mine: 'Found your product — check the volume.',
