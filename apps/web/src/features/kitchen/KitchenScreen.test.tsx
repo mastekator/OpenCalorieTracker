@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { cleanup, fireEvent, screen } from '@testing-library/react';
+import { cleanup, fireEvent, screen, within } from '@testing-library/react';
 import { I18nProvider } from '../../i18n';
 import { renderLoaded } from '../../test-utils';
 import { MEALS, RECIPES } from './fixtures';
@@ -18,16 +18,46 @@ const openAdd = async (ai: boolean) => {
 };
 
 describe('KitchenView «+»', () => {
-  it('without AI offers no «Paste recipe text»', async () => {
+  it('without AI offers no «Recipe from text»', async () => {
     await openAdd(false);
-    expect(screen.queryByText('Paste recipe text')).toBeNull();
+    expect(screen.queryByText('Recipe from text')).toBeNull();
   });
 
-  it('with AI links «Paste recipe text» to /kitchen/paste', async () => {
+  it('with AI links «Recipe from text» to /kitchen/paste, with a hint', async () => {
     await openAdd(true);
     expect(
-      screen.getByText('Paste recipe text').closest('a')?.getAttribute('href'),
+      screen.getByText('Recipe from text').closest('a')?.getAttribute('href'),
     ).toBe('/kitchen/paste');
+    expect(screen.getByText('AI picks out ingredients and grams')).toBeTruthy();
+  });
+});
+
+describe('KitchenView empty list (OCT-433)', () => {
+  const emptyButtons = async (ai: boolean) => {
+    history.replaceState(null, '', '/kitchen');
+    await renderLoaded(
+      <I18nProvider>
+        <KitchenView recipes={[]} ai={ai} />
+      </I18nProvider>,
+    );
+    const empty = (await screen.findByText('New recipe')).parentElement!;
+    return within(empty)
+      .getAllByRole('button')
+      .map((b) => b.textContent);
+  };
+
+  it('without AI keeps two buttons', async () => {
+    expect(await emptyButtons(false)).toEqual(['New recipe', 'From a meal']);
+  });
+
+  it('with AI puts «Recipe from text» second; it opens /kitchen/paste', async () => {
+    expect(await emptyButtons(true)).toEqual([
+      'New recipe',
+      'Recipe from text',
+      'From a meal',
+    ]);
+    fireEvent.click(screen.getByRole('button', { name: 'Recipe from text' }));
+    expect(location.pathname).toBe('/kitchen/paste');
   });
 });
 

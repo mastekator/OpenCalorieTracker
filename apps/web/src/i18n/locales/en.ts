@@ -1775,7 +1775,8 @@ export const en = {
   recipes: {
     new: 'New recipe',
     manual: 'Enter manually',
-    paste: 'Paste recipe text',
+    paste: 'Recipe from text',
+    paste_desc: 'AI picks out ingredients and grams',
     from_meal: 'From a meal',
     pick_meal: {
       title: 'Choose a meal',

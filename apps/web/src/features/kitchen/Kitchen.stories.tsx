@@ -31,7 +31,7 @@ export const Add: Story = {
   },
 };
 export const AddDark: Story = { ...Add, globals: dark };
-/** «+» with AI set up: also «Paste recipe text». */
+/** «+» with AI set up: also «Recipe from text» with the AI sparkle. */
 export const AddWithAi: Story = { ...Add, args: { ai: true } };
 export const AddWithAiDark: Story = {
   ...Add,
@@ -41,6 +41,12 @@ export const AddWithAiDark: Story = {
 /** 1.4: «New recipe» opens the editor. */
 export const Empty: Story = { args: { recipes: [] } };
 export const EmptyDark: Story = { args: { recipes: [] }, globals: dark };
+/** OCT-433: with AI set up the empty list also offers «Recipe from text». */
+export const EmptyWithAi: Story = { args: { recipes: [], ai: true } };
+export const EmptyWithAiDark: Story = {
+  args: { recipes: [], ai: true },
+  globals: dark,
+};
 /** 1.5 → 3.7: «From a meal» — the last meals with dishes; a tap opens the editor. */
 const pickMeal: Story = {
   play: async ({ canvasElement }) => {
