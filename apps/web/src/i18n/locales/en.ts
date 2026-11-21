@@ -1730,6 +1730,20 @@ export const en = {
     deleted: '{meal} deleted',
     undo: 'Undo',
   },
+  photoViewer: {
+    open: 'Open photo full screen',
+    alt: 'Meal photo: {title}',
+    close: 'Close photo',
+    loading: 'Loading the full photo',
+    expired: {
+      title: 'The full photo was deleted',
+      body: 'Your photo storage setting keeps only the preview now. Change the period in Settings → Photos.',
+    },
+    error: {
+      title: 'The full photo didn’t load',
+      body: 'Showing the preview for now. Check your connection.',
+    },
+  },
   day: { today: 'Today', yesterday: 'Yesterday' },
   week: {
     mode: { label: 'Period', week: 'Week', month: 'Month' },
