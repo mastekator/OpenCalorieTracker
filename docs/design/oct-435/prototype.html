@@ -1,0 +1,932 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OCT-435 · Recipe ingredients by barcode and by photo</title>
+<link rel="stylesheet" href="../oct-13/tokens.css">
+<script src="../preview-bar.js"></script>
+<link rel="stylesheet" href="../oct-378/oct378.css">
+<style>
+/* Prototype-only page chrome. Screen parts use tokens only; new tokens: --step-mark-size. */
+:root { --step-mark-size: 24px; /* OCT-313: status mark of a recognition step */ }
+body { margin: 0; padding: var(--space-10) var(--space-8); background: var(--color-bg); color: var(--color-text);
+  font: var(--text-body-size)/var(--text-body-lh) var(--font-sans); }
+.doc-h1 { margin: 0 0 var(--space-2); font-size: var(--text-title-size); line-height: var(--text-title-lh); }
+.doc-h2 { margin: var(--space-12) 0 var(--space-2); font-size: var(--text-headline-size); }
+.doc-lead { max-width: 80ch; margin: 0 0 var(--space-4); color: var(--color-text-secondary); font-size: var(--text-subhead-size); line-height: var(--text-subhead-lh); }
+.doc-list { max-width: 86ch; padding-left: var(--space-6); font-size: var(--text-subhead-size); line-height: var(--text-subhead-lh); }
+.doc-list li + li { margin-top: var(--space-2); }
+.frames { display: flex; flex-wrap: wrap; gap: var(--space-8); align-items: flex-start; }
+figure { margin: 0; }
+figcaption { width: 375px; margin-top: var(--space-3); font-size: var(--text-footnote-size); line-height: var(--text-footnote-lh); color: var(--color-text-secondary); }
+figcaption b { color: var(--color-text); }
+.lang-bar { display: inline-flex; margin-left: var(--space-4); }
+
+/* ---- frames ---- */
+.phone { position: relative; width: 375px; min-height: 740px; box-sizing: border-box; overflow: hidden; border-radius: 40px;
+  background: var(--color-bg); outline: 1px solid var(--color-separator); display: flex; flex-direction: column; }
+.phone__body { flex: 1; display: flex; flex-direction: column; gap: var(--space-4); padding: 0 var(--screen-gutter) var(--space-6); }
+.desk { width: 1040px; height: 720px; position: relative; border-radius: var(--radius-lg); overflow: hidden; outline: 1px solid var(--color-separator);
+  background: var(--color-scrim); display: grid; place-items: center; }
+.desk + figcaption, .desk ~ figcaption { width: 640px; }
+
+.nav { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; height: var(--navbar-height); padding: var(--space-6) var(--space-2) 0; }
+.nav__title { font: 600 var(--text-headline-size)/var(--text-headline-lh) var(--font-sans); text-align: center; }
+.nav__l { justify-self: start; } .nav__r { justify-self: end; }
+.large { margin: 0; font: 700 var(--text-large-title-size)/1.15 var(--font-sans); letter-spacing: var(--tracking-tight); }
+
+.ibtn { display: inline-flex; align-items: center; justify-content: center; width: var(--tap-min); height: var(--tap-min); border: 0; border-radius: var(--radius-full);
+  background: none; color: var(--color-accent); }
+.ibtn svg, .btn svg { width: var(--icon-size); height: var(--icon-size); }
+.ibtn--soft { background: var(--color-surface-2); color: var(--color-text); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); min-height: var(--control-height); padding: 0 var(--space-4);
+  border: 0; border-radius: var(--radius-md); font: 600 var(--text-body-size) var(--font-sans); background: none; color: var(--color-accent); }
+.btn--primary { background: var(--color-accent); color: var(--color-on-accent); min-height: var(--control-height-lg); }
+.btn--tonal { background: var(--color-accent-soft); color: var(--color-accent); }
+.btn--sm { min-height: 36px; padding: 0 var(--space-3); font-size: var(--text-subhead-size); }
+.btn--plain { padding: 0 var(--space-2); }
+.btn--danger { color: var(--color-danger); }
+.btn--wide { width: 100%; }
+.btn[disabled] { background: var(--color-surface-2); color: var(--color-text-disabled); }
+.foot { margin-top: auto; display: grid; gap: var(--space-2); }
+
+/* ---- photo (a drawn stand-in for the user's photo) ---- */
+.photo { position: relative; height: var(--photo-preview-height); border-radius: var(--radius-lg); overflow: hidden; background: var(--illo-tile); }
+.photo svg { width: 100%; height: 100%; display: block; }
+.photo--sm { height: calc(var(--photo-preview-height) * .6); }
+.photo__mark { position: absolute; border: 2px solid var(--color-accent); border-radius: var(--radius-sm); box-shadow: 0 0 0 999px rgb(0 0 0 / 0); }
+.thumb { flex: none; width: var(--thumb-size); height: var(--thumb-size); border-radius: var(--radius-md); overflow: hidden; background: var(--illo-tile); }
+.thumb svg { width: 100%; height: 100%; display: block; }
+
+/* ---- recognition steps (new: RecognitionSteps) ---- */
+.status { display: grid; gap: 2px; text-align: center; }
+.status__t { font: 600 var(--text-title-size)/var(--text-title-lh) var(--font-sans); }
+.status__s { font-size: var(--text-subhead-size); color: var(--color-text-secondary); }
+.steps { margin: 0; padding: var(--space-1) var(--space-4); list-style: none; border-radius: var(--radius-lg); background: var(--color-surface); }
+.step { display: grid; grid-template-columns: var(--step-mark-size) 1fr; column-gap: var(--space-3); align-items: center; min-height: var(--control-height-lg); padding: var(--space-2) 0; }
+.step + .step { border-top: 1px solid var(--color-separator); }
+.step__t { font: 500 var(--text-body-size)/var(--text-body-lh) var(--font-sans); }
+.step__s { display: block; font-size: var(--text-footnote-size); line-height: var(--text-footnote-lh); color: var(--color-text-secondary); font-variant-numeric: tabular-nums; }
+.mark { display: grid; place-items: center; width: var(--step-mark-size); height: var(--step-mark-size); border-radius: var(--radius-full); box-sizing: border-box; }
+.mark svg { width: 14px; height: 14px; }
+.mark--wait { border: 2px solid var(--color-border-strong); }
+.mark--run { border: 2.5px solid var(--color-accent-soft); border-top-color: var(--color-accent); animation: spin 0.9s linear infinite; }
+.mark--done { background: var(--color-accent); color: var(--color-on-accent); }
+.mark--skip { background: var(--color-surface-2); color: var(--color-text-secondary); }
+.mark--warn { background: var(--color-warning-soft); color: var(--color-warning); }
+.step--skip .step__t, .step--wait .step__t { color: var(--color-text-secondary); }
+.step--run .step__t { font-weight: 600; }
+.step--warn .step__s { color: var(--color-warning); }
+.step--done .step__s b { color: var(--color-text); font-weight: 500; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .mark--run { animation: none; border-color: var(--color-accent); border-style: dotted; } }
+
+/* ---- edit screen ---- */
+.head { display: flex; gap: var(--space-3); align-items: center; }
+.total { display: grid; }
+.total__k { font: 700 var(--text-large-title-size)/1.1 var(--font-sans); font-variant-numeric: tabular-nums; }
+.total__k small { font-size: var(--text-body-size); font-weight: 500; color: var(--color-text-secondary); }
+.macros { display: flex; gap: var(--space-3); font-size: var(--text-footnote-size); color: var(--color-text-secondary); font-variant-numeric: tabular-nums; }
+.dot { display: inline-block; width: 8px; height: 8px; margin-right: 4px; border-radius: 50%; }
+.seg { display: grid; grid-template-columns: repeat(4, 1fr); padding: 2px; border-radius: var(--radius-md); background: var(--color-surface-2); }
+.seg span { display: grid; place-items: center; min-height: 36px; border-radius: var(--radius-sm); font-size: var(--text-subhead-size); font-weight: 500; }
+.seg .on { background: var(--color-surface); box-shadow: var(--shadow-toast); font-weight: 600; }
+.cap { display: flex; gap: var(--space-2); margin: 0; font-size: var(--text-footnote-size); line-height: var(--text-footnote-lh); color: var(--color-text-secondary); }
+.cap svg { flex: none; width: 16px; height: 16px; margin-top: 1px; }
+.list { margin: 0; padding: 0 var(--space-4); list-style: none; border-radius: var(--radius-lg); background: var(--color-surface); }
+.dish { display: grid; gap: var(--space-1); padding: var(--space-3) 0; }
+.dish + .dish { border-top: 1px solid var(--color-separator); }
+.dish__1 { display: flex; justify-content: space-between; gap: var(--space-3); font: 600 var(--text-headline-size)/var(--text-headline-lh) var(--font-sans); }
+.dish__1 .num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.dish__2 { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); font-size: var(--text-footnote-size); color: var(--color-text-secondary); font-variant-numeric: tabular-nums; }
+.dish__3 { display: flex; align-items: center; justify-content: space-between; margin-top: var(--space-1); }
+.stepper { display: flex; align-items: center; gap: var(--space-2); }
+.stepper .ibtn { background: var(--color-surface-2); color: var(--color-text); }
+.stepper__v { display: grid; place-items: center; width: var(--stepper-value-width); height: var(--tap-min); box-sizing: border-box; border: 1px solid var(--color-border-strong); border-radius: var(--radius-md);
+  font: 600 var(--text-body-size) var(--font-sans); font-variant-numeric: tabular-nums; }
+.badge { display: inline-flex; align-items: center; gap: 3px; padding: 2px var(--space-2); border-radius: var(--radius-sm);
+  font-size: var(--text-caption-size); line-height: var(--text-caption-lh); font-weight: 600; white-space: nowrap; }
+.badge svg { width: 12px; height: 12px; }
+.badge--src { background: var(--color-accent-soft); color: var(--color-accent); }
+.badge--n { background: var(--color-surface-2); color: var(--color-text-secondary); }
+.badge--warn { background: var(--color-warning-soft); color: var(--color-warning); }
+.badge--ok { background: var(--color-accent-soft); color: var(--color-accent); }
+.hint { display: grid; gap: var(--space-2); padding: var(--space-3) var(--space-4); border-radius: var(--radius-lg); background: var(--color-accent-soft); font-size: var(--text-subhead-size); line-height: var(--text-subhead-lh); }
+.hint--warn { background: var(--color-warning-soft); }
+.hint--n { background: var(--color-notice); }
+.hint__row { display: flex; gap: var(--space-2); align-items: flex-start; }
+.hint__row > svg { flex: none; width: 18px; height: 18px; margin-top: 2px; color: var(--color-accent); }
+.hint--warn .hint__row > svg { color: var(--color-warning); }
+.hint--n .hint__row > svg { color: var(--color-text-secondary); }
+.hint__acts { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-left: calc(18px + var(--space-2)); }
+.inline-hint { margin: calc(-1 * var(--space-1)) 0 var(--space-2); padding: var(--space-2) var(--space-3); border-radius: var(--radius-md); background: var(--color-warning-soft);
+  font-size: var(--text-footnote-size); line-height: var(--text-footnote-lh); }
+.inline-hint .btn { margin-left: calc(-1 * var(--space-2)); }
+
+/* ---- sheet ---- */
+.dim { position: absolute; inset: 0; background: var(--color-scrim); }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; gap: var(--space-4); max-height: 92%; box-sizing: border-box;
+  padding: var(--space-2) var(--screen-gutter) var(--space-8); border-radius: var(--radius-xl) var(--radius-xl) 0 0; background: var(--color-bg); box-shadow: var(--shadow-sheet); }
+.sheet__grab { width: 36px; height: 5px; margin: 0 auto; border-radius: var(--radius-full); background: var(--color-border-strong); }
+.sheet__h { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; }
+.sheet__h .nav__title { grid-column: 2; }
+.sheet__h .nav__r { grid-column: 3; }
+.under { position: absolute; inset: 0; padding: 0 var(--screen-gutter); opacity: 1; }
+
+/* ---- form ---- */
+.field { display: grid; gap: var(--space-1); }
+.field__l { font-size: var(--text-footnote-size); font-weight: 600; color: var(--color-text-secondary); }
+.field__l i { font-style: normal; font-weight: 400; }
+.input { display: flex; align-items: center; gap: var(--space-2); min-height: var(--control-height-lg); padding: 0 var(--space-2) 0 var(--space-4); box-sizing: border-box;
+  border: 1px solid var(--color-border-strong); border-radius: var(--radius-md); background: var(--color-surface); font-variant-numeric: tabular-nums; }
+.input__v { flex: 1; min-width: 0; }
+.input__v.ph { color: var(--color-text-disabled); }
+.input__sfx { color: var(--color-text-secondary); padding-right: var(--space-2); }
+.input--mono .input__v { font-family: var(--font-numeric, var(--font-sans)); letter-spacing: .04em; }
+.field__h { font-size: var(--text-footnote-size); line-height: var(--text-footnote-lh); color: var(--color-text-secondary); }
+.field__h--warn { color: var(--color-warning); }
+.row3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-2); }
+.seg2 { display: grid; grid-template-columns: 1fr 1fr; padding: 2px; border-radius: var(--radius-md); background: var(--color-surface-2); }
+.seg2 span { display: grid; place-items: center; min-height: 36px; border-radius: var(--radius-sm); font-size: var(--text-subhead-size); font-weight: 500; }
+.seg2 .on { background: var(--color-surface); box-shadow: var(--shadow-toast); font-weight: 600; }
+.sum { padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--color-surface-2); font-size: var(--text-subhead-size); font-variant-numeric: tabular-nums; }
+.spin { width: 16px; height: 16px; box-sizing: border-box; border-radius: 50%; border: 2px solid var(--color-accent-soft); border-top-color: var(--color-accent); animation: spin .9s linear infinite; }
+
+/* ---- source block in the dish sheet ---- */
+.src { display: grid; gap: var(--space-1); padding: var(--space-3) var(--space-4); border-radius: var(--radius-lg); background: var(--color-surface); font-size: var(--text-subhead-size); line-height: var(--text-subhead-lh); }
+.src__h { display: flex; align-items: center; gap: var(--space-2); font-weight: 600; }
+.src__h svg { width: 18px; height: 18px; color: var(--color-accent); }
+.src__l { color: var(--color-text-secondary); font-size: var(--text-footnote-size); line-height: var(--text-footnote-lh); font-variant-numeric: tabular-nums; }
+.src a { color: var(--color-accent); font-weight: 500; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; min-height: var(--tap-min); }
+.src a svg { width: 14px; height: 14px; }
+
+/* ---- settings ---- */
+.cell-group { margin: 0; padding: 0 var(--space-4); list-style: none; border-radius: var(--radius-lg); background: var(--color-surface); }
+.cell { display: flex; align-items: center; gap: var(--space-3); min-height: var(--control-height-lg); padding: var(--space-2) 0; }
+.cell + .cell { border-top: 1px solid var(--color-separator); }
+.cell__m { flex: 1; display: grid; gap: 2px; }
+.cell__t { font-weight: 500; }
+.cell__s { font-size: var(--text-footnote-size); line-height: var(--text-footnote-lh); color: var(--color-text-secondary); }
+.ico { display: grid; place-items: center; flex: none; width: 32px; height: 32px; border-radius: var(--radius-sm); background: var(--color-accent-soft); color: var(--color-accent); }
+.ico svg { width: 18px; height: 18px; }
+.sw { flex: none; position: relative; width: var(--switch-width); height: var(--switch-height); border-radius: var(--radius-full); background: var(--color-border-strong); }
+.sw::after { content: ''; position: absolute; top: 2px; left: 2px; width: calc(var(--switch-height) - 4px); height: calc(var(--switch-height) - 4px); border-radius: 50%; background: var(--color-surface); box-shadow: var(--shadow-toast); }
+.sw.on { background: var(--color-accent); }
+.sw.on::after { left: auto; right: 2px; }
+.sw.dis { background: var(--color-surface-2); }
+.sw.dis::after { background: var(--color-bg); box-shadow: none; }
+.statusline { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-subhead-size); font-weight: 600; }
+.statusline svg { width: 16px; height: 16px; }
+.st-ok { color: var(--color-accent); } .st-off { color: var(--color-text-secondary); } .st-lock { color: var(--color-text-secondary); }
+.kv { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: var(--space-2) var(--space-4); padding: var(--space-3) var(--space-4); border-radius: var(--radius-lg); background: var(--color-surface);
+  font-size: var(--text-subhead-size); line-height: var(--text-subhead-lh); }
+.kv dt { color: var(--color-text-secondary); }
+.kv dd { margin: 0; }
+.note { margin: 0; padding: 0 var(--space-1); font-size: var(--text-footnote-size); line-height: var(--text-footnote-lh); color: var(--color-text-secondary); }
+.sec-h { margin: var(--space-2) 0 calc(-1 * var(--space-2)); padding: 0 var(--space-1); font-size: var(--text-footnote-size); font-weight: 600; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: .02em; }
+.offline { display: flex; align-items: center; justify-content: center; gap: var(--space-2); min-height: 32px; background: var(--color-notice); font-size: var(--text-footnote-size); font-weight: 600; color: var(--color-text-secondary); }
+.offline svg { width: 14px; height: 14px; }
+.toast { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-lg); background: var(--color-surface); box-shadow: var(--shadow-toast); font-size: var(--text-subhead-size); line-height: var(--text-subhead-lh); }
+.toast svg { flex: none; width: 18px; height: 18px; color: var(--color-accent); }
+
+/* ---- desktop modal ---- */
+.modal { width: min(var(--modal-flow-max-width), 900px); height: 560px; display: grid; grid-template-columns: 240px 1fr; grid-template-rows: auto 1fr auto; border-radius: var(--radius-xl);
+  background: var(--color-bg); box-shadow: var(--shadow-sheet); overflow: hidden; }
+.modal__h { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; padding: var(--space-4) var(--space-6); border-bottom: 1px solid var(--color-separator); }
+.modal__l { display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-6); border-right: 1px solid var(--color-separator); }
+.modal__l .photo { height: 180px; }
+.modal__r { display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-6); overflow: hidden; }
+.modal__f { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: var(--space-2); padding: var(--space-4) var(--space-6); border-top: 1px solid var(--color-separator); }
+.dialog { width: var(--dialog-max-width); display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-6); border-radius: var(--radius-xl); background: var(--color-bg); box-shadow: var(--shadow-sheet); box-sizing: border-box; }
+.dialog .foot { flex-direction: row; display: flex; justify-content: flex-end; }
+
+/* ---- OCT-380: amount switch in the dish card (reuses the OCT-160/OCT-333 portion sheet layout). Tokens only. ---- */
+.seg.modes { grid-template-columns: repeat(var(--n), 1fr); }
+.qty { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: var(--space-4); }
+.qty .ibtn { width: var(--control-height-lg); height: var(--control-height-lg); background: var(--color-surface-2); color: var(--color-text); }
+.qty .ibtn[disabled] { color: var(--color-text-disabled); }
+.qv { display: flex; flex-direction: column; align-items: center; gap: 2px; font-variant-numeric: tabular-nums; }
+.qv b { font-size: var(--text-large-title-size); line-height: var(--text-large-title-lh); font-weight: 700; letter-spacing: var(--tracking-tight); }
+.qv small { font-size: var(--text-footnote-size); color: var(--color-text-secondary); }
+.chips { display: flex; justify-content: center; flex-wrap: wrap; gap: var(--space-2); }
+.chip { border: 0; color: var(--color-text); display: grid; place-items: center; min-width: var(--tap-min); min-height: var(--tap-min); padding: 0 var(--space-3); box-sizing: border-box; border-radius: var(--radius-full);
+  background: var(--color-surface-2); font: 600 var(--text-subhead-size) var(--font-sans); font-variant-numeric: tabular-nums; }
+.chip.on { background: var(--color-accent); color: var(--color-on-accent); }
+.res { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--color-surface-2); }
+.res b { font-size: var(--text-headline-size); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.packline { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); font-size: var(--text-footnote-size); line-height: var(--text-footnote-lh); color: var(--color-text-secondary); font-variant-numeric: tabular-nums; }
+.packline .btn { margin-right: calc(-1 * var(--space-2)); }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); }
+.stepper__v.auto { width: auto; padding: 0 var(--space-3); white-space: nowrap; }
+.input.focus { border-color: var(--color-accent); box-shadow: 0 0 0 3px var(--color-accent-soft); }
+.input.bad { border-color: var(--color-danger); }
+.field__h--err { color: var(--color-danger); }
+
+/* ---- OCT-420: edible part (gross → edible). Tokens only, no new tokens. ---- */
+.edcap { display: flex; align-items: center; gap: var(--space-1); width: 100%; min-height: var(--tap-min); margin: calc(-1 * var(--space-2)) 0; padding: 0; border: 0; background: none; text-align: left;
+  font: var(--text-footnote-size)/var(--text-footnote-lh) var(--font-sans); color: var(--color-text-secondary); font-variant-numeric: tabular-nums; }
+.edcap > span { flex: 1; min-width: 0; }
+.edcap .l2 { display: block; }
+.edcap b { color: var(--color-text); font-weight: 600; }
+.edcap .s { color: var(--color-accent); font-weight: 600; white-space: nowrap; }
+.edcap .s.ai { color: var(--color-text-secondary); }
+.edcap > svg { flex: none; width: 16px; height: 16px; color: var(--color-text-secondary); }
+.edcap--man { justify-content: space-between; }
+.edcap--man .btn { margin-right: calc(-1 * var(--space-2)); }
+.edline { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--color-surface); font-variant-numeric: tabular-nums; }
+.edline__m { flex: 1; display: grid; gap: 2px; }
+.edline__m b { font-size: var(--text-headline-size); }
+.edline__m span { font-size: var(--text-footnote-size); line-height: var(--text-footnote-lh); color: var(--color-text-secondary); }
+.edline__m .s { color: var(--color-accent); font-weight: 600; }
+.edline__m .s.ai { color: var(--color-text-secondary); }
+.res small { font-size: var(--text-footnote-size); color: var(--color-text-secondary); font-weight: 400; }
+/* AI question in the dish row (OCT-234 pattern) */
+.ask { display: flex; flex-direction: column; gap: var(--space-2); padding-top: var(--space-1); }
+.ask-q { display: flex; align-items: flex-start; gap: var(--space-2); font-size: var(--text-subhead-size); line-height: var(--text-subhead-lh); font-weight: 600; }
+.ask-q svg { flex: none; width: 18px; height: 18px; margin-top: 1px; color: var(--color-accent); }
+.ask-c { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.achip { display: inline-flex; flex-direction: column; align-items: flex-start; justify-content: center; min-height: var(--tap-min); padding: var(--space-1) var(--space-3); box-sizing: border-box; border: 0;
+  border-radius: var(--radius-full); background: var(--color-surface-2); color: var(--color-text); font: 500 var(--text-subhead-size)/var(--text-subhead-lh) var(--font-sans); text-align: left; }
+.achip small { font-size: var(--text-caption-size); line-height: var(--text-caption-lh); color: var(--color-text-secondary); font-variant-numeric: tabular-nums; }
+.achip.on { background: var(--color-accent-soft); color: var(--color-accent); font-weight: 600; box-shadow: inset 0 0 0 1px var(--color-accent); }
+.achip.on small { color: var(--color-accent); }
+.achip.other { background: transparent; color: var(--color-accent); box-shadow: inset 0 0 0 1px var(--color-border-strong); }
+.ask-l { font-size: var(--text-footnote-size); line-height: var(--text-footnote-lh); color: var(--color-text-secondary); }
+.dish.answered { margin: 0 calc(-1 * var(--space-4)); padding-left: var(--space-4); padding-right: var(--space-4); background: var(--color-accent-soft); }
+.list > .dish.answered:first-child { border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+.was { font-size: var(--text-footnote-size); color: var(--color-text-secondary); text-decoration: line-through; }
+.rowsonly .list { margin-top: var(--space-4); }
+.tag { display: block; margin: var(--space-3) 0 0; font-size: var(--text-caption-size); font-weight: 600; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: .02em; }
+code { font-size: var(--text-caption-size); }
+
+/* ---- OCT-435: recipe ingredients by barcode and by photo. Tokens only, no new tokens. ---- */
+.phone { height: auto; }
+.rnav { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; min-height: var(--navbar-height); padding: var(--space-6) var(--space-2) 0; }
+.rnav .nav__title { font: 600 var(--text-headline-size)/var(--text-headline-lh) var(--font-sans); text-align: center; }
+.rnav > :last-child { justify-self: end; }
+.rnav .btn { color: var(--color-accent); background: none; }
+.grp { display: flex; justify-content: space-between; margin: 0 0 calc(-1 * var(--space-2)); padding: 0 var(--space-1); font-size: var(--text-footnote-size); color: var(--color-text-secondary); }
+.grp b { font-weight: 600; text-transform: uppercase; letter-spacing: .02em; }
+/* IngredientRow as in the app + an optional caption line (share / source / edible part) */
+.irow { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: var(--space-3); padding: var(--space-3) 0; }
+.irow + .irow, .irow + .addrow, .irow + .lim { border-top: 1px solid var(--color-separator); }
+.irow__m { display: grid; gap: 2px; min-height: var(--tap-min); align-content: center; }
+.irow__n { overflow-wrap: anywhere; }
+.irow__n .badge { margin-left: var(--space-1); vertical-align: 1px; }
+.irow__k, .irow__c { font-size: var(--text-footnote-size); line-height: var(--text-footnote-lh); color: var(--color-text-secondary); font-variant-numeric: tabular-nums; }
+.irow__c { display: flex; align-items: center; gap: var(--space-1); }
+.irow__c svg { width: 14px; height: 14px; color: var(--color-accent); }
+.irow__c b { color: var(--color-text); font-weight: 600; }
+.irow__c .s { color: var(--color-accent); font-weight: 600; }
+.irow__c .s.ai { color: var(--color-text-secondary); }
+.gbox { display: flex; align-items: center; gap: var(--space-1); min-width: 76px; height: var(--tap-min); box-sizing: border-box; padding: 0 var(--space-3); border-radius: var(--radius-md);
+  background: var(--color-surface-2); font-variant-numeric: tabular-nums; justify-content: flex-end; }
+.gbox small { color: var(--color-text-secondary); font-size: var(--text-footnote-size); }
+.irow--new { margin: 0 calc(-1 * var(--space-4)); padding-left: var(--space-4); padding-right: var(--space-4); background: var(--color-accent-soft); }
+.irow--new .gbox { background: var(--color-surface); }
+.irow--out .irow__n, .irow--out .gbox { color: var(--color-text-secondary); }
+.irow--out .gbox { text-decoration: line-through; }
+.addrow { display: flex; align-items: center; gap: var(--space-3); min-height: var(--control-height); color: var(--color-accent); font-weight: 500; }
+.addrow svg { width: var(--icon-size); height: var(--icon-size); }
+.lim { display: flex; align-items: center; gap: var(--space-2); min-height: var(--control-height); color: var(--color-text-secondary); font-size: var(--text-subhead-size); }
+.lim svg { width: 18px; height: 18px; flex: none; }
+/* «+ Ingredient» sheet rows */
+.plist { margin: 0; padding: 0 var(--space-4); list-style: none; border-radius: var(--radius-lg); background: var(--color-surface); }
+.prow { display: flex; align-items: center; gap: var(--space-3); min-height: var(--control-height-lg); padding: var(--space-2) 0; }
+.prow + .prow { border-top: 1px solid var(--color-separator); }
+.prow > svg { flex: none; width: var(--icon-size); height: var(--icon-size); color: var(--color-accent); }
+.prow__m { flex: 1; display: grid; gap: 2px; }
+.prow__t { font-weight: 500; }
+.prow__t.acc { color: var(--color-accent); }
+.prow__s { font-size: var(--text-footnote-size); line-height: var(--text-footnote-lh); color: var(--color-text-secondary); }
+.prow--off > svg { color: var(--color-text-secondary); }
+.prow--off .prow__t { color: var(--color-text-secondary); }
+.plist-h { display: flex; align-items: center; gap: var(--space-1); margin-bottom: calc(-1 * var(--space-2)); padding: 0 var(--space-1); font-size: var(--text-footnote-size); color: var(--color-text-secondary); }
+.plist-h svg { width: 14px; height: 14px; }
+.pnote { margin: calc(-1 * var(--space-2)) 0 0; padding: 0 var(--space-1); font-size: var(--text-footnote-size); line-height: var(--text-footnote-lh); color: var(--color-text-secondary); }
+.search { display: flex; align-items: center; gap: var(--space-2); min-height: var(--control-height); padding: 0 var(--space-3); border-radius: var(--radius-md); background: var(--color-surface-2); color: var(--color-text-disabled); }
+.search svg { width: 18px; height: 18px; }
+/* photo strip in the review sheet */
+.shots { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+.shots__t { min-width: 150px; }
+.shot { position: relative; width: 56px; height: 56px; border-radius: var(--radius-md); overflow: hidden; background: var(--illo-tile); }
+.shot svg { width: 100%; height: 100%; display: block; }
+.shot i { position: absolute; left: 4px; bottom: 4px; min-width: 18px; height: 18px; border-radius: var(--radius-full); background: var(--color-scrim); color: var(--color-on-accent);
+  font: 600 var(--text-caption-size)/18px var(--font-sans); font-style: normal; text-align: center; }
+.shot--add { display: grid; place-items: center; background: var(--color-accent-soft); color: var(--color-accent); border: 0; }
+.shot--add svg { width: var(--icon-size); height: var(--icon-size); }
+.shot--run { display: grid; place-items: center; }
+.shot--run .spin { position: absolute; }
+.shots__t { flex: 1; font-size: var(--text-footnote-size); line-height: var(--text-footnote-lh); color: var(--color-text-secondary); }
+.sep { margin: 0 calc(-1 * var(--space-4)); padding: var(--space-2) var(--space-4); border-top: 1px solid var(--color-separator); background: var(--color-bg);
+  font-size: var(--text-caption-size); font-weight: 600; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: .02em; }
+.list > .sep:first-child { border-top: 0; border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+.sticky { position: sticky; bottom: 0; display: grid; gap: var(--space-2); margin: auto calc(-1 * var(--screen-gutter)) calc(-1 * var(--space-6)); padding: var(--space-3) var(--screen-gutter) var(--space-8);
+  background: var(--color-bg); border-top: 1px solid var(--color-separator); }
+.sticky .row2 .btn { width: 100%; }
+.state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-2); padding: 0 var(--space-2) var(--space-6); text-align: center; }
+.state__art { width: calc(var(--space-12) + var(--space-2)); height: calc(var(--space-12) + var(--space-2)); border-radius: var(--radius-full); background: var(--color-accent-soft);
+  display: grid; place-items: center; color: var(--color-accent); margin-bottom: var(--space-2); }
+.state__art svg { width: 28px; height: 28px; }
+.state__art--warn { background: var(--color-warning-soft); color: var(--color-warning); }
+.state__title { margin: 0; font: 600 var(--text-title-size)/var(--text-title-lh) var(--font-sans); }
+.state__body { margin: 0 0 var(--space-4); max-width: 34ch; color: var(--color-text-secondary); font-size: var(--text-subhead-size); line-height: var(--text-subhead-lh); }
+.state .btn { width: 100%; }
+.mini { display: flex; align-items: center; gap: var(--space-3); }
+.mini .photo { flex: none; width: 96px; height: 72px; border-radius: var(--radius-md); }
+.toast { position: absolute; left: var(--screen-gutter); right: var(--screen-gutter); bottom: var(--space-8); }
+/* desktop: recipe editor page + review dialog */
+.dpage { display: grid; grid-template-columns: 200px 1fr; width: 100%; height: 100%; background: var(--color-bg); }
+.dside { display: grid; align-content: start; gap: var(--space-1); padding: var(--space-6) var(--space-4); border-right: 1px solid var(--color-separator); }
+.dside span { padding: var(--space-2) var(--space-3); border-radius: var(--radius-md); font-size: var(--text-subhead-size); }
+.dside .on { background: var(--color-accent-soft); color: var(--color-accent); font-weight: 600; }
+.dmain { padding: var(--space-6) var(--space-8); display: flex; flex-direction: column; gap: var(--space-4); max-width: 560px; }
+.desk > .dim + .modal, .desk > .dim + .dialog { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); }
+.modal--rev { height: 660px; grid-template-columns: 260px 1fr; }
+.modal--rev .modal__r { overflow: auto; }
+.modal__l .shots { flex-wrap: wrap; }
+.copy { border-collapse: collapse; font-size: var(--text-footnote-size); line-height: var(--text-footnote-lh); max-width: 1100px; }
+.copy td, .copy th { border-top: 1px solid var(--color-separator); padding: var(--space-2) var(--space-3); text-align: left; vertical-align: top; }
+</style>
+</head>
+<body>
+<div id="doc"></div>
+<script>
+const NB = ' ';
+const KEY = 'oct-preview-lang';
+let lang = new URLSearchParams(location.search).get('lang');
+try { lang = lang || localStorage.getItem(KEY); } catch (e) {}
+lang = lang === 'en' ? 'en' : 'ru';
+const L = (ru, en) => lang === 'en' ? en : ru;
+const n = v => v.toLocaleString(lang === 'en' ? 'en-US' : 'ru-RU', { maximumFractionDigits: 1 }).replace(/\s/g, NB);
+const g = v => `${n(v)}${NB}${L('г', 'g')}`;
+const kc = v => `${n(v)}${NB}${L('ккал', 'kcal')}`;
+const BC = '4607012345678';
+
+const sv = d => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const I = {
+  check: sv('<path d="M20 6 9 17l-5-5"/>'), minus: sv('<path d="M5 12h14"/>'), plus: sv('<path d="M5 12h14M12 5v14"/>'), x: sv('<path d="M18 6 6 18M6 6l12 12"/>'),
+  alert: sv('<circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>'),
+  sparkle: sv('<path d="M9.94 15.5A2 2 0 0 0 8.5 14.06l-6.14-1.58a.5.5 0 0 1 0-.96L8.5 9.94A2 2 0 0 0 9.94 8.5l1.58-6.14a.5.5 0 0 1 .96 0l1.58 6.14a2 2 0 0 0 1.44 1.44l6.14 1.58a.5.5 0 0 1 0 .96l-6.14 1.58a2 2 0 0 0-1.44 1.44l-1.58 6.14a.5.5 0 0 1-.96 0z"/>'),
+  pencil: sv('<path d="M21.17 6.81a1 1 0 0 0-3.99-3.99L3.84 16.17a2 2 0 0 0-.5.83l-1.32 4.35a.5.5 0 0 0 .62.62l4.35-1.32a2 2 0 0 0 .83-.5z"/><path d="m15 5 4 4"/>'),
+  barcode: sv('<path d="M3 5v14M8 5v14M12 5v14M17 5v14M21 5v14"/>'),
+  label: sv('<path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8h8M7 12h10M7 16h6"/>'),
+  mine: sv('<path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>'),
+  lock: sv('<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>'),
+  info: sv('<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>'),
+  wifiOff: sv('<path d="M12 20h.01M8.5 16.43a5 5 0 0 1 7 0M5 12.86a10 10 0 0 1 5.17-2.69M19 12.86a10 10 0 0 0-2-1.52M2 8.82a15 15 0 0 1 4.18-2.64M22 8.82a15 15 0 0 0-11.29-3.76M2 2l20 20"/>'),
+  camera: sv('<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/>'),
+  chev: sv('<path d="m9 18 6-6-6-6"/>'), back: sv('<path d="m15 18-6-6 6-6"/>'),
+  ext: sv('<path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>'),
+  trash: sv('<path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>'),
+};
+
+// A drawn stand-in for the photo: a yogurt cup with a barcode next to a plate with an omelette.
+const PHOTO = (opts = {}) => {
+  // EAN-style pattern in modules: [bar, gap, bar, gap, ...]; guard bars (g) run longer
+  const mods = [1,1,1, 2,1,1,2, 1,3,1,1, 2,2,1,1, 1,1,3,1, 1,1,1,1,1, 3,1,1,2, 1,1,2,2, 2,1,1,1, 1,3,1,1, 1,1,1];
+  const guards = new Set([0, 2, 22, 24, mods.length - 3, mods.length - 1]);
+  const u = 50 / mods.reduce((a, b) => a + b, 0);
+  let bx = 249, bars = '';
+  mods.forEach((m, i) => { if (i % 2 === 0) bars += `<rect x="${bx.toFixed(2)}" y="146" width="${(m * u).toFixed(2)}" height="${guards.has(i) ? 38 : 34}" fill="var(--illo-cocoa)"/>`; bx += m * u; });
+  const plate = opts.noPack ? 0 : 1;
+  return `<svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <rect width="400" height="300" fill="var(--illo-tile)"/>
+    <circle cx="${plate ? 120 : 200}" cy="160" r="${plate ? 98 : 120}" fill="var(--illo-plate)"/><circle cx="${plate ? 120 : 200}" cy="160" r="${plate ? 72 : 90}" fill="var(--illo-white)"/>
+    <ellipse cx="${plate ? 120 : 200}" cy="160" rx="${plate ? 54 : 68}" ry="${plate ? 40 : 50}" fill="var(--illo-yellow)"/>
+    <circle cx="${plate ? 104 : 182}" cy="150" r="5" fill="var(--illo-leaf)"/><circle cx="${plate ? 134 : 220}" cy="168" r="4" fill="var(--illo-leaf)"/><circle cx="${plate ? 118 : 198}" cy="178" r="4" fill="var(--illo-green)"/>
+    ${opts.noPack ? '' : `<path d="M226 80h96l-9 170q-1 8-9 8h-60q-8 0-9-8z" fill="var(--illo-white)"/>
+    <rect x="226" y="84" width="96" height="5" fill="var(--illo-shade)"/>
+    <rect x="219" y="66" width="110" height="18" rx="9" fill="var(--illo-blue)"/>
+    <rect x="240" y="100" width="68" height="28" rx="8" fill="var(--illo-blue)"/>
+    <rect x="250" y="109" width="36" height="4" rx="2" fill="var(--illo-white)"/><rect x="250" y="117" width="24" height="4" rx="2" fill="var(--illo-white)"/>
+    ${opts.blur ? '' : `<rect x="242" y="140" width="64" height="60" rx="6" fill="var(--illo-white)" stroke="var(--illo-shade)" stroke-width="2"/>${bars}
+    <rect x="253" y="189" width="17" height="4" rx="2" fill="var(--illo-cocoa)" opacity=".45"/><rect x="278" y="189" width="17" height="4" rx="2" fill="var(--illo-cocoa)" opacity=".45"/>`}`}
+  </svg>`;
+};
+const thumb = () => `<span class="thumb">${PHOTO()}</span>`;
+
+// ---- building blocks ----
+const phone = (inner, cap, opts = {}) => `<figure id="${opts.id || ''}"><div class="phone"${opts.tall ? ` style="min-height:${opts.h || 812}px"` : ''}>${inner}</div><figcaption>${cap}</figcaption></figure>`;
+const nav = (l, title, r) => `<div class="nav"><span class="nav__l">${l || ''}</span><span class="nav__title">${title || ''}</span><span class="nav__r">${r || ''}</span></div>`;
+const cancel = () => `<button class="btn btn--plain">${L('Отмена', 'Cancel')}</button>`;
+const closeX = () => `<button class="ibtn ibtn--soft" aria-label="${L('Закрыть', 'Close')}">${I.x}</button>`;
+
+// one recognition step: k = done | run | wait | skip | warn
+const STEP_ICON = { done: I.check, run: '', wait: '', skip: I.minus, warn: I.alert };
+const step = (k, t, s) => `<li class="step step--${k}"><span class="mark mark--${k}">${STEP_ICON[k]}</span><span><span class="step__t">${t}</span>${s ? `<span class="step__s">${s}</span>` : ''}</span></li>`;
+const steps = (a, b, c) => `<ol class="steps" aria-label="${L('Шаги распознавания', 'Recognition steps')}">${[a, b, c].filter(Boolean).join('')}</ol>`;
+const S1 = L('Штрихкод', 'Barcode'), S2 = 'Open Food Facts', S3 = L('ИИ разбирает фото', 'AI reads the photo');
+
+const recog = (stepList, title, sub) => `${nav(cancel(), '', '')}<div class="phone__body">
+  <div class="photo">${PHOTO()}</div>
+  <div class="status" role="status"><span class="status__t">${title || L('Распознаём…', 'Recognizing…')}</span><span class="status__s">${sub || L('Обычно до 10 секунд', 'Usually under 10 seconds')}</span></div>
+  ${stepList}</div>`;
+
+const badge = (k) => ({
+  barcode: `<span class="badge badge--src">${I.barcode}${L('штрихкод', 'barcode')}</span>`,
+  label: `<span class="badge badge--src">${I.label}${L('этикетка', 'label')}</span>`,
+  mine: `<span class="badge badge--src">${I.mine}${L('ваш продукт', 'your product')}</span>`,
+  check: `<span class="badge badge--warn">${I.alert}${L('проверьте', 'check')}</span>`,
+  approx: `<span class="badge badge--n">${L('примерно', 'approx.')}</span>`,
+  manual: `<span class="badge badge--n">${L('вручную', 'manual')}</span>`,
+}[k] || '');
+const mac = (p, f, c) => `${L('Б', 'P')}${NB}${n(p)} · ${L('Ж', 'F')}${NB}${n(f)} · ${L('У', 'C')}${NB}${n(c)}`;
+const OML = { name: L('Омлет с зеленью', 'Omelette with herbs'), w: 180, k: 250, p: 17, f: 19, c: 3, b: 'approx' };
+const meals = () => `<div class="seg" role="radiogroup"><span>${L('Завтрак', 'Breakfast')}</span><span class="on">${L('Обед', 'Lunch')}</span><span>${L('Ужин', 'Dinner')}</span><span>${L('Перекус', 'Snack')}</span></div>`;
+
+const field = (label, value, o = {}) => `<label class="field"><span class="field__l">${label}${o.opt ? ` <i>· ${o.opt}</i>` : ''}</span>
+  <span class="input${o.mono ? ' input--mono' : ''}"><span class="input__v${o.ph ? ' ph' : ''}">${value}</span>${o.sfx ? `<span class="input__sfx">${o.sfx}</span>` : ''}${o.btn || ''}</span>${o.hint ? `<span class="field__h${o.warn ? ' field__h--warn' : ''}">${o.hint}</span>` : ''}</label>`;
+const findBtn = (busy) => busy ? `<button class="btn btn--tonal btn--sm" aria-busy="true"><span class="spin" aria-hidden="true"></span>${L('Ищем', 'Searching')}</button>` : `<button class="btn btn--tonal btn--sm">${L('Найти', 'Find')}</button>`;
+const bcField = (value, o = {}) => field(L('Штрихкод', 'Barcode'), value || L('Цифры под штрихкодом', 'Digits under the barcode'), { opt: L('необязательно', 'optional'), mono: !!value, ph: !value, btn: findBtn(o.busy), hint: o.hint, warn: o.warn });
+const hint = (kind, icon, text, acts = '') => `<div class="hint${kind ? ' hint--' + kind : ''}"><div class="hint__row">${icon}<span>${text}</span></div>${acts ? `<div class="hint__acts">${acts}</div>` : ''}</div>`;
+
+// ---------- OCT-378: unit g / ml ----------
+const OZ_G = 28.3495, FLOZ_ML = 29.5735;
+// q(value, unit, us): amount with its unit. Metric: g / ml; imperial: oz / fl oz (to 0.1).
+const q = (v, u, us) => us ? `${n(Math.round(v / (u === 'ml' ? FLOZ_ML : OZ_G) * 10) / 10)}${NB}${u === 'ml' ? 'fl oz' : 'oz'}` : `${n(v)}${NB}${u === 'ml' ? L('мл', 'ml') : L('г', 'g')}`;
+const per100 = u => u === 'ml' ? L('На 100 мл', 'Per 100 ml') : L('На 100 г', 'Per 100 g');
+const amountLabel = u => u === 'ml' ? L('Объём', 'Volume') : L('Вес', 'Weight');
+const stepTxt = (u, us) => us ? `0,5${NB}${u === 'ml' ? 'fl oz' : 'oz'}`.replace(',', lang === 'en' ? '.' : ',') : q(10, u, false);
+
+const OML2 = { name: L('Омлет с зеленью', 'Omelette with herbs'), w: 180, u: 'g', k: 250, p: 17, f: 19, c: 3, b: 'approx' };
+const CAP = { name: L('Капучино', 'Cappuccino'), w: 300, u: 'ml', k: 120, p: 6, f: 6, c: 9, b: 'approx' };
+const JUICE = { name: L('Сок апельсиновый', 'Orange juice'), w: 500, u: 'ml', k: 225, p: 4, f: 1, c: 50, b: 'barcode' };
+const KEFIR = { name: L('Кефир 1 %', 'Kefir 1%'), w: 250, u: 'ml', k: 100, p: 7.5, f: 2.5, c: 10 };
+
+const dish2 = (d, { us = false, extra = '' } = {}) => `<li class="dish"><div class="dish__1"><span>${d.name}</span><span class="num">${kc(d.k)}</span></div>
+  <div class="dish__2">${badge(d.b)}<span>${mac(d.p, d.f, d.c)}</span></div>${extra}
+  <div class="dish__3"><span class="stepper"><button class="ibtn" aria-label="${L('Меньше на', 'Less by')} ${stepTxt(d.u, us)}">${I.minus}</button><span class="stepper__v" style="${us ? 'width:auto;padding:0 var(--space-3)' : ''}">${q(d.w, d.u, us)}</span><button class="ibtn" aria-label="${L('Больше на', 'More by')} ${stepTxt(d.u, us)}">${I.plus}</button></span>
+  <button class="ibtn" aria-label="${L('Изменить', 'Edit')} ${d.name}">${I.pencil}</button></div></li>`;
+const edit2 = ({ dishes, us = false, cap = '', total = 595, m = [27, 26, 62] }) => `${nav(closeX(), L('Сегодня, 8:40', 'Today, 8:40 AM'), '')}<div class="phone__body">
+  <div class="head">${thumb()}<div class="total"><span class="total__k">${n(total)} <small>${L('ккал', 'kcal')}</small></span>
+  <span class="macros"><span><i class="dot" style="background:var(--color-protein)"></i>${L('Б', 'P')}${NB}${n(m[0])}</span><span><i class="dot" style="background:var(--color-fat)"></i>${L('Ж', 'F')}${NB}${n(m[1])}</span><span><i class="dot" style="background:var(--color-carbs)"></i>${L('У', 'C')}${NB}${n(m[2])}</span></span></div></div>
+  ${meals().replace('<span>' + L('Завтрак', 'Breakfast'), '<span class="on">' + L('Завтрак', 'Breakfast')).replace('<span class="on">' + L('Обед', 'Lunch'), '<span>' + L('Обед', 'Lunch'))}
+  <p class="cap">${I.sparkle}<span>${cap || L('Цифры по штрихкоду — с упаковки. Остальное — оценка ИИ по фото, проверьте вес и объём.', 'Barcode numbers come from the package. The rest is an AI estimate from the photo — check the weight and volume.')}</span></p>
+  <ul class="list">${dishes.join('')}</ul>
+  <div class="foot"><button class="btn btn--primary btn--wide">${L('Сохранить', 'Save')}</button></div></div>`;
+const histHint = (us) => `<div class="inline-hint">${L(`Похоже на запись вчера: ${q(300, 'ml', us)} · 120${NB}ккал`, `Looks like yesterday’s entry: ${q(300, 'ml', us)} · 120${NB}kcal`)}<div><button class="btn btn--sm">${L('Как в прошлый раз', 'Same as last time')}</button><button class="btn btn--sm">${L('Оставить оценку', 'Keep the estimate')}</button></div></div>`;
+
+const dishSheet2 = (d, { us = false, err = '' } = {}) => `<div class="under">${nav('', L('Сегодня, 8:40', 'Today, 8:40 AM'), '')}</div><div class="dim"></div>
+  <div class="sheet"><span class="sheet__grab"></span><div class="sheet__h"><span class="nav__title">${L('Блюдо', 'Dish')}</span><span class="nav__r">${closeX()}</span></div>
+  ${field(L('Название', 'Name'), d.name)}
+  <div class="field"><span class="field__l">${amountLabel(d.u)}: ${d.name}</span><span class="stepper"><button class="ibtn ibtn--soft" aria-label="${L('Меньше на', 'Less by')} ${stepTxt(d.u, us)}">${I.minus}</button><span class="stepper__v" style="${err ? 'border-color:var(--color-danger)' : ''}">${err ? '0' : q(d.w, d.u, us)}</span><button class="ibtn ibtn--soft" aria-label="${L('Больше на', 'More by')} ${stepTxt(d.u, us)}">${I.plus}</button></span>
+  ${err ? `<span class="field__h" style="color:var(--color-danger)" role="alert">${err}</span>` : `<span class="field__h">${L(`Порция на упаковке — ${q(250, d.u, us)}`, `Serving on the package: ${q(250, d.u, us)}`)}</span>`}</div>
+  <p class="num" style="margin:0"><b>${kc(d.k)}</b> <span class="macros" style="display:inline">${mac(d.p, d.f, d.c)}</span></p>
+  <div class="src"><span class="src__h">${I.barcode}${L('Open Food Facts · по штрихкоду', 'Open Food Facts · by barcode')}</span>
+    <span class="src__l">4601234567893</span><span class="src__l">${per100(d.u)}: ${kc(45)} · ${mac(0.8, 0.2, 10)}</span>
+    <a href="#" aria-label="${L('Открыть продукт в Open Food Facts', 'Open the product in Open Food Facts')}">${L('Открыть в Open Food Facts', 'Open in Open Food Facts')}${I.ext}</a></div>
+  <button class="btn btn--primary btn--wide">${L('Готово', 'Done')}</button><button class="btn btn--danger btn--wide">${L('Удалить блюдо', 'Delete dish')}</button></div>`;
+
+// unit switch next to the amount field; locked = unit comes from the package, no switch
+const amount = ({ u = 'g', val = '', locked = false, err = '' }) => {
+  const input = `<label class="field"><span class="field__l">${amountLabel(u)} <i>· ${L('обязательно', 'required')}</i></span>
+    <span class="input" style="${err ? 'border-color:var(--color-danger)' : ''}"><span class="input__v${val ? '' : ' ph'}">${val}</span>${locked ? `<span class="input__sfx">${u === 'ml' ? L('мл', 'ml') : L('г', 'g')}</span>` : ''}</span>
+    ${err ? `<span class="field__h" style="color:var(--color-danger)" role="alert">${err}</span>` : locked ? `<span class="field__h">${L('Единица с упаковки', 'Unit from the package')}</span>` : ''}</label>`;
+  if (locked) return input;
+  return `<div class="amount" style="${err ? 'align-items:start' : ''}">${input}<div class="seg2 unit" role="radiogroup" aria-label="${L('Единица', 'Unit')}" style="${err ? 'margin-top:calc(var(--text-footnote-lh) + var(--space-1))' : ''}"><span class="${u === 'g' ? 'on' : ''}" role="radio" aria-checked="${u === 'g'}" aria-label="${L('Граммы', 'Grams')}">${L('г', 'g')}</span><span class="${u === 'ml' ? 'on' : ''}" role="radio" aria-checked="${u === 'ml'}" aria-label="${L('Миллилитры', 'Milliliters')}">${L('мл', 'ml')}</span></div></div>`;
+};
+const manual2 = ({ bc = '', banner = '', u = 'g', f = null, locked = false, err = '', desk = false }) => {
+  const body = `${banner}${bcField(bc, { hint: bc ? '' : L('Цифры под штрихкодом — найдём продукт и заполним остальное', 'Digits under the barcode — we’ll find the product and fill in the rest') })}
+  ${field(L('Название', 'Name'), f ? f.name : L('Например, творог 5 %', 'e.g. Greek yogurt 2%'), { ph: !f })}
+  ${amount({ u, val: err ? '' : f ? n(f.w) : '', locked, err })}
+  <div class="field"><span class="field__l">${L('Ккал и БЖУ указаны', 'Calories and macros are')}</span><div class="seg2"><span class="on">${per100(u)}</span><span>${L('На порцию', 'Per serving')}</span></div></div>
+  ${field(L('Ккал', 'Calories'), f ? n(f.k / f.w * 100) : '', { opt: L('обязательно', 'required') })}
+  <div class="row3">${field(L('Белки', 'Protein'), f ? n(f.p / f.w * 100) : '', { sfx: L('г', 'g') })}${field(L('Жиры', 'Fat'), f ? n(Math.round(f.f / f.w * 1000) / 10) : '', { sfx: L('г', 'g') })}${field(L('Углев.', 'Carbs'), f ? n(f.c / f.w * 100) : '', { sfx: L('г', 'g') })}</div>
+  ${f && !err ? `<div class="sum">${L(`Итого на ${q(f.w, u)} — ${kc(f.k)}`, `Total for ${q(f.w, u)}: ${kc(f.k)}`)}</div>` : ''}`;
+  if (desk) return `<div class="desk" style="height:860px"><div class="dialog"><div class="sheet__h" style="grid-template-columns:1fr auto"><span class="nav__title" style="grid-column:1;text-align:left">${L('Блюдо вручную', 'Add dish manually')}</span>${closeX()}</div>
+    ${body}<div class="foot"><button class="btn">${L('Отмена', 'Cancel')}</button><button class="btn btn--primary">${L('Добавить', 'Add')}</button></div></div></div>`;
+  return `<div class="under">${nav('', L('Сегодня, 8:40', 'Today, 8:40 AM'), '')}</div><div class="dim"></div>
+  <div class="sheet"><span class="sheet__grab"></span><div class="sheet__h"><span class="nav__title">${L('Блюдо вручную', 'Add dish manually')}</span><span class="nav__r">${closeX()}</span></div>
+  ${body}<button class="btn btn--primary btn--wide">${L('Добавить', 'Add')}</button></div>`;
+};
+
+
+// ---------- OCT-380: how much of the package ----------
+// Products: per 100 g/ml values, package weight, package serving, pieces in the package (null = unknown).
+const PR = {
+  cookie: { name: L('Печенье овсяное', 'Oat cookies'), u: 'g', k: 440, p: 6, f: 16, c: 68, pack: 200, serv: 30, pcs: 12, bc: '4607012345678' },
+  yog: { name: L('Йогурт клубничный 2,5 %', 'Strawberry yogurt 2.5%'), u: 'g', k: 95, p: 3, f: 2.5, c: 15, pack: 120, serv: 120, pcs: null, bc: '4601234500017' },
+  bar: { name: L('Батончик мюсли', 'Muesli bar'), u: 'g', k: 400, p: 5, f: 12, c: 66, pack: null, serv: null, pcs: null, bc: '4600000123457' },
+  juice: { name: L('Сок апельсиновый', 'Orange juice'), u: 'ml', k: 45, p: 0.8, f: 0.2, c: 10, pack: 1000, serv: 250, pcs: null, bc: '4601234567893' },
+};
+const FR = { 0: '', 0.25: '¼', 0.33: '⅓', 0.5: '½', 0.67: '⅔', 0.75: '¾' };
+const fr = v => { const w = Math.floor(v + 1e-6), r = Math.round((v - w) * 100) / 100; return (w ? n(w) : (r ? '' : '0')) + (FR[r] ?? ''); };
+// RU plural: integer → 1 / 2–4 / 5+; any fraction takes the genitive singular (½ упаковки)
+const pl = (v, one, few, many) => { if (v % 1) return few; const m10 = v % 10, m100 = v % 100; return m10 === 1 && m100 !== 11 ? one : m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? few : many; };
+const W = {
+  pack: v => L(pl(v, 'упаковка', 'упаковки', 'упаковок'), v > 1 ? 'packs' : 'pack'),
+  serv: v => L(pl(v, 'порция', 'порции', 'порций'), v > 1 ? 'servings' : 'serving'),
+};
+const ABBR = { pack: v => L('уп.', v > 1 ? 'packs' : 'pack'), serv: v => L('порц.', v > 1 ? 'servings' : 'serving') };
+const grams = (p, m, v) => Math.round(m === 'pack' ? v * p.pack : m === 'serv' ? v * p.serv : m === 'pcs' ? v * p.pack / p.pcs : v);
+const nut = (p, w) => ({ k: Math.round(p.k * w / 100), p: Math.round(p.p * w / 10) / 10, f: Math.round(p.f * w / 10) / 10, c: Math.round(p.c * w / 10) / 10 });
+const modes = p => [p.pack && 'pack', p.serv && (!p.pack || p.serv < p.pack) && 'serv', 'pcs', 'g'].filter(Boolean); // E-7.1: no Servings when serving ≥ package
+const modeName = (m, u, us) => ({ pack: L('Упаковка', 'Package'), serv: L('Порции', 'Servings'), pcs: L('Штуки', 'Pieces'),
+  g: us ? (u === 'ml' ? 'fl oz' : 'oz') : u === 'ml' ? L('мл', 'ml') : L('Граммы', 'Grams') }[m]);
+const stepAria = (m, u, us) => ({ pack: L('¼ упаковки', '¼ package'), serv: L('½ порции', '½ serving'), pcs: L('1 штуку', '1 piece'), g: stepTxt(u, us) }[m]);
+// short label for the dish row stepper: "½ уп. · 100 г", "2 из 12 · 33 г"
+const rowLabel = (p, m, v, us) => { const w = q(grams(p, m, v), p.u, us);
+  return m === 'pack' || m === 'serv' ? `${fr(v)}${NB}${ABBR[m](v)} · ${w}` : m === 'pcs' ? (v <= p.pcs ? `${n(v)}${NB}${L('из', 'of')}${NB}${n(p.pcs)} · ${w}` : `${n(v)}${NB}${L('шт.', 'pcs')} · ${w}`) : w; };
+
+// row in the edit list; for barcode products the stepper value carries the share
+const qdish = (p, m, v, { us = false, badges = '' } = {}) => { const t = nut(p, grams(p, m, v));
+  return `<li class="dish"><div class="dish__1"><span>${p.name}</span><span class="num">${kc(t.k)}</span></div>
+  <div class="dish__2">${badge('barcode')}${badges}<span>${mac(t.p, t.f, t.c)}</span></div>
+  <div class="dish__3"><span class="stepper"><button class="ibtn" aria-label="${L('Меньше на', 'Less by')} ${stepAria(m, p.u, us)}">${I.minus}</button><span class="stepper__v auto">${rowLabel(p, m, v, us)}</span><button class="ibtn" aria-label="${L('Больше на', 'More by')} ${stepAria(m, p.u, us)}">${I.plus}</button></span>
+  <button class="ibtn" aria-label="${L('Изменить', 'Edit')} ${p.name}">${I.pencil}</button></div></li>`; };
+const remembered = `<span class="badge badge--n">${L('как в прошлый раз', 'same as last time')}</span>`;
+
+// the amount block: mode switch, big stepper, chips, result
+const qty = (p, m, v, o = {}) => {
+  const us = !!o.us, ms = o.modes || modes(p), w = grams(p, m, v), t = nut(p, o.keepW ?? w);
+  const seg = `<div class="seg modes" style="--n:${ms.length}" role="radiogroup" aria-label="${L('Как считать', 'Count by')}">${ms.map(x => `<span class="${x === m ? 'on' : ''}" role="radio" aria-checked="${x === m}">${modeName(x, p.u, us)}</span>`).join('')}</div>`;
+  let big, sub;
+  if (m === 'pack' || m === 'serv') { big = fr(v); sub = `${W[m](v)} · ${q(w, p.u, us)}`; }
+  else if (m === 'pcs') { big = n(v); sub = v <= p.pcs ? `${L('из', 'of')} ${n(p.pcs)} · ${q(w, p.u, us)}` : `${L('шт.', 'pcs')} · ${q(w, p.u, us)}`; }
+  else { const s = q(v, p.u, us).split(NB); big = s[0]; sub = s[1]; }
+  const atMin = (m === 'pack' && v <= 0.25) || (m === 'serv' && v <= 0.5) || (m === 'pcs' && v <= 1);
+  const stepper = `<div class="qty"><button class="ibtn" aria-label="${L('Меньше на', 'Less by')} ${stepAria(m, p.u, us)}"${atMin ? ' disabled' : ''}>${I.minus}</button><span class="qv" aria-live="polite"><b>${big}</b><small>${sub}</small></span><button class="ibtn" aria-label="${L('Больше на', 'More by')} ${stepAria(m, p.u, us)}">${I.plus}</button></div>`;
+  const CH = m === 'pack' ? [['¼', .25], ['⅓', .33], ['½', .5], ['¾', .75], [L('Вся', 'Whole'), 1]] : m === 'serv' ? [['½', .5], ['1', 1], ['1½', 1.5], ['2', 2]] : null;
+  const chips = CH ? `<div class="chips" role="group" aria-label="${L('Быстрый выбор', 'Quick pick')}">${CH.map(([l, x]) => `<button class="chip${Math.abs(x - v) < .01 ? ' on' : ''}" aria-pressed="${Math.abs(x - v) < .01}">${l}</button>`).join('')}</div>` : '';
+  const res = `<div class="res"><b>${kc(t.k)}</b><span class="macros"><span><i class="dot" style="background:var(--color-protein)"></i>${L('Б', 'P')}${NB}${n(t.p)}</span><span><i class="dot" style="background:var(--color-fat)"></i>${L('Ж', 'F')}${NB}${n(t.f)}</span><span><i class="dot" style="background:var(--color-carbs)"></i>${L('У', 'C')}${NB}${n(t.c)}</span></span></div>`;
+  return `<div class="field"><span class="field__l">${L('Сколько съели', 'How much you ate')}</span>${seg}</div>${o.body ?? stepper + chips}${res}${o.noLine ? '' : packLine(p, us)}`;
+};
+// what we know about the package + the way to fix it (E-7.2) or fill it in (AC-4.1)
+const packLine = (p, us) => p.pack
+  ? `<div class="packline"><span>${L('Упаковка', 'Package')}: ${q(p.pack, p.u, us)}${p.pcs ? ` · ${n(p.pcs)}${NB}${L('шт.', 'pcs')}` : ''}${p.serv ? ` · ${L('порция', 'serving')} ${q(p.serv, p.u, us)}` : ''}</span><button class="btn btn--sm">${L('Изменить', 'Change')}</button></div>`
+  : `<div class="packline"><span>${L('Вес упаковки не знаем', 'Package weight unknown')}</span><button class="btn btn--tonal btn--sm">${L('Указать вес упаковки', 'Add package weight')}</button></div>`;
+const srcBlock = p => `<div class="src"><span class="src__h">${I.barcode}${L('Open Food Facts · по штрихкоду', 'Open Food Facts · by barcode')}</span>
+  <span class="src__l">${p.bc} · ${per100(p.u)}: ${kc(p.k)} · ${mac(p.p, p.f, p.c)}</span></div>`;
+const qSheet = (p, m, v, o = {}) => `<div class="under">${nav('', L('Сегодня, 8:40', 'Today, 8:40 AM'), '')}</div><div class="dim"></div>
+  <div class="sheet"><span class="sheet__grab"></span><div class="sheet__h"><span class="nav__title">${p.name}</span><span class="nav__r">${closeX()}</span></div>
+  ${qty(p, m, v, o)}${o.noSrc ? '' : srcBlock(p)}
+  <button class="btn btn--primary btn--wide">${L('Готово', 'Done')}</button>${o.noDel ? '' : `<button class="btn btn--danger btn--wide">${L('Удалить блюдо', 'Delete dish')}</button>`}</div>`;
+const inp = (label, val, sfx, o = {}) => `<label class="field"><span class="field__l">${label}</span><span class="input${o.focus ? ' focus' : ''}${o.err ? ' bad' : ''}"><span class="input__v${val ? '' : ' ph'}">${val || o.ph || ''}</span><span class="input__sfx">${sfx}</span></span>${o.err ? `<span class="field__h field__h--err" role="alert">${o.err}</span>` : o.hint ? `<span class="field__h">${o.hint}</span>` : ''}</label>`;
+const G = () => L('г', 'g'), PCS = () => L('шт.', 'pcs');
+
+
+// ---------- OCT-420: edible part ----------
+const pc = v => lang === 'en' ? `${n(v)}%` : `${n(v)}${NB}%`;
+// A drawn stand-in for the photo: fruit in a bag with a store receipt next to it.
+const FRUIT = (o = {}) => `<svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+  <rect width="400" height="300" fill="var(--illo-tile)"/>
+  <path d="M40 92q8-22 30-22h120q22 0 30 22l14 150q2 22-20 22H46q-22 0-20-22z" fill="var(--illo-white)" opacity=".55"/>
+  ${[[92, 168, 38], [160, 178, 40], [126, 222, 36], [190, 228, 34], [76, 226, 30]].map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="var(--illo-brown)"/><ellipse cx="${x - r * .3}" cy="${y - r * .35}" rx="${r * .32}" ry="${r * .2}" fill="var(--illo-tan)" opacity=".7"/>`).join('')}
+  <g transform="rotate(6 320 150)"><rect x="262" y="52" width="112" height="196" rx="4" fill="var(--illo-white)" stroke="var(--illo-shade)" stroke-width="2"/>
+  ${[74, 88, 102, 150, 164, 214, 228].map((y, i) => `<rect x="276" y="${y}" width="${[70, 56, 80, 64, 48, 74, 40][i]}" height="5" rx="2.5" fill="var(--illo-shade)"/>`).join('')}
+  <text x="276" y="132" font-family="system-ui, sans-serif" font-size="15" font-weight="700" fill="var(--illo-cocoa)">${o.name || 'BUAH SALJU'}</text>
+  <text x="276" y="196" font-family="system-ui, sans-serif" font-size="22" font-weight="700" fill="var(--illo-cocoa)">0,772 kg</text></g>
+</svg>`;
+const fthumb = () => `<span class="thumb">${FRUIT()}</span>`;
+
+// Products: per 100 g of the edible part; refuse % from the reference (USDA) when known.
+const FP = {
+  sap: { name: L('Саподилла', 'Sapodilla'), k: 83, p: 0.4, f: 1.1, c: 20, pct: 80, src: 'usda', waste: L('кожура и семена', 'skin and seeds') },
+  inga: { name: L('Инга', 'Ice-cream bean'), rcpt: 'Buah Salju', k: 60, p: 1, f: 0.1, c: 15, pct: 25, src: 'ai', waste: L('стручок и семена', 'pod and seeds') },
+  apple: { name: L('Яблоко', 'Apple'), k: 52, p: 0.3, f: 0.2, c: 14, pct: 90, src: 'usda', waste: L('сердцевина', 'core') },
+};
+const BAN = { name: L('Банан', 'Banana'), w: 120, u: 'g', k: 107, p: 1.3, f: 0.4, c: 27.4, b: 'approx' };
+const SRC = s => ({ usda: 'USDA', ai: L('оценка ИИ', 'AI estimate'), mine: L('ваш', 'yours') }[s]);
+const SRC_LONG = s => ({ usda: L('справочник USDA', 'USDA reference'), ai: L('оценка ИИ', 'AI estimate'), mine: L('ваш процент', 'your percentage') }[s]);
+const srcSpan = s => `<span class="s${s === 'ai' ? ' ai' : ''}">${SRC(s)}</span>`;
+const rcptBadge = () => `<span class="badge badge--src">${I.label}${L('вес с чека', 'weight from receipt')}</span>`;
+// o: gross, pct, src, part (share of what was bought), whole, manual (edible grams typed by hand)
+const edOf = o => Math.round(o.gross * (o.part || 1) * (o.whole ? 100 : o.pct) / 100);
+const edCap = o => {
+  if (o.manual) return `<div class="edcap edcap--man"><span>${L('Вес вручную · было', 'Weight set by hand · was')} ${g(o.gross)} ${L('с кожурой', 'with skin')}</span><button class="btn btn--sm">${L('Вернуть', 'Restore')}</button></div>`;
+  const ed = edOf(o), part = o.part ? `${fr(o.part)}${NB}${L('из', 'of')} ` : '';
+  const text = o.whole
+    ? `${part}${g(o.gross)} ${L('целиком', 'whole')} → ${L('съедобно', 'edible')} <b>${g(ed)}</b><span class="l2">${pc(100)} · ${srcSpan('mine')}</span>`
+    : `${part}${g(o.gross)} ${L('с кожурой', 'with skin')} → ${L('съедобно', 'edible')} <b>${g(ed)}</b><span class="l2">${pc(o.pct)} · ${srcSpan(o.src)}</span>`;
+  const aria = o.whole ? L(`${o.gross} граммов целиком, съедобно 100 процентов, ваш выбор. Изменить`, `${o.gross} grams whole, 100 percent edible, your choice. Change`)
+    : L(`${o.gross} граммов с кожурой, съедобно ${ed} граммов, ${o.pct} процентов, ${SRC_LONG(o.src)}. Изменить`, `${o.gross} grams with skin, ${ed} grams edible, ${o.pct} percent, ${SRC_LONG(o.src)}. Change`);
+  return `<button class="edcap" aria-label="${aria}"><span>${text}</span>${I.chev}</button>`;
+};
+const edDish = (p, o, extra = {}) => { const w = o.manual || edOf(o), t = nut(p, w);
+  return `<li class="dish${extra.answered ? ' answered' : ''}"><div class="dish__1"><span>${p.name}${extra.was ? ` <span class="was">${extra.was}</span>` : ''}</span><span class="num">${kc(t.k)}</span></div>
+  <div class="dish__2">${o.noRcpt ? '' : rcptBadge()}<span>${mac(t.p, t.f, t.c)}</span></div>${edCap(o)}${extra.ask || ''}
+  <div class="dish__3"><span class="stepper"><button class="ibtn" aria-label="${L('Меньше на 10 г', 'Less by 10 g')}">${I.minus}</button><span class="stepper__v">${g(w)}</span><button class="ibtn" aria-label="${L('Больше на 10 г', 'More by 10 g')}">${I.plus}</button></span>
+  <button class="ibtn" aria-label="${L('Изменить', 'Edit')} ${p.name}">${I.pencil}</button></div></li>`; };
+const ask = (q, chips, note) => `<div class="ask" role="group" aria-label="${q}"><span class="ask-q">${I.sparkle}<span>${q}</span></span>
+  <div class="ask-c">${chips.map(([t, s, k]) => `<button class="achip${k ? ' ' + k : ''}" aria-pressed="${k === 'on'}"><span>${t}</span>${s ? `<small>${s}</small>` : ''}</button>`).join('')}</div>${note ? `<span class="ask-l">${note}</span>` : ''}</div>`;
+const EDQ = gross => [[L('Почти всё', 'Nearly all'), pc(90)], ['¾', pc(75)], [L('Половина', 'Half'), pc(50)], [L('Четверть', 'A quarter'), pc(25), 'on'], [L('Меньше', 'Less'), pc(10)]]
+  .map(([t, s, k]) => [t, `${s} · ${g(Math.round(gross * parseInt(s) / 100))}`, k]);
+
+const fedit = ({ rows, cap, total }) => `${nav(closeX(), L('Сегодня, 13:10', 'Today, 1:10 PM'), '')}<div class="phone__body">
+  <div class="head">${fthumb()}<div class="total"><span class="total__k">${n(total.k)} <small>${L('ккал', 'kcal')}</small></span>
+  <span class="macros"><span><i class="dot" style="background:var(--color-protein)"></i>${L('Б', 'P')}${NB}${n(total.p)}</span><span><i class="dot" style="background:var(--color-fat)"></i>${L('Ж', 'F')}${NB}${n(total.f)}</span><span><i class="dot" style="background:var(--color-carbs)"></i>${L('У', 'C')}${NB}${n(total.c)}</span></span></div></div>
+  ${meals().replace('<span>' + L('Перекус', 'Snack'), '<span class="on">' + L('Перекус', 'Snack')).replace('<span class="on">' + L('Обед', 'Lunch'), '<span>' + L('Обед', 'Lunch'))}
+  <p class="cap">${I.sparkle}<span>${cap || L('Вес с чека — с кожурой и семенами. В дневник пойдёт только съедобная часть.', 'The receipt weight includes skin and seeds. Only the edible part goes to the diary.')}</span></p>
+  <ul class="list">${rows.join('')}</ul>
+  <div class="foot"><button class="btn btn--primary btn--wide">${L('Сохранить', 'Save')}</button></div></div>`;
+
+// the edible block of the dish sheet
+const edBody = (p, o) => {
+  const ed = edOf(o), t = nut(p, ed), pct = o.whole ? 100 : o.pct;
+  const seg = `<div class="field"><span class="field__l">${L('Как ели', 'How you ate it')}</span><div class="seg2" role="radiogroup" aria-label="${L('Как ели', 'How you ate it')}"><span class="${o.whole ? '' : 'on'}" role="radio" aria-checked="${!o.whole}">${L('Очищенный', 'Peeled')}</span><span class="${o.whole ? 'on' : ''}" role="radio" aria-checked="${!!o.whole}">${L('Целиком', 'Whole')}</span></div></div>`;
+  const gross = `<div class="field"><span class="field__l">${o.whole ? L('Вес', 'Weight') : L('Вес с кожурой', 'Weight with skin')}</span><div class="qty"><button class="ibtn" aria-label="${L('Меньше на 10 г', 'Less by 10 g')}">${I.minus}</button><span class="qv" aria-live="polite"><b>${n(o.gross)}</b><small>${L('г', 'g')} · ${L('с чека', 'from the receipt')}</small></span><button class="ibtn" aria-label="${L('Больше на 10 г', 'More by 10 g')}">${I.plus}</button></div></div>`;
+  let mid;
+  if (o.err) mid = inp(L('Сколько съедобно', 'How much is edible'), o.err, '%', { err: L('От 10 до 100 %', '10–100%') });
+  else if (o.edit) { const v = o.pct;
+    mid = `<div class="field"><span class="field__l">${L('Сколько съедобно', 'How much is edible')}</span><div class="qty"><button class="ibtn" aria-label="${L('Меньше на 5 %', 'Less by 5%')}">${I.minus}</button><span class="qv" aria-live="polite"><b>${pc(v)}</b><small>${L('съедобно', 'edible')} · ${g(ed)}</small></span><button class="ibtn" aria-label="${L('Больше на 5 %', 'More by 5%')}">${I.plus}</button></div>
+    <div class="chips" role="group" aria-label="${L('Быстрый выбор', 'Quick pick')}">${[90, 75, 50, 25].map(x => `<button class="chip${x === v ? ' on' : ''}" aria-pressed="${x === v}">${pc(x)}</button>`).join('')}</div>
+    <span class="field__h">${L(`От 10 до 100 %, шаг 5 %. Запомним для «${p.name}» при сохранении — только у вас.`, `10–100%, steps of 5%. Saved for “${p.name}” when you save the meal, just for you.`)}</span></div>`; }
+  else mid = `<div class="edline"><span class="edline__m"><span>${L('Съедобно', 'Edible')}</span><b>${g(ed)}</b><span>${pc(pct)} · <span class="s${o.whole ? '' : o.src === 'ai' ? ' ai' : ''}">${o.whole ? L('весь вес, ваш выбор', 'all of it, your choice') : SRC_LONG(o.src)}</span></span></span>${o.whole ? '' : `<button class="btn btn--tonal btn--sm" aria-label="${L(`Изменить процент, сейчас ${pct}`, `Change the percentage, now ${pct}`)}">${L('Изменить %', 'Change %')}</button>`}</div>`;
+  const res = `<div class="res"><b>${kc(t.k)}</b><span class="macros"><span><i class="dot" style="background:var(--color-protein)"></i>${L('Б', 'P')}${NB}${n(t.p)}</span><span><i class="dot" style="background:var(--color-fat)"></i>${L('Ж', 'F')}${NB}${n(t.f)}</span><span><i class="dot" style="background:var(--color-carbs)"></i>${L('У', 'C')}${NB}${n(t.c)}</span></span></div>`;
+  const src = o.whole ? '' : `<div class="src"><span class="src__h">${o.src === 'ai' ? I.sparkle : I.info}${o.src === 'usda' ? L('Справочник USDA · съедобная часть', 'USDA reference · edible part') : o.src === 'ai' ? L('Оценка ИИ · в справочнике нет', 'AI estimate · not in the reference') : L('Ваш процент для этого продукта', 'Your percentage for this product')}</span>
+    <span class="src__l">${L('Отход', 'Waste')} ${pc(100 - p.pct)}: ${p.waste}</span><span class="src__l">${L('На 100 г съедобной части', 'Per 100 g of the edible part')}: ${kc(p.k)} · ${mac(p.p, p.f, p.c)}</span></div>`;
+  return seg + gross + mid + res + src;
+};
+const edSheet = (p, o) => `<div class="under">${nav('', L('Сегодня, 13:10', 'Today, 1:10 PM'), '')}</div><div class="dim"></div>
+  <div class="sheet"><span class="sheet__grab"></span><div class="sheet__h"><span class="nav__title">${p.name}</span><span class="nav__r">${closeX()}</span></div>
+  ${edBody(p, o)}<button class="btn btn--primary btn--wide">${L('Готово', 'Done')}</button><button class="btn btn--danger btn--wide">${L('Удалить блюдо', 'Delete dish')}</button></div>`;
+
+// ---------- OCT-435: recipe ingredients by barcode and by photo ----------
+const I2 = {
+  scale: sv('<path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/>'),
+  search: sv('<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>'),
+  history: sv('<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>'),
+  imageOff: sv('<path d="M2 2l20 20"/><path d="M10.41 10.41a2 2 0 1 1-2.83-2.83"/><path d="M13.5 13.5 6 21"/><path d="M18 12l3 3"/><path d="M3.59 3.59A2 2 0 0 0 3 5v14a2 2 0 0 0 2 2h14c.55 0 1.05-.22 1.41-.59"/><path d="M21 15V5a2 2 0 0 0-2-2H9"/>'),
+};
+const ID = { cookie: '4607012345678', curd: '4601234500024', cheese: '4600000123457' };
+
+// Ingredients: per 100 g (edible part for the carrot); src = where the weight came from
+const IN = {
+  sugar: { name: L('Сахар', 'Sugar'), k: 398, p: 0, f: 0, c: 99.7 },
+  cookie: { name: L('Печенье сахарное', 'Shortbread biscuits'), u: 'g', k: 440, p: 6, f: 16, c: 68, pack: 400, serv: 50, pcs: 32, bc: ID.cookie },
+  butterA: { name: L('Масло сливочное 82,5 %', 'Butter 82.5%'), k: 748, p: 0.5, f: 82.5, c: 0.8 },
+  flour: { name: L('Мука пшеничная', 'Wheat flour'), k: 334, p: 10, f: 1.2, c: 70 },
+  butter: { name: L('Масло сливочное 82,5 %', 'Butter 82.5%'), k: 748, p: 0.5, f: 82.5, c: 0.8 },
+  curd: { name: L('Творог 5 %', 'Cottage cheese 5%'), k: 121, p: 17, f: 5, c: 1.8 },
+  eggs: { name: L('Яйца куриные', 'Chicken eggs'), k: 157, p: 12.7, f: 11.5, c: 0.7 },
+  carrot: { name: L('Морковь', 'Carrots'), k: 35, p: 1.3, f: 0.1, c: 6.9, pct: 90 },
+  sour: { name: L('Сметана 15 %', 'Sour cream 15%'), k: 160, p: 2.6, f: 15, c: 3.6 },
+  walnut: { name: L('Грецкий орех', 'Walnuts'), k: 654, p: 15.2, f: 65.2, c: 7, pct: 45 },
+};
+const kOf = (p, w) => Math.round(p.k * w / 100);
+const SRCB = {
+  scale: () => `<span class="badge badge--src">${I2.scale}${L('с весов', 'from scale')}</span>`,
+  pack: () => `<span class="badge badge--src">${I.label}${L('с упаковки', 'from package')}</span>`,
+  barcode: () => `<span class="badge badge--src">${I.barcode}${L('штрихкод', 'barcode')}</span>`,
+  est: () => `<span class="badge badge--n">${L('оценка', 'estimate')}</span>`,
+  out: () => `<span class="badge badge--warn">${L('не поместится', 'won’t fit')}</span>`,
+};
+// one ingredient row (IngredientRow + caption). o: src, cap (html), w (grams in the box), cls
+const irow = (p, w, o = {}) => `<li class="irow${o.cls ? ' ' + o.cls : ''}"><span class="irow__m"><span class="irow__n">${p.name}${o.src ? SRCB[o.src]() : ''}</span>
+  <span class="irow__k">${kc(kOf(p, o.kw ?? w))}</span>${o.cap ? `<span class="irow__c">${o.cap}</span>` : ''}</span>
+  <span class="gbox" aria-label="${p.name}, ${L('граммы', 'grams')}">${n(w)}<small>${L('г', 'g')}</small></span></li>`;
+const shareCap = (txt) => `${I.barcode}<span>${txt}</span>`;
+const edCap2 = (gross, p, src = 'usda') => `<span>${g(gross)} ${L('с кожурой', 'with peel')} → ${L('съедобно', 'edible')} <b>${g(Math.round(gross * p.pct / 100))}</b> · ${pc(p.pct)} · <span class="s${src === 'ai' ? ' ai' : ''}">${SRC(src)}</span></span>`;
+const edCapNut = (gross, p) => `<span>${g(gross)} ${L('в скорлупе', 'in shell')} → ${L('съедобно', 'edible')} <b>${g(Math.round(gross * p.pct / 100))}</b> · ${pc(p.pct)} · <span class="s">USDA</span></span>`;
+const addRow = () => `<li class="addrow">${I.plus}${L('Ингредиент', 'Ingredient')}</li>`;
+const grp = () => `<div class="grp"><b>${L('Ингредиенты', 'Ingredients')}</b><span>${L('граммы · ккал', 'grams · kcal')}</span></div>`;
+
+// recipe editor (phone)
+const editor = (title, rows, o = {}) => `${o.offline ? `<div class="offline">${I.wifiOff}${L('Нет интернета', 'No internet')}</div>` : ''}<div class="rnav"><button class="btn btn--plain">${L('Отмена', 'Cancel')}</button><span class="nav__title">${L('Новый рецепт', 'New recipe')}</span><button class="btn btn--plain"><b>${L('Сохранить', 'Save')}</b></button></div>
+  <div class="phone__body">${field(L('Название', 'Name'), title)}${o.pre || ''}${grp()}<ul class="list">${rows.join('')}${o.tail ?? addRow()}</ul>${o.post || ''}${o.toast ? '<div style="height:var(--space-12)"></div>' : ''}</div>${o.toast || ''}`;
+
+const underEd = (title, rows) => `<div class="under">${editor(title, rows)}</div><div class="dim"></div>`;
+const sheetBox = (title, body, o = {}) => `<div class="sheet"${o.full ? ' style="top:var(--space-10);max-height:none"' : ''}><span class="sheet__grab"></span><div class="sheet__h"><span class="nav__title">${title}</span><span class="nav__r">${closeX()}</span></div>${body}</div>`;
+
+// «+ Ingredient» picker. ai: true | false | 'offline'
+const picker = (ai) => {
+  const photoRow = ai === 'offline'
+    ? `<li class="prow prow--off" aria-disabled="true">${I.camera}<span class="prow__m"><span class="prow__t">${L('Сфотографировать продукты', 'Photograph the ingredients')}</span><span class="prow__s">${L('Нужен интернет', 'Needs internet')}</span></span></li>`
+    : ai ? `<li class="prow">${I.camera}<span class="prow__m"><span class="prow__t acc">${L('Сфотографировать продукты', 'Photograph the ingredients')}</span><span class="prow__s">${L('ИИ найдёт продукты и вес — с весов, упаковки или на глаз', 'AI finds the products and weights — from a scale, a package or by eye')}</span></span></li>` : '';
+  return `<div class="search">${I2.search}${L('Поиск', 'Search')}</div>
+  <div class="plist-h">${I2.history}${L('Из истории', 'From history')}</div>
+  <ul class="plist"><li class="prow"><span class="prow__m"><span class="prow__t">${IN.sugar.name}</span><span class="prow__s">398${NB}${L('ккал/100 г', 'kcal/100 g')} · ${L('12 нояб.', 'Nov 12')}</span></span></li>
+  <li class="prow"><span class="prow__m"><span class="prow__t">${IN.butterA.name}</span><span class="prow__s">748${NB}${L('ккал/100 г', 'kcal/100 g')} · ${L('9 нояб.', 'Nov 9')}</span></span></li></ul>
+  <ul class="plist">${photoRow}<li class="prow">${I.pencil}<span class="prow__m"><span class="prow__t acc">${L('Ввести вручную', 'Enter manually')}</span><span class="prow__s">${L('Название, штрихкод, ккал', 'Name, barcode, calories')}</span></span></li></ul>
+  <p class="pnote">${L('Дальше — граммы. Вручную — те же поля, что в ручном вводе блюда.', 'Then the grams. Manual entry has the same fields as adding a dish manually.')}</p>`;
+};
+
+// the «How much you used» block = OCT-380 qty() with the recipe wording
+const used = (p, m, v, o) => qty(p, m, v, o).replace(L('Сколько съели', 'How much you ate'), L('Сколько использовали', 'How much you used'));
+const manualFound = (o = {}) => { const p = IN.cookie;
+  return `${hint('', I.check, o.again ? L('Ваш продукт — как в прошлый раз.', 'Your product — same amount as last time.') : L('Нашли в Open Food Facts — проверьте количество.', 'Found in Open Food Facts — check the amount.'))}
+  ${bcField(p.bc)}${field(L('Название', 'Name'), p.name)}${used(p, 'pack', .5, {})}<button class="btn btn--primary btn--wide">${L('Добавить', 'Add')}</button>`; };
+const manualEmpty = () => `${bcField('', { hint: L('Цифры под штрихкодом — найдём продукт и заполним остальное', 'Digits under the barcode — we’ll find the product and fill in the rest') })}
+  ${field(L('Название', 'Name'), L('Например, мука пшеничная', 'e.g. wheat flour'), { ph: true })}
+  ${amount({ u: 'g' })}
+  <div class="field"><span class="field__l">${L('Ккал и БЖУ указаны', 'Calories and macros are')}</span><div class="seg2"><span class="on">${per100('g')}</span><span>${L('На порцию', 'Per serving')}</span></div></div>
+  ${field(L('Ккал', 'Calories'), '', { opt: L('обязательно', 'required') })}
+  <button class="btn btn--primary btn--wide" disabled>${L('Добавить', 'Add')}</button>`;
+const manualOwn = (offline) => `${hint('n', I.info, offline ? L('Без интернета ищем только среди ваших продуктов — тут его нет. Заполните сами или поищите позже, когда появится сеть.', 'Offline we only search your own products — this one isn’t there. Fill it in yourself, or search again once you’re online.') : L('Такого нет ни у вас, ни в Open Food Facts. Заполните сами — запомним продукт с этим штрихкодом.', 'Not in your products or Open Food Facts. Fill it in — we’ll remember the product for this barcode.'))}
+  ${bcField(ID.cheese)}${field(L('Название', 'Name'), L('Сыр сливочный', 'Cream cheese'))}
+  ${amount({ u: 'g', val: '180' })}
+  <div class="field"><span class="field__l">${L('Ккал и БЖУ указаны', 'Calories and macros are')}</span><div class="seg2"><span class="on">${per100('g')}</span><span>${L('На порцию', 'Per serving')}</span></div></div>
+  ${field(L('Ккал', 'Calories'), '230', { opt: L('обязательно', 'required') })}
+  <div class="row2">${inp(L('Вес упаковки', 'Package weight'), '180', G())}${inp(L('Штук в упаковке', 'Pieces in package'), '', PCS(), { ph: '—' })}</div>
+  <button class="btn btn--primary btn--wide">${L('Добавить', 'Add')}</button>`;
+
+// drawn stand-in for the photo: flour bowl on a kitchen scale (512 g), butter pack (180 g), cottage cheese with a barcode, eggs, carrots
+const PROD = (o = {}) => {
+  const mods = [1,1,1, 2,1,1,2, 1,3,1,1, 2,2,1,1, 1,1,1,1,1, 3,1,1,2, 1,1,2,2, 1,1,1];
+  const u = 40 / mods.reduce((a, b) => a + b, 0); let bx = 290, bars = '';
+  mods.forEach((m, i) => { if (i % 2 === 0) bars += `<rect x="${bx.toFixed(2)}" y="214" width="${(m * u).toFixed(2)}" height="24" fill="var(--illo-cocoa)"/>`; bx += m * u; });
+  if (o.walnut) return `<svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="400" height="300" fill="var(--illo-tile)"/>
+    <rect x="60" y="190" width="200" height="70" rx="14" fill="var(--illo-shade)"/><rect x="88" y="214" width="64" height="26" rx="5" fill="var(--illo-cocoa)"/>
+    <text x="96" y="234" font-family="ui-monospace, monospace" font-size="18" font-weight="700" fill="var(--illo-green)">240 g</text>
+    <ellipse cx="160" cy="170" rx="96" ry="34" fill="var(--illo-white)"/>${[[120, 158], [150, 150], [182, 156], [206, 166], [136, 174], [170, 172]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="15" fill="var(--illo-tan)"/><path d="M${x - 8} ${y}q8-6 16 0" stroke="var(--illo-brown)" stroke-width="2" fill="none"/>`).join('')}
+    <rect x="280" y="120" width="80" height="120" rx="8" fill="var(--illo-white)"/><rect x="292" y="140" width="56" height="10" rx="5" fill="var(--illo-pink)"/><text x="292" y="190" font-family="system-ui, sans-serif" font-size="14" font-weight="700" fill="var(--illo-cocoa)">15%</text></svg>`;
+  if (o.empty) return `<svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="400" height="300" fill="var(--illo-tile)"/>
+    <rect x="0" y="200" width="400" height="100" fill="var(--illo-shade)"/><rect x="120" y="60" width="160" height="130" rx="10" fill="var(--illo-white)" opacity=".6"/></svg>`;
+  return `<svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="400" height="300" fill="var(--illo-tile)"/>
+    <rect x="20" y="196" width="150" height="62" rx="14" fill="var(--illo-shade)"/><rect x="44" y="216" width="62" height="26" rx="5" fill="var(--illo-cocoa)"/>
+    <text x="51" y="236" font-family="ui-monospace, monospace" font-size="18" font-weight="700" fill="var(--illo-green)">512 g</text>
+    <path d="M30 150h130q-6 50-65 50t-65-50z" fill="var(--illo-blue)"/><ellipse cx="95" cy="150" rx="65" ry="16" fill="var(--illo-white)"/>
+    <rect x="182" y="150" width="88" height="48" rx="4" fill="var(--illo-yellow)"/><rect x="182" y="150" width="88" height="14" fill="var(--illo-orange)" opacity=".5"/>
+    <text x="196" y="186" font-family="system-ui, sans-serif" font-size="15" font-weight="700" fill="var(--illo-cocoa)">180 г</text>
+    <rect x="282" y="140" width="96" height="110" rx="8" fill="var(--illo-white)"/><rect x="294" y="152" width="72" height="22" rx="6" fill="var(--illo-blue)"/>
+    <rect x="286" y="208" width="48" height="34" rx="3" fill="var(--illo-white)" stroke="var(--illo-shade)" stroke-width="2"/>${bars}
+    ${[[196, 248], [222, 256], [248, 248]].map(([x, y]) => `<ellipse cx="${x}" cy="${y}" rx="14" ry="18" fill="var(--illo-tan)"/>`).join('')}
+    ${[[40, 64, -8], [70, 82, 4], [104, 70, 14]].map(([x, y, r]) => `<g transform="rotate(${r} ${x + 60} ${y})"><path d="M${x} ${y}q60-14 130 0q-60 14-130 0z" fill="var(--illo-orange)"/><path d="M${x + 130} ${y}l18-10M${x + 130} ${y}l20 2M${x + 130} ${y}l16 10" stroke="var(--illo-leaf)" stroke-width="5" stroke-linecap="round"/></g>`).join('')}
+  </svg>`;
+};
+const shot = (i, o = {}) => `<span class="shot${o.run ? ' shot--run' : ''}" role="img" aria-label="${L(`Снимок ${i}`, `Photo ${i}`)}">${PROD(o)}<i>${i}</i>${o.run ? '<span class="spin" aria-hidden="true"></span>' : ''}</span>`;
+const addShot = (dis) => `<button class="shot shot--add" aria-label="${L('Ещё фото', 'Another photo')}"${dis ? ' disabled' : ''}>${I.camera}</button>`;
+
+// waiting screen (photo of ingredients). The steps follow OCT-313 RecognitionSteps.
+const wait = () => `${nav(cancel(), '', '')}<div class="phone__body">
+  <div class="photo">${PROD()}</div>
+  <div class="status" role="status"><span class="status__t">${L('Ищем продукты…', 'Looking for the ingredients…')}</span><span class="status__s">${L('Обычно до 15 секунд', 'Usually under 15 seconds')}</span></div>
+  ${steps(step('done', L('Штрихкод', 'Barcode'), L('Нашли 1 — Творог 5 %', 'Found 1 — Cottage cheese 5%')), step('done', 'Open Food Facts', L('Ккал и БЖУ с упаковки', 'Calories and macros from the package')), step('run', L('ИИ ищет продукты и вес', 'AI looks for ingredients and weights'), L('Весы, надписи на упаковках, на глаз', 'Scale, package labels, by eye')))}
+  <p class="pnote" style="margin-top:auto;text-align:center">${L('Фото нужно только для распознавания — не сохраняем.', 'The photo is used for recognition only — we don’t keep it.')}</p></div>`;
+
+// review sheet rows
+const R1 = () => [
+  irow(IN.flour, 512, { src: 'scale', cls: '' }),
+  irow(IN.butter, 180, { src: 'pack' }),
+  irow(IN.curd, 400, { src: 'barcode', cap: shareCap(L('1 упаковка · 400 г', '1 pack · 400 g')) }),
+  irow(IN.eggs, 165, { src: 'est', cap: `<span>${L('3 шт. ≈ 55 г', '3 pcs ≈ 55 g each')}</span>` }),
+  irow(IN.carrot, 360, { src: 'est', cap: edCap2(400, IN.carrot) }),
+];
+const R2 = () => [irow(IN.sour, 400, { src: 'pack' }), irow(IN.walnut, 108, { src: 'scale', cap: edCapNut(240, IN.walnut) })];
+const sum5 = () => [[IN.flour, 512], [IN.butter, 180], [IN.curd, 400], [IN.eggs, 165], [IN.carrot, 360]].reduce((a, [p, w]) => a + kOf(p, w), 0);
+const review = (o = {}) => {
+  const rows = o.rows || R1();
+  const strip = `<div class="shots">${(o.shots || [1]).map(i => shot(i)).join('')}${o.running ? shot(o.running, { run: true }) : ''}${o.full ? '' : addShot()}
+    <span class="shots__t">${o.full ? L('5 из 5 снимков — больше за раз нельзя', '5 of 5 photos — that’s the limit for one go') : L('Ещё фото — для того, что не влезло в кадр', 'Another photo for what didn’t fit in the frame')}</span></div>`;
+  const cnt = o.count ?? rows.length;
+  const foot = `<div class="sticky">${o.limit ? hint('warn', I.alert, L('Можно не больше 50 ингредиентов. В рецепте уже 47 — поместятся первые 3.', 'A recipe can have up to 50 ingredients. It already has 47 — the first 3 will fit.')) : ''}
+    <button class="btn btn--primary btn--wide">${o.limit ? L('Добавить первые 3', 'Add the first 3') : L(`Добавить · ${cnt}`, `Add · ${cnt}`)}</button></div>`;
+  return `${strip}<p class="cap" style="margin:0">${I.sparkle}<span>${L('Проверьте граммы у строк «оценка». Ккал считаем по сырым продуктам.', 'Check the grams on “estimate” rows. Calories are counted from the raw ingredients.')}</span></p>
+    <ul class="list">${o.sep ? `<li class="sep">${o.sep === true ? L('Снимок 1', 'Photo 1') : o.sep}</li>` : ''}${rows.join('')}${o.extra || ''}</ul>${foot}`;
+};
+const revSheet = (o = {}) => `${underEd(L('Морковный пирог', 'Carrot cake'), [irow(IN.sugar, 150)])}${sheetBox(L('Продукты с фото', 'Ingredients from photo'), review(o), { full: true })}`;
+
+// carrot row sheet: OCT-420 edible block, recipe wording
+const carrotSheet = () => { const p = { ...IN.carrot, waste: L('кожура и ботва', 'peel and tops'), src: 'usda' };
+  const body = edBody(p, { gross: 400, pct: 90, src: 'usda' }).replace(L('Как ели', 'How you ate it'), L('В рецепт идёт', 'Goes into the recipe')).replace(L('Как ели', 'How you ate it'), L('В рецепт идёт', 'Goes into the recipe'))
+    .replace(L('с чека', 'from the receipt'), L('оценка ИИ', 'AI estimate')).replace(L('Вес с кожурой', 'Weight with skin'), L('Вес с кожурой', 'Weight with peel'));
+  return `${underEd(L('Морковный пирог', 'Carrot cake'), [irow(IN.sugar, 150)])}${sheetBox(p.name, `${body}<button class="btn btn--primary btn--wide">${L('Готово', 'Done')}</button><button class="btn btn--danger btn--wide">${L('Убрать из списка', 'Remove from list')}</button>`)}`; };
+
+const stateScr = (art, title, body, acts, o = {}) => `${nav(cancel(), '', '')}<div class="phone__body">${o.top || ''}<div class="state">
+  <div class="state__art${o.warn ? ' state__art--warn' : ''}">${art}</div><h2 class="state__title">${title}</h2><p class="state__body">${body}</p>${acts}</div></div>`;
+
+function render() {
+  document.documentElement.lang = lang;
+  const R = {}, cake = L('Морковный пирог', 'Carrot cake'), chz = L('Чизкейк', 'Cheesecake');
+  const sugar = irow(IN.sugar, 150);
+
+  // 1 · entry
+  R.p1 = phone(`${underEd(cake, [sugar])}${sheetBox(L('Ингредиент', 'Ingredient'), picker(true))}`,
+    L('<b>1.1 «+ Ингредиент», ИИ настроен.</b> Все способы — в одном листе (AC-B1): поиск по истории, ниже — «Сфотографировать продукты» и «Ввести вручную». Фото — 2 касания от редактора: «+ Ингредиент» → пункт → системный выбор «Камера / Фото» (как у приёма). Значок камеры, подпись объясняет, что умеет ИИ.',
+      '<b>1.1 “+ Ingredient”, AI set up.</b> Every way is in one sheet (AC-B1): history search, then “Photograph the ingredients” and “Enter manually”. Photo is 2 taps from the editor: “+ Ingredient” → the row → the system “Camera / Photos” choice (as for meals). Camera icon; the subtitle says what the AI can do.'), { id: 'p1' });
+  R.p2 = phone(`${underEd(cake, [sugar])}${sheetBox(L('Ингредиент', 'Ingredient'), picker(false))}`,
+    L('<b>1.2 Без ИИ.</b> Пункта с фото нет вовсе (AC-B1) — лист как сейчас, только у «Ввести вручную» появилась подпись: штрихкод теперь там.',
+      '<b>1.2 No AI.</b> No photo row at all (AC-B1); the sheet is as today, except “Enter manually” gets a subtitle: the barcode lives there now.'), { id: 'p2' });
+  R.p3 = phone(`<div class="under">${editor(cake, [sugar], { offline: true })}</div><div class="dim"></div>${sheetBox(L('Ингредиент', 'Ingredient'), picker('offline'))}`,
+    L('<b>1.3 Офлайн (E1).</b> Пункт остаётся на месте, но серый, с подписью «Нужен интернет» — нажатие ничего не делает, VoiceOver: «недоступно». Без прозрачности: текст и значок — secondary-цвета, контраст AA. Ручной ввод работает, штрихкод ищется среди своих продуктов (2.5).',
+      '<b>1.3 Offline (E1).</b> The row stays put but grey, subtitle “Needs internet”; tapping does nothing, VoiceOver reads “dimmed”. No opacity: text and icon use the secondary colour, AA contrast. Manual entry works; the barcode searches your own products (2.5).'), { id: 'p3' });
+
+  // 2 · barcode (part A)
+  R.a1 = phone(`${underEd(chz, [])}${sheetBox(L('Ингредиент вручную', 'Ingredient, manual'), manualEmpty())}`,
+    L('<b>2.1 Ручной ввод.</b> «Штрихкод» — первым полем, тот же BarcodeField, что в «Блюдо вручную» (OCT-313/418): цифры, «Найти», камера-сканер и чтение кода с фото — внутри поля. Остальное как сейчас. Можно и без штрихкода — название, граммы, ккал.',
+      '<b>2.1 Manual entry.</b> “Barcode” is the first field — the same BarcodeField as in “Add dish manually” (OCT-313/418): digits, “Find”, the camera scanner and reading the code from a photo are all in the field. The rest is as today. No barcode is fine too: name, grams, calories.'), { id: 'a1', tall: true, h: 780 });
+  R.a2 = phone(`${underEd(chz, [])}${sheetBox(L('Ингредиент вручную', 'Ingredient, manual'), manualFound())}`,
+    L('<b>2.2 Нашли по коду (AC-A2, A3).</b> Название и ккал/БЖУ на 100 г — с упаковки; поля веса нет, вместо него «Сколько использовали» — тот же блок, что «Сколько съели» в OCT-380: Упаковка · Порции · Штуки · Граммы, ¼ · ⅓ · ½ · ¾ · Вся. Значение по умолчанию — как в приёме: последний выбор по этому коду, иначе вся упаковка, иначе 100 г. Память общая с приёмами (AC-A5): тогда сверху «Ваш продукт — как в прошлый раз».',
+      '<b>2.2 Found by code (AC-A2, A3).</b> Name and per-100 g values come from the package; no weight field — instead “How much you used”, the same block as “How much you ate” in OCT-380: Package · Servings · Pieces · Grams, ¼ · ⅓ · ½ · ¾ · Whole. Default as for meals: the last choice for this code, else the whole package, else 100 g. Memory is shared with meals (AC-A5); then the banner reads “Your product — same amount as last time”.'), { id: 'a2', tall: true, h: 900 });
+  R.a3 = phone(editor(chz, [irow(IN.cookie, 200, { src: 'barcode', cap: shareCap(L('½ упаковки · 200 г', '½ pack · 200 g')), cls: 'irow--new' }), irow(IN.butterA, 100)]),
+    L('<b>2.3 Строка в рецепте (AC-A3, A6).</b> В рецепт уходят граммы — 200 в поле справа, ккал считаются по ним. Под ккал — подпись «½ упаковки · 200 г» со значком штрихкода и метка «штрихкод»; «оценки» нет. Пользователь поправил граммы в поле — подпись исчезает, остаются граммы. Тап по строке — лист с тем же блоком «Сколько использовали». Новая строка коротко подсвечена (accent-soft), потом гаснет.',
+      '<b>2.3 Row in the recipe (AC-A3, A6).</b> The recipe stores grams — 200 in the field on the right, calories follow it. Under the calories: “½ pack · 200 g” with a barcode icon and a “barcode” tag; no “estimate”. If the user edits the grams, the caption goes away and grams stay. Tapping the row opens the sheet with the same “How much you used” block. A new row is briefly highlighted (accent-soft), then fades.'), { id: 'a3' });
+  R.a4 = phone(`${underEd(chz, [])}${sheetBox(L('Ингредиент вручную', 'Ingredient, manual'), manualOwn(false))}`,
+    L('<b>2.4 Код не нашли (AC-A4).</b> Форма своего продукта, как в приёме (OCT-419): вес, ккал на 100 г или на порцию, необязательные «Вес упаковки» и «Штук в упаковке» (БЖУ в кадре свёрнуты). «Добавить» сохраняет продукт к штрихкоду — он сразу доступен и в рецептах, и в приёмах.',
+      '<b>2.4 Code not found (AC-A4).</b> The own-product form, as for meals (OCT-419): weight, calories per 100 g or per serving, optional “Package weight” and “Pieces” (macros collapsed in the frame). “Add” saves the product to the barcode — available in recipes and meals right away.'), { id: 'a4', tall: true, h: 900 });
+  R.a5 = phone(`<div class="under">${editor(chz, [], { offline: true })}</div><div class="dim"></div>${sheetBox(L('Ингредиент вручную', 'Ingredient, manual'), manualOwn(true))}`,
+    L('<b>2.5 Офлайн (E1).</b> Штрихкод ищется только среди своих продуктов. Нашли — как 2.2. Не нашли — та же форма, но подсказка честно говорит, что Open Food Facts не спрашивали.',
+      '<b>2.5 Offline (E1).</b> The barcode searches only your own products. Found — as 2.2. Not found — the same form, but the hint says plainly that Open Food Facts wasn’t asked.'), { id: 'a5', tall: true, h: 900 });
+
+  // 3 · photo (part B)
+  R.b1 = phone(wait(), L('<b>3.1 Ожидание.</b> Как распознавание приёма (OCT-313): фото, «Ищем продукты…», шаги. Штрихкод и Open Food Facts — первыми, без ИИ (AC-B4.3). «Отмена» — назад в редактор, ничего не добавлено. Внизу — что фото не сохраняем (AC-B9).',
+    '<b>3.1 Waiting.</b> Like meal recognition (OCT-313): photo, “Looking for the ingredients…”, steps. Barcode and Open Food Facts go first, no AI needed (AC-B4.3). “Cancel” returns to the editor with nothing added. At the bottom: the photo isn’t kept (AC-B9).'), { id: 'b1' });
+  R.b2 = phone(revSheet(), L('<b>3.2 Лист проверки (AC-B2, B4).</b> Ничего не в рецепте, пока не нажато «Добавить». Строки — как в редакторе (IngredientRow), источник веса — метка у названия: «с весов», «с упаковки», «штрихкод» (accent) и «оценка» (нейтральная, та же, что в «Рецепте из текста»). Морковь — «400 г с кожурой → съедобно 360 г · 90 % · USDA» (AC-B7). Поля граммов правятся прямо здесь; тап по строке — лист. «Добавить · 5» — фиксирован снизу.',
+    '<b>3.2 Review sheet (AC-B2, B4).</b> Nothing reaches the recipe until “Add”. Rows look like the editor (IngredientRow); the weight source is a tag next to the name: “from scale”, “from package”, “barcode” (accent) and “estimate” (neutral, the same as in “Recipe from text”). Carrots: “400 g with peel → edible 360 g · 90% · USDA” (AC-B7). Grams are editable right here; tapping a row opens its sheet. “Add · 5” is pinned at the bottom.'), { id: 'b2', tall: true, h: 1000 });
+  R.b3 = phone(carrotSheet(), L('<b>3.3 Съедобная часть.</b> Лист строки — блок OCT-420 с подписью «В рецепт идёт: Очищенный · Целиком». «Целиком» — в рецепт весь вес (пекут с кожурой). «Изменить %» — как в OCT-420, запоминается по продукту. Внизу — «Убрать из списка»: строка не попадёт в рецепт.',
+    '<b>3.3 Edible part.</b> The row sheet is the OCT-420 block, labelled “Goes into the recipe: Peeled · Whole”. “Whole” puts the full weight in (baked unpeeled). “Change %” works as in OCT-420 and is remembered per product. At the bottom: “Remove from list” keeps the row out of the recipe.'), { id: 'b3', tall: true, h: 812 });
+  R.b4 = phone(revSheet({ shots: [1], running: 2, sep: true, extra: `<li class="sep">${L('Снимок 2', 'Photo 2')}</li><li class="irow"><span class="irow__m"><span class="irow__n">${L('Распознаём…', 'Recognizing…')}</span><span class="irow__k">${L('строки появятся здесь', 'rows will appear here')}</span></span><span class="spin" aria-hidden="true"></span></li>`, count: 5 }),
+    L('<b>3.4 «Ещё фото» (AC-B6).</b> Плитка с камерой справа от снимков. Второй снимок распознаётся отдельно, лист не закрывается: строки уже найденного можно править, новые встанут в конец под разделителем «Снимок 2». Дубли не склеиваем — лишнюю строку пользователь уберёт сам. «Добавить» доступна всё время, считает готовые строки.',
+    '<b>3.4 “Another photo” (AC-B6).</b> A camera tile next to the thumbnails. The second photo is recognized separately and the sheet stays open: rows already found can be edited, new ones go at the end under a “Photo 2” divider. Duplicates aren’t merged; the user removes the extra row. “Add” is always available and counts the finished rows.'), { id: 'b4', tall: true, h: 1080 });
+  R.b5 = phone(revSheet({ shots: [1, 2, 3, 4, 5], full: true, rows: [irow(IN.sour, 400, { src: 'pack' }), irow(IN.walnut, 108, { src: 'scale', cap: edCapNut(240, IN.walnut) })], sep: L('Снимок 5', 'Photo 5'), count: 14 }),
+    L('<b>3.5 Пять снимков.</b> После пятого плитки камеры нет, подпись «5 из 5 снимков — больше за раз нельзя». Нужно больше — «Добавить», потом снова «Сфотографировать продукты». Орехи: «240 г в скорлупе → съедобно 108 г» — слово брутто (кожура, скорлупа, кости) отдаёт справочник, как в OCT-420.',
+    '<b>3.5 Five photos.</b> After the fifth, the camera tile is gone: “5 of 5 photos — that’s the limit for one go”. Need more — “Add”, then “Photograph the ingredients” again. Walnuts: “240 g in shell → edible 108 g”; the gross word (peel, shell, bones) comes from the reference, as in OCT-420.'), { id: 'b5', tall: true, h: 812 });
+  R.b6 = phone(editor(cake, [sugar, ...R1().map(r => r.replace('class="irow"', 'class="irow irow--new"'))], { toast: `<div class="toast" role="status">${I.check}${L('Добавили 5 ингредиентов', 'Added 5 ingredients')}</div>` }),
+    L('<b>3.6 После «Добавить» (AC-C1).</b> Строки дописаны в конец, а не вместо: «Сахар» на месте. Новые на секунду подсвечены, тост «Добавили 5 ингредиентов». Метки источника и «оценка» остаются в редакторе, пока граммы не поправили (как в «Рецепте из текста»). Повтор того же продукта — отдельная строка (AC-C3).',
+    '<b>3.6 After “Add” (AC-C1).</b> Rows are appended, not replaced: “Sugar” stays. New rows are highlighted for a second, toast “Added 5 ingredients”. Source tags and “estimate” stay in the editor until the grams are edited (as in “Recipe from text”). The same product added again is a separate row (AC-C3).'), { id: 'b6', tall: true, h: 900 });
+
+  // 4 · states
+  R.s1 = phone(stateScr(I2.imageOff, L('Не нашли продуктов на фото', 'No ingredients found in the photo'), L('Снимите продукты поближе, при хорошем свете — чтобы были видны упаковки или весы.', 'Take the photo closer and in good light, so packages or the scale are visible.'),
+    `<button class="btn btn--primary">${I.camera}${L('Снять ещё', 'Take another')}</button><button class="btn btn--tonal">${L('Ввести вручную', 'Enter manually')}</button>`, { top: `<div class="mini"><div class="photo">${PROD({ empty: true })}</div><span class="pnote" style="margin:0">${L('Фото 1', 'Photo 1')}</span></div>` }),
+    L('<b>4.1 Нет продуктов (AC-B8).</b> Вместо листа проверки — это состояние. «Снять ещё» — снова камера, «Ввести вручную» — форма 2.1. Если пусто вышло на втором снимке, лист не теряется: в его конце строка «На снимке 2 продуктов не нашли» и та же кнопка камеры.',
+      '<b>4.1 Nothing found (AC-B8).</b> Shown instead of the review sheet. “Take another” opens the camera again, “Enter manually” opens form 2.1. If photo 2 comes back empty, the sheet stays: a line at its end, “No ingredients found in photo 2”, and the same camera tile.'), { id: 's1' });
+  R.s2 = phone(stateScr(I.alert, L('Не получилось распознать', 'Couldn’t recognize the photo'), L('ИИ не ответил или ответил непонятно. Рецепт и добавленные ингредиенты на месте.', 'The AI didn’t answer or the answer made no sense. The recipe and its ingredients are safe.'),
+    `<button class="btn btn--primary">${L('Повторить', 'Try again')}</button><button class="btn btn--tonal">${L('Ввести вручную', 'Enter manually')}</button>`, { warn: true }),
+    L('<b>4.2 Ошибка ИИ (E2).</b> «Повторить» отправляет тот же снимок, без новой съёмки. Штрихкод из кадра, если нашёлся (шаг 1–2), не теряется: тогда вместо этого экрана — лист проверки с одной строкой и подсказкой «Остальное ИИ не распознал — повторите или снимите ещё». Ошибка на втором снимке — строка в листе с «Повторить», найденное раньше остаётся.',
+      '<b>4.2 AI error (E2).</b> “Try again” resends the same photo, no new shot. A barcode found in the frame (steps 1–2) isn’t lost: then the review sheet shows that one row plus “AI didn’t recognize the rest — try again or take another”. An error on photo 2 is a line in the sheet with “Try again”; earlier rows stay.'), { id: 's2' });
+  R.s3 = phone(revSheet({ limit: true, rows: [irow(IN.flour, 512, { src: 'scale' }), irow(IN.butter, 180, { src: 'pack' }), irow(IN.curd, 400, { src: 'barcode', cap: shareCap(L('1 упаковка · 400 г', '1 pack · 400 g')) }),
+    irow(IN.eggs, 165, { src: 'out', cls: 'irow--out' }), irow(IN.carrot, 360, { src: 'out', cls: 'irow--out' })] }),
+    L('<b>4.3 Лимит 50 (AC-C2).</b> Не ругаем, а предлагаем выход: лишние строки помечены «не поместится», кнопка — «Добавить первые 3». Убрали строку выше — следующая становится «в лимите». Рецепт уже на 50: в редакторе вместо «+ Ингредиент» строка «Можно не больше 50 ингредиентов» (без кнопки), в листе «+» способов нет.',
+      '<b>4.3 50 limit (AC-C2).</b> No scolding, a way out: rows that won’t fit are tagged “won’t fit”, the button reads “Add the first 3”. Remove a row above and the next one fits. A recipe already at 50 shows “A recipe can have up to 50 ingredients” instead of “+ Ingredient” in the editor.'), { id: 's3', tall: true, h: 1000 });
+  R.s4 = phone(editor(chz, [irow(IN.cookie, 200, { src: 'barcode', cap: shareCap(L('½ упаковки · 200 г', '½ pack · 200 g')) })], { tail: `<li class="lim">${I.info}${L('Можно не больше 50 ингредиентов', 'A recipe can have up to 50 ingredients')}</li>` }),
+    L('<b>4.4 Рецепт полон.</b> 50 строк — вместо «+ Ингредиент» неактивная подпись. Удалили строку — кнопка вернулась. (В кадре одна строка ради места.)',
+      '<b>4.4 Recipe full.</b> At 50 rows, “+ Ingredient” becomes an inactive note. Delete a row and the button returns. (One row in the frame to save space.)'), { id: 's4' });
+
+  // 5 · desktop
+  const side = `<nav class="dside"><span>${L('Сегодня', 'Today')}</span><span>${L('Дневник', 'Diary')}</span><span class="on">${L('Кухня', 'Kitchen')}</span><span>${L('Профиль', 'Profile')}</span></nav>`;
+  const dEditor = `<div class="dpage">${side}<div class="dmain">${field(L('Название', 'Name'), cake)}${grp()}<ul class="list">${sugar}${addRow()}</ul></div></div>`;
+  const dk1 = `<div class="desk" style="height:760px;display:block">${dEditor}<div class="dim"></div><div class="modal modal--rev"><div class="modal__h"><span class="nav__title">${L('Продукты с фото', 'Ingredients from photo')}</span>${closeX()}</div>
+    <div class="modal__l"><div class="photo">${PROD()}</div><div class="shots">${shot(1)}${addShot()}</div><span class="pnote" style="margin:0">${L('Ещё фото — до 5. Можно перетащить файл в окно.', 'Up to 5 photos. You can drop a file into the window.')}</span></div>
+    <div class="modal__r"><p class="cap" style="margin:0">${I.sparkle}<span>${L('Проверьте граммы у строк «оценка». Ккал считаем по сырым продуктам.', 'Check the grams on “estimate” rows. Calories are counted from the raw ingredients.')}</span></p><ul class="list">${R1().join('')}</ul></div>
+    <div class="modal__f"><button class="btn">${L('Отмена', 'Cancel')}</button><button class="btn btn--primary">${L('Добавить · 5', 'Add · 5')}</button></div></div></div>`;
+  const dk2 = `<div class="desk" style="height:900px;display:block">${dEditor.replace(cake, chz).replace(sugar, '')}<div class="dim"></div><div class="dialog"><div class="sheet__h" style="grid-template-columns:1fr auto"><span class="nav__title" style="grid-column:1;text-align:left">${L('Ингредиент вручную', 'Ingredient, manual')}</span>${closeX()}</div>
+    ${manualFound().replace(/<button class="btn btn--primary btn--wide">.*?<\/button>$/, '')}<div class="foot"><button class="btn">${L('Отмена', 'Cancel')}</button><button class="btn btn--primary">${L('Добавить', 'Add')}</button></div></div></div>`;
+
+  const copy = [
+    ['editor.picker.photo', 'Сфотографировать продукты', 'Photograph the ingredients'],
+    ['editor.picker.photo_sub', 'ИИ найдёт продукты и вес — с весов, упаковки или на глаз', 'AI finds the products and weights — from a scale, a package or by eye'],
+    ['editor.picker.photo_offline', 'Нужен интернет', 'Needs internet'],
+    ['editor.picker.manual_sub', 'Название, штрихкод, ккал', 'Name, barcode, calories'],
+    ['editor.qty.label', 'Сколько использовали', 'How much you used'],
+    ['editor.share (row caption)', '½ упаковки · 200 г', '½ pack · 200 g'],
+    ['editor.barcode.offline_miss', 'Без интернета ищем только среди ваших продуктов — тут его нет. Заполните сами или поищите позже, когда появится сеть.', 'Offline we only search your own products — this one isn’t there. Fill it in yourself, or search again once you’re online.'],
+    ['editor.photo.wait / wait_sub', 'Ищем продукты… · Обычно до 15 секунд', 'Looking for the ingredients… · Usually under 15 seconds'],
+    ['editor.photo.step_ai / sub', 'ИИ ищет продукты и вес · Весы, надписи на упаковках, на глаз', 'AI looks for ingredients and weights · Scale, package labels, by eye'],
+    ['editor.photo.not_kept', 'Фото нужно только для распознавания — не сохраняем.', 'The photo is used for recognition only — we don’t keep it.'],
+    ['editor.photo.title', 'Продукты с фото', 'Ingredients from photo'],
+    ['editor.photo.note', 'Проверьте граммы у строк «оценка». Ккал считаем по сырым продуктам.', 'Check the grams on “estimate” rows. Calories are counted from the raw ingredients.'],
+    ['editor.photo.src', 'с весов · с упаковки · штрихкод · оценка', 'from scale · from package · barcode · estimate'],
+    ['editor.photo.more / more_full', 'Ещё фото — для того, что не влезло в кадр · 5 из 5 снимков — больше за раз нельзя', 'Another photo for what didn’t fit in the frame · 5 of 5 photos — that’s the limit for one go'],
+    ['editor.photo.shot', 'Снимок {n}', 'Photo {n}'],
+    ['editor.photo.add', 'Добавить · {n}', 'Add · {n}'],
+    ['editor.photo.added', 'Добавили {n} ингредиент / ингредиента / ингредиентов', 'Added {n} ingredient / ingredients'],
+    ['editor.edible.label', 'В рецепт идёт: Очищенный · Целиком', 'Goes into the recipe: Peeled · Whole'],
+    ['editor.photo.remove', 'Убрать из списка', 'Remove from list'],
+    ['editor.photo.none / none_body', 'Не нашли продуктов на фото · Снимите продукты поближе, при хорошем свете — чтобы были видны упаковки или весы.', 'No ingredients found in the photo · Take the photo closer and in good light, so packages or the scale are visible.'],
+    ['editor.photo.none_shot', 'На снимке {n} продуктов не нашли', 'No ingredients found in photo {n}'],
+    ['editor.photo.retake / manual', 'Снять ещё · Ввести вручную', 'Take another · Enter manually'],
+    ['editor.photo.error / error_body', 'Не получилось распознать · ИИ не ответил или ответил непонятно. Рецепт и добавленные ингредиенты на месте.', 'Couldn’t recognize the photo · The AI didn’t answer or the answer made no sense. The recipe and its ingredients are safe.'],
+    ['editor.photo.partial', 'Остальное ИИ не распознал — повторите или снимите ещё', 'AI didn’t recognize the rest — try again or take another'],
+    ['editor.limit', 'Можно не больше 50 ингредиентов', 'A recipe can have up to 50 ingredients'],
+    ['editor.limit_fit', 'Можно не больше 50 ингредиентов. В рецепте уже {have} — поместятся первые {n}.', 'A recipe can have up to 50 ingredients. It already has {have} — the first {n} will fit.'],
+    ['editor.limit_add / wont_fit', 'Добавить первые {n} · не поместится', 'Add the first {n} · won’t fit'],
+  ].map(([k, ru, en]) => `<tr><td><code>${k}</code></td><td>${ru}</td><td>${en}</td></tr>`).join('');
+
+  document.getElementById('doc').innerHTML = `
+<h1 class="doc-h1">OCT-435 · ${L('Ингредиенты рецепта по штрихкоду и по фото', 'Recipe ingredients by barcode and by photo')}</h1>
+<p class="doc-lead">${L('По проработке OCT-430. Штрихкод — в ручном вводе ингредиента, с теми же долями упаковки, что в приёме (OCT-380). Фото продуктов — пункт в листе «+ Ингредиент», только с ИИ; найденное попадает в лист проверки и дописывается в рецепт по «Добавить». Съедобная часть — блок OCT-420. Новых токенов нет. Язык и тема — в панели сверху.', 'From the OCT-430 spec. Barcode lives in manual ingredient entry, with the same package shares as meals (OCT-380). Photographing ingredients is a row in the “+ Ingredient” sheet, AI only; results land in a review sheet and are appended to the recipe on “Add”. The edible part is the OCT-420 block. No new tokens. Language and theme are in the bar at the top.')}</p>
+<section id="entry"><h2 class="doc-h2">1 · ${L('Лист «+ Ингредиент»', '“+ Ingredient” sheet')}</h2><div class="frames">${R.p1}${R.p2}${R.p3}</div></section>
+<section id="barcode"><h2 class="doc-h2">2 · ${L('Штрихкод в ручном вводе', 'Barcode in manual entry')}</h2><div class="frames">${R.a1}${R.a2}${R.a3}${R.a4}${R.a5}</div></section>
+<section id="photo"><h2 class="doc-h2">3 · ${L('Фото продуктов', 'Photographing the ingredients')}</h2><div class="frames">${R.b1}${R.b2}${R.b3}${R.b4}${R.b5}${R.b6}</div></section>
+<section id="states"><h2 class="doc-h2">4 · ${L('Состояния', 'States')}</h2><div class="frames">${R.s1}${R.s2}${R.s3}${R.s4}</div></section>
+<section id="desktop"><h2 class="doc-h2">5 · ${L('Компьютер', 'Desktop')}</h2><div class="frames">
+  <figure id="dk1">${dk1}<figcaption>${L('<b>5.1 Проверка в окне.</b> Слева — фото и снимки, справа — те же строки. «Ещё фото» — плитка или перетаскивание файла. Tab идёт по полям граммов; Enter на строке — диалог строки; «Добавить» — Cmd/Ctrl+Enter.', '<b>5.1 Review window.</b> Photo and thumbnails on the left, the same rows on the right. “Another photo” — the tile or drop a file. Tab moves through the gram fields; Enter on a row opens its dialog; “Add” is Cmd/Ctrl+Enter.')}</figcaption></figure>
+  <figure id="dk2">${dk2}<figcaption>${L('<b>5.2 Ручной ввод в диалоге.</b> Тот же порядок: штрихкод первым, «Сколько использовали». Сканер камерой на компьютере — если есть камера; иначе «Загрузить фото кода».', '<b>5.2 Manual entry dialog.</b> Same order: barcode first, “How much you used”. The camera scanner on desktop works if there is a camera; otherwise “Upload a photo of the code”.')}</figcaption></figure>
+</div></section>
+<section id="spec"><h2 class="doc-h2">6 · ${L('Для разработки', 'For development')}</h2><ul class="doc-list">
+<li>No new components: IngredientPickerSheet gets two rows; ManualDishSheet with BarcodeField and the OCT-380 amount block in recipe mode (label “How much you used”); the review sheet reuses IngredientRow plus a caption line; the row sheet reuses the OCT-420 edible block. No new tokens.</li>
+<li>Source tags: “from scale”, “from package”, “barcode” — accent Badge with icon; “estimate” — the neutral Badge already used by “Recipe from text”. Only (4) AI-by-eye rows are “estimate” (AC-B4); kcal/macros by barcode are not marked.</li>
+<li>The recipe stores grams only; the share caption (“½ pack · 200 g”) is display state and drops when grams are edited by hand.</li>
+<li>Photo row: hidden without AI; offline — aria-disabled, subtitle “Needs internet”, secondary colours (no opacity). Up to 5 photos per review sheet; each is recognized separately, rows appended under “Photo N”.</li>
+<li>Limit 50: rows over the limit get “won’t fit”, the button says “Add the first N”; at 50 the editor’s add row is replaced by a note.</li>
+<li>VoiceOver: row = “Wheat flour, 1,710 kcal, from scale, 512 grams”; the review sheet announces “Found 5 ingredients” when it opens; while photo 2 runs, the list end reads “Recognizing photo 2”. Tap targets ≥ 44 pt.</li>
+</ul></section>
+<section id="copy"><h2 class="doc-h2">7 · ${L('Тексты', 'Copy')}</h2><p class="doc-lead">${L('Ключи — предложение, финальные даст разработка.', 'Keys are a suggestion; development picks the final ones.')}</p>
+<table class="copy"><thead><tr><th>${L('Ключ', 'Key')}</th><th>RU</th><th>EN</th></tr></thead><tbody>${copy}</tbody></table></section>`;
+
+  const bar = document.querySelector('.pv-bar');
+  if (bar && !bar.querySelector('.lang-bar')) {
+    const seg = document.createElement('div');
+    seg.className = 'pv-seg lang-bar';
+    seg.innerHTML = '<button data-l="ru">RU</button><button data-l="en">EN</button>';
+    seg.addEventListener('click', e => { const l = e.target.dataset.l; if (!l) return; lang = l; try { localStorage.setItem(KEY, l); } catch (er) {} render(); });
+    bar.appendChild(seg);
+  }
+  document.querySelectorAll('.lang-bar button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.l === lang)));
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', render); else render();
+</script>
+</body>
+</html>
