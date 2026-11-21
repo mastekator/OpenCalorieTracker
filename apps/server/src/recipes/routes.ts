@@ -68,8 +68,8 @@ export function recipeRoutes({ config, db }: AppDeps) {
       recipeId,
     );
     const ingredient = db.prepare(
-      `INSERT INTO recipe_ingredients (recipe_id, position, name, grams, kcal, protein_g, fat_g,
-         carbs_g, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO recipe_ingredients (recipe_id, position, name, grams, unit, kcal, protein_g,
+         fat_g, carbs_g, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     );
     input.ingredients.forEach((i, pos) =>
       ingredient.run(
@@ -77,6 +77,7 @@ export function recipeRoutes({ config, db }: AppDeps) {
         pos,
         i.name,
         i.grams,
+        i.unit ?? 'g',
         i.kcal,
         i.proteinG,
         i.fatG,

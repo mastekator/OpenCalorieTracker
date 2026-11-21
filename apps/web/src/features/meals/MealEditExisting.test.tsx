@@ -58,6 +58,7 @@ const saved = (over: Partial<Meal> = {}): Meal => ({
     {
       name: 'Buckwheat',
       grams: 200,
+      unit: 'g',
       kcal: 250,
       proteinG: 10,
       fatG: 4,

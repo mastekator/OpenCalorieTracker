@@ -229,6 +229,42 @@ describe('meals', () => {
     });
   });
 
+  it('stores the dish unit: g by default, ml when sent (ADR-0038 §2)', async () => {
+    const t = await setup();
+    const [food, drink] = input().items;
+    const res = await t.call(
+      t.cookie,
+      'POST',
+      '/meals',
+      input({ items: [food!, { ...drink!, unit: 'ml' }] }),
+    );
+    expect(res.status).toBe(201);
+    const meal = (await res.json()) as Meal;
+    expect(meal.items.map((i) => i.unit)).toEqual(['g', 'ml']);
+
+    const sync = (await (
+      await t.call(t.cookie, 'GET', '/sync?since=0')
+    ).json()) as { meals: Meal[] };
+    expect(sync.meals[0]!.items.map((i) => i.unit)).toEqual(['g', 'ml']);
+
+    // Within the 90-day history window.
+    t.db.prepare('UPDATE meals SET eaten_at = ?').run(Date.now() - 60_000);
+    const prev = (await (
+      await t.call(t.cookie, 'POST', '/dishes/previous', {
+        dishes: [{ name: 'Tea' }],
+      })
+    ).json()) as PreviousDishesResponse;
+    expect(prev[0]).toMatchObject({ grams: 200, unit: 'ml' });
+
+    // Editing without a unit falls back to g, as an older client sends.
+    const edited = (await (
+      await t.call(t.cookie, 'PATCH', `/meals/${meal.id}`, {
+        items: [drink],
+      })
+    ).json()) as Meal;
+    expect(edited.items[0]!.unit).toBe('g');
+  });
+
   it('rejects bad input with 400', async () => {
     const t = await setup();
     const item = input().items[1]!;
@@ -237,6 +273,7 @@ describe('meals', () => {
       input({ items: [{ ...item, grams: 0 }] }),
       input({ items: [{ ...item, grams: 5000.1 }] }),
       input({ items: [{ ...item, barcode: '4006381333932' }] }), // bad check digit
+      input({ items: [{ ...item, unit: 'oz' as 'g' }] }),
       input({ localDate: '2026-01-09' }), // 15:00 local: "yesterday" is not allowed
       input({ localDate: '2026-01-11' }),
       input({ eatenAt: new Date(Date.now() + 10 * 60_000).toISOString() }),
@@ -312,6 +349,25 @@ describe('meals', () => {
     expect((await mine('0036000291452')).product).toMatchObject({
       name: 'Greek yogurt',
       kcal100: 120,
+      per: 'g',
+    });
+
+    // A drink with the same barcode switches the product to ml (ADR-0038 §2).
+    await t.call(t.cookie, 'PATCH', `/meals/${meal.id}`, {
+      items: [
+        dish({
+          name: 'Kefir',
+          grams: 500,
+          unit: 'ml',
+          kcal: 250,
+          barcode: '0036000291452',
+        }),
+      ],
+    });
+    expect((await mine('0036000291452')).product).toMatchObject({
+      name: 'Kefir',
+      kcal100: 50,
+      per: 'ml',
     });
     expect(
       t.db.prepare('SELECT COUNT(*) FROM user_products').pluck().get(),
@@ -645,6 +701,7 @@ describe('previous dishes', () => {
         mealId: id,
         eatenAt: expect.any(String),
         grams: 200,
+        unit: 'g',
         kcal: 300,
         proteinG: 5,
         fatG: 3,

@@ -29,7 +29,7 @@ function selectMeals(
   const items = new Map<number, MealItem[]>();
   for (const { mealId, manual, ...i } of db
     .prepare(
-      `SELECT i.meal_id AS mealId, i.name, i.grams, i.kcal, i.protein_g AS proteinG,
+      `SELECT i.meal_id AS mealId, i.name, i.grams, i.unit, i.kcal, i.protein_g AS proteinG,
          i.fat_g AS fatG, i.carbs_g AS carbsG, i.source, i.ai_provider AS aiProvider,
          i.ai_model AS aiModel, i.confidence, i.recipe_id AS recipeId, i.barcode, i.illustration IS NOT NULL AS manual,
          COALESCE(i.illustration, c.illustration) AS illustration

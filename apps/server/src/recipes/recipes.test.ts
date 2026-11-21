@@ -219,6 +219,28 @@ describe('recipes', () => {
     expect((await t.put(recipe.id, input())).status).toBe(404);
   });
 
+  it('stores the ingredient unit, g when omitted (ADR-0038 §1)', async () => {
+    const t = await setup();
+    const [rice, salt] = input().ingredients;
+    const milk = { ...rice!, name: 'Молоко', grams: 300, unit: 'ml' as const };
+    const created = await t.call(
+      'POST',
+      '/recipes',
+      input({ ingredients: [rice!, milk, salt!] }),
+    );
+    expect(created.status).toBe(201);
+    const units = (r: unknown) => (r as Recipe).ingredients.map((i) => i.unit);
+    expect(units(created.body)).toEqual(['g', 'ml', 'g']);
+    const sync = await t.call('GET', '/sync?since=0');
+    expect(units((sync.body as { recipes: Recipe[] }).recipes[0])).toEqual([
+      'g',
+      'ml',
+      'g',
+    ]);
+    const bad = input({ ingredients: [{ ...milk, unit: 'l' as 'ml' }] });
+    expect((await t.call('POST', '/recipes', bad)).status).toBe(400);
+  });
+
   it("hides another user's recipe: 404 on PUT, 204 on DELETE without a change", async () => {
     const t = await setup();
     const other = await t.addUser('b@example.com');

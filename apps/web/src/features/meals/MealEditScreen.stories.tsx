@@ -286,6 +286,7 @@ const savedMeal: Meal = {
   recalcOffer: false,
   items: dishes.slice(0, 2).map((d) => ({
     ...d,
+    unit: 'g',
     source: 'ai',
     aiProvider: null,
     aiModel: null,

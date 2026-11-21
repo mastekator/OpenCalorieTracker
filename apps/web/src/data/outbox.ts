@@ -83,6 +83,7 @@ function withChange(
   next.items = items.map(
     ({ illustration, confidence, recipeId, barcode, ...item }) => ({
       ...item,
+      unit: item.unit ?? 'g',
       recipeId: recipeId ?? null,
       barcode: barcode ?? null,
       aiProvider: null,

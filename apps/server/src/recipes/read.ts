@@ -33,7 +33,7 @@ function selectRecipes(db: Database, where: string, ...params: unknown[]) {
   const ingredients = group<
     Recipe['ingredients'][number] & { recipeId: number }
   >(
-    `SELECT i.recipe_id AS recipeId, i.name, i.grams, i.kcal, i.protein_g AS proteinG,
+    `SELECT i.recipe_id AS recipeId, i.name, i.grams, i.unit, i.kcal, i.protein_g AS proteinG,
        i.fat_g AS fatG, i.carbs_g AS carbsG, i.source
      FROM recipe_ingredients i JOIN recipes r ON r.id = i.recipe_id
      WHERE $WHERE ORDER BY i.recipe_id, i.position`,

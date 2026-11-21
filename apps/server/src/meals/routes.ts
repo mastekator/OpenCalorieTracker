@@ -70,18 +70,18 @@ export function mealRoutes({ config, db, ai }: AppDeps) {
     } | null = ai.current()?.settings ?? null,
   ) => {
     const insert = db.prepare(
-      `INSERT INTO meal_items (meal_id, position, name, name_key, grams, kcal, protein_g, fat_g,
-         carbs_g, source, ai_provider, ai_model, confidence, illustration, recipe_id, barcode)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO meal_items (meal_id, position, name, name_key, grams, unit, kcal, protein_g,
+         fat_g, carbs_g, source, ai_provider, ai_model, confidence, illustration, recipe_id, barcode)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     );
-    // The user's own product, per 100 g (ADR-0034 §6): only values the user typed in are remembered.
+    // The user's own product, per 100 g or ml of the dish's unit (ADR-0034 §6, ADR-0038 §2): only values the user typed in are remembered.
     const remember = db.prepare(
       `INSERT INTO user_products (user_id, code, name, kcal_100, protein_100, fat_100, carbs_100,
          per, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 'g', ?, ?)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT (user_id, code) DO UPDATE SET name = excluded.name,
          kcal_100 = excluded.kcal_100, protein_100 = excluded.protein_100,
-         fat_100 = excluded.fat_100, carbs_100 = excluded.carbs_100, per = 'g',
+         fat_100 = excluded.fat_100, carbs_100 = excluded.carbs_100, per = excluded.per,
          updated_at = excluded.updated_at`,
     );
     const per100 = (v: number, g: number) => Math.round((v * 1000) / g) / 10;
@@ -98,6 +98,7 @@ export function mealRoutes({ config, db, ai }: AppDeps) {
         i.name,
         nameKey(i.name),
         i.grams,
+        i.unit ?? 'g',
         i.kcal,
         i.proteinG,
         i.fatG,
@@ -125,6 +126,7 @@ export function mealRoutes({ config, db, ai }: AppDeps) {
           per100(i.proteinG, i.grams),
           per100(i.fatG, i.grams),
           per100(i.carbsG, i.grams),
+          i.unit ?? 'g',
           now,
           now,
         );
@@ -347,7 +349,7 @@ export function mealRoutes({ config, db, ai }: AppDeps) {
       (c) => {
         // Newest first; a daily dish gives ~90 rows, so density is filtered in JS (ADR-0009).
         const candidates = db.prepare(
-          `SELECT m.id AS mealId, m.eaten_at AS eatenAt, i.grams, i.kcal, i.protein_g AS proteinG,
+          `SELECT m.id AS mealId, m.eaten_at AS eatenAt, i.grams, i.unit, i.kcal, i.protein_g AS proteinG,
              i.fat_g AS fatG, i.carbs_g AS carbsG, i.name,
              COALESCE(i.illustration, c.illustration) AS illustration
            FROM meal_items i JOIN meals m ON m.id = i.meal_id ${CHOICE_JOIN}

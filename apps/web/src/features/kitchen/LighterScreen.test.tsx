@@ -32,6 +32,10 @@ const view = async ({
     ): Promise<Recipe> => ({
       ...recipe,
       ...input,
+      ingredients: input.ingredients.map((i) => ({
+        ...i,
+        unit: i.unit ?? 'g',
+      })),
       id: base?.id ?? 99,
     }),
   );

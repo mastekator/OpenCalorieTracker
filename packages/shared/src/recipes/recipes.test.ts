@@ -106,6 +106,11 @@ describe('recipe calculation (AC-2.5)', () => {
     ).toEqual({ kcal: 450, proteinG: 30, fatG: 6, carbsG: 52, rawG: 300.5 });
   });
 
+  it('counts 1 ml as 1 g in the raw weight (ADR-0038 §5)', () => {
+    const milk = { ...ing(300, 180), unit: 'ml' as const };
+    expect(recipeTotals([ing(200, 300), milk]).rawG).toBe(500);
+  });
+
   it('pilaf: 166 kcal/100 g and 581 per serving once rounded for display', () => {
     const r = recipe([ing(1000, 1500), ing(500, 1987), ing(600, 0)], 2100, 6);
     expect(Math.round(per100(r).kcal)).toBe(166);
