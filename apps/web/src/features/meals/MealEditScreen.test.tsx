@@ -1128,7 +1128,7 @@ describe('MealEditScreen: recipes (OCT-160 §5, ADR-0023 §5–6)', () => {
     };
     const badges = (dish: string) =>
       screen
-        .getByRole('textbox', { name: `Weight of ${dish}` })
+        .getByRole('button', { name: `Edit ${dish}` })
         .closest('.dish-row')!
         .querySelector('.dish-row__meta')!.textContent;
 
@@ -1184,9 +1184,28 @@ describe('MealEditScreen: recipes (OCT-160 §5, ADR-0023 §5–6)', () => {
         ]),
       });
       expect(badges('Yogurt')).toContain('your product');
+      // 150 g is one serving: the row and the sheet count servings (OCT-389).
+      const row = screen
+        .getByRole('button', { name: 'Edit Yogurt' })
+        .closest('.dish-row')!;
+      expect(row.querySelector('.dish-row__share')!.textContent).toBe(
+        '1\u00a0serving · 150\u00a0g',
+      );
+      fireEvent.click(
+        within(row as HTMLElement).getByRole('button', {
+          name: 'More by ½ serving',
+        }),
+      );
+      expect(row.querySelector('.dish-row__share')!.textContent).toBe(
+        '1½\u00a0servings · 225\u00a0g',
+      );
       fireEvent.click(screen.getByRole('button', { name: 'Edit Yogurt' }));
       const sheet = screen.getByRole('dialog');
-      within(sheet).getByText('Serving on the package: 150 g');
+      expect(
+        within(sheet)
+          .getByRole('radio', { name: 'Servings' })
+          .getAttribute('aria-checked'),
+      ).toBe('true');
       within(sheet).getByText('Your product · saved November 2, 2026');
       expect(within(sheet).queryByRole('link')).toBeNull();
     });

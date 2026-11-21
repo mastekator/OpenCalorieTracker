@@ -9,6 +9,7 @@ import {
   sumDay,
   uuid,
   type AiQuestion,
+  type Amount,
   type DishSource,
   type FixedField,
   type IllustrationId,
@@ -73,6 +74,8 @@ export type Row = {
   recipeId?: number;
   /** The AI's question about this dish (ADR-0020 §4); `chosen`: the option tapped, none yet. */
   question?: Question;
+  /** A product dish: how much of it, as last picked; none yet: its default (ADR-0037 §5). */
+  amount?: Amount;
 };
 
 export type Question = Omit<AiQuestion, 'dish'> & { chosen?: number };

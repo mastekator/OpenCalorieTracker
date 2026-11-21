@@ -1,0 +1,41 @@
+.amount {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.amount p {
+  margin: 0;
+}
+
+.amount__head {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.amount__label {
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+  color: var(--color-text-secondary);
+}
+
+/* The share big, the grams under it: «½» over «pack · 100 g» (OCT-380 2.1). */
+.amount__value {
+  display: grid;
+  justify-items: center;
+}
+
+.amount__value small {
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+  color: var(--color-text-secondary);
+}
+
+.amount__last {
+  justify-self: center;
+}
+
+.amount__package {
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+  color: var(--color-text-secondary);
+}

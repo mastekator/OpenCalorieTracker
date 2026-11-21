@@ -261,3 +261,9 @@
   padding: 0 var(--space-4) var(--space-3);
   background: var(--color-surface);
 }
+
+/* «1 pack · 120 g»: as wide as the text, not the grams field (OCT-380 1.1). */
+.dish-row__share {
+  width: auto;
+  white-space: nowrap;
+}
