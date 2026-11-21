@@ -1,3 +1,5 @@
+import { round1 } from '../units.js';
+
 /**
  * Edible share of foods sold with inedible parts (ADR-0039 §1): `edible` = 100 − refuse %, whole
  * percent. Source: USDA SR Legacy (SR28, FOOD_DES.Refuse; public domain), NDB number per row.
@@ -80,8 +82,8 @@ export const REFUSE = [
   { key: 't_bone_steak', edible: 78 }, // 13473
   // Shellfish, corn, eggs.
   { key: 'shrimp_in_shell', edible: 87 }, // 15270
-  // Husked cob: the 29% cob of 11167 without the 35% husk and silk.
-  { key: 'corn_on_cob', edible: 71 }, // 11167
+  // Husked ear: 11167 refuse is 35% husk and silk + 29% cob; edible = 36 / 65 of the husked ear.
+  { key: 'corn_on_cob', edible: 55 }, // 11167
   { key: 'egg', edible: 88 }, // 01123
   { key: 'quail_egg', edible: 92 }, // 01140
 ] as const;
@@ -96,27 +98,6 @@ const byKey = new Map<string, number>(REFUSE.map((r) => [r.key, r.edible]));
 /** Edible percent for a reference key, or undefined for an unknown key. */
 export const edibleOf = (key: string) => byKey.get(key);
 
-/** Edible grams of a gross weight, one decimal like `oneDecimal`. */
+/** Edible grams of a gross weight, one decimal like `oneDecimal`. Rescale the dish with `scaleItem`. */
 export const edibleGrams = (grossG: number, pct: number) =>
-  Math.round((grossG * pct) / 10) / 10;
-
-type Nutrients = {
-  grams: number;
-  kcal: number;
-  proteinG: number;
-  fatG: number;
-  carbsG: number;
-};
-
-/** The dish at new grams with the same kcal and macros per gram. */
-export const scaleDish = <T extends Nutrients>(dish: T, grams: number): T => {
-  const r = dish.grams > 0 ? grams / dish.grams : 0;
-  return {
-    ...dish,
-    grams,
-    kcal: dish.kcal * r,
-    proteinG: dish.proteinG * r,
-    fatG: dish.fatG * r,
-    carbsG: dish.carbsG * r,
-  };
-};
+  round1((grossG * pct) / 100);
