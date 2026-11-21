@@ -19,6 +19,7 @@ import {
   type Units,
 } from '@oct/shared';
 import { AmountPicker, type Pack } from '../AmountPicker/AmountPicker';
+import { parsePackG, parsePieces } from '../AmountPicker/amount';
 import { matchRecipes } from '../../features/kitchen/matchRecipes';
 import type { BarcodeResult } from '../../data/products';
 import { useT } from '../../i18n';
@@ -47,6 +48,7 @@ export type ManualDish = Nutrients & {
   unit?: DishUnit;
   /** A product found by `barcode`: «How much you ate» and the typed package (OCT-418). */
   amount?: Amount;
+  /** Also typed for a code not found: remembered for it like the dish sheet's (ADR-0037 §4). */
   pack?: Pack;
 };
 type Basis = 'per100' | 'portion';
@@ -64,7 +66,15 @@ const parse = (text: string, empty: number | null = null) => {
 };
 
 type Fields =
-  'barcode' | 'name' | 'weight' | 'kcal' | 'proteinG' | 'fatG' | 'carbsG';
+  | 'barcode'
+  | 'name'
+  | 'weight'
+  | 'packG'
+  | 'pieces'
+  | 'kcal'
+  | 'proteinG'
+  | 'fatG'
+  | 'carbsG';
 
 type Props = {
   units: Units;
@@ -116,6 +126,8 @@ export function ManualDishSheet({
     proteinG: '',
     fatG: '',
     carbsG: '',
+    packG: '',
+    pieces: '',
   });
   const [basis, setBasis] = useState<Basis>(() =>
     localStorage.getItem(BASIS_KEY) === 'portion' ? 'portion' : 'per100',
@@ -123,6 +135,8 @@ export function ManualDishSheet({
   // Errors show after leaving a field or on «Add» (§4).
   const [touched, setTouched] = useState<Partial<Record<Fields, boolean>>>({});
   const refs = useRef<Partial<Record<Fields, HTMLInputElement | null>>>({});
+  // The code was looked up and not found: the package fields show (OCT-380 5.2).
+  const [notFound, setNotFound] = useState(!!photoNotFound);
   const latest = useRef(text);
   latest.current = text;
   // A product found with kcal: counted by «How much you ate», not typed per 100 g (ADR-0037 §3–4).
@@ -144,6 +158,9 @@ export function ManualDishSheet({
     fatG: parse(text.fatG, 0),
     carbsG: parse(text.carbsG, 0),
   };
+  const askPack = notFound && !!lookup;
+  const packG = text.packG.trim() ? parsePackG(text.packG, w.toG) : null;
+  const pieces = text.pieces.trim() ? parsePieces(text.pieces) : null;
   const badCode = barcodeError(text.barcode);
   const errors: Partial<Record<Fields, string>> = {
     ...(badCode && { barcode: t(badCode) }),
@@ -163,6 +180,13 @@ export function ManualDishSheet({
               : 'edit.weight.err_g',
       ),
     }),
+    // Optional: an empty field is no error.
+    ...(askPack &&
+      text.packG.trim() &&
+      packG === null && { packG: t('edit.dish.pack.err.weight') }),
+    ...(askPack &&
+      text.pieces.trim() &&
+      pieces === null && { pieces: t('edit.dish.pack.err.pieces') }),
   };
   const values: Nutrients = merged
     ? {
@@ -229,11 +253,17 @@ export function ManualDishSheet({
       proteinG: round1(totals.proteinG),
       fatG: round1(totals.fatG),
       carbsG: round1(totals.carbsG),
+      ...(code &&
+        askPack &&
+        (packG || pieces) && {
+          pack: { ...(packG && { packG }), ...(pieces && { pieces }) },
+        }),
     });
   };
 
   // Fills only what is still empty, per 100 g; the weight is the package serving (OCT-313 3.2).
   const fillFrom = ({ product }: BarcodeResult) => {
+    setNotFound(!product);
     if (!product) return refs.current.name?.focus();
     // The fields as they are now: the user may have typed while the lookup ran.
     const text = latest.current;
@@ -258,7 +288,7 @@ export function ManualDishSheet({
     setPackUnit(product.per);
     const g = amountGrams(product, defaultAmount(product));
     setText({
-      barcode: text.barcode,
+      ...text,
       name: put('name', product.name ?? product.brand),
       weight: put('weight', weightIn(units, product.per).show(g)),
       kcal: put('kcal', product.kcal100),
@@ -304,6 +334,7 @@ export function ManualDishSheet({
             value={text.barcode}
             onChange={(v) => {
               setText((s) => ({ ...s, barcode: v }));
+              setNotFound(false);
               setProd(null);
               // Another code: the switch opens on the unit the amount is in.
               if (packUnit) setChosen(packUnit);
@@ -480,6 +511,25 @@ export function ManualDishSheet({
                 })}
               </p>
             )}
+          </>
+        )}
+        {/* Optional, under the required kcal and macros (OCT-380 5.2). */}
+        {askPack && (
+          <>
+            <Field
+              {...field('packG')}
+              label={t('edit.dish.pack.weight')}
+              inputMode={us ? 'decimal' : 'numeric'}
+              suffix={w.u}
+              hint={t('edit.dish.pack.weight_hint')}
+            />
+            <Field
+              {...field('pieces')}
+              label={t('edit.dish.pack.pieces')}
+              inputMode="numeric"
+              suffix={t('edit.amount.pcs')}
+              placeholder={t('edit.dish.pack.pieces_ph')}
+            />
           </>
         )}
       </div>

@@ -2,10 +2,12 @@ import {
   DISH_GRAMS,
   amountGrams,
   amountModes,
+  packPrefsSchema,
   type Amount,
   type AmountMode,
   type Product,
 } from '@oct/shared';
+import { parseDecimal } from '../FormList/FormList';
 
 /** ± in each mode: ¼ package, ½ serving, 1 piece (ADR-0037 §5). */
 export const STEP = { pack: 0.25, serving: 0.5, piece: 1 } as const;
@@ -64,3 +66,18 @@ export const isLast = (p: Product, a: Amount) =>
   !!p.last &&
   p.last.mode === a.mode &&
   Math.abs(p.last.value - a.value) < 0.001;
+
+/** Typed package weight in whole grams or ml, rounded before the check so 1–5000 holds for ounces too (E-7.6); null: invalid. */
+export function parsePackG(s: string | null, toG: (n: number) => number) {
+  const n = s === null ? null : parseDecimal(s.trim());
+  const g = n === null ? NaN : Math.round(toG(n));
+  return packPrefsSchema.shape.packG.safeParse(g).success ? g : null;
+}
+
+/** Typed piece count, a whole 1–1000; null: invalid. */
+export function parsePieces(s: string | null) {
+  const n = s === null ? null : parseDecimal(s.trim());
+  return n !== null && packPrefsSchema.shape.pieces.safeParse(n).success
+    ? n
+    : null;
+}
