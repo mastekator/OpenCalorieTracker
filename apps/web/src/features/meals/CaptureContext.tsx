@@ -1,3 +1,4 @@
+import { flushSync } from 'react-dom';
 import {
   createContext,
   useContext,
@@ -13,7 +14,6 @@ import { api, ApiError } from '../../api/client';
 import { useT } from '../../i18n';
 import { ConfirmDialog } from '../../ui/ConfirmDialog/ConfirmDialog';
 import { DropOverlay } from '../../ui/DropOverlay/DropOverlay';
-import { useToast } from '../../ui/Toast/Toast';
 import { CaptureMenu } from './CaptureMenu';
 import { ImageDecodeError, prepareImage } from './prepareImage';
 
@@ -31,6 +31,16 @@ type Capture = {
   menu: () => void;
   /** Menu 5.5 for a past day (`YYYY-MM-DD`; null: today): the flow opens with `?date=` (AC-2.11). */
   addTo: (date: string | null) => void;
+  /** The photo being prepared and uploaded: the recognition screen shows it before there is a photoId. */
+  pending: Pending | null;
+  /** «Try again» after a failed upload: the prepared blob again, no re-encoding. */
+  retry: () => void;
+};
+
+export type Pending = {
+  /** Object URL of the chosen file, for the preview. */
+  url: string;
+  status: 'uploading' | 'offline' | 'upload_failed';
 };
 
 const noop = () => {};
@@ -40,6 +50,8 @@ const CaptureContext = createContext<Capture>({
   manual: noop,
   menu: noop,
   addTo: noop,
+  pending: null,
+  retry: noop,
 });
 
 export const useCapture = () => useContext(CaptureContext);
@@ -55,7 +67,6 @@ const hasFiles = (event: DragEvent) =>
  */
 export function CaptureProvider({ children }: { children: ReactNode }) {
   const { t } = useT();
-  const toast = useToast();
   const [location, navigate] = useLocation();
   const inFlow = location === MEAL_NEW_PATH;
   const cameraInput = useRef<HTMLInputElement>(null);
@@ -82,43 +93,91 @@ export function CaptureProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const upload = async (blob: Blob) => {
+  const [pending, setPendingState] = useState<Pending | null>(null);
+  const pendingRef = useRef<Pending | null>(null);
+  const blobRef = useRef<Blob | null>(null);
+  const origin = useRef<string | null>(null);
+  const setPending = (next: Pending | null) => {
+    const prev = pendingRef.current;
+    if (prev && prev.url !== next?.url) URL.revokeObjectURL(prev.url);
+    pendingRef.current = next;
+    setPendingState(next);
+  };
+  // Still on the upload screen of this photo: leaving the flow (cancel, manual entry) clears it.
+  const current = (url: string) => pendingRef.current?.url === url;
+
+  // Leaving the flow drops the photo that was being uploaded.
+  useEffect(() => {
+    if (location !== MEAL_NEW_PATH) setPending(null);
+  }, [location]);
+
+  /** Bad photo: off the upload screen to where it was opened from, then dialog 3.8. */
+  const backOut = () => {
+    // A retake replaced the old photo's entry: put it back; history.back() would leave the flow.
+    if (origin.current) {
+      navigate(origin.current, { replace: true });
+      setPending(null);
+    }
+    // Pending is cleared by the location effect once back lands: clearing it first would render
+    // MealNew's manual-entry redirect before the async popstate.
+    else history.back();
+    setDialog('open');
+  };
+
+  const upload = async (blob: Blob, url: string) => {
+    if (!current(url)) return;
+    setPending({ url, status: 'uploading' });
     try {
       const { photoId } = await api('/api/photos', photoSchema, {
         method: 'POST',
         body: blob,
       });
-      // From the recognition screen (retake, drop, paste) the old photo leaves history.
-      navigate(flowPath(photoId), { replace: inFlow });
+      if (!current(url)) return;
+      // Replace: the upload screen leaves history, «Back» goes where the flow was opened from.
+      navigate(flowPath(photoId), { replace: true });
+      setPending(null);
     } catch (err) {
       if (!(err instanceof ApiError)) throw err;
+      if (!current(url)) return;
       if (err.code === 'photo_invalid' || err.code === 'photo_too_large')
-        setDialog('open');
-      else if (err.status === 0 || err.status >= 500)
-        // The prepared blob is kept: «Try again» doesn't re-encode.
-        toast({
-          text: t('capture.upload_failed'),
-          action: {
-            label: t('common.retry'),
-            onClick: () => void run(() => upload(blob)),
-          },
+        backOut();
+      else
+        setPending({
+          url,
+          status:
+            err.status === 0 && !navigator.onLine ? 'offline' : 'upload_failed',
         });
-      else toast({ text: t(`errors.${err.code}`) });
     }
   };
 
   const start = (file: Blob) =>
     run(async () => {
+      // A retake from the recognition screen of a photo: its address comes back if this one is bad.
+      origin.current =
+        inFlow && new URLSearchParams(search.current).has('photo')
+          ? `${MEAL_NEW_PATH}?${search.current}`
+          : null;
+      const url = URL.createObjectURL(file);
+      // The screen opens before the slow part (decoding, re-encoding, upload), so it shows that work.
+      flushSync(() => setPending({ url, status: 'uploading' }));
+      navigate(flowPath(), { replace: inFlow });
       let blob: Blob;
       try {
         blob = await prepareImage(file);
       } catch (err) {
         if (!(err instanceof ImageDecodeError)) throw err;
-        setDialog('open'); // nothing goes to the server (E-1.1)
+        // nothing goes to the server (E-1.1)
+        if (current(url)) backOut();
         return;
       }
-      await upload(blob);
+      blobRef.current = blob;
+      await upload(blob, url);
     });
+  const retry = () => {
+    const mine = pendingRef.current;
+    const blob = blobRef.current;
+    if (mine && blob) void run(() => upload(blob, mine.url));
+  };
   const startRef = useRef(start);
   startRef.current = start;
 
@@ -222,6 +281,8 @@ export function CaptureProvider({ children }: { children: ReactNode }) {
           date.current = day;
           setMenu(true);
         },
+        pending,
+        retry,
       }}
     >
       {children}

@@ -25,6 +25,7 @@ import { UsersScreen } from '../features/admin/UsersScreen';
 import {
   CaptureProvider,
   MEAL_NEW_PATH,
+  useCapture,
 } from '../features/meals/CaptureContext';
 import { diaryDay, localToday } from '../features/diary/day';
 import { DiaryScreen } from '../features/diary/DiaryScreen';
@@ -329,6 +330,10 @@ function LoginForm({
 export function MealNew() {
   const search = useSearch();
   const photoId = new URLSearchParams(search).get('photo');
+  const { pending } = useCapture();
+  // The chosen photo is still being prepared and uploaded: the screen shows that (OCT-370).
+  if (!photoId && pending)
+    return <RecognitionScreen key={pending.url} pending={pending} />;
   if (!photoId)
     return (
       <Redirect

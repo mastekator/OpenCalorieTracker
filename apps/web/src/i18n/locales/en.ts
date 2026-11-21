@@ -1022,6 +1022,7 @@ export const en = {
     },
     steps_a11y: 'Recognition steps',
     step: {
+      upload: 'Uploading the photo',
       barcode: 'Barcode',
       off: 'Open Food Facts',
       ai: 'AI reads the photo',
@@ -1070,6 +1071,8 @@ export const en = {
       title: 'No food found in the photo',
       body: 'Shoot the plate from above and closer, or enter the dishes manually.',
     },
+    upload_failed:
+      'Check the connection and try again, or enter the dishes manually.',
     offline: {
       title: 'No connection',
       body: 'Your photo is kept. Reconnect and try again, or enter the dishes manually.',
