@@ -60,12 +60,14 @@ export interface OctDb extends DBSchema {
  * `id` is the meal's server id, 0 until its createMeal is answered.
  * `error` is the code of a refused op: it stays for the badge and is not resent.
  * `sent` marks a createMeal that went out at least once: the server may already have it.
+ * `conflict` parks a patchMeal made on an older version: it waits for the user's choice (ADR-0022 §3).
  */
 export type Op = {
   seq?: number;
   clientId: string;
   error?: string;
   sent?: true;
+  conflict?: Conflict;
 } & (
   | { kind: 'uploadPhoto' }
   | { kind: 'createMeal'; body: MealInput }
@@ -77,6 +79,10 @@ export type Op = {
   | { kind: 'putWeighing'; body: Weighing }
   | { kind: 'deleteWeighing'; date: string }
 );
+
+/** `edit`: the server has a newer edit, `theirs`; `deleted`: the meal was deleted there. */
+export type Conflict =
+  { kind: 'edit'; theirs: Meal } | { kind: 'deleted'; deletedAt: number };
 
 /** Remembered illustration per dish nameKey. */
 export type Choices = Record<string, IllustrationId>;
