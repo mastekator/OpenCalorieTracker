@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OCT-429 · Meal photo full screen</title>
+<link rel="stylesheet" href="../oct-13/tokens.css">
+<script src="../preview-bar.js"></script>
+<style>
+/* New tokens (go to tokens.css): the viewer is dark in both themes — a photo reads best on black,
+   and the controls keep one contrast pair regardless of the theme. */
+:root {
+  --color-viewer-bg: #0A0D0C;                    /* OCT-429: full-screen photo backdrop, both themes */
+  --color-viewer-control: rgb(255 255 255 / 0.16); /* OCT-429: round chip behind viewer buttons */
+  --color-viewer-text: #FFFFFF;                  /* OCT-429: text and icons on the viewer (≥ 15:1 on the bg) */
+  --color-viewer-text-secondary: rgb(255 255 255 / 0.72); /* OCT-429: caption on the viewer (≥ 9:1) */
+  --color-viewer-notice: rgb(28 33 31 / 0.92);   /* OCT-429: caption plate over the photo */
+  --viewer-dismiss-distance: 120px;              /* OCT-429: swipe down past this closes */
+}
+body { margin: 0; padding: var(--space-10) var(--space-8); background: var(--color-bg); color: var(--color-text);
+  font: var(--text-body-size)/var(--text-body-lh) var(--font-sans); }
+.doc-h1 { margin: 0 0 var(--space-2); font-size: var(--text-title-size); line-height: var(--text-title-lh); }
+.doc-h2 { margin: var(--space-12) 0 var(--space-2); font-size: var(--text-headline-size); }
+.doc-lead { max-width: 80ch; margin: 0 0 var(--space-4); color: var(--color-text-secondary); font-size: var(--text-subhead-size); line-height: var(--text-subhead-lh); }
+.doc-list { max-width: 86ch; padding-left: var(--space-6); font-size: var(--text-subhead-size); line-height: var(--text-subhead-lh); }
+.doc-list li + li { margin-top: var(--space-2); }
+.doc-list code { font-size: .92em; }
+.frames { display: flex; flex-wrap: wrap; gap: var(--space-8); align-items: flex-start; }
+figure { margin: 0; }
+figcaption { width: 375px; margin-top: var(--space-3); font-size: var(--text-footnote-size); line-height: var(--text-footnote-lh); color: var(--color-text-secondary); }
+figcaption b { color: var(--color-text); }
+.desk + figcaption { width: 640px; }
+.lang-bar { display: inline-flex; margin-left: var(--space-4); }
+.try { display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-3) var(--space-4); border-radius: var(--radius-lg); background: var(--color-accent-soft); font-size: var(--text-subhead-size); }
+
+/* ---- frames ---- */
+.phone { position: relative; width: 375px; height: 740px; box-sizing: border-box; overflow: hidden; border-radius: 40px;
+  background: var(--color-bg); outline: 1px solid var(--color-separator); display: flex; flex-direction: column; }
+.phone__body { flex: 1; display: flex; flex-direction: column; gap: var(--space-4); padding: 0 var(--screen-gutter) var(--space-6); }
+.desk { width: 1040px; height: 680px; position: relative; border-radius: var(--radius-lg); overflow: hidden; outline: 1px solid var(--color-separator); background: var(--color-bg); }
+
+/* ---- app bits behind the viewer (edit screen) ---- */
+.nav { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; height: var(--navbar-height); padding: var(--space-6) var(--space-2) 0; }
+.nav__title { font: 600 var(--text-headline-size)/var(--text-headline-lh) var(--font-sans); text-align: center; }
+.ibtn { display: inline-flex; align-items: center; justify-content: center; width: var(--tap-min); height: var(--tap-min); border: 0; border-radius: var(--radius-full);
+  background: var(--color-surface-2); color: var(--color-text); cursor: pointer; }
+.ibtn svg { width: var(--icon-size); height: var(--icon-size); }
+.ibtn:focus-visible, .thumb:focus-visible, .btn:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }
+.head { display: flex; gap: var(--space-3); align-items: center; }
+.total__k { font: 700 var(--text-large-title-size)/1.1 var(--font-sans); font-variant-numeric: tabular-nums; }
+.total__k small { font-size: var(--text-body-size); font-weight: 500; color: var(--color-text-secondary); }
+.macros { display: flex; gap: var(--space-3); font-size: var(--text-footnote-size); color: var(--color-text-secondary); }
+.list { margin: 0; padding: 0 var(--space-4); list-style: none; border-radius: var(--radius-lg); background: var(--color-surface); }
+.dish { display: flex; justify-content: space-between; padding: var(--space-3) 0; font: 600 var(--text-headline-size)/var(--text-headline-lh) var(--font-sans); }
+.dish + .dish { border-top: 1px solid var(--color-separator); }
+.dish span:last-child { font-variant-numeric: tabular-nums; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); min-height: var(--control-height); padding: 0 var(--space-4);
+  border: 0; border-radius: var(--radius-md); font: 600 var(--text-body-size) var(--font-sans); background: none; color: var(--color-accent); cursor: pointer; }
+.btn--primary { width: 100%; background: var(--color-accent); color: var(--color-on-accent); min-height: var(--control-height-lg); }
+.foot { margin-top: auto; }
+
+/* thumbnail = a button that opens the viewer; the expand mark tells it opens */
+.thumb { position: relative; flex: none; width: var(--thumb-size); height: var(--thumb-size); padding: 0; border: 0; border-radius: var(--radius-md); overflow: hidden;
+  background: var(--illo-tile); cursor: zoom-in; }
+.thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.thumb__mark { position: absolute; right: 4px; bottom: 4px; display: grid; place-items: center; width: 20px; height: 20px; border-radius: var(--radius-full);
+  background: var(--color-viewer-notice); color: var(--color-viewer-text); }
+.thumb__mark svg { width: 12px; height: 12px; }
+.thumb--lg { width: 100%; height: 180px; border-radius: var(--radius-lg); }
+.tap { position: absolute; width: calc(var(--thumb-size) + 12px); height: calc(var(--thumb-size) + 12px); margin: -6px; border-radius: var(--radius-full); border: 2px dashed var(--color-accent); pointer-events: none; }
+
+/* ---- the viewer ---- */
+.viewer { position: absolute; inset: 0; z-index: 10; display: grid; grid-template-rows: auto 1fr auto; background: var(--color-viewer-bg); color: var(--color-viewer-text);
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+.viewer__bar { display: grid; grid-template-columns: var(--tap-min) 1fr var(--tap-min); align-items: center; gap: var(--space-2); padding: var(--space-6) var(--space-3) var(--space-2); }
+.viewer__title { text-align: center; font: 600 var(--text-subhead-size)/var(--text-subhead-lh) var(--font-sans); color: var(--color-viewer-text-secondary); font-variant-numeric: tabular-nums; }
+.viewer .ibtn { background: var(--color-viewer-control); color: var(--color-viewer-text); }
+.viewer .ibtn:focus-visible { outline-color: var(--color-viewer-text); }
+.viewer__stage { position: relative; min-height: 0; display: grid; place-items: center; overflow: hidden; touch-action: none; }
+/* preview and full photo are stacked; the full one fades in over the cached preview */
+.viewer__stage img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; display: block;
+  -webkit-touch-callout: default; user-select: auto; }
+.viewer__full { opacity: 1; transition: opacity var(--duration-fast, 160ms) ease-out; }
+.viewer__full.is-loading { opacity: 0; }
+.viewer__foot { min-height: var(--space-10); padding: var(--space-2) var(--screen-gutter) var(--space-6); display: grid; gap: var(--space-2); justify-items: center; }
+.vnote { display: flex; gap: var(--space-2); align-items: flex-start; max-width: 340px; padding: var(--space-3) var(--space-4); border-radius: var(--radius-lg);
+  background: var(--color-viewer-notice); font-size: var(--text-footnote-size); line-height: var(--text-footnote-lh); color: var(--color-viewer-text-secondary); }
+.vnote b { display: block; color: var(--color-viewer-text); font-weight: 600; }
+.vnote svg { flex: none; width: 18px; height: 18px; margin-top: 1px; color: var(--color-viewer-text); }
+.vbtn { min-height: var(--tap-min); padding: 0 var(--space-4); border: 0; border-radius: var(--radius-full); background: var(--color-viewer-control); color: var(--color-viewer-text);
+  font: 600 var(--text-subhead-size) var(--font-sans); cursor: pointer; }
+.vspin { width: 20px; height: 20px; box-sizing: border-box; border-radius: 50%; border: 2px solid var(--color-viewer-control); border-top-color: var(--color-viewer-text); animation: spin .9s linear infinite; }
+.vspin-wrap { display: flex; align-items: center; justify-content: center; width: var(--tap-min); height: var(--tap-min); }
+@keyframes spin { to { transform: rotate(360deg); } }
+.soft { filter: blur(1.5px); } /* stands for an upscaled 320 px preview in the frames */
+
+/* mid-swipe: photo follows the finger, backdrop fades */
+.viewer--drag { background: rgb(10 13 12 / 0.55); }
+.viewer--drag .viewer__bar, .viewer--drag .viewer__foot { opacity: 0; }
+.viewer--drag .viewer__stage img { transform: translateY(96px) scale(.9); }
+
+/* iOS long-press menu (drawn, system UI) */
+.ios-menu { z-index: 11; position: absolute; left: 50%; top: 470px; transform: translateX(-50%); width: 240px; border-radius: 14px; overflow: hidden; background: rgb(242 242 247 / 0.94); color: #000; font: 400 16px/1.2 var(--font-sans); }
+.ios-menu div { display: flex; justify-content: space-between; padding: 12px 16px; }
+.ios-menu div + div { border-top: 1px solid rgb(60 60 67 / 0.2); }
+.ios-lift { transform: scale(.82); border-radius: 14px; overflow: hidden; }
+
+/* desktop lightbox */
+.desk .viewer { padding: 0; }
+.desk .viewer__bar { grid-template-columns: 1fr auto; padding: var(--space-4) var(--space-4) 0 var(--space-6); }
+.desk .viewer__title { text-align: left; }
+.desk .viewer__stage { margin: var(--space-4) var(--space-12) 0; overflow: visible; }
+.desk .viewer__stage img { max-width: 1280px; margin: 0 auto; }
+.desk-app { display: grid; place-items: center; height: 100%; background: var(--color-scrim); }
+.modal { width: 720px; height: 520px; display: grid; grid-template-columns: 240px 1fr; grid-template-rows: auto 1fr; border-radius: var(--radius-xl); background: var(--color-bg); box-shadow: var(--shadow-sheet); overflow: hidden; }
+.modal__h { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; padding: var(--space-4) var(--space-6); border-bottom: 1px solid var(--color-separator); }
+.modal__l { padding: var(--space-6); border-right: 1px solid var(--color-separator); }
+.modal__r { padding: var(--space-6); display: grid; gap: var(--space-4); align-content: start; }
+.ctx { z-index: 11; position: absolute; left: 600px; top: 300px; width: 220px; padding: 4px; border-radius: 8px; background: var(--color-surface); box-shadow: var(--shadow-toast); color: var(--color-text); font-size: 13px; }
+.ctx div { padding: 6px 10px; border-radius: 4px; }
+.ctx .on { background: var(--color-accent); color: var(--color-on-accent); }
+
+/* copy table */
+table.copy { border-collapse: collapse; font-size: var(--text-subhead-size); max-width: 1100px; }
+.copy th, .copy td { text-align: left; vertical-align: top; padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--color-separator); }
+.copy th { color: var(--color-text-secondary); font-weight: 600; }
+.copy code { font-size: .9em; }
+
+/* live demo viewer: really full screen */
+.live { position: fixed; inset: 0; z-index: 2000; }
+@media (prefers-reduced-motion: reduce) { .viewer__full { transition: none; } .vspin { animation: none; border-style: dotted; } }
+</style>
+</head>
+<body>
+<main id="app"></main>
+<script>
+const NB = ' ';
+const KEY = 'oct-preview-lang';
+let lang = new URLSearchParams(location.search).get('lang');
+try { lang = lang || localStorage.getItem(KEY); } catch (e) {}
+lang = lang === 'en' ? 'en' : 'ru';
+const L = (ru, en) => lang === 'en' ? en : ru;
+
+const sv = d => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const I = {
+  x: sv('<path d="M18 6 6 18M6 6l12 12"/>'),
+  expand: sv('<path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>'),
+  clock: sv('<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>'),
+  wifiOff: sv('<path d="M12 20h.01M8.5 16.43a5 5 0 0 1 7 0M5 12.86a10 10 0 0 1 5.17-2.69M19 12.86a10 10 0 0 0-2-1.52M2 8.82a15 15 0 0 1 4.18-2.64M22 8.82a15 15 0 0 0-11.29-3.76M2 2l20 20"/>'),
+};
+// photo-full.jpg is 1280×960 (what ?size=full returns), photo-preview.jpg is 320×240 (the cached preview)
+const FULL = 'photo-full.jpg', PREV = 'photo-preview.jpg';
+const MEAL = () => L('Обед, сегодня 13:10', 'Lunch, today 1:10 PM');
+const ALT = () => L('Фото приёма пищи: обед, сегодня 13:10', 'Meal photo: lunch, today 1:10 PM');
+
+const thumb = (big) => `<button class="thumb${big ? ' thumb--lg' : ''}" data-open aria-label="${L('Открыть фото на весь экран', 'Open photo full screen')}" aria-haspopup="dialog">
+  <img src="${PREV}" alt=""><span class="thumb__mark">${I.expand}</span></button>`;
+
+// one viewer; state: full | loading | expired | error | drag
+const viewer = (state, o = {}) => {
+  const prevOnly = state === 'expired' || state === 'error';
+  const imgs = state === 'loading'
+    ? `<img src="${PREV}" alt="${ALT()}" class="soft"><img src="${FULL}" alt="" class="viewer__full is-loading">`
+    : prevOnly ? `<img src="${PREV}" alt="${ALT()}" class="soft">` : `<img src="${FULL}" alt="${ALT()}" class="viewer__full">`;
+  const right = state === 'loading' ? `<span class="vspin-wrap" role="status" aria-label="${L('Загружаем полное фото', 'Loading the full photo')}"><span class="vspin"></span></span>` : '<span></span>';
+  const foot = state === 'expired'
+    ? `<p class="vnote" role="note">${I.clock}<span><b>${L('Полное фото удалено', 'The full photo was deleted')}</b>${L('По настройке хранения фото осталось только превью. Срок меняется в Настройках → Фото.', 'Your photo storage setting keeps only the preview now. Change the period in Settings → Photos.')}</span></p>`
+    : state === 'error'
+    ? `<p class="vnote" role="alert">${I.wifiOff}<span><b>${L('Полное фото не загрузилось', 'The full photo didn’t load')}</b>${L('Пока показываем превью. Проверьте сеть.', 'Showing the preview for now. Check your connection.')}</span></p><button class="vbtn">${L('Повторить', 'Try again')}</button>`
+    : '';
+  const close = `<button class="ibtn" data-close aria-label="${L('Закрыть фото', 'Close photo')}">${I.x}</button>`;
+  const bar = o.desk ? `<div class="viewer__bar"><span class="viewer__title">${MEAL()}</span>${close}</div>`
+    : `<div class="viewer__bar">${close}<span class="viewer__title">${MEAL()}</span>${right}</div>`;
+  return `<div class="viewer${state === 'drag' ? ' viewer--drag' : ''}${o.cls ? ' ' + o.cls : ''}" role="dialog" aria-modal="true" aria-label="${L('Фото приёма пищи', 'Meal photo')}">
+    ${bar}<div class="viewer__stage">${imgs}</div><div class="viewer__foot">${foot}</div></div>`;
+};
+
+const editScreen = (tap) => `${`<div class="nav"><span><button class="ibtn" aria-label="${L('Закрыть', 'Close')}">${I.x}</button></span><span class="nav__title">${MEAL()}</span><span></span></div>`}
+  <div class="phone__body"><div class="head" style="position:relative">${tap ? '<span class="tap" style="left:0;top:0"></span>' : ''}${thumb()}
+  <div><div class="total__k">540 <small>${L('ккал', 'kcal')}</small></div><div class="macros"><span>${L('Б', 'P')} 32</span><span>${L('Ж', 'F')} 28</span><span>${L('У', 'C')} 38</span></div></div></div>
+  <ul class="list"><li class="dish"><span>${L('Омлет', 'Omelette')}</span><span>320 ${L('ккал', 'kcal')}</span></li><li class="dish"><span>${L('Йогурт', 'Yogurt')}</span><span>220 ${L('ккал', 'kcal')}</span></li></ul>
+  <div class="foot"><button class="btn btn--primary">${L('Сохранить', 'Save')}</button></div></div>`;
+
+const recipeCard = () => `<div class="nav"><span><button class="ibtn" aria-label="${L('Назад', 'Back')}">${I.x}</button></span><span class="nav__title">${L('Рецепт', 'Recipe')}</span><span></span></div>
+  <div class="phone__body" style="position:relative">${thumb(true)}<div class="total__k" style="font-size:var(--text-title-size)">${L('Омлет с йогуртом', 'Omelette with yogurt')}</div>
+  <ul class="list"><li class="dish"><span>${L('Яйца', 'Eggs')}</span><span>2 ${L('шт', 'pcs')}</span></li><li class="dish"><span>${L('Молоко', 'Milk')}</span><span>50 ${L('мл', 'ml')}</span></li></ul></div>`;
+
+const phone = (id, inner, cap) => `<figure id="${id}"><div class="phone">${inner}</div><figcaption>${cap}</figcaption></figure>`;
+
+function render() {
+  document.documentElement.lang = lang;
+  const R = {};
+  R.p1 = phone('p1', editScreen(true), L('<b>1.1 Вход: экран правки.</b> Миниатюра — кнопка (64 pt, зона ≥ 44) со значком «развернуть» в углу. Нажатие открывает просмотр. Нет фото (ручной ввод) — нет миниатюры и нечего открывать.', '<b>1.1 Entry: edit screen.</b> The thumbnail is a button (64 pt, hit area ≥ 44) with an expand mark in the corner. A tap opens the viewer. No photo (manual entry) means no thumbnail and nothing to open.'));
+  R.p2 = phone('p2', recipeCard(), L('<b>1.2 Вход: карточка рецепта.</b> Фото рецепта — та же кнопка со значком, тот же просмотр. Одна общая составляющая на оба экрана.', '<b>1.2 Entry: recipe card.</b> The recipe photo is the same button with the mark and opens the same viewer. One shared component for both screens.'));
+  R.v1 = phone('v1', viewer('full'), L('<b>2.1 Полное фото.</b> Фон тёмный в обеих темах. Фото вписано целиком (contain), без обрезки. Сверху: «×» 44 pt слева и время приёма. Долгое нажатие — системное меню iOS, «Сохранить в Фото» сохраняет 1280 px.', '<b>2.1 Full photo.</b> Dark backdrop in both themes. The photo fits whole (contain), no cropping. Top: a 44 pt “×” on the left and the meal time. Long press opens the iOS menu; “Save to Photos” saves the 1280 px file.'));
+  R.v2 = phone('v2', viewer('loading'), L('<b>2.2 Загрузка.</b> Сразу показываем превью из кэша, растянутое на экран, — пустого чёрного экрана нет. Справа вверху маленький индикатор. Полное фото проявляется поверх за 160 мс.', '<b>2.2 Loading.</b> The cached preview shows at once, stretched to the screen, so there’s never an empty black screen. A small spinner sits top right. The full photo fades in over it in 160 ms.'));
+  R.v3 = phone('v3', viewer('expired'), L('<b>2.3 Полное фото не хранится.</b> Срок хранения прошёл, остался только превью 320 px. Показываем его и подпись. Текст не винит и подсказывает, где поменять срок. Долгое нажатие сохранит превью: другого фото уже нет.', '<b>2.3 Full photo not kept.</b> The storage period has passed; only the 320 px preview is left. We show it with a caption. The text doesn’t blame and says where to change the period. Long press saves the preview, because nothing bigger is left.'));
+  R.v4 = phone('v4', viewer('error'), L('<b>2.4 Не загрузилось (офлайн, сбой).</b> Превью остаётся на экране. Подпись и «Повторить». Вернулась сеть — подгружаем сами, без нажатия.', '<b>2.4 Didn’t load (offline, error).</b> The preview stays on screen, with a caption and “Try again”. When the connection is back, we load it without a tap.'));
+  R.g1 = phone('g1', editScreen() + viewer('drag'), L('<b>3.1 Свайп вниз.</b> Фото идёт за пальцем, фон и кнопки гаснут. Сдвиг больше 120 pt или быстрый бросок закрывает просмотр, меньше — фото возвращается на место. Вверх и вбок свайп ничего не делает.', '<b>3.1 Swipe down.</b> The photo follows the finger; the backdrop and buttons fade. Past 120 pt, or a quick flick, closes the viewer; less than that, the photo springs back. Swiping up or sideways does nothing.'));
+  R.g2 = phone('g2', viewer('full').replace('<div class="viewer__stage">', '<div class="viewer__stage ios-lift">') +
+    `<div class="ios-menu" aria-hidden="true"><div>${L('Сохранить в Фото', 'Save to Photos')}<span>⤓</span></div><div>${L('Скопировать', 'Copy')}<span>⧉</span></div><div>${L('Поделиться…', 'Share…')}<span>⇪</span></div></div>`,
+    L('<b>3.2 Долгое нажатие (системное).</b> Это меню рисует iOS, мы его не трогаем: обычный <code>&lt;img&gt;</code> с адресом полного фото, без canvas, без <code>-webkit-touch-callout: none</code> и без перехвата <code>contextmenu</code>. Свайп не должен стартовать от долгого нажатия.', '<b>3.2 Long press (system).</b> iOS draws this menu; we leave it alone: a plain <code>&lt;img&gt;</code> pointing at the full photo, no canvas, no <code>-webkit-touch-callout: none</code>, no <code>contextmenu</code> handler. A long press must not start the swipe.'));
+
+  const deskBehind = `<div class="desk-app"><div class="modal"><div class="modal__h"><span class="nav__title">${MEAL()}</span><button class="ibtn" aria-label="${L('Закрыть', 'Close')}">${I.x}</button></div>
+    <div class="modal__l">${thumb(true)}</div><div class="modal__r"><div class="total__k">540 <small>${L('ккал', 'kcal')}</small></div><ul class="list"><li class="dish"><span>${L('Омлет', 'Omelette')}</span><span>320</span></li><li class="dish"><span>${L('Йогурт', 'Yogurt')}</span><span>220</span></li></ul></div></div></div>`;
+  R.d1 = `<figure id="d1"><div class="desk">${deskBehind}${viewer('full', { desk: true })}</div><figcaption>${L('<b>4.1 Компьютер.</b> Клик по фото в окне правки открывает просмотр поверх всего приложения. Фото не больше своих 1280 px, вписано в окно. Закрыть — «×», Esc или клик по фону мимо фото. Фокус при открытии — на «×», внутри окна фокус заперт, после закрытия возвращается на миниатюру.', '<b>4.1 Desktop.</b> A click on the photo in the edit window opens the viewer over the whole app. The photo is never larger than its 1280 px and fits the window. Close with “×”, Esc, or a click on the backdrop outside the photo. On open, focus goes to “×” and stays trapped inside; on close it returns to the thumbnail.')}</figcaption></figure>`;
+  R.d2 = `<figure id="d2"><div class="desk">${deskBehind}${viewer('full', { desk: true })}<div class="ctx" aria-hidden="true"><div>${L('Открыть картинку в новой вкладке', 'Open image in new tab')}</div><div class="on">${L('Сохранить картинку как…', 'Save image as…')}</div><div>${L('Копировать картинку', 'Copy image')}</div></div></div><figcaption>${L('<b>4.2 Правый клик.</b> Меню браузера, не наше. «Сохранить картинку как…» сохраняет полный JPEG 1280 px. Клик по фону мимо фото закрывает просмотр.', '<b>4.2 Right click.</b> The browser’s menu, not ours. “Save image as…” saves the full 1280 px JPEG. A click on the backdrop outside the photo closes the viewer.')}</figcaption></figure>`;
+
+  const copy = [
+    ['photoViewer.open', 'Открыть фото на весь экран', 'Open photo full screen', L('aria-label миниатюры', 'thumbnail aria-label')],
+    ['photoViewer.dialog', 'Фото приёма пищи', 'Meal photo', L('aria-label диалога', 'dialog aria-label')],
+    ['photoViewer.alt', 'Фото приёма пищи: {meal}, {when}', 'Meal photo: {meal}, {when}', 'alt'],
+    ['photoViewer.close', 'Закрыть фото', 'Close photo', L('aria-label «×»', '“×” aria-label')],
+    ['photoViewer.loading', 'Загружаем полное фото', 'Loading the full photo', L('индикатор, role=status', 'spinner, role=status')],
+    ['photoViewer.expired.title', 'Полное фото удалено', 'The full photo was deleted', ''],
+    ['photoViewer.expired.body', 'По настройке хранения фото осталось только превью. Срок меняется в Настройках → Фото.', 'Your photo storage setting keeps only the preview now. Change the period in Settings → Photos.', L('название раздела — как в Настройках', 'section name as in Settings')],
+    ['photoViewer.error.title', 'Полное фото не загрузилось', 'The full photo didn’t load', ''],
+    ['photoViewer.error.body', 'Пока показываем превью. Проверьте сеть.', 'Showing the preview for now. Check your connection.', ''],
+    ['photoViewer.retry', 'Повторить', 'Try again', ''],
+  ].map(r => `<tr><td><code>${r[0]}</code></td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join('');
+
+  document.getElementById('app').innerHTML = `
+<h1 class="doc-h1">OCT-429 · ${L('Фото приёма пищи на весь экран', 'Meal photo full screen')}</h1>
+<p class="doc-lead">${L('Нажатие на миниатюру открывает фото во весь экран. Долгое нажатие на iPhone и «Сохранить картинку» в браузере сохраняют полное фото 1280 px, а не превью 320 px (баг OCT-428).', 'A tap on the thumbnail opens the photo full screen. Long press on iPhone and “Save image” in the browser save the full 1280 px photo, not the 320 px preview (bug OCT-428).')}</p>
+<p class="try">${thumb()} <span>${L('Попробуйте: нажмите на миниатюру. На iPhone — долгое нажатие на фото, «Сохранить в Фото»; закрыть — свайп вниз. На компьютере — Esc.', 'Try it: tap the thumbnail. On iPhone, long press the photo and pick “Save to Photos”; swipe down to close. On a computer, press Esc.')}</span></p>
+<section id="entry"><h2 class="doc-h2">1 · ${L('Откуда открывается', 'Where it opens from')}</h2><div class="frames">${R.p1}${R.p2}</div></section>
+<section id="states"><h2 class="doc-h2">2 · ${L('Состояния', 'States')}</h2><div class="frames">${R.v1}${R.v2}${R.v3}${R.v4}</div></section>
+<section id="gestures"><h2 class="doc-h2">3 · ${L('Жесты', 'Gestures')}</h2><div class="frames">${R.g1}${R.g2}</div></section>
+<section id="desktop"><h2 class="doc-h2">4 · ${L('Компьютер', 'Desktop')}</h2><div class="frames">${R.d1}${R.d2}</div></section>
+<section id="spec"><h2 class="doc-h2">5 · ${L('Поведение для разработки', 'Behavior for development')}</h2><ul class="doc-list">${lang === 'en' ? `
+  <li>One <code>PhotoViewer</code> for the edit screen and the recipe card. Opens over everything (portal), <code>role="dialog"</code>, <code>aria-modal</code>, the page under it doesn’t scroll.</li>
+  <li>Two stacked <code>&lt;img&gt;</code>: the preview (already cached) underneath, <code>/api/photos/:id?size=full</code> on top with <code>opacity: 0</code> until <code>load</code>. The top one gets the <code>alt</code>; the preview gets an empty alt while the full one is visible.</li>
+  <li>Don’t block the system menus: no canvas, no blob URL, no <code>-webkit-touch-callout: none</code>, no <code>user-select: none</code> on the image, no <code>contextmenu</code> handler. The image <code>src</code> is a regular URL of the app, so “Save to Photos” and “Save image as…” get the JPEG itself.</li>
+  <li>Full photo deleted by retention: if the meal data says there’s no full photo (or <code>size=full</code> answers 404), don’t request it; show the preview and the caption from 2.3. Which signal to use is the lead’s call.</li>
+  <li>Load error: the preview stays, caption + “Try again” (2.4); on <code>online</code>, retry once by itself.</li>
+  <li>Swipe down: only vertical down drag; past <code>--viewer-dismiss-distance</code> or velocity &gt; 0.5 pt/ms closes, otherwise spring back. Pinch zoom is not in this task: 1280 px already fills an iPhone screen.</li>
+  <li>Focus: on open — “×”; Tab stays inside; Esc closes; on close focus returns to the thumbnail. VoiceOver: “Close photo, button” first, then the photo with its alt. The swipe has a button alternative (“×”).</li>
+  <li>Safe area: the bar gets <code>env(safe-area-inset-top)</code>, the caption <code>env(safe-area-inset-bottom)</code>. Opening: fade 160 ms; with reduced motion — no movement, the swipe still works.</li>
+  <li>Desktop: the photo is at most 1280 px wide and fits the window. Size the <code>&lt;img&gt;</code> to the photo (<code>max-width</code> / <code>max-height: 100%</code>), not <code>object-fit</code> on a full-size box, so a click on the black area hits the backdrop and closes, and the menus only open over the photo itself.</li>` : `
+  <li>Один <code>PhotoViewer</code> на экран правки и карточку рецепта. Открывается поверх всего (портал), <code>role="dialog"</code>, <code>aria-modal</code>, страница под ним не прокручивается.</li>
+  <li>Два <code>&lt;img&gt;</code> друг над другом: снизу превью (уже в кэше), сверху <code>/api/photos/:id?size=full</code> с <code>opacity: 0</code> до события <code>load</code>. <code>alt</code> — у верхнего; у превью alt пустой, пока видно полное.</li>
+  <li>Системные меню не блокируем: без canvas, без blob-адреса, без <code>-webkit-touch-callout: none</code>, без <code>user-select: none</code> на фото, без обработчика <code>contextmenu</code>. <code>src</code> — обычный адрес приложения, поэтому «Сохранить в Фото» и «Сохранить картинку как…» получают сам JPEG.</li>
+  <li>Полное фото удалено по сроку хранения: если в данных приёма отмечено, что полного нет (или <code>size=full</code> отвечает 404), не запрашиваем его, показываем превью и подпись из 2.3. Какой признак брать — решает лид.</li>
+  <li>Ошибка загрузки: превью остаётся, подпись и «Повторить» (2.4). По событию <code>online</code> — один повтор сами.</li>
+  <li>Свайп: только вертикально вниз. Сдвиг больше <code>--viewer-dismiss-distance</code> или скорость больше 0,5 pt/мс закрывает, иначе фото пружинит назад. Щипок-зум в задачу не входит: 1280 px и так заполняют экран iPhone.</li>
+  <li>Фокус: при открытии — на «×», Tab не выходит из окна, Esc закрывает, после закрытия фокус возвращается на миниатюру. VoiceOver: сначала «Закрыть фото, кнопка», потом фото с alt. У свайпа есть замена кнопкой («×»).</li>
+  <li>Safe area: панель с <code>env(safe-area-inset-top)</code>, подпись с <code>env(safe-area-inset-bottom)</code>. Открытие — проявление 160 мс. С reduced motion движения нет, свайп работает.</li>
+  <li>Компьютер: фото не шире 1280 px и вписано в окно. Размер <code>&lt;img&gt;</code> — по фото (<code>max-width</code> / <code>max-height: 100%</code>), а не <code>object-fit</code> на весь блок: тогда клик по чёрному полю попадает в фон и закрывает, а меню открываются только над самим фото.</li>`}
+</ul></section>
+<section id="copy"><h2 class="doc-h2">6 · ${L('Тексты', 'Copy')}</h2>
+<table class="copy"><thead><tr><th>${L('Ключ', 'Key')}</th><th>RU</th><th>EN</th><th></th></tr></thead><tbody>${copy}</tbody></table></section>`;
+
+  const bar = document.querySelector('.pv-bar');
+  if (bar && !bar.querySelector('.lang-bar')) {
+    const seg = document.createElement('div');
+    seg.className = 'pv-seg lang-bar';
+    seg.innerHTML = '<button data-l="ru">RU</button><button data-l="en">EN</button>';
+    seg.addEventListener('click', e => { const l = e.target.dataset.l; if (!l) return; lang = l; try { localStorage.setItem(KEY, l); } catch (er) {} render(); });
+    bar.appendChild(seg);
+  }
+  document.querySelectorAll('.lang-bar button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.l === lang)));
+}
+
+// live demo: any thumbnail on the page opens a real full-screen viewer
+let opener = null;
+function openLive(btn) {
+  opener = btn;
+  const host = document.createElement('div');
+  host.className = 'live';
+  host.innerHTML = viewer('loading');
+  document.body.appendChild(host);
+  document.body.style.overflow = 'hidden';
+  const v = host.firstElementChild, full = v.querySelector('.viewer__full'), prev = v.querySelector('.soft');
+  const done = () => { full.classList.remove('is-loading'); full.alt = ALT(); prev.alt = ''; v.querySelector('.vspin-wrap')?.replaceWith(document.createElement('span')); };
+  full.complete ? setTimeout(done, 400) : full.addEventListener('load', done);
+  v.querySelector('[data-close]').focus();
+  // swipe down to close
+  const stage = v.querySelector('.viewer__stage');
+  let y0 = null, t0 = 0, dy = 0, hold = null;
+  stage.addEventListener('pointerdown', e => { y0 = e.clientY; t0 = e.timeStamp; dy = 0; });
+  stage.addEventListener('pointermove', e => { if (y0 == null) return; dy = Math.max(0, e.clientY - y0);
+    stage.style.transform = `translateY(${dy}px)`; v.style.background = `rgb(10 13 12 / ${Math.max(.3, 1 - dy / 400)})`; });
+  const end = e => { if (y0 == null) return; const fast = dy / Math.max(1, e.timeStamp - t0) > .5;
+    y0 = null; if (dy > 120 || (fast && dy > 30)) close(); else { stage.style.transform = ''; v.style.background = ''; } };
+  stage.addEventListener('pointerup', end); stage.addEventListener('pointercancel', () => { y0 = null; stage.style.transform = ''; v.style.background = ''; });
+  v.addEventListener('click', e => { if (e.target.closest('[data-close]') || e.target === stage) close(); });
+  host.addEventListener('keydown', e => { if (e.key === 'Escape') close(); if (e.key === 'Tab') { e.preventDefault(); v.querySelector('[data-close]').focus(); } });
+  function close() { host.remove(); document.body.style.overflow = ''; opener && opener.focus(); }
+}
+document.addEventListener('click', e => { const b = e.target.closest('[data-open]'); if (b) openLive(b); });
+
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', render); else render();
+</script>
+</body>
+</html>
