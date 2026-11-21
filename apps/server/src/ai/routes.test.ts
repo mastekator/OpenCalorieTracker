@@ -13,6 +13,7 @@ const egg = {
   fatG: 5.3,
   carbsG: 0.6,
   confidence: 0.96,
+  unit: 'g',
 };
 
 let cleanup: (() => Promise<void>) | undefined;

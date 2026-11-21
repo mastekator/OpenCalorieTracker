@@ -20,10 +20,10 @@ import {
   sanitizeQuestions,
   type RecipeName,
 } from './questions.js';
-import { sanitizeDish } from './recognize.js';
+import { modelUnit, sanitizeDish, UNIT_RULE } from './recognize.js';
 
 /** Bump on every prompt change; it is logged with each call. */
-export const REFINE_PROMPT_VERSION = 2;
+export const REFINE_PROMPT_VERSION = 3;
 export const REFINE_TIMEOUT_MS = 60_000;
 
 export interface RefineInput {
@@ -64,6 +64,7 @@ The user already added the dishes listed in "user_dishes": do not list them agai
   return `You estimate nutrition from ${source}.
 ${task}
 For each dish give the weight of the edible part in grams and the kcal, protein, fat and carbohydrates in grams for that weight (the whole portion, not per 100 g).
+${UNIT_RULE}
 Write dish names in ${languageName(locale)}.
 Confidence is 0..1:
 - 0.95 or higher only for countable, unambiguous single items or exact amounts the user gave;
@@ -135,7 +136,9 @@ export async function refineMeal(
         if (mode === 'again') return dish;
         const ref = d.ref && byId.has(d.ref) && !used.has(d.ref) ? d.ref : null;
         if (ref) used.add(ref);
-        return { ...dish, ref };
+        // A dish the model kept without a unit stays in its own unit (ADR-0038 §3).
+        const unit = modelUnit(d.unit) ?? byId.get(ref ?? '')?.unit ?? 'g';
+        return { ...dish, ref, unit };
       });
       // A dish the user set (or answered a question about) is never asked about again (AC-10.8).
       const isFixed = (d: RecognizedDish) =>

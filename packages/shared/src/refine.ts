@@ -17,6 +17,7 @@ export const refineDishInSchema = z.object({
   proteinG: item.proteinG,
   fatG: item.fatG,
   carbsG: item.carbsG,
+  unit: item.unit,
   fixed: z.array(fixedFieldSchema),
 });
 export type RefineDishIn = z.infer<typeof refineDishInSchema>;

@@ -16,6 +16,8 @@ export const recognizedDishSchema = z.object({
   confidence: z.number(),
   /** Refine mode only: id of the input dish this one replaces, null for a new dish (ADR-0020 §3). */
   ref: z.string().nullable().optional(),
+  /** 'ml' for drinks (ADR-0038 §3); loose so one odd value cannot fail the answer, the server narrows it. */
+  unit: z.string().nullable().optional(),
 });
 export type RecognizedDish = z.infer<typeof recognizedDishSchema>;
 

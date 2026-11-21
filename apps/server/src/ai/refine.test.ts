@@ -94,7 +94,7 @@ describe('refineMeal', () => {
       expect(logs()).toEqual([
         expect.stringMatching(
           new RegExp(
-            `^ai\\.refine provider=mock model=vision-1 prompt=2 ms=\\d+ mode=${mode} photo=${photo ? 1 : 0} dishes=1 questions=0 recipes=0 result=ok$`,
+            `^ai\\.refine provider=mock model=vision-1 prompt=3 ms=\\d+ mode=${mode} photo=${photo ? 1 : 0} dishes=1 questions=0 recipes=0 result=ok$`,
           ),
         ),
       ]);
@@ -114,6 +114,19 @@ describe('refineMeal', () => {
     });
     const { dishes } = await refineMeal(model, base());
     expect(dishes.map((d) => d.ref)).toEqual(['d1', 'd2', null, null, null]);
+  });
+
+  it('AC-3: a kept dish without a unit stays in its own unit, a new one is g (ADR-0038 §3)', async () => {
+    const milk = { ...input('Milk', 250, 150, 'd1'), unit: 'ml' as const };
+    const model = mockModel({
+      dishes: [
+        dish('Milk 2%', 300, 150, 'd1'),
+        { ...dish('Rice', 150, 195, 'd2'), unit: 'ml' },
+        dish('Juice', 200, 90),
+      ],
+    });
+    const { dishes } = await refineMeal(model, base({ dishes: [milk, rice] }));
+    expect(dishes.map((d) => d.unit)).toEqual(['ml', 'ml', 'g']);
   });
 
   it('again: sends only the names of dishes the user set, returns no refs', async () => {

@@ -9,6 +9,7 @@ import {
   packageModelSchema,
   round1,
   type AiQuestion,
+  type DishUnit,
   type PackageModelDish,
   type PackageModelRecognition,
   type PackageRecognition,
@@ -30,11 +31,14 @@ import {
 } from './questions.js';
 
 /** Bump on every prompt change; it is logged with each call. */
-export const RECOGNIZE_PROMPT_VERSION = 6;
+export const RECOGNIZE_PROMPT_VERSION = 7;
 
 /** Same rule in the photo and label prompts (OCT-372). */
 export const PET_FOOD_RULE =
   'Food for people only; pet food is not food — omit it even if its nutrition table is readable; packaged human food with animals in its picture or name is food.';
+/** Same rule in the photo and refine prompts (ADR-0038 §3). */
+export const UNIT_RULE =
+  'For a drink or a liquid dish in a glass, cup or bottle set "unit" to "ml" and put its volume in millilitres in "grams"; for anything else omit "unit".';
 export const RECOGNIZE_TIMEOUT_MS = 60_000;
 
 /** Recognition before the server looks up the printed codes (ADR-0036 §3). */
@@ -52,6 +56,7 @@ export function recognizePrompt(locale: string, hasRecipes = false) {
   return `You estimate nutrition from a meal photo.
 List every separate dish or food item visible. Identical items on different plates are separate entries.
 For each item estimate the weight of the edible part in grams and the kcal, protein, fat and carbohydrates in grams for that weight (the whole portion, not per 100 g).
+${UNIT_RULE}
 Write dish names in ${languageName(locale)}.
 Confidence is 0..1:
 - 0.95 or higher only for countable, unambiguous single items (eggs, a banana, a packaged yogurt, a slice of bread);
@@ -232,11 +237,19 @@ export function sanitizePackageDish(
   };
 }
 
+/** The model's unit, or null when it sent none or garbage. */
+export const modelUnit = (u: string | null | undefined): DishUnit | null => {
+  const v = u?.trim().toLowerCase();
+  return v === 'ml' || v === 'g' ? v : null;
+};
+
 /**
  * Clamps numbers into the ranges `mealItemInputSchema` accepts; a dish with impossible numbers
  * keeps confidence 0 (AC-2.6, E-7.4). Cutting grams scales the nutrients too, keeping the density.
  */
-export function sanitizeDish(d: RecognizedDish): RecognizedDish {
+export function sanitizeDish(d: RecognizedDish): RecognizedDish & {
+  unit: DishUnit;
+} {
   const numbers = [d.grams, d.kcal, d.proteinG, d.fatG, d.carbsG, d.confidence];
   const finite = numbers.every(Number.isFinite);
   const suspicious =
@@ -253,5 +266,6 @@ export function sanitizeDish(d: RecognizedDish): RecognizedDish {
     fatG: amount(d.fatG, 1000),
     carbsG: amount(d.carbsG, 1000),
     confidence: suspicious ? 0 : Math.min(1, Math.max(0, d.confidence)),
+    unit: modelUnit(d.unit) ?? 'g',
   };
 }
