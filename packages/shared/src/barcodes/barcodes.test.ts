@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeGtin } from './barcodes.js';
+import { normalizeGtin, productSchema } from './barcodes.js';
 
 describe('normalizeGtin', () => {
   it('accepts valid EAN-13, EAN-8 and GTIN-14', () => {
@@ -22,5 +22,42 @@ describe('normalizeGtin', () => {
     expect(normalizeGtin('400638133393')).toBeNull();
     expect(normalizeGtin('40063813339x1')).toBeNull();
     expect(normalizeGtin('')).toBeNull();
+  });
+});
+
+describe('productSchema (ADR-0037)', () => {
+  const old = {
+    code: '4006381333931',
+    name: 'Bar',
+    brand: null,
+    kcal100: 500,
+    protein100: null,
+    fat100: null,
+    carbs100: null,
+    per: 'g',
+    servingG: null,
+    servingText: null,
+  };
+
+  it('accepts a product stored before pack, pieces and last existed', () => {
+    expect(productSchema.parse(old)).toEqual(old);
+  });
+
+  it('checks the new fields', () => {
+    const last = { mode: 'piece', value: 2 };
+    expect(
+      productSchema.parse({ ...old, packG: 400, pieces: 8, last }),
+    ).toMatchObject({ packG: 400, pieces: 8, last });
+    expect(productSchema.safeParse({ ...old, pieces: 1.5 }).success).toBe(
+      false,
+    );
+    expect(
+      productSchema.safeParse({ ...old, last: { mode: 'box', value: 1 } })
+        .success,
+    ).toBe(false);
+    expect(
+      productSchema.safeParse({ ...old, last: { mode: 'pack', value: 0 } })
+        .success,
+    ).toBe(false);
   });
 });

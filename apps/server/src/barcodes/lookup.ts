@@ -22,6 +22,7 @@ type CacheRow = ProductRow & {
   status: 'found' | 'missing';
   names: string | null;
   serving_text: string | null;
+  pack_g: number | null;
   fetched_at: number;
 };
 type MineRow = ProductRow & { name: string; updated_at: number };
@@ -41,6 +42,9 @@ const fromRow = (
   per: r.per,
   servingG: r.serving_g,
   servingText,
+  packG: null,
+  pieces: null,
+  last: null,
 });
 
 export const mineToProduct = (r: MineRow): Product => ({
@@ -51,15 +55,18 @@ export const mineToProduct = (r: MineRow): Product => ({
 /** The name in the user's language, else product_name (AC-4.12). */
 const cachedProduct = (r: CacheRow, locale: Locale) => {
   const names = JSON.parse(r.names ?? '{}') as Record<string, string>;
-  return fromRow(r, names[locale] ?? names.default ?? null, r.serving_text);
+  return {
+    ...fromRow(r, names[locale] ?? names.default ?? null, r.serving_text),
+    packG: r.pack_g,
+  };
 };
 
 function storeOff(db: Database, code: string, off: OffResult, now: number) {
   const p: Partial<OffProduct> = off.status === 'found' ? off.product : {};
   db.prepare(
     `INSERT OR REPLACE INTO food_products (code, status, names, brand, kcal_100, protein_100, fat_100,
-       carbs_100, per, serving_g, serving_text, fetched_at)
-     VALUES (@code, @status, @names, @brand, @kcal, @protein, @fat, @carbs, @per, @servingG, @servingText, @now)`,
+       carbs_100, per, serving_g, serving_text, pack_g, fetched_at)
+     VALUES (@code, @status, @names, @brand, @kcal, @protein, @fat, @carbs, @per, @servingG, @servingText, @packG, @now)`,
   ).run({
     code,
     status: off.status,
@@ -72,6 +79,7 @@ function storeOff(db: Database, code: string, off: OffResult, now: number) {
     per: p.per ?? null,
     servingG: p.servingG ?? null,
     servingText: p.servingText ?? null,
+    packG: p.packG ?? null,
     now,
   });
 }

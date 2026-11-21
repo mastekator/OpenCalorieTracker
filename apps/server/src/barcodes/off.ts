@@ -11,6 +11,7 @@ const FIELDS = [
   'nutriments',
   'serving_quantity',
   'serving_size',
+  'product_quantity',
   'product_quantity_unit',
 ].join(',');
 
@@ -25,6 +26,7 @@ export interface OffProduct {
   per: 'g' | 'ml';
   servingG: number | null;
   servingText: string | null;
+  packG: number | null;
 }
 
 export type OffResult =
@@ -47,6 +49,7 @@ export function parseOffProduct(p: Record<string, unknown>): OffProduct {
     num(n['energy-kcal_100g']) ??
     (kj === null ? null : Math.round((kj / 4.184) * 10) / 10);
   const serving = num(p.serving_quantity);
+  const pack = num(p.product_quantity);
   const names: Record<string, string> = {};
   const name = text(p.product_name);
   if (name) names.default = name;
@@ -65,6 +68,7 @@ export function parseOffProduct(p: Record<string, unknown>): OffProduct {
     servingG:
       serving !== null && serving >= 1 && serving <= 2000 ? serving : null,
     servingText: text(p.serving_size),
+    packG: pack !== null && pack >= 1 && pack <= 5000 ? pack : null,
   };
 }
 
