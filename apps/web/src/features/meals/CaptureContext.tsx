@@ -113,9 +113,13 @@ export function CaptureProvider({ children }: { children: ReactNode }) {
 
   /** Bad photo: off the upload screen to where it was opened from, then dialog 3.8. */
   const backOut = () => {
-    setPending(null);
     // A retake replaced the old photo's entry: put it back; history.back() would leave the flow.
-    if (origin.current) navigate(origin.current, { replace: true });
+    if (origin.current) {
+      navigate(origin.current, { replace: true });
+      setPending(null);
+    }
+    // Pending is cleared by the location effect once back lands: clearing it first would render
+    // MealNew's manual-entry redirect before the async popstate.
     else history.back();
     setDialog('open');
   };

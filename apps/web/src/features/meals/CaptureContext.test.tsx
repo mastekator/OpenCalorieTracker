@@ -197,12 +197,15 @@ describe('CaptureProvider', () => {
   it('a rejected photo goes back from the flow and shows dialog 3.8', async () => {
     respond(failed(400, 'photo_invalid'));
     const back = vi.spyOn(history, 'back').mockImplementation(() => {});
-    await setup();
+    const location = await setup();
     choose([photo]);
     expect(
       await screen.findByRole('heading', { name: 'Couldn’t open the photo' }),
     ).toBeTruthy();
     expect(back).toHaveBeenCalledOnce();
+    // Kept until back lands, so the flow doesn't redirect to manual entry first.
+    expect(pending()).toBe('uploading');
+    act(() => location.navigate('/'));
     expect(pending()).toBe('none');
     back.mockRestore();
   });
