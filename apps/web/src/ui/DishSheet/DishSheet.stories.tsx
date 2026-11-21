@@ -1,6 +1,6 @@
 import { useState, type ComponentProps } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { fn } from 'storybook/test';
+import { fn, within } from 'storybook/test';
 import { useT } from '../../i18n';
 import { Button } from '../Button/Button';
 import type { BarcodeResult } from '../../data/products';
@@ -322,4 +322,71 @@ export const FluidOuncesDark: Story = {
 export const MillilitresRussian: Story = {
   args: drink,
   globals: { locale: 'ru' },
+};
+/** OCT-380 3.1: no package weight, no serving: «Pieces · Grams» and «Add package weight». */
+const unknown = {
+  ...amount,
+  original: {
+    name: 'Muesli bar',
+    grams: 100,
+    kcal: 400,
+    proteinG: 5,
+    fatG: 12,
+    carbsG: 66,
+  },
+  grams: 100,
+  product: {
+    ...cookies,
+    name: 'Muesli bar',
+    kcal100: 400,
+    packG: null,
+    servingG: null,
+    pieces: null,
+  },
+  amount: { mode: 'weight', value: 100 },
+} as const;
+// The sheet is a modal <dialog> outside the canvas.
+const tap = (name: RegExp, role: 'button' | 'radio') =>
+  async function play({ canvasElement }: { canvasElement: HTMLElement }) {
+    const body = within(canvasElement.ownerDocument.body);
+    (await body.findByRole(role, { name })).click();
+  };
+export const WeightUnknown: Story = { args: unknown };
+export const WeightUnknownDark: Story = {
+  args: unknown,
+  globals: { theme: 'dark' },
+};
+/** 3.2: the package weight field. */
+export const WeightUnknownAsked: Story = {
+  args: unknown,
+  play: tap(/Add package weight|Указать вес упаковки/, 'button'),
+};
+export const WeightUnknownAskedDark: Story = {
+  ...WeightUnknownAsked,
+  globals: { theme: 'dark' },
+};
+/** 3.3: «Pieces» with the count unknown asks it; without a weight, the weight first. */
+const piecesUnknown = {
+  ...amount,
+  product: { ...cookies, pieces: null },
+} as const;
+export const PiecesUnknown: Story = {
+  args: piecesUnknown,
+  play: tap(/^(Pieces|Штуки)$/, 'radio'),
+};
+export const PiecesUnknownDark: Story = {
+  ...PiecesUnknown,
+  globals: { theme: 'dark' },
+};
+export const PiecesUnknownRussian: Story = {
+  ...PiecesUnknown,
+  globals: { locale: 'ru' },
+};
+export const PiecesAndWeightUnknown: Story = {
+  args: unknown,
+  play: tap(/^(Pieces|Штуки)$/, 'radio'),
+};
+export const PiecesAndWeightUnknownDark: Story = {
+  ...PiecesAndWeightUnknown,
+  globals: { theme: 'dark' },
 };

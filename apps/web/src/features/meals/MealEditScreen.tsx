@@ -83,7 +83,7 @@ import { Badge } from '../../ui/Badge/Badge';
 import { BarcodeConsentSheet } from '../../ui/BarcodeConsentSheet/BarcodeConsentSheet';
 import { Banner } from '../../ui/Banner/Banner';
 import { Button } from '../../ui/Button/Button';
-import { hasShares } from '../../ui/AmountPicker/amount';
+import type { Pack } from '../../ui/AmountPicker/AmountPicker';
 import { DishRow } from '../../ui/DishRow/DishRow';
 import { DishSheet, type Replaced } from '../../ui/DishSheet/DishSheet';
 import { HistoryHint } from '../../ui/HistoryHint/HistoryHint';
@@ -552,6 +552,7 @@ export function MealEditScreen({
     grams: number,
     replaced?: Replaced,
     amount?: Amount,
+    pack?: Pack,
   ) => {
     setEditing(null);
     const row = rows.find((r) => r.id === id);
@@ -581,6 +582,8 @@ export function MealEditScreen({
               grams,
               shown: grams,
               amount,
+              // Another product after «Replace»: what was typed was about the old one.
+              pack: replaced?.dish ? pack : { ...r.pack, ...pack },
               fixed: [
                 ...(renamed ? ['name' as const] : []),
                 ...(grams !== r.grams ? ['grams' as const] : []),
@@ -1015,13 +1018,14 @@ export function MealEditScreen({
     };
   };
   const mixed = aiRows && rows.some((r) => packageOf(r));
-  // A product with a package or serving: the row counts in shares (OCT-380 1.1).
+  // A found product, with what was typed in the sheet: counted in shares (OCT-380 1.1, 3.2).
   const shareOf = (row: Row) => {
     if (row.source !== 'barcode' && row.source !== 'manual') return undefined;
-    const product = row.original.barcode
+    const found = row.original.barcode
       ? products?.get(row.original.barcode)
       : undefined;
-    if (!hasShares(product)) return undefined;
+    if (!found) return undefined;
+    const product = { ...found, ...row.pack };
     const d = defaultAmount(product);
     // Not stored with the meal (AC-3.7): grams equal to the default read as it.
     const amount: Amount =
@@ -1716,8 +1720,8 @@ export function MealEditScreen({
           lookup={onBarcode}
           product={shareOf(editingRow)?.product}
           amount={shareOf(editingRow)?.amount}
-          onDone={(name, grams, replaced, amount) =>
-            applySheet(editingRow.id, name, grams, replaced, amount)
+          onDone={(name, grams, replaced, amount, pack) =>
+            applySheet(editingRow.id, name, grams, replaced, amount, pack)
           }
           onDelete={() => {
             setEditing(null);

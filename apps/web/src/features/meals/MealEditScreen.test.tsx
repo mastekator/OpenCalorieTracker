@@ -1181,6 +1181,67 @@ describe('MealEditScreen: recipes (OCT-160 §5, ADR-0023 §5–6)', () => {
         .closest('.dish-row')!
         .querySelector('.dish-row__meta')!.textContent;
 
+    const product = {
+      code,
+      name: 'Yogurt',
+      brand: null,
+      kcal100: 200,
+      protein100: 8,
+      fat100: 2,
+      carbs100: 40,
+      per: 'g' as const,
+      servingG: null,
+      servingText: null,
+    };
+
+    it('a typed package weight goes with the dish as `pack` (AC-2.5, OCT-380 3.2)', async () => {
+      const onSave = await open({
+        dishes: [yogurt],
+        products: new Map([[code, product]]),
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Edit Yogurt' }));
+      const sheet = screen.getByRole('dialog');
+      fireEvent.click(
+        within(sheet).getByRole('button', { name: 'Add package weight' }),
+      );
+      fireEvent.change(within(sheet).getByLabelText('Package weight (net)'), {
+        target: { value: '300' },
+      });
+      fireEvent.click(within(sheet).getByRole('button', { name: 'Done' }));
+      const row = screen
+        .getByRole('button', { name: 'Edit Yogurt' })
+        .closest('.dish-row')!;
+      expect(row.querySelector('.dish-row__share')!.textContent).toBe(
+        '1\u00a0pack · 300\u00a0g',
+      );
+      await save();
+      expect(onSave.mock.calls[0]![0].items[0]).toMatchObject({
+        grams: 300,
+        barcode: code,
+        pack: { packG: 300, amount: { mode: 'pack', value: 1 } },
+      });
+    });
+
+    it('a product with `last` opens on the last pick (AC-5.2)', async () => {
+      await open({
+        dishes: [{ ...yogurt, grams: 300 }],
+        products: new Map([
+          [
+            code,
+            { ...product, servingG: 150, last: { mode: 'serving', value: 2 } },
+          ],
+        ]),
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Edit Yogurt' }));
+      const sheet = screen.getByRole('dialog');
+      expect(
+        within(sheet)
+          .getByRole('radio', { name: 'Servings' })
+          .getAttribute('aria-checked'),
+      ).toBe('true');
+      within(sheet).getByText('same as last time');
+    });
+
     it('a package keeps its source badge after a weight and a name edit (2)', async () => {
       await open({ dishes: [yogurt, rice] });
       expect(badges('Yogurt')).toContain('barcode');
