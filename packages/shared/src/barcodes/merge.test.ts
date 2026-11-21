@@ -67,6 +67,15 @@ describe('mergePackages', () => {
     expect(dish).toMatchObject({ grams: 100, kcal: 70, proteinG: 0 });
   });
 
+  it('AC-3.8: a known package weight gives the whole package, the last pick wins', () => {
+    const merge = (over: Partial<Product>) =>
+      mergePackages([ai({ barcode: A })], [hit(A, product(over))])[0];
+    expect(merge({ packG: 400 })).toMatchObject({ grams: 400, kcal: 280 });
+    expect(
+      merge({ packG: 400, last: { mode: 'weight', value: 50 } }),
+    ).toMatchObject({ grams: 50, kcal: 35 });
+  });
+
   it('found without kcal and a label read → the label numbers', () => {
     expect(
       mergePackages(

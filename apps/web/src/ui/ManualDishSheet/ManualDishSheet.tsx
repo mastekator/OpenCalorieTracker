@@ -2,6 +2,8 @@ import { useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { ChefHat } from 'lucide-react';
 import {
+  amountGrams,
+  defaultAmount,
   DISH_GRAMS,
   fromPer100,
   gToOz,
@@ -199,7 +201,7 @@ export function ManualDishSheet({
         ? String(v)
         : text[k];
     // shortcut: a per-ml product counts 1 ml as 1 g; fine for drinks, convert by density if users ask.
-    const g = product.servingG ?? 100;
+    const g = amountGrams(product, defaultAmount(product));
     setText({
       barcode: text.barcode,
       name: put('name', product.name ?? product.brand),

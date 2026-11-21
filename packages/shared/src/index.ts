@@ -104,6 +104,7 @@ export * from './settings.js';
 export * from './integrations.js';
 export * from './barcodes/barcodes.js';
 export * from './barcodes/merge.js';
+export * from './barcodes/amount.js';
 export * from './illustrations/dictionary.js';
 export * from './sync.js';
 export * from './weight/schemas.js';
