@@ -4,6 +4,22 @@ All notable changes to this project are documented in this file.
 
 ## Unreleased
 
+## 0.3.1 — 2026-11-21
+
+Fixes after 0.3.0: barcodes, drinks, package portions and photos.
+
+- The recognition screen opens right after taking a photo, before the upload finishes
+- Barcodes: the scanned code is checked against the digits the AI reads on the label; when they differ, the other code is offered in the dish sheet
+- Pet food in a photo is no longer logged as food
+- Drinks are counted in ml (fl oz with US units); a g / ml switch in manual entry and in your own product form
+- How much you ate of a package: packages, servings, pieces or grams; the package weight comes from Open Food Facts or is asked once, and the last choice is remembered per barcode
+- Meal and recipe photos open full screen at full size, so saving a photo no longer saves the thumbnail
+- «Recipe from text» is offered in the empty kitchen and marked as AI
+
+### Upgrade from 0.3.0
+
+Set `image: ghcr.io/mastekator/opencalorietracker:0.3.1` in `docker-compose.yml`, then `docker compose pull && docker compose up -d`. Database migrations run on start; back up the `data` folder first. Nothing else is required.
+
 ## 0.3.0 — 2026-11-21
 
 Faster logging: recipes and barcodes.
