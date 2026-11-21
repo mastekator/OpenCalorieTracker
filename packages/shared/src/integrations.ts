@@ -24,5 +24,10 @@ export const integrationsSchema = z.object({
     /** The admin forbade outbound requests; the user's switch is kept (E-6). */
     blocked: z.boolean(),
   }),
+  /** The last finished export, for the hub card; null before the first one. */
+  export: z.object({
+    lastAt: z.iso.datetime().nullable(),
+    lastFormat: z.enum(['json', 'csv']).nullable(),
+  }),
 });
 export type Integrations = z.infer<typeof integrationsSchema>;

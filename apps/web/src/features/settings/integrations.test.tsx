@@ -53,7 +53,10 @@ const seed = async (offEnabled: boolean, blocked?: boolean) => {
   if (blocked !== undefined)
     await db.put(
       'kv',
-      { barcode: { enabled: offEnabled, blocked } },
+      {
+        barcode: { enabled: offEnabled, blocked },
+        export: { lastAt: null, lastFormat: null },
+      },
       'integrations',
     );
   db.close();
@@ -75,7 +78,10 @@ const serveBlocked = (blocked: boolean) =>
     vi.fn((input: string) =>
       String(input).endsWith('/api/integrations')
         ? Promise.resolve(
-            Response.json({ barcode: { enabled: false, blocked } }),
+            Response.json({
+              barcode: { enabled: false, blocked },
+              export: { lastAt: null, lastFormat: null },
+            }),
           )
         : new Promise(() => {}),
     ),

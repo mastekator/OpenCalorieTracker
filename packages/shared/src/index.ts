@@ -46,6 +46,7 @@ export type ErrorCode =
   | 'client_outdated'
   | 'photo_expired'
   | 'payload_too_large'
+  | 'export_too_large'
   | 'photo_in_use'
   | 'recipe_changed'
   | 'edit_conflict'

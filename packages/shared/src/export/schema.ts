@@ -41,10 +41,10 @@ export const octExportMealSchema = z.object({
   eatenAt: z.iso.datetime({ offset: true }),
   tzOffsetMin: z.number().int().min(-840).max(840),
   mealType: mealTypeSchema,
-  /** Path inside the ZIP, when photos were exported. */
+  /** Path inside the ZIP, when photos were exported: the full JPEG, or the WebP preview once the full one expired. */
   photo: z
     .string()
-    .regex(/^photos\/[\w-]+\.jpg$/)
+    .regex(/^photos\/[\w-]+\.(jpg|webp)$/)
     .optional(),
   dishes: z.array(octExportDishSchema).min(1),
 });
@@ -90,3 +90,28 @@ export const MEALS_CSV_HEADER = [
 ] as const;
 
 export const WEIGHINGS_CSV_HEADER = ['date', 'weight_kg'] as const;
+
+export const exportFormatSchema = z.enum(['json', 'csv']);
+export type ExportFormat = z.infer<typeof exportFormatSchema>;
+
+/** Query of GET /export and GET /export/summary (ADR-0026 §3): no period is the whole diary. */
+export const exportQuerySchema = z
+  .object({
+    format: exportFormatSchema.default('json'),
+    from: z.iso.date().optional(),
+    to: z.iso.date().optional(),
+    photos: z.enum(['0', '1']).default('0'),
+  })
+  .refine((q) => !q.from === !q.to && (!q.from || q.from <= q.to!), {
+    path: ['to'],
+  });
+export type ExportQuery = z.infer<typeof exportQuerySchema>;
+
+/** GET /export/summary: what the export will hold; `bytes` is its exact size. */
+export const exportSummarySchema = z.object({
+  days: z.number().int(),
+  dishes: z.number().int(),
+  photos: z.number().int(),
+  bytes: z.number().int(),
+});
+export type ExportSummary = z.infer<typeof exportSummarySchema>;
