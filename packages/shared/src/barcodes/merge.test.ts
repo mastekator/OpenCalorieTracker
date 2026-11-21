@@ -165,4 +165,86 @@ describe('mergePackages', () => {
     expect(out).toHaveLength(1);
     expect(out[0]).toMatchObject({ source: 'barcode', barcode: A });
   });
+
+  describe('printed digits differ from the decoder (ADR-0036 §4)', () => {
+    const D = '4991433601383';
+    const P = '8997035601383';
+    const pocari = product({
+      code: P,
+      name: 'Pocari Ion Water 500ml',
+      kcal100: 11,
+      servingG: 500,
+    });
+    const printed = (p: Product | null) => ({ printed: hit(P, p) });
+
+    it('AC-1: decoder code not found, printed found → the printed product, no hint', () => {
+      const out = mergePackages(
+        [ai({ barcode: D, ...printed(pocari) })],
+        [hit(D, null)],
+      );
+      expect(out).toEqual([
+        expect.objectContaining({
+          name: 'Pocari Ion Water 500ml',
+          grams: 500,
+          kcal: 55,
+          source: 'barcode',
+          barcode: P,
+          from: 'off',
+        }),
+      ]);
+      expect(out[0]).not.toHaveProperty('alt');
+    });
+
+    it('no decoder code, printed found → the printed product', () => {
+      expect(mergePackages([ai(printed(pocari))], [])).toEqual([
+        expect.objectContaining({ source: 'barcode', barcode: P }),
+      ]);
+    });
+
+    it('no decoder code, printed not found → as without it', () => {
+      expect(mergePackages([ai(printed(null))], [])).toEqual(
+        mergePackages([ai()], []),
+      );
+    });
+
+    it('decoder found, printed not found → by the decoder, no hint', () => {
+      expect(
+        mergePackages(
+          [ai({ barcode: D, ...printed(product({ kcal100: null })) })],
+          [hit(D, product({ code: D }))],
+        ),
+      ).toEqual(
+        mergePackages([ai({ barcode: D })], [hit(D, product({ code: D }))]),
+      );
+    });
+
+    it('both found → by the decoder with the printed product as a hint', () => {
+      const [dish] = mergePackages(
+        [ai({ barcode: D, printed: hit(P, pocari, 'mine') })],
+        [hit(D, product({ code: D }))],
+      );
+      expect(dish).toMatchObject({ source: 'barcode', barcode: D });
+      expect(dish?.alt).toEqual({ code: P, product: pocari, from: 'mine' });
+    });
+
+    it('neither found → as now with a bare hint', () => {
+      const [dish] = mergePackages(
+        [ai({ barcode: D, label: true, ...printed(null) })],
+        [hit(D, null)],
+      );
+      expect(dish).toMatchObject({ source: 'label', barcode: D });
+      expect(dish?.alt).toEqual({ code: P, product: null });
+    });
+
+    it('one dish per code: a printed code already used is ignored', () => {
+      const out = mergePackages(
+        [ai(printed(pocari)), ai({ name: 'Water', ...printed(pocari) })],
+        [],
+      );
+      expect(out.map((d) => [d.source, d.barcode])).toEqual([
+        ['barcode', P],
+        ['ai', null],
+      ]);
+    });
+  });
 });

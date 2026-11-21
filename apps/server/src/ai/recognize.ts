@@ -6,10 +6,11 @@ import {
 } from 'ai';
 import {
   normalizeGtin,
-  packageRecognitionSchema,
+  packageModelSchema,
   round1,
   type AiQuestion,
-  type PackageDish,
+  type PackageModelDish,
+  type PackageModelRecognition,
   type PackageRecognition,
   type RecognizedDish,
 } from '@oct/shared';
@@ -29,12 +30,17 @@ import {
 } from './questions.js';
 
 /** Bump on every prompt change; it is logged with each call. */
-export const RECOGNIZE_PROMPT_VERSION = 5;
+export const RECOGNIZE_PROMPT_VERSION = 6;
 
 /** Same rule in the photo and label prompts (OCT-372). */
 export const PET_FOOD_RULE =
   'Food for people only; pet food is not food — omit it even if its nutrition table is readable; packaged human food with animals in its picture or name is food.';
 export const RECOGNIZE_TIMEOUT_MS = 60_000;
+
+/** Recognition before the server looks up the printed codes (ADR-0036 §3). */
+export type ModelRecognition = PackageModelRecognition & {
+  questions: AiQuestion[];
+};
 
 /** Tokens of one recognition, every attempt summed. */
 export interface TokenUsage {
@@ -55,6 +61,7 @@ ${PET_FOOD_RULE}
 If there is no food on the photo, return an empty list.
 The message may have a <barcodes> tag with retail barcodes read from packages on the photo.
 For a dish that is one of these packages set barcode to its number exactly as listed, otherwise null.
+For a package also set printedBarcode to the digits printed under its barcode lines exactly as you read them on the photo — do not copy them from the <barcodes> tag; null if the digits are not legible.
 Set label to true only when you read the dish's kcal and nutrients from its package's nutrition table on the photo.
 ${QUESTIONS_PROMPT}${hasRecipes ? RECIPES_PROMPT : ''}`;
 }
@@ -84,7 +91,7 @@ export function recognizeMeal(
   onUsage?: (usage: TokenUsage) => void,
   barcodes: string[] = [],
   recipes: RecipeName[] = [],
-): Promise<PackageRecognition & { questions: AiQuestion[] }> {
+): Promise<ModelRecognition> {
   const text = [
     barcodes.length ? `<barcodes>${barcodes.join(' ')}</barcodes>` : '',
     recipes.length ? recipesTag(recipes) : '',
@@ -155,7 +162,7 @@ async function askVision<T extends { dishes: unknown[]; questions: unknown[] }>(
     signal?: AbortSignal;
     onUsage?: (usage: TokenUsage) => void;
   },
-  finish: (output: PackageRecognition) => T,
+  finish: (output: PackageModelRecognition) => T,
 ): Promise<T> {
   const total: TokenUsage = { inputTokens: 0, outputTokens: 0 };
   const add = (u: LanguageModelUsage | undefined) => {
@@ -189,7 +196,7 @@ async function askVision<T extends { dishes: unknown[]; questions: unknown[] }>(
               ],
             },
           ],
-          output: Output.object({ schema: packageRecognitionSchema }),
+          output: Output.object({ schema: packageModelSchema }),
           maxRetries: 0,
           reasoning: quickReasoning(model),
           abortSignal,
@@ -207,16 +214,21 @@ async function askVision<T extends { dishes: unknown[]; questions: unknown[] }>(
   }
 }
 
-/** `sanitizeDish` plus the package hints, set only when present: a barcode not from the tag is dropped. */
+/**
+ * `sanitizeDish` plus the package hints, set only when present: a barcode not from the tag is dropped;
+ * printed digits are kept only when they differ from every tag code (ADR-0036 §2).
+ */
 export function sanitizePackageDish(
-  d: PackageDish,
+  d: PackageModelDish,
   barcodes: string[],
-): PackageDish {
+): PackageModelDish {
   const code = d.barcode ? normalizeGtin(d.barcode) : null;
+  const printed = d.printedBarcode ? normalizeGtin(d.printedBarcode) : null;
   return {
     ...sanitizeDish(d),
     ...(code && barcodes.includes(code) && { barcode: code }),
     ...(d.label === true && { label: true }),
+    ...(printed && !barcodes.includes(printed) && { printedBarcode: printed }),
   };
 }
 

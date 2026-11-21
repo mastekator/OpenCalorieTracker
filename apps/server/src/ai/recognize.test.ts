@@ -90,7 +90,7 @@ describe('recognizeMeal', () => {
     });
     expect(logs()).toEqual([
       expect.stringMatching(
-        /^ai\.recognize provider=mock model=vision-1 prompt=5 ms=\d+ dishes=1 questions=0 recipes=0 result=ok$/,
+        /^ai\.recognize provider=mock model=vision-1 prompt=6 ms=\d+ dishes=1 questions=0 recipes=0 result=ok$/,
       ),
     ]);
   });
@@ -286,7 +286,7 @@ describe('recognizeMeal', () => {
     await expect(
       readLabel(model, jpeg, 'en', '4006381333931'),
     ).resolves.toEqual({ dishes: [], questions: [] });
-    expect(logs()[0]).toMatch(/^ai\.label .* prompt=5 /);
+    expect(logs()[0]).toMatch(/^ai\.label .* prompt=6 /);
   });
 
   it('maps a no-image error to ai_no_vision and remembers it', async () => {
