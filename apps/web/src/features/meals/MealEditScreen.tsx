@@ -105,6 +105,7 @@ import { ScreenState } from '../../ui/ScreenState/ScreenState';
 import { Segment } from '../../ui/Segment/Segment';
 import { Sheet } from '../../ui/Sheet/Sheet';
 import { useToast } from '../../ui/Toast/Toast';
+import { PhotoViewer, ViewerMark } from '../../ui/PhotoViewer/PhotoViewer';
 import { unitOf } from '../../ui/weightUnits';
 import { diaryDay, localToday } from '../diary/day';
 import { NEW_RECIPE_PATH } from '../kitchen/KitchenScreen';
@@ -371,6 +372,7 @@ export function MealEditScreen({
         : null,
   );
   const [uploading, setUploading] = useState(false);
+  const [viewer, setViewer] = useState(false);
   const photoInput = useRef<HTMLInputElement>(null);
   // The url that failed to load: a new photo shows again without a reset.
   const [brokenUrl, setBrokenUrl] = useState<string>();
@@ -1197,12 +1199,37 @@ export function MealEditScreen({
                   <ImageOff aria-hidden="true" />
                 </div>
               ) : (
-                <img
-                  className="meal-edit__thumb"
-                  src={photo.url}
-                  alt=""
-                  onError={() => setBrokenUrl(photo.url)}
-                />
+                <>
+                  <button
+                    type="button"
+                    className="meal-edit__thumb viewer-open"
+                    aria-label={t('photoViewer.open')}
+                    aria-haspopup="dialog"
+                    onClick={() => setViewer(true)}
+                  >
+                    <img
+                      src={photo.url}
+                      alt=""
+                      onError={() => setBrokenUrl(photo.url)}
+                    />
+                    <ViewerMark />
+                  </button>
+                  <PhotoViewer
+                    open={viewer}
+                    onClose={() => setViewer(false)}
+                    preview={photo.url}
+                    full={
+                      // A queued photo is the original itself; nothing on the server yet.
+                      'blob' in photo
+                        ? photo.url
+                        : photoGone
+                          ? null
+                          : `/api/photos/${encodeURIComponent(photo.id)}?size=full`
+                    }
+                    title={title}
+                    alt={t('photoViewer.alt', { title })}
+                  />
+                </>
               )
             ) : meal && !uploading ? null : (
               <button

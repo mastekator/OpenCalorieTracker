@@ -681,7 +681,7 @@ describe('MealEditScreen: manual entry (OCT-60)', () => {
       target: { files: [file] },
     });
     await waitFor(() =>
-      expect(document.querySelector('img.meal-edit__thumb')).toBeTruthy(),
+      expect(document.querySelector('.meal-edit__thumb img')).toBeTruthy(),
     );
     expect(
       fetch.mock.calls
@@ -704,10 +704,10 @@ describe('MealEditScreen: manual entry (OCT-60)', () => {
       target: { files: [new File(['jpeg'], 'a.jpg', { type: 'image/jpeg' })] },
     });
     await waitFor(() =>
-      expect(document.querySelector('img.meal-edit__thumb')).toBeTruthy(),
+      expect(document.querySelector('.meal-edit__thumb img')).toBeTruthy(),
     );
-    fireEvent.error(document.querySelector('img.meal-edit__thumb')!);
-    expect(document.querySelector('img.meal-edit__thumb')).toBeNull();
+    fireEvent.error(document.querySelector('.meal-edit__thumb img')!);
+    expect(document.querySelector('.meal-edit__thumb img')).toBeNull();
     expect(
       screen.getByRole('img', { name: 'Photo unavailable' }).className,
     ).toContain('meal-edit__thumb--broken');
@@ -735,7 +735,7 @@ describe('MealEditScreen: manual entry (OCT-60)', () => {
     ).toBe('true');
     upload(Response.json({ photoId: 'p9' }, { status: 201 }));
     await waitFor(() =>
-      expect(document.querySelector('img.meal-edit__thumb')).toBeTruthy(),
+      expect(document.querySelector('.meal-edit__thumb img')).toBeTruthy(),
     );
     expect(document.querySelector('.button__spinner')).toBeNull();
   });
@@ -755,7 +755,7 @@ describe('MealEditScreen: manual entry (OCT-60)', () => {
       target: { files: [file] },
     });
     await waitFor(() =>
-      expect(document.querySelector('img.meal-edit__thumb')).toBeTruthy(),
+      expect(document.querySelector('.meal-edit__thumb img')).toBeTruthy(),
     );
     await save();
     expect(onSave.mock.calls[0]![0]).not.toHaveProperty('photoId');

@@ -28,6 +28,7 @@ import { useOnline } from '../../ui/OfflineBar/OfflineBar';
 import { PortionSheet } from '../../ui/PortionSheet/PortionSheet';
 import { Sheet } from '../../ui/Sheet/Sheet';
 import { useToast } from '../../ui/Toast/Toast';
+import { PhotoViewer, ViewerMark } from '../../ui/PhotoViewer/PhotoViewer';
 import { useToday } from '../diary/useToday';
 import { useWeightFormat } from '../weight/format';
 import { useWeight } from '../../ui/weightUnits';
@@ -109,6 +110,7 @@ export function RecipeView({
   const [menu, setMenu] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const [brokenHero, setBrokenHero] = useState(false);
+  const [viewer, setViewer] = useState(false);
   const [brokenSteps, setBrokenSteps] = useState<ReadonlySet<number>>(
     new Set(),
   );
@@ -171,12 +173,31 @@ export function RecipeView({
       <main className="screen__body recipe">
         <div className="recipe__hero">
           {recipe.photoId && !brokenHero ? (
-            <img
-              className="recipe__photo"
-              src={thumbUrl(recipe.photoId)}
-              alt={recipe.name}
-              onError={() => setBrokenHero(true)}
-            />
+            <>
+              <button
+                type="button"
+                className="recipe__photo viewer-open"
+                aria-label={t('photoViewer.open')}
+                aria-haspopup="dialog"
+                onClick={() => setViewer(true)}
+              >
+                <img
+                  src={thumbUrl(recipe.photoId)}
+                  alt={recipe.name}
+                  onError={() => setBrokenHero(true)}
+                />
+                <ViewerMark />
+              </button>
+              <PhotoViewer
+                open={viewer}
+                onClose={() => setViewer(false)}
+                preview={thumbUrl(recipe.photoId)}
+                // Kept as long as the recipe (ADR-0023 §7).
+                full={`${thumbUrl(recipe.photoId)}?size=full`}
+                title={recipe.name}
+                alt={recipe.name}
+              />
+            </>
           ) : (
             <DishIllustration
               id={matchIllustration(recipe.name)}

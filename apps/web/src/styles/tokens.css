@@ -168,6 +168,15 @@
   --mark-pod: var(--logo-pod); --mark-protein: var(--logo-protein); --mark-fat: var(--logo-fat); --mark-carbs: var(--logo-carbs);
   --mark-gap: var(--color-bg);
 
+  /* OCT-429: full-screen photo viewer (ui/PhotoViewer). Dark in both themes: a photo reads best on black. */
+  --color-viewer-bg: #0A0D0C;
+  --color-viewer-control: rgb(255 255 255 / 0.16); /* round chip behind viewer buttons */
+  --color-viewer-text: #FFFFFF;                     /* ≥ 15:1 on the bg */
+  --color-viewer-text-secondary: rgb(255 255 255 / 0.72); /* ≥ 9:1 */
+  --color-viewer-notice: rgb(28 33 31 / 0.92);      /* caption plate over the photo */
+  --viewer-dismiss-distance: 120px; /* swipe down past this closes */
+  --viewer-photo-max: 1280px;       /* the full photo's own width (ADR-0008) */
+
   --shadow-sheet: 0 -4px 24px rgb(24 33 29 / 0.06);
   --shadow-toast: 0 6px 20px rgb(24 33 29 / 0.10);
   --shadow-camera: 0 4px 14px rgb(19 120 74 / 0.24);

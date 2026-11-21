@@ -677,6 +677,25 @@ describe('recalculation from the photo (OCT-62)', () => {
     expect(screen.getByText('The photo is no longer stored')).toBeTruthy();
   });
 
+  it('the thumbnail opens the full photo, or only the preview once it is deleted (OCT-428)', async () => {
+    const shown = () =>
+      [...document.querySelectorAll('.viewer img')].map((i) =>
+        i.getAttribute('src'),
+      );
+    await setup(withPhoto(), { recognition: 'not_configured' });
+    fireEvent.click(button('Open photo full screen'));
+    expect(shown()).toEqual([
+      '/api/photos/p1?size=preview',
+      '/api/photos/p1?size=full',
+    ]);
+    cleanup();
+    await clearLocal(9);
+    await setup(withPhoto({ photo: { id: 'p1', full: false } }));
+    fireEvent.click(button('Open photo full screen'));
+    expect(shown()).toEqual(['/api/photos/p1?size=preview']);
+    expect(screen.getByText('The full photo was deleted')).toBeTruthy();
+  });
+
   it('«Not now» drops the banner and patches the offer', async () => {
     await setup(withPhoto());
     expect(banner()).toBeTruthy();
@@ -726,7 +745,7 @@ describe('recalculation from the photo (OCT-62)', () => {
       target: { files: [new File(['jpeg'], 'a.jpg', { type: 'image/jpeg' })] },
     });
     await waitFor(() =>
-      expect(document.querySelector('img.meal-edit__thumb')).toBeTruthy(),
+      expect(document.querySelector('.meal-edit__thumb img')).toBeTruthy(),
     );
     // The photo can be recognized right away; the picture sheet no longer offers one.
     expect(button('Recognize again')).toBeTruthy();
@@ -781,7 +800,7 @@ describe('recalculation from the photo (OCT-62)', () => {
 
     await act(async () => release());
     await waitFor(() =>
-      expect(document.querySelector('img.meal-edit__thumb')).toBeTruthy(),
+      expect(document.querySelector('.meal-edit__thumb img')).toBeTruthy(),
     );
     expect(screen.queryByRole('button', { name: 'Add photo' })).toBeNull();
     expect(button('Save').getAttribute('aria-busy')).toBeNull();
@@ -803,7 +822,7 @@ describe('recalculation from the photo (OCT-62)', () => {
     await waitFor(() =>
       expect(screen.queryByRole('button', { name: 'Add photo' })).toBeNull(),
     );
-    expect(document.querySelector('img.meal-edit__thumb')).toBeNull();
+    expect(document.querySelector('.meal-edit__thumb img')).toBeNull();
     expect(button('Save').getAttribute('aria-busy')).toBeNull();
     fireEvent.change(weight(), { target: { value: '250' } });
     fireEvent.click(button('Save'));
@@ -846,7 +865,7 @@ describe('recalculation from the photo (OCT-62)', () => {
       target: { files: [file] },
     });
     await waitFor(() =>
-      expect(document.querySelector('img.meal-edit__thumb')).toBeTruthy(),
+      expect(document.querySelector('.meal-edit__thumb img')).toBeTruthy(),
     );
     expect(screen.queryByRole('dialog')).toBeNull();
   });
