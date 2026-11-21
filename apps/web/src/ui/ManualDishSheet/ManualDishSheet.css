@@ -63,3 +63,16 @@
 .manual-dish__amount .segment__option {
   min-inline-size: var(--control-height-lg);
 }
+
+.manual-dish__numbers {
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+  color: var(--color-text-secondary);
+}
+
+.manual-dish__kcal {
+  font-size: var(--text-headline-size);
+  line-height: var(--text-headline-lh);
+  font-weight: var(--text-headline-weight);
+  color: var(--color-text);
+}
