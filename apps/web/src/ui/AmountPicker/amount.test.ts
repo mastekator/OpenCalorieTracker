@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Product } from '@oct/shared';
-import { hasShares, stepAmount, toMode } from './amount';
+import { hasShares, pickerModes, stepAmount, toMode } from './amount';
 
 const COOKIES: Product = {
   code: '4607012345678',
@@ -66,5 +66,31 @@ describe('hasShares', () => {
     expect(hasShares(COOKIES)).toBe(true);
     expect(hasShares({ ...COOKIES, packG: null, servingG: null })).toBe(false);
     expect(hasShares(undefined)).toBe(false);
+  });
+});
+
+describe('pickerModes', () => {
+  it('adds «Pieces» while the count or the weight is unknown', () => {
+    expect(pickerModes(COOKIES)).toEqual([
+      'pack',
+      'serving',
+      'piece',
+      'weight',
+    ]);
+    expect(pickerModes({ ...COOKIES, pieces: null })).toEqual([
+      'pack',
+      'serving',
+      'piece',
+      'weight',
+    ]);
+    expect(
+      pickerModes({ ...COOKIES, packG: null, servingG: null, pieces: null }),
+    ).toEqual(['piece', 'weight']);
+    // One piece is the package.
+    expect(pickerModes({ ...COOKIES, pieces: 1 })).toEqual([
+      'pack',
+      'serving',
+      'weight',
+    ]);
   });
 });

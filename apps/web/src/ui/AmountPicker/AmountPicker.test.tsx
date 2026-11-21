@@ -32,14 +32,28 @@ const ORIGINAL = {
 beforeEach(() => localStorage.setItem(LOCALE_STORAGE_KEY, 'en'));
 afterEach(cleanup);
 
-const sheet = async (product: Product = COOKIES) => {
+const BAR: Product = {
+  ...COOKIES,
+  code: '4600000123457',
+  name: 'Muesli bar',
+  servingG: null,
+  packG: null,
+  pieces: null,
+};
+
+const sheet = async (
+  product: Product = COOKIES,
+  units: 'metric' | 'us' = 'metric',
+) => {
   const onDone = vi.fn();
+  const d = defaultAmount(product);
+  const grams = d.mode === 'weight' ? d.value : 200;
   renderLoaded(
     <I18nProvider>
       <DishSheet
         original={ORIGINAL}
-        grams={200}
-        units="metric"
+        grams={grams}
+        units={units}
         product={product}
         amount={defaultAmount(product)}
         onDone={onDone}
@@ -77,10 +91,13 @@ describe('AmountPicker in the dish sheet', () => {
     fireEvent.click(screen.getByRole('button', { name: 'More by ¼ package' }));
     expect(value()).toBe('¾pack · 150 g');
     done();
-    expect(onDone).toHaveBeenCalledWith('Oat cookies', 150, undefined, {
-      mode: 'pack',
-      value: 0.75,
-    });
+    expect(onDone).toHaveBeenCalledWith(
+      'Oat cookies',
+      150,
+      undefined,
+      { mode: 'pack', value: 0.75 },
+      {},
+    );
   });
 
   it('counts pieces «of 12» and servings, no quick picks there', async () => {
@@ -110,10 +127,13 @@ describe('AmountPicker in the dish sheet', () => {
     expect((field as HTMLInputElement).value).toBe('200');
     fireEvent.change(field, { target: { value: '45' } });
     done();
-    expect(onDone).toHaveBeenCalledWith('Oat cookies', 45, undefined, {
-      mode: 'weight',
-      value: 45,
-    });
+    expect(onDone).toHaveBeenCalledWith(
+      'Oat cookies',
+      45,
+      undefined,
+      { mode: 'weight', value: 45 },
+      {},
+    );
   });
 
   it('ml for a drink, «same as last time» for the remembered pick', async () => {
@@ -127,6 +147,106 @@ describe('AmountPicker in the dish sheet', () => {
     expect(screen.getByText('same as last time')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Whole' }));
     expect(screen.queryByText('same as last time')).toBeNull();
+  });
+});
+
+describe('AmountPicker: unknown package data (OCT-380 3.1–3.4)', () => {
+  const field = (name: string) => screen.getByLabelText<HTMLInputElement>(name);
+  const type = (name: string, v: string) =>
+    fireEvent.change(field(name), { target: { value: v } });
+  const checked = (name: string) => radio(name).getAttribute('aria-checked');
+  const WEIGHT = 'Package weight (net)';
+  const PIECES = 'How many pieces in the package?';
+
+  it('a typed package weight opens «Package» on «Whole» (AC-4.1)', async () => {
+    const onDone = await sheet(BAR);
+    const names = screen.getAllByRole('radio').map((r) => r.textContent);
+    expect(names).toEqual(['Pieces', 'Grams']);
+    screen.getByText('Package weight unknown');
+    fireEvent.click(screen.getByRole('button', { name: 'Add package weight' }));
+    type(WEIGHT, '40');
+    expect(checked('Package')).toBe('true');
+    expect(value()).toBe('1pack · 40 g');
+    expect(
+      screen
+        .getByRole('button', { name: 'Whole' })
+        .getAttribute('aria-pressed'),
+    ).toBe('true');
+    done();
+    expect(onDone).toHaveBeenCalledWith(
+      'Oat cookies',
+      40,
+      undefined,
+      { mode: 'pack', value: 1 },
+      { packG: 40 },
+    );
+  });
+
+  it('refuses 0 and 6000 g and keeps the amount (E-7.6)', async () => {
+    const onDone = await sheet(BAR);
+    fireEvent.click(screen.getByRole('button', { name: 'Add package weight' }));
+    for (const v of ['0', '6000']) {
+      type(WEIGHT, v);
+      screen.getByText('Weight 1–5,000 g');
+      expect(screen.queryByRole('radio', { name: 'Package' })).toBeNull();
+    }
+    done();
+    expect(onDone).toHaveBeenCalledWith(
+      'Oat cookies',
+      100,
+      undefined,
+      { mode: 'weight', value: 100 },
+      {},
+    );
+  });
+
+  it('ounces go to whole grams before the check', async () => {
+    const onDone = await sheet(BAR, 'us');
+    fireEvent.click(screen.getByRole('button', { name: 'Add package weight' }));
+    type(WEIGHT, '1.4');
+    done();
+    expect(onDone.mock.calls[0]![4]).toEqual({ packG: 40 });
+  });
+
+  it('asks the piece count, refuses 2,5, then counts «of 12» (AC-4.2)', async () => {
+    const onDone = await sheet({ ...COOKIES, pieces: null });
+    fireEvent.click(radio('Pieces'));
+    expect(checked('Pieces')).toBe('true');
+    screen.getByText(
+      'Package 200 g: we’ll work out the weight of one piece and remember it.',
+    );
+    type(PIECES, '2,5');
+    screen.getByText('A whole number, 1 or more');
+    expect(document.querySelector('.amount__value')).toBeNull();
+    type(PIECES, '12');
+    expect(value()).toBe('1of 12 · 17 g');
+    done();
+    expect(onDone).toHaveBeenCalledWith(
+      'Oat cookies',
+      16.7,
+      undefined,
+      { mode: 'piece', value: 1 },
+      { pieces: 12 },
+    );
+  });
+
+  it('without a weight asks it above the piece count', async () => {
+    const onDone = await sheet(BAR);
+    fireEvent.click(radio('Pieces'));
+    type(PIECES, '4');
+    expect(document.querySelector('.amount__value')).toBeNull();
+    type(WEIGHT, '40');
+    expect(value()).toBe('1of 4 · 10 g');
+    done();
+    expect(onDone.mock.calls[0]![4]).toEqual({ pieces: 4, packG: 40 });
+  });
+
+  it('«Change» edits a known weight (E-7.2)', async () => {
+    await sheet();
+    fireEvent.click(screen.getByRole('button', { name: 'Change' }));
+    expect(field(WEIGHT).value).toBe('');
+    type(WEIGHT, '300');
+    expect(value()).toBe('1pack · 300 g');
   });
 });
 

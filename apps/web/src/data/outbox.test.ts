@@ -179,6 +179,60 @@ describe('local write and merge', () => {
     ]);
   });
 
+  it('`pack` goes to the server and to the product here, offline too, not into the meal (AC-5.3, AC-5.4)', async () => {
+    const code = '4607012345678';
+    await db.put('products', {
+      code,
+      name: 'Oat cookies',
+      brand: null,
+      kcal100: 440,
+      protein100: 6,
+      fat100: 16,
+      carbs100: 68,
+      per: 'g',
+      servingG: 30,
+      servingText: null,
+      packG: null,
+      pieces: null,
+    });
+    const dish = (pack: NonNullable<MealInput['items'][number]['pack']>) => ({
+      ...item('Oat cookies', 440),
+      source: 'barcode' as const,
+      barcode: code,
+      pack,
+    });
+    await createMeal(db, {
+      ...input(A),
+      items: [dish({ packG: 200, amount: { mode: 'pack', value: 0.5 } })],
+    });
+    await settle();
+    expect(await ops()).toMatchObject([
+      { kind: 'createMeal', body: { items: [{ pack: { packG: 200 } }] } },
+    ]);
+    expect((await db.get('meals', A))!.items[0]).not.toHaveProperty('pack');
+    expect(await db.get('products', code)).toMatchObject({
+      packG: 200,
+      pieces: null,
+      last: { mode: 'pack', value: 0.5 },
+    });
+
+    await db.put('meals', { ...(await localMeal(B)), id: 5 });
+    await patchMeal(db, B, {
+      items: [dish({ pieces: 12, amount: { mode: 'piece', value: 2 } })],
+    });
+    await settle();
+    expect((await ops()).at(-1)).toMatchObject({
+      kind: 'patchMeal',
+      body: { items: [{ pack: { pieces: 12 } }] },
+    });
+    expect((await db.get('meals', B))!.items[0]).not.toHaveProperty('pack');
+    expect(await db.get('products', code)).toMatchObject({
+      packG: 200,
+      pieces: 12,
+      last: { mode: 'piece', value: 2 },
+    });
+  });
+
   it('a photo attached to a saved meal shows in the local copy (OCT-126)', async () => {
     await db.put('meals', { ...(await localMeal(A)), id: 5 });
     await patchMeal(db, A, { photoId: 'p1' });

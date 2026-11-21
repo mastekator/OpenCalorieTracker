@@ -1,19 +1,26 @@
+import { useState } from 'react';
 import { Minus, Plus } from 'lucide-react';
 import {
   amountGrams,
   amountModes,
+  defaultAmount,
+  packPrefsSchema,
   type Amount,
   type AmountMode,
+  type PackPrefs,
   type Product,
   type Units,
 } from '@oct/shared';
 import { useT } from '../../i18n';
 import { Badge } from '../Badge/Badge';
+import { Button } from '../Button/Button';
+import { Field } from '../Field/Field';
+import { parseDecimal } from '../FormList/FormList';
 import { Segment } from '../Segment/Segment';
 import { usePressRepeat } from '../usePressRepeat';
 import { useWeight } from '../weightUnits';
 import { WeightStepper } from '../WeightStepper/WeightStepper';
-import { STEP, isLast, stepAmount, toMode } from './amount';
+import { STEP, isLast, pickerModes, stepAmount, toMode } from './amount';
 import '../WeightStepper/WeightStepper.css';
 import '../PortionSheet/PortionSheet.css';
 import './AmountPicker.css';
@@ -87,6 +94,9 @@ export function useAmountText(units: Units, per: Product['per']) {
   return { weight, share, big, row, modeName };
 }
 
+/** Typed package data: weight and pieces, without the amount. */
+export type Pack = Omit<PackPrefs, 'amount'>;
+
 type Props = {
   product: Product;
   amount: Amount;
@@ -97,7 +107,12 @@ type Props = {
   label: string;
   /** Every change: the amount and its grams (null: invalid grams typed). */
   onChange: (amount: Amount, grams: number | null) => void;
+  /** A valid package weight or piece count typed (AC-4.1, AC-4.2); `product` already has it. */
+  onPack: (pack: Pack) => void;
 };
+
+/** Open questions: the package weight, the piece count; `piece`: asked for «Pieces». */
+type Ask = { packG: boolean; pieces: boolean; piece: boolean };
 
 /** «How much you ate» (ADR-0037 §5): Package · Servings · Pieces · Grams, as the recipe portion sheet. */
 export function AmountPicker({
@@ -107,11 +122,62 @@ export function AmountPicker({
   units,
   label,
   onChange,
+  onPack,
 }: Props) {
   const { t } = useT();
   const text = useAmountText(units, p.per);
-  const modes = amountModes(p);
+  const w = useWeight(units, p.per);
+  const modes = pickerModes(p);
   const set = (a: Amount) => onChange(a, amountGrams(p, a));
+  const [ask, setAsk] = useState<Ask | null>(null);
+  // null: not typed yet, so no error before the first key.
+  const [packText, setPackText] = useState<string | null>(null);
+  const [piecesText, setPiecesText] = useState<string | null>(null);
+  const open = (next: Ask) => {
+    setAsk(next);
+    setPackText(null);
+    setPiecesText(null);
+  };
+  // Whole grams before the check, so 1–5000 g holds for ounces too (E-7.6).
+  const packG = (s: string | null) => {
+    const n = s === null ? null : parseDecimal(s.trim());
+    const g = n === null ? NaN : Math.round(w.toG(n));
+    return packPrefsSchema.shape.packG.safeParse(g).success ? g : null;
+  };
+  const pieces = (s: string | null) => {
+    const n = s === null ? null : parseDecimal(s.trim());
+    return n !== null && packPrefsSchema.shape.pieces.safeParse(n).success
+      ? n
+      : null;
+  };
+  /** The amount once the package is known: «Whole» or the piece asked for (3.2, 3.3). */
+  const land = (next: Product) => {
+    const ms = amountModes(next);
+    const a: Amount = ask?.piece
+      ? ms.includes('piece')
+        ? { mode: 'piece', value: 1 }
+        : amount
+      : amount.mode !== 'weight' && ms.includes(amount.mode)
+        ? amount
+        : ms.includes('pack')
+          ? { mode: 'pack', value: 1 }
+          : defaultAmount(next);
+    onChange(a, amountGrams(next, a));
+  };
+  const typePack = (s: string) => {
+    setPackText(s);
+    const g = packG(s);
+    if (g === null) return;
+    onPack({ packG: g });
+    land({ ...p, packG: g });
+  };
+  const typePieces = (s: string) => {
+    setPiecesText(s);
+    const n = pieces(s);
+    if (n === null) return;
+    onPack({ pieces: n });
+    if (p.packG) land({ ...p, pieces: n });
+  };
   const press = usePressRepeat((dir) => {
     const next = stepAmount(p, amount, dir);
     // At an edge the button disables and may never get pointerup.
@@ -121,6 +187,9 @@ export function AmountPicker({
   const { mode, value } = amount;
   const shown = mode === 'weight' ? null : text.big(p, amount);
   const step = mode === 'weight' ? '' : t(`edit.amount.step.${mode}`);
+  // «Pieces» picked with the count unknown: the question stands in for the stepper.
+  const selected = ask?.piece ? 'piece' : mode;
+  const body = !ask || (mode !== 'weight' && mode === selected);
 
   return (
     <div className="amount">
@@ -129,11 +198,53 @@ export function AmountPicker({
         <Segment
           label={t('edit.amount.modes')}
           options={modes.map((m) => ({ value: m, label: text.modeName(m) }))}
-          value={mode}
-          onChange={(m) => set(toMode(p, m, grams ?? amountGrams(p, amount)))}
+          value={selected}
+          onChange={(m) => {
+            if (m === 'piece' && !amountModes(p).includes('piece'))
+              return open({ packG: !p.packG, pieces: !p.pieces, piece: true });
+            setAsk(null);
+            set(toMode(p, m, grams ?? amountGrams(p, amount)));
+          }}
         />
       </div>
-      {mode === 'weight' ? (
+      {ask?.packG && (
+        <Field
+          label={t('edit.dish.pack.weight')}
+          value={packText ?? ''}
+          inputMode={w.us ? 'decimal' : 'numeric'}
+          suffix={w.u}
+          hint={t('edit.dish.pack.weight_hint')}
+          error={
+            packText !== null && packG(packText) === null
+              ? t('edit.dish.pack.err.weight')
+              : undefined
+          }
+          autoFocus
+          onChange={(e) => typePack(e.target.value)}
+        />
+      )}
+      {ask?.pieces && (
+        <Field
+          label={t('edit.dish.pack.pieces')}
+          value={piecesText ?? ''}
+          inputMode="numeric"
+          suffix={t('edit.amount.pcs')}
+          placeholder={t('edit.dish.pack.pieces_ph')}
+          hint={
+            p.packG
+              ? t('edit.dish.pack.pieces_hint', { w: text.weight(p.packG) })
+              : undefined
+          }
+          error={
+            piecesText !== null && pieces(piecesText) === null
+              ? t('edit.dish.pack.err.pieces')
+              : undefined
+          }
+          autoFocus={!ask.packG}
+          onChange={(e) => typePieces(e.target.value)}
+        />
+      )}
+      {!body ? null : mode === 'weight' ? (
         <div className="portion__grams">
           <WeightStepper
             grams={grams}
@@ -194,19 +305,30 @@ export function AmountPicker({
           <Badge>{t('edit.amount.last')}</Badge>
         </span>
       )}
-      {p.packG && (
-        <p className="amount__package tabular-nums">
-          {[
-            t('edit.amount.package', { w: text.weight(p.packG) }),
-            p.pieces && t('edit.amount.pieces', { n: p.pieces }),
-            p.servingG &&
-              t('edit.amount.package_serving', {
-                w: text.weight(p.servingG),
-              }),
-          ]
-            .filter(Boolean)
-            .join(' · ')}
-        </p>
+      {!ask && (
+        <div className="amount__package">
+          <p className="tabular-nums">
+            {p.packG
+              ? [
+                  t('edit.amount.package', { w: text.weight(p.packG) }),
+                  p.pieces && t('edit.amount.pieces', { n: p.pieces }),
+                  p.servingG &&
+                    t('edit.amount.package_serving', {
+                      w: text.weight(p.servingG),
+                    }),
+                ]
+                  .filter(Boolean)
+                  .join(' · ')
+              : t('edit.dish.pack.unknown')}
+          </p>
+          <Button
+            small
+            variant={p.packG ? 'plain' : 'tonal'}
+            onClick={() => open({ packG: true, pieces: false, piece: false })}
+          >
+            {t(p.packG ? 'edit.dish.pack.change' : 'edit.dish.pack.add')}
+          </Button>
+        </div>
       )}
     </div>
   );

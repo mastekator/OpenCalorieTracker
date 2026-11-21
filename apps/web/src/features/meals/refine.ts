@@ -22,6 +22,7 @@ import {
   type RefineDishIn,
 } from '@oct/shared';
 import type { BarcodeResult } from '../../data/products';
+import type { Pack } from '../../ui/AmountPicker/AmountPicker';
 import type { ManualDish } from '../../ui/ManualDishSheet/ManualDishSheet';
 import { unitOf } from '../../ui/weightUnits';
 
@@ -82,6 +83,8 @@ export type Row = {
   question?: Question;
   /** A product dish: how much of it, as last picked; none yet: its default (ADR-0037 §5). */
   amount?: Amount;
+  /** Package weight and pieces typed in the sheet: sent with the meal, not stored with it (AC-2.5). */
+  pack?: Pack;
 };
 
 export type Question = Omit<AiQuestion, 'dish'> & { chosen?: number };
@@ -120,6 +123,11 @@ export const itemOf = (row: Row): MealItemInput => {
     // A manual dish has no confidence (AC-3.9).
     ...(row.source === 'ai' && !row.fixed.length && { confidence }),
     ...(row.original.barcode && { barcode: row.original.barcode }),
+    // Remembered for the code by the server, and on this device by the outbox (ADR-0037 §2).
+    ...(row.original.barcode &&
+      (row.amount || row.pack) && {
+        pack: { ...row.pack, ...(row.amount && { amount: row.amount }) },
+      }),
     // Only a hand-picked one is sent; the server matches the rest (ADR-0009).
     ...(row.original.illustration && {
       illustration: row.original.illustration,

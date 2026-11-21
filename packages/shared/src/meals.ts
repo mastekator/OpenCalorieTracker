@@ -36,7 +36,7 @@ export const macroSchema = z.number().min(0).max(1000);
 const macro = macroSchema;
 
 /** The package weight, pieces and amount the user chose for a barcode (ADR-0037 §2, E-7.6). */
-const packPrefsSchema = z.object({
+export const packPrefsSchema = z.object({
   packG: z.number().min(1).max(5000).optional(),
   pieces: z.number().int().min(1).max(1000).optional(),
   amount: z
@@ -50,6 +50,7 @@ const packPrefsSchema = z.object({
     })
     .optional(),
 });
+export type PackPrefs = z.infer<typeof packPrefsSchema>;
 
 export const mealItemInputSchema = z
   .object({

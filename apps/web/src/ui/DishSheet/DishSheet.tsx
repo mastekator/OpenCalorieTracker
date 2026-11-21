@@ -19,7 +19,7 @@ import {
   AltBarcodeHint,
   type AltHintState,
 } from '../AltBarcodeHint/AltBarcodeHint';
-import { AmountPicker } from '../AmountPicker/AmountPicker';
+import { AmountPicker, type Pack } from '../AmountPicker/AmountPicker';
 import { hasShares } from '../AmountPicker/amount';
 import { Button } from '../Button/Button';
 import { DishSourceBlock } from '../DishSourceBlock/DishSourceBlock';
@@ -58,16 +58,17 @@ type Props = {
   /** Another code the AI read on the package (ADR-0036 §5); `lookup` searches it when it has no product. */
   alt?: MergedDish['alt'];
   lookup?: (code: string) => Promise<BarcodeResult>;
-  /** The dish's product: with a package or serving the weight becomes «How much you ate» (ADR-0037 §5). */
+  /** The dish's product: the weight becomes «How much you ate» (ADR-0037 §5). */
   product?: Product;
   /** The amount the dish is at; none: its grams. */
   amount?: Amount;
-  /** «Done» with a non-empty name and a valid weight; `replaced` after «Replace»; `amount` with a product. */
+  /** «Done» with a non-empty name and a valid weight; `replaced` after «Replace»; `amount` and the typed `pack` with a product. */
   onDone: (
     name: string,
     grams: number,
     replaced?: Replaced,
     amount?: Amount,
+    pack?: Pack,
   ) => void;
   onDelete: () => void;
   /** Close button, Esc, scrim, swipe down: the draft is dropped. */
@@ -103,7 +104,9 @@ export function DishSheet({
   const [amount, setAmount] = useState<Amount>(
     initialAmount ?? { mode: 'weight', value: initial },
   );
-  const shares = hasShares(prod);
+  // Typed in the sheet, kept with the dish until the meal is saved (AC-2.5).
+  const [pack, setPack] = useState<Pack>({});
+  const merged = prod && { ...prod, ...pack };
   const [hint, setHint] = useState<AltHintState | undefined>(
     alt && {
       kind: 'offer',
@@ -146,6 +149,7 @@ export function DishSheet({
     setName(dish.name);
     setNameErr(false);
     setProd(r.product);
+    setPack({});
     const a = defaultAmount(r.product);
     setAmount(a);
     setGrams(hasShares(r.product) ? amountGrams(r.product, a) : dish.grams);
@@ -186,7 +190,7 @@ export function DishSheet({
       return nameRef.current?.focus();
     }
     if (grams !== null)
-      onDone(trimmed, grams, replaced, shares ? amount : undefined);
+      onDone(trimmed, grams, replaced, prod && amount, prod && pack);
   };
 
   return (
@@ -215,9 +219,9 @@ export function DishSheet({
             setNameErr(false);
           }}
         />
-        {shares ? (
+        {merged ? (
           <AmountPicker
-            product={prod}
+            product={merged}
             amount={amount}
             grams={grams}
             units={units}
@@ -226,6 +230,7 @@ export function DishSheet({
               setAmount(a);
               setGrams(g);
             }}
+            onPack={(p) => setPack((was) => ({ ...was, ...p }))}
           />
         ) : (
           <WeightStepper
@@ -239,7 +244,7 @@ export function DishSheet({
         {fromPack && (
           <p className="dish-sheet__serving">{t('edit.dish.unit_from_pack')}</p>
         )}
-        {servingG && !shares && (
+        {servingG && !prod && (
           <p className="dish-sheet__serving">
             {t('edit.dish.serving', {
               weight: w.text(servingG),
