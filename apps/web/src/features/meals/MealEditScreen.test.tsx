@@ -1378,7 +1378,6 @@ describe('MealEditScreen: recipes (OCT-160 §5, ADR-0023 §5–6)', () => {
       type(/^Package weight/, '400');
       type(/^How many pieces/, '8');
       fireEvent.click(within(sheet).getByRole('button', { name: 'Add' }));
-      console.log('DBG', screen.queryByRole('dialog')?.textContent);
       await save();
       expect(onSave.mock.calls[0]![0].items[0]).toMatchObject({
         source: 'manual',

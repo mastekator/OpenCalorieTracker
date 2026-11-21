@@ -118,12 +118,12 @@ export function ManualDishSheet({
     barcode: initialBarcode,
     name: initialName,
     weight: '',
-    packG: '',
-    pieces: '',
     kcal: '',
     proteinG: '',
     fatG: '',
     carbsG: '',
+    packG: '',
+    pieces: '',
   });
   const [basis, setBasis] = useState<Basis>(() =>
     localStorage.getItem(BASIS_KEY) === 'portion' ? 'portion' : 'per100',
@@ -383,24 +383,6 @@ export function ManualDishSheet({
             />
           )}
         </div>
-        {askPack && (
-          <>
-            <Field
-              {...field('packG')}
-              label={t('edit.dish.pack.weight')}
-              inputMode={us ? 'decimal' : 'numeric'}
-              suffix={w.u}
-              hint={t('edit.dish.pack.weight_hint')}
-            />
-            <Field
-              {...field('pieces')}
-              label={t('edit.dish.pack.pieces')}
-              inputMode="numeric"
-              suffix={t('edit.amount.pcs')}
-              placeholder={t('edit.dish.pack.pieces_ph')}
-            />
-          </>
-        )}
         <div className="manual-dish__basis">
           <span className="manual-dish__label">{t('manual_dish.basis')}</span>
           <Segment
@@ -454,6 +436,25 @@ export function ManualDishSheet({
               kcal: num(totals.kcal),
             })}
           </p>
+        )}
+        {/* Optional, under the required kcal and macros (OCT-380 5.2). */}
+        {askPack && (
+          <>
+            <Field
+              {...field('packG')}
+              label={t('edit.dish.pack.weight')}
+              inputMode={us ? 'decimal' : 'numeric'}
+              suffix={w.u}
+              hint={t('edit.dish.pack.weight_hint')}
+            />
+            <Field
+              {...field('pieces')}
+              label={t('edit.dish.pack.pieces')}
+              inputMode="numeric"
+              suffix={t('edit.amount.pcs')}
+              placeholder={t('edit.dish.pack.pieces_ph')}
+            />
+          </>
         )}
       </div>
     </Sheet>
