@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   applyMealPatch,
+  diffMeals,
   sameMealContent,
   type MealContent,
 } from './content.js';
@@ -55,5 +56,56 @@ describe('applyMealPatch + sameMealContent', () => {
     const two = { ...meal, items: [dish, { ...dish, name: 'Tea' }] };
     const swapped = { ...meal, items: [{ ...dish, name: 'Tea' }, dish] };
     expect(sameMealContent(two, swapped)).toBe(false);
+  });
+});
+
+describe('diffMeals', () => {
+  const tea = { ...dish, name: 'Tea', kcal: 2 };
+
+  it('the same meal differs in nothing', () => {
+    expect(diffMeals(meal, meal)).toEqual({
+      fields: [],
+      dishes: [{ mine: dish, theirs: dish, changed: false }],
+    });
+  });
+
+  it('pairs dishes by nameKey whatever the order, and marks added and removed', () => {
+    const mine = { ...meal, items: [dish, { ...tea, grams: 300 }] };
+    const theirs = {
+      ...meal,
+      mealType: 'lunch' as const,
+      items: [
+        { ...tea, name: ' TEA ' },
+        { ...dish, name: 'Bread' },
+      ],
+    };
+    const { fields, dishes } = diffMeals(mine, theirs);
+    expect(fields).toEqual(['mealType']);
+    expect(dishes).toEqual([
+      { mine: dish, theirs: null, changed: true },
+      { mine: mine.items[1], theirs: theirs.items[0], changed: true },
+      { mine: null, theirs: theirs.items[1], changed: true },
+    ]);
+  });
+
+  it('repeated names pair in order', () => {
+    const second = { ...dish, grams: 100 };
+    const { dishes } = diffMeals(
+      { ...meal, items: [dish, second] },
+      { ...meal, items: [dish, { ...second, grams: 120 }] },
+    );
+    expect(dishes.map((d) => [d.theirs?.grams, d.changed])).toEqual([
+      [200, false],
+      [120, true],
+    ]);
+  });
+
+  it('time and photo count as fields, the same instant in another offset form does not', () => {
+    const { fields } = diffMeals(meal, {
+      ...meal,
+      eatenAt: '2026-11-20T11:00:00+03:00',
+      photo: { id: 'p1' },
+    });
+    expect(fields).toEqual(['photo']);
   });
 });
