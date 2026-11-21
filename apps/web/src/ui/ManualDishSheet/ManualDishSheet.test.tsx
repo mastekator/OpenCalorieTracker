@@ -309,11 +309,18 @@ describe('ManualDishSheet: barcode (OCT-313 §3)', () => {
       grams: 250,
       unit: 'ml',
     });
-    // Another code: the unit is the user's again.
+    // Another code: the unit is the user's again, still on ml for the 250 typed.
     fireEvent.change(screen.getByLabelText('Barcode'), {
       target: { value: '5000112637922' },
     });
     expect(screen.getByRole('radio', { name: 'Grams' })).toBeTruthy();
+    expect(
+      screen
+        .getByRole('radio', { name: 'Milliliters' })
+        .getAttribute('aria-checked'),
+    ).toBe('true');
+    add();
+    expect(onAdd.mock.calls[1]![0]).toMatchObject({ grams: 250, unit: 'ml' });
   });
 
   it('a product per g hides the switch too', async () => {

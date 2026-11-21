@@ -271,7 +271,8 @@ export function ManualDishSheet({
             value={text.barcode}
             onChange={(v) => {
               setText((s) => ({ ...s, barcode: v }));
-              // Another code: the found product no longer sets the unit.
+              // Another code: the switch opens on the unit the amount is in.
+              if (packUnit) setChosen(packUnit);
               setPackUnit(null);
             }}
             onBlur={blur('barcode')}
@@ -316,7 +317,9 @@ export function ManualDishSheet({
             ))}
           </List>
         )}
-        <div className="manual-dish__amount">
+        <div
+          className={`manual-dish__amount${packUnit ? ' manual-dish__amount--pack' : ''}`}
+        >
           <Field
             {...field('weight')}
             label={required(
