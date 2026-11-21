@@ -2099,6 +2099,7 @@ export const en = {
     payload_too_large: 'The request is too large',
     photo_in_use: 'This photo is already attached to another meal',
     recipe_changed: 'The recipe changed on another device',
+    edit_conflict: 'The meal was changed on another device',
     agent_not_ready: 'Finish the dialog up to the summary first',
     agent_closed: 'This dialog is closed. Use the form or start over',
     cannot_delete_self: 'You cannot delete your own account here',

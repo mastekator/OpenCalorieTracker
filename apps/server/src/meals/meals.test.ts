@@ -14,6 +14,8 @@ import { mockModel } from '../test/ai.js';
 import { setCookie, testApp } from '../test/app.js';
 import { readEdiblePrefs } from '../edible/prefs.js';
 import { checkWhen } from './routes.js';
+import { sweepPhotos } from '../photos/sweep.js';
+import { API_VERSION } from '@oct/shared';
 
 const PASSWORD = 'Correct-horse-battery-9';
 const dirs: string[] = [];
@@ -635,6 +637,82 @@ describe('meals', () => {
         })
       ).status,
     ).toBe(400);
+  });
+
+  it('applies an edit on the current editRev and refuses a stale one with 409 (ADR-0022 §2)', async () => {
+    const t = await setup();
+    const created = (await (
+      await t.call(t.cookie, 'POST', '/meals', input())
+    ).json()) as Meal;
+    expect(created.editRev).toBeGreaterThan(0);
+    expect(created.editedAt).toEqual(expect.any(Number));
+    const path = `/meals/${created.id}`;
+    const hour = 3_600_000;
+    // A device clock an hour behind does not matter with baseRev.
+    const applied = await t.call(t.cookie, 'PATCH', path, {
+      mealType: 'snack',
+      baseRev: created.editRev,
+      editedAt: Date.now() - hour,
+    });
+    expect(applied.status).toBe(200);
+    const edited = (await applied.json()) as Meal;
+    expect(edited.mealType).toBe('snack');
+    expect(edited.editRev).toBeGreaterThan(created.editRev!);
+
+    // Stale baseRev, different content: 409 with the current meal, nothing written.
+    const conflict = await t.call(t.cookie, 'PATCH', path, {
+      mealType: 'dinner',
+      baseRev: created.editRev,
+      editedAt: Date.now() + hour,
+    });
+    expect(conflict.status).toBe(409);
+    expect(await conflict.json()).toEqual({
+      error: { code: 'edit_conflict', details: { meal: edited } },
+    });
+    // Stale baseRev, same content (own repeat): 200 without a write.
+    const repeat = await t.call(t.cookie, 'PATCH', path, {
+      mealType: 'snack',
+      baseRev: created.editRev,
+    });
+    expect(repeat.status).toBe(200);
+    expect(await repeat.json()).toEqual(edited);
+    expect(
+      (await (await t.call(t.cookie, 'GET', path)).json()) as Meal,
+    ).toEqual(edited);
+
+    // Without baseRev the old editedAt rule still holds: an older edit is ignored.
+    const old = await t.call(t.cookie, 'PATCH', path, {
+      mealType: 'dinner',
+      editedAt: 1,
+    });
+    expect(((await old.json()) as Meal).mealType).toBe('snack');
+    expect(API_VERSION).toBe(3);
+  });
+
+  it('a photo sweep moves rev but not editRev, so the next edit is no conflict', async () => {
+    const t = await setup();
+    const meal = (await (
+      await t.call(
+        t.cookie,
+        'POST',
+        '/meals',
+        input({ photoId: await t.upload(t.cookie) }),
+      )
+    ).json()) as Meal;
+    const rev = () =>
+      t.db.prepare('SELECT rev FROM meals').pluck().get() as number;
+    const before = rev();
+    await sweepPhotos(t.db, t.dataDir, Date.now() + 365 * 86_400_000);
+    expect(rev()).toBeGreaterThan(before);
+    const res = await t.call(t.cookie, 'PATCH', `/meals/${meal.id}`, {
+      mealType: 'snack',
+      baseRev: meal.editRev,
+    });
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as Meal).photo).toEqual({
+      id: meal.photo!.id,
+      full: false,
+    });
   });
 
   it('attaches a photo, refuses a taken or foreign one, and keeps retries idempotent', async () => {

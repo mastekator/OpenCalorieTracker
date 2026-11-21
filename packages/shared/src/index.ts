@@ -48,6 +48,7 @@ export type ErrorCode =
   | 'payload_too_large'
   | 'photo_in_use'
   | 'recipe_changed'
+  | 'edit_conflict'
   | 'agent_not_ready'
   | 'agent_closed'
   | 'cannot_delete_self'
@@ -93,6 +94,7 @@ export * from './recognition.js';
 export * from './refine.js';
 export * from './ai-providers.js';
 export * from './meals.js';
+export * from './meals/content.js';
 export * from './nutrition.js';
 export * from './norm/schemas.js';
 export * from './norm/calculate.js';
