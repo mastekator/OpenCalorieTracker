@@ -4,6 +4,7 @@ import {
   type IllustrationId,
 } from './illustrations/dictionary.js';
 import { normalizeGtin } from './barcodes/barcodes.js';
+import { unitSchema, type DishUnit } from './units.js';
 
 /** Key for matching dishes by name (ADR-0009): history lookups and remembered illustrations. */
 export const nameKey = (name: string) =>
@@ -37,7 +38,10 @@ const macro = macroSchema;
 export const mealItemInputSchema = z
   .object({
     name: z.string().trim().min(1).max(80),
+    /** Amount in `unit`; the field keeps its name for ml too (ADR-0038 §1). */
     grams,
+    /** Omitted = 'g', as older clients send. */
+    unit: unitSchema.optional(),
     kcal: kcalSchema,
     proteinG: macro,
     fatG: macro,
@@ -103,6 +107,7 @@ export type MealPatch = z.infer<typeof mealPatchSchema>;
 export interface MealItem {
   name: string;
   grams: number;
+  unit: DishUnit;
   kcal: number;
   proteinG: number;
   fatG: number;
@@ -157,6 +162,7 @@ export interface PreviousDish {
   mealId: number;
   eatenAt: string;
   grams: number;
+  unit: DishUnit;
   kcal: number;
   proteinG: number;
   fatG: number;

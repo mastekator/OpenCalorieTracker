@@ -8,6 +8,7 @@ import {
   type MealItemInput,
 } from '../meals.js';
 import { fromPer100, type Nutrients } from '../nutrition.js';
+import { unitSchema, type DishUnit } from '../units.js';
 
 /** Cooked weight that differs from the raw one this many times or more gets a warning (E-10.2). */
 export const WEIGHT_WARNING_RATIO = 3;
@@ -44,6 +45,8 @@ export const recipeInputSchema = z
           name: z.string().trim().min(1).max(80),
           // 0 g is allowed: salt, spices "to taste".
           grams: z.number().min(0).max(5000).refine(oneDecimal),
+          /** Omitted = 'g'; raw weight counts 1 ml as 1 g (ADR-0038 §5). */
+          unit: unitSchema.optional(),
           /** Totals for these grams, like a meal dish. */
           kcal: kcalSchema,
           proteinG: macroSchema,
@@ -101,6 +104,7 @@ export interface Recipe {
   ingredients: (Nutrients & {
     name: string;
     grams: number;
+    unit: DishUnit;
     source: IngredientSource;
   })[];
   steps: { text: string; photoId: string | null }[];

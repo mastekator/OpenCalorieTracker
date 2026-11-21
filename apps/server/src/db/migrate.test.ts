@@ -16,7 +16,7 @@ describe('migrate', () => {
   it('brings an empty database to the latest version', () => {
     const db = openDb(':memory:');
     migrate(db);
-    expect(db.pragma('user_version', { simple: true })).toBe(20);
+    expect(db.pragma('user_version', { simple: true })).toBe(21);
     expect(tables(db)).toEqual([
       'agent_drafts',
       'agent_messages',
@@ -66,7 +66,7 @@ describe('migrate', () => {
       .pluck()
       .all();
     migrate(db);
-    expect(db.pragma('user_version', { simple: true })).toBe(20);
+    expect(db.pragma('user_version', { simple: true })).toBe(21);
     expect(
       db.prepare('SELECT sql FROM sqlite_master ORDER BY name').pluck().all(),
     ).toEqual(before);
@@ -152,10 +152,20 @@ describe('migrate', () => {
     const before = db.prepare('SELECT * FROM meal_items ORDER BY id').all();
 
     migrate(db);
-    expect(db.pragma('user_version', { simple: true })).toBe(20);
+    expect(db.pragma('user_version', { simple: true })).toBe(21);
+    // Old dishes are grams (ADR-0038 §1).
     expect(db.prepare('SELECT * FROM meal_items ORDER BY id').all()).toEqual(
-      before.map((r) => ({ ...(r as object), recipe_id: null, barcode: null })),
+      before.map((r) => ({
+        ...(r as object),
+        recipe_id: null,
+        barcode: null,
+        unit: 'g',
+      })),
     );
+    db.prepare("UPDATE meal_items SET unit = 'ml' WHERE name = 'Чай'").run();
+    expect(() =>
+      db.prepare("UPDATE meal_items SET unit = 'oz' WHERE name = 'Чай'").run(),
+    ).toThrow();
     // The new source passes the CHECK and the link is cleared with its recipe.
     db.prepare(
       `INSERT INTO recipes (id, user_id, name, name_key, rev, created_at, updated_at)
@@ -206,10 +216,13 @@ describe('migrate', () => {
       name: 'Плов',
       cookedG: 900,
       servings: 3,
-      ingredients: [{ name: 'Рис', grams: 500, kcal: 1750 }],
+      ingredients: [{ name: 'Рис', grams: 500, unit: 'g', kcal: 1750 }],
       per100: null,
       servingG: null,
     });
+    expect(() =>
+      db.prepare("UPDATE recipe_ingredients SET unit = 'oz'").run(),
+    ).toThrow();
   });
 
   it('makes products cached before 0020 stale so OFF is asked for the package weight', () => {

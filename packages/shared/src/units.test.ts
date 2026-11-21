@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   cmToFtIn,
   dishWeightRange,
+  flOzToMl,
+  mlToFlOz,
   ftInToCm,
   gToOz,
   ozToG,
@@ -70,5 +72,39 @@ describe('dish weight in ounces (AC-3.15)', () => {
   it('gives the 1–5000 g range in each system', () => {
     expect(dishWeightRange('metric')).toEqual({ min: 1, max: 5000, step: 10 });
     expect(dishWeightRange('us')).toEqual({ min: 0.1, max: 176.4, step: 0.5 });
+  });
+});
+
+describe('drink volume in fluid ounces (ADR-0038 §4)', () => {
+  it('round-trips every 0.1 fl oz without drift', () => {
+    for (let t = 1; t <= 1691; t++) {
+      const flOz = t / 10;
+      expect(mlToFlOz(flOzToMl(flOz))).toBe(flOz);
+    }
+    expect(flOzToMl(16.9)).toBe(499.8);
+    expect(mlToFlOz(500)).toBe(16.9);
+  });
+
+  it('gives the 1–5000 range for g and ml in each system', () => {
+    expect(dishWeightRange('metric', 'g')).toEqual({
+      min: 1,
+      max: 5000,
+      step: 10,
+    });
+    expect(dishWeightRange('metric', 'ml')).toEqual({
+      min: 1,
+      max: 5000,
+      step: 10,
+    });
+    expect(dishWeightRange('us', 'g')).toEqual({
+      min: 0.1,
+      max: 176.4,
+      step: 0.5,
+    });
+    expect(dishWeightRange('us', 'ml')).toEqual({
+      min: 0.1,
+      max: 169.1,
+      step: 0.5,
+    });
   });
 });

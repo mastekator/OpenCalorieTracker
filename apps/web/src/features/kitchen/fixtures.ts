@@ -4,6 +4,7 @@ const ing = (name: string, grams: number, kcal: number, p = 0, f = 0, c = 0) =>
   ({
     name,
     grams,
+    unit: 'g',
     kcal,
     proteinG: p,
     fatG: f,
