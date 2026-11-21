@@ -16,13 +16,14 @@ describe('migrate', () => {
   it('brings an empty database to the latest version', () => {
     const db = openDb(':memory:');
     migrate(db);
-    expect(db.pragma('user_version', { simple: true })).toBe(22);
+    expect(db.pragma('user_version', { simple: true })).toBe(23);
     expect(tables(db)).toEqual([
       'agent_drafts',
       'agent_messages',
       'ai_limits',
       'ai_settings',
       'ai_test_runs',
+      'edible_prefs',
       'food_products',
       'illustration_choices',
       'integration_settings',
@@ -67,7 +68,7 @@ describe('migrate', () => {
       .pluck()
       .all();
     migrate(db);
-    expect(db.pragma('user_version', { simple: true })).toBe(22);
+    expect(db.pragma('user_version', { simple: true })).toBe(23);
     expect(
       db.prepare('SELECT sql FROM sqlite_master ORDER BY name').pluck().all(),
     ).toEqual(before);
@@ -82,8 +83,29 @@ describe('migrate', () => {
     db.prepare(
       "INSERT INTO passwords (user_id, hash, updated_at) VALUES (1, 'h', 0)",
     ).run();
+    db.prepare(
+      "INSERT INTO edible_prefs (user_id, key, pct, updated_at) VALUES (1, 'banana', 65, 0)",
+    ).run();
     db.prepare('DELETE FROM users WHERE id = 1').run();
     expect(db.prepare('SELECT COUNT(*) FROM passwords').pluck().get()).toBe(0);
+    expect(db.prepare('SELECT COUNT(*) FROM edible_prefs').pluck().get()).toBe(
+      0,
+    );
+  });
+
+  it('keeps edible_prefs.pct within 10..100', () => {
+    const db = openDb(':memory:');
+    migrate(db);
+    db.prepare(
+      "INSERT INTO users (id, email, role, webauthn_user_id, created_at) VALUES (1, 'a@b.c', 'user', x'01', 0)",
+    ).run();
+    const add = db.prepare(
+      'INSERT INTO edible_prefs (user_id, key, pct, updated_at) VALUES (1, ?, ?, 0)',
+    );
+    expect(() => add.run('a', 5)).toThrow(/CHECK/);
+    expect(() => add.run('b', 105)).toThrow(/CHECK/);
+    add.run('c', 10);
+    add.run('d', 100);
   });
 
   it('keeps users and their data when rebuilding users in 0005', () => {
@@ -153,7 +175,7 @@ describe('migrate', () => {
     const before = db.prepare('SELECT * FROM meal_items ORDER BY id').all();
 
     migrate(db);
-    expect(db.pragma('user_version', { simple: true })).toBe(22);
+    expect(db.pragma('user_version', { simple: true })).toBe(23);
     // Old dishes are grams (ADR-0038 §1).
     expect(db.prepare('SELECT * FROM meal_items ORDER BY id').all()).toEqual(
       before.map((r) => ({
