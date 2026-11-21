@@ -233,6 +233,40 @@ describe('local write and merge', () => {
     });
   });
 
+  it("a manual dish with a code not stored yet becomes the user's product here, with its pack (OCT-419)", async () => {
+    const code = '4607012345678';
+    await createMeal(db, {
+      ...input(A),
+      items: [
+        {
+          ...item('Muesli', 180),
+          grams: 50,
+          unit: 'ml',
+          barcode: code,
+          pack: { packG: 400, pieces: 8 },
+        },
+      ],
+    });
+    await settle();
+    expect(await db.get('products', code)).toMatchObject({
+      code,
+      name: 'Muesli',
+      brand: null,
+      kcal100: 360,
+      protein100: 2,
+      fat100: 4,
+      carbs100: 6,
+      per: 'ml',
+      servingG: null,
+      packG: 400,
+      pieces: 8,
+      last: undefined,
+    });
+    expect((await db.get('products', code))!.savedAt).toEqual(
+      expect.any(String),
+    );
+  });
+
   it('a photo attached to a saved meal shows in the local copy (OCT-126)', async () => {
     await db.put('meals', { ...(await localMeal(A)), id: 5 });
     await patchMeal(db, A, { photoId: 'p1' });

@@ -1388,5 +1388,31 @@ describe('MealEditScreen: recipes (OCT-160 §5, ADR-0023 §5–6)', () => {
         'Ask your admin to connect AI to read labels.',
       );
     });
+
+    it('the photo’s code not found: the typed package weight and pieces are saved as pack (OCT-419)', async () => {
+      const onSave = await open({
+        dishes: [],
+        manual: 'not_configured',
+        photoBarcode: { code: '4006381333931', admin: false },
+        onBarcode: vi.fn(),
+      });
+      const sheet = screen.getByRole('dialog');
+      const type = (label: RegExp, value: string) =>
+        fireEvent.change(within(sheet).getByLabelText(label), {
+          target: { value },
+        });
+      type(/^Name/, 'Muesli');
+      type(/^Weight ·/, '50');
+      type(/^Calories ·/, '360');
+      type(/^Package weight/, '400');
+      type(/^How many pieces/, '8');
+      fireEvent.click(within(sheet).getByRole('button', { name: 'Add' }));
+      await save();
+      expect(onSave.mock.calls[0]![0].items[0]).toMatchObject({
+        source: 'manual',
+        barcode: '4006381333931',
+        pack: { packG: 400, pieces: 8 },
+      });
+    });
   });
 });

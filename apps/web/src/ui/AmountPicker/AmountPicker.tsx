@@ -4,7 +4,6 @@ import {
   amountGrams,
   amountModes,
   defaultAmount,
-  packPrefsSchema,
   round1,
   type Amount,
   type AmountMode,
@@ -16,12 +15,19 @@ import { useT } from '../../i18n';
 import { Badge } from '../Badge/Badge';
 import { Button } from '../Button/Button';
 import { Field } from '../Field/Field';
-import { parseDecimal } from '../FormList/FormList';
 import { Segment } from '../Segment/Segment';
 import { usePressRepeat } from '../usePressRepeat';
 import { useWeight } from '../weightUnits';
 import { WeightStepper } from '../WeightStepper/WeightStepper';
-import { STEP, isLast, pickerModes, stepAmount, toMode } from './amount';
+import {
+  STEP,
+  isLast,
+  parsePackG,
+  parsePieces,
+  pickerModes,
+  stepAmount,
+  toMode,
+} from './amount';
 import '../WeightStepper/WeightStepper.css';
 import '../PortionSheet/PortionSheet.css';
 import './AmountPicker.css';
@@ -143,18 +149,8 @@ export function AmountPicker({
     setPackText(next.packG && p.packG ? String(round1(w.show(p.packG))) : null);
     setPiecesText(null);
   };
-  // Whole grams before the check, so 1–5000 g holds for ounces too (E-7.6).
-  const packG = (s: string | null) => {
-    const n = s === null ? null : parseDecimal(s.trim());
-    const g = n === null ? NaN : Math.round(w.toG(n));
-    return packPrefsSchema.shape.packG.safeParse(g).success ? g : null;
-  };
-  const pieces = (s: string | null) => {
-    const n = s === null ? null : parseDecimal(s.trim());
-    return n !== null && packPrefsSchema.shape.pieces.safeParse(n).success
-      ? n
-      : null;
-  };
+  const packG = (s: string | null) => parsePackG(s, w.toG);
+  const pieces = parsePieces;
   /** The amount once the package is known: «Whole» or the piece asked for (3.2, 3.3). */
   const land = (next: Product) => {
     const ms = amountModes(next);

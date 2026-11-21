@@ -366,6 +366,66 @@ describe('ManualDishSheet: barcode (OCT-313 §3)', () => {
     expect(document.activeElement).toBe(screen.getByLabelText(/^Name/));
   });
 
+  describe('not found: package weight and pieces (OCT-419)', () => {
+    const missing = async () =>
+      ({ product: null, from: null, off: 'missing' }) as const;
+    const notFound = async (units: Units = 'metric') => {
+      const s = await setup(units, missing);
+      find('4006381333931');
+      await screen.findByLabelText(/^Package weight/);
+      fill(s.type);
+      return s;
+    };
+    const pieces = /^How many pieces/;
+
+    it('are optional: the dish comes without pack', async () => {
+      const { onAdd, add } = await notFound();
+      add();
+      expect(onAdd.mock.calls[0]![0]).not.toHaveProperty('pack');
+    });
+
+    it.each([
+      [/^Package weight/, '0', 'Weight 1–5,000 g'],
+      [/^Package weight/, '6000', 'Weight 1–5,000 g'],
+      [pieces, '2,5', 'A whole number, 1–1,000'],
+      [pieces, '0', 'A whole number, 1–1,000'],
+    ])('%s «%s» is an error and blocks «Add»', async (label, value, err) => {
+      const { onAdd, type, add } = await notFound();
+      type(label, value);
+      add();
+      expect(screen.getByText(err)).toBeTruthy();
+      expect(onAdd).not.toHaveBeenCalled();
+      expect(document.activeElement).toBe(screen.getByLabelText(label));
+    });
+
+    it('valid values go up as pack', async () => {
+      const { onAdd, type, add } = await notFound();
+      type(/^Package weight/, '400');
+      type(pieces, '12');
+      add();
+      expect(onAdd.mock.calls[0]![0]).toMatchObject({
+        barcode: '4006381333931',
+        pack: { packG: 400, pieces: 12 },
+      });
+    });
+
+    it('US units: ounces to whole grams', async () => {
+      const { onAdd, type, add } = await notFound('us');
+      type(/^Weight/, '8');
+      type(/^Package weight/, '16');
+      add();
+      expect(onAdd.mock.calls[0]![0].pack).toEqual({ packG: 454 });
+    });
+
+    it('hidden once the code changes', async () => {
+      await notFound();
+      fireEvent.change(screen.getByLabelText('Barcode'), {
+        target: { value: '400638133393' },
+      });
+      expect(screen.queryByLabelText(/^Package weight/)).toBeNull();
+    });
+  });
+
   it('a wrong code is an error on «Find» and on «Add»', async () => {
     const lookup = vi.fn();
     const { onAdd, add } = await setup('metric', lookup);

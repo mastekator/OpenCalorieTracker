@@ -298,3 +298,56 @@ export const PhotoNotFoundRussian: Story = {
   args: fromPhoto,
   globals: { locale: 'ru' },
 };
+
+/** OCT-419 (OCT-380 5.2): a code not found — optional package weight and pieces, remembered for it. */
+const withMissing = {
+  lookup: async (): Promise<BarcodeResult> => ({
+    product: null,
+    from: null,
+    off: 'missing',
+  }),
+};
+const packFields =
+  (values: Record<string, string>, then?: typeof add) =>
+  async (ctx: { canvasElement: HTMLElement }) => {
+    await scan(ctx);
+    await fill(values, then)(ctx);
+  };
+const pack = packFields({
+  ...filled,
+  'Package weight|Вес упаковки': '400',
+  'How many pieces|Сколько штук': '8',
+});
+const badPack = packFields(
+  {
+    ...filled,
+    'Package weight|Вес упаковки': '6000',
+    'How many pieces|Сколько штук': '2,5',
+  },
+  add,
+);
+export const NotFoundPack: Story = { args: withMissing, play: pack };
+export const NotFoundPackDark: Story = {
+  args: withMissing,
+  play: pack,
+  globals: dark,
+};
+export const NotFoundPackOunces: Story = {
+  args: { ...withMissing, units: 'us' },
+  play: packFields({
+    ...filled,
+    'Weight ·': '8,8',
+    'Package weight|Вес упаковки': '14',
+  }),
+};
+export const NotFoundPackErrors: Story = { args: withMissing, play: badPack };
+export const NotFoundPackErrorsDark: Story = {
+  args: withMissing,
+  play: badPack,
+  globals: dark,
+};
+export const NotFoundPackRussian: Story = {
+  args: withMissing,
+  play: scan,
+  globals: { locale: 'ru' },
+};
