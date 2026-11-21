@@ -124,6 +124,8 @@ const patch = {
   photoId: z.string().optional(),
   /** Unix ms of the edit on the device; an older one than the stored edit is ignored (last edit wins). */
   editedAt: z.number().int().nonnegative().optional(),
+  /** `editRev` of the meal this edit was made on; a stale one is a conflict unless the result matches (ADR-0022 §2). */
+  baseRev: z.number().int().nonnegative().optional(),
 };
 
 /** Date and time change together or not at all. */
@@ -170,6 +172,10 @@ export interface Meal {
   proteinG: number;
   fatG: number;
   carbsG: number;
+  /** Revision of the last user edit (create or applied PATCH); service changes leave it (ADR-0022 §1). */
+  editRev?: number;
+  /** Unix ms of the last user edit. Both are absent on meals not yet synced or cached before v0.4. */
+  editedAt?: number;
 }
 
 /** `POST /api/dishes/previous`: the dishes on the edit screen, to look up in the user's history. */

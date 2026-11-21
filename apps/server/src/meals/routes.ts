@@ -2,12 +2,14 @@ import { existsSync } from 'node:fs';
 import { rm } from 'node:fs/promises';
 import { Hono } from 'hono';
 import {
+  applyMealPatch,
   entryDay,
   isSimilarDensity,
   mealInputSchema,
   mealPatchSchema,
   nameKey,
   previousDishesSchema,
+  sameMealContent,
   type MealItemInput,
   type PreviousDish,
   type PreviousDishesResponse,
@@ -238,11 +240,12 @@ export function mealRoutes({ config, db, ai }: AppDeps) {
               ? { full: 0, expiresAt: null }
               : photoTerms(userId, input.photoId, eatenAt);
           const now = Date.now();
+          const rev = bumpRev(db, userId);
           const id = db
             .prepare(
               `INSERT INTO meals (user_id, client_id, eaten_at, tz_offset_min, local_date, meal_type,
-               photo_id, photo_full, photo_expires_at, recalc_offer, rev, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+               photo_id, photo_full, photo_expires_at, recalc_offer, rev, edit_rev, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
             )
             .pluck()
             .get(
@@ -256,7 +259,8 @@ export function mealRoutes({ config, db, ai }: AppDeps) {
               full,
               expiresAt,
               input.recalcOffer ? 1 : 0,
-              bumpRev(db, userId),
+              rev,
+              rev,
               now,
               now,
             ) as number;
@@ -291,6 +295,13 @@ export function mealRoutes({ config, db, ai }: AppDeps) {
         const patch = c.req.valid('json');
         const meal = findMeal(userId, c.req.param('id'));
         if (!meal) throw new ApiError(404, 'not_found');
+        // Made on an older version (ADR-0022 §2): a repeat of what is stored is fine, else a conflict.
+        if (patch.baseRev !== undefined && patch.baseRev !== meal.edit_rev) {
+          const current = readMeal(db, meal.id);
+          if (sameMealContent(applyMealPatch(current, patch), current))
+            return c.json(current);
+          throw new ApiError(409, 'edit_conflict', { meal: current });
+        }
         // Attaching a photo to a saved meal (ADR-0009); a repeat of the same id changes nothing.
         const attach =
           patch.photoId !== undefined && patch.photoId !== meal.photo_id
@@ -301,7 +312,15 @@ export function mealRoutes({ config, db, ai }: AppDeps) {
           const now = Date.now();
           const at = Math.min(patch.editedAt ?? now, now);
           const stored = meal.edited_at;
-          if (stored !== null && stored <= now && at < stored) return false;
+          // With baseRev the revision decides, not the device clock.
+          if (
+            patch.baseRev === undefined &&
+            stored !== null &&
+            stored <= now &&
+            at < stored
+          )
+            return false;
+          const rev = bumpRev(db, userId);
           let eatenAt = meal.eaten_at;
           let expiresAt = meal.photo_expires_at;
           let full = meal.photo_full;
@@ -326,7 +345,7 @@ export function mealRoutes({ config, db, ai }: AppDeps) {
           db.prepare(
             `UPDATE meals SET eaten_at = ?, tz_offset_min = ?, local_date = ?, meal_type = ?,
              photo_id = ?, photo_full = ?, photo_expires_at = ?, recalc_offer = ?, rev = ?,
-             edited_at = ?, updated_at = ?
+             edit_rev = ?, edited_at = ?, updated_at = ?
              WHERE id = ?`,
           ).run(
             eatenAt,
@@ -339,7 +358,8 @@ export function mealRoutes({ config, db, ai }: AppDeps) {
             patch.recalcOffer === undefined
               ? meal.recalc_offer
               : Number(patch.recalcOffer),
-            bumpRev(db, userId),
+            rev,
+            rev,
             at,
             now,
             meal.id,

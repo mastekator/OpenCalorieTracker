@@ -14,6 +14,8 @@ export interface MealRow {
   photo_expires_at: number | null;
   recalc_offer: number;
   edited_at: number | null;
+  created_at: number;
+  edit_rev: number;
 }
 
 /** Meals matching `where` (over `meals m`) in `order`: one query for meals, one for their dishes. */
@@ -67,6 +69,9 @@ function selectMeals(
       proteinG: sum('proteinG'),
       fatG: sum('fatG'),
       carbsG: sum('carbsG'),
+      editRev: m.edit_rev,
+      // A meal never edited since it was created has no edited_at.
+      editedAt: m.edited_at ?? m.created_at,
     };
   });
 }
