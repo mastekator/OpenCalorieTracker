@@ -7,6 +7,7 @@ import {
   fromProduct,
   scaleItem,
   type Amount,
+  type DishUnit,
   type MergedDish,
   type Nutrients,
   type Product,
@@ -35,13 +36,14 @@ export type Replaced = {
   dish?: Nutrients & {
     name: string;
     grams: number;
+    unit: DishUnit;
     from: NonNullable<BarcodeResult['from']>;
   };
 };
 
 type Props = {
   /** Values every recalculation starts from (AC-3.2); `name` is the current name. */
-  original: Nutrients & { name: string; grams: number };
+  original: Nutrients & { name: string; grams: number; unit?: DishUnit };
   /** Current weight on the screen. */
   grams: number;
   units: Units;
@@ -87,7 +89,6 @@ export function DishSheet({
   onClose,
 }: Props) {
   const { t, num } = useT();
-  const w = useWeight(units);
   const [name, setName] = useState(original.name);
   // An out-of-range AI weight starts invalid, so «Done» can't pass it on as valid (AC-3.4).
   const [grams, setGrams] = useState<number | null>(
@@ -118,6 +119,17 @@ export function DishSheet({
     },
   );
   const base = replaced?.dish ?? original;
+  const unit = prod?.per ?? base.unit ?? 'g';
+  const w = useWeight(units, unit);
+  const label = t(
+    unit === 'ml' ? 'edit.weight.label_ml' : 'edit.weight.label',
+    {
+      dish: name.trim() || base.name,
+    },
+  );
+  // A product's unit is the package's, not a choice (OCT-378 2.3); grams stay as they were.
+  const fromPack =
+    unit === 'ml' && (replaced?.dish || (source && source.kind !== 'code'));
   // A name change never recalculates: the numbers follow the weight only (AC-3.5).
   const shown = scaleItem(base, grams ?? initial);
 
@@ -209,7 +221,7 @@ export function DishSheet({
             amount={amount}
             grams={grams}
             units={units}
-            label={t('edit.weight.label', { dish: name.trim() || base.name })}
+            label={label}
             onChange={(a, g) => {
               setAmount(a);
               setGrams(g);
@@ -219,14 +231,18 @@ export function DishSheet({
           <WeightStepper
             grams={grams}
             units={units}
-            label={t('edit.weight.label', { dish: name.trim() || base.name })}
+            unit={unit}
+            label={label}
             onChange={setGrams}
           />
+        )}
+        {fromPack && (
+          <p className="dish-sheet__serving">{t('edit.dish.unit_from_pack')}</p>
         )}
         {servingG && !shares && (
           <p className="dish-sheet__serving">
             {t('edit.dish.serving', {
-              weight: `${w.fmt(servingG)}\u00a0${w.u}`,
+              weight: w.text(servingG),
             })}
           </p>
         )}

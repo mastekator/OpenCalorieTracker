@@ -88,7 +88,7 @@ const render = (
 };
 
 const row = () =>
-  screen.getByRole('textbox', { name: /^Weight of / }).closest('li')!;
+  screen.getByRole('textbox', { name: /^(Weight|Volume) of / }).closest('li')!;
 const openSheet = async (dish: string) =>
   fireEvent.click(await screen.findByRole('button', { name: `Edit ${dish}` }));
 const saved = async (onSave: ReturnType<typeof render>['onSave']) => {
@@ -125,6 +125,7 @@ describe('Another barcode in the «Dish» sheet (OCT-383)', () => {
     expect(item).toMatchObject({
       name: 'Pocari Ion Water 500ml',
       grams: 500,
+      unit: 'ml',
       kcal: 55,
       carbsG: 13.5,
       source: 'barcode',

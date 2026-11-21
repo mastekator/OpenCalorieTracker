@@ -122,12 +122,14 @@ export function LighterView({
   const kcal = (k: number) => num(Math.round(k));
   const change = (c: LighterChangeLine) => {
     const src = c.from === null ? undefined : recipe.ingredients[c.from];
+    // A swap keeps the ingredient's unit; an added one is in grams.
+    const wu = w.as(src?.unit);
     return t(`lighter.change.${c.change}`, {
       name: c.name,
       from: src?.name ?? '',
-      a: w.fmt(src?.grams ?? 0),
-      b: w.fmt(c.grams),
-      u: w.u,
+      a: wu.fmt(src?.grams ?? 0),
+      b: wu.fmt(c.grams),
+      u: wu.u,
     });
   };
   const save = async (v: LighterVariant, apply: boolean) => {

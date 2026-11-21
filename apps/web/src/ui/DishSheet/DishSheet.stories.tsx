@@ -273,6 +273,7 @@ const juice = {
     proteinG: 2,
     fatG: 0.5,
     carbsG: 25,
+    unit: 'ml',
   },
   grams: 250,
   product: {
@@ -293,3 +294,32 @@ export const AmountMlLastDark: Story = {
   globals: { theme: 'dark' },
 };
 export const AmountOunces: Story = { args: { ...amount, units: 'us' } };
+
+/** A drink from a package (OCT-378 1.2): «Volume», «Unit from the package», per 100 ml. */
+const drink = {
+  original: {
+    name: 'Orange juice',
+    grams: 500,
+    unit: 'ml',
+    kcal: 225,
+    proteinG: 4,
+    fatG: 1,
+    carbsG: 50,
+  },
+  grams: 500,
+  source: { kind: 'barcode', code: '4601234567893', servingG: 250 },
+} as const;
+export const Millilitres: Story = { args: drink };
+export const MillilitresDark: Story = {
+  args: drink,
+  globals: { theme: 'dark' },
+};
+export const FluidOunces: Story = { args: { ...drink, units: 'us' } };
+export const FluidOuncesDark: Story = {
+  args: { ...drink, units: 'us' },
+  globals: { theme: 'dark' },
+};
+export const MillilitresRussian: Story = {
+  args: drink,
+  globals: { locale: 'ru' },
+};

@@ -97,10 +97,12 @@ describe('MealEditScreen: a saved meal (OCT-19 §3.1)', () => {
   const PATH = '/meal/m5';
 
   function Flow({
+    meal = saved(),
     onPatch,
     onDelete,
     onRecipe,
   }: {
+    meal?: Meal;
     onPatch: (patch: Patch) => void;
     onDelete: () => void;
     onRecipe: (state: RecipeEditorState) => void;
@@ -109,7 +111,7 @@ describe('MealEditScreen: a saved meal (OCT-19 §3.1)', () => {
     if (path !== PATH) return <p>Day page</p>;
     return (
       <MealEditScreen
-        meal={saved()}
+        meal={meal}
         dishes={[]}
         units="metric"
         now={() => new Date(2026, 10, 15, 13, 24)}
@@ -125,7 +127,7 @@ describe('MealEditScreen: a saved meal (OCT-19 §3.1)', () => {
     );
   }
 
-  async function setup() {
+  async function setup(meal?: Meal) {
     vi.stubGlobal(
       'fetch',
       vi.fn(async () => Response.json([null])),
@@ -139,7 +141,12 @@ describe('MealEditScreen: a saved meal (OCT-19 §3.1)', () => {
       <I18nProvider>
         <ToastProvider>
           <LeaveGuard>
-            <Flow onPatch={onPatch} onDelete={onDelete} onRecipe={onRecipe} />
+            <Flow
+              meal={meal}
+              onPatch={onPatch}
+              onDelete={onDelete}
+              onRecipe={onRecipe}
+            />
           </LeaveGuard>
         </ToastProvider>
       </I18nProvider>,
@@ -192,6 +199,33 @@ describe('MealEditScreen: a saved meal (OCT-19 §3.1)', () => {
     });
     // Only what changed goes out.
     expect(Object.keys(patch)).toEqual(['items']);
+  });
+
+  it('a drink keeps its ml: shown as ml, saved with unit ml (ADR-0038 §4)', async () => {
+    const juice = { ...saved().items[0]!, name: 'Juice', grams: 500 };
+    const { onPatch } = await setup(
+      saved({ items: [{ ...juice, unit: 'ml' }] }),
+    );
+    const field = screen.getByRole('textbox', { name: 'Volume of Juice' });
+    expect((field as HTMLInputElement).value).toBe('500');
+    screen.getByText('ml');
+    fireEvent.change(field, { target: { value: '250' } });
+    await act(async () => fireEvent.click(button('Save')));
+    expect(onPatch.mock.calls[0]![0]!.items?.[0]).toMatchObject({
+      grams: 250,
+      unit: 'ml',
+    });
+  });
+
+  it('a record on the device without unit reads as grams', async () => {
+    const old: Partial<Meal['items'][number]> = { ...saved().items[0]! };
+    delete old.unit;
+    const { onPatch } = await setup(
+      saved({ items: [old as Meal['items'][number]] }),
+    );
+    fireEvent.change(weight(), { target: { value: '400' } });
+    await act(async () => fireEvent.click(button('Save')));
+    expect(onPatch.mock.calls[0]![0]!.items?.[0]).not.toHaveProperty('unit');
   });
 
   it('a new date sends eatenAt, the offset at that moment and its localDate', async () => {

@@ -874,8 +874,8 @@ describe('MealEditScreen: same as last time (4.3, OCT-61)', () => {
   };
   const hint = () => screen.queryByText(/^Looks like your entry from/);
 
-  async function withHistory(mealId?: number) {
-    const fetch = historyApi({ Buckwheat: last });
+  async function withHistory(mealId?: number, prev = last) {
+    const fetch = historyApi({ Buckwheat: prev });
     vi.stubGlobal('fetch', fetch);
     const ctx = await setup(undefined, [buckwheat, rice], mealId);
     await waitFor(() => expect(fetch).toHaveBeenCalled());
@@ -943,6 +943,31 @@ describe('MealEditScreen: same as last time (4.3, OCT-61)', () => {
       proteinG: 7,
       fatG: 2.5,
       carbsG: 35,
+      source: 'history',
+    });
+  });
+
+  it('a drink from history shows and takes its ml (ADR-0038 §4)', async () => {
+    const { onSave, save } = await withHistory(undefined, {
+      ...last,
+      grams: 300,
+      unit: 'ml',
+    });
+    expect(hint()!.textContent).toBe(
+      'Looks like your entry from Nov 12: 300\u00a0ml · 380\u00a0kcal',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Same as last time' }));
+    expect(
+      (
+        screen.getByRole('textbox', {
+          name: 'Volume of Buckwheat',
+        }) as HTMLInputElement
+      ).value,
+    ).toBe('300');
+    await act(async () => fireEvent.click(save()));
+    expect(onSave.mock.calls[0]![0].items[0]).toMatchObject({
+      grams: 300,
+      unit: 'ml',
       source: 'history',
     });
   });

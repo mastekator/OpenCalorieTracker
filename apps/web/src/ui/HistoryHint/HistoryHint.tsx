@@ -1,13 +1,16 @@
-import { gToOz, type IllustrationId, type Units } from '@oct/shared';
+import type { DishUnit, IllustrationId, Units } from '@oct/shared';
 import { useT } from '../../i18n';
 import { Button } from '../Button/Button';
 import { DishIllustration } from '../DishIllustration/DishIllustration';
+import { useWeight } from '../weightUnits';
 import './HistoryHint.css';
 
 type Props = {
   /** When the previous dish was eaten, ISO. */
   eatenAt: string;
+  /** In `unit`: millilitres for a drink (ADR-0038). */
   grams: number;
+  unit?: DishUnit;
   kcal: number;
   /** Of the previous entry (OCT-33). */
   illustration: IllustrationId;
@@ -22,6 +25,7 @@ type Props = {
 export function HistoryHint({
   eatenAt,
   grams,
+  unit,
   kcal,
   illustration,
   units,
@@ -29,10 +33,7 @@ export function HistoryHint({
   onKeep,
 }: Props) {
   const { t, num, locale } = useT();
-  const us = units === 'us';
-  const weight = us
-    ? `${new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(gToOz(grams))}\u00a0${t('unit.oz')}`
-    : `${num(grams)}\u00a0${t('unit.g')}`;
+  const weight = useWeight(units, unit).text(grams);
   const date = new Intl.DateTimeFormat(locale, {
     day: 'numeric',
     month: 'short',

@@ -633,7 +633,16 @@ const ru: DeepPartial<typeof en> = {
     height: 'Рост',
     weight: 'Вес',
   },
-  unit: { cm: 'см', in: 'in', kg: 'кг', lb: 'lb', g: 'г', oz: 'oz', ml: 'мл' },
+  unit: {
+    cm: 'см',
+    in: 'in',
+    kg: 'кг',
+    lb: 'lb',
+    g: 'г',
+    oz: 'oz',
+    ml: 'мл',
+    fl_oz: 'fl oz',
+  },
   weighing: {
     has: 'есть взвешивание',
     legend_has: 'есть взвешивание',
@@ -1522,6 +1531,9 @@ const ru: DeepPartial<typeof en> = {
       more: 'Больше на {step}',
       err_g: 'Вес от 1 до 5000 г',
       err_oz: 'Вес от 0,1 до 176,4 oz',
+      label_ml: 'Объём: {dish}',
+      err_ml: 'Объём от 1 до 5000 мл',
+      err_fl_oz: 'Объём от 0,1 до 169 fl oz',
     },
     recipe: {
       hint: 'Ваш рецепт: {name} · {k}\u00a0ккал/100\u00a0г',
@@ -1537,6 +1549,7 @@ const ru: DeepPartial<typeof en> = {
     edit: 'Изменить: {dish}',
     title: '{day}, {time}',
     estimate: 'Оценка ИИ — проверьте вес.',
+    estimate_ml: 'Оценка ИИ — проверьте вес и объём.',
     delete: 'Удалить',
     delete_dish: 'Удалить: {dish}',
     deleted: 'Удалено: {dish}',
@@ -1599,6 +1612,7 @@ const ru: DeepPartial<typeof en> = {
       done: 'Готово',
       delete: 'Удалить блюдо',
       serving: 'Порция на упаковке — {weight}',
+      unit_from_pack: 'Единица с упаковки',
       src: {
         off: 'Open Food Facts · по штрихкоду',
         label: 'С этикетки на фото · ИИ',
@@ -1607,6 +1621,7 @@ const ru: DeepPartial<typeof en> = {
         code: 'Штрихкод',
       },
       per100: 'На 100 г: {kcal} · {macros}',
+      per100_ml: 'На 100 мл: {kcal} · {macros}',
       open_off: 'Открыть в Open Food Facts',
       alt: {
         group: 'Другой штрихкод',
@@ -2047,6 +2062,7 @@ const ru: DeepPartial<typeof en> = {
     empty_body: 'Добавьте хотя бы один ингредиент.',
     grams: '{name}, граммы',
     ounces: '{name}, унции',
+    volume: '{name}, {u}',
     grams_err: 'От 0 до {max}\u00a0{u}',
     yield: 'Выход',
     cooked_weight: 'Вес готового',
@@ -2055,6 +2071,7 @@ const ru: DeepPartial<typeof en> = {
     manual_title: 'Ингредиент вручную',
     portions_less: 'Меньше порций',
     portions_more: 'Больше порций',
+    raw_ml_note: 'Миллилитры считаем как граммы.',
     weigh:
       'Взвесьте готовое блюдо — так точнее. Пока считаем по сырому весу: {w}\u00a0{u}.',
     check_weight: {

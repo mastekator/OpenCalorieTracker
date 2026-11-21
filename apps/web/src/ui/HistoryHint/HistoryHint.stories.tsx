@@ -26,3 +26,16 @@ export const DarkOunces: Story = {
   args: { units: 'us' },
   globals: { theme: 'dark' },
 };
+/** A drink: ml, fl oz in the US system (ADR-0038 §4). */
+export const Millilitres: Story = { args: { grams: 300, unit: 'ml' } };
+export const MillilitresDark: Story = {
+  ...Millilitres,
+  globals: { theme: 'dark' },
+};
+export const FluidOunces: Story = {
+  args: { grams: 300, unit: 'ml', units: 'us' },
+};
+export const FluidOuncesDark: Story = {
+  ...FluidOunces,
+  globals: { theme: 'dark' },
+};

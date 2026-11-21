@@ -12,6 +12,7 @@ import {
   scaleItem,
   servingG,
   weightWarning,
+  type DishUnit,
   type IngredientSource,
   type Meal,
   type Nutrients,
@@ -50,7 +51,7 @@ import { usePressRepeat } from '../../ui/usePressRepeat';
 import { useToast } from '../../ui/Toast/Toast';
 import { ImageDecodeError, prepareImage } from '../meals/prepareImage';
 import '../../ui/WeightStepper/WeightStepper.css';
-import { useWeight, weightIn } from '../../ui/weightUnits';
+import { unitOf, useWeight, weightIn } from '../../ui/weightUnits';
 import { useUnits } from './units';
 import { Per100Fields, type MacroKey, type Per100Values } from './Per100Fields';
 import './RecipeEditor.css';
@@ -117,8 +118,8 @@ type Row = {
   key: number;
   name: string;
   source: IngredientSource;
-  /** Values the grams scale from (as a dish, AC-3.2). */
-  base: Nutrients & { grams: number };
+  /** Values the grams scale from (as a dish, AC-3.2); `unit` 'ml': millilitres (ADR-0038). */
+  base: Nutrients & { grams: number; unit?: DishUnit };
   /** The weight field as typed, in the user's units. */
   grams: string;
   /** The AI couldn't estimate it; cleared by a grams edit. */
@@ -219,8 +220,9 @@ export function RecipeEditor({
   const [photoId, setPhotoId] = useState(start?.photoId ?? null);
   const [rows, setRows] = useState<Row[]>(
     () =>
-      start?.ingredients.map((i, n) => rowOf(i, w, ai?.unsure.includes(n))) ??
-      [],
+      start?.ingredients.map((i, n) =>
+        rowOf(i, w.as(i.unit), ai?.unsure.includes(n)),
+      ) ?? [],
   );
   const [cooked, setCooked] = useState(
     start?.cookedG == null ? '' : text(w.show(start.cookedG)),
@@ -278,7 +280,7 @@ export function RecipeEditor({
     (Number.isFinite(cookedIn) && cookedIn >= 1 && cookedIn <= MAX_COOKED_G);
   const cookedG = cookedValid ? cookedIn : null;
   const items = rows.map((r) => {
-    const g = gramsOf(r.grams, w, r.base.grams);
+    const g = gramsOf(r.grams, w.as(r.base.unit), r.base.grams);
     return { row: r, g, ...valuesOf(r, g ?? 0), grams: g ?? 0 };
   });
   const calc = { cookedG, servings, ingredients: items };
@@ -300,6 +302,7 @@ export function RecipeEditor({
       ({ row, grams, kcal, proteinG, fatG, carbsG }) => ({
         name: row.name,
         grams,
+        ...unitOf(row.base.unit),
         kcal: round1(kcal),
         proteinG: round1(proteinG),
         fatG: round1(fatG),
@@ -532,7 +535,7 @@ export function RecipeEditor({
   const setRow = (key: number, patch: Partial<Row>) =>
     setRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...patch } : r)));
   const addRow = (i: RecipeInput['ingredients'][number]) => {
-    setRows((rs) => [...rs, rowOf(i, w)]);
+    setRows((rs) => [...rs, rowOf(i, w.as(i.unit))]);
     setSheet(null);
   };
   const editing =
@@ -718,11 +721,12 @@ export function RecipeEditor({
                     kcal={k}
                     grams={row.grams}
                     units={units}
+                    unit={row.base.unit}
                     error={
                       g === null && (touched.rows || row.grams.trim() !== '')
                         ? t('editor.grams_err', {
-                            max: w.fmt(MAX_INGREDIENT_G),
-                            u: unit,
+                            max: w.as(row.base.unit).fmt(MAX_INGREDIENT_G),
+                            u: w.as(row.base.unit).u,
                           })
                         : undefined
                     }
@@ -855,6 +859,11 @@ export function RecipeEditor({
                       {t('editor.weigh', { w: w.fmt(totals.rawG), u: unit })}
                     </p>
                   )
+                )}
+                {totals.rawG > 0 && rows.some((r) => r.base.unit === 'ml') && (
+                  <p className="recipe-editor__note">
+                    {t('editor.raw_ml_note')}
+                  </p>
                 )}
               </div>
             )}
@@ -1000,12 +1009,15 @@ export function RecipeEditor({
         <DishSheet
           // shortcut: DishSheet weights start at 1 g, so a 0 g row can be renamed only after a weight; fine until salt rows need renaming.
           original={{ ...editing.base, name: editing.name }}
-          grams={gramsOf(editing.grams, w) ?? editing.base.grams}
+          grams={
+            gramsOf(editing.grams, w.as(editing.base.unit)) ??
+            editing.base.grams
+          }
           units={units ?? 'metric'}
           onDone={(n, g) => {
             setRow(editing.key, {
               name: n,
-              grams: text(w.show(g)),
+              grams: text(w.as(editing.base.unit).show(g)),
               unsure: false,
             });
             setSheet(null);

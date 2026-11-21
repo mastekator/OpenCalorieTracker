@@ -7,10 +7,12 @@ import {
   round1,
   scaleItem,
   sumDay,
+  unitSchema,
   uuid,
   type AiQuestion,
   type Amount,
   type DishSource,
+  type DishUnit,
   type FixedField,
   type IllustrationId,
   type MealItemInput,
@@ -21,6 +23,7 @@ import {
 } from '@oct/shared';
 import type { BarcodeResult } from '../../data/products';
 import type { ManualDish } from '../../ui/ManualDishSheet/ManualDishSheet';
+import { unitOf } from '../../ui/weightUnits';
 
 /**
  * `illustration`: picked by hand on this dish — a loaded meal passes it only with
@@ -35,6 +38,8 @@ export type Dish = ManualDish & {
   /** Another code the AI read on the package: the «Dish» sheet offers it (ADR-0036 §5). */
   alt?: MergedDish['alt'];
   illustration?: IllustrationId;
+  /** 'ml': `grams` are millilitres (ADR-0038); none: grams, as older records. */
+  unit?: DishUnit;
 };
 
 export const previousSchema = z.array(
@@ -43,6 +48,7 @@ export const previousSchema = z.array(
       mealId: z.number(),
       eatenAt: z.string(),
       grams: z.number(),
+      unit: unitSchema.optional(),
       kcal: z.number(),
       proteinG: z.number(),
       fatG: z.number(),
@@ -103,6 +109,7 @@ export const itemOf = (row: Row): MealItemInput => {
   return {
     name,
     grams,
+    ...unitOf(row.original.unit),
     kcal,
     proteinG,
     fatG,
@@ -225,16 +232,18 @@ const unasked = (row: Row): Row =>
   row.question ? { ...row, question: undefined } : row;
 
 /** A recognized dish; glued with a package (`mergePackages`) it carries its source and code. */
-export type Recognized = Omit<Dish, 'barcode'> & {
+export type Recognized = Omit<Dish, 'barcode' | 'unit'> & {
   source?: DishSource;
   barcode?: string | null;
+  /** Loose as the AI's answer; anything but 'ml' is grams. */
+  unit?: string | null;
 };
 
 /** Initial rows of a recognition with its questions. */
 export const toRows = (dishes: Recognized[], questions?: AiQuestion[]) =>
   withQuestions(
-    dishes.map(({ source, barcode, ...d }) =>
-      toRow({ ...d, ...(barcode && { barcode }) }, source),
+    dishes.map(({ source, barcode, unit, ...d }) =>
+      toRow({ ...d, ...unitOf(unit), ...(barcode && { barcode }) }, source),
     ),
     questions,
   );
@@ -294,6 +303,7 @@ export function answer(
         proteinG,
         fatG,
         carbsG,
+        ...unitOf(row.original.unit),
         // Another dish: its picture follows the new name (as a rename in the sheet).
         ...(nameKey(name) === nameKey(row.original.name) &&
           row.original.illustration && {
@@ -358,8 +368,18 @@ const aiRow = ({
   fatG,
   carbsG,
   confidence,
+  unit,
 }: RecognizedDish) =>
-  toRow({ name, grams, kcal, proteinG, fatG, carbsG, confidence });
+  toRow({
+    name,
+    grams,
+    kcal,
+    proteinG,
+    fatG,
+    carbsG,
+    confidence,
+    ...unitOf(unit),
+  });
 
 /**
  * «Refine»: the answer is the whole new list; `ref` points at the dish it replaces. An unknown

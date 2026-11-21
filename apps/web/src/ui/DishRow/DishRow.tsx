@@ -8,9 +8,9 @@ import {
   Trash2,
 } from 'lucide-react';
 import {
-  gToOz,
   type Amount,
   type DishSource,
+  type DishUnit,
   type IllustrationId,
   type Nutrients,
   type Product,
@@ -35,6 +35,8 @@ export type DishRowDish = Nutrients & {
   name: string;
   /** Null while the weight field is invalid; the numbers stay as last valid. */
   grams: number | null;
+  /** 'ml': `grams` are millilitres (ADR-0038); none: grams. */
+  unit?: DishUnit;
   source: DishSource;
   /** AI only; dropped by the screen after a weight or name edit (AC-2.9). */
   confidence?: number;
@@ -79,7 +81,8 @@ export function DishRow({
   share,
 }: Props) {
   const { t, num, locale } = useT();
-  const text = useAmountText(units, share?.product.per ?? 'g');
+  const unit = share?.product.per ?? dish.unit ?? 'g';
+  const text = useAmountText(units, unit);
   const press = usePressRepeat((dir) => {
     if (!share) return;
     const next = stepAmount(share.product, share.amount, dir);
@@ -96,9 +99,7 @@ export function DishRow({
         ? mark.name
         : mark.grams === dish.grams && mark.kcal !== undefined
           ? t('meal.kcal', { n: num(mark.kcal) }).replace(' ', '\u00a0') // «was 420 kcal» never splits
-          : units === 'us'
-            ? `${new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(gToOz(mark.grams))}\u00a0${t('unit.oz')}`
-            : `${num(mark.grams)}\u00a0${t('unit.g')}`;
+          : text.weight(mark.grams);
   const { offset, dragging, remove, bind, confirm } = useSwipeDelete(onDelete);
   return (
     <>
@@ -214,7 +215,13 @@ export function DishRow({
                 <WeightStepper
                   grams={dish.grams}
                   units={units}
-                  label={t('edit.weight.label', { dish: dish.name })}
+                  unit={unit}
+                  label={t(
+                    unit === 'ml'
+                      ? 'edit.weight.label_ml'
+                      : 'edit.weight.label',
+                    { dish: dish.name },
+                  )}
                   onChange={onGramsChange}
                 />
               )}

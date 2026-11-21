@@ -105,6 +105,7 @@ import { ScreenState } from '../../ui/ScreenState/ScreenState';
 import { Segment } from '../../ui/Segment/Segment';
 import { Sheet } from '../../ui/Sheet/Sheet';
 import { useToast } from '../../ui/Toast/Toast';
+import { unitOf } from '../../ui/weightUnits';
 import { diaryDay, localToday } from '../diary/day';
 import { NEW_RECIPE_PATH } from '../kitchen/KitchenScreen';
 import { recipeFor } from '../kitchen/matchRecipes';
@@ -190,6 +191,7 @@ const savedRow = (item: Meal['items'][number]): Row => ({
     {
       name: item.name,
       grams: item.grams,
+      ...unitOf(item.unit),
       kcal: item.kcal,
       proteinG: item.proteinG,
       fatG: item.fatG,
@@ -657,7 +659,7 @@ export function MealEditScreen({
 
   // «Same as last time»: weight recalculation now starts from the previous values (AC-11.5).
   const applyPrevious = (row: Row, prev: Previous) => {
-    const { grams, kcal, proteinG, fatG, carbsG } = prev;
+    const { grams, unit, kcal, proteinG, fatG, carbsG } = prev;
     focusRow.current = row.id;
     setApplied(null);
     setRows((rs) =>
@@ -668,6 +670,7 @@ export function MealEditScreen({
               original: {
                 name: r.original.name,
                 grams,
+                ...unitOf(unit),
                 kcal,
                 proteinG,
                 fatG,
@@ -1298,7 +1301,11 @@ export function MealEditScreen({
                       ? t('edit.question.count', { count: asked })
                       : mixed
                         ? t('edit.package_caption')
-                        : t('edit.estimate')}
+                        : t(
+                            items.some((i) => i.unit === 'ml')
+                              ? 'edit.estimate_ml'
+                              : 'edit.estimate',
+                          )}
                   </p>
                 )}
                 {canAgain && (
@@ -1449,6 +1456,7 @@ export function MealEditScreen({
                           <HistoryHint
                             eatenAt={row.previous.eatenAt}
                             grams={row.previous.grams}
+                            unit={row.previous.unit}
                             kcal={row.previous.kcal}
                             illustration={row.previous.illustration}
                             units={units}

@@ -325,3 +325,25 @@ export const ShareDesktop: Story = {
   ...SharePack,
   globals: { viewport: { value: 'desktop' } },
 };
+/** A drink: ml, fl oz in the US system (ADR-0038 §4). */
+const juice = {
+  ...rice,
+  name: 'Orange juice',
+  grams: 500,
+  kcal: 225,
+  proteinG: 4,
+  fatG: 1,
+  carbsG: 50,
+  unit: 'ml',
+  source: 'barcode',
+} as const;
+export const Millilitres: Story = { args: { dish: juice } };
+export const MillilitresDark: Story = {
+  ...Millilitres,
+  globals: { theme: 'dark' },
+};
+export const FluidOunces: Story = { args: { dish: juice, units: 'us' } };
+export const FluidOuncesDark: Story = {
+  ...FluidOunces,
+  globals: { theme: 'dark' },
+};

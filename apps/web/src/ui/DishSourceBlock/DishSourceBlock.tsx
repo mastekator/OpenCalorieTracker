@@ -1,5 +1,5 @@
 import { Barcode, Bookmark, ExternalLink, ScanText } from 'lucide-react';
-import { normalizeGtin, type Nutrients } from '@oct/shared';
+import { normalizeGtin, type DishUnit, type Nutrients } from '@oct/shared';
 import { useT } from '../../i18n';
 import type { PackageKind } from '../SourceBadge/SourceBadge';
 import './DishSourceBlock.css';
@@ -8,8 +8,8 @@ type Props = {
   /** `code`: an AI dish with another barcode on offer, only its code shows (OCT-383 3.4). */
   kind: PackageKind | 'code';
   code: string | null;
-  /** The dish as found or read: its numbers per 100 g are shown. */
-  original: Nutrients & { grams: number };
+  /** The dish as found or read: its numbers per 100 g (or 100 ml) are shown. */
+  original: Nutrients & { grams: number; unit?: DishUnit };
   /** `mine`: when the product was saved (ISO); none if it is not on this device. */
   savedAt?: string;
 };
@@ -55,14 +55,17 @@ export function DishSourceBlock({ kind, code, original, savedAt }: Props) {
       {code && <p className="dish-source__code tabular-nums">{code}</p>}
       {kind !== 'code' && (
         <p className="tabular-nums">
-          {t('edit.dish.per100', {
-            kcal: t('meal.kcal', { n: per100(original.kcal) }),
-            macros: t('edit.macros', {
-              p: per100(original.proteinG),
-              f: per100(original.fatG),
-              c: per100(original.carbsG),
-            }),
-          })}
+          {t(
+            original.unit === 'ml' ? 'edit.dish.per100_ml' : 'edit.dish.per100',
+            {
+              kcal: t('meal.kcal', { n: per100(original.kcal) }),
+              macros: t('edit.macros', {
+                p: per100(original.proteinG),
+                f: per100(original.fatG),
+                c: per100(original.carbsG),
+              }),
+            },
+          )}
         </p>
       )}
       {gtin && (

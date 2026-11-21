@@ -269,7 +269,7 @@ export function RecipeView({
                       ? t('recipe.zero_kcal')
                       : t('meal.kcal', { n: num(i.kcal) })
                   }
-                  value={`${w.fmt(i.grams)}\u00a0${u}`}
+                  value={w.as(i.unit).text(i.grams)}
                 >
                   {i.name}
                 </ListRow>
