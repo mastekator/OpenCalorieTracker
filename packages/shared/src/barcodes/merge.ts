@@ -1,5 +1,6 @@
 import type { RecognizedDish } from '../recognition.js';
 import { round1 } from '../units.js';
+import { amountGrams, defaultAmount } from './amount.js';
 import type {
   BarcodeLookup,
   PhotoBarcodesResponse,
@@ -49,7 +50,7 @@ export function fromProduct(
   kcal100: number,
   fallbackName: string,
 ) {
-  const grams = round1(Math.max(product.servingG ?? 100, 0.1));
+  const grams = amountGrams(product, defaultAmount(product));
   const of = (per100: number | null) => round1(((per100 ?? 0) * grams) / 100);
   return {
     name: (product.name ?? product.brand ?? fallbackName).slice(0, NAME_MAX),

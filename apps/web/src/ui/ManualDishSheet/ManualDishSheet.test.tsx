@@ -228,6 +228,20 @@ describe('ManualDishSheet: barcode (OCT-313 §3)', () => {
     });
   });
 
+  it('a known package weight fills the whole package (AC-3.8)', async () => {
+    const lookup = async () =>
+      ({
+        product: { ...YOGURT, packG: 400 },
+        from: 'off',
+        off: 'found',
+      }) as const;
+    const { onAdd, add } = await setup('metric', lookup);
+    find('4006381333931');
+    await screen.findByText('Found in Open Food Facts — check the weight.');
+    add();
+    expect(onAdd.mock.calls[0]![0]).toMatchObject({ grams: 400, kcal: 264 });
+  });
+
   it('not found: says so and moves focus to the name', async () => {
     const lookup = async () =>
       ({ product: null, from: null, off: 'disabled' }) as const;
