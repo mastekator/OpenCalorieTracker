@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OCT-432 · Recipe from text in the empty Kitchen</title>
+<link rel="stylesheet" href="../oct-13/tokens.css">
+<script src="../preview-bar.js"></script>
+<style>
+/* No new tokens: everything below uses tokens.css. */
+body { margin: 0; padding: var(--space-10) var(--space-8); background: var(--color-bg); color: var(--color-text);
+  font: var(--text-body-size)/var(--text-body-lh) var(--font-sans); }
+.doc-h1 { margin: 0 0 var(--space-2); font-size: var(--text-title-size); line-height: var(--text-title-lh); }
+.doc-h2 { margin: var(--space-12) 0 var(--space-4); font-size: var(--text-headline-size); }
+.doc-lead { max-width: 80ch; margin: 0 0 var(--space-6); color: var(--color-text-secondary); font-size: var(--text-subhead-size); line-height: var(--text-subhead-lh); }
+.doc-list { max-width: 86ch; padding-left: var(--space-6); font-size: var(--text-subhead-size); line-height: var(--text-subhead-lh); }
+.doc-list li + li { margin-top: var(--space-2); }
+.frames { display: flex; flex-wrap: wrap; gap: var(--space-8); align-items: flex-start; }
+figure { margin: 0; }
+figcaption { width: 375px; margin-top: var(--space-3); font-size: var(--text-footnote-size); line-height: var(--text-footnote-lh); color: var(--color-text-secondary); }
+figcaption b { color: var(--color-text); }
+.desk + figcaption { width: 720px; }
+.lang-bar { display: inline-flex; margin-left: var(--space-4); }
+
+.phone { position: relative; width: 375px; height: 740px; box-sizing: border-box; overflow: hidden; border-radius: 40px;
+  background: var(--color-bg); outline: 1px solid var(--color-separator); display: flex; flex-direction: column; }
+.desk { width: 1040px; height: 640px; position: relative; overflow: hidden; border-radius: var(--radius-lg); outline: 1px solid var(--color-separator);
+  background: var(--color-bg); display: grid; grid-template-columns: 240px 1fr; }
+.side { border-right: 1px solid var(--color-separator); padding: var(--space-6) var(--space-4); display: grid; align-content: start; gap: var(--space-1); }
+.side span { padding: var(--space-2) var(--space-3); border-radius: var(--radius-md); font-size: var(--text-subhead-size); }
+.side .on { background: var(--color-accent-soft); color: var(--color-accent); font-weight: 600; }
+.desk__main { display: flex; flex-direction: column; }
+
+.nav { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; height: var(--navbar-height); padding: var(--space-6) var(--space-2) 0; }
+.nav__title { font: 600 var(--text-headline-size)/var(--text-headline-lh) var(--font-sans); text-align: center; }
+.nav__end { justify-self: end; }
+.ibtn { display: inline-flex; align-items: center; justify-content: center; width: var(--tap-min); height: var(--tap-min); border: 0; border-radius: var(--radius-full);
+  background: var(--color-surface-2); color: var(--color-text); cursor: pointer; }
+.back { display: inline-flex; align-items: center; gap: var(--space-1); color: var(--color-accent); font-size: var(--text-body-size); min-height: var(--tap-min); }
+svg { width: var(--icon-size-sm); height: var(--icon-size-sm); flex: none; }
+.ibtn svg { width: var(--icon-size); height: var(--icon-size); }
+
+/* ScreenState as in the app */
+.state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-2);
+  padding: 0 var(--screen-gutter) var(--space-12); text-align: center; }
+.desk .state { max-width: var(--dialog-max-width); margin: 0 auto; width: 100%; box-sizing: border-box; }
+.state__art { width: calc(var(--space-12) + var(--space-2)); height: calc(var(--space-12) + var(--space-2)); border-radius: var(--radius-full);
+  background: var(--color-accent-soft); display: grid; place-items: center; font-size: 30px; margin-bottom: var(--space-2); }
+.state__title { margin: 0; font: 600 var(--text-title-size)/var(--text-title-lh) var(--font-sans); }
+.state__body { margin: 0 0 var(--space-4); max-width: 36ch; color: var(--color-text-secondary); font-size: var(--text-subhead-size); line-height: var(--text-subhead-lh); }
+.state__action { display: grid; gap: var(--space-3); align-self: stretch; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); min-height: var(--control-height-lg); padding: 0 var(--space-4);
+  border: 0; border-radius: var(--radius-md); font: 600 var(--text-body-size) var(--font-sans); cursor: pointer; }
+.btn--primary { background: var(--color-accent); color: var(--color-on-accent); }
+.btn--tonal { background: var(--color-accent-soft); color: var(--color-accent); }
+.btn:focus-visible, .row:focus-visible, .ibtn:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }
+
+/* Sheet */
+.scrim { position: absolute; inset: 0; background: var(--color-scrim); }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; padding: var(--space-2) var(--screen-gutter) var(--space-8);
+  background: var(--color-bg); border-radius: var(--radius-xl) var(--radius-xl) 0 0; }
+.desk .sheet { left: 50%; right: auto; bottom: auto; top: 50%; transform: translate(-50%, -50%); width: var(--dialog-max-width); border-radius: var(--radius-xl); padding-top: var(--space-4); }
+.grab { width: 36px; height: 5px; border-radius: var(--radius-full); background: var(--color-separator); margin: 0 auto var(--space-3); }
+.sheet__head { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; margin-bottom: var(--space-4); }
+.sheet__title { font: 600 var(--text-headline-size)/var(--text-headline-lh) var(--font-sans); }
+.list { margin: 0; padding: 0; list-style: none; border-radius: var(--radius-md); background: var(--color-surface); overflow: hidden; }
+.row { display: flex; align-items: center; gap: var(--space-3); min-height: var(--control-height); padding: var(--space-3) var(--space-4); color: var(--color-text); }
+.row { text-decoration: none; }
+.list li + li { border-top: 1px solid var(--color-separator); margin-left: calc(var(--space-4) + var(--icon-size) + var(--space-3)); }
+.list li + li .row { margin-left: calc(-1 * (var(--space-4) + var(--icon-size) + var(--space-3))); }
+.row > svg { width: var(--icon-size); height: var(--icon-size); color: var(--color-accent); }
+.row__text { display: grid; gap: 2px; text-align: start; }
+.row__desc { font-size: var(--text-footnote-size); line-height: var(--text-footnote-lh); color: var(--color-text-secondary); }
+
+/* Paste screen header */
+.field { margin: var(--space-4) var(--screen-gutter) 0; }
+.field__label { font-size: var(--text-footnote-size); color: var(--color-text-secondary); margin: 0 0 var(--space-2) var(--space-4); }
+.field__box { height: 260px; border-radius: var(--radius-md); background: var(--color-surface); padding: var(--space-3) var(--space-4); color: var(--color-text-disabled); }
+.note { margin: var(--space-3) var(--screen-gutter) 0; font-size: var(--text-footnote-size); color: var(--color-text-secondary); }
+.foot { margin: auto var(--screen-gutter) var(--space-8); display: grid; }
+</style>
+</head>
+<body>
+<main id="app"></main>
+<script>
+const KEY = 'oct-preview-lang';
+let lang = new URLSearchParams(location.search).get('lang');
+try { lang = lang || localStorage.getItem(KEY); } catch (e) {}
+lang = lang === 'en' ? 'en' : 'ru';
+const L = (ru, en) => lang === 'en' ? en : ru;
+
+const sv = d => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const I = {
+  // lucide Sparkle — the same mark as «What should I fix?» and «AI estimate»
+  spark: sv('<path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/>'),
+  pencil: sv('<path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/>'),
+  history: sv('<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>'),
+  plus: sv('<path d="M5 12h14M12 5v14"/>'),
+  x: sv('<path d="M18 6 6 18M6 6l12 12"/>'),
+  back: sv('<path d="m15 18-6-6 6-6"/>'),
+};
+const T = {
+  kitchen: () => L('Кухня', 'Kitchen'),
+  fromText: () => L('Рецепт из текста', 'Recipe from text'),
+  fromTextDesc: () => L('ИИ разберёт ингредиенты и граммы', 'AI picks out ingredients and grams'),
+};
+
+const nav = (desk) => `<div class="nav">${desk ? '<span></span>' : `<span class="back">${I.back}${L('Профиль', 'Profile')}</span>`}
+  <span class="nav__title">${T.kitchen()}</span><span class="nav__end"><button class="ibtn" aria-label="${L('Добавить рецепт', 'Add a recipe')}">${I.plus}</button></span></div>`;
+
+const empty = (ai) => `<div class="state"><div class="state__art" aria-hidden="true">🍲</div>
+  <h2 class="state__title">${L('Рецептов пока нет', 'No recipes yet')}</h2>
+  <p class="state__body">${L('Для блюд, которые готовите дома: один раз внесите состав и вес готового — потом записывайте порцию точно и за пару касаний.', 'For dishes you cook at home: add the ingredients and cooked weight once — then log a serving accurately in a couple of taps.')}</p>
+  <div class="state__action">
+    <button class="btn btn--primary">${L('Новый рецепт', 'New recipe')}</button>
+    ${ai ? `<button class="btn btn--tonal">${I.spark}${T.fromText()}</button>` : ''}
+    <button class="btn btn--tonal">${L('Из приёма пищи', 'From a meal')}</button>
+  </div></div>`;
+
+const sheet = (desk) => `<div class="scrim"></div><div class="sheet" role="dialog" aria-label="${L('Добавить рецепт', 'Add a recipe')}">${desk ? '' : '<div class="grab"></div>'}
+  <div class="sheet__head"><span></span><span class="sheet__title">${L('Добавить рецепт', 'Add a recipe')}</span><span class="nav__end"><button class="ibtn" aria-label="${L('Закрыть', 'Close')}">${I.x}</button></span></div>
+  <ul class="list">
+    <li><a class="row" href="#">${I.pencil}<span class="row__text">${L('Ввести вручную', 'Enter manually')}</span></a></li>
+    <li><a class="row" href="#">${I.spark}<span class="row__text"><span>${T.fromText()}</span><span class="row__desc">${T.fromTextDesc()}</span></span></a></li>
+    <li><a class="row" href="#">${I.history}<span class="row__text">${L('Из приёма пищи', 'From a meal')}</span></a></li>
+  </ul></div>`;
+
+const paste = () => `<div class="nav"><span class="back">${I.back}${T.kitchen()}</span><span class="nav__title">${T.fromText()}</span><span></span></div>
+  <div class="field"><p class="field__label">${L('Текст рецепта', 'Recipe text')}</p><div class="field__box">${L('Вставьте рецепт целиком…', 'Paste the whole recipe…')}</div></div>
+  <p class="note">${L('Провайдеру уходит только этот текст — без фото и дневника.', 'Only this text goes to the provider — no photos or diary.')}</p>
+  <div class="foot"><button class="btn btn--primary">${L('Разобрать', 'Parse')}</button></div>`;
+
+const phone = (id, inner, cap) => `<figure id="${id}"><div class="phone">${inner}</div><figcaption>${cap}</figcaption></figure>`;
+const desk = (id, inner, cap) => `<figure id="${id}"><div class="desk"><nav class="side"><span>${L('Сегодня', 'Today')}</span><span>${L('Дневник', 'Diary')}</span><span class="on">${T.kitchen()}</span><span>${L('Профиль', 'Profile')}</span></nav><div class="desk__main">${inner}</div></div><figcaption>${cap}</figcaption></figure>`;
+
+function render() {
+  document.documentElement.lang = lang;
+  document.getElementById('app').innerHTML = `
+<h1 class="doc-h1">OCT-432 · ${L('«Рецепт из текста» в пустой «Кухне»', '“Recipe from text” in the empty Kitchen')}</h1>
+<p class="doc-lead">${L('Третья кнопка в пустом состоянии — только при доступном ИИ. Признак ИИ — та же «искра», что у «Что исправить?» и «Оценка ИИ». Одно название везде: «Рецепт из текста».', 'A third button in the empty state, only when AI is available. The AI mark is the same sparkle as “What should I fix?” and “AI estimate”. One name everywhere: “Recipe from text”.')}</p>
+<section id="phone"><h2 class="doc-h2">1 · ${L('Телефон', 'Phone')}</h2><div class="frames">
+${phone('p1', nav() + empty(true), L('<b>1.1 Пусто, ИИ доступен.</b> Порядок как в листе «+»: «Новый рецепт» (главная), «Рецепт из текста» (tonal, «искра» перед текстом), «Из приёма пищи» (tonal). Главная не меняется от наличия ИИ: ручной ввод работает всегда, а черновик из текста всё равно открывается в том же редакторе.', '<b>1.1 Empty, AI available.</b> Same order as the “+” sheet: “New recipe” (primary), “Recipe from text” (tonal, sparkle before the label), “From a meal” (tonal). The primary doesn’t depend on AI: manual entry always works, and the text draft opens in the same editor anyway.'))}
+${phone('p2', nav() + empty(false), L('<b>1.2 Пусто, ИИ нет.</b> Две кнопки, как сейчас. Никакой подсказки про ИИ.', '<b>1.2 Empty, no AI.</b> Two buttons, as now. No AI hint.'))}
+${phone('p3', nav() + empty(true) + sheet(), L('<b>1.3 Лист «+».</b> «Искра» вместо значка вставки; под названием вторая строка «ИИ разберёт ингредиенты и граммы» (description у ListRow). Подпись только в листе: в пустом состоянии её роль играет «искра» рядом с понятным названием.', '<b>1.3 “+” sheet.</b> The sparkle replaces the paste icon; a second line under the name, “AI picks out ingredients and grams” (ListRow description). The line is only in the sheet; in the empty state the sparkle next to a clear name does that job.'))}
+${phone('p4', paste(), L('<b>1.4 Экран.</b> Заголовок «Рецепт из текста» — то же название, что у кнопки и пункта. Остальное без изменений.', '<b>1.4 Screen.</b> Title “Recipe from text”, the same name as the button and the row. Nothing else changes.'))}
+</div></section>
+<section id="desktop"><h2 class="doc-h2">2 · ${L('Десктоп', 'Desktop')}</h2><div class="frames">
+${desk('d1', nav(true) + empty(true), L('<b>2.1 Пусто, ИИ доступен.</b> Тот же столбец кнопок по центру, ширина ограничена --dialog-max-width (как у ScreenState сейчас).', '<b>2.1 Empty, AI available.</b> The same button column, centered, width capped by --dialog-max-width (as ScreenState does now).'))}
+${desk('d2', nav(true) + empty(true) + sheet(true), L('<b>2.2 «+» на десктопе.</b> Лист — диалог по центру, пункты те же.', '<b>2.2 “+” on desktop.</b> The sheet is a centered dialog with the same rows.'))}
+</div></section>
+<section id="spec"><h2 class="doc-h2">3 · ${L('Для разработки', 'For development')}</h2><ul class="doc-list">${L(`
+<li>KitchenScreen, пустое состояние: между «Новый рецепт» и «Из приёма пищи» — <code>Button variant="tonal"</code> с <code>&lt;Sparkle aria-hidden /&gt;</code> перед текстом, ведёт на PASTE_PATH; только при <code>ai</code>.</li>
+<li>Лист «+»: у пункта иконка <code>Sparkle</code> вместо <code>ClipboardPaste</code>, <code>description={t('recipes.paste_desc')}</code>. Порядок пунктов не меняется.</li>
+<li>Тексты: <code>recipes.paste</code> = «Рецепт из текста» / “Recipe from text” (= <code>paste.title</code>); новый <code>recipes.paste_desc</code> = «ИИ разберёт ингредиенты и граммы» / “AI picks out ingredients and grams”.</li>
+<li>VoiceOver: «искра» скрыта, имя кнопки — «Рецепт из текста»; в листе описание читается второй строкой. Новых токенов нет.</li>`, `
+<li>KitchenScreen, empty state: between “New recipe” and “From a meal”, a <code>Button variant="tonal"</code> with <code>&lt;Sparkle aria-hidden /&gt;</code> before the label, to PASTE_PATH; only when <code>ai</code>.</li>
+<li>“+” sheet: the row gets the <code>Sparkle</code> icon instead of <code>ClipboardPaste</code>, <code>description={t('recipes.paste_desc')}</code>. Row order stays.</li>
+<li>Copy: <code>recipes.paste</code> = «Рецепт из текста» / “Recipe from text” (= <code>paste.title</code>); new <code>recipes.paste_desc</code> = «ИИ разберёт ингредиенты и граммы» / “AI picks out ingredients and grams”.</li>
+<li>VoiceOver: the sparkle is hidden, the button name is “Recipe from text”; in the sheet the description reads as a second line. No new tokens.</li>`)}</ul></section>`;
+  const bar = document.querySelector('.pv-bar');
+  if (bar && !bar.querySelector('.lang-bar')) {
+    const seg = document.createElement('span');
+    seg.className = 'pv-seg lang-bar';
+    seg.innerHTML = '<button data-l="ru">RU</button><button data-l="en">EN</button>';
+    seg.addEventListener('click', e => { const l = e.target.dataset.l; if (!l) return; lang = l; try { localStorage.setItem(KEY, l); } catch (er) {} render(); });
+    bar.appendChild(seg);
+  }
+  document.querySelectorAll('.lang-bar button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.l === lang)));
+}
+render();
+document.addEventListener('DOMContentLoaded', render);
+</script>
+</body>
+</html>
