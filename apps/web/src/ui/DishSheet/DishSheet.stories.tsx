@@ -273,6 +273,7 @@ const juice = {
     proteinG: 2,
     fatG: 0.5,
     carbsG: 25,
+    unit: 'ml',
   },
   grams: 250,
   product: {
