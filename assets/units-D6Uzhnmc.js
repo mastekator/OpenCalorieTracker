@@ -1,0 +1,1 @@
+import{n as e}from"./rolldown-runtime-sJBDdmOt.js";import{s as t,w as n}from"./DataContext-BUOJkSs6.js";import{n as r,r as i}from"./SessionContext-CKo3puOb.js";function a(){let e=n(),{user:t}=i();return e?.units??t?.units??`metric`}function o(){return(o=e((()=>{r(),t()})))()}export{a as n,o as t};

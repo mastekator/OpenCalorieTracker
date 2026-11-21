@@ -1,0 +1,1 @@
+.recipe-row__main{flex-direction:column;flex:1;gap:2px;min-width:0;display:flex}.recipe-row__name{overflow-wrap:anywhere;font-weight:600}.recipe-row__kcal{font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);color:var(--color-text-secondary);font-variant-numeric:tabular-nums}

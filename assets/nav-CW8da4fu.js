@@ -1,0 +1,1 @@
+import{n as e}from"./rolldown-runtime-sJBDdmOt.js";import{o as t,s as n}from"./src-A37QBBus.js";function r(){let[e]=n();return(t,n)=>e===t||n!==void 0&&(e===n||e.startsWith(`${n}/`))||t!==`/`&&e.startsWith(`${t}/`)||t===`/week`&&e.startsWith(`/month/`)}function i(){return(i=e((()=>{t()})))()}export{r as n,i as t};

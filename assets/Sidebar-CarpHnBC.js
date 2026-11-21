@@ -1,0 +1,13 @@
+import{n as e}from"./rolldown-runtime-sJBDdmOt.js";import{i as t,r as n}from"./i18n-wd0pTQQj.js";import{t as r}from"./jsx-runtime-MKhVqBIO.js";import{n as i,t as a}from"./camera-CVJG_1KL.js";import{o,t as s}from"./src-A37QBBus.js";import{n as c,t as l}from"./Button-BYUQU8cU.js";import{n as u,t as d}from"./nav-CW8da4fu.js";import{n as f,t as p}from"./Mark-CxNQeF2l.js";function m({items:e,settings:n,email:r,onAdd:i}){let{t:o}=t(),c=u(),d=({href:e,icon:t,label:n})=>(0,h.jsxs)(s,{href:e,className:`sidebar__link`,"aria-current":c(e)?`page`:void 0,children:[(0,h.jsx)(t,{"aria-hidden":`true`}),n]});return(0,h.jsxs)(`nav`,{className:`sidebar`,"aria-label":o(`nav.main`),children:[(0,h.jsxs)(`div`,{className:`sidebar__brand`,children:[(0,h.jsx)(p,{}),o(`common.appName`)]}),(0,h.jsxs)(l,{onClick:i,children:[(0,h.jsx)(a,{"aria-hidden":`true`}),o(`nav.add_food`)]}),(0,h.jsx)(`ul`,{children:e.map(e=>(0,h.jsx)(`li`,{children:d(e)},e.href))}),(0,h.jsxs)(`div`,{className:`sidebar__footer`,children:[d(n),r&&(0,h.jsx)(`p`,{className:`sidebar__email`,children:r})]})]})}var h;function g(){return(g=e((()=>{i(),o(),n(),c(),d(),f(),h=r(),m.__docgenInfo={description:``,methods:[],displayName:`Sidebar`,props:{items:{required:!0,tsType:{name:`Array`,elements:[{name:`signature`,type:`object`,raw:`{
+  href: string;
+  icon: LucideIcon;
+  label: string;
+  /** Another section this item holds, e.g. the tab bar's Profile holds /kitchen. */
+  also?: string;
+}`,signature:{properties:[{key:`href`,value:{name:`string`,required:!0}},{key:`icon`,value:{name:`LucideIcon`,required:!0}},{key:`label`,value:{name:`string`,required:!0}},{key:`also`,value:{name:`string`,required:!1},description:`Another section this item holds, e.g. the tab bar's Profile holds /kitchen.`}]}}],raw:`NavItem[]`},description:`Main destinations: Today, Diary, Week, Profile.`},settings:{required:!0,tsType:{name:`signature`,type:`object`,raw:`{
+  href: string;
+  icon: LucideIcon;
+  label: string;
+  /** Another section this item holds, e.g. the tab bar's Profile holds /kitchen. */
+  also?: string;
+}`,signature:{properties:[{key:`href`,value:{name:`string`,required:!0}},{key:`icon`,value:{name:`LucideIcon`,required:!0}},{key:`label`,value:{name:`string`,required:!0}},{key:`also`,value:{name:`string`,required:!1},description:`Another section this item holds, e.g. the tab bar's Profile holds /kitchen.`}]}},description:`Pinned to the bottom (Settings).`},email:{required:!1,tsType:{name:`string`},description:`Signed-in user, shown under Settings.`},onAdd:{required:!0,tsType:{name:`signature`,type:`function`,raw:`() => void`,signature:{arguments:[],return:{name:`void`}}},description:`«Add food»; what it opens is decided by the caller (OCT-16).`}}}})))()}export{g as n,m as t};
