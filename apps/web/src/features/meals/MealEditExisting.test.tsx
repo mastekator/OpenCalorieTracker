@@ -283,6 +283,12 @@ describe('MealEditExisting (/meal/:clientId)', () => {
             : Response.json(meal);
         }
         if (url === '/api/dishes/previous') return Response.json([null]);
+        // A barcode dish of the previous test refreshes these in the background.
+        if (url === '/api/products/mine')
+          return Response.json({ products: [] });
+        if (!url.startsWith('/api/sync')) {
+          throw new Error(`unexpected fetch ${method} ${url}`);
+        }
         const page = {
           rev: 1,
           more: false,
@@ -545,6 +551,12 @@ describe('recalculation from the photo (OCT-62)', () => {
         if (url === '/api/photos/p1/recognize') return recognize();
         if (url === '/api/ai/refine') return refine();
         if (url === '/api/dishes/previous') return Response.json([null]);
+        // A barcode dish of the previous test refreshes these in the background.
+        if (url === '/api/products/mine')
+          return Response.json({ products: [] });
+        if (!url.startsWith('/api/sync')) {
+          throw new Error(`unexpected fetch ${method} ${url}`);
+        }
         const page = {
           rev: 1,
           more: false,
