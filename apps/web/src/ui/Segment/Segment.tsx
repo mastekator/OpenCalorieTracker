@@ -4,7 +4,8 @@ import './Segment.css';
 type Props<T extends string> = {
   /** Accessible name of the group. */
   label: string;
-  options: readonly { value: T; label: string }[];
+  /** `aria`: a fuller accessible name, e.g. «Grams» for «g». */
+  options: readonly { value: T; label: string; aria?: string }[];
   value: T;
   onChange: (value: T) => void;
 };
@@ -51,6 +52,7 @@ export function Segment<T extends string>({
             type="button"
             role="radio"
             aria-checked={checked}
+            aria-label={option.aria}
             tabIndex={focusable ? 0 : -1}
             className="segment__option"
             onClick={() => onChange(option.value)}

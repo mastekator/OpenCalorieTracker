@@ -79,7 +79,17 @@ const add = async (body: HTMLElement) =>
     await within(body).findByRole('button', { name: /^(Add|Добавить)$/ })
   ).click();
 const perServing = async (body: HTMLElement) =>
-  (await within(body).findAllByRole('radio'))[1]!.click();
+  (
+    await within(body).findByRole('radio', {
+      name: /^(Per serving|На порцию)$/,
+    })
+  ).click();
+const milliliters = async (body: HTMLElement) =>
+  (
+    await within(body).findByRole('radio', {
+      name: /^(Milliliters|Миллилитры)$/,
+    })
+  ).click();
 
 const dark = { theme: 'dark' };
 const filled = {
@@ -195,6 +205,53 @@ export const BarcodeDesktop: Story = {
   args: withBarcode,
   play: scan,
   globals: { viewport: { value: 'desktop' } },
+};
+
+/** OCT-378 2.2: the user's own product in ml — «Volume», «Per 100 ml», the total in ml. */
+const kefir = async ({ canvasElement }: { canvasElement: HTMLElement }) => {
+  const body = canvasElement.ownerDocument.body;
+  await milliliters(body);
+  await fill({ Name: 'Kefir 1%', 'Volume ·': '250', 'Calories ·': '40' })({
+    canvasElement,
+  });
+};
+export const Milliliters: Story = { play: kefir };
+export const MillilitersDark: Story = { play: kefir, globals: dark };
+export const MillilitersOunces: Story = { args: { units: 'us' }, play: kefir };
+
+/** OCT-378 2.4: the empty-field error follows the unit. */
+const noVolume = async ({ canvasElement }: { canvasElement: HTMLElement }) => {
+  const body = canvasElement.ownerDocument.body;
+  await milliliters(body);
+  await add(body);
+};
+export const VolumeError: Story = { play: noVolume };
+export const VolumeErrorDark: Story = { play: noVolume, globals: dark };
+
+/** OCT-378 2.3: found per ml — no switch, the unit comes from the package. */
+const withJuice = {
+  lookup: async (code: string): Promise<BarcodeResult> => ({
+    product: {
+      code,
+      name: 'Orange juice',
+      brand: null,
+      kcal100: 45,
+      protein100: 0.8,
+      fat100: 0.2,
+      carbs100: 10,
+      per: 'ml',
+      servingG: 250,
+      servingText: '250 ml',
+    },
+    from: 'off',
+    off: 'found',
+  }),
+};
+export const UnitFromPackage: Story = { args: withJuice, play: scan };
+export const UnitFromPackageDark: Story = {
+  args: withJuice,
+  play: scan,
+  globals: dark,
 };
 
 /** OCT-313 3.4: no AI, the photo's barcode not found — the sheet opens with it. */

@@ -12,7 +12,6 @@ import {
   type AiQuestion,
   type Amount,
   type DishSource,
-  type DishUnit,
   type FixedField,
   type IllustrationId,
   type MealItemInput,
@@ -38,8 +37,6 @@ export type Dish = ManualDish & {
   /** Another code the AI read on the package: the «Dish» sheet offers it (ADR-0036 §5). */
   alt?: MergedDish['alt'];
   illustration?: IllustrationId;
-  /** 'ml': `grams` are millilitres (ADR-0038); none: grams, as older records. */
-  unit?: DishUnit;
 };
 
 export const previousSchema = z.array(

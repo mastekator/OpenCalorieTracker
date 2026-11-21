@@ -608,6 +608,30 @@ describe('MealEditScreen: manual entry (OCT-60)', () => {
     expect(input).not.toHaveProperty('recalcOffer');
   });
 
+  it('a dish in ml is shown and saved in ml (OCT-394 AC-1)', async () => {
+    const onSave = await open('user');
+    fireEvent.click(screen.getByRole('radio', { name: 'Milliliters' }));
+    fireEvent.change(screen.getByLabelText(/^Name/), {
+      target: { value: 'Kefir' },
+    });
+    fireEvent.change(screen.getByLabelText(/^Volume ·/), {
+      target: { value: '250' },
+    });
+    fireEvent.change(screen.getByLabelText(/^Calories ·/), {
+      target: { value: '40' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+    const field = screen.getByRole('textbox', { name: 'Volume of Kefir' });
+    expect((field as HTMLInputElement).value).toBe('250');
+    await save();
+    expect(onSave.mock.calls[0]![0].items[0]).toMatchObject({
+      name: 'Kefir',
+      grams: 250,
+      unit: 'ml',
+      kcal: 100,
+    });
+  });
+
   it.each([
     ['not_configured', 'Photo recognition isn’t set up'],
     ['no_vision', 'The current model can’t read photos'],
