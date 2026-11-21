@@ -8,11 +8,14 @@ import {
   refineRequestSchema,
   type AiStatus,
   type LighterResponse,
+  type PackageRecognition,
   type RecipeParseResponse,
   type RefineResponse,
 } from '@oct/shared';
 import type { RouteDeps } from '../app.js';
 import { requireUser, type AuthEnv } from '../auth/session.js';
+import { lookupBarcode } from '../barcodes/lookup.js';
+import { offClient } from '../barcodes/off.js';
 import { readBarcodes } from '../barcodes/read.js';
 import { ApiError } from '../http/errors.js';
 import { validate } from '../http/validate.js';
@@ -29,7 +32,8 @@ export const RESULT_TTL_MS = 10 * 60_000;
 const SESSION_TTL_MS = 24 * 3600_000;
 
 /** AI status, photo recognition and refining (ADR-0007 "HTTP", ADR-0020 §5). State is per app instance. */
-export function aiRoutes({ config, db, ai, photoBarcodes }: RouteDeps) {
+export function aiRoutes({ config, db, ai, photoBarcodes, fetch }: RouteDeps) {
+  const askOff = offClient(fetch);
   // Successful and in-flight AI calls by "userId:photoId" or "userId:refine:requestId"; failures are dropped at once.
   const results = new Map<string, Promise<unknown>>();
   // Users with an AI call running now: one call per user at a time, recognize and refine alike.
@@ -103,7 +107,7 @@ export function aiRoutes({ config, db, ai, photoBarcodes }: RouteDeps) {
             const codes = await photoBarcodes(photoKey, () =>
               readBarcodes(bytes),
             ).catch(() => []);
-            return recognizeMeal(
+            const recognized = await recognizeMeal(
               model!,
               bytes,
               user.locale,
@@ -112,6 +116,22 @@ export function aiRoutes({ config, db, ai, photoBarcodes }: RouteDeps) {
               codes,
               recipeNames(db, user.id),
             );
+            // Printed digits left after sanitizing differ from the decoder's codes (ADR-0036 §3).
+            const dishes = await Promise.all(
+              recognized.dishes.map(async ({ printedBarcode, ...dish }) => {
+                if (!printedBarcode) return dish;
+                // A failed lookup must not fail the recognition: the dish just has no hint.
+                const result = await lookupBarcode(
+                  { db, config, askOff },
+                  user,
+                  printedBarcode,
+                ).catch(() => null);
+                return result
+                  ? { ...dish, printed: { code: printedBarcode, result } }
+                  : dish;
+              }),
+            );
+            return { ...recognized, dishes } satisfies PackageRecognition;
           });
       return c.json(await result);
     })

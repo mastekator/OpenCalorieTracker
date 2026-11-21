@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { barcodeLookupSchema } from './barcodes/barcodes.js';
 
 /**
  * One dish as the AI returns it (ADR-0007): numbers are for the whole portion on the photo.
@@ -52,12 +53,34 @@ export const recognitionSchema = z.object({
 });
 export type Recognition = z.infer<typeof recognitionSchema>;
 
-/** A recognized dish with the package hints of ADR-0034 §2; refine keeps the plain dish. */
-export const packageDishSchema = recognizedDishSchema.extend({
+const packageHints = {
   /** The code from the `<barcodes>` tag this dish is the package of; the server nulls any other. */
   barcode: z.string().nullable().optional(),
   /** The numbers were read from the package's nutrition table. */
   label: z.boolean().optional(),
+};
+
+/** A dish as the model returns it in recognition (ADR-0034 §2, ADR-0036 §1); refine keeps the plain dish. */
+export const packageModelDishSchema = recognizedDishSchema.extend({
+  ...packageHints,
+  /** The digits printed under the barcode lines, read off the photo; the server keeps them only when they differ from every tag code. */
+  printedBarcode: z.string().nullable().optional(),
+});
+export type PackageModelDish = z.infer<typeof packageModelDishSchema>;
+
+/** What the model returns in recognition. */
+export const packageModelSchema = recognitionSchema.extend({
+  dishes: z.array(packageModelDishSchema).max(20),
+});
+export type PackageModelRecognition = z.infer<typeof packageModelSchema>;
+
+/** A recognized dish in the response, with the package hints (ADR-0034 §2). */
+export const packageDishSchema = recognizedDishSchema.extend({
+  ...packageHints,
+  /** The printed digits that differ from the decoder's code, looked up by the server (ADR-0036 §3). */
+  printed: z
+    .object({ code: z.string(), result: barcodeLookupSchema })
+    .optional(),
 });
 export type PackageDish = z.infer<typeof packageDishSchema>;
 

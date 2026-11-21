@@ -277,4 +277,84 @@ describe('barcodes in recognition (ADR-0034 §2)', () => {
     expect((await label(t, id, CODE)).status).toBe(200);
     expect(model.doGenerateCalls).toHaveLength(1);
   });
+
+  describe('printed digits (ADR-0036 §3)', () => {
+    const PRINTED = '8997035601383';
+    const down = () => vi.fn(async () => new Response('', { status: 500 }));
+
+    it('looks up a printed code that differs once and never sends it raw', async () => {
+      const off = down();
+      const model = mockModel({
+        dishes: [{ ...egg, barcode: CODE, printedBarcode: PRINTED }],
+      });
+      const t = await aiSetup(model, {}, off as unknown as typeof fetch);
+      cleanup = t.cleanup;
+      t.db.prepare('UPDATE users SET off_enabled = 1').run();
+      const id = await uploadPackage(t);
+      const expected = {
+        dishes: [
+          {
+            ...egg,
+            barcode: CODE,
+            printed: {
+              code: PRINTED,
+              result: { product: null, from: null, off: 'down' },
+            },
+          },
+        ],
+        questions: [],
+      };
+      expect(await (await t.recognize(id)).json()).toEqual(expected);
+      expect(off).toHaveBeenCalledTimes(1);
+      expect(String(off.mock.calls[0]![0])).toContain(PRINTED);
+      // A retry is served from memory: no second model call, no second lookup.
+      expect(await (await t.recognize(id)).json()).toEqual(expected);
+      expect(model.doGenerateCalls).toHaveLength(1);
+      expect(off).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not look up printed digits equal to a tag code or invalid (AC-7, AC-8, AC-10)', async () => {
+      const off = down();
+      const model = mockModel({
+        dishes: [
+          { ...egg, barcode: CODE, printedBarcode: CODE },
+          { ...egg, printedBarcode: CODE },
+          { ...egg, printedBarcode: '8997035601384' },
+        ],
+      });
+      const t = await aiSetup(model, {}, off as unknown as typeof fetch);
+      cleanup = t.cleanup;
+      t.db.prepare('UPDATE users SET off_enabled = 1').run();
+      const id = await uploadPackage(t);
+      expect(await (await t.recognize(id)).json()).toEqual({
+        dishes: [{ ...egg, barcode: CODE }, egg, egg],
+        questions: [],
+      });
+      expect(off).not.toHaveBeenCalled();
+    });
+
+    it('with OFF off finds the printed code among own products only (AC-9)', async () => {
+      const off = down();
+      const model = mockModel({
+        dishes: [{ ...egg, barcode: CODE, printedBarcode: PRINTED }],
+      });
+      const t = await aiSetup(model, {}, off as unknown as typeof fetch);
+      cleanup = t.cleanup;
+      t.db
+        .prepare(
+          `INSERT INTO user_products (user_id, code, name, kcal_100, per, created_at, updated_at)
+           SELECT id, ?, 'Pocari', 11, 'ml', 0, 0 FROM users`,
+        )
+        .run(PRINTED);
+      const id = await uploadPackage(t);
+      const body = (await (await t.recognize(id)).json()) as {
+        dishes: { printed?: { result: { from: string; off: string } } }[];
+      };
+      expect(body.dishes[0]!.printed!.result).toMatchObject({
+        from: 'mine',
+        off: 'skipped',
+      });
+      expect(off).not.toHaveBeenCalled();
+    });
+  });
 });

@@ -12,6 +12,8 @@ export type PackageHintDish = RecognizedDish & {
   barcode?: string | null;
   /** The numbers were read from the package's nutrition table. */
   label?: boolean;
+  /** The printed digits that differ from `barcode`, looked up by the server (ADR-0036 §3). */
+  printed?: { code: string; result: BarcodeLookup };
 };
 
 /** A dish for the edit screen after `mergePackages`. */
@@ -24,11 +26,29 @@ export type MergedDish = Omit<RecognizedDish, 'confidence' | 'ref'> & {
   from?: NonNullable<BarcodeLookup['from']>;
   /** Found without kcal and no label: the AI's estimate, ask to check it (E-12). */
   check?: true;
+  /** Another code the AI read on the package, offered as «Replace» (ADR-0036 §4). */
+  alt?: {
+    code: string;
+    product: Product | null;
+    from?: NonNullable<BarcodeLookup['from']>;
+  };
 };
 
 const NAME_MAX = 80;
 
-function fromProduct(product: Product, kcal100: number, fallbackName: string) {
+/** "Found" in ADR-0036 §4: a product with kcal. */
+const isHit = (
+  r: BarcodeLookup | undefined,
+): r is BarcodeLookup & {
+  product: Product & { kcal100: number };
+  from: NonNullable<BarcodeLookup['from']>;
+} => r?.product?.kcal100 != null && r.from != null;
+
+export function fromProduct(
+  product: Product,
+  kcal100: number,
+  fallbackName: string,
+) {
   const grams = round1(Math.max(product.servingG ?? 100, 0.1));
   const of = (per100: number | null) => round1(((per100 ?? 0) * grams) / 100);
   return {
@@ -63,19 +83,52 @@ export function mergePackages(
       if (used.has(barcode)) continue;
       used.add(barcode);
     }
-    const product =
-      barcode === null ? null : (found.get(barcode)?.product ?? null);
-    const from = barcode === null ? null : (found.get(barcode)?.from ?? null);
+    const lookup = barcode === null ? undefined : found.get(barcode);
+    const printed =
+      dish.printed && !used.has(dish.printed.code) ? dish.printed : undefined;
+    // ADR-0036 §4: the printed code's product wins over a decoder's code that found none.
+    if (printed && isHit(printed.result) && !isHit(lookup)) {
+      used.add(printed.code);
+      const { product, from } = printed.result;
+      out.push({
+        ...fromProduct(product, product.kcal100, values.name),
+        source: 'barcode',
+        barcode: printed.code,
+        from,
+      });
+      continue;
+    }
+    const alt =
+      printed && barcode !== null
+        ? isHit(lookup)
+          ? isHit(printed.result)
+            ? {
+                code: printed.code,
+                product: printed.result.product,
+                from: printed.result.from,
+              }
+            : undefined
+          : { code: printed.code, product: null }
+        : undefined;
+    const product = lookup?.product ?? null;
+    const from = lookup?.from ?? null;
     if (product?.kcal100 != null && from) {
       out.push({
         ...fromProduct(product, product.kcal100, values.name),
         source: 'barcode',
         barcode,
         from,
+        ...(alt && { alt }),
       });
     } else if (label) {
       const name = product?.name?.slice(0, NAME_MAX) ?? values.name;
-      out.push({ ...values, name, source: 'label', barcode });
+      out.push({
+        ...values,
+        name,
+        source: 'label',
+        barcode,
+        ...(alt && { alt }),
+      });
     } else if (product) {
       const name = product.name?.slice(0, NAME_MAX) ?? values.name;
       out.push({
@@ -85,9 +138,16 @@ export function mergePackages(
         barcode,
         confidence,
         check: true,
+        ...(alt && { alt }),
       });
     } else {
-      out.push({ ...values, source: 'ai', barcode, confidence });
+      out.push({
+        ...values,
+        source: 'ai',
+        barcode,
+        confidence,
+        ...(alt && { alt }),
+      });
     }
   }
 
