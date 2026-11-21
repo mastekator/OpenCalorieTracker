@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { CirclePlus, Pencil, Trash2 } from 'lucide-react';
+import { CircleAlert, CirclePlus, Pencil, Trash2 } from 'lucide-react';
 import {
   gToOz,
   type DishSource,
@@ -28,6 +28,8 @@ export type DishRowDish = Nutrients & {
   confidence?: number;
   /** `source: 'barcode'`: the numbers are the user's own product (E-8). */
   mine?: boolean;
+  /** Another barcode was read on the package: «check», the sheet offers it (OCT-383 1.1). */
+  check?: boolean;
   /** Shown left of the name and macros (OCT-33). */
   illustration?: IllustrationId;
 };
@@ -137,6 +139,12 @@ export function DishRow({
                 source={dish.source}
                 confidence={dish.confidence}
               />
+            )}
+            {dish.check && (
+              <Badge tone="warn">
+                <CircleAlert aria-hidden="true" />
+                {t('edit.conf.low')}
+              </Badge>
             )}
             <span className="tabular-nums">
               {t('edit.macros', {

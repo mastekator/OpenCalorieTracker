@@ -237,3 +237,13 @@ export const MarkKcalWithQuestionDark: Story = {
   ...MarkKcalWithQuestion,
   globals: { theme: 'dark' },
 };
+/** OCT-383 1.1: another barcode read on the package, the sheet offers it. */
+export const OtherBarcode: Story = {
+  args: {
+    dish: { ...rice, name: 'Iced lemon tea', source: 'barcode', check: true },
+  },
+};
+export const OtherBarcodeDark: Story = {
+  ...OtherBarcode,
+  globals: { theme: 'dark' },
+};

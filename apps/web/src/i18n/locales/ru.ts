@@ -1553,9 +1553,32 @@ const ru: DeepPartial<typeof en> = {
         label: 'С этикетки на фото · ИИ',
         mine: 'Ваш продукт · сохранён {date}',
         mine_undated: 'Ваш продукт',
+        code: 'Штрихкод',
       },
       per100: 'На 100 г: {kcal} · {macros}',
       open_off: 'Открыть в Open Food Facts',
+      alt: {
+        group: 'Другой штрихкод',
+        found: 'На упаковке, похоже, {code} — {name}',
+        code: 'На упаковке, похоже, {code}',
+        meta: '{src} · На 100 г: {kcal}',
+        off: 'Open Food Facts',
+        replace: 'Заменить',
+        replace_product: 'Заменить на {name}, штрихкод {code}',
+        replace_code: 'Заменить штрихкод на {code}',
+        searching: 'Ищем {code}…',
+        not_found:
+          'По этому коду продукта нет ни у вас, ни в Open Food Facts. Код заменили, цифры с этикетки оставили.',
+        not_found_ai:
+          'По этому коду продукта нет ни у вас, ни в Open Food Facts. Код заменили, оценку ИИ оставили.',
+        offline:
+          'Без сети ищем только на этом телефоне — здесь такого нет. Код заменили, цифры оставили.',
+        off_down: 'Open Food Facts не ответил. Код заменили, цифры оставили.',
+        off_disabled:
+          'У вас такого продукта нет, а поиск в Open Food Facts выключен. Код заменили, цифры оставили.',
+        off_blocked:
+          'У вас такого продукта нет, а поиск в Open Food Facts выключил администратор. Код заменили, цифры оставили.',
+      },
     },
     empty: {
       title: 'В списке нет блюд',

@@ -38,3 +38,6 @@ export const MineUndatedDark: Story = {
   args: { kind: 'mine' },
   globals: dark,
 };
+/** OCT-383 3.4: an AI dish with another barcode on offer, only its code. */
+export const Code: Story = { args: { kind: 'code' } };
+export const CodeDark: Story = { args: { kind: 'code' }, globals: dark };
