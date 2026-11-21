@@ -95,6 +95,10 @@ export function mealRoutes({ config, db, ai }: AppDeps) {
          amount_value = COALESCE(excluded.amount_value, amount_value),
          updated_at = excluded.updated_at`,
     );
+    const edible = db.prepare(
+      `INSERT INTO edible_prefs (user_id, key, pct, updated_at) VALUES (?, ?, ?, ?)
+       ON CONFLICT (user_id, key) DO UPDATE SET pct = excluded.pct, updated_at = excluded.updated_at`,
+    );
     const per100 = (v: number, g: number) => Math.round((v * 1000) / g) / 10;
     const now = Date.now();
     // Another user's or a deleted recipe (the meal waited in the offline queue) → no link, no error.
@@ -134,6 +138,7 @@ export function mealRoutes({ config, db, ai }: AppDeps) {
           i.pack.amount?.value ?? null,
           now,
         );
+      if (i.edible) edible.run(userId, i.edible.key, i.edible.pct, now);
       if (
         i.barcode &&
         i.kcal > 0 &&
