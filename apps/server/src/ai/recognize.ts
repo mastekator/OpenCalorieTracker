@@ -29,7 +29,11 @@ import {
 } from './questions.js';
 
 /** Bump on every prompt change; it is logged with each call. */
-export const RECOGNIZE_PROMPT_VERSION = 4;
+export const RECOGNIZE_PROMPT_VERSION = 5;
+
+/** Same rule in the photo and label prompts (OCT-372). */
+export const PET_FOOD_RULE =
+  'Food for people only; pet food is not food — omit it even if its nutrition table is readable; packaged human food with animals in its picture or name is food.';
 export const RECOGNIZE_TIMEOUT_MS = 60_000;
 
 /** Tokens of one recognition, every attempt summed. */
@@ -47,6 +51,7 @@ Confidence is 0..1:
 - 0.95 or higher only for countable, unambiguous single items (eggs, a banana, a packaged yogurt, a slice of bread);
 - mixed dishes, sauces and oil: at most 0.9;
 - blurry, dark or partial photos: below 0.5.
+${PET_FOOD_RULE}
 If there is no food on the photo, return an empty list.
 The message may have a <barcodes> tag with retail barcodes read from packages on the photo.
 For a dish that is one of these packages set barcode to its number exactly as listed, otherwise null.
@@ -59,7 +64,8 @@ export function labelPrompt(locale: string, code: string) {
   return `You read the nutrition table of the package with barcode ${code} on the photo.
 Return one dish: the product name in ${languageName(locale)}; grams is one serving if the table states it, otherwise 100;
 kcal, protein, fat and carbohydrates in grams for that weight, computed from the table; confidence 1.
-If the photo has no readable nutrition table, return an empty list.
+${PET_FOOD_RULE}
+If the photo has no readable nutrition table or the package is pet food, return an empty list.
 Do not ask questions.`;
 }
 
