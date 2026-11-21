@@ -619,7 +619,16 @@ export const en = {
     height: 'Height',
     weight: 'Weight',
   },
-  unit: { cm: 'cm', in: 'in', kg: 'kg', lb: 'lb', g: 'g', oz: 'oz', ml: 'ml' },
+  unit: {
+    cm: 'cm',
+    in: 'in',
+    kg: 'kg',
+    lb: 'lb',
+    g: 'g',
+    oz: 'oz',
+    ml: 'ml',
+    fl_oz: 'fl oz',
+  },
   weighing: {
     has: 'has a weighing',
     legend_has: 'weigh-in logged',
@@ -1465,6 +1474,9 @@ export const en = {
       more: '{step} more',
       err_g: 'Weight from 1 to 5000 g',
       err_oz: 'Weight from 0.1 to 176.4 oz',
+      label_ml: 'Volume of {dish}',
+      err_ml: 'Volume 1–5,000 ml',
+      err_fl_oz: 'Volume 0.1–169 fl oz',
     },
     recipe: {
       hint: 'Your recipe: {name} · {k}\u00a0kcal/100\u00a0g',
@@ -1480,6 +1492,7 @@ export const en = {
     edit: 'Edit {dish}',
     title: '{day}, {time}',
     estimate: 'AI estimate — check the weight.',
+    estimate_ml: 'AI estimate — check the weight and volume.',
     delete: 'Delete',
     delete_dish: 'Delete {dish}',
     deleted: '{dish} deleted',
@@ -1522,6 +1535,7 @@ export const en = {
       done: 'Done',
       delete: 'Delete dish',
       serving: 'Serving on the package: {weight}',
+      unit_from_pack: 'Unit from the package',
       src: {
         off: 'Open Food Facts · by barcode',
         label: 'From the label in the photo · AI',
@@ -1530,6 +1544,7 @@ export const en = {
         code: 'Barcode',
       },
       per100: 'Per 100 g: {kcal} · {macros}',
+      per100_ml: 'Per 100 ml: {kcal} · {macros}',
       open_off: 'Open in Open Food Facts',
       alt: {
         group: 'Another barcode',
@@ -1936,6 +1951,7 @@ export const en = {
     empty_body: 'Add at least one ingredient.',
     grams: '{name}, grams',
     ounces: '{name}, ounces',
+    volume: '{name}, {u}',
     grams_err: 'From 0 to {max}\u00a0{u}',
     yield: 'Yield',
     cooked_weight: 'Cooked weight',
@@ -1944,6 +1960,7 @@ export const en = {
     manual_title: 'Ingredient, manually',
     portions_less: 'Fewer servings',
     portions_more: 'More servings',
+    raw_ml_note: 'Milliliters count as grams.',
     weigh:
       'Weigh the cooked dish for better accuracy. For now we use the raw weight: {w}\u00a0{u}.',
     check_weight: {

@@ -33,9 +33,8 @@ const same = (a: number, b: number) => Math.abs(a - b) < 0.001;
 /** Texts of an amount: «½», «½ pack · 100 g», «2 of 12 · 33 g»; ml as the product's `per`. */
 export function useAmountText(units: Units, per: Product['per']) {
   const { t, locale } = useT();
-  const w = useWeight(units);
-  const unit = per === 'ml' && !w.us ? t('unit.ml') : w.u;
-  const weight = (g: number) => `${w.fmt(g)}\u00a0${unit}`;
+  const w = useWeight(units, per);
+  const weight = w.text;
   const decimal = new Intl.NumberFormat(locale, { maximumFractionDigits: 2 });
   /** 1½, ¼, ⅓; other values as decimals. */
   const share = (v: number) => {
@@ -139,6 +138,7 @@ export function AmountPicker({
           <WeightStepper
             grams={grams}
             units={units}
+            unit={p.per}
             label={label}
             onChange={(g) => onChange({ mode, value: g ?? value }, g)}
           />

@@ -17,6 +17,7 @@ import {
   type Meal,
   type MeResponse,
   type ProfileResponse,
+  type DishUnit,
   type Nutrients,
   type Recipe,
   type RecipeInput,
@@ -27,6 +28,7 @@ import { applyTheme, savedTheme } from '../app/theme';
 import { useT } from '../i18n';
 import { useOnline } from '../ui/OfflineBar/OfflineBar';
 import { useToast } from '../ui/Toast/Toast';
+import { unitOf } from '../ui/weightUnits';
 import { emitChange, onChange } from './changes';
 import { openUserDb, type Choices, type Db } from './db';
 import {
@@ -420,6 +422,7 @@ export async function saveRecipe(
 export type HistoryDish = Nutrients & {
   name: string;
   grams: number;
+  unit?: DishUnit;
   eatenAt: string;
 };
 
@@ -435,12 +438,13 @@ export async function findHistoryDishes(db: Db, query: string, limit = 10) {
   );
   const found = new Map<string, HistoryDish>();
   for (const m of meals)
-    for (const { name, grams, kcal, proteinG, fatG, carbsG } of m.items) {
+    for (const { name, grams, unit, kcal, proteinG, fatG, carbsG } of m.items) {
       const key = nameKey(name);
       if (!q || !grams || found.has(key) || !key.includes(q)) continue;
       found.set(key, {
         name,
         grams,
+        ...unitOf(unit),
         kcal,
         proteinG,
         fatG,

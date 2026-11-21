@@ -3,12 +3,12 @@ import { CircleAlert, Minus, Plus } from 'lucide-react';
 import {
   DISH_GRAMS,
   dishWeightRange,
-  gToOz,
-  ozToG,
   round1,
+  type DishUnit,
   type Units,
 } from '@oct/shared';
 import { useT } from '../../i18n';
+import { useWeight } from '../weightUnits';
 import { usePressRepeat } from '../usePressRepeat';
 import './WeightStepper.css';
 
@@ -16,17 +16,26 @@ type Props = {
   /** Current weight in grams; null while the field holds an invalid value. */
   grams: number | null;
   units: Units;
+  /** The dish's unit: `grams` are millilitres for 'ml', shown as ml or fl oz (ADR-0038). */
+  unit?: DishUnit;
   /** Accessible name of the field, e.g. «Weight of Buckwheat». */
   label: string;
   /** Grams on every valid change, null when the field becomes empty or out of range (AC-3.4). */
   onChange: (grams: number | null) => void;
 };
 
-/** − [weight] +: grams or ounces, ±10 g / ±0.5 oz, long press repeats, typing recalculates live. */
-export function WeightStepper({ grams, units, label, onChange }: Props) {
+/** − [weight] +: g, ml, oz or fl oz, ±10 / ±0.5, long press repeats, typing recalculates live. */
+export function WeightStepper({
+  grams,
+  units,
+  unit = 'g',
+  label,
+  onChange,
+}: Props) {
   const { t, locale } = useT();
   const errorId = useId();
-  const range = dishWeightRange(units);
+  const range = dishWeightRange(units, unit);
+  const w = useWeight(units, unit);
   const us = units === 'us';
   const show = (value: number) =>
     us
@@ -34,7 +43,7 @@ export function WeightStepper({ grams, units, label, onChange }: Props) {
           value,
         )
       : String(value);
-  const toText = (g: number) => show(us ? gToOz(g) : Math.round(g));
+  const toText = (g: number) => show(us ? w.show(g) : Math.round(g));
   const [text, setText] = useState(() => (grams === null ? '' : toText(grams)));
 
   /** Value in the user's units, rounded to the input step, or null if not a number. */
@@ -45,8 +54,8 @@ export function WeightStepper({ grams, units, label, onChange }: Props) {
   };
   const inRange = (v: number | null): v is number =>
     v !== null && v >= range.min && v <= range.max;
-  // 176.4 oz is 5000.9 g: cap so the stored weight stays within 1–5000 g.
-  const toGrams = (v: number) => (us ? Math.min(ozToG(v), DISH_GRAMS.max) : v);
+  // 176.4 oz is 5000.9 g: cap so the stored weight stays within 1–5000 g (ml alike).
+  const toGrams = (v: number) => (us ? Math.min(w.toG(v), DISH_GRAMS.max) : v);
 
   // Last value sent up: a different `grams` prop is an outside change (undo, history) to show.
   const sent = useRef(grams);
@@ -87,7 +96,7 @@ export function WeightStepper({ grams, units, label, onChange }: Props) {
 
   const v = parse(text);
   const valid = inRange(v);
-  const stepText = `${show(range.step)} ${t(us ? 'unit.oz' : 'unit.g')}`;
+  const stepText = `${show(range.step)} ${w.u}`;
   const button = (dir: 1 | -1) => {
     const atEdge = valid && (dir < 0 ? v <= range.min : v >= range.max);
     return (
@@ -129,7 +138,7 @@ export function WeightStepper({ grams, units, label, onChange }: Props) {
             onKeyDown={onKeyDown}
           />
           <span className="stepper__unit" aria-hidden="true">
-            {t(us ? 'unit.oz' : 'unit.g')}
+            {w.u}
           </span>
         </label>
         {button(1)}
@@ -137,7 +146,15 @@ export function WeightStepper({ grams, units, label, onChange }: Props) {
       {!valid && (
         <p id={errorId} className="stepper__error">
           <CircleAlert aria-hidden="true" />
-          {t(us ? 'edit.weight.err_oz' : 'edit.weight.err_g')}
+          {t(
+            w.ml
+              ? us
+                ? 'edit.weight.err_fl_oz'
+                : 'edit.weight.err_ml'
+              : us
+                ? 'edit.weight.err_oz'
+                : 'edit.weight.err_g',
+          )}
         </p>
       )}
     </div>

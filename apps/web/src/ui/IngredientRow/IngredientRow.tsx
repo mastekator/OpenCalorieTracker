@@ -1,9 +1,10 @@
 import { useId } from 'react';
 import { CircleAlert, TriangleAlert } from 'lucide-react';
-import type { Units } from '@oct/shared';
+import type { DishUnit, Units } from '@oct/shared';
 import { useT } from '../../i18n';
 import { Badge } from '../Badge/Badge';
 import '../WeightStepper/WeightStepper.css';
+import { useWeight } from '../weightUnits';
 import './IngredientRow.css';
 
 type Props = {
@@ -14,6 +15,8 @@ type Props = {
   grams: string;
   /** The field is in grams or ounces. */
   units?: Units;
+  /** 'ml': the field is in ml or fl oz (ADR-0038). */
+  unit?: DishUnit;
   /** Under the field; also marks it invalid. */
   error?: string;
   /** Grams estimated by the AI: an «estimate» badge after the name (OCT-160 §9). */
@@ -31,6 +34,7 @@ export function IngredientRow({
   kcal,
   grams,
   units = 'metric',
+  unit = 'g',
   error,
   estimate,
   unsure,
@@ -38,6 +42,7 @@ export function IngredientRow({
   onEdit,
 }: Props) {
   const { t, num } = useT();
+  const w = useWeight(units, unit);
   const errorId = useId();
   const zero = grams.trim() !== '' && Number(grams.replace(',', '.')) === 0;
   return (
@@ -65,15 +70,20 @@ export function IngredientRow({
             inputMode="decimal"
             autoComplete="off"
             value={grams}
-            aria-label={t(units === 'us' ? 'editor.ounces' : 'editor.grams', {
-              name,
-            })}
+            aria-label={t(
+              unit === 'ml'
+                ? 'editor.volume'
+                : units === 'us'
+                  ? 'editor.ounces'
+                  : 'editor.grams',
+              { name, u: w.u },
+            )}
             aria-invalid={!!error}
             aria-describedby={error || unsure ? errorId : undefined}
             onChange={(e) => onGramsChange(e.target.value)}
           />
           <span className="stepper__unit" aria-hidden="true">
-            {t(units === 'us' ? 'unit.oz' : 'unit.g')}
+            {w.u}
           </span>
         </label>
         {!error && unsure && (

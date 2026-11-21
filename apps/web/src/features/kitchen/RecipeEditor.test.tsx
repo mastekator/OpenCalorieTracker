@@ -192,6 +192,26 @@ describe('RecipeEditor', () => {
     expect(screen.getByText('From 0 to 176.4 oz')).toBeTruthy();
   });
 
+  it('an ml ingredient shows ml or fl oz and keeps its unit on save (ADR-0038)', async () => {
+    const oil = { ...PILAF.ingredients[4]!, unit: 'ml' as const };
+    const recipe = {
+      ...PILAF,
+      ingredients: [PILAF.ingredients[0]!, oil],
+    };
+    const { onSave } = await view({ recipe, units: 'us' });
+    const field = screen.getByLabelText(
+      'Sunflower oil, fl oz',
+    ) as HTMLInputElement;
+    expect(field.value).toBe('1.7');
+    expect(screen.getByText('Milliliters count as grams.')).toBeTruthy();
+    expect(isDirty()).toBe(false);
+    save();
+    await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
+    const sent = onSave.mock.calls[0]![0].ingredients;
+    expect(sent[1]).toMatchObject({ grams: 50, unit: 'ml' });
+    expect(sent[0]).not.toHaveProperty('unit');
+  });
+
   it('a failed save is a toast; the editor stays', async () => {
     const onSave = vi.fn(async () => {
       throw new Error('500');

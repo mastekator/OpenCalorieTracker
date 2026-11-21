@@ -1,8 +1,9 @@
-import type { Meal, Nutrients, RecipeInput } from '@oct/shared';
+import type { DishUnit, Meal, Nutrients, RecipeInput } from '@oct/shared';
+import { unitOf } from '../../ui/weightUnits';
 import type { RecipeEditorState } from './RecipeEditor';
 
 type Source = Pick<Meal, 'mealType' | 'localDate'> & {
-  items: (Nutrients & { name: string; grams: number })[];
+  items: (Nutrients & { name: string; grams: number; unit?: DishUnit })[];
 };
 
 const cut = (name: string) => name.trim().slice(0, 80);
@@ -18,6 +19,7 @@ export function recipeFromMeal(meal: Source): RecipeEditorState {
     .map((i) => ({
       name: cut(i.name),
       grams: Math.min(i.grams, 5000),
+      ...unitOf(i.unit),
       kcal: i.kcal,
       proteinG: i.proteinG,
       fatG: i.fatG,
