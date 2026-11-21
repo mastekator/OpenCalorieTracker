@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ClipboardPaste, History, Pencil, Plus } from 'lucide-react';
+import { History, Pencil, Plus, Sparkle } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { addDays, type Meal, type Recipe } from '@oct/shared';
 import { useAiStatus, usePeriod, useRecipes } from '../../data/DataContext';
@@ -38,7 +38,7 @@ export function KitchenScreen() {
 
 /**
  * The recipe list (OCT-160 1.2, 1.4), recently logged first. Wave 1: no fridge, no filter;
- * «+» offers «Enter manually», «From a meal» and, with AI set up, «Paste recipe text».
+ * «+» offers «Enter manually», «From a meal» and, with AI set up, «Recipe from text».
  */
 export function KitchenView({
   recipes,
@@ -87,6 +87,12 @@ export function KitchenView({
                 <Button onClick={() => navigate(NEW_RECIPE_PATH)}>
                   {t('recipes.new')}
                 </Button>
+                {ai && (
+                  <Button variant="tonal" onClick={() => navigate(PASTE_PATH)}>
+                    <Sparkle aria-hidden="true" />
+                    {t('recipes.paste')}
+                  </Button>
+                )}
                 <Button variant="tonal" onClick={fromMeal}>
                   {t('recipes.from_meal')}
                 </Button>
@@ -110,7 +116,11 @@ export function KitchenView({
             {t('recipes.manual')}
           </ListRow>
           {ai && (
-            <ListRow icon={<ClipboardPaste />} href={PASTE_PATH}>
+            <ListRow
+              icon={<Sparkle />}
+              href={PASTE_PATH}
+              description={t('recipes.paste_desc')}
+            >
               {t('recipes.paste')}
             </ListRow>
           )}
