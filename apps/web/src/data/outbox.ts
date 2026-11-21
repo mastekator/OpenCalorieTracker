@@ -104,7 +104,6 @@ function withChange(
   return next;
 }
 
-/** The pack data sent with the dishes, kept on this device's products too: offline the next scan has it (AC-5.4). */
 /** The product the server makes of a manual dish (meals/routes.ts), until `refreshMyProducts` brings it. */
 function ownProduct(
   item: MealInput['items'][number] & { barcode: string },
@@ -125,6 +124,7 @@ function ownProduct(
   };
 }
 
+/** The pack data sent with the dishes, kept on this device's products too: offline the next scan has it (AC-5.4). */
 async function rememberPacks(tx: Tx, items: MealInput['items'] | undefined) {
   const products = tx.objectStore('products');
   for (const item of items ?? []) {
