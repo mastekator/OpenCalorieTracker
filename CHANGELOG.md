@@ -4,6 +4,23 @@ All notable changes to this project are documented in this file.
 
 ## Unreleased
 
+## 0.3.0 — 2026-11-21
+
+Faster logging: recipes and barcodes.
+
+- Kitchen: recipes with ingredients, yield, steps and photo, or just calories per 100 g when the ingredients are unknown; weights in grams or ounces as set in your profile
+- Log a portion of a recipe from its card, from «Done!» after cooking, from manual entry or «+ Add dish»; a «Your recipe» hint suggests a saved recipe for a recognized dish, and the AI can offer your recipes as answers to its questions
+- Save a meal as a recipe, or start a recipe «From a meal»
+- Recipe from text: paste a recipe and the AI fills in the editor
+- Make it lighter: the AI suggests a lighter version of a recipe, saved as a new one
+- Barcodes: read from a photo or typed in manual entry, looked up in Open Food Facts, merged with what the AI recognized; your own products are remembered and work offline. A label photo fills in the product
+- Outside requests (barcode lookup) can be turned off by each user and by the admin; `ALLOW_OUTBOUND_REQUESTS` in `.env` overrides the admin switch
+- Fixes: a recipe saved from an older copy no longer overwrites newer edits; saving a lighter copy of a recipe with a photo works; several layout fixes on desktop
+
+### Upgrade from 0.2.x
+
+Set `image: ghcr.io/mastekator/opencalorietracker:0.3.0` in `docker-compose.yml`, then `docker compose pull && docker compose up -d`. Database migrations run on start; back up the `data` folder first. Nothing else is required.
+
 ## 0.2.1 — 2026-11-19
 
 Fixes after 0.2.0, a stricter model test, and the first part of recipes.
