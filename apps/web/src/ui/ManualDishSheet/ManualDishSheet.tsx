@@ -11,11 +11,14 @@ import {
   normalizeGtin,
   per100,
   round1,
+  type Amount,
   type DishUnit,
   type Nutrients,
+  type Product,
   type Recipe,
   type Units,
 } from '@oct/shared';
+import { AmountPicker, type Pack } from '../AmountPicker/AmountPicker';
 import { matchRecipes } from '../../features/kitchen/matchRecipes';
 import type { BarcodeResult } from '../../data/products';
 import { useT } from '../../i18n';
@@ -42,6 +45,9 @@ export type ManualDish = Nutrients & {
   barcode?: string;
   /** 'ml': `grams` are millilitres (ADR-0038); none: grams, as older records. */
   unit?: DishUnit;
+  /** A product found by `barcode`: «How much you ate» and the typed package (OCT-418). */
+  amount?: Amount;
+  pack?: Pack;
 };
 type Basis = 'per100' | 'portion';
 
@@ -119,11 +125,17 @@ export function ManualDishSheet({
   const refs = useRef<Partial<Record<Fields, HTMLInputElement | null>>>({});
   const latest = useRef(text);
   latest.current = text;
+  // A product found with kcal: counted by «How much you ate», not typed per 100 g (ADR-0037 §3–4).
+  const [prod, setProd] = useState<Product | null>(null);
+  const [amount, setAmount] = useState<Amount>({ mode: 'weight', value: 100 });
+  const [pickG, setPickG] = useState<number | null>(null);
+  const [pack, setPack] = useState<Pack>({});
+  const merged = prod && { ...prod, ...pack };
 
   const name = text.name.trim();
   const found = onRecipe ? matchRecipes(recipes, name) : [];
   const weight = parse(text.weight);
-  const g = weight === null ? null : w.toG(weight);
+  const g = merged ? pickG : weight === null ? null : w.toG(weight);
   const grams =
     g !== null && g >= DISH_GRAMS.min && g <= DISH_GRAMS.max ? g : null;
   const entered = {
@@ -152,15 +164,23 @@ export function ManualDishSheet({
       ),
     }),
   };
-  const values = entered as Nutrients;
+  const values: Nutrients = merged
+    ? {
+        kcal: merged.kcal100!,
+        proteinG: merged.protein100 ?? 0,
+        fatG: merged.fat100 ?? 0,
+        carbsG: merged.carbs100 ?? 0,
+      }
+    : (entered as Nutrients);
   const totals =
     grams === null
       ? null
-      : basis === 'per100'
+      : merged || basis === 'per100'
         ? fromPer100(values, grams)
         : values;
   for (const k of ['kcal', 'proteinG', 'fatG', 'carbsG'] as const)
-    if (entered[k] === null)
+    if (merged) continue;
+    else if (entered[k] === null)
       errors[k] = t(
         k === 'kcal' && !text.kcal.trim()
           ? 'manual_dish.err.kcal_empty'
@@ -177,6 +197,7 @@ export function ManualDishSheet({
     text.carbsG.trim()
   );
   const mismatch =
+    !merged &&
     anyMacro &&
     Object.values(entered).every((v) => v !== null) &&
     macrosMismatch(values.kcal, values.proteinG, values.fatG, values.carbsG) >
@@ -196,13 +217,14 @@ export function ManualDishSheet({
       if (first) refs.current[first]?.focus();
       return;
     }
-    localStorage.setItem(BASIS_KEY, basis);
+    if (!merged) localStorage.setItem(BASIS_KEY, basis);
     const code = normalizeGtin(text.barcode);
     onAdd({
       ...(code && { barcode: code }),
       name,
       grams: round1(grams),
-      ...unitOf(dishUnit),
+      ...unitOf(merged ? merged.per : dishUnit),
+      ...(merged && { amount, pack }),
       kcal: round1(totals.kcal),
       proteinG: round1(totals.proteinG),
       fatG: round1(totals.fatG),
@@ -216,6 +238,17 @@ export function ManualDishSheet({
     // The fields as they are now: the user may have typed while the lookup ran.
     const text = latest.current;
     const empty = (k: Fields) => !text[k].trim();
+    // Found with kcal: it beats numbers typed by hand, only a typed name stays (OCT-418).
+    if (product.kcal100 != null) {
+      const a = defaultAmount(product);
+      setProd(product);
+      setPack({});
+      setAmount(a);
+      setPickG(amountGrams(product, a));
+      if (empty('name'))
+        setText({ ...text, name: product.name ?? product.brand ?? '' });
+      return;
+    }
     // Calories typed by hand keep their basis: the macros per 100 g would not match them.
     const per100 = empty('kcal');
     const put = (k: Fields, v: string | number | null) =>
@@ -271,6 +304,7 @@ export function ManualDishSheet({
             value={text.barcode}
             onChange={(v) => {
               setText((s) => ({ ...s, barcode: v }));
+              setProd(null);
               // Another code: the switch opens on the unit the amount is in.
               if (packUnit) setChosen(packUnit);
               setPackUnit(null);
@@ -317,92 +351,118 @@ export function ManualDishSheet({
             ))}
           </List>
         )}
-        <div
-          className={`manual-dish__amount${packUnit ? ' manual-dish__amount--pack' : ''}`}
-        >
-          <Field
-            {...field('weight')}
-            label={required(
-              t(ml ? 'manual_dish.volume' : 'manual_dish.weight'),
+        {merged ? (
+          <AmountPicker
+            product={merged}
+            amount={amount}
+            grams={pickG}
+            units={units}
+            label={t(
+              merged.per === 'ml'
+                ? 'edit.weight.label_ml'
+                : 'edit.weight.label',
+              { dish: name || merged.name || '' },
             )}
-            inputMode={us ? 'decimal' : 'numeric'}
-            // The switch already names g / ml; ounces still need theirs.
-            suffix={packUnit || us ? w.u : undefined}
-            hint={packUnit ? t('manual_dish.unit_from_pack') : undefined}
+            onChange={(a, g) => {
+              setAmount(a);
+              setPickG(g);
+            }}
+            onPack={(p) => setPack((was) => ({ ...was, ...p }))}
           />
-          {!packUnit && (
-            <Segment
-              label={t('manual_dish.unit')}
-              options={[
-                {
-                  value: 'g',
-                  label: t('unit.g'),
-                  aria: t('manual_dish.grams'),
-                },
-                {
-                  value: 'ml',
-                  label: t('unit.ml'),
-                  aria: t('manual_dish.milliliters'),
-                },
-              ]}
-              value={chosen}
-              onChange={setChosen}
-            />
-          )}
-        </div>
-        <div className="manual-dish__basis">
-          <span className="manual-dish__label">{t('manual_dish.basis')}</span>
-          <Segment
-            label={t('manual_dish.basis')}
-            options={[
-              {
-                value: 'per100',
-                label: t(ml ? 'manual_dish.per100ml' : 'manual_dish.per100'),
-              },
-              { value: 'portion', label: t('manual_dish.perPortion') },
-            ]}
-            value={basis}
-            onChange={setBasis}
-          />
-        </div>
-        <Field
-          {...field('kcal')}
-          label={required(t('manual_dish.kcal'))}
-          inputMode="decimal"
-        />
-        {mismatch && (
-          <Banner tone="warning">
-            {t('manual_dish.warn.mismatch', {
-              n: num(
-                kcalFromMacros(values.proteinG, values.fatG, values.carbsG),
-              ),
-            })}
-          </Banner>
-        )}
-        <div className="manual-dish__macros">
-          {(
-            [
-              ['proteinG', 'protein'],
-              ['fatG', 'fat'],
-              ['carbsG', 'carbs'],
-            ] as const
-          ).map(([k, label]) => (
+        ) : (
+          <>
+            <div
+              className={`manual-dish__amount${packUnit ? ' manual-dish__amount--pack' : ''}`}
+            >
+              <Field
+                {...field('weight')}
+                label={required(
+                  t(ml ? 'manual_dish.volume' : 'manual_dish.weight'),
+                )}
+                inputMode={us ? 'decimal' : 'numeric'}
+                // The switch already names g / ml; ounces still need theirs.
+                suffix={packUnit || us ? w.u : undefined}
+                hint={packUnit ? t('manual_dish.unit_from_pack') : undefined}
+              />
+              {!packUnit && (
+                <Segment
+                  label={t('manual_dish.unit')}
+                  options={[
+                    {
+                      value: 'g',
+                      label: t('unit.g'),
+                      aria: t('manual_dish.grams'),
+                    },
+                    {
+                      value: 'ml',
+                      label: t('unit.ml'),
+                      aria: t('manual_dish.milliliters'),
+                    },
+                  ]}
+                  value={chosen}
+                  onChange={setChosen}
+                />
+              )}
+            </div>
+            <div className="manual-dish__basis">
+              <span className="manual-dish__label">
+                {t('manual_dish.basis')}
+              </span>
+              <Segment
+                label={t('manual_dish.basis')}
+                options={[
+                  {
+                    value: 'per100',
+                    label: t(
+                      ml ? 'manual_dish.per100ml' : 'manual_dish.per100',
+                    ),
+                  },
+                  { value: 'portion', label: t('manual_dish.perPortion') },
+                ]}
+                value={basis}
+                onChange={setBasis}
+              />
+            </div>
             <Field
-              key={k}
-              {...field(k)}
-              label={t(`manual_dish.${label}`)}
+              {...field('kcal')}
+              label={required(t('manual_dish.kcal'))}
               inputMode="decimal"
-              suffix={t('unit.g')}
             />
-          ))}
-        </div>
-        {basis === 'per100' && totals && entered.kcal !== null && (
-          <p className="manual-dish__total tabular-nums" aria-live="polite">
-            {t('manual_dish.total', {
-              weight: `${text.weight.trim()}\u00a0${w.u}`,
-              kcal: num(totals.kcal),
-            })}
-          </p>
+            {mismatch && (
+              <Banner tone="warning">
+                {t('manual_dish.warn.mismatch', {
+                  n: num(
+                    kcalFromMacros(values.proteinG, values.fatG, values.carbsG),
+                  ),
+                })}
+              </Banner>
+            )}
+            <div className="manual-dish__macros">
+              {(
+                [
+                  ['proteinG', 'protein'],
+                  ['fatG', 'fat'],
+                  ['carbsG', 'carbs'],
+                ] as const
+              ).map(([k, label]) => (
+                <Field
+                  key={k}
+                  {...field(k)}
+                  label={t(`manual_dish.${label}`)}
+                  inputMode="decimal"
+                  suffix={t('unit.g')}
+                />
+              ))}
+            </div>
+            {basis === 'per100' && totals && entered.kcal !== null && (
+              <p className="manual-dish__total tabular-nums" aria-live="polite">
+                {t('manual_dish.total', {
+                  weight: `${text.weight.trim()}\u00a0${w.u}`,
+                  kcal: num(totals.kcal),
+                })}
+              </p>
+            )}
+          </>
         )}
       </div>
     </Sheet>

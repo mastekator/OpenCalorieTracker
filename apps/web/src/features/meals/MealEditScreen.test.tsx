@@ -1222,6 +1222,35 @@ describe('MealEditScreen: recipes (OCT-160 §5, ADR-0023 §5–6)', () => {
       });
     });
 
+    it('a product found in the manual sheet goes with the meal with its amount and `pack` (OCT-418)', async () => {
+      const onSave = await open({
+        dishes: [],
+        manual: 'user',
+        onBarcode: async () => ({ product, from: 'off', off: 'found' }),
+      });
+      const sheet = screen.getByRole('dialog', { name: 'Add dish manually' });
+      const field = within(sheet).getByLabelText('Barcode');
+      fireEvent.change(field, { target: { value: code } });
+      fireEvent.keyDown(field, { key: 'Enter' });
+      fireEvent.click(
+        await within(sheet).findByRole('button', {
+          name: 'Add package weight',
+        }),
+      );
+      fireEvent.change(within(sheet).getByLabelText('Package weight (net)'), {
+        target: { value: '300' },
+      });
+      fireEvent.click(within(sheet).getByRole('button', { name: 'Add' }));
+      await save();
+      expect(onSave.mock.calls[0]![0].items[0]).toMatchObject({
+        name: 'Yogurt',
+        grams: 300,
+        kcal: 600,
+        barcode: code,
+        pack: { packG: 300, amount: { mode: 'pack', value: 1 } },
+      });
+    });
+
     it('a product with `last` opens on the last pick (AC-5.2)', async () => {
       await open({
         dishes: [{ ...yogurt, grams: 300 }],

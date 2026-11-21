@@ -224,27 +224,35 @@ describe('ManualDishSheet: barcode (OCT-313 §3)', () => {
     fireEvent.keyDown(field, { key: 'Enter' });
   };
 
-  it('Enter finds the product: fills the empty fields per 100 g, the weight is the serving, the barcode is added', async () => {
+  it('Enter finds the product: «How much you ate» instead of the weight and per 100 g, the barcode is added', async () => {
     const lookup = vi.fn(async () => ({
       product: YOGURT,
       from: 'off' as const,
       off: 'found' as const,
     }));
     const { onAdd, type, add } = await setup('metric', lookup);
-    fireEvent.click(screen.getByRole('radio', { name: 'Per serving' }));
     type(/^Name/, 'My yogurt');
+    type(/^Calories ·/, '500');
     find('4006381-333931');
     await screen.findByText('Found in Open Food Facts — check the weight.');
     expect(lookup).toHaveBeenCalledWith('4006381333931');
+    expect(screen.getByRole('radiogroup', { name: 'Count by' })).toBeTruthy();
+    expect(screen.queryByLabelText(/^Calories ·/)).toBeNull();
+    expect(screen.queryByRole('radio', { name: 'Per serving' })).toBeNull();
+    expect(screen.queryByRole('radiogroup', { name: 'Unit' })).toBeNull();
     add();
+    // The found product beats calories typed by hand; a typed name stays.
     expect(onAdd).toHaveBeenCalledWith({
       barcode: '4006381333931',
-      name: 'My yogurt', // typed before the lookup: kept
+      name: 'My yogurt',
       grams: 140,
+      unit: undefined,
       kcal: 92.4,
       proteinG: 11.2,
       fatG: 2.8,
       carbsG: 5.6,
+      amount: { mode: 'serving', value: 1 },
+      pack: {},
     });
   });
 
@@ -260,20 +268,56 @@ describe('ManualDishSheet: barcode (OCT-313 §3)', () => {
     expect(onAdd.mock.calls[0]![0]).toMatchObject({ name: 'My yogurt' });
   });
 
-  it('typed calories keep their basis: only the name and weight are filled', async () => {
+  it('the grams follow the picked amount, a typed package weight goes up as pack', async () => {
     const lookup = async () =>
       ({ product: YOGURT, from: 'mine', off: 'skipped' }) as const;
     const { onAdd, type, add } = await setup('metric', lookup);
-    type(/^Calories ·/, '50');
     find('4006381333931');
     await screen.findByText('Found your product — check the weight.');
+    fireEvent.click(screen.getByRole('button', { name: 'Add package weight' }));
+    type(/^Package weight/, '400');
+    fireEvent.click(screen.getByRole('radio', { name: 'Package' }));
+    fireEvent.click(screen.getByRole('button', { name: '½' }));
     add();
     expect(onAdd.mock.calls[0]![0]).toMatchObject({
       name: 'Greek yogurt',
-      grams: 140,
-      kcal: 70,
-      proteinG: 0,
+      grams: 200,
+      kcal: 132,
+      amount: { mode: 'pack', value: 0.5 },
+      pack: { packG: 400 },
     });
+  });
+
+  it('a product with kcal but no serving or package starts at 100 g', async () => {
+    const lookup = async () =>
+      ({
+        product: { ...YOGURT, servingG: null },
+        from: 'off',
+        off: 'found',
+      }) as const;
+    const { onAdd, add } = await setup('metric', lookup);
+    find('4006381333931');
+    await screen.findByText('Found in Open Food Facts — check the weight.');
+    add();
+    expect(onAdd.mock.calls[0]![0]).toMatchObject({
+      grams: 100,
+      kcal: 66,
+      amount: { mode: 'weight', value: 100 },
+    });
+  });
+
+  it('another code: the hand form is back', async () => {
+    const lookup = async () =>
+      ({ product: YOGURT, from: 'local', off: 'skipped' }) as const;
+    await setup('metric', lookup);
+    find('4006381333931');
+    await screen.findByText('Found on this phone — check the weight.');
+    fireEvent.change(screen.getByLabelText('Barcode'), {
+      target: { value: '5000112637922' },
+    });
+    expect(screen.queryByRole('radiogroup', { name: 'Count by' })).toBeNull();
+    expect(screen.getByLabelText(/^Calories ·/)).toBeTruthy();
+    expect(screen.getByRole('radiogroup', { name: 'Unit' })).toBeTruthy();
   });
 
   it('a known package weight fills the whole package (AC-3.8)', async () => {
@@ -290,7 +334,7 @@ describe('ManualDishSheet: barcode (OCT-313 §3)', () => {
     expect(onAdd.mock.calls[0]![0]).toMatchObject({ grams: 400, kcal: 264 });
   });
 
-  it('a product per ml sets the unit: no switch, «Unit from the package» (AC-3)', async () => {
+  it('a product per ml: its unit, no g / ml switch (AC-3)', async () => {
     const lookup = async () =>
       ({
         product: { ...YOGURT, name: 'Orange juice', per: 'ml', servingG: 250 },
@@ -300,38 +344,13 @@ describe('ManualDishSheet: barcode (OCT-313 §3)', () => {
     const { onAdd, add } = await setup('metric', lookup);
     find('4006381333931');
     await screen.findByText('Found in Open Food Facts — check the volume.');
-    expect(screen.queryByRole('radio', { name: 'Grams' })).toBeNull();
-    expect(screen.getByText('Unit from the package')).toBeTruthy();
-    expect(screen.getByLabelText(/^Volume/)).toBeTruthy();
+    expect(screen.queryByRole('radiogroup', { name: 'Unit' })).toBeNull();
     add();
     expect(onAdd.mock.calls[0]![0]).toMatchObject({
       name: 'Orange juice',
       grams: 250,
       unit: 'ml',
     });
-    // Another code: the unit is the user's again, still on ml for the 250 typed.
-    fireEvent.change(screen.getByLabelText('Barcode'), {
-      target: { value: '5000112637922' },
-    });
-    expect(screen.getByRole('radio', { name: 'Grams' })).toBeTruthy();
-    expect(
-      screen
-        .getByRole('radio', { name: 'Milliliters' })
-        .getAttribute('aria-checked'),
-    ).toBe('true');
-    add();
-    expect(onAdd.mock.calls[1]![0]).toMatchObject({ grams: 250, unit: 'ml' });
-  });
-
-  it('a product per g hides the switch too', async () => {
-    const lookup = async () =>
-      ({ product: YOGURT, from: 'local', off: 'skipped' }) as const;
-    await setup('metric', lookup);
-    fireEvent.click(screen.getByRole('radio', { name: 'Milliliters' }));
-    find('4006381333931');
-    await screen.findByText('Found on this phone — check the weight.');
-    expect(screen.queryByRole('radiogroup', { name: 'Unit' })).toBeNull();
-    expect(screen.getByLabelText(/^Weight/)).toBeTruthy();
   });
 
   it('not found: says so and moves focus to the name', async () => {
