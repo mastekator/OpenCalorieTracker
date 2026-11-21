@@ -48,9 +48,16 @@ export function toMode(p: Product, mode: AmountMode, grams: number): Amount {
   };
 }
 
-/** The product allows more than grams: the sheet shows «How much you ate». */
+/** The product allows more than grams: the row counts in shares. */
 export const hasShares = (p: Product | undefined): p is Product =>
   !!p && amountModes(p).length > 1;
+
+/** The sheet's modes: «Pieces» too while the count is unknown, to ask it (OCT-380 3.3). */
+export function pickerModes(p: Product): AmountMode[] {
+  const modes = amountModes(p);
+  if (modes.includes('piece') || p.pieces === 1) return modes;
+  return [...modes.slice(0, -1), 'piece', 'weight'];
+}
 
 /** The pick remembered for the code: «same as last time» (OCT-380 1.2). */
 export const isLast = (p: Product, a: Amount) =>

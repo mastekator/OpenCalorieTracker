@@ -44,14 +44,14 @@ const stateOf = (db: Db) => {
 
 type Tx = IDBPTransaction<
   OctDb,
-  ('meals' | 'outbox' | 'kv' | 'photos' | 'weighings')[],
+  ('meals' | 'outbox' | 'kv' | 'photos' | 'weighings' | 'products')[],
   'readwrite'
 >;
 
 /** Changes the local copy and the queue in one transaction, then sends (ADR-0011 §4). */
 async function local(db: Db, change: (tx: Tx) => Promise<void>) {
   const tx = db.transaction(
-    ['meals', 'outbox', 'kv', 'photos', 'weighings'],
+    ['meals', 'outbox', 'kv', 'photos', 'weighings', 'products'],
     'readwrite',
   );
   await change(tx);
@@ -81,7 +81,9 @@ function withChange(
   if (photoId) next.photo = { id: photoId, full: true };
   if (!items) return next;
   next.items = items.map(
-    ({ illustration, confidence, recipeId, barcode, ...item }) => ({
+    // `pack` is the product's, not the dish's (ADR-0037 §2).
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    ({ illustration, confidence, recipeId, barcode, pack, ...item }) => ({
       ...item,
       unit: item.unit ?? 'g',
       recipeId: recipeId ?? null,
@@ -99,6 +101,22 @@ function withChange(
   for (const k of ['kcal', 'proteinG', 'fatG', 'carbsG'] as const)
     next[k] = next.items.reduce((s, i) => s + i[k], 0);
   return next;
+}
+
+/** The pack data sent with the dishes, kept on this device's products too: offline the next scan has it (AC-5.4). */
+async function rememberPacks(tx: Tx, items: MealInput['items'] | undefined) {
+  const products = tx.objectStore('products');
+  for (const { barcode, pack } of items ?? []) {
+    if (!barcode || !pack) continue;
+    const p = await products.get(barcode);
+    if (!p) continue;
+    await products.put({
+      ...p,
+      packG: pack.packG ?? p.packG,
+      pieces: pack.pieces ?? p.pieces,
+      last: pack.amount ?? p.last,
+    });
+  }
 }
 
 /**
@@ -123,6 +141,7 @@ export function createMeal(db: Db, input: MealInput, photo?: Blob) {
     await tx
       .objectStore('meals')
       .put(withChange(meal, { items }, await choicesOf(tx)));
+    await rememberPacks(tx, items);
     const outbox = tx.objectStore('outbox');
     if (photo) {
       await tx.objectStore('photos').put(photo, clientId);
@@ -144,6 +163,7 @@ export function patchMeal(
     const meal = await meals.get(clientId);
     if (!meal) return;
     await meals.put(withChange(meal, patch, await choicesOf(tx)));
+    await rememberPacks(tx, patch.items);
     const outbox = tx.objectStore('outbox');
     let ops = await queued(db, tx, clientId);
     if (ops.some((o) => o.error)) ops = await retry(tx, ops);

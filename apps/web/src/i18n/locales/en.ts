@@ -1536,6 +1536,22 @@ export const en = {
       delete: 'Delete dish',
       serving: 'Serving on the package: {weight}',
       unit_from_pack: 'Unit from the package',
+      pack: {
+        change: 'Change',
+        unknown: 'Package weight unknown',
+        add: 'Add package weight',
+        weight: 'Package weight (net)',
+        weight_hint:
+          'Printed on the package. We’ll remember it for this barcode, just for you.',
+        pieces: 'How many pieces in the package?',
+        pieces_ph: 'e.g. 12',
+        pieces_hint:
+          'Package {w}: we’ll work out the weight of one piece and remember it.',
+        err: {
+          weight: 'Weight 1–5,000 g',
+          pieces: 'A whole number, 1–1,000',
+        },
+      },
       src: {
         off: 'Open Food Facts · by barcode',
         label: 'From the label in the photo · AI',
