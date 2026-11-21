@@ -4,7 +4,7 @@
 services:
   opencalorietracker:
     # Pinned release; to update, change the tag and run `docker compose pull && docker compose up -d`.
-    image: ghcr.io/mastekator/opencalorietracker:0.2.1
+    image: ghcr.io/mastekator/opencalorietracker:0.3.0
     restart: unless-stopped
     ports:
       # Loopback only: the reverse proxy must be the sole way in, or X-Forwarded-For can be forged.
