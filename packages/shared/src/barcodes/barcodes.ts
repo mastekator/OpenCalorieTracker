@@ -31,6 +31,19 @@ export const productSchema = z.object({
   servingText: z.string().nullable(),
   /** Own products only: when it was last saved (ISO). */
   savedAt: z.string().optional(),
+  // Optional so products stored on the device before ADR-0037 still parse.
+  /** Package weight, g or ml as `per` (ADR-0037 §1). */
+  packG: z.number().positive().nullable().optional(),
+  /** Pieces in the package, set by the user (ADR-0037 §4). */
+  pieces: z.number().int().positive().nullable().optional(),
+  /** The amount the user picked last time for this code. */
+  last: z
+    .object({
+      mode: z.enum(['pack', 'serving', 'piece', 'weight']),
+      value: z.number().positive(),
+    })
+    .nullable()
+    .optional(),
 });
 export type Product = z.infer<typeof productSchema>;
 

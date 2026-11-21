@@ -18,6 +18,7 @@ const OFF_PRODUCT = {
   },
   serving_quantity: '25',
   serving_size: '1 bar (25 g)',
+  product_quantity: '100',
 };
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status });
@@ -71,8 +72,20 @@ describe('parseOffProduct', () => {
       per: 'ml',
       servingG: null,
       servingText: null,
+      packG: null,
     });
     expect(parseOffProduct({ serving_quantity: 0.5 }).servingG).toBeNull();
+  });
+
+  it.each([
+    ['grams', { product_quantity: '400' }, 400],
+    ['ml', { product_quantity: 1000, product_quantity_unit: 'ml' }, 1000],
+    ['zero', { product_quantity: 0 }, null],
+    ['over 5 kg', { product_quantity: 6000 }, null],
+    ['text', { product_quantity: '500 g' }, null],
+    ['no field', {}, null],
+  ])('reads the package weight: %s', (_, p, packG) => {
+    expect(parseOffProduct(p).packG).toBe(packG);
   });
 });
 
@@ -117,13 +130,16 @@ describe('GET /api/barcodes/:code (ADR-0034 §3, §4)', () => {
         per: 'g',
         servingG: 25,
         servingText: '1 bar (25 g)',
+        packG: 100,
+        pieces: null,
+        last: null,
       },
       from: 'off',
       off: 'found',
     });
     const [url, init] = t.fetchFn.mock.calls[0]!;
     expect(url).toBe(
-      `https://world.openfoodfacts.org/api/v2/product/${CODE}.json?fields=product_name,product_name_en,product_name_ru,brands,nutriments,serving_quantity,serving_size,product_quantity_unit`,
+      `https://world.openfoodfacts.org/api/v2/product/${CODE}.json?fields=product_name,product_name_en,product_name_ru,brands,nutriments,serving_quantity,serving_size,product_quantity,product_quantity_unit`,
     );
     expect(Object.keys(init!.headers!)).toEqual(['user-agent']);
     expect((init!.headers as Record<string, string>)['user-agent']).toMatch(
@@ -131,7 +147,10 @@ describe('GET /api/barcodes/:code (ADR-0034 §3, §4)', () => {
     );
 
     t.db.prepare("UPDATE users SET locale = 'ru' WHERE id = ?").run(t.userId);
-    expect((await t.lookup()).product.name).toBe('Шоколадка');
+    expect((await t.lookup()).product).toMatchObject({
+      name: 'Шоколадка',
+      packG: 100,
+    });
     // Served from the cache.
     expect(t.fetchFn).toHaveBeenCalledTimes(1);
   });
@@ -229,6 +248,9 @@ describe('own products (E-8)', () => {
       per: 'g',
       servingG: null,
       servingText: null,
+      packG: null,
+      pieces: null,
+      last: null,
       savedAt: '1970-01-01T00:00:00.000Z',
     };
     expect(await t.lookup()).toEqual({

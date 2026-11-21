@@ -16,7 +16,7 @@ describe('migrate', () => {
   it('brings an empty database to the latest version', () => {
     const db = openDb(':memory:');
     migrate(db);
-    expect(db.pragma('user_version', { simple: true })).toBe(19);
+    expect(db.pragma('user_version', { simple: true })).toBe(20);
     expect(tables(db)).toEqual([
       'agent_drafts',
       'agent_messages',
@@ -66,7 +66,7 @@ describe('migrate', () => {
       .pluck()
       .all();
     migrate(db);
-    expect(db.pragma('user_version', { simple: true })).toBe(19);
+    expect(db.pragma('user_version', { simple: true })).toBe(20);
     expect(
       db.prepare('SELECT sql FROM sqlite_master ORDER BY name').pluck().all(),
     ).toEqual(before);
@@ -152,7 +152,7 @@ describe('migrate', () => {
     const before = db.prepare('SELECT * FROM meal_items ORDER BY id').all();
 
     migrate(db);
-    expect(db.pragma('user_version', { simple: true })).toBe(19);
+    expect(db.pragma('user_version', { simple: true })).toBe(20);
     expect(db.prepare('SELECT * FROM meal_items ORDER BY id').all()).toEqual(
       before.map((r) => ({ ...(r as object), recipe_id: null, barcode: null })),
     );
@@ -209,6 +209,28 @@ describe('migrate', () => {
       ingredients: [{ name: 'Рис', grams: 500, kcal: 1750 }],
       per100: null,
       servingG: null,
+    });
+  });
+
+  it('makes products cached before 0020 stale so OFF is asked for the package weight', () => {
+    const db = openDb(':memory:');
+    const dir = new URL('./migrations/', import.meta.url);
+    for (const f of readdirSync(dir)
+      .filter((f) => /^\d{4}_\w+\.sql$/.test(f) && f < '0020')
+      .sort())
+      db.exec(readFileSync(new URL(f, dir), 'utf8'));
+    db.pragma('user_version = 19');
+    db.prepare(
+      `INSERT INTO food_products (code, status, per, fetched_at)
+       VALUES ('4000000000006', 'found', 'g', 123)`,
+    ).run();
+
+    migrate(db);
+    expect(
+      db.prepare('SELECT fetched_at, pack_g FROM food_products').get(),
+    ).toEqual({
+      fetched_at: 0,
+      pack_g: null,
     });
   });
 
