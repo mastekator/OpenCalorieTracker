@@ -11,6 +11,7 @@ import {
   type MealInput,
   type MealPatch,
   type PhotoRetentionDays,
+  type Product,
   type ProfileResponse,
   type WeighingDeleteResponse,
   type WeighingPutResponse,
@@ -104,11 +105,37 @@ function withChange(
 }
 
 /** The pack data sent with the dishes, kept on this device's products too: offline the next scan has it (AC-5.4). */
+/** The product the server makes of a manual dish (meals/routes.ts), until `refreshMyProducts` brings it. */
+function ownProduct(
+  item: MealInput['items'][number] & { barcode: string },
+): Product {
+  const per100 = (v: number) => Math.round((v * 1000) / item.grams) / 10;
+  return {
+    code: item.barcode,
+    name: item.name,
+    brand: null,
+    kcal100: per100(item.kcal),
+    protein100: per100(item.proteinG),
+    fat100: per100(item.fatG),
+    carbs100: per100(item.carbsG),
+    per: item.unit ?? 'g',
+    servingG: null,
+    servingText: null,
+    savedAt: new Date().toISOString(),
+  };
+}
+
 async function rememberPacks(tx: Tx, items: MealInput['items'] | undefined) {
   const products = tx.objectStore('products');
-  for (const { barcode, pack } of items ?? []) {
+  for (const item of items ?? []) {
+    const { barcode, pack } = item;
     if (!barcode || !pack) continue;
-    const p = await products.get(barcode);
+    // A manual dish is the user's product before the server says so: the next scan offline has it (OCT-419).
+    const p =
+      (await products.get(barcode)) ??
+      (item.source === 'manual' && item.kcal > 0
+        ? ownProduct({ ...item, barcode })
+        : null);
     if (!p) continue;
     await products.put({
       ...p,

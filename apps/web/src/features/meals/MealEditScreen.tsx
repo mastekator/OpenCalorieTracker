@@ -631,7 +631,8 @@ export function MealEditScreen({
 
   const addManual = (dish: ManualDish) => {
     setAdding(false);
-    const row = toRow(dish, 'manual');
+    const { pack, ...rest } = dish;
+    const row: Row = { ...toRow(rest, 'manual'), ...(pack && { pack }) };
     focusRow.current = row.id;
     setApplied(null);
     setRows((rs) => [...rs, row]);
