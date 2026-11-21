@@ -345,7 +345,10 @@ const integrations =
     const real = globalThis.fetch;
     globalThis.fetch = async (input) =>
       String(input).endsWith('/api/integrations')
-        ? Response.json({ barcode: { enabled: on, blocked } })
+        ? Response.json({
+            barcode: { enabled: on, blocked },
+            export: { lastAt: null, lastFormat: null },
+          })
         : String(input).endsWith('/api/admin/integrations')
           ? Response.json(admin)
           : new Response(null, { status: 204 });

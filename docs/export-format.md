@@ -10,7 +10,7 @@ OpenCalorieTracker exports the diary as JSON (`oct-export`) or as CSV files. Imp
 | JSON with photos | `oct-export-YYYY-MM-DD.zip`: `oct-export.json` and `photos/`                          |
 | CSV              | `oct-export-YYYY-MM-DD.zip`: `meals.csv`, `weighings.csv` and, with photos, `photos/` |
 
-The ZIP is stored without compression: photos are JPEG already.
+The ZIP is stored without compression: photos are JPEG or WebP already.
 
 ## JSON
 
@@ -82,15 +82,15 @@ The ZIP is stored without compression: photos are JPEG already.
 
 ### Meal
 
-| Key           | Type               | Notes                                                                                         |
-| ------------- | ------------------ | --------------------------------------------------------------------------------------------- |
-| `clientId`    | string             | Stable id of the meal.                                                                        |
-| `localDate`   | `YYYY-MM-DD`       | The diary day.                                                                                |
-| `eatenAt`     | ISO 8601 date-time | When it was eaten.                                                                            |
-| `tzOffsetMin` | integer            | Minutes east of UTC on the device: local time = `eatenAt` + `tzOffsetMin`.                    |
-| `mealType`    | string             | `breakfast`, `lunch`, `dinner`, `snack`.                                                      |
-| `photo`       | string, optional   | `photos/<id>.jpg` inside the ZIP. Only when photos were exported and the photo is still kept. |
-| `dishes`      | array              | At least one dish.                                                                            |
+| Key           | Type               | Notes                                                                                                                                        |
+| ------------- | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `clientId`    | string             | Stable id of the meal.                                                                                                                       |
+| `localDate`   | `YYYY-MM-DD`       | The diary day.                                                                                                                               |
+| `eatenAt`     | ISO 8601 date-time | When it was eaten.                                                                                                                           |
+| `tzOffsetMin` | integer            | Minutes east of UTC on the device: local time = `eatenAt` + `tzOffsetMin`.                                                                   |
+| `mealType`    | string             | `breakfast`, `lunch`, `dinner`, `snack`.                                                                                                     |
+| `photo`       | string, optional   | `photos/<id>.jpg` inside the ZIP, or `photos/<id>.webp` (the small preview) once the full photo has expired. Only when photos were exported. |
+| `dishes`      | array              | At least one dish.                                                                                                                           |
 
 ### Dish
 

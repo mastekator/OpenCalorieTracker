@@ -52,12 +52,21 @@ export function integrationRoutes({ db, config }: AppDeps) {
       },
     )
     .get('/integrations', requireUser, (c) => {
-      const enabled = db
-        .prepare('SELECT off_enabled FROM users WHERE id = ?')
-        .pluck()
-        .get(c.var.user.id) as number;
+      const u = db
+        .prepare(
+          'SELECT off_enabled AS off, last_export_at AS at, last_export_format AS format FROM users WHERE id = ?',
+        )
+        .get(c.var.user.id) as {
+        off: number;
+        at: number | null;
+        format: 'json' | 'csv' | null;
+      };
       return c.json({
-        barcode: { enabled: enabled === 1, blocked: !policy().outbound },
+        barcode: { enabled: u.off === 1, blocked: !policy().outbound },
+        export: {
+          lastAt: u.at === null ? null : new Date(u.at).toISOString(),
+          lastFormat: u.format,
+        },
       } satisfies Integrations);
     });
 }

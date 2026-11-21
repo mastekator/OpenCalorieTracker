@@ -113,6 +113,13 @@ describe('octExportSchema', () => {
     expect(r.profile).not.toHaveProperty('email');
   });
 
+  it('accepts a WebP preview as the photo', () => {
+    const meal = { ...valid.meals[0], photo: 'photos/42.webp' };
+    expect(octExportSchema.safeParse({ ...valid, meals: [meal] }).success).toBe(
+      true,
+    );
+  });
+
   it('rejects a photo path outside photos/', () => {
     const meal = { ...valid.meals[0], photo: '../etc/passwd' };
     expect(octExportSchema.safeParse({ ...valid, meals: [meal] }).success).toBe(
