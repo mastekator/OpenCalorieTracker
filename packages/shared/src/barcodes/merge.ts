@@ -1,5 +1,5 @@
 import type { RecognizedDish } from '../recognition.js';
-import { round1 } from '../units.js';
+import { round1, type DishUnit } from '../units.js';
 import { amountGrams, defaultAmount } from './amount.js';
 import type {
   BarcodeLookup,
@@ -18,7 +18,8 @@ export type PackageHintDish = RecognizedDish & {
 };
 
 /** A dish for the edit screen after `mergePackages`. */
-export type MergedDish = Omit<RecognizedDish, 'confidence' | 'ref'> & {
+export type MergedDish = Omit<RecognizedDish, 'confidence' | 'ref' | 'unit'> & {
+  unit: DishUnit;
   source: 'ai' | 'barcode' | 'label';
   barcode: string | null;
   /** AI dishes only. */
@@ -59,6 +60,7 @@ export function fromProduct(
     proteinG: of(product.protein100),
     fatG: of(product.fat100),
     carbsG: of(product.carbs100),
+    unit: product.per,
   };
 }
 
@@ -79,7 +81,8 @@ export function mergePackages(
   for (const dish of dishes) {
     const { barcode = null, label, confidence } = dish;
     const { name, grams, kcal, proteinG, fatG, carbsG } = dish;
-    const values = { name, grams, kcal, proteinG, fatG, carbsG };
+    const unit: DishUnit = dish.unit === 'ml' ? 'ml' : 'g';
+    const values = { name, grams, kcal, proteinG, fatG, carbsG, unit };
     if (barcode !== null) {
       if (used.has(barcode)) continue;
       used.add(barcode);
@@ -126,6 +129,7 @@ export function mergePackages(
       out.push({
         ...values,
         name,
+        unit: product?.per ?? unit,
         source: 'label',
         barcode,
         ...(alt && { alt }),
@@ -135,6 +139,7 @@ export function mergePackages(
       out.push({
         ...values,
         name,
+        unit: product.per,
         source: 'ai',
         barcode,
         confidence,

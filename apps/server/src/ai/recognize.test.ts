@@ -11,8 +11,11 @@ import {
   recognizePrompt,
   recognizeMeal,
   RECOGNIZE_TIMEOUT_MS,
+  RECOGNIZE_PROMPT_VERSION,
   sanitizeDish,
+  UNIT_RULE,
 } from './recognize.js';
+import { refinePrompt, REFINE_PROMPT_VERSION } from './refine.js';
 import { getAiSettings } from './settings.js';
 import { recognitionStatus, setActiveModel } from './status.js';
 
@@ -25,6 +28,7 @@ const egg = {
   fatG: 5.3,
   carbsG: 0.6,
   confidence: 0.96,
+  unit: 'g',
 };
 
 const reply = (value: unknown) => ({
@@ -90,7 +94,7 @@ describe('recognizeMeal', () => {
     });
     expect(logs()).toEqual([
       expect.stringMatching(
-        /^ai\.recognize provider=mock model=vision-1 prompt=6 ms=\d+ dishes=1 questions=0 recipes=0 result=ok$/,
+        /^ai\.recognize provider=mock model=vision-1 prompt=7 ms=\d+ dishes=1 questions=0 recipes=0 result=ok$/,
       ),
     ]);
   });
@@ -286,7 +290,7 @@ describe('recognizeMeal', () => {
     await expect(
       readLabel(model, jpeg, 'en', '4006381333931'),
     ).resolves.toEqual({ dishes: [], questions: [] });
-    expect(logs()[0]).toMatch(/^ai\.label .* prompt=6 /);
+    expect(logs()[0]).toMatch(/^ai\.label .* prompt=7 /);
   });
 
   it('maps a no-image error to ai_no_vision and remembers it', async () => {
@@ -336,6 +340,20 @@ describe('sanitizeDish', () => {
       carbsG: 50,
       confidence: 0,
     });
+  });
+
+  it('AC-1: keeps ml from the model, anything else is g (ADR-0038 §3)', () => {
+    expect(sanitizeDish({ ...egg, unit: 'ml' }).unit).toBe('ml');
+    expect(sanitizeDish({ ...egg, unit: ' ML ' }).unit).toBe('ml');
+    for (const unit of [undefined, null, 'l', 'мл', 'g'])
+      expect(sanitizeDish({ ...egg, unit }).unit).toBe('g');
+  });
+
+  it('asks for ml only for drinks in both prompts', () => {
+    expect(recognizePrompt('en')).toContain(UNIT_RULE);
+    expect(refinePrompt('refine', true, 'en')).toContain(UNIT_RULE);
+    expect(RECOGNIZE_PROMPT_VERSION).toBe(7);
+    expect(REFINE_PROMPT_VERSION).toBe(3);
   });
 
   it.each([{ kcal: 12_000 }, { proteinG: 2000, fatG: 2000, carbsG: 2000 }])(

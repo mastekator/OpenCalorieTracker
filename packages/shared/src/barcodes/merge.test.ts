@@ -52,11 +52,33 @@ describe('mergePackages', () => {
           proteinG: 12.6,
           fatG: 2.8,
           carbsG: 5.6,
+          unit: 'g',
           source: 'barcode',
           barcode: A,
           from,
         },
       ]);
+  });
+
+  it('AC-2: a product per ml gives a dish in ml over the AI unit, a plain AI dish keeps its unit', () => {
+    const drink = product({ per: 'ml', servingG: 330 });
+    const [barcode, label, check, plain] = mergePackages(
+      [
+        ai({ barcode: A, unit: 'g' }),
+        ai({ barcode: B, label: true }),
+        ai({ barcode: '5901234123457' }),
+        ai({ unit: 'ml' }),
+      ],
+      [
+        hit(A, drink),
+        hit(B, { ...drink, code: B, kcal100: null }),
+        hit('5901234123457', { ...drink, kcal100: null }),
+      ],
+    );
+    expect(barcode).toMatchObject({ unit: 'ml', grams: 330 });
+    expect(label).toMatchObject({ unit: 'ml', source: 'label' });
+    expect(check).toMatchObject({ unit: 'ml', check: true });
+    expect(plain).toMatchObject({ unit: 'ml', source: 'ai' });
   });
 
   it('takes 100 g for a product without a serving', () => {
@@ -90,6 +112,7 @@ describe('mergePackages', () => {
         proteinG: 5,
         fatG: 4,
         carbsG: 15,
+        unit: 'g',
         source: 'label',
         barcode: A,
       },
@@ -137,6 +160,7 @@ describe('mergePackages', () => {
         proteinG: 5,
         fatG: 4,
         carbsG: 15,
+        unit: 'g',
         source: 'ai',
         barcode: null,
         confidence: 0.7,
