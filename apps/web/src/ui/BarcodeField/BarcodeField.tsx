@@ -18,6 +18,20 @@ export function barcodeError(text: string): Key | undefined {
     : 'manual_dish.barcode.err';
 }
 
+/** Why a lookup gave no product; none when it found one. Shared with `AltBarcodeHint`. */
+export function missingNote(r: BarcodeResult) {
+  if (r.product) return undefined;
+  return r.off === 'offline'
+    ? 'offline'
+    : r.off === 'down'
+      ? 'off_down'
+      : r.off === 'disabled'
+        ? 'off_disabled'
+        : r.off === 'blocked'
+          ? 'off_blocked'
+          : 'not_found';
+}
+
 type Props = {
   value: string;
   onChange: (value: string) => void;
@@ -68,18 +82,8 @@ export function BarcodeField({
     onResult(r);
   };
 
-  const missing: Key | undefined =
-    result && !result.product
-      ? result.off === 'offline'
-        ? 'manual_dish.barcode.offline'
-        : result.off === 'down'
-          ? 'manual_dish.barcode.off_down'
-          : result.off === 'disabled'
-            ? 'manual_dish.barcode.off_disabled'
-            : result.off === 'blocked'
-              ? 'manual_dish.barcode.off_blocked'
-              : 'manual_dish.barcode.not_found'
-      : undefined;
+  const note = result && missingNote(result);
+  const missing: Key | undefined = note && `manual_dish.barcode.${note}`;
 
   return (
     <div className="barcode-field">

@@ -1496,9 +1496,33 @@ export const en = {
         label: 'From the label in the photo · AI',
         mine: 'Your product · saved {date}',
         mine_undated: 'Your product',
+        code: 'Barcode',
       },
       per100: 'Per 100 g: {kcal} · {macros}',
       open_off: 'Open in Open Food Facts',
+      alt: {
+        group: 'Another barcode',
+        found: 'Looks like the package says {code} ({name})',
+        code: 'Looks like the package says {code}',
+        meta: '{src} · Per 100 g: {kcal}',
+        off: 'Open Food Facts',
+        replace: 'Replace',
+        replace_product: 'Replace with {name}, barcode {code}',
+        replace_code: 'Replace the barcode with {code}',
+        searching: 'Searching {code}…',
+        not_found:
+          'No product with this code in your products or Open Food Facts. We replaced the code and kept the label numbers.',
+        not_found_ai:
+          'No product with this code in your products or Open Food Facts. We replaced the code and kept the AI estimate.',
+        offline:
+          'Offline we only search this phone, and it isn’t here. We replaced the code and kept the numbers.',
+        off_down:
+          'Open Food Facts didn’t respond. We replaced the code and kept the numbers.',
+        off_disabled:
+          'Not in your products, and Open Food Facts lookup is off. We replaced the code and kept the numbers.',
+        off_blocked:
+          'Not in your products, and the admin turned off Open Food Facts lookup. We replaced the code and kept the numbers.',
+      },
     },
     empty: {
       title: 'No dishes in the list',

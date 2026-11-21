@@ -13,6 +13,7 @@ import {
   type FixedField,
   type IllustrationId,
   type MealItemInput,
+  type MergedDish,
   type Recipe,
   type RecognizedDish,
   type RefineDishIn,
@@ -30,6 +31,8 @@ export type Dish = ManualDish & {
   from?: BarcodeResult['from'];
   /** Found by barcode without kcal, no label: the AI's estimate to check (E-12). */
   check?: true;
+  /** Another code the AI read on the package: the «Dish» sheet offers it (ADR-0036 §5). */
+  alt?: MergedDish['alt'];
   illustration?: IllustrationId;
 };
 

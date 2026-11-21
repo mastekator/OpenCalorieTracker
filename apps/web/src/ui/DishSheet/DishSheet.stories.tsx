@@ -3,12 +3,16 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { fn } from 'storybook/test';
 import { useT } from '../../i18n';
 import { Button } from '../Button/Button';
+import type { BarcodeResult } from '../../data/products';
 import { DishSheet } from './DishSheet';
 
 type Props = Omit<
   ComponentProps<typeof DishSheet>,
   'onClose' | 'onDone' | 'onDelete'
-> & { onDone: (name: string, grams: number) => void; onDelete: () => void };
+> & {
+  onDone: (name: string, grams: number) => void;
+  onDelete: () => void;
+};
 
 // Opens on load; the button reopens it so focus return is visible.
 function Demo(props: Props) {
@@ -118,3 +122,70 @@ export const PackageMineDark: Story = {
   args: mine,
   globals: { theme: 'dark' },
 };
+
+/** OCT-383: another barcode on the package; «Replace» swaps the draft, «Close» drops it. */
+const I = '8997035601383';
+const pocari = {
+  code: I,
+  name: 'Pocari Ion Water 500ml',
+  brand: null,
+  kcal100: 11,
+  protein100: 0,
+  fat100: 0,
+  carbs100: 2.7,
+  per: 'ml',
+  servingG: 500,
+  servingText: null,
+} as const;
+const tea = {
+  original: {
+    name: 'Iced lemon tea',
+    grams: 500,
+    kcal: 150,
+    proteinG: 0,
+    fatG: 0,
+    carbsG: 37.5,
+  },
+  grams: 500,
+  source: { kind: 'barcode', code: '4991433601383' },
+  alt: { code: I, product: pocari, from: 'off' },
+} as const;
+export const OtherCode: Story = { args: tea };
+export const OtherCodeDark: Story = { args: tea, globals: { theme: 'dark' } };
+export const OtherCodeRussian: Story = { args: tea, globals: { locale: 'ru' } };
+export const OtherCodeDesktop: Story = {
+  args: tea,
+  globals: { viewport: { value: 'desktop' } },
+};
+/** No product: «Replace» searches (3 s here), then «not found». */
+const noProduct = {
+  ...tea,
+  original: { ...tea.original, name: 'Ion drink', kcal: 55, carbsG: 13.5 },
+  source: { kind: 'label', code: '4991433601383' },
+  alt: { code: I, product: null },
+  lookup: () =>
+    new Promise<BarcodeResult>((resolve) =>
+      setTimeout(
+        () => resolve({ product: null, from: null, off: 'missing' }),
+        3000,
+      ),
+    ),
+} as const;
+export const OtherCodeNoProduct: Story = { args: noProduct };
+export const OtherCodeNoProductDark: Story = {
+  args: noProduct,
+  globals: { theme: 'dark' },
+};
+/** 3.4: an AI estimate gets a short «Barcode» block; offline answer. */
+const ai = {
+  ...noProduct,
+  original: { ...noProduct.original, name: 'Drink' },
+  source: { kind: 'code', code: '4991433601383' },
+  lookup: async (): Promise<BarcodeResult> => ({
+    product: null,
+    from: null,
+    off: 'offline',
+  }),
+} as const;
+export const OtherCodeAi: Story = { args: ai };
+export const OtherCodeAiDark: Story = { args: ai, globals: { theme: 'dark' } };

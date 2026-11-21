@@ -81,7 +81,7 @@ import { BarcodeConsentSheet } from '../../ui/BarcodeConsentSheet/BarcodeConsent
 import { Banner } from '../../ui/Banner/Banner';
 import { Button } from '../../ui/Button/Button';
 import { DishRow } from '../../ui/DishRow/DishRow';
-import { DishSheet } from '../../ui/DishSheet/DishSheet';
+import { DishSheet, type Replaced } from '../../ui/DishSheet/DishSheet';
 import { HistoryHint } from '../../ui/HistoryHint/HistoryHint';
 import { List, ListRow } from '../../ui/List/List';
 import { IllustrationPicker } from '../../ui/IllustrationPicker/IllustrationPicker';
@@ -538,25 +538,45 @@ export function MealEditScreen({
     });
   };
 
-  const applySheet = (id: string, name: string, grams: number) => {
+  const applySheet = (
+    id: string,
+    name: string,
+    grams: number,
+    replaced?: Replaced,
+  ) => {
     setEditing(null);
     const row = rows.find((r) => r.id === id);
-    const renamed = !!row && name !== row.original.name;
+    const renamed =
+      !!row && name !== (replaced?.dish?.name ?? row.original.name);
+    // «Replace» with a product: another dish, as if its code had been found first (AC-3).
+    const other = renamed || !!replaced?.dish;
     setApplied(null);
     setRows((rs) =>
       rs.map((r) =>
         r.id === id
           ? {
               ...r,
-              original: { ...r.original, name },
+              original: replaced
+                ? {
+                    ...r.original,
+                    ...(replaced.dish && {
+                      ...replaced.dish,
+                      check: undefined,
+                    }),
+                    name,
+                    barcode: replaced.barcode,
+                    alt: undefined,
+                  }
+                : { ...r.original, name },
+              ...(replaced?.dish && { source: 'barcode' as const }),
               grams,
               shown: grams,
               fixed: [
                 ...(renamed ? ['name' as const] : []),
                 ...(grams !== r.grams ? ['grams' as const] : []),
               ].reduce(withFixed, r.fixed),
-              previous: renamed ? undefined : r.previous,
-              recipe: renamed ? undefined : r.recipe,
+              previous: other ? undefined : r.previous,
+              recipe: other ? undefined : r.recipe,
               // Another dish now: the server refuses a recipe link on a non-recipe dish.
               ...(renamed &&
                 r.source === 'recipe' && {
@@ -564,7 +584,7 @@ export function MealEditScreen({
                   recipeId: undefined,
                 }),
               // A question about another dish (E-10.a).
-              question: renamed ? undefined : r.question,
+              question: other ? undefined : r.question,
             }
           : r,
       ),
@@ -1354,6 +1374,7 @@ export function MealEditScreen({
                           grams: row.grams,
                           confidence: item.confidence,
                           mine: packageOf(row)?.kind === 'mine',
+                          check: !!row.original.alt,
                           illustration: illustrationOf(row),
                         }}
                         units={units}
@@ -1644,8 +1665,18 @@ export function MealEditScreen({
           original={editingRow.original}
           grams={editingRow.grams ?? editingRow.shown}
           units={units}
-          source={packageOf(editingRow)}
-          onDone={(name, grams) => applySheet(editingRow.id, name, grams)}
+          source={
+            packageOf(editingRow) ??
+            (editingRow.original.alt && {
+              kind: 'code',
+              code: editingRow.original.barcode ?? null,
+            })
+          }
+          alt={editingRow.original.alt}
+          lookup={onBarcode}
+          onDone={(name, grams, replaced) =>
+            applySheet(editingRow.id, name, grams, replaced)
+          }
           onDelete={() => {
             setEditing(null);
             remove(editingRow.id);
