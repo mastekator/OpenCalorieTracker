@@ -2126,7 +2126,8 @@ export const en = {
     setup_done: 'Setup is already complete. Sign in',
     import_too_large: 'The file is too large. Split it by year',
     already_imported: 'This file has already been imported',
-    export_version_unsupported: 'The file is from a newer version of the app. Update the server',
+    export_version_unsupported:
+      'The file is from a newer version of the app. Update the server',
     internal: 'Something went wrong. Try again',
     network: 'Can’t reach the server. Check your connection',
   } satisfies Record<ClientErrorCode, string>,
