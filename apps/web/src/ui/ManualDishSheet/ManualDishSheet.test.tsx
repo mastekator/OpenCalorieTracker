@@ -234,7 +234,7 @@ describe('ManualDishSheet: barcode (OCT-313 §3)', () => {
     type(/^Name/, 'My yogurt');
     type(/^Calories ·/, '500');
     find('4006381-333931');
-    await screen.findByText('Found in Open Food Facts — check the weight.');
+    await screen.findByText('Found in Open Food Facts — check the amount.');
     expect(lookup).toHaveBeenCalledWith('4006381333931');
     expect(screen.getByRole('radiogroup', { name: 'Count by' })).toBeTruthy();
     expect(screen.queryByLabelText(/^Calories ·/)).toBeNull();
@@ -263,7 +263,7 @@ describe('ManualDishSheet: barcode (OCT-313 §3)', () => {
     find('4006381333931');
     type(/^Name/, 'My yogurt');
     answer({ product: YOGURT, from: 'off', off: 'found' });
-    await screen.findByText('Found in Open Food Facts — check the weight.');
+    await screen.findByText('Found in Open Food Facts — check the amount.');
     add();
     expect(onAdd.mock.calls[0]![0]).toMatchObject({ name: 'My yogurt' });
   });
@@ -273,11 +273,13 @@ describe('ManualDishSheet: barcode (OCT-313 §3)', () => {
       ({ product: YOGURT, from: 'mine', off: 'skipped' }) as const;
     const { onAdd, type, add } = await setup('metric', lookup);
     find('4006381333931');
-    await screen.findByText('Found your product — check the weight.');
+    await screen.findByText('Found your product — check the amount.');
     fireEvent.click(screen.getByRole('button', { name: 'Add package weight' }));
     type(/^Package weight/, '400');
     fireEvent.click(screen.getByRole('radio', { name: 'Package' }));
     fireEvent.click(screen.getByRole('button', { name: '½' }));
+    // The result line follows the amount (mockup 5.1).
+    screen.getByText('132 kcal');
     add();
     expect(onAdd.mock.calls[0]![0]).toMatchObject({
       name: 'Greek yogurt',
@@ -297,7 +299,7 @@ describe('ManualDishSheet: barcode (OCT-313 §3)', () => {
       }) as const;
     const { onAdd, add } = await setup('metric', lookup);
     find('4006381333931');
-    await screen.findByText('Found in Open Food Facts — check the weight.');
+    await screen.findByText('Found in Open Food Facts — check the amount.');
     add();
     expect(onAdd.mock.calls[0]![0]).toMatchObject({
       grams: 100,
@@ -311,7 +313,7 @@ describe('ManualDishSheet: barcode (OCT-313 §3)', () => {
       ({ product: YOGURT, from: 'local', off: 'skipped' }) as const;
     await setup('metric', lookup);
     find('4006381333931');
-    await screen.findByText('Found on this phone — check the weight.');
+    await screen.findByText('Found on this phone — check the amount.');
     fireEvent.change(screen.getByLabelText('Barcode'), {
       target: { value: '5000112637922' },
     });
@@ -329,7 +331,7 @@ describe('ManualDishSheet: barcode (OCT-313 §3)', () => {
       }) as const;
     const { onAdd, add } = await setup('metric', lookup);
     find('4006381333931');
-    await screen.findByText('Found in Open Food Facts — check the weight.');
+    await screen.findByText('Found in Open Food Facts — check the amount.');
     add();
     expect(onAdd.mock.calls[0]![0]).toMatchObject({ grams: 400, kcal: 264 });
   });
@@ -343,7 +345,7 @@ describe('ManualDishSheet: barcode (OCT-313 §3)', () => {
       }) as const;
     const { onAdd, add } = await setup('metric', lookup);
     find('4006381333931');
-    await screen.findByText('Found in Open Food Facts — check the volume.');
+    await screen.findByText('Found in Open Food Facts — check the amount.');
     expect(screen.queryByRole('radiogroup', { name: 'Unit' })).toBeNull();
     add();
     expect(onAdd.mock.calls[0]![0]).toMatchObject({

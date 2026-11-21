@@ -352,23 +352,41 @@ export function ManualDishSheet({
           </List>
         )}
         {merged ? (
-          <AmountPicker
-            product={merged}
-            amount={amount}
-            grams={pickG}
-            units={units}
-            label={t(
-              merged.per === 'ml'
-                ? 'edit.weight.label_ml'
-                : 'edit.weight.label',
-              { dish: name || merged.name || '' },
+          <>
+            <AmountPicker
+              product={merged}
+              amount={amount}
+              grams={pickG}
+              units={units}
+              label={t(
+                merged.per === 'ml'
+                  ? 'edit.weight.label_ml'
+                  : 'edit.weight.label',
+                { dish: name || merged.name || '' },
+              )}
+              onChange={(a, g) => {
+                setAmount(a);
+                setPickG(g);
+              }}
+              onPack={(p) => setPack((was) => ({ ...was, ...p }))}
+            />
+            {totals && (
+              // The same result line as the dish sheet (mockup 5.1).
+              <p
+                className="manual-dish__numbers tabular-nums"
+                aria-live="polite"
+              >
+                <span className="manual-dish__kcal">
+                  {t('meal.kcal', { n: num(round1(totals.kcal)) })}
+                </span>{' '}
+                {t('edit.macros', {
+                  p: num(round1(totals.proteinG)),
+                  f: num(round1(totals.fatG)),
+                  c: num(round1(totals.carbsG)),
+                })}
+              </p>
             )}
-            onChange={(a, g) => {
-              setAmount(a);
-              setPickG(g);
-            }}
-            onPack={(p) => setPack((was) => ({ ...was, ...p }))}
-          />
+          </>
         ) : (
           <>
             <div
