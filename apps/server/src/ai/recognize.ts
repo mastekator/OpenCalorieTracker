@@ -237,16 +237,16 @@ export function sanitizePackageDish(
   };
 }
 
-/**
- * Clamps numbers into the ranges `mealItemInputSchema` accepts; a dish with impossible numbers
- * keeps confidence 0 (AC-2.6, E-7.4). Cutting grams scales the nutrients too, keeping the density.
- */
 /** The model's unit, or null when it sent none or garbage. */
 export const modelUnit = (u: string | null | undefined): DishUnit | null => {
   const v = u?.trim().toLowerCase();
   return v === 'ml' || v === 'g' ? v : null;
 };
 
+/**
+ * Clamps numbers into the ranges `mealItemInputSchema` accepts; a dish with impossible numbers
+ * keeps confidence 0 (AC-2.6, E-7.4). Cutting grams scales the nutrients too, keeping the density.
+ */
 export function sanitizeDish(d: RecognizedDish): RecognizedDish & {
   unit: DishUnit;
 } {
