@@ -1,0 +1,53 @@
+name: Live contract
+
+# One real Gemini call per AI operation through the production code (OCT-438). Not a required check.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 5 * * *'
+  pull_request:
+    paths:
+      - apps/server/src/ai/**
+      - apps/server/scripts/live-contract.ts
+      - packages/shared/src/recognition*
+      - packages/shared/src/refine.ts
+      - packages/shared/src/recipes/**
+      - packages/shared/src/norm/**
+      - packages/shared/src/barcodes/**
+      - .github/workflows/live-contract.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: live-contract-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  live-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - id: key
+        # Fork PRs and repositories without the secret get an empty value.
+        run: |
+          if [ -n "$AI_API_KEY" ]; then echo "present=1" >> "$GITHUB_OUTPUT"; else
+            echo "no GEMINI_API_KEY, live contract test skipped" | tee -a "$GITHUB_STEP_SUMMARY"; fi
+        env:
+          AI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      - if: steps.key.outputs.present
+        uses: actions/checkout@v7
+      - if: steps.key.outputs.present
+        uses: pnpm/action-setup@v6
+      - if: steps.key.outputs.present
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - if: steps.key.outputs.present
+        run: pnpm install --frozen-lockfile
+      - if: steps.key.outputs.present
+        run: pnpm --filter @oct/server live-contract
+        env:
+          AI_PROVIDER: google
+          AI_MODEL: ${{ vars.GEMINI_MODEL || 'gemini-3.5-flash-lite' }}
+          AI_API_KEY: ${{ secrets.GEMINI_API_KEY }}

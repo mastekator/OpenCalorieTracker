@@ -1,4 +1,4 @@
-// The provider from env for the manual model scripts (check-model, check-refine). Not in CI.
+// The provider from env for the model scripts (check-model, check-refine, live-contract in CI).
 import { createModel, type AiModel } from '../src/ai/model.js';
 import { getAiSettings, type AiSettings } from '../src/ai/settings.js';
 import { loadConfig } from '../src/config.js';
