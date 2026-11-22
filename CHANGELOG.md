@@ -4,6 +4,17 @@ All notable changes to this project are documented in this file.
 
 ## Unreleased
 
+## 0.3.2 — 2026-11-22
+
+Fix for Google Gemini after 0.3.1.
+
+- Photo recognition, label reading and the model test work again with Google Gemini: the AI response schema no longer has optional fields, which Gemini rejected with a 400
+- When an AI provider rejects a request, the server log now shows the provider's error text (cut, keys masked)
+
+### Upgrade from 0.3.1
+
+Set `image: ghcr.io/mastekator/opencalorietracker:0.3.2` in `docker-compose.yml`, then `docker compose pull && docker compose up -d`. No database migrations; nothing else is required.
+
 ## 0.3.1 — 2026-11-21
 
 Fixes after 0.3.0: barcodes, drinks, package portions and photos.
