@@ -87,10 +87,28 @@ describe('WeightView', () => {
     expect(dots(container)).toBe(5);
     screen.getByText(/^Trend over the past month: /);
 
+    expect(
+      plain(screen.getByRole('radio', { name: /^3.months$/ }).textContent),
+    ).toBe('3 mo');
+
+    // 30 weeks are shorter than a year: the trend counts from the first weighing.
     fireEvent.click(screen.getByRole('radio', { name: 'Year' }));
     expect(dots(container)).toBe(30);
+    expect(plain(screen.getByText(/^Trend since /).textContent)).toMatch(
+      /^Trend since Apr 27: [+−]?\d\.\d kg$/,
+    );
+    expect(plain(screen.getByRole('img').getAttribute('aria-label'))).toMatch(
+      /^Weight chart since Apr 27: latest weigh-in /,
+    );
     fireEvent.click(screen.getByRole('radio', { name: 'All' }));
     expect(dots(container)).toBe(30);
+    screen.getByText(/^Trend since Apr 27: /);
+  });
+
+  it('names the year of a first weighing in another year', async () => {
+    await show({ weighings: daily(60, 7) });
+    fireEvent.click(screen.getByRole('radio', { name: 'All' }));
+    screen.getByText(/^Trend since Sep 29, 2025: /);
   });
 
   it('draws only the trend above 400 weighings', async () => {

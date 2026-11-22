@@ -154,8 +154,30 @@
 }
 .wchart__months li {
   position: absolute;
-  translate: -50% 0;
   white-space: nowrap;
+}
+.wchart__x--center {
+  translate: -50% 0;
+}
+.wchart__x--end {
+  translate: -100% 0;
+}
+.wchart__x--tick {
+  padding-inline-start: var(--space-1);
+}
+
+/* Hang from the plot's bottom edge at each label's date. */
+.wchart__ticks {
+  position: absolute;
+  inset: 100% 0 auto;
+}
+.wchart__ticks i {
+  position: absolute;
+  top: 0;
+  width: 1px;
+  height: var(--weight-x-tick);
+  translate: -50% 0;
+  background: var(--color-text-disabled);
 }
 
 /* Says the picked weighing to a screen reader; the tip itself is aria-hidden. */

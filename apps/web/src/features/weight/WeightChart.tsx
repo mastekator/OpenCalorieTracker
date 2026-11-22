@@ -4,32 +4,28 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from 'react';
 import { ChevronRight } from 'lucide-react';
-import { addDays, daysBetween, type Units, type Weighing } from '@oct/shared';
+import { daysBetween, type Units, type Weighing } from '@oct/shared';
 import { useT } from '../../i18n';
 import { useWeightFormat } from './format';
-import { nearest, weightAxis } from './weightScale';
+import { nearest, weightAxis, xTicks } from './weightScale';
 import './WeightChart.css';
 
 /** Above this many dots they merge into a band: only the trend is drawn (ADR-0016 §6). */
 export const MAX_DOTS = 400;
 /** The SVG layer is stretched to the plot; its own units are 0..1000 both ways. */
 const S = 1000;
-/** Month labels closer than this share of the width give way to the earlier one. */
-const LABEL_GAP = 0.12;
 
 type Props = {
   /** Weighings in the period, by date ascending, at least one. */
   points: readonly Weighing[];
   /** Trend at each of `points` (kg); null below three weighings in the whole history. */
   trend: readonly number[] | null;
-  /** First day of the x axis; the last is today. */
-  from: string;
+  /** First day of the x axis (`axisStart`); the last is today. */
+  start: string;
   today: string;
   units: Units;
   /** Goal weight, kg; the axis widens to show it (AC-9.24). */
   target: number | null;
-  /** Mondays under the plot instead of month starts. */
-  weeks: boolean;
   /** The whole picture in one phrase for screen readers. */
   label: string;
   /** Date of the picked weighing: tip, line and ring. */
@@ -49,11 +45,10 @@ type Props = {
 export function WeightChart({
   points,
   trend,
-  from,
+  start,
   today,
   units,
   target,
-  weeks,
   label,
   selected,
   onSelect,
@@ -79,8 +74,8 @@ export function WeightChart({
     return () => document.removeEventListener('pointerdown', onDown);
   }, [selected, onSelect]);
 
-  const span = Math.max(daysBetween(from, today), 1);
-  const days = points.map((p) => daysBetween(from, p.date));
+  const span = Math.max(daysBetween(start, today), 1);
+  const days = points.map((p) => daysBetween(start, p.date));
   const xOf = (day: number) => day / span;
   const values = points.map((p) => f.shown(p.weightKg));
   const trendValues = trend?.map(f.shown) ?? [];
@@ -106,28 +101,31 @@ export function WeightChart({
     return date;
   };
 
-  // Mondays on «Month», month starts otherwise, Jan 1 with the year past two years.
-  const long = span > 730;
-  const tickFormat = new Intl.DateTimeFormat(locale, {
-    timeZone: 'UTC',
-    ...(weeks
-      ? { day: 'numeric', month: 'short' }
-      : long
-        ? { year: 'numeric' }
-        : { month: 'short' }),
+  const formats = {
+    day: { day: 'numeric' },
+    day_month: { day: 'numeric', month: 'short' },
+    month: { month: 'short' },
+    year: { year: 'numeric' },
+  } as const;
+  const ticks = xTicks(start, today).map(({ date, kind }) => {
+    const x = xOf(daysBetween(start, date));
+    // Days centre on their date, flush near an edge; months and years start at their tick.
+    const align =
+      kind === 'day' || kind === 'day_month'
+        ? x < 0.06
+          ? 'start'
+          : x > 0.94
+            ? 'end'
+            : 'center'
+        : x > 0.9
+          ? null
+          : 'tick';
+    const text = new Intl.DateTimeFormat(locale, {
+      timeZone: 'UTC',
+      ...formats[kind],
+    }).format(new Date(`${date}T00:00:00Z`));
+    return { date, x, align, text };
   });
-  const ticks: { date: string; x: number }[] = [];
-  for (let d = 0; d <= span; d++) {
-    const date = addDays(from, d);
-    const mark = weeks
-      ? new Date(`${date}T00:00:00Z`).getUTCDay() === 1
-      : date.endsWith(long ? '-01-01' : '-01');
-    const x = xOf(d);
-    // Centred labels: none so close to an edge that they stick out.
-    if (!mark || x < LABEL_GAP / 3 || x > 1 - LABEL_GAP / 2) continue;
-    if (ticks.length && x - ticks.at(-1)!.x < LABEL_GAP) continue;
-    ticks.push({ date, x });
-  }
 
   const axisLabel = (v: number) =>
     axis.step < 1 ? f.n1(v) : new Intl.NumberFormat(locale).format(v);
@@ -224,6 +222,11 @@ export function WeightChart({
                 />
               )}
             </svg>
+            <div className="wchart__ticks" aria-hidden="true">
+              {ticks.map(({ date, x }) => (
+                <i key={date} style={{ left: pct(x) }} />
+              ))}
+            </div>
             {goal !== null && (
               <span
                 className="wchart__goal-label"
@@ -293,11 +296,18 @@ export function WeightChart({
           ))}
         </ol>
         <ol className="wchart__months" aria-hidden="true">
-          {ticks.map(({ date, x }) => (
-            <li key={date} style={{ left: pct(x) }}>
-              {tickFormat.format(new Date(`${date}T00:00:00Z`))}
-            </li>
-          ))}
+          {ticks.map(
+            ({ date, x, align, text }) =>
+              align && (
+                <li
+                  key={date}
+                  className={`wchart__x--${align}`}
+                  style={{ left: pct(x) }}
+                >
+                  {text}
+                </li>
+              ),
+          )}
         </ol>
       </div>
     </div>

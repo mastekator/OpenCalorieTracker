@@ -28,7 +28,12 @@ import { NB, useWeightFormat } from './format';
 import { WeighInSheet } from './WeighInSheet';
 import { goalTarget, WeightGoal, type CardWeighing } from './WeightCard';
 import { WeightChart } from './WeightChart';
-import { periodStart, PERIODS, type WeightPeriod } from './weightScale';
+import {
+  axisStart,
+  periodStart,
+  PERIODS,
+  type WeightPeriod,
+} from './weightScale';
 import '../../ui/List/List.css';
 import './WeightCard.css';
 import './WeightScreen.css';
@@ -108,8 +113,17 @@ export function WeightView({
   const per = t(`weight_screen.per_${period}`);
   const diff =
     change === null ? null : `${f.signed(f.shown(change))}${NB}${f.unit}`;
-  const label = t('weight_screen.chart', {
+  // The history is shorter than the period: say from when (OCT-446 §5).
+  const firstDate = weighings[0]!.date;
+  const since =
+    start === null || firstDate > start
+      ? firstDate.slice(0, 4) === today.slice(0, 4)
+        ? f.short(firstDate)
+        : f.shortYear(firstDate)
+      : null;
+  const label = t(since ? 'weight_screen.chart_since' : 'weight_screen.chart', {
     period: per,
+    date: since ?? '',
     weight: f.weight(latest.weightKg),
     trend: diff === null ? '' : t('weight_screen.chart_trend', { diff }),
     goal:
@@ -142,6 +156,8 @@ export function WeightView({
           options={PERIODS.map((value) => ({
             value,
             label: t(`weight_screen.${value}`),
+            aria:
+              value === 'quarter' ? t('weight_screen.quarter_aria') : undefined,
           }))}
           value={period}
           onChange={(p) => {
@@ -157,11 +173,10 @@ export function WeightView({
           <WeightChart
             points={points}
             trend={trend ? trend.slice(first) : null}
-            from={from}
+            start={axisStart(points[0]!.date, start, today)}
             today={today}
             units={units}
             target={target}
-            weeks={period === 'month'}
             label={label}
             selected={selected}
             onSelect={setSelected}
@@ -172,7 +187,9 @@ export function WeightView({
           <p className="weight-card__muted">
             {diff === null
               ? t('weight_screen.trend_soon')
-              : t('weight_screen.trend', { period: per, diff })}
+              : since
+                ? t('weight_screen.trend_since', { date: since, diff })
+                : t('weight_screen.trend', { period: per, diff })}
           </p>
         )}
         {points.length > 0 && (

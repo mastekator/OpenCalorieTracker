@@ -99,6 +99,13 @@ export const Pounds: Story = { args: { units: 'us' } };
 /** 3.7 */
 export const OneWeighing: Story = { args: { weighings: DIARY.slice(-1) } };
 export const OneWeighingDark: Story = { ...OneWeighing, globals: dark };
+/** Four days of history in «3 months»: the axis starts at it, the trend says since when. */
+export const ShortHistory: Story = { args: { weighings: DIARY.slice(-4) } };
+export const ShortHistoryDark: Story = { ...ShortHistory, globals: dark };
+export const ShortHistoryRussian: Story = {
+  ...ShortHistory,
+  globals: { locale: 'ru' },
+};
 /** No weigh-ins in the picked period (3 months): a quiet line in the chart's place. */
 export const EmptyPeriod: Story = {
   args: { weighings: DIARY.filter((w) => w.date < addDays(TODAY, -100)) },

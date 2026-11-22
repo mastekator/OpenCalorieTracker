@@ -713,7 +713,8 @@ const ru: DeepPartial<typeof en> = {
   weight_screen: {
     period: 'Период',
     month: 'Месяц',
-    quarter: '3\u00a0месяца',
+    quarter: '3\u00a0мес',
+    quarter_aria: '3\u00a0месяца',
     year: 'Год',
     all: 'Всё',
     per_month: 'месяц',
@@ -721,6 +722,7 @@ const ru: DeepPartial<typeof en> = {
     per_year: 'год',
     per_all: 'всё время',
     trend: 'За {period} по тренду: {diff}',
+    trend_since: 'С {date} по тренду: {diff}',
     trend_soon: 'Тренд появится с третьего взвешивания',
     legend_points: 'взвешивания',
     legend_trend: 'тренд',
@@ -729,6 +731,8 @@ const ru: DeepPartial<typeof en> = {
     edit: 'Изменить',
     chart:
       'График веса за {period}: последнее взвешивание {weight}{trend}{goal}.',
+    chart_since:
+      'График веса с {date}: последнее взвешивание {weight}{trend}{goal}.',
     chart_trend: ', по тренду {diff}',
     chart_goal: ', цель {weight}',
     none: 'За {period} взвешиваний нет',
