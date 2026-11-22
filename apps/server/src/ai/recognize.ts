@@ -22,6 +22,7 @@ import {
   noVisionError,
   quickReasoning,
 } from './common.js';
+import { EDIBLE_PROMPT, edibleHints } from './edible.js';
 import type { AiModel } from './model.js';
 import {
   QUESTIONS_PROMPT,
@@ -32,7 +33,7 @@ import {
 } from './questions.js';
 
 /** Bump on every prompt change; it is logged with each call. */
-export const RECOGNIZE_PROMPT_VERSION = 8;
+export const RECOGNIZE_PROMPT_VERSION = 9;
 
 /** Same rule in the photo and label prompts (OCT-372). */
 export const PET_FOOD_RULE =
@@ -62,6 +63,7 @@ export function recognizePrompt(locale: string, hasRecipes = false) {
 List every separate dish or food item visible. Identical items on different plates are separate entries.
 For each item estimate the weight of the edible part in grams and the kcal, protein, fat and carbohydrates in grams for that weight (the whole portion, not per 100 g).
 ${UNIT_RULE}
+${EDIBLE_PROMPT}
 Write dish names in ${languageName(locale)}.
 Confidence is 0..1:
 - 0.95 or higher only for countable, unambiguous single items (eggs, a banana, a packaged yogurt, a slice of bread);
@@ -120,7 +122,11 @@ export function recognizeMeal(
       onUsage,
     },
     (output) => {
-      const dishes = output.dishes.map((d) => sanitizePackageDish(d, barcodes));
+      // The hints stay on the dishes until the route applies the user's shares (ADR-0039 §3).
+      const dishes = output.dishes.map((d) => ({
+        ...sanitizePackageDish(d, barcodes),
+        ...edibleHints(d),
+      }));
       return {
         dishes,
         questions: sanitizeQuestions(

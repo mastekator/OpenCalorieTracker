@@ -200,6 +200,51 @@ describe('POST /api/photos/:id/recognize', () => {
     expect(model.doGenerateCalls).toHaveLength(1);
   });
 
+  it("applies the user's edible share after the cache and never sends it to the model (ADR-0039 §4)", async () => {
+    const sapodilla = {
+      ...egg,
+      name: 'Sapodilla',
+      grams: 540,
+      kcal: 450,
+      confidence: 0.9,
+      grossG: 772,
+      edibleRef: 'sapodilla',
+      ediblePct: 'odd',
+    };
+    const model = mockModel({ dishes: [sapodilla] });
+    const t = await setup(model);
+    const id = await t.upload();
+    const first = (await (await t.recognize(id)).json()) as {
+      dishes: Record<string, unknown>[];
+    };
+    expect(first.dishes[0]).toMatchObject({
+      grams: 617.6,
+      kcal: 514.7,
+      edible: { grossG: 772, pct: 80, source: 'ref', key: 'sapodilla' },
+    });
+    expect(first.dishes[0]).not.toHaveProperty('grossG');
+    t.db
+      .prepare(
+        "INSERT INTO edible_prefs (user_id, key, pct, updated_at) VALUES ((SELECT id FROM users WHERE email = 'admin@example.com'), 'sapodilla', 35, 0)",
+      )
+      .run();
+    const again = (await (await t.recognize(id)).json()) as typeof first;
+    expect(again.dishes[0]).toMatchObject({
+      grams: 270.2,
+      edible: { pct: 35, source: 'user' },
+    });
+    expect(model.doGenerateCalls).toHaveLength(1);
+    const { prompt } = model.doGenerateCalls[0]!;
+    const text = prompt
+      .flatMap((m) =>
+        typeof m.content === 'string'
+          ? [m.content]
+          : m.content.flatMap((p) => (p.type === 'text' ? [p.text] : [])),
+      )
+      .join('\n');
+    expect(text).not.toMatch(/\b35\b/);
+  });
+
   it('calls the model again after a failure', async () => {
     const model = mockModel(apiError(500), { dishes: [egg] });
     const t = await setup(model);
