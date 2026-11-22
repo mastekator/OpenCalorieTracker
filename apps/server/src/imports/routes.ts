@@ -6,10 +6,13 @@ import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import type { ReadableStream } from 'node:stream/web';
 import { Hono } from 'hono';
+import { z } from 'zod';
 import type { AppDeps } from '../app.js';
 import { requireUser, type AuthEnv, type User } from '../auth/session.js';
 import { ApiError } from '../http/errors.js';
 import { validate } from '../http/validate.js';
+import { deleteMeals } from '../meals/remove.js';
+import { COMMIT_BATCH, commitMeals, draftMeals } from './commit.js';
 import {
   csvHead,
   draftPath,
@@ -21,7 +24,13 @@ import {
 } from './draft.js';
 import { guessColumns, mappingSchema, type Mapping } from './rules.js';
 
-/** Upload, column mapping and preview of an import draft (ADR-0026 §5); the commit is OCT-404. */
+const commitSchema = z.object({
+  includeDaysWithEntries: z.boolean().optional(),
+  /** The browser's zone for CSV times, as a meal sends it; east-positive. OCT meals keep their own. */
+  tzOffsetMin: z.number().int().min(-840).max(840).optional(),
+});
+
+/** Import drafts, their commit into the diary, the history and deleting an import (ADR-0026 §5). */
 export function importRoutes({ config, db }: AppDeps) {
   const dir = importsDir(config.dataDir);
 
@@ -40,6 +49,22 @@ export function importRoutes({ config, db }: AppDeps) {
       mapping: row.mapping ? (JSON.parse(row.mapping) as Mapping) : null,
     };
   };
+
+  const ownImport = (user: User, id: string) =>
+    /^\d+$/.test(id)
+      ? (db
+          .prepare(
+            'SELECT id, status, records, committed_at FROM imports WHERE id = ? AND user_id = ?',
+          )
+          .get(Number(id), user.id) as
+          | {
+              id: number;
+              status: 'draft' | 'done';
+              records: number;
+              committed_at: number;
+            }
+          | undefined)
+      : undefined;
 
   const preview = (user: User, draft: Draft, include?: string) =>
     previewDraft(draft, draftPath(config.dataDir, draft.id), {
@@ -159,5 +184,83 @@ export function importRoutes({ config, db }: AppDeps) {
           c.req.query('includeDaysWithEntries'),
         ),
       ),
-    );
+    )
+    .post(
+      '/imports/:id/commit',
+      requireUser,
+      validate('json', commitSchema),
+      async (c) => {
+        const user = c.var.user;
+        const done = ownImport(user, c.req.param('id'));
+        // A repeat after the commit (a retried request) answers the same, writing nothing.
+        if (done?.status === 'done') return c.json({ records: done.records });
+        const draft = draftOf(user, c.req.param('id'));
+        const body = c.req.valid('json');
+        const path = draftPath(config.dataDir, draft.id);
+        const meals = await draftMeals(
+          draft,
+          path,
+          user.locale,
+          body.tzOffsetMin ?? 0,
+        );
+        const records = await commitMeals(
+          db,
+          user.id,
+          draft.id,
+          meals,
+          body.includeDaysWithEntries ?? false,
+        );
+        db.prepare(
+          "UPDATE imports SET status = 'done', records = ?, committed_at = ? WHERE id = ?",
+        ).run(records, Date.now(), draft.id);
+        await rm(path, { force: true });
+        return c.json({ records });
+      },
+    )
+    .get('/imports', requireUser, (c) =>
+      c.json(
+        db
+          .prepare(
+            `SELECT id, source, committed_at AS committedAt, records FROM imports
+             WHERE user_id = ? AND status = 'done' ORDER BY committed_at DESC, id DESC`,
+          )
+          .all(c.var.user.id),
+      ),
+    )
+    .get('/imports/:id/delete-info', requireUser, (c) => {
+      const row = ownImport(c.var.user, c.req.param('id'));
+      if (row?.status !== 'done') throw new ApiError(404, 'not_found');
+      return c.json(
+        db
+          .prepare(
+            `SELECT count(i.id) AS records,
+               count(DISTINCT CASE WHEN m.edited_at > ? THEN m.id END) AS edited
+             FROM meals m LEFT JOIN meal_items i ON i.meal_id = m.id WHERE m.import_id = ?`,
+          )
+          .get(row.committed_at, row.id) as { records: number; edited: number },
+      );
+    })
+    .delete('/imports/:id', requireUser, async (c) => {
+      const user = c.var.user;
+      // Idempotent like a meal delete: missing or another user's → 204, no change.
+      const row = ownImport(user, c.req.param('id'));
+      if (row) {
+        const batch = db.prepare(
+          'SELECT id, client_id, photo_id FROM meals WHERE user_id = ? AND import_id = ? LIMIT ?',
+        );
+        for (;;) {
+          const meals = batch.all(user.id, row.id, COMMIT_BATCH) as {
+            id: number;
+            client_id: string;
+            photo_id: string | null;
+          }[];
+          if (!meals.length) break;
+          await deleteMeals(db, config.dataDir, user.id, meals);
+          await new Promise(setImmediate);
+        }
+        db.prepare('DELETE FROM imports WHERE id = ?').run(row.id);
+        await rm(draftPath(config.dataDir, row.id), { force: true });
+      }
+      return c.body(null, 204);
+    });
 }

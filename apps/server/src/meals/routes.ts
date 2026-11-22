@@ -22,6 +22,7 @@ import { photoPath, photoTaken, type PhotoSize } from '../photos/store.js';
 import { bumpRev } from '../sync/rev.js';
 import { CHOICE_JOIN, resolveIllustration } from '../illustrations/routes.js';
 import { readMeal, type MealRow } from './read.js';
+import { deleteMeals } from './remove.js';
 
 const DAY_MS = 86_400_000;
 const FUTURE_SLACK_MS = 5 * 60_000;
@@ -435,17 +436,7 @@ export function mealRoutes({ config, db, ai }: AppDeps) {
       const userId = c.var.user.id;
       // Idempotent for the offline queue: missing, already deleted or another user's → 204, no change.
       const meal = findMeal(userId, c.req.param('id'));
-      if (meal) {
-        db.transaction(() => {
-          db.prepare('DELETE FROM meals WHERE id = ?').run(meal.id);
-          db.prepare(
-            `INSERT INTO meal_tombstones (user_id, client_id, rev) VALUES (?, ?, ?)
-             ON CONFLICT (user_id, client_id) DO UPDATE SET rev = excluded.rev`,
-          ).run(userId, meal.client_id, bumpRev(db, userId));
-        })();
-        // After the commit: a crash in between leaves orphan files for the cleanup job (OCT-52).
-        if (meal.photo_id) await removePhoto(userId, meal.photo_id);
-      }
+      if (meal) await deleteMeals(db, config.dataDir, userId, [meal]);
       return c.body(null, 204);
     });
 }

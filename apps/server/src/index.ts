@@ -14,6 +14,7 @@ import {
 } from './config.js';
 import { migrate } from './db/migrate.js';
 import { openDb } from './db/open.js';
+import { sweepImports } from './imports/sweep.js';
 import { SWEEP_INTERVAL_MS, sweepPhotos } from './photos/sweep.js';
 import { loadSecrets } from './secrets.js';
 
@@ -41,9 +42,14 @@ await ai.apply(getAiSettings(config, db, secrets));
 
 // A failed sweep is retried next hour; it must not take the server down.
 const sweep = () =>
-  sweepPhotos(db, config.dataDir, Date.now()).catch((err) =>
-    console.error(`[photos] sweep failed: ${(err as Error).message}`),
-  );
+  Promise.all([
+    sweepPhotos(db, config.dataDir, Date.now()).catch((err) =>
+      console.error(`[photos] sweep failed: ${(err as Error).message}`),
+    ),
+    sweepImports(db, config.dataDir, Date.now()).catch((err) =>
+      console.error(`[imports] sweep failed: ${(err as Error).message}`),
+    ),
+  ]);
 if (config.dataDirWritable) {
   void sweep();
   setInterval(sweep, SWEEP_INTERVAL_MS).unref();

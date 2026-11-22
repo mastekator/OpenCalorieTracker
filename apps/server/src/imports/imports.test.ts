@@ -1,12 +1,15 @@
-import { mkdtemp, readdir, rm, writeFile } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
+import { mkdtemp, readdir, rm, utimes, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { OCT_EXPORT_VERSION } from '@oct/shared';
+import type { Database } from 'better-sqlite3';
+import { OCT_EXPORT_VERSION, sumDay } from '@oct/shared';
 import { ensureAdmin } from '../auth/admin.js';
 import { hashPassword } from '../auth/password.js';
 import { setCookie, testApp } from '../test/app.js';
 import { dataRows, MAX_IMPORT_BYTES } from './draft.js';
+import { DRAFT_AGE_MS, sweepImports } from './sweep.js';
 
 const BOM = String.fromCharCode(0xfeff);
 
@@ -344,5 +347,301 @@ describe('dataRows', () => {
       status: 413,
       code: 'import_too_large',
     });
+  });
+});
+
+type Totals = Record<string, ReturnType<typeof sumDay>>;
+/** Each day's totals from the stored dishes, as the diary sums them. */
+const dayTotals = (t: { db: Database }, userId: number): Totals => {
+  const rows = t.db
+    .prepare(
+      `SELECT m.local_date AS day, i.kcal, i.protein_g AS proteinG, i.fat_g AS fatG, i.carbs_g AS carbsG
+       FROM meals m JOIN meal_items i ON i.meal_id = m.id WHERE m.user_id = ? ORDER BY i.id`,
+    )
+    .all(userId) as ({ day: string } & Parameters<typeof sumDay>[0][0])[];
+  const days: Record<string, typeof rows> = {};
+  for (const r of rows) (days[r.day] ??= []).push(r);
+  return Object.fromEntries(
+    Object.entries(days).map(([d, items]) => [d, sumDay(items)]),
+  );
+};
+
+const meal = (localDate: string, eatenAt: string, kcal: number) => ({
+  clientId: randomUUID(),
+  eatenAt,
+  tzOffsetMin: 180,
+  localDate,
+  mealType: 'lunch',
+  items: [
+    {
+      name: 'Soup',
+      grams: 300,
+      kcal,
+      proteinG: 9.3,
+      fatG: 4.1,
+      carbsG: 20.05,
+      source: 'ai',
+    },
+    {
+      name: 'Juice',
+      grams: 200,
+      unit: 'ml',
+      kcal: 90,
+      proteinG: 0,
+      fatG: 0,
+      carbsG: 21,
+      source: 'manual',
+    },
+  ],
+});
+
+const userIdOf = (t: { db: Database }, email: string) =>
+  t.db
+    .prepare('SELECT id FROM users WHERE email = ?')
+    .pluck()
+    .get(email) as number;
+
+describe('POST /api/imports/:id/commit', () => {
+  it('round-trips an export into an empty user with the same day totals', async () => {
+    const t = await setup();
+    for (const m of [
+      meal('2026-01-10', '2026-01-10T09:00:00.000Z', 412.3),
+      meal('2026-01-10', '2026-01-10T16:30:00.000Z', 120.7),
+      meal('2026-01-11', '2026-01-11T07:00:00.000Z', 333.33),
+    ])
+      expect((await t.call('POST', '/meals', m)).status).toBe(201);
+    const file = await (await t.call('GET', '/export?format=json')).text();
+
+    const other = await t.addUser('b@example.com');
+    const draft = (await (await t.upload('oct', file, other)).json()) as {
+      id: number;
+    };
+    const res = await t.call(`POST`, `/imports/${draft.id}/commit`, {}, other);
+    expect(await res.json()).toEqual({ records: 6 });
+
+    const b = userIdOf(t, 'b@example.com');
+    expect(dayTotals(t, b)).toEqual(
+      dayTotals(t, userIdOf(t, 'admin@example.com')),
+    );
+    expect(
+      t.db
+        .prepare(
+          `SELECT DISTINCT m.client_id, i.source FROM meals m JOIN meal_items i ON i.meal_id = m.id
+           WHERE m.user_id = ? ORDER BY m.client_id`,
+        )
+        .raw()
+        .all(b),
+    ).toEqual([1, 2, 3].map((n) => [`import:${draft.id}:${n}`, 'import']));
+    // The file is gone, the import is in the history.
+    expect(await t.files()).toEqual([]);
+    const history = (await (
+      await t.call('GET', '/imports', undefined, other)
+    ).json()) as unknown[];
+    expect(history).toEqual([
+      {
+        id: draft.id,
+        source: 'oct',
+        committedAt: expect.any(Number),
+        records: 6,
+      },
+    ]);
+    expect(await (await t.call('GET', '/imports')).json()).toEqual([]);
+  });
+
+  it('writes nothing twice on a repeat', async () => {
+    const t = await setup();
+    const { id } = (await (await t.upload('oct', octFile())).json()) as {
+      id: number;
+    };
+    const commit = () => t.call('POST', `/imports/${id}/commit`, {});
+    expect(await (await commit()).json()).toEqual({ records: 2 });
+    expect(await (await commit()).json()).toEqual({ records: 2 });
+    expect(t.db.prepare('SELECT count(*) FROM meals').pluck().get()).toBe(1);
+    expect(t.db.prepare('SELECT count(*) FROM meal_items').pluck().get()).toBe(
+      2,
+    );
+  });
+
+  it('skips days with entries unless asked, and places CSV times by the browser zone', async () => {
+    const t = await setup();
+    const mapping = { ...MAPPING, dateOrder: 'dmy' };
+    // User b has a meal on 3 April 2024: only the 5 April dish is written.
+    const b = await t.addUser('b@example.com');
+    await t.call(
+      'POST',
+      '/meals',
+      meal('2024-04-03', '2024-04-03T09:00:00.000Z', 100),
+      b,
+    );
+    const skip = (await (await t.upload('csv', CSV, b)).json()) as {
+      id: number;
+    };
+    await t.call('PUT', `/imports/${skip.id}/mapping`, mapping, b);
+    expect(
+      await (await t.call('POST', `/imports/${skip.id}/commit`, {}, b)).json(),
+    ).toEqual({ records: 1 });
+
+    const { id } = (await (await t.upload('csv', CSV)).json()) as {
+      id: number;
+    };
+    await t.call('PUT', `/imports/${id}/mapping`, mapping);
+    await t.call(
+      'POST',
+      '/meals',
+      meal('2024-04-03', '2024-04-03T09:00:00.000Z', 100),
+    );
+    const res = await t.call('POST', `/imports/${id}/commit`, {
+      includeDaysWithEntries: true,
+      tzOffsetMin: 180,
+    });
+    expect(await res.json()).toEqual({ records: 2 });
+    expect(
+      t.db
+        .prepare(
+          "SELECT local_date, eaten_at, tz_offset_min, meal_type FROM meals WHERE import_id = ? AND local_date = '2024-04-03'",
+        )
+        .get(id),
+    ).toEqual({
+      local_date: '2024-04-03',
+      // No time in the file: noon local, 09:00 UTC at +3.
+      eaten_at: Date.parse('2024-04-03T09:00:00.000Z'),
+      tz_offset_min: 180,
+      meal_type: 'breakfast',
+    });
+  });
+
+  it("answers 404 for another user's draft", async () => {
+    const t = await setup();
+    const { id } = (await (await t.upload('oct', octFile())).json()) as {
+      id: number;
+    };
+    const other = await t.addUser('b@example.com');
+    expect(
+      (await t.call('POST', `/imports/${id}/commit`, {}, other)).status,
+    ).toBe(404);
+    expect(
+      (await t.call('GET', `/imports/${id}/delete-info`, undefined, other))
+        .status,
+    ).toBe(404);
+  });
+});
+
+describe('DELETE /api/imports/:id', () => {
+  it('counts edited meals, deletes with tombstones that sync sends, and is idempotent', async () => {
+    const t = await setup();
+    const file = JSON.parse(octFile()) as { meals: unknown[] };
+    const second = {
+      ...(file.meals[0] as object),
+      clientId: 'b',
+      localDate: '2026-11-19',
+      eatenAt: '2026-11-19T05:15:00.000Z',
+    };
+    file.meals.push(second);
+    const { id } = (await (
+      await t.upload('oct', JSON.stringify(file))
+    ).json()) as { id: number };
+    await t.call('POST', `/imports/${id}/commit`, {});
+    expect(
+      await (await t.call('GET', `/imports/${id}/delete-info`)).json(),
+    ).toEqual({
+      records: 4,
+      edited: 0,
+    });
+
+    const mealId = t.db
+      .prepare('SELECT id FROM meals WHERE client_id = ?')
+      .pluck()
+      .get(`import:${id}:1`) as number;
+    // Edited a millisecond after the commit at the earliest.
+    t.db
+      .prepare(
+        'UPDATE imports SET committed_at = committed_at - 1 WHERE id = ?',
+      )
+      .run(id);
+    expect(
+      (await t.call('PATCH', `/meals/${mealId}`, { mealType: 'dinner' }))
+        .status,
+    ).toBe(200);
+    expect(
+      await (await t.call('GET', `/imports/${id}/delete-info`)).json(),
+    ).toEqual({
+      records: 4,
+      edited: 1,
+    });
+
+    const { rev } = (await (await t.call('GET', '/sync?since=0')).json()) as {
+      rev: number;
+    };
+    expect((await t.call('DELETE', `/imports/${id}`)).status).toBe(204);
+    expect(t.db.prepare('SELECT count(*) FROM meals').pluck().get()).toBe(0);
+    expect(t.db.prepare('SELECT count(*) FROM imports').pluck().get()).toBe(0);
+    const sync = (await (await t.call('GET', `/sync?since=${rev}`)).json()) as {
+      deletedMealClientIds: string[];
+    };
+    expect(sync.deletedMealClientIds.sort()).toEqual([
+      `import:${id}:1`,
+      `import:${id}:2`,
+    ]);
+    expect((await t.call('DELETE', `/imports/${id}`)).status).toBe(204);
+    expect((await t.call('DELETE', '/imports/abc')).status).toBe(204);
+  });
+
+  it("leaves another user's import alone", async () => {
+    const t = await setup();
+    const { id } = (await (await t.upload('oct', octFile())).json()) as {
+      id: number;
+    };
+    await t.call('POST', `/imports/${id}/commit`, {});
+    const other = await t.addUser('b@example.com');
+    expect(
+      (await t.call('DELETE', `/imports/${id}`, undefined, other)).status,
+    ).toBe(204);
+    expect(t.db.prepare('SELECT count(*) FROM meals').pluck().get()).toBe(1);
+  });
+});
+
+describe('sweepImports', () => {
+  it('deletes drafts and stray files older than a day, keeping fresh ones', async () => {
+    const t = await setup();
+    const upload = async (body: string) =>
+      ((await (await t.upload('csv', body)).json()) as { id: number }).id;
+    const old = await upload(CSV);
+    const fresh = await upload(CSV + '07/04/2024;;Tea;5;\n');
+    const now = Date.now();
+    t.db
+      .prepare('UPDATE imports SET created_at = ? WHERE id = ?')
+      .run(now - DRAFT_AGE_MS - 1, old);
+    const dir = join(t.dataDir, 'imports');
+    const day = new Date(now - DRAFT_AGE_MS - 60_000);
+    await writeFile(join(dir, `${randomUUID()}.part`), 'x');
+    const stale = `${randomUUID()}.part`;
+    await writeFile(join(dir, stale), 'x');
+    await utimes(join(dir, stale), day, day);
+    await writeFile(join(dir, '999.tmp'), 'x');
+    await utimes(join(dir, '999.tmp'), day, day);
+
+    await sweepImports(t.db, t.dataDir, now);
+    expect(t.db.prepare('SELECT id FROM imports').pluck().all()).toEqual([
+      fresh,
+    ]);
+    const left = await t.files();
+    expect(left).toContain(`${fresh}.tmp`);
+    expect(left).not.toContain(`${old}.tmp`);
+    expect(left).not.toContain(stale);
+    expect(left).not.toContain('999.tmp');
+    expect(left).toHaveLength(2);
+  });
+
+  it("removes a deleted user's draft files", async () => {
+    const t = await setup();
+    const other = await t.addUser('b@example.com');
+    await t.upload('csv', CSV, other);
+    expect(await t.files()).toHaveLength(1);
+    const res = await t.call(
+      'DELETE',
+      `/admin/users/${userIdOf(t, 'b@example.com')}`,
+    );
+    expect(res.status).toBe(204);
+    expect(await t.files()).toEqual([]);
   });
 });

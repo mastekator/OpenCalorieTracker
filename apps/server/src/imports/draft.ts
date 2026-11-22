@@ -97,6 +97,35 @@ async function* octRows(data: OctExport): AsyncGenerator<Row> {
   }
 }
 
+/** The CSV rows as dishes, the same for the preview and the commit; the date order is guessed when unset. */
+export async function csvRecords(path: string, draft: Draft, locale: Locale) {
+  const { mapping } = draft;
+  if (!mapping) throw new ApiError(400, 'validation_failed');
+  const { headers } = await csvHead(path, 0);
+  let dateOrder = mapping.dateOrder;
+  let ambiguousDates = false;
+  if (!dateOrder) {
+    const dates = async function* () {
+      for await (const { row } of dataRows(path))
+        yield row[mapping.columns.date] ?? '';
+    };
+    ({ order: dateOrder, ambiguous: ambiguousDates } =
+      await guessDateOrder(dates()));
+  }
+  const ctx = {
+    columns: mapping.columns,
+    headers,
+    dateOrder,
+    decimal: mapping.decimal,
+    locale,
+  };
+  async function* rows(): AsyncGenerator<Row> {
+    for await (const { line, row } of dataRows(path))
+      yield { line, record: toRecord(row, ctx) };
+  }
+  return { rows: rows(), ambiguousDates };
+}
+
 export interface Draft {
   id: number;
   source: 'oct' | 'csv';
@@ -123,32 +152,9 @@ export async function previewDraft(
     );
     return { id: draft.id, ...summary, ambiguousDates: false };
   }
-  const { mapping } = draft;
-  if (!mapping) throw new ApiError(400, 'validation_failed');
-  const { headers } = await csvHead(path, 0);
-  let dateOrder = mapping.dateOrder;
-  let ambiguousDates = false;
-  if (!dateOrder) {
-    const dates = async function* () {
-      for await (const { row } of dataRows(path))
-        yield row[mapping.columns.date] ?? '';
-    };
-    ({ order: dateOrder, ambiguous: ambiguousDates } =
-      await guessDateOrder(dates()));
-  }
-  const ctx = {
-    columns: mapping.columns,
-    headers,
-    dateOrder,
-    decimal: mapping.decimal,
-    locale,
-  };
-  async function* rows(): AsyncGenerator<Row> {
-    for await (const { line, row } of dataRows(path))
-      yield { line, record: toRecord(row, ctx) };
-  }
+  const { rows, ambiguousDates } = await csvRecords(path, draft, locale);
   const summary = await summarize(
-    rows(),
+    rows,
     daysWithEntries,
     includeDaysWithEntries,
   );
