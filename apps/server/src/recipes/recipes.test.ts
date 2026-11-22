@@ -241,6 +241,89 @@ describe('recipes', () => {
     expect((await t.call('POST', '/recipes', bad)).status).toBe(400);
   });
 
+  it('saves, reads and syncs a barcode ingredient (ADR-0040 §2)', async () => {
+    const t = await setup();
+    const [rice, salt] = input().ingredients;
+    const created = await t.call(
+      'POST',
+      '/recipes',
+      input({ ingredients: [{ ...rice!, source: 'barcode' }, salt!] }),
+    );
+    expect(created.status).toBe(201);
+    const sources = (r: unknown) =>
+      (r as Recipe).ingredients.map((i) => i.source);
+    expect(sources(created.body)).toEqual(['barcode', 'manual']);
+    expect(sources((await t.sync(0)).recipes![0])).toEqual([
+      'barcode',
+      'manual',
+    ]);
+  });
+
+  it("remembers an ingredient's product, pack and edible share on POST and PUT (AC-A4, AC-A5)", async () => {
+    const t = await setup();
+    const [rice, salt] = input().ingredients;
+    const code = '4000000000006';
+    const ingredient = {
+      ...rice!,
+      barcode: code,
+      pack: { packG: 900, amount: { mode: 'weight' as const, value: 500 } },
+      edible: { key: 'banana', pct: 65 },
+    };
+    expect(
+      (
+        await t.call(
+          'POST',
+          '/recipes',
+          input({ ingredients: [ingredient, salt!] }),
+        )
+      ).status,
+    ).toBe(201);
+    const look = async () =>
+      (await t.call('GET', `/barcodes/${code}`)).body as {
+        from: string;
+        product: { kcal100: number; packG: number; last: unknown };
+      };
+    expect(await look()).toMatchObject({
+      from: 'mine',
+      product: {
+        kcal100: 350,
+        packG: 900,
+        last: { mode: 'weight', value: 500 },
+      },
+    });
+    expect(t.db.prepare('SELECT key, pct FROM edible_prefs').all()).toEqual([
+      { key: 'banana', pct: 65 },
+    ]);
+    // Stored nowhere in the recipe.
+    expect(
+      Object.keys(
+        t.db.prepare('SELECT * FROM recipe_ingredients').get() as object,
+      ),
+    ).not.toContain('barcode');
+
+    const id = t.db.prepare('SELECT id FROM recipes').pluck().get() as number;
+    const edited = await t.put(
+      id,
+      input({
+        ingredients: [
+          { ...ingredient, pack: { amount: { mode: 'pack', value: 1 } } },
+        ],
+      }),
+    );
+    expect(edited.status).toBe(200);
+    expect((await look()).product).toMatchObject({
+      packG: 900,
+      last: { mode: 'pack', value: 1 },
+    });
+
+    const noCode = input({
+      ingredients: [{ ...rice!, pack: { packG: 900 } }],
+    });
+    expect((await t.call('POST', '/recipes', noCode)).status).toBe(400);
+    const badCode = input({ ingredients: [{ ...rice!, barcode: '123' }] });
+    expect((await t.call('POST', '/recipes', badCode)).status).toBe(400);
+  });
+
   it("hides another user's recipe: 404 on PUT, 204 on DELETE without a change", async () => {
     const t = await setup();
     const other = await t.addUser('b@example.com');
