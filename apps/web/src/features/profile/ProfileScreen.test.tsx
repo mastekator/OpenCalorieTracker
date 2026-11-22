@@ -163,6 +163,53 @@ describe('ProfileScreen, AI configured but not answering (8.14)', () => {
   });
 });
 
+describe('ProfileScreen, AI status refreshing (OCT-448)', () => {
+  it('shows the profile with the stored status, not waiting for the network', async () => {
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
+    // The status request never answers.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => new Promise(() => {})),
+    );
+    const db = await openUserDb(USER.id);
+    await db.put('kv', PROFILE, 'profile');
+    await db.put('kv', 3, 'rev');
+    await db.put(
+      'kv',
+      {
+        recognition: 'ready',
+        interview: 'ready',
+        providerName: 'x',
+        baseUrlHost: null,
+        refineLimit: null,
+      },
+      'aiStatus',
+    );
+    db.close();
+    render(
+      <I18nProvider>
+        <ToastProvider>
+          <SessionContext
+            value={{
+              user: USER,
+              refresh: async () => {},
+              signedIn: async () => {},
+              logout: async () => {},
+            }}
+          >
+            <DataProvider user={USER}>
+              <ProfileScreen />
+            </DataProvider>
+          </SessionContext>
+        </ToastProvider>
+      </I18nProvider>,
+    );
+
+    expect(await screen.findByDisplayValue('180')).toBeTruthy();
+    expect(fetch).toHaveBeenCalledWith('/api/ai/status', expect.anything());
+  });
+});
+
 describe('ProfileScreen, goal applied in the chat (OCT-225)', () => {
   it('brings today’s weighing into the local copy at once', async () => {
     vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);

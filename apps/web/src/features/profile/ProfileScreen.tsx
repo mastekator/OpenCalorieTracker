@@ -50,9 +50,11 @@ export function ProfileScreen() {
   const units = settings?.units ?? user?.units ?? 'metric';
   const ai = useAiStatus();
   // Without a status the assistant is just not offered.
-  const interview = ai.loading
-    ? undefined
-    : (ai.status?.interview ?? 'not_configured');
+  // While it refreshes, the status stored on this device stands.
+  const interview =
+    ai.loading && !ai.status
+      ? undefined
+      : (ai.status?.interview ?? 'not_configured');
   const [chat, setChat] = useState(false);
   const [manualAt, setManualAt] = useState(0);
   const [agentDraft, setAgentDraft] = useState<{
