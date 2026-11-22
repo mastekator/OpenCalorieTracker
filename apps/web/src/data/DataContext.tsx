@@ -172,10 +172,13 @@ function useLocal<T>(
   useEffect(() => {
     if (!db) return;
     let live = true;
-    const load = () =>
-      read(db).then(
+    // Reads overlap on bursts of changes: only the latest may land, or a stale one undoes it.
+    let latest = 0;
+    const load = () => {
+      const n = ++latest;
+      return read(db).then(
         (v) => {
-          if (!live) return;
+          if (!live || n !== latest) return;
           let memo = lastRead.get(db);
           if (!memo) lastRead.set(db, (memo = new Map()));
           memo.set(key, v);
@@ -183,6 +186,7 @@ function useLocal<T>(
         },
         () => {}, // closed by a user switch
       );
+    };
     void load();
     const off = onChange(load);
     return () => {
