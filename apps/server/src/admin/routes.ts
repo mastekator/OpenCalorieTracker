@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises';
+import { readFile, rm } from 'node:fs/promises';
 import { generateText } from 'ai';
 import { Hono } from 'hono';
 import {
@@ -48,6 +48,7 @@ import { passkeyName } from '../auth/passkeys.js';
 import { requireAdmin, type AuthEnv, type User } from '../auth/session.js';
 import { ApiError } from '../http/errors.js';
 import { validate } from '../http/validate.js';
+import { draftPath } from '../imports/draft.js';
 import { deleteUserPhotos } from '../photos/store.js';
 
 const CHECK_INTERVAL_MS = 10_000;
@@ -554,12 +555,24 @@ export function adminRoutes({ config, db, ai, secrets }: AppDeps) {
         if (userId === c.var.user.id) {
           throw new ApiError(409, 'cannot_delete_self');
         }
+        // Draft files are named by id, so the ids are read before the rows cascade away.
+        const drafts = db
+          .prepare(
+            "SELECT id FROM imports WHERE user_id = ? AND status = 'draft'",
+          )
+          .pluck()
+          .all(userId) as number[];
         const { changes } = db
           .prepare('DELETE FROM users WHERE id = ?')
           .run(userId);
         if (!changes) throw new ApiError(404, 'not_found');
         try {
           await deleteUserPhotos(config.dataDir, userId);
+          await Promise.all(
+            drafts.map((d) =>
+              rm(draftPath(config.dataDir, d), { force: true }),
+            ),
+          );
         } catch (err) {
           // The rows are gone already; leftover files are only disk space.
           console.error(`[error] photos of deleted user ${userId}:`, err);
