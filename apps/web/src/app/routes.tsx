@@ -40,6 +40,7 @@ import {
   MealEditRoute,
   MealRecalc,
 } from '../features/meals/MealEditScreen';
+import { ConflictProvider } from '../features/diary/conflicts';
 import { UndoDeleteProvider } from '../features/diary/undoDelete';
 import { CookScreen } from '../features/kitchen/CookMode';
 import {
@@ -430,31 +431,33 @@ function SignedIn() {
       {/* Above the meal flow too: «Retake» opens the camera in the same tap (iOS). */}
       <CaptureProvider>
         <UndoDeleteProvider>
-          <Switch>
-            {/* A modal flow over the whole screen, without the tab bar (OCT-16 §1). */}
-            <Route path={MEAL_NEW_PATH}>
-              <MealNew />
-            </Route>
-            <Route path={MEAL_EDIT_PATH}>
-              <MealEditRoute />
-            </Route>
-            {/* After the two above: «new» is not a clientId. */}
-            <Route path="/meal/:clientId">
-              {({ clientId }) => <MealEditExisting clientId={clientId} />}
-            </Route>
-            <Route path="/meal/:clientId/recalc">
-              {({ clientId }) => <MealRecalc clientId={clientId} />}
-            </Route>
-            {/* Cooking mode: full screen too (OCT-160 4.1). */}
-            <Route path="/kitchen/:id/cook">
-              {({ id }) => <CookScreen id={id} />}
-            </Route>
-            <Route>
-              <AppShell email={user?.email}>
-                <AppScreens />
-              </AppShell>
-            </Route>
-          </Switch>
+          <ConflictProvider>
+            <Switch>
+              {/* A modal flow over the whole screen, without the tab bar (OCT-16 §1). */}
+              <Route path={MEAL_NEW_PATH}>
+                <MealNew />
+              </Route>
+              <Route path={MEAL_EDIT_PATH}>
+                <MealEditRoute />
+              </Route>
+              {/* After the two above: «new» is not a clientId. */}
+              <Route path="/meal/:clientId">
+                {({ clientId }) => <MealEditExisting clientId={clientId} />}
+              </Route>
+              <Route path="/meal/:clientId/recalc">
+                {({ clientId }) => <MealRecalc clientId={clientId} />}
+              </Route>
+              {/* Cooking mode: full screen too (OCT-160 4.1). */}
+              <Route path="/kitchen/:id/cook">
+                {({ id }) => <CookScreen id={id} />}
+              </Route>
+              <Route>
+                <AppShell email={user?.email}>
+                  <AppScreens />
+                </AppShell>
+              </Route>
+            </Switch>
+          </ConflictProvider>
         </UndoDeleteProvider>
       </CaptureProvider>
     </AuthGate>

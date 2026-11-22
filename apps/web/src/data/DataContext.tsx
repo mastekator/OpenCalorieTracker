@@ -30,7 +30,7 @@ import { useOnline } from '../ui/OfflineBar/OfflineBar';
 import { useToast } from '../ui/Toast/Toast';
 import { unitOf } from '../ui/weightUnits';
 import { emitChange, onChange } from './changes';
-import { openUserDb, type Choices, type Db } from './db';
+import { openUserDb, type Choices, type Conflict, type Db } from './db';
 import {
   flush,
   mealError,
@@ -330,6 +330,25 @@ export const useIllustrationChoices = () =>
 /** Badge of one meal: `pending | error | synced`; none outside DataProvider. */
 export const useMealStatus = (clientId: string) =>
   useLocal((db) => mealStatus(db, clientId), [clientId], true);
+
+/** An edit waiting for a version choice: the local meal, when it was edited here, and theirs. */
+export type EditConflict = {
+  mine: Meal;
+  editedAt?: number;
+  conflict: Conflict & { kind: 'edit' };
+};
+
+/** Edits waiting for a version choice, in queue order; deleted-there ones are OCT-399. */
+export const useConflicts = () =>
+  useLocal(async (db) => {
+    const list: EditConflict[] = [];
+    for (const op of await db.getAll('outbox')) {
+      const mine = await db.get('meals', op.clientId);
+      if (op.conflict?.kind === 'edit' && op.kind === 'patchMeal' && mine)
+        list.push({ mine, editedAt: op.body.editedAt, conflict: op.conflict });
+    }
+    return list;
+  }, []);
 
 /** The code the server refused the meal with, null when it did not. */
 export const useMealError = (clientId: string) =>

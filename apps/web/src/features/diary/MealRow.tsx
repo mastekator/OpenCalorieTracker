@@ -1,11 +1,12 @@
 import { mealIllustration, type Meal } from '@oct/shared';
 import { useState } from 'react';
-import { CircleAlert, CloudOff, Moon, Trash2 } from 'lucide-react';
+import { CircleAlert, CloudOff, GitCompare, Moon, Trash2 } from 'lucide-react';
 import { useMealStatus } from '../../data/DataContext';
 import { useT } from '../../i18n';
 import { Badge } from '../../ui/Badge/Badge';
 import { DishIllustration } from '../../ui/DishIllustration/DishIllustration';
 import { useSwipeDelete } from '../../ui/useSwipeDelete';
+import { useConflictSheet } from './conflicts';
 import { isLate, localClock } from './mealTime';
 import './MealRow.css';
 
@@ -26,7 +27,10 @@ export function MealRow({ meal, onOpen, onDelete, highlight }: Props) {
   const [broken, setBroken] = useState(false);
   const { offset, dragging, remove, bind, confirm } = useSwipeDelete(onDelete);
   const status = useMealStatus(meal.clientId);
-  const queued = status === 'pending' || status === 'error';
+  const queued = status !== undefined && status !== 'synced';
+  const conflicts = useConflictSheet();
+  // Waiting for a version choice: the tap opens the choice, not the editor (OCT-157 1.1).
+  const choose = conflicts?.ids.has(meal.clientId);
   const type = t(`meal.type.${meal.mealType}`);
   const time = new Intl.DateTimeFormat(locale, {
     timeStyle: 'short',
@@ -40,7 +44,7 @@ export function MealRow({ meal, onOpen, onDelete, highlight }: Props) {
       <button
         type="button"
         className="list-row list-row--interactive meal-row__open"
-        onClick={onOpen}
+        onClick={choose ? () => conflicts!.open(meal.clientId) : onOpen}
       >
         {meal.photo && !broken ? (
           <img
@@ -70,6 +74,12 @@ export function MealRow({ meal, onOpen, onDelete, highlight }: Props) {
                 <Badge>
                   <CloudOff aria-hidden="true" />
                   {t('meal.status.pending')}
+                </Badge>
+              )}
+              {status === 'conflict' && (
+                <Badge tone="warn">
+                  <GitCompare aria-hidden="true" />
+                  {t('meal.status.conflict')}
                 </Badge>
               )}
               {status === 'error' && (
