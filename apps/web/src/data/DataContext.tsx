@@ -166,8 +166,8 @@ function useLocal<T>(
 ) {
   const db = useContext(DataContext);
   if (!db && !optional) throw new Error('data hook outside DataProvider');
-  const [value, setValue] = useState(
-    () => (db && lastRead.get(db)?.get(key)) as T | undefined,
+  const [value, setValue] = useState(() =>
+    db ? (lastRead.get(db)?.get(key) as T | undefined) : undefined,
   );
   useEffect(() => {
     if (!db) return;
