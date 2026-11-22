@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { orNull } from '../recognition.js';
 import { REQUIRED_FIELDS, type NormResult } from './calculate.js';
 import {
   activitySchema,
@@ -7,8 +8,8 @@ import {
   type Profile,
 } from './schemas.js';
 
-// Models often send null for "not mentioned"; null and absent mean the same here.
-const opt = <T extends z.ZodType>(schema: T) => schema.nullish();
+// Every field required, null for "not mentioned": Gemini rejects schemas with many optional fields (OCT-437).
+const opt = orNull;
 
 const measure = <U extends string>(units: readonly [U, ...U[]]) =>
   z.object({ value: z.number(), unit: z.enum(units) }).strict();

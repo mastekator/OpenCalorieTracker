@@ -94,7 +94,7 @@ describe('refineMeal', () => {
       expect(logs()).toEqual([
         expect.stringMatching(
           new RegExp(
-            `^ai\\.refine provider=mock model=vision-1 prompt=3 ms=\\d+ mode=${mode} photo=${photo ? 1 : 0} dishes=1 questions=0 recipes=0 result=ok$`,
+            `^ai\\.refine provider=mock model=vision-1 prompt=4 ms=\\d+ mode=${mode} photo=${photo ? 1 : 0} dishes=1 questions=0 recipes=0 result=ok$`,
           ),
         ),
       ]);

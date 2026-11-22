@@ -1,6 +1,6 @@
 import { generateText, Output, type UserContent } from 'ai';
 import {
-  recognitionSchema,
+  refineModelSchema,
   type AiQuestion,
   type RecognizedDish,
   type RefineDishIn,
@@ -23,7 +23,7 @@ import {
 import { modelUnit, sanitizeDish, UNIT_RULE } from './recognize.js';
 
 /** Bump on every prompt change; it is logged with each call. */
-export const REFINE_PROMPT_VERSION = 3;
+export const REFINE_PROMPT_VERSION = 4;
 export const REFINE_TIMEOUT_MS = 60_000;
 
 export interface RefineInput {
@@ -55,7 +55,7 @@ export function refinePrompt(
   const task =
     mode === 'again'
       ? `Recognize the meal again from scratch. The note, if any, is a hint about what the food may be.
-The user already added the dishes listed in "user_dishes": do not list them again.`
+The user already added the dishes listed in "user_dishes": do not list them again. Set "ref" to null.`
       : `Return the full corrected list of dishes after applying the note to "current_dishes".
 - For each returned dish set "ref" to the id of the current dish it keeps or changes, or null for a new dish. Each id at most once.
 - Do not change dishes or fields listed in "fixed" unless the note is explicitly about them.
@@ -125,7 +125,7 @@ export async function refineMeal(
         model,
         system: refinePrompt(mode, !!jpeg, locale, recipes.length > 0),
         messages: [{ role: 'user', content: userContent(input) }],
-        output: Output.object({ schema: recognitionSchema }),
+        output: Output.object({ schema: refineModelSchema }),
         maxRetries: 0,
         reasoning: quickReasoning(model),
         abortSignal,

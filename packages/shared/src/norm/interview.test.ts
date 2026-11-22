@@ -14,7 +14,16 @@ describe('interviewTurnSchema', () => {
       },
       reply: 'What is your activity level?',
     };
-    expect(interviewTurnSchema.parse(turn)).toEqual(turn);
+    // A field the model leaves out parses as null (OCT-437).
+    expect(interviewTurnSchema.parse(turn)).toEqual({
+      ...turn,
+      extracted: {
+        ...turn.extracted,
+        birthDate: null,
+        activity: null,
+        goal: null,
+      },
+    });
   });
 
   it.each([
