@@ -350,3 +350,23 @@ it("sends the user's recipe names last logged first, never another user's (ADR-0
     ).slice(1, -1),
   );
 });
+
+it('asks «How much is edible?» about a read weight, but not about a dish the user set (ADR-0039 §3)', async () => {
+  const fruit = { ...egg, name: 'Mamey', grossG: 400, confidence: 0.3 };
+  const model = mockModel(
+    { dishes: [{ ...fruit, ref: 'd1' }] },
+    { dishes: [{ ...fruit, ref: 'd1' }] },
+  );
+  const t = await setup(model);
+  const asked = (await (await t.refine()).json()) as {
+    dishes: { grams: number }[];
+    questions: { dish: number; guess: number }[];
+  };
+  expect(asked.dishes[0]!.grams).toBe(200);
+  expect(asked.questions).toMatchObject([{ dish: 0, guess: 2 }]);
+  const set = (await (
+    await t.refine({ dishes: [{ ...dishIn, fixed: ['grams'] }] })
+  ).json()) as typeof asked;
+  expect(set.dishes[0]!.grams).toBe(200);
+  expect(set.questions).toEqual([]);
+});

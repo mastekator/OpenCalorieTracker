@@ -433,11 +433,29 @@ exports[`model response schemas (OCT-437) > recognize: no optional fields, shall
           "confidence": {
             "type": "number",
           },
+          "ediblePct": {
+            "type": [
+              "number",
+              "null",
+            ],
+          },
+          "edibleRef": {
+            "type": [
+              "string",
+              "null",
+            ],
+          },
           "fatG": {
             "type": "number",
           },
           "grams": {
             "type": "number",
+          },
+          "grossG": {
+            "type": [
+              "number",
+              "null",
+            ],
           },
           "kcal": {
             "type": "number",
@@ -486,6 +504,9 @@ exports[`model response schemas (OCT-437) > recognize: no optional fields, shall
           "carbsG",
           "confidence",
           "unit",
+          "grossG",
+          "edibleRef",
+          "ediblePct",
           "barcode",
           "label",
           "printedBarcode",
@@ -589,11 +610,29 @@ exports[`model response schemas (OCT-437) > refine: no optional fields, shallow 
           "confidence": {
             "type": "number",
           },
+          "ediblePct": {
+            "type": [
+              "number",
+              "null",
+            ],
+          },
+          "edibleRef": {
+            "type": [
+              "string",
+              "null",
+            ],
+          },
           "fatG": {
             "type": "number",
           },
           "grams": {
             "type": "number",
+          },
+          "grossG": {
+            "type": [
+              "number",
+              "null",
+            ],
           },
           "kcal": {
             "type": "number",
@@ -636,6 +675,9 @@ exports[`model response schemas (OCT-437) > refine: no optional fields, shallow 
           "carbsG",
           "confidence",
           "unit",
+          "grossG",
+          "edibleRef",
+          "ediblePct",
           "ref",
         ],
         "type": "object",

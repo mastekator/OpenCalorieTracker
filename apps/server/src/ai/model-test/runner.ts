@@ -5,6 +5,7 @@ import { ApiError } from '../../http/errors.js';
 import { appVersion } from '../../version.js';
 import type { AiModel } from '../model.js';
 import { listModels } from '../models.js';
+import { applyEdible } from '../edible.js';
 import { recognizeMeal, RECOGNIZE_PROMPT_VERSION } from '../recognize.js';
 import type { AiSettings } from '../settings.js';
 import { aiResultOf, redactSecrets } from '../status.js';
@@ -57,12 +58,11 @@ export async function testPhotos(
     const started = Date.now();
     let fatal: AiTestStopReason | undefined;
     try {
-      const got = await recognizeMeal(
-        model,
-        jpeg,
+      // Scored on edible grams like the app shows them; never the user's own shares (ADR-0039 §6).
+      const got = applyEdible(
+        await recognizeMeal(model, jpeg, 'en', opts.signal, opts.onUsage),
+        () => new Map(),
         'en',
-        opts.signal,
-        opts.onUsage,
       );
       photos[i] = {
         ...photo,

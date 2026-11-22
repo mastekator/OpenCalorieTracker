@@ -23,6 +23,8 @@ import { photoPath } from '../photos/store.js';
 import { readRecipe, recipeNames } from '../recipes/read.js';
 import { lighterRecipe } from './lighter.js';
 import { parseRecipe } from './parse.js';
+import { readEdiblePrefs } from '../edible/prefs.js';
+import { applyEdible } from './edible.js';
 import { readLabel, recognizeMeal } from './recognize.js';
 import { refineMeal, type Refined } from './refine.js';
 import { baseUrlHost, refineLimit } from './settings.js';
@@ -133,7 +135,14 @@ export function aiRoutes({ config, db, ai, photoBarcodes, fetch }: RouteDeps) {
             );
             return { ...recognized, dishes } satisfies PackageRecognition;
           });
-      return c.json(await result);
+      // The user's shares go on after the cache, so a share saved meanwhile counts (ADR-0039 §4).
+      return c.json(
+        applyEdible(
+          await result,
+          (keys) => readEdiblePrefs(db, user.id, keys),
+          user.locale,
+        ),
+      );
     })
     .post(
       '/ai/refine',
@@ -234,7 +243,14 @@ export function aiRoutes({ config, db, ai, photoBarcodes, fetch }: RouteDeps) {
             },
           ),
         );
-        const refined = await result;
+        const byId = new Map(dishes.map((d) => [d.id, d]));
+        const refined = applyEdible(
+          await result,
+          (keys) => readEdiblePrefs(db, user.id, keys),
+          user.locale,
+          // A dish the user set is never asked about again (AC-10.8).
+          (d) => !!byId.get(d.ref ?? '')?.fixed.length,
+        );
         return c.json({
           ...refined,
           left:

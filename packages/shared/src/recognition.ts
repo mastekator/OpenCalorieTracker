@@ -1,6 +1,16 @@
 import { z } from 'zod';
 import { barcodeLookupSchema } from './barcodes/barcodes.js';
 
+/** Gross weight → edible share the server applied, and where the share came from (ADR-0039 §3). */
+export const edibleSchema = z.object({
+  grossG: z.number(),
+  pct: z.number(),
+  source: z.enum(['user', 'ref', 'ai']),
+  /** Reference key, or `nameKey(name)` outside the reference; the key to remember a chosen share by. */
+  key: z.string(),
+});
+export type Edible = z.infer<typeof edibleSchema>;
+
 /**
  * One dish as the AI returns it (ADR-0007): numbers are for the whole portion on the photo.
  * Numbers are not range-checked here so one odd dish cannot fail the whole recognition;
@@ -18,6 +28,12 @@ export const recognizedDishSchema = z.object({
   ref: z.string().nullable().optional(),
   /** 'ml' for drinks (ADR-0038 §3); loose so one odd value cannot fail the answer, the server narrows it. */
   unit: z.string().nullable().optional(),
+  /** From the model (ADR-0039 §2): a read gross weight, a reference key, its own edible share. Loose; the server narrows them. */
+  grossG: z.number().nullable().optional(),
+  edibleRef: z.string().nullable().optional(),
+  ediblePct: z.number().nullable().optional(),
+  /** From the server: the gross weight and the edible share `grams` was computed from. */
+  edible: edibleSchema.optional(),
 });
 export type RecognizedDish = z.infer<typeof recognizedDishSchema>;
 
@@ -43,6 +59,8 @@ export const aiQuestionSchema = z.object({
       recipe: z.string().nullable().optional(),
       /** From the server: the matched recipe; the option's numbers are then unused. */
       recipeId: z.number().optional(),
+      /** From the server: the share this option of «How much is edible?» applies. */
+      edible: edibleSchema.optional(),
     }),
   ),
 });
@@ -71,6 +89,11 @@ const packageHints = {
 export const orNull = <T extends z.ZodType>(schema: T) =>
   z.preprocess((v) => v ?? null, schema.nullable());
 
+const looseNumber = z.preprocess(
+  (v) => (typeof v === 'number' && Number.isFinite(v) ? v : null),
+  z.number().nullable(),
+);
+
 const modelDish = {
   name: z.string().min(1).max(80),
   grams: z.number(),
@@ -88,6 +111,13 @@ const modelDish = {
         : null,
     z.enum(['g', 'ml']).nullable(),
   ),
+  // ADR-0039 §2: garbage becomes null rather than failing the whole answer.
+  grossG: looseNumber,
+  edibleRef: z.preprocess(
+    (v) => (typeof v === 'string' && v.trim() ? v.trim() : null),
+    z.string().nullable(),
+  ),
+  ediblePct: looseNumber,
 };
 
 const modelQuestionSchema = z.object({

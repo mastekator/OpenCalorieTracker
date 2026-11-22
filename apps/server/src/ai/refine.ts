@@ -12,6 +12,7 @@ import {
   noVisionError,
   quickReasoning,
 } from './common.js';
+import { EDIBLE_PROMPT, edibleHints } from './edible.js';
 import type { AiModel } from './model.js';
 import {
   QUESTIONS_PROMPT,
@@ -23,7 +24,7 @@ import {
 import { modelUnit, sanitizeDish, UNIT_RULE } from './recognize.js';
 
 /** Bump on every prompt change; it is logged with each call. */
-export const REFINE_PROMPT_VERSION = 4;
+export const REFINE_PROMPT_VERSION = 5;
 export const REFINE_TIMEOUT_MS = 60_000;
 
 export interface RefineInput {
@@ -65,6 +66,7 @@ The user already added the dishes listed in "user_dishes": do not list them agai
 ${task}
 For each dish give the weight of the edible part in grams and the kcal, protein, fat and carbohydrates in grams for that weight (the whole portion, not per 100 g).
 ${UNIT_RULE}
+${EDIBLE_PROMPT}
 Write dish names in ${languageName(locale)}.
 Confidence is 0..1:
 - 0.95 or higher only for countable, unambiguous single items or exact amounts the user gave;
@@ -132,7 +134,7 @@ export async function refineMeal(
       });
       const used = new Set<string>();
       const dishes = output.dishes.map((d) => {
-        const dish = sanitizeDish(d);
+        const dish = { ...sanitizeDish(d), ...edibleHints(d) };
         if (mode === 'again') return dish;
         const ref = d.ref && byId.has(d.ref) && !used.has(d.ref) ? d.ref : null;
         if (ref) used.add(ref);
