@@ -369,6 +369,11 @@ export const en = {
           '{count} entries haven’t been sent — if you sign out offline, they’ll be lost.',
       },
       queue_ok: 'Sign out and delete entries',
+      conflicts: {
+        one: '{count} entry has no version chosen. If you sign out, the version from the other device will be kept.',
+        other:
+          '{count} entries have no version chosen. If you sign out, the version from the other device will be kept.',
+      },
     },
     sending: 'Sending entries…',
   },
@@ -954,6 +959,18 @@ export const en = {
       },
       progress: '{i} of {n}',
       close_a11y: 'Close, choose later',
+      deleted_at: 'deleted at {time}',
+      deleted: {
+        question:
+          'This entry was deleted on another device. Delete it or keep your version?',
+        note: 'Entry deleted',
+      },
+      delete: 'Delete entry',
+      restore: 'Restore my version',
+      pending: {
+        one: '{count} entry needs a version choice',
+        other: '{count} entries need a version choice',
+      },
     },
   },
   session: {

@@ -43,6 +43,11 @@
   color: var(--color-on-danger);
 }
 
+.button--danger-tonal {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
 .button--plain,
 .button--danger-plain {
   min-height: var(--control-height);

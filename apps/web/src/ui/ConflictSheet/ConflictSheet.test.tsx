@@ -1,5 +1,5 @@
 import type { Meal } from '@oct/shared';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { I18nProvider, LOCALE_STORAGE_KEY } from '../../i18n';
 import { ConflictSheet } from './ConflictSheet';
@@ -44,5 +44,40 @@ describe('ConflictSheet', () => {
     expect(screen.getByText('none')).toBeTruthy();
     fireEvent.error(img);
     expect(screen.getByLabelText('yes').tagName).toBe('SPAN');
+  });
+
+  it('deleted there: mine whole, restore keeps this side, delete the other', async () => {
+    const onKeep = vi.fn();
+    render(
+      <I18nProvider>
+        <ConflictSheet
+          mine={meal({
+            kcal: 320,
+            items: [
+              {
+                name: 'Buckwheat',
+                grams: 250,
+                unit: 'g',
+                kcal: 320,
+              } as Meal['items'][number],
+            ],
+          })}
+          deletedAt={0}
+          units="metric"
+          onKeep={onKeep}
+          onClose={() => {}}
+        />
+      </I18nProvider>,
+    );
+    await screen.findByText(/deleted on another device/);
+    screen.getByText('Buckwheat');
+    screen.getByText('Meal');
+    screen.getByText('Date and time');
+    // No photo, no photo row.
+    expect(screen.queryByText('Photo')).toBeNull();
+    screen.getByText('Entry deleted');
+    fireEvent.click(screen.getByRole('button', { name: 'Restore my version' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Delete entry' }));
+    expect(onKeep.mock.calls).toEqual([['this'], ['other']]);
   });
 });

@@ -22,7 +22,14 @@ const meta = {
   argTypes: {
     variant: {
       control: 'inline-radio',
-      options: ['primary', 'tonal', 'plain', 'danger', 'danger-plain'],
+      options: [
+        'primary',
+        'tonal',
+        'plain',
+        'danger',
+        'danger-tonal',
+        'danger-plain',
+      ],
     },
   },
 } satisfies Meta<typeof Button>;
@@ -33,6 +40,11 @@ export const Primary: Story = {};
 export const Tonal: Story = { args: { variant: 'tonal' } };
 export const Plain: Story = { args: { variant: 'plain' } };
 export const Danger: Story = { args: { variant: 'danger' } };
+export const DangerTonal: Story = { args: { variant: 'danger-tonal' } };
+export const DangerTonalDark: Story = {
+  args: { variant: 'danger-tonal' },
+  globals: { theme: 'dark' },
+};
 export const DangerPlain: Story = { args: { variant: 'danger-plain' } };
 export const Small: Story = { args: { variant: 'tonal', small: true } };
 export const Disabled: Story = { args: { disabled: true } };

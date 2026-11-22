@@ -22,7 +22,9 @@ type Props = {
   mine: Meal;
   editedAt?: number;
   /** The server's version from the 409. */
-  theirs: Meal;
+  theirs?: Meal;
+  /** Deleted there instead (3.1): `this` restores mine, `other` deletes it. */
+  deletedAt?: number;
   /** Theirs changed while the screen was open, or a choice came back `stale` (2.4). */
   updated?: boolean;
   /** «1 of 3» when several meals wait. */
@@ -41,6 +43,7 @@ export function ConflictSheet({
   mine,
   editedAt,
   theirs,
+  deletedAt,
   updated,
   progress,
   units,
@@ -50,7 +53,15 @@ export function ConflictSheet({
 }: Props) {
   const { t, num, locale } = useT();
   const w = useWeight(units);
-  const { fields, dishes } = diffMeals(mine, theirs);
+  // Deleted there: every field of mine, the photo only when it has one (3.1).
+  const { fields, dishes } = theirs
+    ? diffMeals(mine, theirs)
+    : {
+        fields: (['mealType', 'eatenAt', 'photo'] as const).filter(
+          (f) => f !== 'photo' || mine.photo,
+        ),
+        dishes: [],
+      };
   const when = new Intl.DateTimeFormat(locale, {
     day: 'numeric',
     month: 'short',
@@ -100,7 +111,7 @@ export function ConflictSheet({
       <VersionCard
         side={side}
         desktop={desktop}
-        editedAt={side === 'this' ? editedAt : theirs.editedAt}
+        editedAt={side === 'this' ? editedAt : m.editedAt}
         kcal={m.kcal}
         updated={side === 'other' && updated}
         rows={[
@@ -127,7 +138,13 @@ export function ConflictSheet({
     >
       <div className="conflict-sheet">
         <p className="conflict-sheet__question">
-          <span>{t('sync.conflict.question')}</span>
+          <span>
+            {t(
+              theirs
+                ? 'sync.conflict.question'
+                : 'sync.conflict.deleted.question',
+            )}
+          </span>
           {progress && progress.n > 1 && (
             <span className="conflict-sheet__progress">
               {t('sync.conflict.progress', progress)}
@@ -144,8 +161,41 @@ export function ConflictSheet({
           </Banner>
         )}
         <div className="conflict-sheet__cards">
-          {card('this', mine)}
-          {card('other', theirs)}
+          {theirs ? (
+            <>
+              {card('this', mine)}
+              {card('other', theirs)}
+            </>
+          ) : (
+            // Deleted there: mine whole, nothing to compare it with (3.1).
+            <>
+              <VersionCard
+                side="this"
+                restore
+                desktop={desktop}
+                editedAt={editedAt}
+                kcal={mine.kcal}
+                rows={[
+                  ...fields.map((f) => field(f, mine)),
+                  ...mine.items.map((d, i) => ({
+                    key: `d${i}`,
+                    label: d.name,
+                    value: amount(d),
+                  })),
+                ]}
+                unchanged={[]}
+                onKeep={() => onKeep('this')}
+              />
+              <VersionCard
+                side="other"
+                deletedAt={deletedAt}
+                kcal={0}
+                rows={[]}
+                unchanged={[]}
+                onKeep={() => onKeep('other')}
+              />
+            </>
+          )}
         </div>
       </div>
     </Sheet>

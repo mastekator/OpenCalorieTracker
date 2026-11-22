@@ -112,3 +112,41 @@ export const UpdatedDesktop: Story = {
   args: { updated: true, desktop: true },
   globals: desktop,
 };
+
+/** 3.1: deleted on the other device; mine whole, «Restore» and «Delete» of one size. */
+const deleted = {
+  theirs: undefined,
+  deletedAt: Date.UTC(2026, 10, 12, 20, 10),
+};
+export const Deleted: Story = { args: deleted };
+export const DeletedDark: Story = {
+  args: deleted,
+  globals: { theme: 'dark' },
+};
+export const DeletedDesktop: Story = {
+  args: { ...deleted, desktop: true },
+  globals: desktop,
+};
+export const DeletedDesktopDark: Story = {
+  args: { ...deleted, desktop: true },
+  globals: { ...desktop, theme: 'dark' },
+};
+/** A long entry: the dialog stops at its max height and scrolls inside. */
+export const LongDesktop: Story = {
+  args: {
+    desktop: true,
+    mine: meal({
+      items: Array.from({ length: 14 }, (_, i) =>
+        dish(`Dish ${i + 1}`, 100, 100),
+      ),
+      kcal: 1400,
+    }),
+    theirs: meal({
+      items: Array.from({ length: 14 }, (_, i) =>
+        dish(`Dish ${i + 1}`, 120, 120),
+      ),
+      kcal: 1680,
+    }),
+  },
+  globals: desktop,
+};

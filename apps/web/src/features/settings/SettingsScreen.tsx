@@ -36,6 +36,7 @@ import {
 import { applyTheme } from '../../app/theme';
 import { useAiStatus, useDb, useSettings } from '../../data/DataContext';
 import {
+  conflictCount,
   expiringPhotos,
   flush,
   patchSettings,
@@ -121,7 +122,10 @@ export function SettingsScreen({ user, onLogout, platform: given }: Props) {
     count: number;
   } | null>(null);
   // 'sending': the queue goes out first; a number: the confirm with that many unsent (4.6, 4.7).
-  const [signOut, setSignOut] = useState<'sending' | number | null>(null);
+  // Unsent ops, and meals waiting for a version choice: those are not sent, so not counted as unsent.
+  const [signOut, setSignOut] = useState<
+    'sending' | { queued: number; conflicts: number } | null
+  >(null);
   const theme = settings?.theme ?? user.theme;
   const units = settings?.units ?? user.units;
   const online = useOnline();
@@ -164,11 +168,26 @@ export function SettingsScreen({ user, onLogout, platform: given }: Props) {
 
   async function startSignOut() {
     if (signOut !== null) return;
-    if (navigator.onLine && (await pendingCount(db)) > 0) {
+    const unsent = async () =>
+      (await pendingCount(db)) - (await conflictCount(db));
+    if (navigator.onLine && (await unsent()) > 0) {
       setSignOut('sending');
       await flush(db).catch(() => {});
     }
-    setSignOut(await pendingCount(db));
+    setSignOut({ queued: await unsent(), conflicts: await conflictCount(db) });
+  }
+
+  const confirm = typeof signOut === 'object' ? signOut : null;
+  const queued = confirm?.queued ?? 0;
+  // OCT-157 3.3: the version line alone (4.6), or second after the unsent one (4.7).
+  function signOutBody() {
+    const n = confirm?.conflicts ?? 0;
+    const versions = n > 0 ? t('logout.confirm.conflicts', { count: n }) : '';
+    if (queued > 0)
+      return [t('logout.confirm.queue', { count: queued }), versions]
+        .filter(Boolean)
+        .join(' ');
+    return versions || t('logout.confirm.body');
   }
 
   return (
@@ -412,19 +431,13 @@ export function SettingsScreen({ user, onLogout, platform: given }: Props) {
           </List>
         </div>
         <ConfirmDialog
-          open={typeof signOut === 'number'}
+          open={confirm !== null}
           title={t('logout.confirm.title')}
-          body={
-            typeof signOut === 'number' && signOut > 0
-              ? t('logout.confirm.queue', { count: signOut })
-              : t('logout.confirm.body')
-          }
+          body={signOutBody()}
           confirmLabel={
-            typeof signOut === 'number' && signOut > 0
-              ? t('logout.confirm.queue_ok')
-              : t('logout.confirm.ok')
+            queued > 0 ? t('logout.confirm.queue_ok') : t('logout.confirm.ok')
           }
-          stack={typeof signOut === 'number' && signOut > 0}
+          stack={queued > 0}
           onConfirm={() =>
             void onLogout().catch((err) => {
               setSignOut(null);

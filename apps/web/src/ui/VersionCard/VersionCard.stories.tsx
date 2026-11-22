@@ -49,3 +49,27 @@ export const OtherUpdatedDark: Story = {
 };
 /** Only the total differs: no rows, everything folded. */
 export const AllUnchanged: Story = { args: { rows: [] } };
+/** Deleted on the other device (3.1): no rows, no total. */
+export const OtherDeleted: Story = {
+  args: {
+    side: 'other',
+    deletedAt: Date.UTC(2026, 10, 12, 20, 10),
+    rows: [],
+    unchanged: [],
+  },
+};
+export const OtherDeletedDark: Story = {
+  args: OtherDeleted.args,
+  globals: { theme: 'dark' },
+};
+/** This side against a delete: the whole version, «Restore my version». */
+export const ThisRestore: Story = {
+  args: {
+    restore: true,
+    rows: [
+      { key: 'd0', label: 'Chicken soup', value: '400 g · 320 kcal' },
+      { key: 'd1', label: 'Rye bread', value: '60 g · 150 kcal' },
+    ],
+    unchanged: [],
+  },
+};
