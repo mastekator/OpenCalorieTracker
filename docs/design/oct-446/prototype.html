@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OCT-446 · Weight chart: x axis for a short history, period switch</title>
+<link rel="stylesheet" href="../oct-13/tokens.css">
+<script src="../preview-bar.js"></script>
+<style>
+/* Weight tokens already live in the app tokens.css (OCT-189); copied here for the prototype.
+   One new token: --weight-x-tick (goes to tokens.css). */
+:root {
+  --color-weight: #6B4FA0;
+  --weight-point-r: 3px;
+  --weight-point-opacity: 0.45;
+  --weight-trend-width: 2.5px;
+  --weight-axis-width: 40px;
+  --weight-x-tick: 4px;            /* OCT-446: tick under the plot at each date label */
+  --color-segment-selected: var(--color-surface);
+  --shadow-segment: 0 1px 3px rgb(24 33 29 / 0.12);
+}
+:root[data-theme="dark"] { --color-weight: #C2A8EE; --shadow-segment: 0 1px 3px rgb(0 0 0 / 0.5); --color-segment-selected: #353C39; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --color-weight: #C2A8EE; --shadow-segment: 0 1px 3px rgb(0 0 0 / 0.5); --color-segment-selected: #353C39; }
+}
+
+body { margin: 0; padding: var(--space-10) var(--space-8); background: var(--color-bg); color: var(--color-text);
+  font: var(--text-body-size)/var(--text-body-lh) var(--font-sans); }
+.doc-h1 { margin: 0 0 var(--space-2); font-size: var(--text-title-size); line-height: var(--text-title-lh); }
+.doc-h2 { margin: var(--space-12) 0 var(--space-2); font-size: var(--text-headline-size); }
+.doc-lead { max-width: 80ch; margin: 0 0 var(--space-4); color: var(--color-text-secondary); font-size: var(--text-subhead-size); line-height: var(--text-subhead-lh); }
+.doc-list { max-width: 90ch; padding-left: var(--space-6); font-size: var(--text-subhead-size); line-height: var(--text-subhead-lh); }
+.doc-list li + li { margin-top: var(--space-2); }
+.doc-list code, .copy code { font-size: .92em; }
+.frames { display: flex; flex-wrap: wrap; gap: var(--space-8); align-items: flex-start; }
+figure { margin: 0; }
+figcaption { width: 375px; margin-top: var(--space-3); font-size: var(--text-footnote-size); line-height: var(--text-footnote-lh); color: var(--color-text-secondary); }
+figcaption b { color: var(--color-text); }
+.wide + figcaption { width: 760px; }
+.tag { display: inline-block; margin-bottom: var(--space-2); padding: 2px var(--space-2); border-radius: var(--radius-sm); background: var(--color-surface-2);
+  font-size: var(--text-caption-size); font-weight: 600; color: var(--color-text-secondary); }
+.tag--new { background: var(--color-accent-soft); color: var(--color-accent); }
+.lang-bar { display: inline-flex; margin-left: var(--space-4); }
+.copy { border-collapse: collapse; font-size: var(--text-footnote-size); line-height: var(--text-footnote-lh); max-width: 1100px; }
+.copy th, .copy td { padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--color-separator); text-align: left; vertical-align: top; }
+.copy th { color: var(--color-text-secondary); font-weight: 600; }
+.copy td:last-child { color: var(--color-text-secondary); }
+
+/* ---- screen frame: the weight card at 375 pt ---- */
+.screen { width: 375px; box-sizing: border-box; padding: var(--space-4) var(--screen-gutter); background: var(--color-bg);
+  border-radius: var(--radius-xl); outline: 1px solid var(--color-separator); }
+.screen.wide { width: 760px; padding: var(--space-6); }
+.card { display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-4); border-radius: var(--radius-lg); background: var(--color-surface); }
+.now { display: flex; flex-direction: column; gap: var(--space-1); }
+.big { margin: 0; display: flex; align-items: baseline; gap: var(--space-2); }
+.big b { font-size: var(--text-large-title-size); line-height: var(--text-large-title-lh); font-weight: 700; font-variant-numeric: tabular-nums; }
+.big span, .muted { color: var(--color-text-secondary); font-size: var(--text-subhead-size); line-height: var(--text-subhead-lh); }
+.muted { margin: 0; }
+
+/* Segment — the app component as is (equal flex 1 1 0 options) */
+.segment { display: flex; gap: var(--space-1); min-height: var(--control-height); padding: var(--space-1); box-sizing: border-box;
+  border-radius: var(--radius-md); background: var(--color-surface-2); }
+.segment button { flex: 1 1 0; min-width: 0; padding: var(--space-1) var(--space-2); border: none; border-radius: var(--radius-sm);
+  background: transparent; color: var(--color-text-secondary); font: var(--text-caption-weight) var(--text-subhead-size)/var(--text-subhead-lh) var(--font-sans);
+  white-space: nowrap; cursor: pointer; }
+.segment button[aria-checked="true"] { background: var(--color-segment-selected); font-weight: var(--text-headline-weight); color: var(--color-text); box-shadow: var(--shadow-segment); }
+.segment .over { outline: 2px dashed var(--color-danger, #C0392B); outline-offset: -2px; }
+
+/* Chart */
+.wchart { display: grid; grid-template-columns: minmax(0, 1fr) var(--weight-axis-width); row-gap: var(--space-2);
+  color: var(--color-text-secondary); font-size: var(--text-caption-size); font-weight: var(--text-caption-weight); line-height: var(--text-caption-lh); font-variant-numeric: tabular-nums; }
+.area { position: relative; height: var(--chart-height); }
+.wide .area { height: var(--chart-height-wide); }
+.area svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.area svg * { vector-effect: non-scaling-stroke; fill: none; }
+.grid { stroke: var(--color-separator); stroke-width: 1; }
+.dots { stroke: var(--color-weight); stroke-width: calc(var(--weight-point-r) * 2); stroke-linecap: round; opacity: var(--weight-point-opacity); }
+.trend { stroke: var(--color-weight); stroke-width: var(--weight-trend-width); stroke-linecap: round; stroke-linejoin: round; }
+.last { position: absolute; width: calc(var(--weight-point-r) * 2 + 4px); height: calc(var(--weight-point-r) * 2 + 4px); translate: -50% -50%;
+  border: 2px solid var(--color-surface); border-radius: var(--radius-full); background: var(--color-weight); box-sizing: content-box; }
+.yaxis, .xaxis { position: relative; margin: 0; padding: 0; list-style: none; }
+.yaxis li { position: absolute; left: var(--space-2); translate: 0 -50%; }
+.xaxis { min-height: 1lh; }
+.xaxis li { position: absolute; top: 0; white-space: nowrap; translate: -50% 0; }
+.xaxis li.l { translate: 0 0; }
+.xaxis li.r { translate: -100% 0; }
+.xaxis li.m { translate: 0 0; padding-left: var(--space-1); }
+/* the tick: a short mark hanging from the plot bottom, exactly at the label's date */
+.ticks { position: absolute; left: 0; right: 0; bottom: 0; height: 0; }
+.ticks i { position: absolute; top: 0; width: 1px; height: var(--weight-x-tick); translate: -50% 0; background: var(--color-text-disabled); }
+.legend { margin: 0; display: flex; gap: var(--space-4); font-size: var(--text-footnote-size); color: var(--color-text-secondary); }
+.legend i { display: inline-block; width: 8px; height: 8px; margin-right: var(--space-1); border-radius: var(--radius-full); background: var(--color-weight); opacity: var(--weight-point-opacity); }
+.legend i.t { width: 14px; height: 3px; opacity: 1; vertical-align: middle; }
+
+.strip { width: 335px; }
+.strip .area { height: 40px; }
+.strip-row { display: grid; grid-template-columns: 300px 335px; gap: var(--space-6); align-items: center; padding: var(--space-3) 0; border-bottom: 1px solid var(--color-separator);
+  font-size: var(--text-footnote-size); line-height: var(--text-footnote-lh); }
+.strip-row b { display: block; color: var(--color-text); }
+.strip-row span { color: var(--color-text-secondary); }
+.seg-row { display: flex; gap: var(--space-8); flex-wrap: wrap; }
+.seg-box { width: 303px; }
+.seg-box .tag { display: block; width: max-content; }
+.seg-box + .seg-box { }
+</style>
+</head>
+<body>
+<main id="app"></main>
+<script>
+const KEY = 'oct-preview-lang';
+let lang = new URLSearchParams(location.search).get('lang');
+try { lang = lang || localStorage.getItem(KEY); } catch (e) {}
+lang = lang === 'en' ? 'en' : 'ru';
+const L = (ru, en) => lang === 'en' ? en : ru;
+
+// ---------- dates ----------
+const TODAY = '2026-11-22';
+const D = s => Date.UTC(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10));
+const days = (a, b) => Math.round((D(b) - D(a)) / 864e5);
+const add = (s, n) => new Date(D(s) + n * 864e5).toISOString().slice(0, 10);
+const loc = () => lang === 'en' ? 'en-US' : 'ru-RU';
+const fmt = (s, o) => new Intl.DateTimeFormat(loc(), { timeZone: 'UTC', ...o }).format(new Date(D(s)));
+const dayMonth = s => fmt(s, { day: 'numeric', month: 'short' }) + (s.slice(0, 4) !== TODAY.slice(0, 4) ? (lang === 'en' ? ', ' : ' ') + s.slice(0, 4) : '');
+const num = (v, d = 1) => new Intl.NumberFormat(loc(), { minimumFractionDigits: d, maximumFractionDigits: d }).format(v);
+const signed = v => (v > 0 ? '+' : v < 0 ? '−' : '') + num(Math.abs(v));
+const KG = () => L('кг', 'kg');
+function periodStart(period) {
+  const m = { month: 1, quarter: 3, year: 12, all: null }[period];
+  if (m === null) return null;
+  const [y, mo, d] = TODAY.split('-').map(Number);
+  const last = new Date(Date.UTC(y, mo - m, 0)).getUTCDate();
+  return new Date(Date.UTC(y, mo - 1 - m, Math.min(d, last))).toISOString().slice(0, 10);
+}
+
+// ---------- NEW: x domain (spec §1) ----------
+const PAD = 0.08;      // left padding: share of the data span
+const MIN_DAYS = 4;    // the narrowest domain: 5 calendar days ending today
+function xStart(pStart, firstInPeriod) {
+  let s = add(firstInPeriod, -Math.max(1, Math.ceil(days(firstInPeriod, TODAY) * PAD)));
+  if (pStart && s < pStart) s = pStart;
+  if (days(s, TODAY) < MIN_DAYS) s = add(TODAY, -MIN_DAYS);
+  return s;
+}
+
+// ---------- NEW: x labels (spec §2) ----------
+function xLabels(start) {
+  const span = days(start, TODAY), out = [];
+  const x = d => days(start, d) / span;
+  if (span <= 45) {
+    // day steps, anchored on today, the month named only where it changes
+    const step = [1, 2, 3, 7, 14].find(s => Math.floor(span / s) <= 4);
+    const dates = [];
+    for (let k = 0; add(TODAY, -k * step) >= start; k++) dates.unshift(add(TODAY, -k * step));
+    let prevMonth = null;
+    for (const d of dates) {
+      const m = d.slice(0, 7);
+      out.push({ d, x: x(d), text: m !== prevMonth ? fmt(d, { day: 'numeric', month: 'short' }) : fmt(d, { day: 'numeric' }), kind: 'day' });
+      prevMonth = m;
+    }
+  } else if (span <= 400) {
+    // month starts; every 2nd/3rd month when they are many, counted back from the current month
+    const firsts = [];
+    for (let d = add(start, 1); d <= TODAY; d = add(d, 1)) if (d.endsWith('-01')) firsts.push(d);
+    const step = [1, 2, 3].find(s => Math.ceil(firsts.length / s) <= 5);
+    const keep = firsts.filter((_, i) => (firsts.length - 1 - i) % step === 0);
+    for (const d of keep) out.push({ d, x: x(d), text: d.slice(5, 7) === '01' ? d.slice(0, 4) : fmt(d, { month: 'short' }), kind: 'month' });
+  } else {
+    const firsts = [];
+    for (let d = add(start, 1); d <= TODAY; d = add(d, 1)) if (d.endsWith('-01-01')) firsts.push(d);
+    const step = [1, 2, 5].find(s => Math.ceil(firsts.length / s) <= 5);
+    for (const d of firsts.filter((_, i) => (firsts.length - 1 - i) % step === 0)) out.push({ d, x: x(d), text: d.slice(0, 4), kind: 'month' });
+  }
+  // alignment: day labels centred, flush to the edge near it; month/year labels start at their tick
+  for (const l of out) l.cls = l.kind === 'month' ? (l.x > 0.9 ? 'hide' : 'm') : l.x < 0.06 ? 'l' : l.x > 0.94 ? 'r' : '';
+  return out;
+}
+
+// ---------- OLD behavior (for «before») ----------
+function oldLabels(start, weeks) {
+  const span = Math.max(days(start, TODAY), 1), out = [];
+  for (let d = 0; d <= span; d++) {
+    const date = add(start, d);
+    const mark = weeks ? new Date(D(date)).getUTCDay() === 1 : date.endsWith('-01');
+    const xx = d / span;
+    if (!mark || xx < 0.04 || xx > 0.94) continue;
+    if (out.length && xx - out.at(-1).x < 0.12) continue;
+    out.push({ d: date, x: xx, text: weeks ? fmt(date, { day: 'numeric', month: 'short' }) : fmt(date, { month: 'short' }), cls: '', noTick: true });
+  }
+  return out;
+}
+
+// ---------- data ----------
+function ewma(pts) { let t = null; return pts.map(p => (t = t === null ? p[1] : t + 0.1 * (p[1] - t))); }
+const SHORT = [['2026-11-19', 82.4], ['2026-11-20', 82.1], ['2026-11-21', 82.3], ['2026-11-22', 82.6]];
+const SHORT_TREND = [82.4, 82.35, 82.3, 82.2];
+const LONG = (() => { const out = []; let d = TODAY, i = 0; // backwards from today, every 2–3 days
+  while (d >= '2026-03-02') { out.unshift([d, +(81.9 + i * 0.045 + Math.sin(i * 1.7) * 0.45 + Math.cos(i * 0.6) * 0.2 - 0.2).toFixed(1)]); d = add(d, -(2 + (i % 3 === 0 ? 1 : 0))); i++; }
+  return out; })();
+const MID = LONG.filter(p => p[0] >= '2026-10-30');
+const TWO = [['2026-11-21', 82.4], ['2026-11-22', 82.1]];
+const ONE = [['2026-11-22', 82.4]];
+
+// ---------- y axis ----------
+function yAxis(vals) {
+  let lo = Math.min(...vals), hi = Math.max(...vals);
+  const step = [0.5, 1, 2, 5, 10].find(s => (hi - lo) / s <= 3) || 10;
+  lo = Math.floor(lo / step) * step; hi = Math.ceil(hi / step) * step;
+  if (hi - lo < step * 2) hi = lo + step * 2;
+  const ticks = []; for (let v = lo; v <= hi + 1e-9; v += step) ticks.push(+v.toFixed(2));
+  return { lo, hi, ticks, step };
+}
+
+// ---------- the card ----------
+function chart(all, period, opts = {}) {
+  const pStart = periodStart(period);
+  const from = pStart ?? all[0][0];
+  const pts = all.filter(p => p[0] >= from);
+  const trendAll = opts.trend === false ? null : all.length >= 3 ? (all === SHORT ? SHORT_TREND : ewma(all)) : null;
+  const trend = trendAll ? trendAll.slice(all.length - pts.length) : null;
+  const start = opts.old ? from : xStart(pStart, pts[0][0]);
+  const span = Math.max(days(start, TODAY), 1);
+  const xs = pts.map(p => days(start, p[0]) / span);
+  const ax = yAxis([...pts.map(p => p[1]), ...(trend || [])]);
+  const y = v => (ax.hi - v) / (ax.hi - ax.lo);
+  const S = 1000;
+  const labels = opts.old ? oldLabels(start, period === 'month') : xLabels(start);
+  const dots = pts.length > 1 ? pts.map((p, i) => `M${xs[i] * S} ${y(p[1]) * S}h0`).join('') : '';
+  const tline = trend && pts.length > 1 ? trend.map((v, i) => `${i ? 'L' : 'M'}${xs[i] * S} ${y(v) * S}`).join('') : '';
+  const lastI = pts.length - 1;
+  return `<div class="wchart">
+    <div class="area">
+      <svg viewBox="0 0 ${S} ${S}" preserveAspectRatio="none" aria-hidden="true">
+        ${ax.ticks.map(v => `<line class="grid" x1="0" x2="${S}" y1="${y(v) * S}" y2="${y(v) * S}"/>`).join('')}
+        ${dots ? `<path class="dots" d="${dots}"/>` : ''}${tline ? `<path class="trend" d="${tline}"/>` : ''}
+      </svg>
+      <span class="last" style="left:${xs[lastI] * 100}%;top:${y(pts[lastI][1]) * 100}%"></span>
+      <div class="ticks">${labels.filter(l => !l.noTick).map(l => `<i style="left:${l.x * 100}%"></i>`).join('')}</div>
+    </div>
+    <ol class="yaxis">${ax.ticks.map(v => `<li style="top:${y(v) * 100}%">${ax.step < 1 ? num(v) : num(v, 0)}</li>`).join('')}</ol>
+    <ol class="xaxis">${labels.filter(l => l.cls !== 'hide').map(l => `<li class="${l.cls}" style="left:${l.x * 100}%">${l.text}</li>`).join('')}</ol>
+  </div>`;
+}
+function trendText(all, period, old) {
+  if (all.length < 3) return L('Тренд появится с третьего взвешивания', 'The trend appears after your third weigh-in');
+  const pStart = periodStart(period);
+  const pts = all.filter(p => p[0] >= (pStart ?? all[0][0]));
+  const t = all === SHORT ? SHORT_TREND : ewma(all);
+  const before = all.findLastIndex(p => p[0] <= (pStart ?? all[0][0]));
+  const diff = `${signed(t.at(-1) - t[Math.max(before, 0)])} ${KG()}`;
+  const since = period === 'all' || all[0][0] > pStart;
+  if (since && !old) return L(`С ${dayMonth(all[0][0])} по тренду: ${diff}`, `Trend since ${dayMonth(all[0][0])}: ${diff}`);
+  const per = { month: L('месяц', 'the past month'), quarter: L('3 месяца', '3 months'), year: L('год', 'the past year'), all: L('всё время', 'all time') }[period];
+  return L(`За ${per} по тренду: ${diff}`, `Trend over ${per}: ${diff}`);
+}
+const SEG_OLD = () => [L('Месяц', 'Month'), L('3 месяца', '3 months'), L('Год', 'Year'), L('Всё', 'All')];
+const SEG_NEW = () => [L('Месяц', 'Month'), L('3 мес', '3 mo'), L('Год', 'Year'), L('Всё', 'All')];
+const PERIOD_I = { month: 0, quarter: 1, year: 2, all: 3 };
+function segment(labels, sel) {
+  return `<div class="segment" role="radiogroup" aria-label="${L('Период', 'Period')}">${labels.map((t, i) =>
+    `<button role="radio" aria-checked="${i === sel}"${i === 1 ? ` aria-label="${L('3 месяца', '3 months')}"` : ''}>${t}</button>`).join('')}</div>`;
+}
+function sinceLine(all) {
+  if (all.length < 2) return L('Первое взвешивание', 'First weigh-in');
+  const a = all.at(-1), b = all.at(-2);
+  return L(`${signed(a[1] - b[1])} кг с ${dayMonth(b[0])}`, `${signed(a[1] - b[1])} kg since ${dayMonth(b[0])}`);
+}
+function card(all, period, opts = {}) {
+  const tr = all.length >= 3;
+  return `<div class="screen${opts.wide ? ' wide' : ''}"><section class="card">
+    <div class="now"><p class="big"><b>${num(all.at(-1)[1])}</b><span>${KG()} · ${L('сегодня', 'today')}</span></p>
+      <p class="muted">${sinceLine(all)}</p></div>
+    ${segment(opts.old ? SEG_OLD() : SEG_NEW(), PERIOD_I[period])}
+    ${chart(all, period, opts)}
+    <p class="muted">${trendText(all, period, opts.old)}</p>
+    <p class="legend"><span><i></i>${L('взвешивания', 'weigh-ins')}</span>${tr ? `<span><i class="t"></i>${L('тренд', 'trend')}</span>` : ''}</p>
+  </section></div>`;
+}
+const fig = (tag, cls, body, cap) => `<figure><span class="tag ${cls}">${tag}</span>${body}<figcaption>${cap}</figcaption></figure>`;
+const BEFORE = () => L('Сейчас', 'Now'), AFTER = () => L('Будет', 'New');
+
+function strip(start, title, note) {
+  const span = days(start, TODAY);
+  const labels = xLabels(start);
+  return `<div class="strip-row"><div><b>${title}</b><span>${note}</span></div><div class="strip"><div class="wchart">
+    <div class="area"><svg viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true"><line class="grid" x1="0" x2="1000" y1="1000" y2="1000"/></svg>
+    <div class="ticks">${labels.map(l => `<i style="left:${l.x * 100}%"></i>`).join('')}</div></div><ol class="yaxis"></ol>
+    <ol class="xaxis">${labels.filter(l => l.cls !== 'hide').map(l => `<li class="${l.cls}" style="left:${l.x * 100}%">${l.text}</li>`).join('')}</ol></div></div></div>`;
+}
+
+function render() {
+  document.documentElement.lang = lang;
+  const app = document.getElementById('app');
+  app.innerHTML = `
+<h1 class="doc-h1">OCT-446 · ${L('График веса: ось X при короткой истории и переключатель периодов', 'Weight chart: the x axis for a short history and the period switch')}</h1>
+<p class="doc-lead">${L('Сегодня 22 нояб. 2026. Все кадры — карточка экрана «Вес» на 375 pt; график строится тем же правилом, что описано в разделе 5, — это живой расчёт, не картинка.',
+  'Today is Nov 22, 2026. Every frame is the Weight screen card at 375 pt; the chart is drawn by the rule in section 5 — a live calculation, not a picture.')}</p>
+
+<section id="compare"><h2 class="doc-h2">1 · ${L('Короткая история: 4 взвешивания за 19–22 нояб.', 'Short history: 4 weigh-ins over Nov 19–22')}</h2>
+<p class="doc-lead">${L('Случай владельца. Ось начинается за день до первого замера, а не с начала периода; подписи — по дням, последняя — сегодня. На «Месяц», «3 мес», «Год» и «Всё» график одинаковый: истории меньше любого периода, и тренд это прямо говорит («С 19 нояб.»).',
+  'The owner’s case. The axis starts a day before the first weigh-in, not at the period start; labels go by day, the last one is today. Month, 3 mo, Year and All show the same chart: the history is shorter than any period, and the trend says so («since Nov 19»).')}</p>
+<div class="frames">
+${fig(BEFORE(), '', card(SHORT, 'quarter', { old: true }), L('<b>3 месяца, сейчас.</b> Ось 22 авг. – 22 нояб., все точки — комок у правого края; «За 3 месяца по тренду» при 4 днях истории.', '<b>3 months, now.</b> Axis Aug 22 – Nov 22, every dot is a clump at the right edge; «Trend over 3 months» with 4 days of history.'))}
+${fig(AFTER(), 'tag--new', card(SHORT, 'quarter'), L('<b>3 мес, будет.</b> Ось 18–22 нояб., точки на всю ширину, тренд виден. Тренд — по фактическому диапазону.', '<b>3 mo, new.</b> Axis Nov 18–22, dots fill the width, the trend is visible. The trend reads over the actual range.'))}
+${fig(BEFORE(), '', card(SHORT, 'month', { old: true }), L('<b>Месяц, сейчас.</b> Подписи по понедельникам, последняя «16 нояб.», хотя данные идут до 22-го.', '<b>Month, now.</b> Labels on Mondays, the last is «Nov 16» while the data run to the 22nd.'))}
+</div></section>
+
+<section id="states"><h2 class="doc-h2">2 · ${L('Состояния', 'States')}</h2>
+<div class="frames">
+${fig(L('Длинная история', 'Long history'), 'tag--new', card(LONG, 'quarter'), L('<b>3 мес, история с марта.</b> Ось = весь период (как сейчас); подписи — начала месяцев с засечкой, текст начинается от засечки.', '<b>3 mo, history since March.</b> Axis = the whole period (as now); labels are month starts with a tick, the text starts at the tick.'))}
+${fig(L('Длинная история', 'Long history'), 'tag--new', card(LONG, 'month'), L('<b>Месяц.</b> Шаг 7 дней от сегодня: 25 окт., 1 нояб., 8, 15, 22. Месяц назван только там, где он меняется.', '<b>Month.</b> A 7-day step back from today: Oct 25, Nov 1, 8, 15, 22. The month is named only where it changes.'))}
+${fig(L('Средняя', 'Medium'), 'tag--new', card(MID, 'quarter'), L(`<b>3 мес, история с ${dayMonth(MID[0][0])}</b> Ось с ${dayMonth(xStart(null, MID[0][0]))}: отступ 8% от длины истории, не меньше дня.`, `<b>3 mo, history since ${dayMonth(MID[0][0])}.</b> Axis from ${dayMonth(xStart(null, MID[0][0]))}: a padding of 8% of the history span, at least a day.`))}
+${fig(L('Всё', 'All'), 'tag--new', card(LONG, 'all'), L('<b>Всё.</b> Тот же отступ слева — первая точка не липнет к краю. Тренд всегда «С …», а не «за всё время».', '<b>All.</b> The same left padding — the first dot does not stick to the edge. The trend always reads «since …», never «all time».'))}
+${fig(L('2 взвешивания', '2 weigh-ins'), 'tag--new', card(TWO, 'quarter'), L('<b>21 и 22 нояб.</b> Ось не уже 5 дней (18–22): две точки не растягиваются на всю ширину. Тренда нет — прежний текст.', '<b>Nov 21 and 22.</b> The axis is never narrower than 5 days (18–22): two dots are not stretched across the width. No trend — the old copy.'))}
+${fig(L('1 взвешивание', '1 weigh-in'), 'tag--new', card(ONE, 'quarter'), L('<b>Только сегодня.</b> Ось 18–22 нояб., одна отмеченная точка у правого края, где «сегодня». Без линий.', '<b>Today only.</b> Axis Nov 18–22, one marked dot at the right edge, which is today. No lines.'))}
+</div></section>
+
+<section id="segment"><h2 class="doc-h2">3 · ${L('Переключатель периодов, 375 pt', 'Period switch, 375 pt')}</h2>
+<p class="doc-lead">${L('Сегменты уже равной ширины (по 71 pt); тесно из‑за длины текста: «3 месяца» и «3 months» жирным — 67–69 pt при 55 pt места. Короткая подпись помещается с запасом в обоих языках. VoiceOver читает полное «3 месяца» / «3 months» (поле aria у опции Segment).',
+  'The segments already have equal widths (71 pt each); it is cramped because of the text: bold «3 months» and «3 месяца» take 67–69 pt in 55 pt of room. The short label fits with room to spare in both languages. VoiceOver reads the full «3 months» / «3 месяца» (the option’s aria field in Segment).')}</p>
+<div class="seg-row">${['ru', 'en'].map(lg => { const keep = lang; lang = lg; const h = `
+  <div class="seg-box"><span class="tag">${lg.toUpperCase()} · ${BEFORE()}</span>${segment(SEG_OLD(), 1)}</div>
+  <div class="seg-box"><span class="tag tag--new">${lg.toUpperCase()} · ${AFTER()}</span>${segment(SEG_NEW(), 1)}</div>`; lang = keep; return h; }).join('')}</div>
+</section>
+
+<section id="axis"><h2 class="doc-h2">4 · ${L('Подписи оси X по длине оси', 'X labels by axis length')}</h2>
+<p class="doc-lead">${L('Ширина графика на 375 pt — 263 pt. Не больше 5 подписей.', 'The plot is 263 pt wide at 375 pt. At most 5 labels.')}</p>
+${strip(add(TODAY, -4), L('5 дней (минимум)', '5 days (minimum)'), L('шаг 1 день', '1-day step'))}
+${strip(add(TODAY, -10), L('11 дней', '11 days'), L('шаг 3 дня от сегодня', '3-day step from today'))}
+${strip(periodStart('month'), L('Месяц (31 день)', 'Month (31 days)'), L('шаг 7 дней от сегодня', '7-day step from today'))}
+${strip(add(TODAY, -40), L('41 день', '41 days'), L('шаг 14 дней', '14-day step'))}
+${strip(periodStart('quarter'), L('3 месяца', '3 months'), L('начала месяцев, засечка + текст от неё', 'month starts, tick + text from it'))}
+${strip(periodStart('year'), L('Год', 'Year'), L('каждый 3-й месяц от текущего; январь — годом', 'every 3rd month back from the current; January as the year'))}
+${strip('2023-05-10', L('3,5 года', '3.5 years'), L('1 января — год', 'Jan 1 — the year'))}
+</section>
+
+<section id="desktop"><h2 class="doc-h2">${L('Десктоп', 'Desktop')}</h2>
+<div class="frames">${fig(AFTER(), 'tag--new', card(SHORT, 'quarter', { wide: true }), L('Те же правила; график шире, подписей столько же.', 'The same rules; the plot is wider, the label count is the same.'))}</div></section>
+
+<section id="spec"><h2 class="doc-h2">5 · ${L('Поведение для разработки', 'Behavior for development')}</h2><ul class="doc-list">${lang === 'en' ? `
+<li><b>X domain.</b> <code>first</code> = the first weighing inside the period. <code>start = first − max(1, ceil(0.08 × days(first, today)))</code> days; if <code>start</code> is earlier than the period start, take the period start (a long history looks exactly as now); if <code>days(start, today) &lt; 4</code>, <code>start = today − 4</code>. The right end stays today. «All» uses the same rule (its period start is null). Replace <code>from</code> passed to WeightChart with this <code>start</code>; the period filter of the points stays as is.</li>
+<li><b>1–2 weigh-ins.</b> Same domain (≥ 5 calendar days ending today). 1: only the marked last dot. 2: two dots, no trend line, «The trend appears after your third weigh-in».</li>
+<li><b>X labels, span ≤ 45 days.</b> Step = the first of 1, 2, 3, 7, 14 days with <code>floor(span / step) ≤ 4</code>. Labels at <code>today, today − step, …</code> while ≥ start (so the last label is always today). Text: day + short month on the first label and where the month changes, the day alone otherwise («Oct 25, Nov 1, 8, 15, 22»). Centred on the date; within 6% of an edge — flush to that edge (today is always flush right). The Mondays rule and the <code>weeks</code> prop go away.</li>
+<li><b>X labels, 46–400 days.</b> The 1st of each month in (start, today]; with more than 5 of them every 2nd or 3rd, counted back from the current month so the latest month is always labelled. Text: short month, January as the year («2026»). The label starts at its tick (left-aligned, 4 pt inset); a month start in the last 10% of the width keeps the tick, drops the text.</li>
+<li><b>X labels, &gt; 400 days.</b> Jan 1 of each year, «2025»; step 1, 2 or 5 years for ≤ 5 labels; placed like months.</li>
+<li><b>Ticks.</b> Each label has a tick: 1 pt wide, <code>--weight-x-tick</code> (4 pt) tall, hanging from the bottom of the plot at the label’s date, colour <code>--color-text-disabled</code>. Decorative, aria-hidden like the labels.</li>
+<li><b>Trend copy.</b> The «since» form when the period is «All» or the first weighing ever is later than the period start: «Trend since {date}: {diff}», {date} = the first weighing (short date, with the year if not this year). Otherwise the current «Trend over {period}: {diff}». Same switch for the chart’s VoiceOver label (<code>chart_since</code>). trendChange already counts from the first weighing in that case — only the words change.</li>
+<li><b>Period switch.</b> Label of «quarter»: «3 mo» / «3 мес»; pass <code>aria: «3 months» / «3 месяца»</code> for VoiceOver. Segment itself does not change. Checked at 375 pt in both themes and languages.</li>
+<li><b>Tokens.</b> New: <code>--weight-x-tick: 4px</code>. PAD 0.08 and MIN 4 days are logic constants in weightScale.ts, not tokens.</li>` : `
+<li><b>Диапазон оси X.</b> <code>first</code> — первое взвешивание внутри периода. <code>start = first − max(1, ceil(0.08 × days(first, today)))</code> дней; если <code>start</code> раньше начала периода — берём начало периода (длинная история выглядит как сейчас); если <code>days(start, today) &lt; 4</code> — <code>start = today − 4</code>. Правый край — по-прежнему сегодня. «Всё» — по тому же правилу (начала периода нет). В WeightChart передаётся этот <code>start</code> вместо <code>from</code>; отбор точек по периоду не меняется.</li>
+<li><b>1–2 взвешивания.</b> Тот же диапазон (не меньше 5 календарных дней до сегодня). 1 — только отмеченная последняя точка. 2 — две точки, линии тренда нет, «Тренд появится с третьего взвешивания».</li>
+<li><b>Подписи, ось ≤ 45 дней.</b> Шаг — первый из 1, 2, 3, 7, 14 дней, при котором <code>floor(span / step) ≤ 4</code>. Подписи на <code>today, today − step, …</code>, пока ≥ start, — последняя подпись всегда сегодня. Текст: день + короткий месяц у первой подписи и там, где меняется месяц, иначе только число («25 окт., 1 нояб., 8, 15, 22»). По центру даты; ближе 6% к краю — прижата к этому краю (сегодня — всегда к правому). Правило понедельников и проп <code>weeks</code> уходят.</li>
+<li><b>Подписи, 46–400 дней.</b> 1-е число каждого месяца в (start, today]; если их больше 5 — каждый 2-й или 3-й, считая назад от текущего месяца, чтобы последний месяц был подписан всегда. Текст — короткий месяц, январь — годом («2026»). Подпись начинается от своей засечки (по левому краю, отступ 4 pt); начало месяца в последних 10% ширины — засечка есть, текста нет.</li>
+<li><b>Подписи, &gt; 400 дней.</b> 1 января, «2025»; шаг 1, 2 или 5 лет, чтобы подписей было ≤ 5; размещение как у месяцев.</li>
+<li><b>Засечки.</b> У каждой подписи — засечка: 1 pt, высота <code>--weight-x-tick</code> (4 pt), свисает от низа графика ровно на дате подписи, цвет <code>--color-text-disabled</code>. Декоративная, aria-hidden, как и подписи.</li>
+<li><b>Текст тренда.</b> Форма «С …», когда период «Всё» или самое первое взвешивание позже начала периода: «С {date} по тренду: {diff}», {date} — первое взвешивание (короткая дата, с годом, если не текущий). Иначе — как сейчас: «За {period} по тренду: {diff}». То же переключение — в подписи графика для VoiceOver (<code>chart_since</code>). trendChange в этом случае уже считает от первого взвешивания — меняются только слова.</li>
+<li><b>Переключатель.</b> Подпись «quarter»: «3 мес» / «3 mo»; для VoiceOver — <code>aria: «3 месяца» / «3 months»</code>. Сам Segment не меняется. Проверено на 375 pt, обе темы и оба языка.</li>
+<li><b>Токены.</b> Новый: <code>--weight-x-tick: 4px</code>. PAD 0.08 и минимум 4 дня — константы логики в weightScale.ts, не токены.</li>`}
+</ul></section>
+
+<section id="copy"><h2 class="doc-h2">6 · ${L('Тексты', 'Copy')}</h2>
+<table class="copy"><thead><tr><th>${L('Ключ', 'Key')}</th><th>RU</th><th>EN</th><th></th></tr></thead><tbody>
+<tr><td><code>weight_screen.quarter</code></td><td>3 мес</td><td>3 mo</td><td>${L('было «3 месяца» / «3 months»', 'was «3 месяца» / «3 months»')}</td></tr>
+<tr><td><code>weight_screen.quarter_aria</code></td><td>3 месяца</td><td>3 months</td><td>${L('новый, для VoiceOver', 'new, for VoiceOver')}</td></tr>
+<tr><td><code>weight_screen.trend_since</code></td><td>С {date} по тренду: {diff}</td><td>Trend since {date}: {diff}</td><td>${L('новый', 'new')}</td></tr>
+<tr><td><code>weight_screen.chart_since</code></td><td>График веса с {date}: последнее взвешивание {weight}{trend}{goal}.</td><td>Weight chart since {date}: latest weigh-in {weight}{trend}{goal}.</td><td>${L('новый', 'new')}</td></tr>
+</tbody></table></section>`;
+
+  const bar = document.querySelector('.pv-bar');
+  if (bar && !bar.querySelector('.lang-bar')) {
+    const seg = document.createElement('div');
+    seg.className = 'pv-seg lang-bar';
+    seg.innerHTML = '<button data-l="ru">RU</button><button data-l="en">EN</button>';
+    seg.addEventListener('click', e => { const l = e.target.dataset.l; if (!l) return; lang = l; try { localStorage.setItem(KEY, l); } catch (er) {} render(); });
+    bar.appendChild(seg);
+  }
+  document.querySelectorAll('.lang-bar button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.l === lang)));
+}
+render();
+</script>
+</body>
+</html>
