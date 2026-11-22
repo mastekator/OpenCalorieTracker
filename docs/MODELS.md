@@ -13,6 +13,7 @@ Both print the same ready row: provider, model, passed photos, date (UTC) and no
 
 | Provider | Model                 | Passed | Date       | Notes                                    |
 | -------- | --------------------- | ------ | ---------- | ---------------------------------------- |
+| google   | gemini-3.5-flash-lite | 9/16   | 2026-11-22 | 3.2 s/photo; OCT v0.3.2, prompt 8, set 2 |
 | google   | gemini-3.5-flash-lite | 9/9    | 2026-11-19 | 6.8 s/photo; OCT v0.2.0, prompt 2, set 1 |
 
 Rows of different test sets (`set N`) are not comparable: set 2 checks every dish, its count and a kcal range of ±20% (items) or ±30% (mixed dishes) around a reference portion.
