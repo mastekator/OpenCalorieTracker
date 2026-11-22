@@ -9,6 +9,8 @@ pnpm install
 AI_PROVIDER=google AI_MODEL=gemini-3.8-flash AI_API_KEY=... pnpm --filter @oct/server check-model
 ```
 
+The `Live contract` workflow makes one real call per AI operation daily and on PRs that change AI code; it runs once the owner adds a Gemini key as the repository secret `GEMINI_API_KEY` (Settings → Secrets and variables → Actions) and, optionally, the variable `GEMINI_MODEL` (default `gemini-3.5-flash-lite`).
+
 Both print the same ready row: provider, model, passed photos, date (UTC) and notes with the average time per photo, the app version, the prompt version and the test set version. It has no key or address. Copy the row and send a pull request that adds it to this table:
 
 | Provider | Model                 | Passed | Date       | Notes                                    |
