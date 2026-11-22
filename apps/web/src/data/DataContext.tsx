@@ -150,24 +150,37 @@ export function useDb() {
   return db;
 }
 
+/** The last value each hook read, per database: a remount starts from it, not from empty. */
+const lastRead = new WeakMap<Db, Map<string, unknown>>();
+
 /**
  * Reads from the local database and re-reads after every change; undefined while loading.
- * `optional`: outside DataProvider (stories, view tests) it stays undefined instead of throwing.
+ * `key`: the hook name and its params, unique across hooks; a remount shows its last read
+ * value at once. `optional`: outside DataProvider (stories, view tests) it stays undefined
+ * instead of throwing.
  */
 function useLocal<T>(
+  key: string,
   read: (db: Db) => Promise<T>,
-  deps: unknown[],
   optional = false,
 ) {
   const db = useContext(DataContext);
   if (!db && !optional) throw new Error('data hook outside DataProvider');
-  const [value, setValue] = useState<T>();
+  const [value, setValue] = useState(() =>
+    db ? (lastRead.get(db)?.get(key) as T | undefined) : undefined,
+  );
   useEffect(() => {
     if (!db) return;
     let live = true;
     const load = () =>
       read(db).then(
-        (v) => live && setValue(() => v),
+        (v) => {
+          if (!live) return;
+          let memo = lastRead.get(db);
+          if (!memo) lastRead.set(db, (memo = new Map()));
+          memo.set(key, v);
+          setValue(() => v);
+        },
         () => {}, // closed by a user switch
       );
     void load();
@@ -176,7 +189,7 @@ function useLocal<T>(
       live = false;
       off();
     };
-  }, [db, ...deps]);
+  }, [db, key]);
   return value;
 }
 
@@ -184,35 +197,34 @@ const byEatenAt = (a: Meal, b: Meal) => a.eatenAt.localeCompare(b.eatenAt);
 
 /** Meals of one day (`YYYY-MM-DD`), by time eaten. */
 export const useMeals = (date: string) =>
-  useLocal(
-    async (db) =>
-      (await db.getAllFromIndex('meals', 'localDate', date)).sort(byEatenAt),
-    [date],
+  useLocal(`meals:${date}`, async (db) =>
+    (await db.getAllFromIndex('meals', 'localDate', date)).sort(byEatenAt),
   );
 
 /** Meals from `from` to `to` inclusive, by time eaten. */
 export const usePeriod = (from: string, to: string) =>
-  useLocal(
-    async (db) =>
-      (
-        await db.getAllFromIndex(
-          'meals',
-          'localDate',
-          IDBKeyRange.bound(from, to),
-        )
-      ).sort(byEatenAt),
-    [from, to],
+  useLocal(`period:${from}:${to}`, async (db) =>
+    (
+      await db.getAllFromIndex(
+        'meals',
+        'localDate',
+        IDBKeyRange.bound(from, to),
+      )
+    ).sort(byEatenAt),
   );
 
 /** One meal by clientId; null when it is not in the local copy. */
 export const useMeal = (clientId: string) =>
-  useLocal(async (db) => (await db.get('meals', clientId)) ?? null, [clientId]);
+  useLocal(
+    `meal:${clientId}`,
+    async (db) => (await db.get('meals', clientId)) ?? null,
+  );
 
 export const useSettings = () =>
   useLocal(
+    'settings',
     async (db) =>
       (await db.get('kv', 'settings')) as AccountSettings | undefined,
-    [],
   );
 
 /**
@@ -223,8 +235,8 @@ export function useAiStatus(ask = true) {
   const db = useDb();
   const online = useOnline();
   const stored = useLocal(
+    'aiStatus',
     (d) => d.get('kv', 'aiStatus') as Promise<AiStatus | undefined>,
-    [],
   );
   // null: the request failed.
   const [fresh, setFresh] = useState<AiStatus | null>();
@@ -257,8 +269,8 @@ export function useOutboundBlocked() {
   const db = useDb();
   const online = useOnline();
   const stored = useLocal(
+    'integrations',
     (d) => d.get('kv', 'integrations') as Promise<Integrations | undefined>,
-    [],
   );
   const [fresh, setFresh] = useState<Integrations>();
   useEffect(() => {
@@ -301,14 +313,14 @@ export const EMPTY_PROFILE: ProfileResponse = {
  */
 export function useProfile() {
   const online = useOnline();
-  const stored = useLocal(async (db) => {
+  const stored = useLocal('profile', async (db) => {
     const [profile, rev] = await Promise.all([
       db.get('kv', 'profile'),
       db.get('kv', 'rev'),
     ]);
     if (rev === undefined) return null; // never synced
     return (profile as ProfileResponse | undefined) ?? EMPTY_PROFILE;
-  }, []);
+  });
   if (stored === null) return online ? undefined : EMPTY_PROFILE;
   return stored;
 }
@@ -322,14 +334,14 @@ export function useNorm(date: string) {
 /** Remembered illustration per dish nameKey. */
 export const useIllustrationChoices = () =>
   useLocal(
+    'choices',
     async (db) =>
       ((await db.get('kv', 'choices')) as Choices | undefined) ?? {},
-    [],
   );
 
 /** Badge of one meal: `pending | error | synced`; none outside DataProvider. */
 export const useMealStatus = (clientId: string) =>
-  useLocal((db) => mealStatus(db, clientId), [clientId], true);
+  useLocal(`mealStatus:${clientId}`, (db) => mealStatus(db, clientId), true);
 
 /** An edit waiting for a version choice: the local meal, when it was edited here, and theirs. */
 export type EditConflict = {
@@ -340,7 +352,7 @@ export type EditConflict = {
 
 /** Edits waiting for a version choice, in queue order; deleted-there ones are OCT-399. */
 export const useConflicts = () =>
-  useLocal(async (db) => {
+  useLocal('conflicts', async (db) => {
     const list: EditConflict[] = [];
     for (const op of await db.getAll('outbox')) {
       const mine = await db.get('meals', op.clientId);
@@ -348,15 +360,15 @@ export const useConflicts = () =>
         list.push({ mine, editedAt: op.body.editedAt, conflict: op.conflict });
     }
     return list;
-  }, []);
+  });
 
 /** The code the server refused the meal with, null when it did not. */
 export const useMealError = (clientId: string) =>
-  useLocal((db) => mealError(db, clientId), [clientId]);
+  useLocal(`mealError:${clientId}`, (db) => mealError(db, clientId));
 
 /** The weight diary by date ascending, each weighing with its queue state (as a meal badge). */
 export const useWeighings = () =>
-  useLocal(async (db) => {
+  useLocal('weighings', async (db) => {
     const [weighings, ops] = await Promise.all([
       db.getAll('weighings'),
       db.getAll('outbox'),
@@ -369,7 +381,7 @@ export const useWeighings = () =>
       ...w,
       status: state.get(`weighing:${w.date}`) ?? ('synced' as MealStatus),
     }));
-  }, []);
+  });
 
 /** Recently logged first (AC-7.2); never logged ones after them, last edited first. */
 export const byLastLogged = (a: Recipe, b: Recipe) =>
@@ -378,19 +390,21 @@ export const byLastLogged = (a: Recipe, b: Recipe) =>
 
 /** Recipes from the local copy (ADR-0023 §4), recently logged first. */
 export const useRecipes = () =>
-  useLocal(async (db) => (await db.getAll('recipes')).sort(byLastLogged), []);
+  useLocal('recipes', async (db) =>
+    (await db.getAll('recipes')).sort(byLastLogged),
+  );
 
 /** Products kept on this device (ADR-0034 §7) by code: own ones carry `savedAt`. */
 export const useProducts = () =>
   useLocal(
+    'products',
     async (db) =>
       new Map((await db.getAll('products')).map((p) => [p.code, p])),
-    [],
   );
 
 /** One recipe; null when it is not in the local copy (deleted, wrong id). */
 export const useRecipe = (id: number) =>
-  useLocal(async (db) => (await db.get('recipes', id)) ?? null, [id]);
+  useLocal(`recipe:${id}`, async (db) => (await db.get('recipes', id)) ?? null);
 
 /**
  * DELETE /api/recipes/:id, then out of the local copy. A 404 means it is already gone
@@ -476,4 +490,4 @@ export async function findHistoryDishes(db: Db, query: string, limit = 10) {
 }
 
 /** Unsent changes, for sign-out and account switch. */
-export const usePendingCount = () => useLocal(pendingCount, []);
+export const usePendingCount = () => useLocal('pendingCount', pendingCount);

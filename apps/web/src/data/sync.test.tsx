@@ -6,7 +6,7 @@ import type {
   ProfileResponse,
   SyncResponse,
 } from '@oct/shared';
-import type { ReactNode } from 'react';
+import { useRef, type ReactNode } from 'react';
 import { I18nProvider, LOCALE_STORAGE_KEY } from '../i18n';
 import { ToastProvider } from '../ui/Toast/Toast';
 import { DataProvider, useMeals, useNorm } from './DataContext';
@@ -254,6 +254,37 @@ describe('useMeals', () => {
     serve(page({ rev: 2, meals: [meal('c')] }));
     await act(() => pull(db));
     expect(await screen.findByText('meals: a,c')).toBeTruthy();
+  });
+
+  it('shows the last read meals at once on a remount, not after a new database', async () => {
+    const user = { id: 7, email: 'a@example.com' } as MeResponse;
+    serve(page({ rev: 1, meals: [meal('a')] }));
+    const firsts: unknown[] = [];
+    function Day() {
+      const meals = useMeals('2026-11-14');
+      const first = useRef(true);
+      if (first.current) firsts.push(meals?.map((m) => m.clientId));
+      first.current = false;
+      return <p>{meals ? `meals: ${meals.map((m) => m.clientId)}` : '…'}</p>;
+    }
+    const app = (tab: boolean, session = 1) =>
+      withApp(
+        <DataProvider key={session} user={user}>
+          {tab ? <Day /> : <p>other tab</p>}
+        </DataProvider>,
+      );
+    const { rerender } = render(app(true));
+    expect(await screen.findByText('meals: a')).toBeTruthy();
+    rerender(app(false));
+    await screen.findByText('other tab');
+    rerender(app(true));
+    expect(firsts).toEqual([undefined, ['a']]);
+
+    // A new database (a user switch opens one) does not show what the old one read.
+    serve(page({ rev: 1 }));
+    rerender(app(true, 2));
+    expect(await screen.findByText('meals: a')).toBeTruthy();
+    expect(firsts).toEqual([undefined, ['a'], undefined]);
   });
 });
 
