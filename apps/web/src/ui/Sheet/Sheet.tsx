@@ -16,6 +16,8 @@ type Props = {
   full?: boolean;
   /** An icon button left of the close button, e.g. «More» in the chat (9.13). */
   action?: { label: string; icon: LucideIcon; onClick: () => void };
+  /** The close button's label when closing means more than «Close». */
+  closeLabel?: string;
 };
 
 const SWIPE_CLOSE_PX = 80;
@@ -29,6 +31,7 @@ export function Sheet({
   footer,
   full = false,
   action,
+  closeLabel,
 }: Props) {
   const { t } = useT();
   const titleId = useId();
@@ -99,7 +102,7 @@ export function Sheet({
               <button
                 type="button"
                 className="sheet__close"
-                aria-label={t('common.close')}
+                aria-label={closeLabel ?? t('common.close')}
                 onClick={onClose}
               >
                 {/* Lucide `x` */}
