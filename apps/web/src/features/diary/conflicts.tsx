@@ -1,3 +1,4 @@
+import { flushSync } from 'react-dom';
 import {
   createContext,
   useCallback,
@@ -115,14 +116,16 @@ export function ConflictProvider({ children }: { children: ReactNode }) {
       if (result === 'stale') setUpdated(true);
       return;
     }
+    const next = conflicts!.find((c) => c.mine.clientId !== current);
+    // Closed now, not on React's next render: after the await the toast would otherwise
+    // land in this sheet's dialog and vanish with it.
+    flushSync(() => show(next?.mine.clientId ?? null, done + 1));
     // 3.1 has no toast after the choice.
     if (!gone)
       toast({
         text: t(`sync.conflict.kept_${side}`),
         icon: <Check aria-hidden="true" />,
       });
-    const next = conflicts!.find((c) => c.mine.clientId !== current);
-    show(next?.mine.clientId ?? null, done + 1);
   };
 
   const ids = new Set(conflicts?.map((c) => c.mine.clientId));
