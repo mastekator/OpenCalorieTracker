@@ -150,7 +150,7 @@ describe('setupRequired (ADR-0021 §1, §6, §9)', () => {
     t.db.exec(
       'DROP TABLE setup_code; DROP TABLE ai_test_runs; DROP TABLE ai_limits; ' +
         'DROP TABLE recipe_tombstones; DROP TABLE recipe_steps; DROP TABLE recipe_ingredients; DROP TABLE recipes; ' +
-        'DROP TABLE edible_prefs; DROP TABLE product_prefs; DROP TABLE user_products; DROP TABLE food_products; DROP TABLE integration_settings; ALTER TABLE users DROP COLUMN off_enabled; ALTER TABLE users DROP COLUMN off_hint_at; ALTER TABLE meals DROP COLUMN edit_rev; ALTER TABLE users DROP COLUMN last_export_at; ALTER TABLE users DROP COLUMN last_export_format',
+        'DROP TABLE edible_prefs; DROP TABLE product_prefs; DROP TABLE user_products; DROP TABLE food_products; DROP TABLE integration_settings; ALTER TABLE users DROP COLUMN off_enabled; ALTER TABLE users DROP COLUMN off_hint_at; ALTER TABLE meals DROP COLUMN edit_rev; ALTER TABLE users DROP COLUMN last_export_at; ALTER TABLE users DROP COLUMN last_export_format; DROP INDEX meals_import; ALTER TABLE meals DROP COLUMN import_id; DROP TABLE imports',
     );
     t.db.pragma('user_version = 10');
     migrate(t.db);
