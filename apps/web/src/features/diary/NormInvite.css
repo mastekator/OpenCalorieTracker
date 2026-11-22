@@ -17,3 +17,12 @@
 .norm-invite__text {
   flex: 1;
 }
+
+/* The same strip for meals waiting for a version choice (OCT-157 1.2). */
+.norm-invite--warning {
+  background: var(--color-warning-soft);
+}
+
+.norm-invite--warning .norm-invite__icon {
+  color: var(--color-warning);
+}

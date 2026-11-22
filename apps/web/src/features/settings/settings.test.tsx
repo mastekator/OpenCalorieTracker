@@ -578,6 +578,52 @@ describe('Sign out (4.6, 4.7)', () => {
     expect(onLogout).toHaveBeenCalledOnce();
   });
 
+  const conflictOne = async (unsentToo: boolean) => {
+    const db = await openUserDb(user.id);
+    await db.add('outbox', {
+      kind: 'patchMeal',
+      clientId: 'meal-a',
+      id: 5,
+      body: { mealType: 'dinner', editedAt: 1, baseRev: 1 },
+      conflict: { kind: 'deleted', deletedAt: 0 },
+    });
+    db.close();
+    if (unsentToo) await queueOne();
+  };
+
+  it('a version not chosen is not unsent: the conflict text (4.6), plain sign out', async () => {
+    offlineNow();
+    await seed(synced);
+    await conflictOne(false);
+    await wrap(screenOf(), true);
+    fireEvent.click(await screen.findByRole('button', { name: 'Sign out' }));
+    const dialog = await screen.findByRole('alertdialog', {
+      name: 'Sign out?',
+    });
+    expect(dialog.textContent).toContain(
+      '1 entry has no version chosen. If you sign out, the version from the other device will be kept.',
+    );
+    expect(dialog.textContent).not.toContain('hasn’t been sent');
+    expect(
+      screen.queryByRole('button', { name: 'Sign out and delete entries' }),
+    ).toBeNull();
+  });
+
+  it('a conflict and an unsent entry: the unsent text, the version one second (4.7)', async () => {
+    offlineNow();
+    await seed(synced);
+    await conflictOne(true);
+    await wrap(screenOf(), true);
+    fireEvent.click(await screen.findByRole('button', { name: 'Sign out' }));
+    const dialog = await screen.findByRole('alertdialog', {
+      name: 'Sign out?',
+    });
+    expect(dialog.textContent).toMatch(
+      /1 entry hasn’t been sent.* 1 entry has no version chosen/,
+    );
+    screen.getByRole('button', { name: 'Sign out and delete entries' });
+  });
+
   it('online: the queue goes out first, then the plain confirm', async () => {
     await seed(synced);
     await queueOne();

@@ -35,6 +35,7 @@ import { WeightCard } from '../weight/WeightCard';
 import { MealRow } from './MealRow';
 import { InstallHint } from './InstallHint';
 import { NormInvite } from './NormInvite';
+import { PendingConflicts } from './PendingConflicts';
 import { RemainingCard } from './RemainingCard';
 import { useToday } from './useToday';
 import { useUndoDelete } from './undoDelete';
@@ -104,6 +105,7 @@ export function TodayView({
       <>
         <InstallHint />
         {norm === null && <NormInvite onSet={onSetNorm} />}
+        <PendingConflicts />
         <RemainingCard
           eaten={eaten}
           norm={norm}

@@ -1,5 +1,12 @@
 import { useId, useState, type ReactNode } from 'react';
-import { ChevronDown, Cloud, Laptop, Smartphone } from 'lucide-react';
+import {
+  ChevronDown,
+  Cloud,
+  Laptop,
+  RotateCcw,
+  Smartphone,
+  Trash2,
+} from 'lucide-react';
 import { useT } from '../../i18n';
 import { Badge } from '../Badge/Badge';
 import { Button } from '../Button/Button';
@@ -19,6 +26,10 @@ type Props = {
   /** This device's icon: a phone or a laptop. */
   desktop?: boolean;
   editedAt?: number;
+  /** The other side deleted the meal (3.1): no rows and no total, «Delete entry». */
+  deletedAt?: number;
+  /** This side against a delete (3.1): «Restore my version». */
+  restore?: boolean;
   kcal: number;
   /** The differences, the same count and order in both cards (OCT-157 §2). */
   rows: VersionRow[];
@@ -34,6 +45,8 @@ export function VersionCard({
   side,
   desktop,
   editedAt,
+  deletedAt,
+  restore,
   kcal,
   rows,
   unchanged,
@@ -43,24 +56,34 @@ export function VersionCard({
   const { t, num, locale } = useT();
   const [open, setOpen] = useState(false);
   const titleId = useId();
-  const Icon = side === 'other' ? Cloud : desktop ? Laptop : Smartphone;
+  const gone = deletedAt !== undefined;
+  const Icon = gone
+    ? Trash2
+    : side === 'other'
+      ? Cloud
+      : desktop
+        ? Laptop
+        : Smartphone;
   const title = t(`sync.conflict.${side}_device`);
+  const at = gone ? deletedAt : editedAt;
   const edited =
-    editedAt === undefined
+    at === undefined
       ? ''
-      : t('sync.conflict.edited_at', {
+      : t(`sync.conflict.${gone ? 'deleted_at' : 'edited_at'}`, {
           time: new Intl.DateTimeFormat(locale, { timeStyle: 'short' }).format(
-            editedAt,
+            at,
           ),
         });
-  const total = t('meal.kcal', { n: num(kcal) });
+  const total = gone ? '' : t('meal.kcal', { n: num(kcal) });
   return (
     <section
       className="version-card"
       aria-label={[title, edited, total].filter(Boolean).join(', ')}
     >
       <div className="version-card__head">
-        <span className={`version-card__icon version-card__icon--${side}`}>
+        <span
+          className={`version-card__icon version-card__icon--${gone ? 'gone' : side}`}
+        >
           <Icon aria-hidden="true" />
         </span>
         <span className="version-card__titles">
@@ -74,8 +97,14 @@ export function VersionCard({
             )}
           </span>
         </span>
-        <span className="version-card__kcal">{total}</span>
+        {total && <span className="version-card__kcal">{total}</span>}
       </div>
+      {gone && (
+        <p className="version-card__gone">
+          <Trash2 aria-hidden="true" />
+          {t('sync.conflict.deleted.note')}
+        </p>
+      )}
       {rows.length > 0 && <Rows rows={rows} />}
       {unchanged.length > 0 && (
         <>
@@ -92,12 +121,19 @@ export function VersionCard({
         </>
       )}
       <Button
-        variant="tonal"
+        variant={gone ? 'danger-tonal' : 'tonal'}
         // The visible words stay the name (WCAG 2.5.3); the side comes as its description.
         aria-describedby={titleId}
         onClick={onKeep}
       >
-        {t('sync.conflict.keep')}
+        {restore && <RotateCcw aria-hidden="true" />}
+        {t(
+          gone
+            ? 'sync.conflict.delete'
+            : restore
+              ? 'sync.conflict.restore'
+              : 'sync.conflict.keep',
+        )}
       </Button>
     </section>
   );

@@ -343,20 +343,20 @@ export const useIllustrationChoices = () =>
 export const useMealStatus = (clientId: string) =>
   useLocal(`mealStatus:${clientId}`, (db) => mealStatus(db, clientId), true);
 
-/** An edit waiting for a version choice: the local meal, when it was edited here, and theirs. */
-export type EditConflict = {
+/** An edit waiting for a choice: the local meal, when it was edited here, and theirs or the delete. */
+export type MealConflict = {
   mine: Meal;
   editedAt?: number;
-  conflict: Conflict & { kind: 'edit' };
+  conflict: Conflict;
 };
 
-/** Edits waiting for a version choice, in queue order; deleted-there ones are OCT-399. */
+/** Edits waiting for a choice against a newer edit or a delete, in queue order. */
 export const useConflicts = () =>
   useLocal('conflicts', async (db) => {
-    const list: EditConflict[] = [];
+    const list: MealConflict[] = [];
     for (const op of await db.getAll('outbox')) {
       const mine = await db.get('meals', op.clientId);
-      if (op.conflict?.kind === 'edit' && op.kind === 'patchMeal' && mine)
+      if (op.conflict && op.kind === 'patchMeal' && mine)
         list.push({ mine, editedAt: op.body.editedAt, conflict: op.conflict });
     }
     return list;

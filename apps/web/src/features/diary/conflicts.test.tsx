@@ -16,6 +16,7 @@ import { I18nProvider, LOCALE_STORAGE_KEY } from '../../i18n';
 import { ToastProvider } from '../../ui/Toast/Toast';
 import { ConflictProvider } from './conflicts';
 import { MealRow } from './MealRow';
+import { PendingConflicts } from './PendingConflicts';
 
 const USER = { id: 7, units: 'metric' } as MeResponse;
 const A = '00000000-0000-4000-8000-00000000000a';
@@ -72,6 +73,7 @@ function Day() {
   if (!meals) return null;
   return (
     <>
+      <PendingConflicts />
       <p>Total {sumDay(meals).kcal}</p>
       <ul>
         {meals.map((m) => (
@@ -128,8 +130,15 @@ afterEach(async () => {
 });
 
 const choose = async () => {
+  // The toast's or the strip's: both open the first conflict.
   fireEvent.click(
-    await screen.findByRole('button', { name: 'Choose' }, { timeout: 2000 }),
+    (
+      await screen.findAllByRole(
+        'button',
+        { name: 'Choose' },
+        { timeout: 2000 },
+      )
+    )[0]!,
   );
   return screen.findByRole('dialog');
 };
@@ -219,5 +228,54 @@ describe('ConflictProvider', () => {
     expect(op!.conflict).toMatchObject({ theirs: { editRev: 4 } });
     expect((await db.get('meals', A))!.kcal).toBe(450);
     expect(screen.getByRole('dialog')).toBeTruthy();
+  });
+
+  it('the strip counts the conflicts, opens the first and goes once none is left', async () => {
+    await screen.findByText('1 entry needs a version choice');
+    await choose();
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Keep this one',
+        description: 'On another device',
+      }),
+    );
+    await screen.findByText('Total 380');
+    expect(screen.queryByText(/needs a version choice/)).toBeNull();
+  });
+
+  describe('deleted on another device (3.1)', () => {
+    beforeEach(async () => {
+      const op = (await db.getAll('outbox'))[0]!;
+      await db.put('outbox', {
+        ...op,
+        conflict: { kind: 'deleted', deletedAt: 0 },
+      });
+      await act(async () => emitChange());
+    });
+
+    it('restore queues the meal again and keeps it in the day', async () => {
+      const sheet = await choose();
+      expect(sheet.textContent).toContain('deleted on another device');
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Restore my version' }),
+      );
+      await vi.waitFor(async () =>
+        expect(await db.getAll('outbox')).toMatchObject([
+          { kind: 'createMeal', body: { clientId: A } },
+        ]),
+      );
+      expect(screen.getByText('Total 450')).toBeTruthy();
+      await vi.waitFor(() =>
+        expect(screen.queryByText(/needs a version choice/)).toBeNull(),
+      );
+    });
+
+    it('delete removes the meal and the conflict', async () => {
+      await choose();
+      fireEvent.click(screen.getByRole('button', { name: 'Delete entry' }));
+      await screen.findByText('Total 0');
+      expect(await db.getAll('outbox')).toEqual([]);
+      expect(screen.queryByText(/needs a version choice/)).toBeNull();
+    });
   });
 });

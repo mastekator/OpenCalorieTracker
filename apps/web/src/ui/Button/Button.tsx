@@ -5,7 +5,8 @@ type Props = Omit<
   ButtonHTMLAttributes<HTMLButtonElement>,
   'className' | 'style'
 > & {
-  variant?: 'primary' | 'tonal' | 'plain' | 'danger' | 'danger-plain';
+  variant?:
+    'primary' | 'tonal' | 'plain' | 'danger' | 'danger-tonal' | 'danger-plain';
   /** Small: height 44, subhead, content width (e.g. «Unblock» in a list row). */
   small?: boolean;
   /** Spinner and no clicks; pass the verb with an ellipsis as children («Signing in…»). */

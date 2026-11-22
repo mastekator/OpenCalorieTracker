@@ -10,7 +10,12 @@ import {
 import { Check, GitCompare } from 'lucide-react';
 import { useSession } from '../../app/SessionContext';
 import { useConflicts, useDb, useSettings } from '../../data/DataContext';
-import { keepMine, keepTheirs } from '../../data/outbox';
+import {
+  deleteConflicted,
+  keepMine,
+  keepTheirs,
+  restoreMine,
+} from '../../data/outbox';
 import { useT } from '../../i18n';
 import { DESKTOP_MEDIA } from '../../styles/breakpoints';
 import { ConflictSheet, type Side } from '../../ui/ConflictSheet/ConflictSheet';
@@ -20,7 +25,7 @@ import { useToast } from '../../ui/Toast/Toast';
 export const CONFLICT_TOAST_MS = 6000;
 
 type Conflicts = {
-  /** clientIds whose edit waits for a version choice. */
+  /** clientIds whose edit waits for a version choice, in queue order. */
   ids: ReadonlySet<string>;
   /** Opens «Which version should we keep?» for this meal. */
   open: (clientId: string) => void;
@@ -84,7 +89,8 @@ export function ConflictProvider({ children }: { children: ReactNode }) {
   }, [conflicts]);
 
   const live = conflicts?.find((c) => c.mine.clientId === current);
-  const rev = live?.conflict.theirs.editRev;
+  const c = live?.conflict;
+  const rev = c?.kind === 'edit' ? c.theirs.editRev : undefined;
   useEffect(() => {
     if (rev === undefined) return;
     if (shownRev.current !== undefined && shownRev.current !== rev)
@@ -93,19 +99,28 @@ export function ConflictProvider({ children }: { children: ReactNode }) {
   }, [rev]);
 
   const keep = async (side: Side) => {
-    if (!live || !current) return;
-    const choose = side === 'this' ? keepMine : keepTheirs;
+    if (!c || !current) return;
+    const gone = c.kind === 'deleted';
+    const choose = gone
+      ? side === 'this'
+        ? restoreMine
+        : deleteConflicted
+      : side === 'this'
+        ? keepMine
+        : keepTheirs;
     // Rejects only when the database is closed by a sign-out or user switch.
-    const result = await choose(db, current, live.conflict).catch(() => null);
+    const result = await choose(db, current, c).catch(() => null);
     if (result !== 'done') {
       // Theirs changed after it was drawn: nothing applied, it is shown again.
       if (result === 'stale') setUpdated(true);
       return;
     }
-    toast({
-      text: t(`sync.conflict.kept_${side}`),
-      icon: <Check aria-hidden="true" />,
-    });
+    // 3.1 has no toast after the choice.
+    if (!gone)
+      toast({
+        text: t(`sync.conflict.kept_${side}`),
+        icon: <Check aria-hidden="true" />,
+      });
     const next = conflicts!.find((c) => c.mine.clientId !== current);
     show(next?.mine.clientId ?? null, done + 1);
   };
@@ -114,12 +129,13 @@ export function ConflictProvider({ children }: { children: ReactNode }) {
   return (
     <Context value={{ ids, open }}>
       {children}
-      {live && (
+      {live && c && (
         <ConflictSheet
           key={current}
           mine={live.mine}
           editedAt={live.editedAt}
-          theirs={live.conflict.theirs}
+          theirs={c.kind === 'edit' ? c.theirs : undefined}
+          deletedAt={c.kind === 'deleted' ? c.deletedAt : undefined}
           updated={updated}
           progress={{ i: done + 1, n: done + conflicts!.length }}
           units={settings?.units ?? user?.units ?? 'metric'}

@@ -301,6 +301,13 @@ describe('baseRev and parked ops (ADR-0022 §3)', () => {
       mealType: 'snack',
     });
     expect(await mealStatus(two, A)).toBe('synced');
+    // The device that deleted it gets it back with its next pull.
+    await one.delete('meals', A);
+    await pull(one);
+    expect(await one.get('meals', A)).toMatchObject({
+      id: 6,
+      mealType: 'snack',
+    });
   });
 
   it('a pull brings the newest version into the conflict; a stale choice is not applied', async () => {
@@ -369,5 +376,9 @@ describe('baseRev and parked ops (ADR-0022 §3)', () => {
     await settle(two);
     expect(calls.some(([k]) => k.startsWith('DELETE'))).toBe(false);
     expect(await ops(two)).toEqual([]);
+    // The next sync does not bring it or its conflict back.
+    await pull(two);
+    expect(await two.get('meals', A)).toBeUndefined();
+    expect(await conflictCount(two)).toBe(0);
   });
 });
