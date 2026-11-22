@@ -53,9 +53,15 @@ export function ConflictSheet({
 }: Props) {
   const { t, num, locale } = useT();
   const w = useWeight(units);
+  // Deleted there: every field of mine, the photo only when it has one (3.1).
   const { fields, dishes } = theirs
     ? diffMeals(mine, theirs)
-    : { fields: [], dishes: [] };
+    : {
+        fields: (['mealType', 'eatenAt', 'photo'] as const).filter(
+          (f) => f !== 'photo' || mine.photo,
+        ),
+        dishes: [],
+      };
   const when = new Intl.DateTimeFormat(locale, {
     day: 'numeric',
     month: 'short',
@@ -169,11 +175,14 @@ export function ConflictSheet({
                 desktop={desktop}
                 editedAt={editedAt}
                 kcal={mine.kcal}
-                rows={mine.items.map((d, i) => ({
-                  key: `d${i}`,
-                  label: d.name,
-                  value: amount(d),
-                }))}
+                rows={[
+                  ...fields.map((f) => field(f, mine)),
+                  ...mine.items.map((d, i) => ({
+                    key: `d${i}`,
+                    label: d.name,
+                    value: amount(d),
+                  })),
+                ]}
                 unchanged={[]}
                 onKeep={() => onKeep('this')}
               />

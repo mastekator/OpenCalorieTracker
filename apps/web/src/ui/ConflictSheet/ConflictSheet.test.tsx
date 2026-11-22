@@ -71,6 +71,10 @@ describe('ConflictSheet', () => {
     );
     await screen.findByText(/deleted on another device/);
     screen.getByText('Buckwheat');
+    screen.getByText('Meal');
+    screen.getByText('Date and time');
+    // No photo, no photo row.
+    expect(screen.queryByText('Photo')).toBeNull();
     screen.getByText('Entry deleted');
     fireEvent.click(screen.getByRole('button', { name: 'Restore my version' }));
     fireEvent.click(screen.getByRole('button', { name: 'Delete entry' }));
