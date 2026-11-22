@@ -1,0 +1,41 @@
+.conflict-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.conflict-sheet__question {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin: 0;
+  font-size: var(--text-subhead-size);
+  line-height: var(--text-subhead-lh);
+  color: var(--color-text-secondary);
+}
+
+.conflict-sheet__progress {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.conflict-sheet__cards {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-4);
+}
+
+/* Side by side on desktop, the rows facing each other (AC-4.10). */
+@media (min-width: 1024px) {
+  .conflict-sheet__cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Desktop dialog fits its content instead of the chat height (OCT-157 §2). */
+@media (min-width: 1024px) {
+  :root .sheet.sheet--full:has(.conflict-sheet) {
+    height: auto;
+  }
+}

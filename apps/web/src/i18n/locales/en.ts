@@ -920,6 +920,37 @@ export const en = {
   },
   sync: {
     sent: { one: 'Synced {count} entry', other: 'Synced {count} entries' },
+    conflict: {
+      toast: {
+        one: '{count} entry was changed on two devices',
+        other: '{count} entries were changed on two devices',
+      },
+      toast_single: 'An entry was changed on two devices',
+      choose: 'Choose',
+      question: 'It was changed on two devices. Which version should we keep?',
+      this_device: 'On this device',
+      other_device: 'On another device',
+      edited_at: 'edited at {time}',
+      updated_badge: 'updated',
+      keep: 'Keep this one',
+      only_here: 'only in this version',
+      missing: 'not in this version',
+      unchanged: {
+        one: '{count} more item unchanged',
+        other: '{count} more items unchanged',
+      },
+      field: { type: 'Meal', when: 'Date and time', photo: 'Photo' },
+      photo_none: 'none',
+      photo_yes: 'yes',
+      kept_this: 'Kept the version from this device',
+      kept_other: 'Kept the version from the other device',
+      updated: {
+        title: 'The version on the other device has changed',
+        body: 'Check it again and choose.',
+      },
+      progress: '{i} of {n}',
+      close_a11y: 'Close, choose later',
+    },
   },
   session: {
     queued: {
@@ -1446,7 +1477,12 @@ export const en = {
       snack: 'Snack',
     },
     kcal: '{n} kcal',
-    status: { late: 'late', pending: 'waiting to sync', error: 'not saved' },
+    status: {
+      late: 'late',
+      pending: 'waiting to sync',
+      error: 'not saved',
+      conflict: 'Choose version',
+    },
     delete: 'Delete {meal}',
     menu: 'Meal actions',
     save_as_recipe: 'Save as recipe',

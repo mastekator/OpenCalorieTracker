@@ -127,13 +127,16 @@ export const JustSaved: Story = { args: { highlight: true } };
 const OPS: Record<string, Partial<Op>[]> = {
   queued: [{ kind: 'createMeal' }],
   refused: [{ kind: 'createMeal', error: 'validation_failed' }],
+  conflicted: [
+    { kind: 'patchMeal', conflict: { kind: 'deleted', deletedAt: 0 } },
+  ],
 };
 const stubDb = {
   getAllFromIndex: async (_store: string, _index: string, id: string) =>
     OPS[id] ?? [],
 } as unknown as Db;
 
-/** OCT-206: «waiting to sync», «not saved» (before «late»), a saved meal without a badge. */
+/** OCT-206: «waiting to sync», «not saved» (before «late»), «Choose version» (OCT-157 1.1), a saved meal without a badge. */
 export const SyncStatus: Story = {
   render: () => (
     <DataContext value={stubDb}>
@@ -148,6 +151,12 @@ export const SyncStatus: Story = {
             ...MEALS[0]!,
             clientId: 'refused',
           },
+          meal({
+            clientId: 'conflicted',
+            mealType: 'dinner',
+            items: dishes('Chicken soup', 'Rye bread'),
+            kcal: 712,
+          }),
           meal({
             clientId: 'saved',
             mealType: 'breakfast',
