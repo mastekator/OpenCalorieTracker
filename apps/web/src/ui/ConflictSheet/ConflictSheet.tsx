@@ -1,8 +1,15 @@
-import { diffMeals, type Meal, type Units } from '@oct/shared';
+import {
+  diffMeals,
+  mealIllustration,
+  type Meal,
+  type Units,
+} from '@oct/shared';
+import { useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { localClock } from '../../features/diary/mealTime';
 import { useT } from '../../i18n';
 import { Banner } from '../Banner/Banner';
+import { DishIllustration } from '../DishIllustration/DishIllustration';
 import { Sheet } from '../Sheet/Sheet';
 import { VersionCard, type VersionRow } from '../VersionCard/VersionCard';
 import { useWeight } from '../weightUnits';
@@ -69,11 +76,7 @@ export function ConflictSheet({
       ) : f === 'eatenAt' ? (
         when.format(localClock(m))
       ) : m.photo ? (
-        <img
-          className="version-card__thumb"
-          src={`/api/photos/${encodeURIComponent(m.photo.id)}?size=preview`}
-          alt=""
-        />
+        <Thumb meal={m} label={t('sync.conflict.photo_yes')} />
       ) : (
         t('sync.conflict.photo_none')
       ),
@@ -146,5 +149,25 @@ export function ConflictSheet({
         </div>
       </div>
     </Sheet>
+  );
+}
+
+/** The photo preview; without network or cache, the meal's illustration as in `MealRow`. */
+function Thumb({ meal, label }: { meal: Meal; label: string }) {
+  const [broken, setBroken] = useState(false);
+  return broken ? (
+    <span role="img" aria-label={label}>
+      <DishIllustration
+        id={mealIllustration(meal.items)}
+        size="var(--meal-thumb-size)"
+      />
+    </span>
+  ) : (
+    <img
+      className="version-card__thumb"
+      src={`/api/photos/${encodeURIComponent(meal.photo!.id)}?size=preview`}
+      alt={label}
+      onError={() => setBroken(true)}
+    />
   );
 }

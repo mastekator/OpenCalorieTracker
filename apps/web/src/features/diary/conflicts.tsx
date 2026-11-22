@@ -39,9 +39,15 @@ export function ConflictProvider({ children }: { children: ReactNode }) {
   const { user } = useSession();
   const settings = useSettings();
   const conflicts = useConflicts();
-  const [desktop] = useState(
+  const [desktop, setDesktop] = useState(
     () => !!window.matchMedia?.(DESKTOP_MEDIA).matches,
   );
+  useEffect(() => {
+    const media = window.matchMedia?.(DESKTOP_MEDIA);
+    const sync = () => setDesktop(media!.matches);
+    media?.addEventListener('change', sync);
+    return () => media?.removeEventListener('change', sync);
+  }, []);
   const [current, setCurrent] = useState<string | null>(null);
   const [updated, setUpdated] = useState(false);
   // Chosen since the sheet opened, for «2 of 3».
@@ -67,7 +73,10 @@ export function ConflictProvider({ children }: { children: ReactNode }) {
     if (!grew) return;
     const first = conflicts[0]!.mine.clientId;
     toast({
-      text: t('sync.conflict.toast', { count: n }),
+      text:
+        n === 1
+          ? t('sync.conflict.toast_single')
+          : t('sync.conflict.toast', { count: n }),
       icon: <GitCompare aria-hidden="true" />,
       ms: CONFLICT_TOAST_MS,
       action: { label: t('sync.conflict.choose'), onClick: () => open(first) },

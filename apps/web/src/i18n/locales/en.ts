@@ -922,9 +922,10 @@ export const en = {
     sent: { one: 'Synced {count} entry', other: 'Synced {count} entries' },
     conflict: {
       toast: {
-        one: 'An entry was changed on two devices',
+        one: '{count} entry was changed on two devices',
         other: '{count} entries were changed on two devices',
       },
+      toast_single: 'An entry was changed on two devices',
       choose: 'Choose',
       question: 'It was changed on two devices. Which version should we keep?',
       this_device: 'On this device',
@@ -940,6 +941,7 @@ export const en = {
       },
       field: { type: 'Meal', when: 'Date and time', photo: 'Photo' },
       photo_none: 'none',
+      photo_yes: 'yes',
       kept_this: 'Kept the version from this device',
       kept_other: 'Kept the version from the other device',
       updated: {

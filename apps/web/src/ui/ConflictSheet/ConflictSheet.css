@@ -32,3 +32,10 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* Desktop dialog fits its content instead of the chat height (OCT-157 §2). */
+@media (min-width: 1024px) {
+  :root .sheet.sheet--full:has(.conflict-sheet) {
+    height: auto;
+  }
+}

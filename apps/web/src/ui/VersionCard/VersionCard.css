@@ -44,9 +44,7 @@
 .version-card__title {
   font-size: var(--text-headline-size);
   font-weight: var(--text-headline-weight);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: var(--text-headline-lh);
 }
 
 .version-card__edited {
@@ -59,6 +57,7 @@
 }
 
 .version-card__kcal {
+  flex: none;
   font-size: var(--text-headline-size);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
