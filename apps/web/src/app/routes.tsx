@@ -15,9 +15,11 @@ import { SettingsScreen } from '../features/settings/SettingsScreen';
 import {
   BARCODE_PATH,
   BarcodeIntegrationScreen,
+  IMPORT_PATH,
   INTEGRATIONS_PATH,
   IntegrationsScreen,
 } from '../features/settings/IntegrationsScreen';
+import { ImportScreen } from '../features/settings/ImportScreen';
 import { AdminIntegrationsScreen } from '../features/admin/AdminIntegrationsScreen';
 import { BlocksScreen } from '../features/admin/BlocksScreen';
 import { INVITES_PATH, InvitesScreen } from '../features/admin/InvitesScreen';
@@ -242,6 +244,14 @@ export function AppScreens() {
           back={{ href: INTEGRATIONS_PATH, label: t('settings.integrations') }}
         >
           <BarcodeIntegrationScreen />
+        </Screen>
+      </Route>
+      <Route path={IMPORT_PATH}>
+        <Screen
+          title={t('integr.import.title')}
+          back={{ href: INTEGRATIONS_PATH, label: t('settings.integrations') }}
+        >
+          <ImportScreen />
         </Screen>
       </Route>
       {user.role !== 'admin' && (

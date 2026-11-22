@@ -1,51 +1,29 @@
-import { z } from 'zod';
-import { mealTypeAt, type Locale, type MealType } from '@oct/shared';
+import {
+  mealTypeAt,
+  type Columns,
+  type DateOrder,
+  type ImportRecord,
+  type Locale,
+  type MealType,
+  type Preview,
+  type RowReason,
+} from '@oct/shared';
+
+export {
+  mappingSchema,
+  type Columns,
+  type DateOrder,
+  type ImportRecord,
+  type Mapping,
+  type Preview,
+  type RowReason,
+} from '@oct/shared';
 
 /** Rows past this answer 413 import_too_large (≈ 50 MB of CSV, ADR-0026 §5). */
 export const MAX_IMPORT_ROWS = 200_000;
 export const MAX_IMPORT_KCAL = 10_000;
 const KJ_PER_KCAL = 4.184;
 const GRAMS_PER_OZ = 28.3495;
-
-const column = z.number().int().min(0);
-/** Column indexes of the file; date, name and kcal are required (design: no kcal, no record). */
-export const mappingSchema = z.object({
-  columns: z.object({
-    date: column,
-    time: column.optional(),
-    meal: column.optional(),
-    name: column,
-    grams: column.optional(),
-    kcal: column,
-    protein: column.optional(),
-    fat: column.optional(),
-    carbs: column.optional(),
-  }),
-  /** Unset: guessed from the file, `ambiguousDates` when it cannot be. */
-  dateOrder: z.enum(['dmy', 'mdy', 'ymd']).optional(),
-  /** Unset: a comma is decimal when the number has no dot. */
-  decimal: z.enum(['.', ',']).optional(),
-});
-export type Mapping = z.infer<typeof mappingSchema>;
-export type DateOrder = NonNullable<Mapping['dateOrder']>;
-export type Columns = Mapping['columns'];
-
-/** One dish of the preview and of the commit. */
-export interface ImportRecord {
-  localDate: string;
-  /** `HH:MM`, null when the file has none. */
-  time: string | null;
-  mealType: MealType;
-  name: string;
-  grams: number;
-  kcal: number;
-  proteinG: number;
-  fatG: number;
-  carbsG: number;
-}
-
-export type RowReason =
-  'no_date' | 'bad_date' | 'no_name' | 'no_kcal' | 'kcal_out_of_range';
 
 // Header words for guessing columns: our export headers plus common RU/EN ones.
 const HEADERS: [keyof Columns, RegExp][] = [
@@ -255,17 +233,6 @@ export function toRecord(
     fatG: nonNeg(num(columns.fat)),
     carbsG: nonNeg(num(columns.carbs)),
   };
-}
-
-export interface Preview {
-  period: { from: string; to: string } | null;
-  days: number;
-  records: number;
-  skippedDays: number;
-  skippedRecords: number;
-  first: ImportRecord[];
-  unrecognized: { count: number; rows: { line: number; reason: RowReason }[] };
-  ambiguousDates: boolean;
 }
 
 /**
