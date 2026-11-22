@@ -43,13 +43,30 @@ export function quickReasoning(model: AiModel) {
   return model.provider.startsWith('google') ? ('minimal' as const) : undefined;
 }
 
-/** Error class and provider status for the log line, never the error text (AC-6.2). */
+/**
+ * Error class, provider status and, for a 4xx, the provider's error text (OCT-437): it names the
+ * rejected request part. The text is cut and stripped of anything key-like; never user content (AC-6.2).
+ */
 export function failureNote(err: unknown) {
   let note = ` error=${(err as Error)?.name ?? 'unknown'}`;
-  if (APICallError.isInstance(err) && err.statusCode)
-    note += ` status=${err.statusCode}`;
+  if (!APICallError.isInstance(err) || !err.statusCode) return note;
+  note += ` status=${err.statusCode}`;
+  // 5xx and 429 bodies say nothing useful; a 4xx body describes our request.
+  if (err.statusCode >= 400 && err.statusCode < 500 && err.statusCode !== 429)
+    note += ` body=${JSON.stringify(providerText(err.responseBody || err.message))}`;
   return note;
 }
+
+/** One line, at most 300 chars, keys and bearer tokens masked. */
+export const providerText = (text: string) =>
+  text
+    .replace(
+      /AIza[\w-]{10,}|sk-[\w-]{10,}|(key|token)=[^&\s"]+|Bearer\s+\S+/gi,
+      '***',
+    )
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 300);
 
 interface CallOptions<T> {
   /** Log name: ai.<op>. */

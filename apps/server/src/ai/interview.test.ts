@@ -71,6 +71,12 @@ const good = {
     sex: 'male',
     ageYears: 34,
     weight: { value: 85, unit: 'unspecified' },
+    birthDate: null,
+    height: null,
+    activity: null,
+    goal: null,
+    targetWeight: null,
+    deadline: null,
   },
   reply: 'How tall are you?',
 };
@@ -90,7 +96,7 @@ describe('normInterview', () => {
     );
     expect(logs()).toEqual([
       expect.stringMatching(
-        /^ai\.interview provider=mock model=text-1 prompt=2 ms=\d+ fields=sex,ageYears,weight result=ok$/,
+        /^ai\.interview provider=mock model=text-1 prompt=3 ms=\d+ fields=sex,ageYears,weight result=ok$/,
       ),
     ]);
     expect(logs()[0]).not.toContain('tall');

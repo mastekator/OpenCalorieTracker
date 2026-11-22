@@ -8,7 +8,7 @@ import type {
 import { languageName } from '../ai/common.js';
 
 /** Bump on every prompt change; it is logged with each call. */
-export const INTERVIEW_PROMPT_VERSION = 2;
+export const INTERVIEW_PROMPT_VERSION = 3;
 /** Dialog messages sent to the model; the draft carries everything older (ADR-0015 §7). */
 export const HISTORY_LIMIT = 30;
 
@@ -24,7 +24,7 @@ export function interviewSystemPrompt(
 ) {
   const known = { ...draft.profile, unknown: draft.unknown };
   return `You help the user fill in exactly these profile fields for a calorie norm: sex, birth date or age, height, weight, activity level, goal (lose, maintain, gain), and for lose or gain a target weight and a deadline.
-Extract every field the user's latest message gives, even several at once. Put nothing else in "extracted".
+Extract every field the user's latest message gives, even several at once. Set every other field of "extracted" to null.
 - Height and weight: copy the number and the unit the user said; unit "unspecified" when they gave none. Feet and inches become inches (5'11" = 71 in). Never convert units yourself.
 - Age without a birth date goes to ageYears.
 - Activity: map the user's description to minimal, light, moderate, high or very_high.

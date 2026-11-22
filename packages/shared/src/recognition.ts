@@ -62,17 +62,81 @@ const packageHints = {
   label: z.boolean().optional(),
 };
 
-/** A dish as the model returns it in recognition (ADR-0034 §2, ADR-0036 §1); refine keeps the plain dish. */
-export const packageModelDishSchema = recognizedDishSchema.extend({
-  ...packageHints,
+/*
+ * What the model is asked to return (OCT-437). Every field is required, "none" is null:
+ * Gemini rejects a response schema with many optional and nullable fields with a 400.
+ * The server turns nulls into absent fields; the API schemas above and below stay as they are.
+ */
+/** Required and nullable in the JSON schema; a field the model still leaves out parses as null. */
+export const orNull = <T extends z.ZodType>(schema: T) =>
+  z.preprocess((v) => v ?? null, schema.nullable());
+
+const modelDish = {
+  name: z.string().min(1).max(80),
+  grams: z.number(),
+  kcal: z.number(),
+  proteinG: z.number(),
+  fatG: z.number(),
+  carbsG: z.number(),
+  confidence: z.number(),
+  /** 'ml' for drinks (ADR-0038 §3). */
+  // An odd unit becomes null rather than failing the whole answer.
+  unit: z.preprocess(
+    (v) =>
+      typeof v === 'string' && /^(g|ml)$/i.test(v.trim())
+        ? v.trim().toLowerCase()
+        : null,
+    z.enum(['g', 'ml']).nullable(),
+  ),
+};
+
+const modelQuestionSchema = z.object({
+  dish: z.number(),
+  text: z.string(),
+  guess: z.number(),
+  options: z.array(
+    z.object({
+      label: z.string(),
+      name: z.string(),
+      grams: z.number(),
+      kcal: z.number(),
+      proteinG: z.number(),
+      fatG: z.number(),
+      carbsG: z.number(),
+      /** The name of one of the user's recipes this option is (ADR-0035 §5). */
+      recipe: orNull(z.string()),
+    }),
+  ),
+});
+
+// A missing list is an empty one.
+const modelQuestions = z.preprocess(
+  (v) => v ?? [],
+  z.array(modelQuestionSchema),
+);
+
+/** What the model returns in refine (ADR-0020 §3): `ref` is the id of the input dish, null for a new one. */
+export const refineModelSchema = z.object({
+  dishes: z.array(z.object({ ...modelDish, ref: orNull(z.string()) })).max(20),
+  questions: modelQuestions,
+});
+
+/** A dish as the model returns it in recognition and label reading (ADR-0034 §2, ADR-0036 §1). */
+export const packageModelDishSchema = z.object({
+  ...modelDish,
+  /** The code from the `<barcodes>` tag this dish is the package of. */
+  barcode: orNull(z.string()),
+  /** The numbers were read from the package's nutrition table. */
+  label: orNull(z.boolean()),
   /** The digits printed under the barcode lines, read off the photo; the server keeps them only when they differ from every tag code. */
-  printedBarcode: z.string().nullable().optional(),
+  printedBarcode: orNull(z.string()),
 });
 export type PackageModelDish = z.infer<typeof packageModelDishSchema>;
 
 /** What the model returns in recognition. */
-export const packageModelSchema = recognitionSchema.extend({
+export const packageModelSchema = z.object({
   dishes: z.array(packageModelDishSchema).max(20),
+  questions: modelQuestions,
 });
 export type PackageModelRecognition = z.infer<typeof packageModelSchema>;
 

@@ -94,7 +94,7 @@ describe('recognizeMeal', () => {
     });
     expect(logs()).toEqual([
       expect.stringMatching(
-        /^ai\.recognize provider=mock model=vision-1 prompt=7 ms=\d+ dishes=1 questions=0 recipes=0 result=ok$/,
+        /^ai\.recognize provider=mock model=vision-1 prompt=8 ms=\d+ dishes=1 questions=0 recipes=0 result=ok$/,
       ),
     ]);
   });
@@ -290,7 +290,7 @@ describe('recognizeMeal', () => {
     await expect(
       readLabel(model, jpeg, 'en', '4006381333931'),
     ).resolves.toEqual({ dishes: [], questions: [] });
-    expect(logs()[0]).toMatch(/^ai\.label .* prompt=7 /);
+    expect(logs()[0]).toMatch(/^ai\.label .* prompt=8 /);
   });
 
   it('maps a no-image error to ai_no_vision and remembers it', async () => {
@@ -352,8 +352,8 @@ describe('sanitizeDish', () => {
   it('asks for ml only for drinks in both prompts', () => {
     expect(recognizePrompt('en')).toContain(UNIT_RULE);
     expect(refinePrompt('refine', true, 'en')).toContain(UNIT_RULE);
-    expect(RECOGNIZE_PROMPT_VERSION).toBe(7);
-    expect(REFINE_PROMPT_VERSION).toBe(3);
+    expect(RECOGNIZE_PROMPT_VERSION).toBe(8);
+    expect(REFINE_PROMPT_VERSION).toBe(4);
   });
 
   it.each([{ kcal: 12_000 }, { proteinG: 2000, fatG: 2000, carbsG: 2000 }])(
