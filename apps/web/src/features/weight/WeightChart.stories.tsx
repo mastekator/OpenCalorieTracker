@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { fn } from 'storybook/test';
 import { addDays, weightTrend, type Weighing } from '@oct/shared';
-import { periodStart } from './weightScale';
+import { axisStart, periodStart } from './weightScale';
 import { WeightChart } from './WeightChart';
 
 const TODAY = '2026-11-16';
@@ -10,6 +10,18 @@ const POINTS: Weighing[] = Array.from({ length: 40 }, (_, i) => ({
   date: addDays(FROM, Math.round(i * 2.3)),
   weightKg: Math.round((82 - i * 0.05 + ((i * 7) % 5) * 0.2) * 10) / 10,
 }));
+/** Four weigh-ins over the last four days, in a «3 months» period. */
+const SHORT: Weighing[] = [82.4, 82.1, 82.3, 82.6].map((weightKg, i) => ({
+  date: addDays(TODAY, i - 3),
+  weightKg,
+}));
+/** Every other day for three weeks. */
+const WEEKS: Weighing[] = POINTS.slice(-10).map((p, i) => ({
+  ...p,
+  date: addDays(TODAY, (i - 9) * 2),
+}));
+const start = (points: readonly Weighing[], from: string | null = FROM) =>
+  axisStart(points[0]!.date, from, TODAY);
 const DAILY: Weighing[] = Array.from({ length: 1200 }, (_, i) => ({
   date: addDays(TODAY, i - 1199),
   weightKg: Math.round((90 - i * 0.008 + ((i * 7) % 9) * 0.15) * 10) / 10,
@@ -33,11 +45,10 @@ const meta = {
   args: {
     points: POINTS,
     trend: weightTrend(POINTS),
-    from: FROM,
+    start: FROM,
     today: TODAY,
     units: 'metric',
     target: 78,
-    weeks: false,
     label: 'Weight chart',
     selected: null,
     onSelect: fn(),
@@ -62,18 +73,49 @@ export const NoTrend: Story = {
   args: {
     points: POINTS.slice(-2),
     trend: null,
-    from: periodStart(TODAY, 'month')!,
-    weeks: true,
+    start: start(POINTS.slice(-2)),
   },
 };
-export const One: Story = { args: { points: POINTS.slice(-1), trend: null } };
+export const NoTrendDark: Story = { ...NoTrend, globals: dark };
+/** One weighing: the narrowest axis, 5 days to today. */
+export const One: Story = {
+  args: {
+    points: POINTS.slice(-1),
+    trend: null,
+    start: start([POINTS.at(-1)!]),
+  },
+};
 export const OneDark: Story = { ...One, globals: dark };
-/** Over 400 weighings: only the trend; years under the plot past two years. */
+/** A history of four days in «3 months»: the axis starts at it, a label per day. */
+export const ShortHistory: Story = {
+  args: { points: SHORT, trend: weightTrend(SHORT), start: start(SHORT) },
+};
+export const ShortHistoryDark: Story = { ...ShortHistory, globals: dark };
+/** Three weeks: a label every week, back from today. */
+export const Weeks: Story = {
+  args: {
+    points: WEEKS,
+    trend: weightTrend(WEEKS),
+    start: start(WEEKS, periodStart(TODAY, 'month')),
+  },
+};
+export const WeeksDark: Story = { ...Weeks, globals: dark };
+/** «Year» over a year of weighings: every 3rd month start, January as the year. */
+export const Year: Story = {
+  args: {
+    points: DAILY.slice(-366),
+    trend: weightTrend(DAILY)!.slice(-366),
+    start: periodStart(TODAY, 'year')!,
+    target: null,
+  },
+};
+export const YearDark: Story = { ...Year, globals: dark };
+/** Over 400 weighings: only the trend; Jan 1 of each year under the plot. */
 export const ManyOnlyTrend: Story = {
   args: {
     points: DAILY,
     trend: weightTrend(DAILY),
-    from: DAILY[0]!.date,
+    start: start(DAILY, null),
     target: null,
   },
 };

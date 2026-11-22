@@ -694,7 +694,8 @@ export const en = {
   weight_screen: {
     period: 'Period',
     month: 'Month',
-    quarter: '3\u00a0months',
+    quarter: '3\u00a0mo',
+    quarter_aria: '3\u00a0months',
     year: 'Year',
     all: 'All',
     per_month: 'the past month',
@@ -702,6 +703,7 @@ export const en = {
     per_year: 'the past year',
     per_all: 'all time',
     trend: 'Trend over {period}: {diff}',
+    trend_since: 'Trend since {date}: {diff}',
     trend_soon: 'The trend appears after your third weigh-in',
     legend_points: 'weigh-ins',
     legend_trend: 'trend',
@@ -709,6 +711,8 @@ export const en = {
     goal: 'Goal {weight}',
     edit: 'Edit',
     chart: 'Weight chart, {period}: latest weigh-in {weight}{trend}{goal}.',
+    chart_since:
+      'Weight chart since {date}: latest weigh-in {weight}{trend}{goal}.',
     chart_trend: ', trend {diff}',
     chart_goal: ', goal {weight}',
     none: 'No weigh-ins in {period}',

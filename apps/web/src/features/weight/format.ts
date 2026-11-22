@@ -22,6 +22,11 @@ export function useWeightFormat(units: Units) {
       f.format(new Date(`${d}T00:00:00Z`)).replaceAll(' ', NB);
   };
   const short = dateFormat({ day: 'numeric', month: 'short' });
+  const shortYear = dateFormat({
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
   const long = dateFormat({ weekday: 'short', day: 'numeric', month: 'short' });
   const n1f = new Intl.NumberFormat(locale, {
     minimumFractionDigits: 1,
@@ -41,6 +46,7 @@ export function useWeightFormat(units: Units) {
     shown,
     signed,
     short,
+    shortYear,
     /** A goal reads «73 kg», «160.9 lb». */
     n01: (v: number) =>
       new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(v),
