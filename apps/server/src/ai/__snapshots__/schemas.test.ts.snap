@@ -1,0 +1,723 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`model response schemas (OCT-437) > interview: no optional fields, shallow and small > interview 1`] = `
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "properties": {
+    "extracted": {
+      "additionalProperties": false,
+      "properties": {
+        "activity": {
+          "anyOf": [
+            {
+              "enum": [
+                "minimal",
+                "light",
+                "moderate",
+                "high",
+                "very_high",
+              ],
+              "type": "string",
+            },
+            {
+              "type": "null",
+            },
+          ],
+        },
+        "ageYears": {
+          "anyOf": [
+            {
+              "maximum": 9007199254740991,
+              "minimum": -9007199254740991,
+              "type": "integer",
+            },
+            {
+              "type": "null",
+            },
+          ],
+        },
+        "birthDate": {
+          "anyOf": [
+            {
+              "format": "date",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+              "type": "string",
+            },
+            {
+              "type": "null",
+            },
+          ],
+        },
+        "deadline": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                  "type": "string",
+                },
+                {
+                  "enum": [
+                    "unknown",
+                  ],
+                  "type": "string",
+                },
+              ],
+            },
+            {
+              "type": "null",
+            },
+          ],
+        },
+        "goal": {
+          "anyOf": [
+            {
+              "enum": [
+                "lose",
+                "maintain",
+                "gain",
+              ],
+              "type": "string",
+            },
+            {
+              "type": "null",
+            },
+          ],
+        },
+        "height": {
+          "anyOf": [
+            {
+              "additionalProperties": false,
+              "properties": {
+                "unit": {
+                  "enum": [
+                    "cm",
+                    "in",
+                    "unspecified",
+                  ],
+                  "type": "string",
+                },
+                "value": {
+                  "type": "number",
+                },
+              },
+              "required": [
+                "value",
+                "unit",
+              ],
+              "type": "object",
+            },
+            {
+              "type": "null",
+            },
+          ],
+        },
+        "sex": {
+          "anyOf": [
+            {
+              "enum": [
+                "male",
+                "female",
+              ],
+              "type": "string",
+            },
+            {
+              "type": "null",
+            },
+          ],
+        },
+        "targetWeight": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "unit": {
+                      "enum": [
+                        "kg",
+                        "lb",
+                        "unspecified",
+                      ],
+                      "type": "string",
+                    },
+                    "value": {
+                      "type": "number",
+                    },
+                  },
+                  "required": [
+                    "value",
+                    "unit",
+                  ],
+                  "type": "object",
+                },
+                {
+                  "enum": [
+                    "unknown",
+                  ],
+                  "type": "string",
+                },
+              ],
+            },
+            {
+              "type": "null",
+            },
+          ],
+        },
+        "weight": {
+          "anyOf": [
+            {
+              "additionalProperties": false,
+              "properties": {
+                "unit": {
+                  "enum": [
+                    "kg",
+                    "lb",
+                    "unspecified",
+                  ],
+                  "type": "string",
+                },
+                "value": {
+                  "type": "number",
+                },
+              },
+              "required": [
+                "value",
+                "unit",
+              ],
+              "type": "object",
+            },
+            {
+              "type": "null",
+            },
+          ],
+        },
+      },
+      "required": [
+        "sex",
+        "birthDate",
+        "ageYears",
+        "height",
+        "weight",
+        "activity",
+        "goal",
+        "targetWeight",
+        "deadline",
+      ],
+      "type": "object",
+    },
+    "reply": {
+      "maxLength": 500,
+      "minLength": 1,
+      "type": "string",
+    },
+  },
+  "required": [
+    "extracted",
+    "reply",
+  ],
+  "type": "object",
+}
+`;
+
+exports[`model response schemas (OCT-437) > lighter: no optional fields, shallow and small > lighter 1`] = `
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "properties": {
+    "variants": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "ingredients": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "change": {
+                  "enum": [
+                    "same",
+                    "reduced",
+                    "replaced",
+                    "added",
+                    "removed",
+                  ],
+                  "type": "string",
+                },
+                "from": {
+                  "type": [
+                    "number",
+                    "null",
+                  ],
+                },
+                "grams": {
+                  "type": "number",
+                },
+                "name": {
+                  "type": "string",
+                },
+                "per100": {
+                  "anyOf": [
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "carbsG": {
+                          "type": "number",
+                        },
+                        "fatG": {
+                          "type": "number",
+                        },
+                        "kcal": {
+                          "type": "number",
+                        },
+                        "proteinG": {
+                          "type": "number",
+                        },
+                      },
+                      "required": [
+                        "kcal",
+                        "proteinG",
+                        "fatG",
+                        "carbsG",
+                      ],
+                      "type": "object",
+                    },
+                    {
+                      "type": "null",
+                    },
+                  ],
+                },
+                "why": {
+                  "type": "string",
+                },
+              },
+              "required": [
+                "change",
+                "from",
+                "name",
+                "grams",
+                "per100",
+                "why",
+              ],
+              "type": "object",
+            },
+            "type": "array",
+          },
+        },
+        "required": [
+          "ingredients",
+        ],
+        "type": "object",
+      },
+      "type": "array",
+    },
+  },
+  "required": [
+    "variants",
+  ],
+  "type": "object",
+}
+`;
+
+exports[`model response schemas (OCT-437) > parse: no optional fields, shallow and small > parse 1`] = `
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "properties": {
+    "cookedG": {
+      "type": [
+        "number",
+        "null",
+      ],
+    },
+    "ingredients": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "grams": {
+            "type": [
+              "number",
+              "null",
+            ],
+          },
+          "name": {
+            "type": "string",
+          },
+          "per100": {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "carbsG": {
+                    "type": "number",
+                  },
+                  "fatG": {
+                    "type": "number",
+                  },
+                  "kcal": {
+                    "type": "number",
+                  },
+                  "proteinG": {
+                    "type": "number",
+                  },
+                },
+                "required": [
+                  "kcal",
+                  "proteinG",
+                  "fatG",
+                  "carbsG",
+                ],
+                "type": "object",
+              },
+              {
+                "type": "null",
+              },
+            ],
+          },
+        },
+        "required": [
+          "name",
+          "grams",
+          "per100",
+        ],
+        "type": "object",
+      },
+      "type": "array",
+    },
+    "name": {
+      "type": "string",
+    },
+    "servings": {
+      "type": [
+        "number",
+        "null",
+      ],
+    },
+    "steps": {
+      "items": {
+        "type": "string",
+      },
+      "type": "array",
+    },
+  },
+  "required": [
+    "name",
+    "servings",
+    "cookedG",
+    "ingredients",
+    "steps",
+  ],
+  "type": "object",
+}
+`;
+
+exports[`model response schemas (OCT-437) > recognize: no optional fields, shallow and small > recognize 1`] = `
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "properties": {
+    "dishes": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "barcode": {
+            "type": [
+              "string",
+              "null",
+            ],
+          },
+          "carbsG": {
+            "type": "number",
+          },
+          "confidence": {
+            "type": "number",
+          },
+          "fatG": {
+            "type": "number",
+          },
+          "grams": {
+            "type": "number",
+          },
+          "kcal": {
+            "type": "number",
+          },
+          "label": {
+            "type": [
+              "boolean",
+              "null",
+            ],
+          },
+          "name": {
+            "maxLength": 80,
+            "minLength": 1,
+            "type": "string",
+          },
+          "printedBarcode": {
+            "type": [
+              "string",
+              "null",
+            ],
+          },
+          "proteinG": {
+            "type": "number",
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "enum": [
+                  "g",
+                  "ml",
+                ],
+                "type": "string",
+              },
+              {
+                "type": "null",
+              },
+            ],
+          },
+        },
+        "required": [
+          "name",
+          "grams",
+          "kcal",
+          "proteinG",
+          "fatG",
+          "carbsG",
+          "confidence",
+          "unit",
+          "barcode",
+          "label",
+          "printedBarcode",
+        ],
+        "type": "object",
+      },
+      "maxItems": 20,
+      "type": "array",
+    },
+    "questions": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "dish": {
+            "type": "number",
+          },
+          "guess": {
+            "type": "number",
+          },
+          "options": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "carbsG": {
+                  "type": "number",
+                },
+                "fatG": {
+                  "type": "number",
+                },
+                "grams": {
+                  "type": "number",
+                },
+                "kcal": {
+                  "type": "number",
+                },
+                "label": {
+                  "type": "string",
+                },
+                "name": {
+                  "type": "string",
+                },
+                "proteinG": {
+                  "type": "number",
+                },
+                "recipe": {
+                  "type": [
+                    "string",
+                    "null",
+                  ],
+                },
+              },
+              "required": [
+                "label",
+                "name",
+                "grams",
+                "kcal",
+                "proteinG",
+                "fatG",
+                "carbsG",
+                "recipe",
+              ],
+              "type": "object",
+            },
+            "type": "array",
+          },
+          "text": {
+            "type": "string",
+          },
+        },
+        "required": [
+          "dish",
+          "text",
+          "guess",
+          "options",
+        ],
+        "type": "object",
+      },
+      "type": "array",
+    },
+  },
+  "required": [
+    "dishes",
+    "questions",
+  ],
+  "type": "object",
+}
+`;
+
+exports[`model response schemas (OCT-437) > refine: no optional fields, shallow and small > refine 1`] = `
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "properties": {
+    "dishes": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "carbsG": {
+            "type": "number",
+          },
+          "confidence": {
+            "type": "number",
+          },
+          "fatG": {
+            "type": "number",
+          },
+          "grams": {
+            "type": "number",
+          },
+          "kcal": {
+            "type": "number",
+          },
+          "name": {
+            "maxLength": 80,
+            "minLength": 1,
+            "type": "string",
+          },
+          "proteinG": {
+            "type": "number",
+          },
+          "ref": {
+            "type": [
+              "string",
+              "null",
+            ],
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "enum": [
+                  "g",
+                  "ml",
+                ],
+                "type": "string",
+              },
+              {
+                "type": "null",
+              },
+            ],
+          },
+        },
+        "required": [
+          "name",
+          "grams",
+          "kcal",
+          "proteinG",
+          "fatG",
+          "carbsG",
+          "confidence",
+          "unit",
+          "ref",
+        ],
+        "type": "object",
+      },
+      "maxItems": 20,
+      "type": "array",
+    },
+    "questions": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "dish": {
+            "type": "number",
+          },
+          "guess": {
+            "type": "number",
+          },
+          "options": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "carbsG": {
+                  "type": "number",
+                },
+                "fatG": {
+                  "type": "number",
+                },
+                "grams": {
+                  "type": "number",
+                },
+                "kcal": {
+                  "type": "number",
+                },
+                "label": {
+                  "type": "string",
+                },
+                "name": {
+                  "type": "string",
+                },
+                "proteinG": {
+                  "type": "number",
+                },
+                "recipe": {
+                  "type": [
+                    "string",
+                    "null",
+                  ],
+                },
+              },
+              "required": [
+                "label",
+                "name",
+                "grams",
+                "kcal",
+                "proteinG",
+                "fatG",
+                "carbsG",
+                "recipe",
+              ],
+              "type": "object",
+            },
+            "type": "array",
+          },
+          "text": {
+            "type": "string",
+          },
+        },
+        "required": [
+          "dish",
+          "text",
+          "guess",
+          "options",
+        ],
+        "type": "object",
+      },
+      "type": "array",
+    },
+  },
+  "required": [
+    "dishes",
+    "questions",
+  ],
+  "type": "object",
+}
+`;

@@ -10,6 +10,7 @@ import {
   round1,
   type AiQuestion,
   type DishUnit,
+  type PackageDish,
   type PackageModelDish,
   type PackageModelRecognition,
   type PackageRecognition,
@@ -31,20 +32,24 @@ import {
 } from './questions.js';
 
 /** Bump on every prompt change; it is logged with each call. */
-export const RECOGNIZE_PROMPT_VERSION = 7;
+export const RECOGNIZE_PROMPT_VERSION = 8;
 
 /** Same rule in the photo and label prompts (OCT-372). */
 export const PET_FOOD_RULE =
   'Food for people only; pet food is not food — omit it even if its nutrition table is readable; packaged human food with animals in its picture or name is food.';
 /** Same rule in the photo and refine prompts (ADR-0038 §3). */
 export const UNIT_RULE =
-  'For a drink or a liquid dish in a glass, cup or bottle set "unit" to "ml" and put its volume in millilitres in "grams"; for anything else omit "unit".';
+  'For a drink or a liquid dish in a glass, cup or bottle set "unit" to "ml" and put its volume in millilitres in "grams"; for anything else set "unit" to null.';
 export const RECOGNIZE_TIMEOUT_MS = 60_000;
 
+/** A sanitized dish before the server looks up its printed code (ADR-0036 §3). */
+export type SanitizedPackageDish = PackageDish & { printedBarcode?: string };
+
 /** Recognition before the server looks up the printed codes (ADR-0036 §3). */
-export type ModelRecognition = PackageModelRecognition & {
+export interface ModelRecognition {
+  dishes: SanitizedPackageDish[];
   questions: AiQuestion[];
-};
+}
 
 /** Tokens of one recognition, every attempt summed. */
 export interface TokenUsage {
@@ -67,7 +72,7 @@ If there is no food on the photo, return an empty list.
 The message may have a <barcodes> tag with retail barcodes read from packages on the photo.
 For a dish that is one of these packages set barcode to its number exactly as listed, otherwise null.
 For a package also set printedBarcode to the digits printed under its barcode lines exactly as you read them on the photo — do not copy them from the <barcodes> tag; null if the digits are not legible.
-Set label to true only when you read the dish's kcal and nutrients from its package's nutrition table on the photo.
+Set label to true only when you read the dish's kcal and nutrients from its package's nutrition table on the photo, otherwise null.
 ${QUESTIONS_PROMPT}${hasRecipes ? RECIPES_PROMPT : ''}`;
 }
 
@@ -78,7 +83,7 @@ Return one dish: the product name in ${languageName(locale)}; grams is one servi
 kcal, protein, fat and carbohydrates in grams for that weight, computed from the table; confidence 1.
 ${PET_FOOD_RULE}
 If the photo has no readable nutrition table or the package is pet food, return an empty list.
-Do not ask questions.`;
+Do not ask questions: return an empty questions list.`;
 }
 
 /**
@@ -226,7 +231,7 @@ async function askVision<T extends { dishes: unknown[]; questions: unknown[] }>(
 export function sanitizePackageDish(
   d: PackageModelDish,
   barcodes: string[],
-): PackageModelDish {
+): SanitizedPackageDish {
   const code = d.barcode ? normalizeGtin(d.barcode) : null;
   const printed = d.printedBarcode ? normalizeGtin(d.printedBarcode) : null;
   return {
