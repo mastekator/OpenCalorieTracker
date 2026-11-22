@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Barcode, Lock } from 'lucide-react';
+import { Barcode, Lock, Upload } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { useDb, useOutboundBlocked, useSettings } from '../../data/DataContext';
 import { patchSettings } from '../../data/outbox';
@@ -16,6 +16,7 @@ import './settings.css';
 
 export const INTEGRATIONS_PATH = '/settings/integrations';
 export const BARCODE_PATH = `${INTEGRATIONS_PATH}/barcode`;
+export const IMPORT_PATH = `${INTEGRATIONS_PATH}/import`;
 
 /** The admin's ban wins over the user's own switch, which is kept for when it is lifted (E-6). */
 function useBarcodeState(): { on: boolean; state: IntegrationState } {
@@ -47,6 +48,15 @@ export function IntegrationsScreen() {
           onClick={() => navigate(BARCODE_PATH)}
         >
           {t('integr.barcode.title')}
+        </ListRow>
+      </List>
+      <List title={t('integr.your_data')}>
+        <ListRow
+          icon={<Upload />}
+          description={t('integr.import.desc')}
+          onClick={() => navigate(IMPORT_PATH)}
+        >
+          {t('integr.import.title')}
         </ListRow>
       </List>
     </div>
