@@ -120,7 +120,8 @@
 
 .import__select {
   max-inline-size: 50%;
-  min-block-size: 44px;
+  min-block-size: var(--tap-min);
+  margin-inline-start: auto;
   padding-inline: var(--space-2);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-sm);
@@ -128,6 +129,22 @@
   color: var(--color-text);
   font: inherit;
   font-size: var(--text-subhead-size);
+}
+
+/* A long error under the label must not push the select below it (3.2). */
+.form-row:has(> .import__select) .list-row__label {
+  flex: 1 1 0;
+  min-inline-size: 0;
+}
+
+.import__delete {
+  display: flex;
+  align-items: center;
+  padding-inline-end: var(--space-2);
+}
+
+.import__delete .button {
+  padding-inline: var(--space-2);
 }
 
 .import__card {
@@ -179,7 +196,7 @@
 
 .import__table th,
 .import__table td {
-  padding: var(--space-2) var(--space-3);
+  padding: var(--space-2);
   text-align: start;
   border-block-end: 1px solid var(--color-separator);
 }
@@ -193,15 +210,24 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Phone (3.3): when · name · grams · kcal; the macros join on a wide screen (8.2). */
-.import__macro {
+/* Phone (3.3): the first rows as a list; the table with macros on a wide screen (8.2). */
+.import__first {
   display: none;
 }
 
 @media (min-width: 1024px) {
-  .import__macro {
-    display: table-cell;
+  .import__rows {
+    display: none;
   }
+
+  .import__first {
+    display: grid;
+  }
+}
+
+.import__when {
+  display: block;
+  white-space: nowrap;
 }
 
 .import__actions {

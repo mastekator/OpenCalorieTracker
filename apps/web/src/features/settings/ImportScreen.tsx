@@ -1,15 +1,26 @@
-import { useRef, useState, type DragEvent, type ReactNode } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  type DragEvent,
+  type ReactNode,
+} from 'react';
 import { Check, FileText, Lock, Upload } from 'lucide-react';
 import { useLocation } from 'wouter';
 import type { Columns, DateOrder, ImportRecord, Mapping } from '@oct/shared';
 import {
   commitImport,
+  deleteImport,
+  deleteInfo,
   getPreview,
+  listImports,
   putMapping,
   uploadImport,
+  type DeleteInfo,
   type DraftPreview,
   type ImportSource,
   type NeedsMapping,
+  type PastImport,
 } from '../../api/imports';
 import { ApiError } from '../../api/client';
 import { useDb, usePendingCount } from '../../data/DataContext';
@@ -17,12 +28,14 @@ import { flush } from '../../data/outbox';
 import { useT } from '../../i18n';
 import { Banner } from '../../ui/Banner/Banner';
 import { Button } from '../../ui/Button/Button';
+import { ConfirmDialog } from '../../ui/ConfirmDialog/ConfirmDialog';
 import { FormRow, formatDate } from '../../ui/FormList/FormList';
 import { List, ListRow } from '../../ui/List/List';
 import { useOnline } from '../../ui/OfflineBar/OfflineBar';
 import { ScreenState } from '../../ui/ScreenState/ScreenState';
 import { Segment } from '../../ui/Segment/Segment';
 import { Switch } from '../../ui/Switch/Switch';
+import { useToast } from '../../ui/Toast/Toast';
 import { INTEGRATIONS_PATH } from './IntegrationsScreen';
 import './settings.css';
 
@@ -73,6 +86,26 @@ export function ImportScreen() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [committing, setCommitting] = useState(false);
+  const [history, setHistory] = useState<PastImport[] | null>(null);
+  const [asked, setAsked] = useState<{ id: number; info: DeleteInfo } | null>(
+    null,
+  );
+  const [deleting, setDeleting] = useState<number | null>(null);
+  const toast = useToast();
+
+  // Not cached: offline the list just isn't there (or stays as last loaded).
+  const onSource = step.name === 'source';
+  useEffect(() => {
+    if (!online || !onSource) return;
+    let live = true;
+    listImports().then(
+      (list) => live && setHistory(list),
+      () => {},
+    );
+    return () => {
+      live = false;
+    };
+  }, [online, onSource]);
 
   async function run<T>(work: () => Promise<T>, onError = errorText) {
     setBusy(true);
@@ -89,6 +122,22 @@ export function ImportScreen() {
     return t(
       err instanceof ApiError ? `errors.${err.code}` : 'errors.internal',
     );
+  }
+
+  async function remove(id: number) {
+    setAsked(null);
+    setDeleting(id);
+    try {
+      await deleteImport(id);
+      setHistory((list) => list && list.filter((i) => i.id !== id));
+      toast({ text: t('integr.import.deleted') });
+      // The pull at the end of a flush brings the tombstones: the meals leave the diary.
+      void flush(db);
+    } catch (err) {
+      toast({ text: errorText(err) });
+    } finally {
+      setDeleting(null);
+    }
   }
 
   async function upload(source: ImportSource, file: File) {
@@ -174,12 +223,63 @@ export function ImportScreen() {
     );
   if (step.name === 'done') return <DoneStep records={step.records} />;
   return (
-    <SourceStep
-      online={online}
-      busy={busy}
-      banner={banner}
-      onFile={upload}
-      onWrongFile={() => setError(t('integr.import.wrong_type'))}
+    <>
+      <SourceStep
+        online={online}
+        busy={busy}
+        banner={banner}
+        history={history}
+        deleting={deleting}
+        onFile={upload}
+        onWrongFile={() => setError(t('integr.import.wrong_type'))}
+        onDelete={(id) =>
+          void run(async () => setAsked({ id, info: await deleteInfo(id) }))
+        }
+      />
+      <DeleteImportDialog
+        info={asked?.info ?? null}
+        onConfirm={() => asked && void remove(asked.id)}
+        onCancel={() => setAsked(null)}
+      />
+    </>
+  );
+}
+
+/** OCT-187 3.7: what «Delete import» takes away, edited meals included. */
+export function DeleteImportDialog({
+  info,
+  onConfirm,
+  onCancel,
+}: {
+  info: DeleteInfo | null;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  const { t, num } = useT();
+  const count = (n: number) => ({ count: n, n: num(n) });
+  return (
+    <ConfirmDialog
+      open={!!info}
+      title={t('integr.import.delete_title')}
+      body={
+        info &&
+        // The body is one <p>: the two sentences go as one text.
+        [
+          t('integr.import.delete_body', {
+            entries: t('integr.import.records', count(info.records)),
+            days: t('integr.import.n_days', count(info.days)),
+          }),
+          info.edited > 0 &&
+            t('integr.import.delete_edited', count(info.edited)),
+        ]
+          .filter(Boolean)
+          .join(' ')
+      }
+      confirmLabel={t('integr.import.delete')}
+      tone="danger"
+      stack
+      onConfirm={onConfirm}
+      onCancel={onCancel}
     />
   );
 }
@@ -188,18 +288,37 @@ type SourceProps = {
   online: boolean;
   busy: boolean;
   banner: ReactNode;
+  /** Committed imports; null until loaded (and offline, as it isn't cached). */
+  history?: PastImport[] | null;
+  /** The import whose DELETE is in flight. */
+  deleting?: number | null;
   onFile: (source: ImportSource, file: File) => void;
   onWrongFile: () => void;
+  onDelete?: (id: number) => void;
 };
 
 export function SourceStep({
   online,
   busy,
   banner,
+  history = null,
+  deleting = null,
   onFile,
   onWrongFile,
+  onDelete,
 }: SourceProps) {
-  const { t } = useT();
+  const { t, num, locale } = useT();
+  // 3.1: "9 Nov, 21:14"; the year only when it is not this one.
+  const when = (ms: number, time: boolean) =>
+    new Intl.DateTimeFormat(locale, {
+      day: 'numeric',
+      month: 'short',
+      year:
+        new Date(ms).getFullYear() === new Date().getFullYear()
+          ? undefined
+          : 'numeric',
+      ...(time && { hour: '2-digit', minute: '2-digit' }),
+    }).format(ms);
   const input = useRef<HTMLInputElement>(null);
   const [source, setSource] = useState<ImportSource>('oct');
   const [over, setOver] = useState(false);
@@ -278,6 +397,41 @@ export function SourceStep({
         <Lock aria-hidden="true" />
         {t('integr.import.privacy')}
       </p>
+      {history && (
+        <List title={t('integr.import.history')}>
+          {history.length === 0 && (
+            <ListRow chevron={false}>{t('integr.import.no_history')}</ListRow>
+          )}
+          {history.map((i) => (
+            <ListRow
+              key={i.id}
+              description={`${when(i.committedAt, true)} · ${t('integr.import.records', { count: i.records, n: num(i.records) })}`}
+              chevron={false}
+              action={
+                <span className="import__delete">
+                  <Button
+                    variant="danger-plain"
+                    small
+                    disabled={off || deleting !== null}
+                    loading={deleting === i.id}
+                    aria-label={t('integr.import.delete_label', {
+                      source: t(`integr.import.${i.source}`),
+                      date: when(i.committedAt, false),
+                    })}
+                    onClick={() => onDelete?.(i.id)}
+                  >
+                    {deleting === i.id
+                      ? t('integr.import.deleting')
+                      : t('integr.import.delete_short')}
+                  </Button>
+                </span>
+              }
+            >
+              {t(`integr.import.${i.source}`)}
+            </ListRow>
+          ))}
+        </List>
+      )}
       <input
         ref={input}
         type="file"
@@ -541,7 +695,25 @@ export function PreviewStep({
         </List>
       )}
       {preview.first.length > 0 && (
-        <section className="list">
+        <div className="import__rows">
+          <List title={t('integr.import.first')}>
+            {preview.first.map((r, i) => (
+              <ListRow
+                key={i}
+                description={row(r)}
+                value={num(r.kcal)}
+                chevron={false}
+              >
+                {r.grams
+                  ? `${r.name} · ${num(r.grams)} ${t('macro.g')}`
+                  : r.name}
+              </ListRow>
+            ))}
+          </List>
+        </div>
+      )}
+      {preview.first.length > 0 && (
+        <section className="list import__first">
           <h2 className="list__title">{t('integr.import.first')}</h2>
           <table className="import__table">
             <thead>
@@ -550,27 +722,26 @@ export function PreviewStep({
                 <th>{t('integr.import.field.name')}</th>
                 <th>{t('integr.import.field.grams')}</th>
                 <th>{t('integr.import.field.kcal')}</th>
-                <th className="import__macro">
-                  {t('integr.import.field.protein')}
-                </th>
-                <th className="import__macro">
-                  {t('integr.import.field.fat')}
-                </th>
-                <th className="import__macro">
-                  {t('integr.import.field.carbs')}
-                </th>
+                <th>{t('integr.import.field.protein')}</th>
+                <th>{t('integr.import.field.fat')}</th>
+                <th>{t('integr.import.field.carbs')}</th>
               </tr>
             </thead>
             <tbody>
               {preview.first.map((r, i) => (
                 <tr key={i}>
-                  <td>{row(r)}</td>
+                  <td>
+                    <span className="import__when">
+                      {formatDate(r.localDate, locale)}
+                    </span>
+                    {t(`meal.type.${r.mealType}`)}
+                  </td>
                   <td>{r.name}</td>
                   <td>{r.grams ? num(r.grams) : '—'}</td>
                   <td>{num(r.kcal)}</td>
-                  <td className="import__macro">{num(r.proteinG)}</td>
-                  <td className="import__macro">{num(r.fatG)}</td>
-                  <td className="import__macro">{num(r.carbsG)}</td>
+                  <td>{num(r.proteinG)}</td>
+                  <td>{num(r.fatG)}</td>
+                  <td>{num(r.carbsG)}</td>
                 </tr>
               ))}
             </tbody>
@@ -595,7 +766,13 @@ export function PreviewStep({
         </List>
       )}
       {preview.records === 0 && (
-        <Banner tone="notice">{t('integr.import.nothing')}</Banner>
+        <Banner tone="notice">
+          {t(
+            preview.skippedDays > 0
+              ? 'integr.import.nothing'
+              : 'integr.import.nothing_read',
+          )}
+        </Banner>
       )}
       <div className="import__actions">
         <Button variant="plain" onClick={onCancel} disabled={busy}>
@@ -608,7 +785,9 @@ export function PreviewStep({
         >
           {committing
             ? t('integr.import.importing')
-            : t('integr.import.import', count(preview.records))}
+            : preview.records === 0
+              ? t('integr.import.import_none')
+              : t('integr.import.import', count(preview.records))}
         </Button>
       </div>
     </div>

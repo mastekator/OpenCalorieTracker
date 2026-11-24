@@ -546,6 +546,7 @@ describe('DELETE /api/imports/:id', () => {
     ).toEqual({
       records: 4,
       edited: 0,
+      days: 2,
     });
 
     const mealId = t.db
@@ -567,6 +568,7 @@ describe('DELETE /api/imports/:id', () => {
     ).toEqual({
       records: 4,
       edited: 1,
+      days: 2,
     });
 
     const { rev } = (await (await t.call('GET', '/sync?since=0')).json()) as {
