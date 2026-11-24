@@ -1,5 +1,5 @@
 {
-  "set": 2,
+  "set": 3,
   "photos": [
     {
       "file": "banana.jpg",
@@ -151,5 +151,32 @@
       ]
     },
     { "file": "chair.jpg", "empty": true }
+  ],
+  "awaiting": [
+    {
+      "file": "orange-on-scale.jpg",
+      "level": "exact",
+      "ref": 86,
+      "dishes": [{ "words": ["orange"], "count": 1 }]
+    },
+    {
+      "file": "walnuts-in-shell.jpg",
+      "level": "notExact",
+      "ref": 324,
+      "dishes": [{ "words": ["walnut"] }]
+    },
+    {
+      "file": "chicken-drumsticks.jpg",
+      "level": "notExact",
+      "ref": 345,
+      "dishes": [{ "words": ["drumstick", "chicken"] }]
+    },
+    {
+      "file": "sapodilla-receipt.jpg",
+      "level": "exact",
+      "ref": 513,
+      "question": true,
+      "dishes": [{ "words": ["sapodilla", "sapota", "chiku", "chikoo"] }]
+    }
   ]
 }
