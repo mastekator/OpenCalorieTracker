@@ -12,10 +12,12 @@ import {
   scaleItem,
   servingG,
   weightWarning,
+  type Amount,
   type DishUnit,
   type IngredientSource,
   type Meal,
   type Nutrients,
+  type Product,
   type Recipe,
   type RecipeInput,
   type Units,
@@ -30,8 +32,10 @@ import {
   useRecipe,
   type HistoryDish,
 } from '../../data/DataContext';
+import { lookupProduct, type BarcodeResult } from '../../data/products';
 import { thumbUrl } from '../../data/thumbs';
 import { useT } from '../../i18n';
+import { type Pack, useAmountText } from '../../ui/AmountPicker/AmountPicker';
 import { DishSheet } from '../../ui/DishSheet/DishSheet';
 import { Field } from '../../ui/Field/Field';
 import { parseDecimal } from '../../ui/FormList/FormList';
@@ -101,6 +105,7 @@ export function RecipeEditorScreen({ id }: { id?: string }) {
       online={online}
       units={units}
       search={search}
+      lookup={(code) => lookupProduct(db, code)}
       onSave={(input, base) =>
         saveRecipe(db, input, base).catch((err: unknown) => {
           // The form holds an older version: back to the fresh card.
@@ -124,6 +129,12 @@ type Row = {
   grams: string;
   /** The AI couldn't estimate it; cleared by a grams edit. */
   unsure?: boolean;
+  /** Typed or found in the manual sheet: remembered by the server, not stored in the recipe (ADR-0040 §1). */
+  barcode?: string;
+  pack?: Pack;
+  /** The found product and the share picked of it: «½ pack · 200 g» until the grams are edited. */
+  product?: Product;
+  amount?: Amount;
 };
 
 type Props = {
@@ -142,6 +153,8 @@ type Props = {
   /** Weights shown and typed in grams or ounces; saved in grams (AC-2.6). */
   units?: Units;
   search: (query: string) => Promise<HistoryDish[]>;
+  /** Barcode lookup in the manual sheet, as in a meal (ADR-0040 §1); none: no «Barcode» field. */
+  lookup?: (code: string) => Promise<BarcodeResult>;
   /** POST / PUT and the local copy; throws on failure. */
   /** POST (no base) or PUT from `base`, the recipe as the editor opened it. */
   onSave: (
@@ -206,6 +219,7 @@ export function RecipeEditor({
   online,
   units,
   search,
+  lookup,
   onSave,
   onSaved,
 }: Props) {
@@ -308,6 +322,12 @@ export function RecipeEditor({
         fatG: round1(fatG),
         carbsG: round1(carbsG),
         source: row.source,
+        ...(row.barcode && { barcode: row.barcode }),
+        // The schema takes a package only with its code.
+        ...(row.barcode &&
+          (row.amount || row.pack) && {
+            pack: { ...row.pack, ...(row.amount && { amount: row.amount }) },
+          }),
       }),
     ),
     // An empty step is dropped rather than an error: «+ Step» tapped and left blank.
@@ -534,12 +554,22 @@ export function RecipeEditor({
 
   const setRow = (key: number, patch: Partial<Row>) =>
     setRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...patch } : r)));
-  const addRow = (i: RecipeInput['ingredients'][number]) => {
-    setRows((rs) => [...rs, rowOf(i, w.as(i.unit))]);
+  const addRow = (
+    i: RecipeInput['ingredients'][number],
+    extra?: Partial<Row>,
+  ) => {
+    setRows((rs) => [...rs, { ...rowOf(i, w.as(i.unit)), ...extra }]);
     setSheet(null);
   };
   const editing =
     sheet?.kind === 'edit' ? rows.find((r) => r.key === sheet.key) : undefined;
+  const amountText = {
+    g: useAmountText(units ?? 'metric', 'g'),
+    ml: useAmountText(units ?? 'metric', 'ml'),
+  };
+  // Grams alone are already in the field: a caption only for a share.
+  const shareOf = ({ product: p, amount: a }: Row) =>
+    p && a && a.mode !== 'weight' ? amountText[p.per].row(p, a) : undefined;
 
   const servingsPress = usePressRepeat((dir) => {
     setServings((s) => {
@@ -731,13 +761,19 @@ export function RecipeEditor({
                         : undefined
                     }
                     estimate={row.source === 'ai'}
+                    barcode={row.source === 'barcode'}
+                    share={shareOf(row)}
                     unsure={
                       row.unsure && g === 0
                         ? t('editor.ai.zero', { q: row.name })
                         : undefined
                     }
                     onGramsChange={(grams) =>
-                      setRow(row.key, { grams, unsure: false })
+                      setRow(row.key, {
+                        grams,
+                        unsure: false,
+                        amount: undefined,
+                      })
                     }
                     onEdit={() => setSheet({ kind: 'edit', key: row.key })}
                   />
@@ -1001,7 +1037,15 @@ export function RecipeEditor({
           units={units ?? 'metric'}
           title={t('editor.manual_title')}
           name={sheet.name}
-          onAdd={(d) => addRow({ ...d, source: 'manual' })}
+          lookup={lookup}
+          amountTitle={t('editor.used')}
+          // A found product comes with its share (ADR-0040 §1); a code not found: the user's own product.
+          onAdd={({ amount, pack, product, ...d }) =>
+            addRow(
+              { ...d, source: amount ? 'barcode' : 'manual' },
+              { barcode: d.barcode, pack, product, amount },
+            )
+          }
           onClose={() => setSheet(null)}
         />
       )}
@@ -1014,11 +1058,25 @@ export function RecipeEditor({
             editing.base.grams
           }
           units={units ?? 'metric'}
-          onDone={(n, g) => {
+          product={editing.product}
+          amount={
+            editing.product &&
+            (editing.amount ?? {
+              mode: 'weight',
+              value: gramsOf(editing.grams, w.as(editing.base.unit)) ?? 0,
+            })
+          }
+          amountTitle={t('editor.used')}
+          onDone={(n, g, _, amount, pack) => {
             setRow(editing.key, {
               name: n,
               grams: text(w.as(editing.base.unit).show(g)),
               unsure: false,
+              ...(editing.product && {
+                amount,
+                pack: { ...editing.pack, ...pack },
+                product: { ...editing.product, ...pack },
+              }),
             });
             setSheet(null);
           }}

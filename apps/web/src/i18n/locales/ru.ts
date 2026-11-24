@@ -2315,6 +2315,7 @@ const ru: DeepPartial<typeof en> = {
     cooked_err: 'Больше 0\u00a0{u}',
     portions: 'Порции',
     manual_title: 'Ингредиент вручную',
+    used: 'Сколько использовали',
     portions_less: 'Меньше порций',
     portions_more: 'Больше порций',
     raw_ml_note: 'Миллилитры считаем как граммы.',

@@ -31,6 +31,18 @@
   font-variant-numeric: tabular-nums;
 }
 
+.ingredient-row__share {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.ingredient-row__share svg {
+  flex: none;
+  width: 1.2em;
+  height: 1.2em;
+}
+
 .ingredient-row__error {
   grid-column: 1 / -1;
   justify-self: end;
