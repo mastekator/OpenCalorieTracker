@@ -1,0 +1,6 @@
+Day,Time,Group,Food Name,Amount,Energy (kcal),Alcohol (g),Caffeine (mg),Water (g),Carbs (g),Fiber (g),Net Carbs (g),Fat (g),Saturated (g),Protein (g),Category
+2024-03-04,08:10,Breakfast,"Oats, Rolled",50.00 g,189.5,0.0,0.0,4.9,33.8,5.0,28.8,3.3,0.6,6.6,Cereals
+2024-03-04,08:10,Breakfast,"Milk, 2%",1.00 cup,122.0,0.0,0.0,218.6,11.7,0.0,11.7,4.8,3.1,8.1,Dairy and Egg Products
+2024-03-04,13:00,Lunch,"Chicken Breast, Roasted",5.00 oz,231.0,0.0,0.0,92.3,0.0,0.0,0.0,5.1,1.4,43.4,Poultry
+2024-03-04,,Uncategorized,Apple,182.00 g,94.6,0.0,0.0,155.7,25.1,4.4,20.8,0.3,0.1,0.5,Fruits
+2024-03-05,19:30,Dinner,"Rice, White, Cooked",200.00 g,260.0,0.0,0.0,137.0,56.4,0.8,55.6,0.6,0.2,5.4,Cereal Grains and Pasta

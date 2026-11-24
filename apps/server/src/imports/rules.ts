@@ -4,6 +4,7 @@ import {
   type DateOrder,
   type ImportRecord,
   type Locale,
+  type Mapping,
   type MealType,
   type Preview,
   type RowReason,
@@ -52,6 +53,30 @@ export function guessColumns(headers: string[]): Partial<Columns> {
     if (i >= 0) guess[key] = i;
   }
   return guess;
+}
+
+export type TrackerSource = 'mfp' | 'cronometer';
+
+/**
+ * The fixed mapping of a tracker's export (ADR-0026 §6), found by header names, not positions;
+ * null when the file lacks a required column. MFP «Nutrition Summary» rows are meal totals
+ * (Date, Meal, Calories…); Cronometer servings name the food and its «Group».
+ */
+export function trackerMapping(
+  source: TrackerSource,
+  headers: string[],
+): SourceMapping | null {
+  const columns: Partial<Columns> = guessColumns(headers);
+  if (source === 'mfp') delete columns.name;
+  else {
+    const group = headers.findIndex((h) => /^group$/i.test(h.trim()));
+    if (group >= 0) columns.meal = group;
+  }
+  const { date, kcal, meal } = columns;
+  if (date === undefined || kcal === undefined) return null;
+  if (source === 'mfp' ? meal === undefined : columns.name === undefined)
+    return null;
+  return { columns: { ...columns, date, kcal } };
 }
 
 /** kJ and ounces are read from the column header (AC-2.8). */
@@ -179,8 +204,25 @@ const TOTAL_NAMES: Record<Locale, Record<MealType, string>> = {
 export const totalName = (mealType: MealType, locale: Locale) =>
   TOTAL_NAMES[locale][mealType];
 
+/** A tracker's fixed mapping may have no name column (an MFP summary): rows are meal totals. */
+export type SourceMapping = Omit<Mapping, 'columns'> & {
+  columns: Omit<Columns, 'name'> & { name?: number };
+};
+
+/** Grams from `150`, `150 g` or `5 oz`; ounces also by the header (AC-2.8). */
+function gramsOf(text: string, header: string, decimal?: '.' | ',') {
+  const m = /^(\d[\d\s.,]*?)\s*(\p{L}*)\.?$/u.exec(text);
+  if (!m) return 0;
+  const n = parseNumber(m[1]!, decimal) ?? 0;
+  const unit = m[2]!.toLowerCase();
+  if (unit === 'oz' || (!unit && isOz(header))) return ozToGrams(n);
+  if (!unit || /^(g|gr|grams?|г|гр)$/.test(unit)) return n;
+  // shortcut: servings not in grams (cup, pcs) import as 0 g with their kcal and macros; upgrade with per-food serving weights.
+  return 0;
+}
+
 export interface RowContext {
-  columns: Columns;
+  columns: SourceMapping['columns'];
   headers: string[];
   dateOrder: DateOrder;
   decimal?: '.' | ',';
@@ -208,7 +250,9 @@ export function toRecord(
   const mealType = mealTypeOf(mealWord, time);
   let name = cell(columns.name);
   if (!name) {
-    if (!mealTypeFromWord(mealWord)) return 'no_name';
+    // Without a name column every row is its meal's total, whatever the meal is called.
+    if (columns.name !== undefined && !mealTypeFromWord(mealWord))
+      return 'no_name';
     name = totalName(mealType, locale);
   }
 
@@ -217,9 +261,10 @@ export function toRecord(
   if (isKj(headers[columns.kcal] ?? '')) kcal = kjToKcal(kcal);
   if (kcal < 0 || kcal > MAX_IMPORT_KCAL) return 'kcal_out_of_range';
 
-  let grams = num(columns.grams) ?? 0;
-  if (columns.grams !== undefined && isOz(headers[columns.grams] ?? ''))
-    grams = ozToGrams(grams);
+  const grams =
+    columns.grams === undefined
+      ? 0
+      : gramsOf(cell(columns.grams), headers[columns.grams] ?? '', decimal);
   // Bad macros or grams do not drop a dish that has its kcal: they read as 0.
   const nonNeg = (n: number | null) => (n !== null && n > 0 ? n : 0);
   return {

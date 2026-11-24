@@ -266,17 +266,16 @@ const ru: DeepPartial<typeof en> = {
       oct: 'Экспорт OCT (JSON)',
       oct_desc: 'С другого сервера OCT — без потерь',
       mfp: 'MyFitnessPal',
-      mfp_desc: 'Файл из «Экспорт данных» на сайте MFP',
+      mfp_desc: 'ZIP из «Экспорт данных» на сайте MFP или CSV из него',
       cronometer: 'Cronometer',
-      cronometer_desc: 'Servings export (CSV)',
+      cronometer_desc: 'CSV «Servings» из «Export Data» в настройках аккаунта',
       csv: 'Другой CSV',
       csv_desc: 'Покажете, где какая колонка',
-      soon: 'Скоро',
       other_csv:
         'FatSecret, Yazio, Lose It! — выгрузите данные в CSV и выберите «Другой CSV».',
       need_net: 'Нужна сеть: файл разбирается на сервере',
       drop: 'Перетащите файл сюда или выберите источник',
-      limits: 'До 50 МБ. Если выгрузка в ZIP — достаньте из него .json.',
+      limits: 'До 50 МБ. Экспорт OCT в ZIP — достаньте из него .json.',
       privacy: 'Файл разбирается на вашем сервере. ИИ не используется.',
       error_title: 'Не получилось прочитать файл',
       too_big: 'Файл слишком большой — до 50 МБ. Разбейте выгрузку по годам.',
@@ -285,7 +284,11 @@ const ru: DeepPartial<typeof en> = {
         'Это не похоже на экспорт OCT. Проверьте файл или выберите другой источник.',
       wrong_csv:
         'Это не похоже на CSV. Проверьте файл или выберите другой источник.',
-      wrong_type: 'Выберите файл .json или .csv.',
+      wrong_mfp:
+        'Это не похоже на экспорт MyFitnessPal. Нужен ZIP выгрузки или CSV «Nutrition Summary» из него.',
+      wrong_cronometer:
+        'Это не похоже на экспорт Cronometer. Нужен CSV «Servings».',
+      wrong_type: 'Выберите файл .json, .csv или .zip.',
       map_lead: 'Покажите, в какой колонке что лежит. Мы угадали, что смогли.',
       field: {
         date: 'Дата',

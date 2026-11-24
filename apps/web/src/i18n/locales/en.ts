@@ -258,17 +258,18 @@ export const en = {
       oct: 'OCT export (JSON)',
       oct_desc: 'From another OCT server — nothing lost',
       mfp: 'MyFitnessPal',
-      mfp_desc: 'The file from “Export data” on the MFP site',
+      mfp_desc: 'The ZIP from “Export data” on the MFP site, or the CSV in it',
       cronometer: 'Cronometer',
-      cronometer_desc: 'Servings export (CSV)',
+      cronometer_desc:
+        'The “Servings” CSV from Export Data in account settings',
       csv: 'Other CSV',
       csv_desc: 'You show which column is which',
-      soon: 'Soon',
       other_csv:
         'FatSecret, Yazio, Lose It! — export to CSV and pick “Other CSV”.',
       need_net: 'Needs a connection: the file is read on the server',
       drop: 'Drop the file here or pick a source',
-      limits: 'Up to 50 MB. If the export is a ZIP, take the .json out of it.',
+      limits:
+        'Up to 50 MB. For an OCT export in a ZIP, take the .json out of it.',
       privacy: 'The file is read on your server. No AI is used.',
       error_title: 'Couldn’t read the file',
       too_big: 'The file is too big — up to 50 MB. Split the export by year.',
@@ -277,7 +278,11 @@ export const en = {
         'This doesn’t look like an OCT export. Check the file or pick another source.',
       wrong_csv:
         'This doesn’t look like a CSV file. Check the file or pick another source.',
-      wrong_type: 'Pick a .json or .csv file.',
+      wrong_mfp:
+        'This doesn’t look like a MyFitnessPal export. Pick the export ZIP or the “Nutrition Summary” CSV in it.',
+      wrong_cronometer:
+        'This doesn’t look like a Cronometer export. Pick the “Servings” CSV.',
+      wrong_type: 'Pick a .json, .csv or .zip file.',
       map_lead: 'Show which column holds what. We guessed what we could.',
       field: {
         date: 'Date',

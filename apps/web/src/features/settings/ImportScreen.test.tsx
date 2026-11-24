@@ -108,7 +108,10 @@ async function wrap() {
   await screen.findByTestId('ready');
 }
 
-async function upload(source: 'OCT export (JSON)' | 'Other CSV', name: string) {
+async function upload(
+  source: 'OCT export (JSON)' | 'Other CSV' | 'MyFitnessPal' | 'Cronometer',
+  name: string,
+) {
   fireEvent.click(
     await screen.findByRole('button', { name: (n) => n.startsWith(source) }),
   );
@@ -192,6 +195,27 @@ describe('ImportScreen: column mapping (3.2)', () => {
   });
 });
 
+describe('ImportScreen: MyFitnessPal and Cronometer (ADR-0026 §6)', () => {
+  it.each([
+    ['MyFitnessPal', 'mfp', 'export.zip', '.zip,.csv,application/zip,text/csv'],
+    ['Cronometer', 'cronometer', 'servings.csv', '.csv,text/csv'],
+  ] as const)(
+    '%s goes from the file straight to the preview',
+    async (row, source, name, accept) => {
+      serve({
+        [`POST /api/imports?source=${source}`]: () => Response.json(preview()),
+      });
+      await wrap();
+      const file = await upload(row, name);
+      expect(
+        (screen.getByTestId('import-file') as HTMLInputElement).accept,
+      ).toBe(accept);
+      expect(await screen.findByText('Oatmeal')).toBeTruthy();
+      expect(calls.find((c) => c.method === 'POST')?.body).toBe(file);
+    },
+  );
+});
+
 describe('ImportScreen: file errors (3.6)', () => {
   it.each([
     [
@@ -215,6 +239,19 @@ describe('ImportScreen: file errors (3.6)', () => {
     await upload('OCT export (JSON)', 'export.json');
     expect(await screen.findByText(text)).toBeTruthy();
     expect(screen.getByText('Couldn’t read the file')).toBeTruthy();
+  });
+
+  it('a file that is not the source export names the source', async () => {
+    serve({
+      'POST /api/imports?source=cronometer': error(400, 'validation_failed'),
+    });
+    await wrap();
+    await upload('Cronometer', 'servings.csv');
+    expect(
+      await screen.findByText(
+        'This doesn’t look like a Cronometer export. Pick the “Servings” CSV.',
+      ),
+    ).toBeTruthy();
   });
 
   it('refuses a file over 50 MB before the upload', async () => {

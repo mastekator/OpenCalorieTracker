@@ -57,6 +57,9 @@ const REQUIRED = new Set<keyof Columns>(['date', 'name', 'kcal']);
 const ACCEPT: Record<ImportSource, string> = {
   oct: '.json,application/json',
   csv: '.csv,text/csv',
+  // The whole export ZIP or the nutrition summary CSV taken out of it.
+  mfp: '.zip,.csv,application/zip,text/csv',
+  cronometer: '.csv,text/csv',
 };
 
 type Draft = { id: number; file: string; source: ImportSource };
@@ -339,6 +342,7 @@ export function SourceStep({
     const ext = file.name.toLowerCase().split('.').pop();
     if (ext === 'json') onFile('oct', file);
     else if (ext === 'csv') onFile('csv', file);
+    else if (ext === 'zip') onFile('mfp', file);
     else onWrongFile();
   };
 
@@ -364,9 +368,8 @@ export function SourceStep({
             key={s}
             icon={<FileText />}
             description={t(`integr.import.${s}_desc`)}
-            value={t('integr.import.soon')}
-            chevron={false}
-            disabled
+            disabled={off}
+            onClick={() => pick(s)}
           >
             {t(`integr.import.${s}`)}
           </ListRow>
