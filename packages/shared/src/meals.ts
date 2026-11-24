@@ -14,14 +14,18 @@ export const mealTypeSchema = z.enum(['breakfast', 'lunch', 'dinner', 'snack']);
 export type MealType = z.infer<typeof mealTypeSchema>;
 
 /** Where a recipe ingredient's values came from; a recipe can't contain another recipe. */
-export const ingredientSourceSchema = z.enum(['ai', 'manual', 'history']);
+export const ingredientSourceSchema = z.enum([
+  'ai',
+  'manual',
+  'history',
+  /** Values from a product found by its barcode (ADR-0034 §6, ADR-0040 §2). */
+  'barcode',
+]);
 export type IngredientSource = z.infer<typeof ingredientSourceSchema>;
 
 export const dishSourceSchema = z.enum([
   ...ingredientSourceSchema.options,
   'recipe',
-  /** Values from a product found by its barcode (ADR-0034 §6). */
-  'barcode',
   /** Values typed from the package label. */
   'label',
 ]);
@@ -52,6 +56,20 @@ export const packPrefsSchema = z.object({
 });
 export type PackPrefs = z.infer<typeof packPrefsSchema>;
 
+/** A barcode as typed or scanned; stored normalized (ADR-0034 §3). */
+export const barcodeSchema = z
+  .string()
+  .transform(
+    (s, ctx) => normalizeGtin(s) ?? (ctx.addIssue('Invalid GTIN'), z.NEVER),
+  );
+
+/** The edible share the user chose for a reference key (ADR-0039 §4). */
+export const edibleChoiceSchema = z.object({
+  key: z.string().trim().min(1).max(80),
+  pct: z.number().int().min(10).max(100).multipleOf(5),
+});
+export type EdibleChoice = z.infer<typeof edibleChoiceSchema>;
+
 export const mealItemInputSchema = z
   .object({
     name: z.string().trim().min(1).max(80),
@@ -68,23 +86,13 @@ export const mealItemInputSchema = z
     /** The recipe this portion was logged from (ADR-0023 §5); the dish stays a snapshot. */
     recipeId: z.number().int().positive().optional(),
     /** The product's barcode; stored normalized (ADR-0034 §3). */
-    barcode: z
-      .string()
-      .transform(
-        (s, ctx) => normalizeGtin(s) ?? (ctx.addIssue('Invalid GTIN'), z.NEVER),
-      )
-      .optional(),
+    barcode: barcodeSchema.optional(),
     /** Manual choice on this dish; omitted = automatic. */
     illustration: illustrationIdSchema.optional(),
     /** Remembered for `barcode` (ADR-0037 §2); omitted fields keep their stored value. */
     pack: packPrefsSchema.optional(),
     /** The edible share the user chose for a reference key, remembered per user (ADR-0039 §4). */
-    edible: z
-      .object({
-        key: z.string().trim().min(1).max(80),
-        pct: z.number().int().min(10).max(100).multipleOf(5),
-      })
-      .optional(),
+    edible: edibleChoiceSchema.optional(),
   })
   .refine((i) => i.confidence === undefined || i.source === 'ai', {
     path: ['confidence'],

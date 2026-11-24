@@ -11,6 +11,7 @@ import type { AppDeps } from '../app.js';
 import { requireUser, type AuthEnv } from '../auth/session.js';
 import { ApiError } from '../http/errors.js';
 import { validate } from '../http/validate.js';
+import { rememberer } from '../barcodes/remember.js';
 import { photoPath, photoTaken } from '../photos/store.js';
 import { bumpRev } from '../sync/rev.js';
 import { readRecipe } from './read.js';
@@ -62,8 +63,11 @@ export function recipeRoutes({ config, db }: AppDeps) {
     }
   };
 
-  /** Replaces the recipe's ingredients and steps; steps go first so a photo can move between them. */
-  const write = (recipeId: number, input: RecipeInput) => {
+  /**
+   * Replaces the recipe's ingredients and steps; steps go first so a photo can move between them.
+   * Ingredients' barcode, pack and edible choice are remembered like a meal's (ADR-0040 §2).
+   */
+  const write = (userId: number, recipeId: number, input: RecipeInput) => {
     db.prepare('DELETE FROM recipe_ingredients WHERE recipe_id = ?').run(
       recipeId,
     );
@@ -71,7 +75,9 @@ export function recipeRoutes({ config, db }: AppDeps) {
       `INSERT INTO recipe_ingredients (recipe_id, position, name, grams, unit, kcal, protein_g,
          fat_g, carbs_g, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     );
-    input.ingredients.forEach((i, pos) =>
+    const remember = rememberer(db);
+    const now = Date.now();
+    input.ingredients.forEach((i, pos) => {
       ingredient.run(
         recipeId,
         pos,
@@ -83,8 +89,9 @@ export function recipeRoutes({ config, db }: AppDeps) {
         i.fatG,
         i.carbsG,
         i.source,
-      ),
-    );
+      );
+      remember(userId, i, now);
+    });
     const step = db.prepare(
       'INSERT INTO recipe_steps (recipe_id, position, text, photo_id) VALUES (?, ?, ?, ?)',
     );
@@ -138,7 +145,7 @@ export function recipeRoutes({ config, db }: AppDeps) {
             now,
             now,
           ) as number;
-        write(id, input);
+        write(userId, id, input);
         return id;
       })();
       return c.json(readRecipe(db, id), 201);
@@ -180,7 +187,7 @@ export function recipeRoutes({ config, db }: AppDeps) {
             Math.max(Date.now(), updatedAt + 1),
             id,
           );
-          write(id, input);
+          write(userId, id, input);
           const after = new Set(photosOf(id));
           return before.filter((p) => !after.has(p));
         })();

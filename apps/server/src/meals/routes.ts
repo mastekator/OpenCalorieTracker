@@ -21,6 +21,7 @@ import { validate } from '../http/validate.js';
 import { photoPath, photoTaken, type PhotoSize } from '../photos/store.js';
 import { bumpRev } from '../sync/rev.js';
 import { CHOICE_JOIN, resolveIllustration } from '../illustrations/routes.js';
+import { rememberer } from '../barcodes/remember.js';
 import { readMeal, type MealRow } from './read.js';
 import { deleteMeals } from './remove.js';
 
@@ -77,32 +78,7 @@ export function mealRoutes({ config, db, ai }: AppDeps) {
          fat_g, carbs_g, source, ai_provider, ai_model, confidence, illustration, recipe_id, barcode)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     );
-    // The user's own product, per 100 g or ml of the dish's unit (ADR-0034 §6, ADR-0038 §2): only values the user typed in are remembered.
-    const remember = db.prepare(
-      `INSERT INTO user_products (user_id, code, name, kcal_100, protein_100, fat_100, carbs_100,
-         per, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-       ON CONFLICT (user_id, code) DO UPDATE SET name = excluded.name,
-         kcal_100 = excluded.kcal_100, protein_100 = excluded.protein_100,
-         fat_100 = excluded.fat_100, carbs_100 = excluded.carbs_100, per = excluded.per,
-         updated_at = excluded.updated_at`,
-    );
-    // Fields the client did not send keep their stored value; mode and value go as a pair.
-    const prefs = db.prepare(
-      `INSERT INTO product_prefs (user_id, code, pack_g, pieces, amount_mode, amount_value, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)
-       ON CONFLICT (user_id, code) DO UPDATE SET
-         pack_g = COALESCE(excluded.pack_g, pack_g),
-         pieces = COALESCE(excluded.pieces, pieces),
-         amount_mode = COALESCE(excluded.amount_mode, amount_mode),
-         amount_value = COALESCE(excluded.amount_value, amount_value),
-         updated_at = excluded.updated_at`,
-    );
-    const edible = db.prepare(
-      `INSERT INTO edible_prefs (user_id, key, pct, updated_at) VALUES (?, ?, ?, ?)
-       ON CONFLICT (user_id, key) DO UPDATE SET pct = excluded.pct, updated_at = excluded.updated_at`,
-    );
-    const per100 = (v: number, g: number) => Math.round((v * 1000) / g) / 10;
+    const remember = rememberer(db);
     const now = Date.now();
     // Another user's or a deleted recipe (the meal waited in the offline queue) → no link, no error.
     const ownRecipe = db
@@ -131,34 +107,7 @@ export function mealRoutes({ config, db, ai }: AppDeps) {
           : ((ownRecipe.get(i.recipeId, userId) as number | undefined) ?? null),
         i.barcode ?? null,
       );
-      if (i.barcode && i.pack)
-        prefs.run(
-          userId,
-          i.barcode,
-          i.pack.packG ?? null,
-          i.pack.pieces ?? null,
-          i.pack.amount?.mode ?? null,
-          i.pack.amount?.value ?? null,
-          now,
-        );
-      if (i.edible) edible.run(userId, i.edible.key, i.edible.pct, now);
-      if (
-        i.barcode &&
-        i.kcal > 0 &&
-        (i.source === 'label' || i.source === 'manual')
-      )
-        remember.run(
-          userId,
-          i.barcode,
-          i.name,
-          per100(i.kcal, i.grams),
-          per100(i.proteinG, i.grams),
-          per100(i.fatG, i.grams),
-          per100(i.carbsG, i.grams),
-          i.unit ?? 'g',
-          now,
-          now,
-        );
+      remember(userId, i, now);
     });
   };
 
