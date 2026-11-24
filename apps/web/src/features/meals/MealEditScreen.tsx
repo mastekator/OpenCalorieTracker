@@ -631,7 +631,9 @@ export function MealEditScreen({
     onChoice?.(row.original.name, illustration);
   };
 
-  const addManual = ({ amount, pack, ...dish }: ManualDish) => {
+  // `product` is read back from the products on this device (shareOf).
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const addManual = ({ amount, pack, product, ...dish }: ManualDish) => {
     setAdding(false);
     // A found product's amount and typed package go with the meal, as from the dish sheet (OCT-417).
     const row = { ...toRow(dish, 'manual'), amount, pack };

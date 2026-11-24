@@ -50,6 +50,8 @@ export type ManualDish = Nutrients & {
   amount?: Amount;
   /** Also typed for a code not found: remembered for it like the dish sheet's (ADR-0037 §4). */
   pack?: Pack;
+  /** The found product with the typed package: what `amount` is a share of. */
+  product?: Product;
 };
 type Basis = 'per100' | 'portion';
 
@@ -96,6 +98,8 @@ type Props = {
   barcode?: string;
   /** `barcode` was read from a photo without AI and not found (OCT-313 3.4); who can turn AI on. */
   photoNotFound?: 'admin' | 'user';
+  /** «How much you used» in a recipe; «How much you ate» by default. */
+  amountTitle?: string;
 };
 
 /** Screen 5 (OCT-16 §4): a dish entered by hand, per 100 g or per serving. The screen mounts it while open. */
@@ -110,6 +114,7 @@ export function ManualDishSheet({
   lookup,
   barcode: initialBarcode = '',
   photoNotFound,
+  amountTitle,
 }: Props) {
   const { t, num } = useT();
   // The switch's choice; a product found by the current barcode sets its own (AC-4).
@@ -248,7 +253,7 @@ export function ManualDishSheet({
       name,
       grams: round1(grams),
       ...unitOf(merged ? merged.per : dishUnit),
-      ...(merged && { amount, pack }),
+      ...(merged && { amount, pack, product: merged }),
       kcal: round1(totals.kcal),
       proteinG: round1(totals.proteinG),
       fatG: round1(totals.fatG),
@@ -385,6 +390,7 @@ export function ManualDishSheet({
         {merged ? (
           <>
             <AmountPicker
+              title={amountTitle}
               product={merged}
               amount={amount}
               grams={pickG}

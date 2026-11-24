@@ -1,8 +1,9 @@
 import { useId } from 'react';
-import { CircleAlert, TriangleAlert } from 'lucide-react';
+import { Barcode, CircleAlert, TriangleAlert } from 'lucide-react';
 import type { DishUnit, Units } from '@oct/shared';
 import { useT } from '../../i18n';
 import { Badge } from '../Badge/Badge';
+import { SourceBadge } from '../SourceBadge/SourceBadge';
 import '../WeightStepper/WeightStepper.css';
 import { useWeight } from '../weightUnits';
 import './IngredientRow.css';
@@ -21,6 +22,10 @@ type Props = {
   error?: string;
   /** Grams estimated by the AI: an «estimate» badge after the name (OCT-160 §9). */
   estimate?: boolean;
+  /** Found by barcode: a «barcode» badge after the name (OCT-435 2.3). */
+  barcode?: boolean;
+  /** The package share the grams came from, «½ pack · 200 g»; dropped once the grams are edited. */
+  share?: string;
   /** Why the row needs a look (the AI couldn't estimate it): warning background and this text. */
   unsure?: string;
   onGramsChange: (text: string) => void;
@@ -37,6 +42,8 @@ export function IngredientRow({
   unit = 'g',
   error,
   estimate,
+  barcode,
+  share,
   unsure,
   onGramsChange,
   onEdit,
@@ -59,10 +66,22 @@ export function IngredientRow({
                 <Badge>{t('editor.ai.estimate')}</Badge>
               </>
             )}
+            {barcode && (
+              <>
+                {' '}
+                <SourceBadge kind="barcode" />
+              </>
+            )}
           </span>
           <span className="ingredient-row__kcal">
             {zero ? t('recipe.zero_kcal') : t('meal.kcal', { n: num(kcal) })}
           </span>
+          {share && (
+            <span className="ingredient-row__kcal ingredient-row__share">
+              <Barcode aria-hidden="true" />
+              {share}
+            </span>
+          )}
         </button>
         <label className="stepper__box ingredient-row__grams">
           <input

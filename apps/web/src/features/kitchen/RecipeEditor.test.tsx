@@ -1,6 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
-import { gToOz, ozToG, type Recipe, type RecipeInput } from '@oct/shared';
+import {
+  gToOz,
+  ozToG,
+  type Product,
+  type Recipe,
+  type RecipeInput,
+} from '@oct/shared';
+import type { BarcodeResult } from '../../data/products';
 import { ApiError } from '../../api/client';
 import { isDirty, saveDirty } from '../../app/dirty';
 import { I18nProvider, LOCALE_STORAGE_KEY } from '../../i18n';
@@ -315,6 +322,120 @@ describe('RecipeEditor', () => {
     );
     const name = (await screen.findByLabelText(/^Name ·/)) as HTMLInputElement;
     expect(name.value).toBe('Onion');
+  });
+
+  describe('barcode in «Enter manually» (ADR-0040 §1)', () => {
+    const COOKIES: Product = {
+      code: '4006381333931',
+      name: 'Sugar cookies',
+      brand: null,
+      kcal100: 440,
+      protein100: 6,
+      fat100: 16,
+      carbs100: 68,
+      per: 'g',
+      servingG: null,
+      servingText: null,
+      packG: 400,
+    };
+    const addByCode = async (result: BarcodeResult, name = 'Cookies') => {
+      const lookup = vi.fn(async () => result);
+      const out = await view({ recipe: SALAD, lookup });
+      fireEvent.click(screen.getByRole('button', { name: 'Ingredient' }));
+      fireEvent.change(await screen.findByRole('searchbox'), {
+        target: { value: name },
+      });
+      fireEvent.click(
+        await screen.findByRole('button', { name: `Enter “${name}” manually` }),
+      );
+      const field = await screen.findByLabelText('Barcode');
+      fireEvent.change(field, { target: { value: COOKIES.code } });
+      fireEvent.keyDown(field, { key: 'Enter' });
+      await waitFor(() => expect(lookup).toHaveBeenCalledWith(COOKIES.code));
+      return out;
+    };
+    const share = () =>
+      document.querySelector('.ingredient-row__share')?.textContent;
+    const sent = async (onSave: ReturnType<typeof vi.fn>) => {
+      save();
+      await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
+      return (onSave.mock.calls[0]![0] as RecipeInput).ingredients.at(-1)!;
+    };
+
+    it('found: «How much you used», a barcode row with its share, sent with barcode and pack', async () => {
+      const { onSave } = await addByCode({
+        product: COOKIES,
+        from: 'off',
+        off: 'found',
+      });
+      await screen.findByText('Found in Open Food Facts — check the amount.');
+      expect(screen.getByText('How much you used')).toBeTruthy();
+      fireEvent.click(screen.getByRole('radio', { name: 'Package' }));
+      fireEvent.click(screen.getByRole('button', { name: '½' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+      await waitFor(() => expect(share()).toMatch(/^½\spack · 200\sg$/));
+      expect(screen.getByText('barcode')).toBeTruthy();
+      expect((grams('Cookies') as HTMLInputElement).value).toBe('200');
+      expect(await sent(onSave)).toMatchObject({
+        name: 'Cookies',
+        grams: 200,
+        kcal: 880,
+        source: 'barcode',
+        barcode: COOKIES.code,
+        pack: { amount: { mode: 'pack', value: 0.5 } },
+      });
+    });
+
+    it('a tap opens the share in the dish sheet; grams edited by hand drop the caption', async () => {
+      await addByCode({ product: COOKIES, from: 'mine', off: 'skipped' });
+      await screen.findByText('Found your product — check the amount.');
+      fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+      await waitFor(() => expect(share()).toBeTruthy());
+      // A tap opens the dish sheet with the same share block (mockup 2.3).
+      fireEvent.click(screen.getByRole('button', { name: /^Cookies/ }));
+      await screen.findByText('How much you used');
+      fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+      fireEvent.change(grams('Cookies'), { target: { value: '150' } });
+      expect(share()).toBeUndefined();
+    });
+
+    it('not found: the own-product form, a manual row sent with the barcode', async () => {
+      const { onSave } = await addByCode({
+        product: null,
+        from: null,
+        off: 'missing',
+      });
+      await screen.findByText(
+        'Not in your products or Open Food Facts. Fill it in — we’ll remember the product with this barcode.',
+      );
+      fireEvent.change(screen.getByLabelText(/^Weight/), {
+        target: { value: '180' },
+      });
+      fireEvent.change(screen.getByLabelText(/^Calories ·/), {
+        target: { value: '230' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+      await waitFor(() => expect(grams('Cookies')).toBeTruthy());
+      expect(share()).toBeUndefined();
+      expect(screen.queryByText('barcode')).toBeNull();
+      const row = await sent(onSave);
+      expect(row).toMatchObject({ source: 'manual', barcode: COOKIES.code });
+      expect(row).not.toHaveProperty('pack');
+    });
+
+    it('offline: a product saved on this device is found (E1)', async () => {
+      const { onSave } = await addByCode({
+        product: COOKIES,
+        from: 'local',
+        off: 'offline',
+      });
+      await screen.findByText('Found on this phone — check the amount.');
+      fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+      expect(await sent(onSave)).toMatchObject({
+        source: 'barcode',
+        barcode: COOKIES.code,
+      });
+    });
   });
 
   describe('steps', () => {
