@@ -1,5 +1,160 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`model response schemas (OCT-437) > ingredients: no optional fields, shallow and small > ingredients 1`] = `
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "properties": {
+    "items": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "barcode": {
+            "type": [
+              "string",
+              "null",
+            ],
+          },
+          "carbs100": {
+            "type": [
+              "number",
+              "null",
+            ],
+          },
+          "confidence": {
+            "type": [
+              "number",
+              "null",
+            ],
+          },
+          "ediblePct": {
+            "type": [
+              "number",
+              "null",
+            ],
+          },
+          "edibleRef": {
+            "type": [
+              "string",
+              "null",
+            ],
+          },
+          "estimateG": {
+            "type": [
+              "number",
+              "null",
+            ],
+          },
+          "fat100": {
+            "type": [
+              "number",
+              "null",
+            ],
+          },
+          "kcal100": {
+            "type": [
+              "number",
+              "null",
+            ],
+          },
+          "name": {
+            "maxLength": 80,
+            "minLength": 1,
+            "type": "string",
+          },
+          "printedBarcode": {
+            "type": [
+              "string",
+              "null",
+            ],
+          },
+          "protein100": {
+            "type": [
+              "number",
+              "null",
+            ],
+          },
+          "readUnit": {
+            "anyOf": [
+              {
+                "enum": [
+                  "g",
+                  "kg",
+                  "ml",
+                  "l",
+                  "lb",
+                  "oz",
+                ],
+                "type": "string",
+              },
+              {
+                "type": "null",
+              },
+            ],
+          },
+          "readValue": {
+            "type": [
+              "number",
+              "null",
+            ],
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "enum": [
+                  "ml",
+                ],
+                "type": "string",
+              },
+              {
+                "type": "null",
+              },
+            ],
+          },
+          "weightFrom": {
+            "anyOf": [
+              {
+                "enum": [
+                  "scale",
+                  "package",
+                ],
+                "type": "string",
+              },
+              {
+                "type": "null",
+              },
+            ],
+          },
+        },
+        "required": [
+          "name",
+          "readValue",
+          "readUnit",
+          "weightFrom",
+          "estimateG",
+          "unit",
+          "kcal100",
+          "protein100",
+          "fat100",
+          "carbs100",
+          "confidence",
+          "barcode",
+          "printedBarcode",
+          "edibleRef",
+          "ediblePct",
+        ],
+        "type": "object",
+      },
+      "type": "array",
+    },
+  },
+  "required": [
+    "items",
+  ],
+  "type": "object",
+}
+`;
+
 exports[`model response schemas (OCT-437) > interview: no optional fields, shallow and small > interview 1`] = `
 {
   "$schema": "http://json-schema.org/draft-07/schema#",

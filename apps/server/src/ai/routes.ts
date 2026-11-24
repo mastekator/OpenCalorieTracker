@@ -6,8 +6,14 @@ import {
   normalizeGtin,
   recipeParseRequestSchema,
   refineRequestSchema,
+  toIngredient,
   type AiStatus,
+  type IngredientModelRow,
+  type IngredientsRecognition,
   type LighterResponse,
+  type Locale,
+  type Product,
+  type RecognizedIngredient,
   type PackageRecognition,
   type RecipeParseResponse,
   type RefineResponse,
@@ -19,12 +25,14 @@ import { offClient } from '../barcodes/off.js';
 import { readBarcodes } from '../barcodes/read.js';
 import { ApiError } from '../http/errors.js';
 import { validate } from '../http/validate.js';
-import { photoPath } from '../photos/store.js';
+import { photoPath, photoTaken, removePhoto } from '../photos/store.js';
 import { readRecipe, recipeNames } from '../recipes/read.js';
 import { lighterRecipe } from './lighter.js';
 import { parseRecipe } from './parse.js';
 import { readEdiblePrefs } from '../edible/prefs.js';
 import { applyEdible } from './edible.js';
+import { applyIngredientEdible, recognizeIngredients } from './ingredients.js';
+import type { AiModel } from './model.js';
 import { readLabel, recognizeMeal } from './recognize.js';
 import { refineMeal, type Refined } from './refine.js';
 import { baseUrlHost, refineLimit } from './settings.js';
@@ -65,6 +73,71 @@ export function aiRoutes({ config, db, ai, photoBarcodes, fetch }: RouteDeps) {
     return result;
   };
 
+  /**
+   * `?mode=ingredients` (ADR-0040 §3–5): raw products with the weight picked by source. The photo
+   * is deleted after the model answers or fails (AC-B9), unless a meal or recipe owns it.
+   */
+  const recognizeIngredientsOf = async (
+    user: { id: number; locale: Locale },
+    photoId: string,
+    model: AiModel,
+  ): Promise<IngredientsRecognition> => {
+    const jpg = photoPath(config.dataDir, user.id, photoId, 'full');
+    if (!jpg) throw new ApiError(404, 'not_found');
+    const preview = photoPath(config.dataDir, user.id, photoId, 'preview')!;
+    const photoKey = `${user.id}:${photoId}`;
+    const rows = await once(`${photoKey}:ingredients`, user.id, async () => {
+      try {
+        const bytes = await readJpeg(jpg, preview);
+        const codes = await photoBarcodes(photoKey, () =>
+          readBarcodes(bytes),
+        ).catch(() => []);
+        const read = await recognizeIngredients(
+          model,
+          bytes,
+          user.locale,
+          codes,
+        );
+        // One lookup per code in the answer; a failed lookup only leaves the row without a product.
+        const lookups = new Map<string, Promise<Product | null>>();
+        const find = (code: string | null) => {
+          if (!code) return null;
+          if (!lookups.has(code))
+            lookups.set(
+              code,
+              lookupBarcode({ db, config, askOff }, user, code)
+                .then((r) => r.product)
+                .catch(() => null),
+            );
+          return lookups.get(code)!;
+        };
+        const found = await Promise.all(
+          read.map(
+            async (row) =>
+              (await find(row.barcode)) ?? (await find(row.printedBarcode)),
+          ),
+        );
+        return read
+          .map((row, i) => ({ row, item: toIngredient(row, found[i]!) }))
+          .filter((r) => r.item !== null)
+          .slice(0, 50) as {
+          row: IngredientModelRow;
+          item: RecognizedIngredient;
+        }[];
+      } finally {
+        // A failed delete is left to the nightly sweep (ADR-0008).
+        if (!photoTaken(db, photoId, null))
+          await removePhoto(config.dataDir, user.id, photoId).catch(() => {});
+      }
+    });
+    // The user's shares go on after the cache, like in meal recognition (ADR-0039 §4).
+    return {
+      items: applyIngredientEdible(rows, (keys) =>
+        readEdiblePrefs(db, user.id, keys),
+      ),
+    };
+  };
+
   return new Hono<AuthEnv>()
     .get('/ai/status', requireUser, (c) => {
       const { settings = null, model = null } = ai.current() ?? {};
@@ -89,6 +162,8 @@ export function aiRoutes({ config, db, ai, photoBarcodes, fetch }: RouteDeps) {
 
       const user = c.var.user;
       const photoId = c.req.param('id');
+      if (c.req.query('mode') === 'ingredients')
+        return c.json(await recognizeIngredientsOf(user, photoId, model!));
       const label = c.req.query('mode') === 'label';
       const code = label ? normalizeGtin(c.req.query('barcode') ?? '') : null;
       if (label && !code) throw new ApiError(400, 'barcode_invalid');

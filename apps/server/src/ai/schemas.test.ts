@@ -1,5 +1,6 @@
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import {
+  ingredientsModelSchema,
   interviewTurnSchema,
   lighterModelSchema,
   packageModelSchema,
@@ -71,6 +72,7 @@ const schemas = {
   parse: recipeParseModelSchema,
   lighter: lighterModelSchema,
   interview: interviewTurnSchema,
+  ingredients: ingredientsModelSchema,
 };
 
 describe('model response schemas (OCT-437)', () => {

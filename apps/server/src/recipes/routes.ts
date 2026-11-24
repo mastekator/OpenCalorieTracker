@@ -1,5 +1,4 @@
 import { existsSync } from 'node:fs';
-import { rm } from 'node:fs/promises';
 import { Hono } from 'hono';
 import {
   nameKey,
@@ -12,7 +11,7 @@ import { requireUser, type AuthEnv } from '../auth/session.js';
 import { ApiError } from '../http/errors.js';
 import { validate } from '../http/validate.js';
 import { rememberer } from '../barcodes/remember.js';
-import { photoPath, photoTaken } from '../photos/store.js';
+import { photoPath, photoTaken, removePhoto } from '../photos/store.js';
 import { bumpRev } from '../sync/rev.js';
 import { readRecipe } from './read.js';
 
@@ -108,14 +107,7 @@ export function recipeRoutes({ config, db }: AppDeps) {
   ];
 
   const removePhotos = (userId: number, ids: string[]) =>
-    Promise.all(
-      ids.flatMap((id) =>
-        (['full', 'preview'] as const).map((s) => {
-          const path = photoPath(config.dataDir, userId, id, s);
-          return path && rm(path, { force: true });
-        }),
-      ),
-    );
+    Promise.all(ids.map((id) => removePhoto(config.dataDir, userId, id)));
 
   return new Hono<AuthEnv>()
     .post('/recipes', requireUser, validate('json', recipeInputSchema), (c) => {

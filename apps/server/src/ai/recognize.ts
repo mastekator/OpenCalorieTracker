@@ -31,6 +31,7 @@ import {
   sanitizeQuestions,
   type RecipeName,
 } from './questions.js';
+import type { z } from 'zod';
 
 /** Bump on every prompt change; it is logged with each call. */
 export const RECOGNIZE_PROMPT_VERSION = 9;
@@ -166,19 +167,24 @@ export function readLabel(
   );
 }
 
-async function askVision<T extends { dishes: unknown[]; questions: unknown[] }>(
+/** One photo to the model with `schema` (default: the meal recognition schema); the shared call path of every photo mode. */
+export async function askVision<T extends object, O = PackageModelRecognition>(
   model: AiModel,
   jpeg: Uint8Array,
   opts: {
     op: string;
     system: string;
+    schema?: z.ZodType<O>;
+    promptVersion?: number;
+    /** What is logged after the call; counts only, never content. */
+    logExtra?: (r: T | undefined) => string;
     text?: string;
     /** Only the count is logged, never the names (ADR-0035 §4). */
     recipes?: number;
     signal?: AbortSignal;
     onUsage?: (usage: TokenUsage) => void;
   },
-  finish: (output: PackageModelRecognition) => T,
+  finish: (output: O) => T,
 ): Promise<T> {
   const total: TokenUsage = { inputTokens: 0, outputTokens: 0 };
   const add = (u: LanguageModelUsage | undefined) => {
@@ -190,12 +196,16 @@ async function askVision<T extends { dishes: unknown[]; questions: unknown[] }>(
       model,
       {
         op: opts.op,
-        promptVersion: RECOGNIZE_PROMPT_VERSION,
+        promptVersion: opts.promptVersion ?? RECOGNIZE_PROMPT_VERSION,
         timeoutMs: RECOGNIZE_TIMEOUT_MS,
         signal: opts.signal,
         mapError: noVisionError,
-        logExtra: (r) =>
-          `dishes=${r?.dishes.length ?? 0} questions=${r?.questions.length ?? 0} recipes=${opts.recipes ?? 0}`,
+        logExtra:
+          opts.logExtra ??
+          ((r) => {
+            const m = r as ModelRecognition | undefined;
+            return `dishes=${m?.dishes.length ?? 0} questions=${m?.questions.length ?? 0} recipes=${opts.recipes ?? 0}`;
+          }),
       },
       async (abortSignal) => {
         const result = await generateText({
@@ -212,7 +222,10 @@ async function askVision<T extends { dishes: unknown[]; questions: unknown[] }>(
               ],
             },
           ],
-          output: Output.object({ schema: packageModelSchema }),
+          output: Output.object({
+            schema: (opts.schema ??
+              packageModelSchema) as unknown as z.ZodType<O>,
+          }),
           maxRetries: 0,
           reasoning: quickReasoning(model),
           abortSignal,
