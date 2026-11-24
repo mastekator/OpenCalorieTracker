@@ -422,7 +422,7 @@ export function SourceStep({
                   >
                     {deleting === i.id
                       ? t('integr.import.deleting')
-                      : t('integr.import.delete')}
+                      : t('integr.import.delete_short')}
                   </Button>
                 </span>
               }

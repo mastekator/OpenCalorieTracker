@@ -381,6 +381,7 @@ const ru: DeepPartial<typeof en> = {
         other: '{n} импорта',
       },
       delete: 'Удалить импорт',
+      delete_short: 'Удалить',
       delete_label: 'Удалить импорт: {source}, {date}',
       deleting: 'Удаляем…',
       delete_title: 'Удалить импорт?',
