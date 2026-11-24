@@ -119,6 +119,7 @@ export * from './weight/jump.js';
 export * from './recipes/recipes.js';
 export * from './recipes/lighter.js';
 export * from './recipes/parse.js';
+export * from './recipes/ingredients.js';
 export * from './export/schema.js';
 export * from './edible/refuse.js';
 export * from './imports/schema.js';

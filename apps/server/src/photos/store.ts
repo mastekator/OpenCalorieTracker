@@ -48,6 +48,20 @@ export function photoPath(
   return join(userDir(dataDir, userId), `${photoId}.${EXT[size]}`);
 }
 
+/** Removes the given sizes of a user's photo; a malformed id or a missing file is a no-op. */
+export const removePhoto = (
+  dataDir: string,
+  userId: number,
+  photoId: string,
+  sizes: readonly PhotoSize[] = ['full', 'preview'],
+) =>
+  Promise.all(
+    sizes.map((s) => {
+      const path = photoPath(dataDir, userId, photoId, s);
+      return path && rm(path, { force: true });
+    }),
+  );
+
 /** Re-encodes an uploaded image without metadata, stores it with a preview and returns its id. */
 export async function savePhoto(
   dataDir: string,

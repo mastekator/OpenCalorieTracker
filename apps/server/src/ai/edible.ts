@@ -42,6 +42,29 @@ export function edibleHints(d: RecognizedDish) {
 
 type Answer<D> = { dishes: D[]; questions: AiQuestion[] };
 
+/** The key a share is remembered by: a known reference key, else the name's key. */
+export const edibleKey = (d: Pick<RecognizedDish, 'name' | 'edibleRef'>) =>
+  d.edibleRef && edibleOf(d.edibleRef) !== undefined
+    ? d.edibleRef
+    : nameKey(d.name);
+
+/**
+ * The edible share without asking (ADR-0039 §3): the user's own share → the reference →
+ * the model's share (10–100, confidence ≥ 0.5); null when none fits.
+ */
+export function pickEdible(
+  d: Pick<RecognizedDish, 'edibleRef' | 'ediblePct' | 'confidence'>,
+  mine: number | undefined,
+): { pct: number; source: Edible['source'] } | null {
+  if (mine !== undefined) return { pct: mine, source: 'user' };
+  const ref = d.edibleRef ? edibleOf(d.edibleRef) : undefined;
+  if (ref !== undefined) return { pct: ref, source: 'ref' };
+  const pct = d.ediblePct;
+  if (typeof pct === 'number' && pct >= 10 && pct <= 100 && d.confidence >= 0.5)
+    return { pct: Math.round(pct), source: 'ai' };
+  return null;
+}
+
 /**
  * Picks the edible share of every dish with a gross weight (ADR-0039 §3): the user's own share →
  * the reference → the model's share (10–100, confidence ≥ 0.5) → the server's question with the
@@ -54,21 +77,18 @@ export function applyEdible<D extends RecognizedDish>(
   locale: string,
   isFixed: (dish: D) => boolean = () => false,
 ): Answer<D> {
-  const keyOf = (d: D) =>
-    d.edibleRef && edibleOf(d.edibleRef) !== undefined
-      ? d.edibleRef
-      : nameKey(d.name);
   const withGross = dishes.filter(
     (d) => d.grossG !== undefined && d.grossG !== null && d.unit !== 'ml',
   );
-  const own = withGross.length ? prefs(withGross.map(keyOf)) : new Map();
+  const own = withGross.length ? prefs(withGross.map(edibleKey)) : new Map();
   const words = QUESTION[locale] ?? QUESTION.en!;
   const asked: AiQuestion[] = [];
 
   const out = dishes.map((dish, i) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- stripped: the hints never leave the server
     const { grossG, edibleRef, ediblePct, ...plain } = dish;
     if (!withGross.includes(dish)) return plain as D;
-    const key = keyOf(dish);
+    const key = edibleKey(dish);
     const at = (pct: number, source: Edible['source']) => {
       const scaled = scaleItem(plain, edibleGrams(grossG!, pct));
       return {
@@ -80,13 +100,9 @@ export function applyEdible<D extends RecognizedDish>(
         edible: { grossG: grossG!, pct, source, key },
       } as D;
     };
-    const mine = own.get(key);
-    if (mine !== undefined) return at(mine, 'user');
-    const ref = edibleRef ? edibleOf(edibleRef) : undefined;
-    if (ref !== undefined) return at(ref, 'ref');
+    const picked = pickEdible(dish, own.get(key));
+    if (picked) return at(picked.pct, picked.source);
     const pct = typeof ediblePct === 'number' ? ediblePct : null;
-    if (pct !== null && pct >= 10 && pct <= 100 && dish.confidence >= 0.5)
-      return at(Math.round(pct), 'ai');
     const near = pct ?? 50;
     const guess = EDIBLE_STEPS.reduce(
       (best, p, j) =>
