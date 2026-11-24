@@ -362,7 +362,9 @@ describe('ImportScreen: history and «Delete import» (3.6–3.7)', () => {
     const history = (await screen.findByText('Past imports')).parentElement!;
     expect(within(history).getByText('Other CSV')).toBeTruthy();
     fireEvent.click(
-      within(history).getByRole('button', { name: 'Delete import' }),
+      within(history).getByRole('button', {
+        name: /^Delete import: Other CSV, Nov \d+$/,
+      }),
     );
 
     const dialog = await screen.findByRole('alertdialog');
@@ -401,7 +403,7 @@ describe('ImportScreen: history and «Delete import» (3.6–3.7)', () => {
     });
     await wrap();
     fireEvent.click(
-      await screen.findByRole('button', { name: 'Delete import' }),
+      await screen.findByRole('button', { name: /^Delete import: OCT/ }),
     );
     const dialog = await screen.findByRole('alertdialog');
     expect(dialog.textContent).not.toContain('edited');
@@ -417,7 +419,7 @@ describe('ImportScreen: history and «Delete import» (3.6–3.7)', () => {
     expect(screen.queryByText('Import deleted')).toBeNull();
     expect(
       screen
-        .getByRole('button', { name: 'Delete import' })
+        .getByRole('button', { name: /^Delete import: OCT/ })
         .hasAttribute('disabled'),
     ).toBe(false);
   });

@@ -257,6 +257,8 @@ export const PreviewNothingRead: Story = {
       period: null,
       days: 0,
       records: 0,
+      skippedDays: 0,
+      skippedRecords: 0,
       first: [],
       unrecognized: {
         count: 2,

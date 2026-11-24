@@ -339,6 +339,7 @@ export const en = {
       n_days: { one: '{n} day', other: '{n} days' },
       n_imports: { one: '{n} import', other: '{n} imports' },
       delete: 'Delete import',
+      delete_label: 'Delete import: {source}, {date}',
       deleting: 'Deleting…',
       delete_title: 'Delete import?',
       delete_body: 'This removes {entries} over {days} from the diary.',

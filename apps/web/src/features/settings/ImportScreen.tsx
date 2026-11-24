@@ -5,7 +5,7 @@ import {
   type DragEvent,
   type ReactNode,
 } from 'react';
-import { Check, FileText, History, Lock, Upload } from 'lucide-react';
+import { Check, FileText, Lock, Upload } from 'lucide-react';
 import { useLocation } from 'wouter';
 import type { Columns, DateOrder, ImportRecord, Mapping } from '@oct/shared';
 import {
@@ -308,6 +308,17 @@ export function SourceStep({
   onDelete,
 }: SourceProps) {
   const { t, num, locale } = useT();
+  // 3.1: "9 Nov, 21:14"; the year only when it is not this one.
+  const when = (ms: number, time: boolean) =>
+    new Intl.DateTimeFormat(locale, {
+      day: 'numeric',
+      month: 'short',
+      year:
+        new Date(ms).getFullYear() === new Date().getFullYear()
+          ? undefined
+          : 'numeric',
+      ...(time && { hour: '2-digit', minute: '2-digit' }),
+    }).format(ms);
   const input = useRef<HTMLInputElement>(null);
   const [source, setSource] = useState<ImportSource>('oct');
   const [over, setOver] = useState(false);
@@ -394,8 +405,7 @@ export function SourceStep({
           {history.map((i) => (
             <ListRow
               key={i.id}
-              icon={<History />}
-              description={`${new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(i.committedAt)} · ${t('integr.import.records', { count: i.records, n: num(i.records) })}`}
+              description={`${when(i.committedAt, true)} · ${t('integr.import.records', { count: i.records, n: num(i.records) })}`}
               chevron={false}
               action={
                 <span className="import__delete">
@@ -404,6 +414,10 @@ export function SourceStep({
                     small
                     disabled={off || deleting !== null}
                     loading={deleting === i.id}
+                    aria-label={t('integr.import.delete_label', {
+                      source: t(`integr.import.${i.source}`),
+                      date: when(i.committedAt, false),
+                    })}
                     onClick={() => onDelete?.(i.id)}
                   >
                     {deleting === i.id
@@ -716,7 +730,12 @@ export function PreviewStep({
             <tbody>
               {preview.first.map((r, i) => (
                 <tr key={i}>
-                  <td>{row(r)}</td>
+                  <td>
+                    <span className="import__when">
+                      {formatDate(r.localDate, locale)}
+                    </span>
+                    {t(`meal.type.${r.mealType}`)}
+                  </td>
                   <td>{r.name}</td>
                   <td>{r.grams ? num(r.grams) : '—'}</td>
                   <td>{num(r.kcal)}</td>

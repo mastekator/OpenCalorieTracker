@@ -221,7 +221,8 @@
   }
 }
 
-.import__table td:first-child {
+.import__when {
+  display: block;
   white-space: nowrap;
 }
 
