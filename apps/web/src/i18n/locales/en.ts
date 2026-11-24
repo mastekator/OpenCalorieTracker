@@ -1464,6 +1464,7 @@ export const en = {
         approx: 'Expected “approx.”',
         empty: 'Expected empty',
         nothing: 'Nothing found',
+        no_question: 'Expected a question',
         error: 'Provider error',
       },
       copy_row: 'Copy row for MODELS.md',

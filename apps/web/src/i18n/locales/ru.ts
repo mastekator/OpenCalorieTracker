@@ -1541,6 +1541,7 @@ const ru: DeepPartial<typeof en> = {
         approx: 'Ждали «примерно»',
         empty: 'Ждали пусто',
         nothing: 'Ничего не нашла',
+        no_question: 'Ждали вопрос',
         error: 'Ошибка провайдера',
       },
       copy_row: 'Скопировать строку для MODELS.md',

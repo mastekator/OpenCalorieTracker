@@ -9,6 +9,11 @@ The model test set: **Settings → AI provider → Test model** and `pnpm --filt
 - `per100`, instead of `ref`, for a pack whose weight is not visible: the label kcal per 100 g, widened by ±10%; every matched entry's kcal ÷ grams × 100 must fit.
 - `level`: `exact` for countable single items (every dish must come back `exact`), `notExact` for mixed dishes (none may).
 - `"empty": true`: not food; the dish list must be empty.
+- `"question": true`: the answer must ask at least one question, of any kind.
+
+Dishes with an inedible part (peel, stones, shells, bones) are scored on the edible part: the run passes the answer through the edible-share reference as the app does, so `ref` is the kcal of the edible grams, and the gross weight on a scale or receipt falls out of range (ADR-0039 §6).
+
+`awaiting`: cases with the same fields whose photo the set does not have yet: no free (CC0 or public domain) photo was found, or the project owner's photo is not in the repository. They are never run. When the photo comes, move the case to `photos`, check `ref` against it and bump `set`.
 
 A photo fails with every reason at once. **Bump `set` on any change of photos, words or `ref`**: runs of different sets are not comparable.
 
@@ -31,6 +36,15 @@ Reference portions (`ref`, grams × kcal per 100 g):
 | grilled-shrimp.jpg   | ~300 g × ~115                                                            | 350  | 245–455            |
 | crepes-salad.jpg     | 6 folded crepe pieces with salmon × ~130, salad 80                       | 860  | 602–1118           |
 | pastries.jpg         | 3 curd danishes × ~330, 3 small croissants × ~100                        | 1290 | 903–1677           |
+
+Awaiting cases (ADR-0039 §6), edible grams × kcal per 100 g:
+
+| File                   | Estimate                                                                                                                      | ref | Range   |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------- | --- | ------- |
+| orange-on-scale.jpg    | 1 orange, 250 g on a kitchen scale; 73% edible ≈ 183 g × 47 (the gross 118 kcal fails)                                        | 86  | 69–103  |
+| walnuts-in-shell.jpg   | walnuts in shell ~110 g; 45% edible ≈ 50 g × 654                                                                              | 324 | 227–421 |
+| chicken-drumsticks.jpg | 2 roasted drumsticks ~240 g with bone; 67% edible ≈ 160 g × 216                                                               | 345 | 242–449 |
+| sapodilla-receipt.jpg  | the project owner's sapodilla in a bag, 772 g on the receipt; 80% edible ≈ 618 g × 83; a question (receipt or photo) expected | 513 | 410–616 |
 
 Sushi is `exact`, and the level is checked on every returned dish, extras included: wasabi or ginger returned below `exact` fails the photo, an honest fail.
 

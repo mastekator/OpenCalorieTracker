@@ -126,6 +126,31 @@ it('keeps the old reason for a set 1 run without misses', async () => {
   ).toBeTruthy();
 });
 
+it('words a case that expected a question and got none', async () => {
+  localStorage.setItem(LOCALE_STORAGE_KEY, 'ru');
+  render(
+    <I18nProvider>
+      <TestPhotoList
+        photos={[
+          {
+            file: 'sapodilla-receipt.jpg',
+            expected: 'sapodilla; 410-616 kcal; exact',
+            got: 'Sapodilla',
+            kcal: 513,
+            levels: 'exact',
+            ms: 3100,
+            result: 'no question asked',
+            misses: [{ code: 'no_question' }],
+          },
+        ]}
+      />
+    </I18nProvider>,
+  );
+  expect(
+    (await screen.findByText(/Ждали вопрос/)).closest('.test-photos__why'),
+  ).toBeTruthy();
+});
+
 it('names the dishes the model returned in «Got», repeats as × N', async () => {
   render(
     <I18nProvider>
