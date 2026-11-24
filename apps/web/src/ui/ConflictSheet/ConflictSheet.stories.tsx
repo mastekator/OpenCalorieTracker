@@ -75,6 +75,11 @@ export const DishesDesktop: Story = {
   args: { desktop: true },
   globals: desktop,
 };
+/** OCT-451: short names keep their badge on its own line, so rows face each other. */
+export const DishesDesktopRu: Story = {
+  args: { desktop: true },
+  globals: { ...desktop, locale: 'ru' },
+};
 export const DishesDesktopDark: Story = {
   args: { desktop: true },
   globals: { ...desktop, theme: 'dark' },

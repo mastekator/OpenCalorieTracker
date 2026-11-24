@@ -23,6 +23,7 @@ describe('VersionCard', () => {
     const card = await screen.findByRole('region', {
       name: 'On another device, 712 kcal',
     });
+    expect(card.querySelector('.version-card__unit')?.textContent).toBe('kcal');
     expect(card.querySelector('s')?.textContent).toBe('Sauce');
     expect(card.textContent).toContain('Saucenot in this version—');
     const toggle = screen.getByRole('button', {

@@ -97,7 +97,13 @@ export function VersionCard({
             )}
           </span>
         </span>
-        {total && <span className="version-card__kcal">{total}</span>}
+        {total && (
+          // The space keeps the text «530 kcal»; flex drops it from layout, the gap spaces it.
+          <span className="version-card__kcal">
+            {num(kcal)}{' '}
+            <span className="version-card__unit">{t('today.kcal')}</span>
+          </span>
+        )}
       </div>
       {gone && (
         <p className="version-card__gone">
