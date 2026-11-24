@@ -30,6 +30,24 @@
 @media (min-width: 1024px) {
   .conflict-sheet__cards {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: 0;
+  }
+
+  /* Shared row tracks: a title that wraps in one card (RU) moves both cards' rows (OCT-451). */
+  .conflict-sheet__cards > .version-card {
+    display: grid;
+    grid-row: span 5;
+    grid-template-rows: subgrid;
+    row-gap: 0;
+  }
+
+  /* Gap as margins: a card with fewer parts leaves its spare tracks at zero height. */
+  .conflict-sheet__cards > .version-card > * {
+    align-self: start;
+  }
+
+  .conflict-sheet__cards > .version-card > * + * {
+    margin-top: var(--space-3);
   }
 }
 
