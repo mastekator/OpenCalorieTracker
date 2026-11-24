@@ -162,7 +162,7 @@ export const DeleteConfirmUneditedDark: Story = {
   ...dark,
 };
 
-/** 3.1: sources; MyFitnessPal and Cronometer come later. On a desktop, the drop zone. */
+/** 3.1: sources, MyFitnessPal and Cronometer among them. On a desktop, the drop zone. */
 export const Source: Story = { render: () => source() };
 export const SourceDark: Story = { ...Source, ...dark };
 export const SourceDesktop: Story = {
@@ -181,6 +181,10 @@ export const ErrorWrongFile: Story = {
   render: () => source(<FileError text="integr.import.wrong_oct" />),
 };
 export const ErrorWrongFileDark: Story = { ...ErrorWrongFile, ...dark };
+export const ErrorWrongMfp: Story = {
+  render: () => source(<FileError text="integr.import.wrong_mfp" />),
+};
+export const ErrorWrongMfpDark: Story = { ...ErrorWrongMfp, ...dark };
 export const ErrorTooBig: Story = {
   render: () => source(<FileError text="integr.import.too_big" />),
 };

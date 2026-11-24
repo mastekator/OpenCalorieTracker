@@ -1,5 +1,12 @@
 import { randomUUID } from 'node:crypto';
-import { mkdtemp, readdir, rm, utimes, writeFile } from 'node:fs/promises';
+import {
+  mkdtemp,
+  readFile,
+  readdir,
+  rm,
+  utimes,
+  writeFile,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -7,6 +14,7 @@ import type { Database } from 'better-sqlite3';
 import { OCT_EXPORT_VERSION, sumDay } from '@oct/shared';
 import { ensureAdmin } from '../auth/admin.js';
 import { hashPassword } from '../auth/password.js';
+import { writeZip } from '../export/zip.js';
 import { setCookie, testApp } from '../test/app.js';
 import { dataRows, MAX_IMPORT_BYTES } from './draft.js';
 import { DRAFT_AGE_MS, sweepImports } from './sweep.js';
@@ -188,7 +196,7 @@ describe('POST /api/imports (ADR-0026 §5)', () => {
       (await t.upload('oct', '{"format":"oct-export","version":1}')).status,
     ).toBe(400);
     expect((await t.upload('csv', '')).status).toBe(400);
-    expect((await t.upload('mfp', CSV)).status).toBe(400);
+    expect((await t.upload('fitbit', CSV)).status).toBe(400);
     expect(t.db.prepare('SELECT count(*) FROM imports').pluck().get()).toBe(0);
     expect(await t.files()).toEqual([]);
   });
@@ -328,6 +336,137 @@ describe('PUT /api/imports/:id/mapping and GET preview', () => {
     ).toBe(404);
     t.db.exec("UPDATE imports SET status = 'done'");
     expect((await t.call('GET', `/imports/${id}/preview`)).status).toBe(404);
+  });
+});
+
+const fixture = (name: string) =>
+  readFile(new URL(`./fixtures/${name}`, import.meta.url));
+
+async function zipOf(entries: [string, Buffer][]) {
+  const chunks: Uint8Array[] = [];
+  for await (const c of writeZip(
+    entries.map(([name, data]) => ({
+      name,
+      size: data.length,
+      data: () => [data],
+    })),
+    new Date(),
+  ))
+    chunks.push(c);
+  return Buffer.concat(chunks);
+}
+
+describe('MyFitnessPal and Cronometer exports (ADR-0026 §6)', () => {
+  it('previews an MFP nutrition summary as meal totals, from a CSV or the export ZIP', async () => {
+    const t = await setup();
+    const csv = await fixture('mfp-nutrition-summary.csv');
+    const expected = {
+      period: { from: '2024-03-04', to: '2024-03-05' },
+      days: 2,
+      records: 5,
+      first: [
+        {
+          localDate: '2024-03-04',
+          time: '08:12',
+          mealType: 'breakfast',
+          name: 'Breakfast total',
+          grams: 0,
+          kcal: 412.5,
+          proteinG: 18.2,
+          fatG: 12.1,
+          carbsG: 55.3,
+        },
+        { name: 'Lunch total', time: '13:05' },
+        { name: 'Snack total', time: null },
+        { name: 'Dinner total' },
+        // A renamed meal: placed by its time.
+        { name: 'Dinner total', time: '21:30' },
+      ],
+      unrecognized: { count: 0, rows: [] },
+    };
+    const res = await t.upload('mfp', csv);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject(expected);
+
+    const zip = await zipOf([
+      ['Exercise-Summary-2024-03-04-to-2024-03-05.csv', Buffer.from('x\n')],
+      ['Nutrition-Summary-2024-03-04-to-2024-03-05.csv', csv],
+    ]);
+    const fromZip = await t.upload('mfp', zip);
+    expect(fromZip.status).toBe(200);
+    const body = (await fromZip.json()) as { id: number };
+    expect(body).toMatchObject(expected);
+
+    const commit = await t.call('POST', `/imports/${body.id}/commit`, {});
+    expect(await commit.json()).toEqual({ records: 5 });
+    expect(
+      t.db
+        .prepare("SELECT count(*) FROM meal_items WHERE trim(name) = ''")
+        .pluck()
+        .get(),
+    ).toBe(0);
+    // The same ZIP again is the same file.
+    expect((await t.upload('mfp', zip)).status).toBe(409);
+  });
+
+  it('previews Cronometer servings with grams from the amount, kcal by header', async () => {
+    const t = await setup();
+    const res = await t.upload(
+      'cronometer',
+      await fixture('cronometer-servings.csv'),
+    );
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({
+      period: { from: '2024-03-04', to: '2024-03-05' },
+      days: 2,
+      records: 5,
+      first: [
+        {
+          time: '08:10',
+          mealType: 'breakfast',
+          name: 'Oats, Rolled',
+          grams: 50,
+          kcal: 189.5,
+          proteinG: 6.6,
+          fatG: 3.3,
+          carbsG: 33.8,
+        },
+        { name: 'Milk, 2%', grams: 0, kcal: 122 },
+        { name: 'Chicken Breast, Roasted', mealType: 'lunch' },
+        // «Uncategorized» without a time is a snack.
+        { name: 'Apple', mealType: 'snack', grams: 182 },
+        { name: 'Rice, White, Cooked', mealType: 'dinner' },
+      ],
+    });
+  });
+
+  it('refuses files that are not the source export, leaving nothing behind', async () => {
+    const t = await setup();
+    const csv = await fixture('mfp-nutrition-summary.csv');
+    for (const [source, body] of [
+      ['mfp', 'Date;Food;Calories\n2024-03-04;Tea;5\n'],
+      ['cronometer', csv],
+      ['mfp', await zipOf([['Exercise-Summary.csv', csv]])],
+      ['mfp', Buffer.from('PK\x03\x04 broken')],
+    ] as const) {
+      const res = await t.upload(source, body);
+      expect(res.status).toBe(400);
+      expect(await res.json()).toEqual({
+        error: { code: 'validation_failed' },
+      });
+    }
+    expect(await t.files()).toEqual([]);
+    expect(t.db.prepare('SELECT count(*) FROM imports').pluck().get()).toBe(0);
+  });
+
+  it('keeps the mapping fixed: PUT mapping is only for «Other CSV»', async () => {
+    const t = await setup();
+    const { id } = (await (
+      await t.upload('mfp', await fixture('mfp-nutrition-summary.csv'))
+    ).json()) as { id: number };
+    expect(
+      (await t.call('PUT', `/imports/${id}/mapping`, MAPPING)).status,
+    ).toBe(400);
   });
 });
 

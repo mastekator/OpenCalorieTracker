@@ -1,0 +1,6 @@
+Date,Meal,Time,Calories,Fat (g),Saturated Fat,Polyunsaturated Fat,Monounsaturated Fat,Trans Fat,Cholesterol,Sodium (mg),Potassium,Carbohydrates (g),Fiber,Sugar,Protein (g),Vitamin A,Vitamin C,Calcium,Iron,Note
+2024-03-04,Breakfast,8:12 AM,412.5,12.1,4.2,1.1,3.3,0,180,420,310,55.3,6.1,12.4,18.2,10,4,15,8,
+2024-03-04,Lunch,1:05 PM,690,22,7,3,9,0,95,980,640,78,9,6,41,12,30,10,20,
+2024-03-04,Snacks,,150,6,1,2,3,0,0,80,200,20,3,14,4,0,10,2,2,
+2024-03-05,Dinner,7:40 PM,820,30,11,4,12,0.5,140,1200,900,85,7,9,52,20,15,18,25,office party
+2024-03-05,Meal 5,9:30 PM,120,4,1,1,2,0,10,60,150,15,1,10,6,2,0,8,1,

@@ -9,6 +9,7 @@ import {
   parseTime,
   summarize,
   toRecord,
+  trackerMapping,
   type ImportRecord,
   type RowContext,
   type RowReason,
@@ -105,6 +106,63 @@ describe('import rules (ADR-0026 §5)', () => {
     }) as ImportRecord;
     expect(r.kcal).toBeCloseTo(100);
     expect(r.grams).toBeCloseTo(56.699);
+  });
+
+  it('reads a unit in the grams cell; other servings are 0 g with their kcal', () => {
+    const grams = (cell: string) =>
+      (record(['2024-03-04', '', '', 'Tea', cell, '100']) as ImportRecord)
+        .grams;
+    expect(grams('150.00 g')).toBe(150);
+    expect(grams('150 г')).toBe(150);
+    expect(grams('5.00 oz')).toBeCloseTo(141.75);
+    expect(grams('1.00 cup')).toBe(0);
+    expect(grams('a little')).toBe(0);
+  });
+
+  it('names every row of a file without a name column by its meal total, never empty', () => {
+    const noName = { ...ctx, columns: { ...ctx.columns, name: undefined } };
+    const name = (meal: string, time = '') =>
+      (
+        record(
+          ['2024-03-04', time, meal, '', '', '100'],
+          noName,
+        ) as ImportRecord
+      ).name;
+    expect(name('Lunch')).toBe('Lunch total');
+    // A renamed meal still lands by its time, or as a snack.
+    expect(name('Meal 5', '19:00')).toBe('Dinner total');
+    expect(name('')).toBe('Snack total');
+  });
+
+  it('maps tracker exports by header names, refusing files without their columns', () => {
+    expect(
+      trackerMapping('mfp', [
+        'Date',
+        'Meal',
+        'Time',
+        'Calories',
+        'Fat (g)',
+        'Protein (g)',
+      ]),
+    ).toEqual({
+      columns: { date: 0, meal: 1, time: 2, kcal: 3, fat: 4, protein: 5 },
+    });
+    expect(
+      trackerMapping('cronometer', [
+        'Day',
+        'Time',
+        'Group',
+        'Food Name',
+        'Amount',
+        'Energy (kcal)',
+      ]),
+    ).toEqual({
+      columns: { date: 0, time: 1, meal: 2, name: 3, grams: 4, kcal: 5 },
+    });
+    expect(trackerMapping('mfp', ['Date', 'Food', 'Calories'])).toBeNull();
+    expect(
+      trackerMapping('cronometer', ['Day', 'Group', 'Energy (kcal)']),
+    ).toBeNull();
   });
 
   it('reads the date in the given order and refuses impossible ones', () => {

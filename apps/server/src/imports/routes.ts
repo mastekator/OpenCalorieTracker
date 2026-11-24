@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { createWriteStream } from 'node:fs';
-import { mkdir, rename, rm } from 'node:fs/promises';
+import { mkdir, rename, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
@@ -22,7 +22,17 @@ import {
   readOct,
   type Draft,
 } from './draft.js';
-import { guessColumns, mappingSchema, type Mapping } from './rules.js';
+import {
+  guessColumns,
+  mappingSchema,
+  trackerMapping,
+  type SourceMapping,
+} from './rules.js';
+import { isZip, readZipEntry } from './unzip.js';
+
+const SOURCES = ['oct', 'csv', 'mfp', 'cronometer'] as const;
+/** The meals file of an MFP export ZIP; other entries (exercise, measurements) are skipped. */
+const MFP_ENTRY = /(^|\/)nutrition[-_ ]?summary[^/]*\.csv$/i;
 
 const commitSchema = z.object({
   includeDaysWithEntries: z.boolean().optional(),
@@ -46,7 +56,7 @@ export function importRoutes({ config, db }: AppDeps) {
     if (!row) throw new ApiError(404, 'not_found');
     return {
       ...row,
-      mapping: row.mapping ? (JSON.parse(row.mapping) as Mapping) : null,
+      mapping: row.mapping ? (JSON.parse(row.mapping) as SourceMapping) : null,
     };
   };
 
@@ -80,9 +90,8 @@ export function importRoutes({ config, db }: AppDeps) {
 
   return new Hono<AuthEnv>()
     .post('/imports', requireUser, async (c) => {
-      const source = c.req.query('source');
-      if (source !== 'oct' && source !== 'csv')
-        throw new ApiError(400, 'validation_failed');
+      const source = SOURCES.find((s) => s === c.req.query('source'));
+      if (!source) throw new ApiError(400, 'validation_failed');
       if (Number(c.req.header('content-length')) > MAX_IMPORT_BYTES)
         throw new ApiError(413, 'import_too_large');
       const body = c.req.raw.body;
@@ -117,16 +126,35 @@ export function importRoutes({ config, db }: AppDeps) {
             .get(c.var.user.id, sha)
         )
           throw new ApiError(409, 'already_imported');
+        // The hash is of the uploaded ZIP: the same export is refused again as above.
+        if (source === 'mfp' && (await isZip(part))) {
+          const csv = await readZipEntry(part, (name) => MFP_ENTRY.test(name));
+          if (!csv) throw new ApiError(400, 'validation_failed');
+          await writeFile(part, csv);
+        }
         // Checked before the draft exists, so a bad file leaves nothing behind.
         const head =
           source === 'oct' ? await readOct(part) : await csvHead(part);
+        const tracker =
+          source === 'mfp' || source === 'cronometer' ? source : null;
+        const mapping =
+          tracker && 'headers' in head
+            ? trackerMapping(tracker, head.headers)
+            : null;
+        if (tracker && !mapping) throw new ApiError(400, 'validation_failed');
 
         const id = Number(
           db
             .prepare(
-              "INSERT INTO imports (user_id, source, file_sha256, status, created_at) VALUES (?, ?, ?, 'draft', ?)",
+              "INSERT INTO imports (user_id, source, file_sha256, status, created_at, mapping) VALUES (?, ?, ?, 'draft', ?, ?)",
             )
-            .run(c.var.user.id, source, sha, Date.now()).lastInsertRowid,
+            .run(
+              c.var.user.id,
+              source,
+              sha,
+              Date.now(),
+              mapping && JSON.stringify(mapping),
+            ).lastInsertRowid,
         );
         try {
           await rename(part, draftPath(config.dataDir, id));
@@ -134,7 +162,7 @@ export function importRoutes({ config, db }: AppDeps) {
           db.prepare('DELETE FROM imports WHERE id = ?').run(id);
           throw err;
         }
-        if ('headers' in head)
+        if ('headers' in head && !mapping)
           return c.json({
             id,
             needsMapping: true,
@@ -142,7 +170,7 @@ export function importRoutes({ config, db }: AppDeps) {
             columns: guessColumns(head.headers),
             sample: head.sample,
           });
-        return c.json(await preview(c.var.user, { id, source, mapping: null }));
+        return c.json(await preview(c.var.user, { id, source, mapping }));
       } finally {
         // Any error or a dropped request: the partial upload never stays on disk.
         await rm(part, { force: true });

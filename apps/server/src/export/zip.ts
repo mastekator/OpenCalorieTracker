@@ -7,10 +7,13 @@ export interface ZipEntry {
   data: () => Iterable<Uint8Array> | AsyncIterable<Uint8Array>;
 }
 
-const LOCAL = 30;
+export const LOCAL = 30;
 const DESCRIPTOR = 16;
-const CENTRAL = 46;
-const END = 22;
+export const CENTRAL = 46;
+export const END = 22;
+export const LOCAL_SIG = 0x04034b50;
+export const CENTRAL_SIG = 0x02014b50;
+export const END_SIG = 0x06054b50;
 /** Without ZIP64 (ADR-0026 §3): sizes and offsets are 32-bit, the entry count 16-bit. */
 export const ZIP_MAX_BYTES = 0xffffffff;
 export const ZIP_MAX_ENTRIES = 0xffff;
@@ -48,7 +51,7 @@ export async function* writeZip(entries: ZipEntry[], at: Date) {
   for (const e of entries) {
     const name = Buffer.from(e.name);
     const local = Buffer.alloc(LOCAL);
-    local.writeUInt32LE(0x04034b50, 0);
+    local.writeUInt32LE(LOCAL_SIG, 0);
     local.writeUInt16LE(20, 4);
     local.writeUInt16LE(FLAGS, 6);
     local.writeUInt16LE(0, 8); // stored
@@ -79,7 +82,7 @@ export async function* writeZip(entries: ZipEntry[], at: Date) {
     yield descriptor;
 
     const header = Buffer.alloc(CENTRAL);
-    header.writeUInt32LE(0x02014b50, 0);
+    header.writeUInt32LE(CENTRAL_SIG, 0);
     header.writeUInt16LE(20, 4);
     header.writeUInt16LE(20, 6);
     header.writeUInt16LE(FLAGS, 8);
@@ -96,7 +99,7 @@ export async function* writeZip(entries: ZipEntry[], at: Date) {
   }
   const dir = Buffer.concat(central);
   const end = Buffer.alloc(END);
-  end.writeUInt32LE(0x06054b50, 0);
+  end.writeUInt32LE(END_SIG, 0);
   end.writeUInt16LE(entries.length, 8);
   end.writeUInt16LE(entries.length, 10);
   end.writeUInt32LE(dir.length, 12);

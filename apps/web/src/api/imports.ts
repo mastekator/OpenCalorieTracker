@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { mappingSchema, previewSchema, type Mapping } from '@oct/shared';
 import { api } from './client';
 
-export type ImportSource = 'oct' | 'csv';
+export type ImportSource = 'oct' | 'csv' | 'mfp' | 'cronometer';
 
 const draftPreviewSchema = previewSchema.extend({ id: z.number() });
 export type DraftPreview = z.infer<typeof draftPreviewSchema>;
@@ -18,7 +18,7 @@ export type NeedsMapping = z.infer<typeof needsMappingSchema>;
 
 const include = (all: boolean) => (all ? '?includeDaysWithEntries=1' : '');
 
-/** The raw file goes as the body (ADR-0026 §5); a CSV answers with its headers first. */
+/** The raw file goes as the body (ADR-0026 §5); an «Other CSV» answers with its headers first. */
 export const uploadImport = (source: ImportSource, file: Blob) =>
   api(
     `/api/imports?source=${source}`,

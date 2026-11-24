@@ -15,9 +15,9 @@ import {
   summarize,
   toRecord,
   type ImportRecord,
-  type Mapping,
   type Preview,
   type RowReason,
+  type SourceMapping,
 } from './rules.js';
 
 export const MAX_IMPORT_BYTES = 50 * 1024 * 1024;
@@ -97,7 +97,7 @@ async function* octRows(data: OctExport): AsyncGenerator<Row> {
   }
 }
 
-/** The CSV rows as dishes, the same for the preview and the commit; the date order is guessed when unset. */
+/** The CSV rows (any non-OCT source) as dishes, the same for the preview and the commit; the date order is guessed when unset. */
 export async function csvRecords(path: string, draft: Draft, locale: Locale) {
   const { mapping } = draft;
   if (!mapping) throw new ApiError(400, 'validation_failed');
@@ -128,8 +128,8 @@ export async function csvRecords(path: string, draft: Draft, locale: Locale) {
 
 export interface Draft {
   id: number;
-  source: 'oct' | 'csv';
-  mapping: Mapping | null;
+  source: 'oct' | 'csv' | 'mfp' | 'cronometer';
+  mapping: SourceMapping | null;
 }
 
 /** The preview of a draft (ADR-0026 §5): reads the file again, writes nothing. */
