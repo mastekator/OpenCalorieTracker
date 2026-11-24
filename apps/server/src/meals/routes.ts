@@ -1,5 +1,4 @@
 import { existsSync } from 'node:fs';
-import { rm } from 'node:fs/promises';
 import { Hono } from 'hono';
 import {
   applyMealPatch,
@@ -18,7 +17,7 @@ import type { AppDeps } from '../app.js';
 import { requireUser, type AuthEnv } from '../auth/session.js';
 import { ApiError } from '../http/errors.js';
 import { validate } from '../http/validate.js';
-import { photoPath, photoTaken, type PhotoSize } from '../photos/store.js';
+import { photoPath, photoTaken, removePhoto } from '../photos/store.js';
 import { bumpRev } from '../sync/rev.js';
 import { CHOICE_JOIN, resolveIllustration } from '../illustrations/routes.js';
 import { rememberer } from '../barcodes/remember.js';
@@ -150,18 +149,6 @@ export function mealRoutes({ config, db, ai }: AppDeps) {
     };
   };
 
-  const removePhoto = (
-    userId: number,
-    photoId: string,
-    sizes: readonly PhotoSize[] = ['full', 'preview'],
-  ) =>
-    Promise.all(
-      sizes.map((s) => {
-        const path = photoPath(config.dataDir, userId, photoId, s);
-        return path && rm(path, { force: true });
-      }),
-    );
-
   return new Hono<AuthEnv>()
     .post(
       '/meals',
@@ -227,7 +214,7 @@ export function mealRoutes({ config, db, ai }: AppDeps) {
           };
         })();
         if (result.dropFull)
-          await removePhoto(userId, input.photoId!, ['full']);
+          await removePhoto(config.dataDir, userId, input.photoId!, ['full']);
         return c.json(readMeal(db, result.id), result.created ? 201 : 200);
       },
     )
@@ -334,7 +321,8 @@ export function mealRoutes({ config, db, ai }: AppDeps) {
           touchRecipes(userId, meal.id, eatenAt);
           return attach !== undefined && !full;
         })();
-        if (dropFull) await removePhoto(userId, attach!, ['full']);
+        if (dropFull)
+          await removePhoto(config.dataDir, userId, attach!, ['full']);
         return c.json(readMeal(db, meal.id));
       },
     )
