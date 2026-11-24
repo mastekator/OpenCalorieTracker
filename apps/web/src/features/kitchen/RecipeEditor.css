@@ -1,5 +1,7 @@
 .recipe-editor {
   display: grid;
+  /* An implicit auto column grows to the widest field's min-content (WebKit): clamp it. */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-6);
   align-content: start;
 }
@@ -10,6 +12,7 @@
 
 .recipe-editor__more {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-6);
 }
 
@@ -185,11 +188,13 @@
 /* «Calories per 100 g» (OCT-352 1.2–1.4): the fields, three macros in a row, the serving card. */
 .recipe-editor__mode {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-4);
 }
 
 .recipe-editor__per100 {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-5);
 }
 

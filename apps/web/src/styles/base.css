@@ -55,6 +55,11 @@ select {
   outline: none;
 }
 
+/* Focus returned to a sheet's opener after a tap (useModalDialog): no ring. */
+[data-pointer-focus]:focus-visible {
+  outline: none;
+}
+
 .tabular-nums {
   font-family: var(--font-numeric);
   font-variant-numeric: tabular-nums;
