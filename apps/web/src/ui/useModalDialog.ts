@@ -23,10 +23,44 @@ if (typeof document !== 'undefined')
     true,
   );
 
+// Background scroll lock shared by every open modal: a nested ConfirmDialog over a
+// sheet keeps it until the last one closes. `overflow: hidden` doesn't stop iOS
+// Safari (or the PWA) from scrolling the page under a swipe, so body gets fixed
+// at the current offset and the offset is restored on unlock.
+let locks = 0;
+let saved: { y: number; style: string } | null = null;
+
+function lockScroll() {
+  if (locks++ > 0) return;
+  const body = document.body;
+  const y = window.scrollY;
+  // Desktop: the page's scrollbar disappears with it, pad so the layout doesn't shift.
+  const bar = window.innerWidth - document.documentElement.clientWidth;
+  saved = { y, style: body.getAttribute('style') ?? '' };
+  Object.assign(body.style, {
+    position: 'fixed',
+    top: `${-y}px`,
+    insetInline: '0',
+    width: '100%',
+  });
+  if (bar > 0) body.style.paddingInlineEnd = `${bar}px`;
+}
+
+function unlockScroll() {
+  if (locks === 0 || --locks > 0 || !saved) return;
+  const { y, style } = saved;
+  saved = null;
+  if (style) document.body.setAttribute('style', style);
+  else document.body.removeAttribute('style');
+  // 'instant': a smooth scroll-behavior would show the page sliding back.
+  window.scrollTo({ top: y, behavior: 'instant' });
+}
+
 /**
  * Native modal <dialog> driven by `open`: focus goes inside (an element with
  * data-autofocus, e.g. the title so a tap doesn't light a focus ring, else the first focusable), Tab cycles inside, Esc asks
  * onClose, and on close focus returns to the element that opened it.
+ * While open the page behind doesn't scroll.
  * The dialog never closes itself: the screen decides (e.g. confirm unsaved).
  */
 export function useModalDialog(open: boolean, onClose: () => void) {
@@ -41,12 +75,14 @@ export function useModalDialog(open: boolean, onClose: () => void) {
         ? active
         : pressed;
     dialog.showModal();
+    lockScroll();
     (
       dialog.querySelector<HTMLElement>('[data-autofocus]') ??
       dialog.querySelector<HTMLElement>(FOCUSABLE)
     )?.focus();
     return () => {
       dialog.close();
+      unlockScroll();
       opener?.focus();
     };
   }, [open]);
