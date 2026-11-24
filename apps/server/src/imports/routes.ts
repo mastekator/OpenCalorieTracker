@@ -234,10 +234,15 @@ export function importRoutes({ config, db }: AppDeps) {
         db
           .prepare(
             `SELECT count(i.id) AS records,
-               count(DISTINCT CASE WHEN m.edited_at > ? THEN m.id END) AS edited
+               count(DISTINCT CASE WHEN m.edited_at > ? THEN m.id END) AS edited,
+               count(DISTINCT m.local_date) AS days
              FROM meals m LEFT JOIN meal_items i ON i.meal_id = m.id WHERE m.import_id = ?`,
           )
-          .get(row.committed_at, row.id) as { records: number; edited: number },
+          .get(row.committed_at, row.id) as {
+          records: number;
+          edited: number;
+          days: number;
+        },
       );
     })
     .delete('/imports/:id', requireUser, async (c) => {

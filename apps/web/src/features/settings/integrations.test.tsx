@@ -127,6 +127,25 @@ describe('IntegrationsScreen (OCT-313 §4)', () => {
     expect(screen.getByText('Barcode lookup')).toBeTruthy();
   });
 
+  it('the import card counts imports and entries', async () => {
+    await seed(false);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: string) =>
+        String(input) === '/api/imports'
+          ? Promise.resolve(
+              Response.json([
+                { id: 2, source: 'csv', committedAt: 2, records: 1200 },
+                { id: 1, source: 'oct', committedAt: 1, records: 34 },
+              ]),
+            )
+          : new Promise(() => {}),
+      ),
+    );
+    await wrap(<IntegrationsScreen />);
+    expect(await screen.findByText('2 imports · 1,234 entries')).toBeTruthy();
+  });
+
   it('offline shows the last known ban', async () => {
     offline();
     await seed(true, true);

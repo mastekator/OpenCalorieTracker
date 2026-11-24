@@ -44,3 +44,28 @@ export const commitImport = (id: number, includeDaysWithEntries: boolean) =>
       tzOffsetMin: -new Date().getTimezoneOffset(),
     },
   });
+
+const pastImportSchema = z.object({
+  id: z.number(),
+  source: z.enum(['oct', 'csv', 'mfp', 'cronometer']),
+  committedAt: z.number(),
+  records: z.number(),
+});
+export type PastImport = z.infer<typeof pastImportSchema>;
+
+/** Committed imports, newest first (ADR-0026 §7). */
+export const listImports = () => api('/api/imports', z.array(pastImportSchema));
+
+/** What «Delete import» takes away: entries, days, and meals edited since. */
+const deleteInfoSchema = z.object({
+  records: z.number(),
+  edited: z.number(),
+  days: z.number(),
+});
+export type DeleteInfo = z.infer<typeof deleteInfoSchema>;
+
+export const deleteInfo = (id: number) =>
+  api(`/api/imports/${id}/delete-info`, deleteInfoSchema);
+
+export const deleteImport = (id: number) =>
+  api(`/api/imports/${id}`, z.undefined(), { method: 'DELETE' });

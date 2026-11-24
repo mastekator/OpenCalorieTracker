@@ -1,11 +1,17 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import type { ReactNode } from 'react';
 import { fn } from 'storybook/test';
-import type { DraftPreview, NeedsMapping } from '../../api/imports';
+import type { DraftPreview, NeedsMapping, PastImport } from '../../api/imports';
 import { useT } from '../../i18n';
 import { Banner } from '../../ui/Banner/Banner';
 import { atPath } from '../../ui/navStory';
-import { DoneStep, MappingStep, PreviewStep, SourceStep } from './ImportScreen';
+import {
+  DeleteImportDialog,
+  DoneStep,
+  MappingStep,
+  PreviewStep,
+  SourceStep,
+} from './ImportScreen';
 
 const csv = { id: 5, file: 'diary-2024.csv', source: 'csv' as const };
 const oct = { id: 5, file: 'oct-export-2026.json', source: 'oct' as const };
@@ -100,15 +106,61 @@ const dark = { globals: { theme: 'dark' } };
 const desktop = { viewport: { value: 'desktop' } };
 const column = (node: ReactNode) => <div className="screen">{node}</div>;
 
-const source = (banner?: ReactNode, online = true) => (
+const past: PastImport[] = [
+  { id: 2, source: 'csv', committedAt: Date.UTC(2026, 10, 20), records: 4212 },
+  { id: 1, source: 'oct', committedAt: Date.UTC(2026, 9, 3), records: 1 },
+];
+const source = (
+  banner?: ReactNode,
+  online = true,
+  history: PastImport[] | null = null,
+  deleting: number | null = null,
+) => (
   <SourceStep
     online={online}
     busy={false}
     banner={banner}
+    history={history}
+    deleting={deleting}
     onFile={fn()}
     onWrongFile={fn()}
+    onDelete={fn()}
   />
 );
+
+/** 3.6: past imports under the sources, each with «Delete import». */
+export const History: Story = { render: () => source(undefined, true, past) };
+export const HistoryDark: Story = { ...History, ...dark };
+export const HistoryEmpty: Story = {
+  render: () => source(undefined, true, []),
+};
+export const HistoryEmptyDark: Story = { ...HistoryEmpty, ...dark };
+/** The DELETE is in flight: that button spins, the others wait. */
+export const HistoryDeleting: Story = {
+  render: () => source(undefined, true, past, 2),
+};
+export const HistoryDeletingDark: Story = { ...HistoryDeleting, ...dark };
+/** Loaded, then the connection dropped: the list stays, deleting needs the server. */
+export const HistoryOffline: Story = {
+  render: () => source(undefined, false, past),
+};
+export const HistoryOfflineDark: Story = { ...HistoryOffline, ...dark };
+
+/** 3.7: the confirm says what goes, edited meals included. */
+const confirm = (edited: number) => (
+  <DeleteImportDialog
+    info={{ records: 4212, edited, days: 598 }}
+    onConfirm={fn()}
+    onCancel={fn()}
+  />
+);
+export const DeleteConfirm: Story = { render: () => confirm(3) };
+export const DeleteConfirmDark: Story = { ...DeleteConfirm, ...dark };
+export const DeleteConfirmUnedited: Story = { render: () => confirm(0) };
+export const DeleteConfirmUneditedDark: Story = {
+  ...DeleteConfirmUnedited,
+  ...dark,
+};
 
 /** 3.1: sources; MyFitnessPal and Cronometer come later. On a desktop, the drop zone. */
 export const Source: Story = { render: () => source() };
@@ -197,6 +249,25 @@ export const PreviewNothing: Story = {
     }),
 };
 export const PreviewNothingDark: Story = { ...PreviewNothing, ...dark };
+/** Not one row could be read: check the file and the columns. */
+export const PreviewNothingRead: Story = {
+  render: () =>
+    previewStep(false, false, {
+      ...preview(),
+      period: null,
+      days: 0,
+      records: 0,
+      first: [],
+      unrecognized: {
+        count: 2,
+        rows: [
+          { line: 2, reason: 'no_date' },
+          { line: 3, reason: 'no_kcal' },
+        ],
+      },
+    }),
+};
+export const PreviewNothingReadDark: Story = { ...PreviewNothingRead, ...dark };
 /** 8.2: the first rows with macros. */
 export const PreviewDesktop: Story = {
   render: () => column(previewStep()),

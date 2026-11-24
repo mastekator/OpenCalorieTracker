@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Barcode, Lock, Upload } from 'lucide-react';
 import { useLocation } from 'wouter';
+import { listImports, type PastImport } from '../../api/imports';
 import { useDb, useOutboundBlocked, useSettings } from '../../data/DataContext';
 import { patchSettings } from '../../data/outbox';
 import { useT } from '../../i18n';
@@ -11,6 +12,7 @@ import {
   type IntegrationState,
 } from '../../ui/IntegrationStatus/IntegrationStatus';
 import { List, ListRow } from '../../ui/List/List';
+import { useOnline } from '../../ui/OfflineBar/OfflineBar';
 import { Switch } from '../../ui/Switch/Switch';
 import './settings.css';
 
@@ -28,9 +30,25 @@ function useBarcodeState(): { on: boolean; state: IntegrationState } {
 
 /** OCT-187 §1: «Connections»; v0.3 shows only the barcode lookup card. */
 export function IntegrationsScreen() {
-  const { t } = useT();
+  const { t, num } = useT();
   const [, navigate] = useLocation();
   const { state } = useBarcodeState();
+  const online = useOnline();
+  const [imports, setImports] = useState<PastImport[]>([]);
+  // The count needs the server: offline the card keeps its plain description.
+  useEffect(() => {
+    if (!online) return;
+    let live = true;
+    listImports().then(
+      (list) => live && setImports(list),
+      () => {},
+    );
+    return () => {
+      live = false;
+    };
+  }, [online]);
+  const count = (n: number) => ({ count: n, n: num(n) });
+  const entries = imports.reduce((sum, i) => sum + i.records, 0);
   return (
     <div className="settings">
       <p className="settings__lead">{t('integr.lead')}</p>
@@ -53,7 +71,11 @@ export function IntegrationsScreen() {
       <List title={t('integr.your_data')}>
         <ListRow
           icon={<Upload />}
-          description={t('integr.import.desc')}
+          description={
+            imports.length > 0
+              ? `${t('integr.import.n_imports', count(imports.length))} · ${t('integr.import.records', count(entries))}`
+              : t('integr.import.desc')
+          }
           onClick={() => navigate(IMPORT_PATH)}
         >
           {t('integr.import.title')}

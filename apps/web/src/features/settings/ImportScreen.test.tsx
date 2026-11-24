@@ -5,9 +5,11 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react';
-import type { MeResponse, Preview } from '@oct/shared';
+import type { Meal, MeResponse, Preview } from '@oct/shared';
 import { DataProvider } from '../../data/DataContext';
+import { openUserDb } from '../../data/db';
 import { clearLocal } from '../../data/user';
 import { I18nProvider, LOCALE_STORAGE_KEY } from '../../i18n';
 import { ToastProvider } from '../../ui/Toast/Toast';
@@ -61,6 +63,8 @@ const head = {
 
 type Call = { url: string; method: string; body: unknown };
 let calls: Call[];
+/** Client ids the next sync page deletes, as the pull after «Delete import» brings them. */
+let tombstones: string[] = [];
 /** Answers the import API by `METHOD path` and sync with an empty page; anything else never settles. */
 function serve(routes: Record<string, (body: unknown) => Response>) {
   calls = [];
@@ -78,7 +82,7 @@ function serve(routes: Record<string, (body: unknown) => Response>) {
             rev: 1,
             more: false,
             meals: [],
-            deletedMealClientIds: [],
+            deletedMealClientIds: tombstones,
           }),
         );
       const route = routes[`${method} ${url}`];
@@ -124,6 +128,7 @@ afterEach(async () => {
   localStorage.clear();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
+  tombstones = [];
   await clearLocal(user.id);
 });
 
@@ -226,7 +231,7 @@ describe('ImportScreen: file errors (3.6)', () => {
         'The file is too big — up to 50 MB. Split the export by year.',
       ),
     ).toBeTruthy();
-    expect(calls.some((c) => c.url.startsWith('/api/imports'))).toBe(false);
+    expect(calls.some((c) => c.method === 'POST')).toBe(false);
   });
 });
 
@@ -277,7 +282,9 @@ describe('ImportScreen: preview and commit (3.3–3.5)', () => {
   it('nothing new: the import button is off', async () => {
     serve({
       'POST /api/imports?source=oct': () =>
-        Response.json(preview({ records: 0, days: 0, first: [] })),
+        Response.json(
+          preview({ records: 0, days: 0, first: [], skippedDays: 3 }),
+        ),
     });
     await wrap();
     await upload('OCT export (JSON)', 'export.json');
@@ -287,10 +294,132 @@ describe('ImportScreen: preview and commit (3.3–3.5)', () => {
       ),
     ).toBeTruthy();
     expect(
-      screen
-        .getByRole('button', { name: 'Import 0 entries' })
-        .hasAttribute('disabled'),
+      screen.getByRole('button', { name: 'Import' }).hasAttribute('disabled'),
     ).toBe(true);
+  });
+
+  it('no row read: says so, not that the days are in the diary', async () => {
+    serve({
+      'POST /api/imports?source=oct': () =>
+        Response.json(
+          preview({
+            records: 0,
+            days: 0,
+            first: [],
+            unrecognized: { count: 1, rows: [{ line: 2, reason: 'no_date' }] },
+          }),
+        ),
+    });
+    await wrap();
+    await upload('OCT export (JSON)', 'export.json');
+    expect(
+      await screen.findByText(
+        'No rows could be read — check the file and the columns.',
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByText(/already in your diary/)).toBeNull();
+  });
+});
+
+describe('ImportScreen: history and «Delete import» (3.6–3.7)', () => {
+  const imported: Meal = {
+    id: 3,
+    clientId: 'imp-1',
+    eatenAt: '2024-03-14T08:00:00.000Z',
+    tzOffsetMin: 0,
+    localDate: '2024-03-14',
+    mealType: 'breakfast',
+    photo: null,
+    recalcOffer: false,
+    items: [],
+    kcal: 312,
+    proteinG: 11,
+    fatG: 8,
+    carbsG: 54,
+  };
+
+  it('confirms with the edited meals, deletes, syncs the meals away', async () => {
+    const db = await openUserDb(user.id);
+    await db.put('meals', imported);
+    serve({
+      'GET /api/imports': () =>
+        Response.json([
+          {
+            id: 9,
+            source: 'csv',
+            committedAt: Date.UTC(2026, 10, 20),
+            records: 4,
+          },
+        ]),
+      'GET /api/imports/9/delete-info': () =>
+        Response.json({ records: 4, edited: 1, days: 2 }),
+      'DELETE /api/imports/9': () => {
+        tombstones = [imported.clientId];
+        return new Response(null, { status: 204 });
+      },
+    });
+    await wrap();
+    const history = (await screen.findByText('Past imports')).parentElement!;
+    expect(within(history).getByText('Other CSV')).toBeTruthy();
+    fireEvent.click(
+      within(history).getByRole('button', { name: 'Delete import' }),
+    );
+
+    const dialog = await screen.findByRole('alertdialog');
+    expect(dialog.textContent).toContain(
+      'This removes 4 entries over 2 days from the diary.',
+    );
+    expect(dialog.textContent).toContain(
+      '1 meal was edited after the import — the edits go too.',
+    );
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: 'Delete import' }),
+    );
+
+    expect(await screen.findByText('Import deleted')).toBeTruthy();
+    expect(screen.getByText('No imports yet')).toBeTruthy();
+    await waitFor(async () =>
+      expect(await db.get('meals', imported.clientId)).toBeUndefined(),
+    );
+    db.close();
+  });
+
+  it('a failed DELETE keeps the import in the list', async () => {
+    serve({
+      'GET /api/imports': () =>
+        Response.json([
+          {
+            id: 9,
+            source: 'oct',
+            committedAt: Date.UTC(2026, 10, 20),
+            records: 4,
+          },
+        ]),
+      'GET /api/imports/9/delete-info': () =>
+        Response.json({ records: 4, edited: 0, days: 2 }),
+      'DELETE /api/imports/9': error(500, 'internal'),
+    });
+    await wrap();
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Delete import' }),
+    );
+    const dialog = await screen.findByRole('alertdialog');
+    expect(dialog.textContent).not.toContain('edited');
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: 'Delete import' }),
+    );
+    await waitFor(() =>
+      expect(calls.some((c) => c.method === 'DELETE')).toBe(true),
+    );
+    expect(
+      await screen.findByText('Something went wrong. Try again'),
+    ).toBeTruthy();
+    expect(screen.queryByText('Import deleted')).toBeNull();
+    expect(
+      screen
+        .getByRole('button', { name: 'Delete import' })
+        .hasAttribute('disabled'),
+    ).toBe(false);
   });
 });
 
