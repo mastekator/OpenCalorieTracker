@@ -102,6 +102,26 @@ describe('Sheet', () => {
     expect(document.activeElement).toBe(opener);
   });
 
+  it('marks the opener after a tap close until it blurs (no ring)', async () => {
+    render(<Harness />, { wrapper: I18nProvider });
+    const opener = await open();
+    const close = screen.getByRole('button', { name: 'Close' });
+    fireEvent.pointerDown(close);
+    fireEvent.click(close);
+    expect(document.activeElement).toBe(opener);
+    expect(opener.hasAttribute('data-pointer-focus')).toBe(true);
+    opener.blur();
+    expect(opener.hasAttribute('data-pointer-focus')).toBe(false);
+  });
+
+  it('keeps the ring after a keyboard close', async () => {
+    render(<Harness />, { wrapper: I18nProvider });
+    const opener = await open();
+    fireEvent.keyDown(document.activeElement!, { key: 'Escape' });
+    expect(document.activeElement).toBe(opener);
+    expect(opener.hasAttribute('data-pointer-focus')).toBe(false);
+  });
+
   it('a click inside the content does not close', async () => {
     const onClose = vi.fn();
     render(<Harness onClose={onClose} />, { wrapper: I18nProvider });
