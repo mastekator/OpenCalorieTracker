@@ -11,10 +11,13 @@ const FOCUSABLE =
 // Safari (iOS and macOS) doesn't focus a button on click, so the opener would be
 // <body>: remember what was pressed last and return focus there instead.
 let pressed: HTMLElement | null = null;
-if (typeof document !== 'undefined')
+// Whether the last input was a key: only then may the returned focus show a ring.
+let viaKeyboard = false;
+if (typeof document !== 'undefined') {
   document.addEventListener(
     'pointerdown',
     (event) => {
+      viaKeyboard = false;
       pressed =
         event.target instanceof Element
           ? event.target.closest<HTMLElement>(FOCUSABLE)
@@ -22,6 +25,8 @@ if (typeof document !== 'undefined')
     },
     true,
   );
+  document.addEventListener('keydown', () => (viaKeyboard = true), true);
+}
 
 // Background scroll lock shared by every open modal: a nested ConfirmDialog over a
 // sheet keeps it until the last one closes. `overflow: hidden` doesn't stop iOS
@@ -83,7 +88,18 @@ export function useModalDialog(open: boolean, onClose: () => void) {
     return () => {
       dialog.close();
       unlockScroll();
-      opener?.focus();
+      if (!opener) return;
+      // iOS Safari rings a programmatically focused button even after a tap:
+      // base.css hides it while data-pointer-focus is set (until blur).
+      if (!viaKeyboard) {
+        opener.dataset.pointerFocus = '';
+        opener.addEventListener(
+          'blur',
+          () => delete opener.dataset.pointerFocus,
+          { once: true },
+        );
+      }
+      opener.focus();
     };
   }, [open]);
 
