@@ -253,6 +253,7 @@ describe('ManualDishSheet: barcode (OCT-313 §3)', () => {
       carbsG: 5.6,
       amount: { mode: 'serving', value: 1 },
       pack: {},
+      product: YOGURT,
     });
   });
 

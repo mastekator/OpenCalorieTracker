@@ -73,6 +73,8 @@ type Props = {
   onDelete: () => void;
   /** Close button, Esc, scrim, swipe down: the draft is dropped. */
   onClose: () => void;
+  /** «How much you used» in a recipe; «How much you ate» by default. */
+  amountTitle?: string;
 };
 
 /** Sheet «Dish» (OCT-16 4.4): rename, weight with live numbers, delete. The screen mounts it while open. */
@@ -88,6 +90,7 @@ export function DishSheet({
   onDone,
   onDelete,
   onClose,
+  amountTitle,
 }: Props) {
   const { t, num } = useT();
   const [name, setName] = useState(original.name);
@@ -221,6 +224,7 @@ export function DishSheet({
         />
         {merged ? (
           <AmountPicker
+            title={amountTitle}
             // Another product after «Replace»: the typing form starts closed.
             key={merged.code}
             product={merged}

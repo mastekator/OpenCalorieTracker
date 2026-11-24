@@ -56,3 +56,18 @@ export const Unsure: Story = {
   },
 };
 export const UnsureDark: Story = { ...Unsure, globals: dark };
+/** Found by barcode in the manual sheet: the share it was picked in (OCT-435 2.3). */
+export const Barcode: Story = {
+  args: {
+    name: 'Sugar cookies',
+    kcal: 880,
+    grams: '200',
+    barcode: true,
+    share: '½ pack · 200 g',
+  },
+};
+export const BarcodeDark: Story = { ...Barcode, globals: dark };
+/** Grams edited by hand: the share caption is gone, the badge stays. */
+export const BarcodeEdited: Story = {
+  args: { ...Barcode.args, grams: '180', kcal: 792, share: undefined },
+};

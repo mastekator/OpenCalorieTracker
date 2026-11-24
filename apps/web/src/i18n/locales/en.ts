@@ -2170,6 +2170,7 @@ export const en = {
     cooked_err: 'More than 0\u00a0{u}',
     portions: 'Servings',
     manual_title: 'Ingredient, manually',
+    used: 'How much you used',
     portions_less: 'Fewer servings',
     portions_more: 'More servings',
     raw_ml_note: 'Milliliters count as grams.',

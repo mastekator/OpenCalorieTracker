@@ -112,6 +112,8 @@ type Props = {
   units: Units;
   /** Accessible name of the grams field, e.g. «Weight of Oat cookies». */
   label: string;
+  /** The heading; «How much you ate» by default, «How much you used» in a recipe (OCT-441). */
+  title?: string;
   /** Every change: the amount and its grams (null: invalid grams typed). */
   onChange: (amount: Amount, grams: number | null) => void;
   /** A valid package weight or piece count typed (AC-4.1, AC-4.2); `product` already has it. */
@@ -128,6 +130,7 @@ export function AmountPicker({
   grams,
   units,
   label,
+  title,
   onChange,
   onPack,
 }: Props) {
@@ -201,7 +204,7 @@ export function AmountPicker({
   return (
     <div className="amount">
       <div className="amount__head">
-        <span className="amount__label">{t('edit.amount.label')}</span>
+        <span className="amount__label">{title ?? t('edit.amount.label')}</span>
         <Segment
           label={t('edit.amount.modes')}
           options={modes.map((m) => ({ value: m, label: text.modeName(m) }))}

@@ -19,6 +19,7 @@ function Demo(props: {
   lookup?: (code: string) => Promise<BarcodeResult>;
   barcode?: string;
   photoNotFound?: 'admin' | 'user';
+  amountTitle?: string;
 }) {
   const { t } = useT();
   const [open, setOpen] = useState(true);
@@ -37,6 +38,7 @@ function Demo(props: {
           lookup={props.lookup}
           barcode={props.barcode}
           photoNotFound={props.photoNotFound}
+          amountTitle={props.amountTitle}
           onAdd={(dish) => {
             props.onAdd(dish);
             setOpen(false);
@@ -203,6 +205,24 @@ export const BarcodeFoundDark: Story = {
 };
 export const BarcodeDesktop: Story = {
   args: withBarcode,
+  play: scan,
+  globals: { viewport: { value: 'desktop' } },
+};
+
+/** OCT-441: a recipe ingredient — «How much you used» instead of «How much you ate». */
+const inRecipe = {
+  ...withBarcode,
+  title: 'Ingredient, manually',
+  amountTitle: 'How much you used',
+};
+export const RecipeFound: Story = { args: inRecipe, play: scan };
+export const RecipeFoundDark: Story = {
+  args: inRecipe,
+  play: scan,
+  globals: dark,
+};
+export const RecipeFoundDesktop: Story = {
+  args: inRecipe,
   play: scan,
   globals: { viewport: { value: 'desktop' } },
 };
