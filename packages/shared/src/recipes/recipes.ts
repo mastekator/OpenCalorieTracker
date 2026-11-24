@@ -1,9 +1,12 @@
 import { z } from 'zod';
 import {
+  barcodeSchema,
+  edibleChoiceSchema,
   ingredientSourceSchema,
   kcalSchema,
   macroSchema,
   oneDecimal,
+  packPrefsSchema,
   type IngredientSource,
   type MealItemInput,
 } from '../meals.js';
@@ -41,19 +44,27 @@ export const recipeInputSchema = z
     photoId,
     ingredients: z
       .array(
-        z.object({
-          name: z.string().trim().min(1).max(80),
-          // 0 g is allowed: salt, spices "to taste".
-          grams: z.number().min(0).max(5000).refine(oneDecimal),
-          /** Omitted = 'g'; raw weight counts 1 ml as 1 g (ADR-0038 §5). */
-          unit: unitSchema.optional(),
-          /** Totals for these grams, like a meal dish. */
-          kcal: kcalSchema,
-          proteinG: macroSchema,
-          fatG: macroSchema,
-          carbsG: macroSchema,
-          source: ingredientSourceSchema,
-        }),
+        z
+          .object({
+            name: z.string().trim().min(1).max(80),
+            // 0 g is allowed: salt, spices "to taste".
+            grams: z.number().min(0).max(5000).refine(oneDecimal),
+            /** Omitted = 'g'; raw weight counts 1 ml as 1 g (ADR-0038 §5). */
+            unit: unitSchema.optional(),
+            /** Totals for these grams, like a meal dish. */
+            kcal: kcalSchema,
+            proteinG: macroSchema,
+            fatG: macroSchema,
+            carbsG: macroSchema,
+            source: ingredientSourceSchema,
+            /** Remembered like a meal dish's (ADR-0040 §2), not stored in the recipe. */
+            barcode: barcodeSchema.optional(),
+            pack: packPrefsSchema.optional(),
+            edible: edibleChoiceSchema.optional(),
+          })
+          .refine((i) => i.pack === undefined || i.barcode !== undefined, {
+            path: ['pack'],
+          }),
       )
       .max(50),
     steps: z

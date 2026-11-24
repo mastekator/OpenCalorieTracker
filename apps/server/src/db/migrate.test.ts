@@ -16,7 +16,7 @@ describe('migrate', () => {
   it('brings an empty database to the latest version', () => {
     const db = openDb(':memory:');
     migrate(db);
-    expect(db.pragma('user_version', { simple: true })).toBe(26);
+    expect(db.pragma('user_version', { simple: true })).toBe(27);
     expect(tables(db)).toEqual([
       'agent_drafts',
       'agent_messages',
@@ -84,7 +84,7 @@ describe('migrate', () => {
       .pluck()
       .all();
     migrate(db);
-    expect(db.pragma('user_version', { simple: true })).toBe(26);
+    expect(db.pragma('user_version', { simple: true })).toBe(27);
     expect(
       db.prepare('SELECT sql FROM sqlite_master ORDER BY name').pluck().all(),
     ).toEqual(before);
@@ -191,7 +191,7 @@ describe('migrate', () => {
     const before = db.prepare('SELECT * FROM meal_items ORDER BY id').all();
 
     migrate(db);
-    expect(db.pragma('user_version', { simple: true })).toBe(26);
+    expect(db.pragma('user_version', { simple: true })).toBe(27);
     // Old dishes are grams (ADR-0038 §1).
     expect(db.prepare('SELECT * FROM meal_items ORDER BY id').all()).toEqual(
       before.map((r) => ({
@@ -230,7 +230,7 @@ describe('migrate', () => {
     expect(db.prepare('SELECT COUNT(*) FROM meal_items').pluck().get()).toBe(0);
   });
 
-  it('reads recipes saved before 0019 as before, computed from ingredients', () => {
+  it('reads recipes saved before 0019 as before and keeps their ingredients through 0027', () => {
     const db = openDb(':memory:');
     const dir = new URL('./migrations/', import.meta.url);
     for (const f of readdirSync(dir)
@@ -262,6 +262,15 @@ describe('migrate', () => {
     expect(() =>
       db.prepare("UPDATE recipe_ingredients SET unit = 'oz'").run(),
     ).toThrow();
+    // 0027 adds the barcode source and keeps the cascade.
+    db.prepare("UPDATE recipe_ingredients SET source = 'barcode'").run();
+    expect(() =>
+      db.prepare("UPDATE recipe_ingredients SET source = 'label'").run(),
+    ).toThrow();
+    db.prepare('DELETE FROM recipes').run();
+    expect(
+      db.prepare('SELECT COUNT(*) FROM recipe_ingredients').pluck().get(),
+    ).toBe(0);
   });
 
   it('makes products cached before 0020 stale so OFF is asked for the package weight', () => {
