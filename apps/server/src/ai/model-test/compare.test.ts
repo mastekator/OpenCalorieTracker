@@ -10,6 +10,7 @@ import {
   TEST_PHOTOS_DIR,
   type Expected,
 } from './compare.js';
+import { pendingPhotos } from './runner.js';
 
 const dish = (name: string, kcal: number, confidence = 0.96, grams = 100) => ({
   name,
@@ -175,6 +176,45 @@ describe('compare', () => {
     ]);
     expect(compare(eggs, got())).toEqual([{ code: 'nothing' }]);
   });
+
+  it('expects a question where the case asks for one (ADR-0039 §6)', () => {
+    const sapodilla: Expected = {
+      file: 'sapodilla-receipt.jpg',
+      level: 'exact',
+      ref: 513,
+      question: true,
+      dishes: [{ words: ['sapodilla'] }],
+    };
+    const fruit = dish('Sapodilla', 513);
+    expect(compare(sapodilla, got(fruit))).toEqual([{ code: 'no_question' }]);
+    expect(compare(sapodilla, { ...got(fruit), questions: [] })).toEqual([
+      { code: 'no_question' },
+    ]);
+    const question = {
+      dish: 0,
+      text: 'Receipt or photo?',
+      guess: 0,
+      options: [],
+    };
+    expect(
+      compare(sapodilla, { ...got(fruit), questions: [question] }),
+    ).toEqual([]);
+    expect(checkPhoto(sapodilla, got(fruit)).result).toBe('no question asked');
+  });
+
+  it('scores the edible part, not the gross weight on the scale (ADR-0039 §6)', () => {
+    const orange: Expected = {
+      file: 'orange-on-scale.jpg',
+      level: 'exact',
+      ref: 86,
+      dishes: [{ words: ['orange'], count: 1 }],
+    };
+    // 250 g on the scale: 183 g edible × 47 = 86 kcal; the gross 250 g is 118.
+    expect(codes(orange, got(dish('Orange', 86, 0.96, 183)))).toEqual([]);
+    expect(codes(orange, got(dish('Orange', 118, 0.96, 250)))).toEqual([
+      'kcal',
+    ]);
+  });
 });
 
 describe('quantityOf', () => {
@@ -235,13 +275,26 @@ describe('expected.json', () => {
     expect(expectedFileSchema.safeParse([eggs]).success).toBe(false);
   });
 
-  it('is set 2 and every photo is next to the server package', async () => {
+  it('is set 3 and every photo is next to the server package', async () => {
     const { set, photos } = await readExpected();
-    expect(set).toBe(2);
+    expect(set).toBe(3);
     for (const e of photos)
       await expect(
         access(new URL(e.file, TEST_PHOTOS_DIR)),
       ).resolves.toBeUndefined();
+  });
+
+  it('keeps the awaiting cases out of the run until their photo comes', async () => {
+    const { photos, awaiting = [] } = await readExpected();
+    expect(awaiting.map((e) => e.file)).toEqual([
+      'orange-on-scale.jpg',
+      'walnuts-in-shell.jpg',
+      'chicken-drumsticks.jpg',
+      'sapodilla-receipt.jpg',
+    ]);
+    const run = (await pendingPhotos()).photos.map((p) => p.file);
+    expect(run).toEqual(photos.map((e) => e.file));
+    for (const e of awaiting) expect(run).not.toContain(e.file);
   });
 
   it('has no EXIF or XMP (APP1) in any photo', async () => {

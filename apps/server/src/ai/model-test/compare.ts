@@ -31,6 +31,8 @@ const foodSchema = z
     ref: z.number().positive().optional(),
     /** Label kcal per 100 g, for a pack without a visible weight (AC-5a). */
     per100: kcalPair.optional(),
+    /** The answer must ask at least one question, of any kind (ADR-0039 §6). */
+    question: z.literal(true).optional(),
   })
   .refine((p) => (p.ref === undefined) !== (p.per100 === undefined), {
     message: 'exactly one of ref and per100',
@@ -45,6 +47,8 @@ export const expectedFileSchema = z.strictObject({
   /** Bumped on any change of photos, words or ref (ADR-0033 §1). */
   set: z.number().int().positive(),
   photos: z.array(photoSchema).min(1),
+  /** Cases waiting for a free photo: never run, moved to `photos` when one comes. */
+  awaiting: z.array(foodSchema).optional(),
 });
 
 export type Expected = z.infer<typeof photoSchema>;
@@ -147,6 +151,8 @@ export function compare(expected: Expected, got: Recognition): AiTestMiss[] {
     misses.push({ code: 'exact' });
   if (expected.level === 'notExact' && exact.some(Boolean))
     misses.push({ code: 'approx' });
+  if (expected.question && !got.questions?.length)
+    misses.push({ code: 'no_question' });
   return misses;
 }
 
@@ -167,6 +173,8 @@ function missText(m: AiTestMiss) {
       return 'expected no dishes';
     case 'nothing':
       return 'no dishes';
+    case 'no_question':
+      return 'no question asked';
   }
 }
 

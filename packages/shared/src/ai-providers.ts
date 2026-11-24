@@ -172,7 +172,14 @@ export const aiTestMissSchema = z.discriminatedUnion('code', [
     got: z.number(),
   }),
   z.object({
-    code: z.enum(['kcal', 'exact', 'approx', 'empty', 'nothing']),
+    code: z.enum([
+      'kcal',
+      'exact',
+      'approx',
+      'empty',
+      'nothing',
+      'no_question',
+    ]),
   }),
 ]);
 export type AiTestMiss = z.infer<typeof aiTestMissSchema>;
