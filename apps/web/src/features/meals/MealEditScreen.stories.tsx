@@ -639,3 +639,69 @@ export const RecipeAnsweredDesktop: Story = {
   ...recipeAnswered,
   globals: { viewport: { value: 'desktop' } },
 };
+
+/** ADR-0039 §5: the server's «How much is edible?» with 5 options, the row's gross → edible line. */
+const sapodilla = {
+  name: 'Sapodilla',
+  grams: 579,
+  kcal: 480.6,
+  proteinG: 2.5,
+  fatG: 6.4,
+  carbsG: 115.4,
+  confidence: 0.6,
+};
+const edibleAt = (pct: number) => ({
+  grossG: 772,
+  pct,
+  source: 'ai' as const,
+  key: 'sapodilla',
+});
+const edibleQuestion = {
+  ...refineReady,
+  dishes: [{ ...sapodilla, edible: edibleAt(75) }],
+  questions: [
+    {
+      dish: 0,
+      text: 'About how much is edible?',
+      guess: 1,
+      options: [90, 75, 50, 25, 10].map((pct) => ({
+        label: `${pct}%`,
+        name: sapodilla.name,
+        grams: (772 * pct) / 100,
+        kcal: (772 * pct * 0.83) / 100,
+        proteinG: (772 * pct * 0.0044) / 100,
+        fatG: (772 * pct * 0.011) / 100,
+        carbsG: (772 * pct * 0.2) / 100,
+        edible: edibleAt(pct),
+      })),
+    },
+  ],
+} satisfies Partial<Props>;
+export const EdibleQuestion: Story = { args: edibleQuestion };
+export const EdibleQuestionDark: Story = {
+  args: edibleQuestion,
+  globals: dark,
+};
+const edibleRu = {
+  ...edibleQuestion,
+  dishes: [{ ...sapodilla, name: 'Саподилла', edible: edibleAt(75) }],
+  questions: [
+    {
+      ...edibleQuestion.questions[0]!,
+      text: 'Сколько примерно съедобно?',
+      options: edibleQuestion.questions[0]!.options.map((o) => ({
+        ...o,
+        name: 'Саподилла',
+        label: o.label.replace('%', ' %'),
+      })),
+    },
+  ],
+} satisfies Partial<Props>;
+export const EdibleQuestionRussian: Story = {
+  args: edibleRu,
+  globals: { locale: 'ru' },
+};
+export const EdibleQuestionRussianDark: Story = {
+  args: edibleRu,
+  globals: { locale: 'ru', ...dark },
+};

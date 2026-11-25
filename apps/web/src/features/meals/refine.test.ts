@@ -8,11 +8,14 @@ import {
   applyRefine,
   fixedOf,
   itemOf,
+  relink,
   requestDishes,
+  setEdible,
   shownQuestion,
   toRequest,
   toRow,
   toRows,
+  unlink,
   type Row,
 } from './refine';
 
@@ -442,5 +445,90 @@ describe('shownQuestion', () => {
   it('a plain question is shown as is', () => {
     const [plain] = toRows(k1.dishes, k1.questions);
     expect(shownQuestion(plain!, [])?.at).toEqual([0, 1, 2, 3]);
+  });
+});
+
+describe('gross → edible (ADR-0039 §5)', () => {
+  // 772 g with peel at 80%: 617.6 g edible, 83 kcal per 100 g.
+  const edible = {
+    grossG: 772,
+    pct: 80,
+    source: 'ref' as const,
+    key: 'sapodilla',
+  };
+  const fruit = { ...dish('Sapodilla', 617.6, 512.6), confidence: 0.8 };
+  const pctQuestion = {
+    dish: 0,
+    text: 'About how much is edible?',
+    guess: 1,
+    options: [90, 75, 50].map((pct) => ({
+      label: `${pct}%`,
+      ...fruit,
+      grams: (772 * pct) / 100,
+      kcal: (772 * pct * 0.83) / 100,
+      edible: { ...edible, pct, source: 'ai' as const },
+    })),
+  };
+  const row = () => toRows([{ ...fruit, edible }])[0]!;
+
+  it('keeps the share from the recognition, sends no edible unless chosen', () => {
+    expect(row().edible).toEqual(edible);
+    expect(row().shown).toBe(617.6);
+    expect(itemOf(row())).not.toHaveProperty('edible');
+  });
+
+  it('a share recalculates grams and kcal and is remembered on save', () => {
+    const r = setEdible(row(), { pct: 50 });
+    expect(r.shown).toBe(386);
+    expect(itemOf(r)).toMatchObject({
+      grams: 386,
+      kcal: expect.closeTo(320.4, 1),
+      edible: { key: 'sapodilla', pct: 50 },
+    });
+  });
+
+  it('a gross weight edit keeps the share', () => {
+    const r = setEdible(setEdible(row(), { pct: 75 }), { grossG: 1000 });
+    expect(r.edible).toMatchObject({ grossG: 1000, pct: 75, chosen: true });
+    expect(r.shown).toBe(750);
+    expect(setEdible(row(), { grossG: 1000 }).edible?.chosen).toBeUndefined();
+  });
+
+  it('grams by hand unlink, «Restore» brings the share back', () => {
+    const chosen = setEdible(row(), { pct: 75 });
+    const manual = { ...unlink(chosen), grams: 500, shown: 500 };
+    expect(manual.edible?.unlinked).toBe(true);
+    expect(itemOf(manual)).not.toHaveProperty('edible');
+    const back = relink(manual);
+    expect(back.edible?.unlinked).toBeUndefined();
+    expect(back.shown).toBe(579);
+    expect(itemOf(back).edible).toEqual({ key: 'sapodilla', pct: 75 });
+  });
+
+  it('an option of «How much is edible?» applies its share as the user’s', () => {
+    const [r] = toRows([{ ...fruit, edible }], [pctQuestion]);
+    const { rows } = answer([r!], r!.id, 2);
+    expect(rows[0]!.shown).toBe(386);
+    expect(rows[0]!.edible).toMatchObject({ pct: 50, chosen: true });
+    expect(itemOf(rows[0]!)).toMatchObject({
+      grams: 386,
+      kcal: expect.closeTo(320.4, 1),
+      edible: { key: 'sapodilla', pct: 50 },
+    });
+  });
+
+  it('an option for another product drops the gross weight', () => {
+    const q = {
+      dish: 0,
+      text: 'Which one?',
+      guess: 0,
+      options: [
+        { label: 'Sapodilla', ...fruit },
+        { label: 'Kiwi', ...dish('Kiwi', 200, 120) },
+      ],
+    };
+    const [r] = toRows([{ ...fruit, edible }], [q]);
+    expect(answer([r!], r!.id, 0).rows[0]!.edible).toEqual(edible);
+    expect(answer([r!], r!.id, 1).rows[0]!.edible).toBeUndefined();
   });
 });

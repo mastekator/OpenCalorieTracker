@@ -11,6 +11,7 @@ import {
   type Amount,
   type DishSource,
   type DishUnit,
+  type Edible,
   type IllustrationId,
   type Nutrients,
   type Product,
@@ -66,6 +67,10 @@ type Props = {
   children?: ReactNode;
   /** A package share instead of grams: «1 pack · 120 g», ± in its mode (OCT-380 1.1). */
   share?: { product: Product; amount: Amount; onChange: (a: Amount) => void };
+  /** Gross weight → edible share (ADR-0039 §5); `chosen`: the user's share, `unlinked`: grams by hand. */
+  edible?: Edible & { chosen?: boolean; unlinked?: boolean };
+  /** «Restore» after `unlinked`: the grams of the share again. */
+  onRelink?: () => void;
 };
 
 /** One dish on the edit screen: name and kcal, source badge and macros, weight stepper, delete. */
@@ -79,6 +84,8 @@ export function DishRow({
   mark,
   children,
   share,
+  edible,
+  onRelink,
 }: Props) {
   const { t, num, locale } = useT();
   const unit = share?.product.per ?? dish.unit ?? 'g';
@@ -232,6 +239,37 @@ export function DishRow({
                   {t('edit.refine.mark.was', { what: was })}
                 </p>
               )}
+              {edible &&
+                (edible.unlinked ? (
+                  <p className="dish-row__edible">
+                    {t('edit.edible.manual', {
+                      gross: text.weight(edible.grossG),
+                    })}{' '}
+                    {onRelink && (
+                      <button
+                        type="button"
+                        className="dish-row__relink"
+                        aria-label={t('edit.edible.relink_label', {
+                          dish: dish.name,
+                        })}
+                        onClick={onRelink}
+                      >
+                        {t('edit.edible.relink')}
+                      </button>
+                    )}
+                  </p>
+                ) : (
+                  <p className="dish-row__edible tabular-nums">
+                    {t('edit.edible.line', {
+                      gross: text.weight(edible.grossG),
+                      net: text.weight(dish.grams ?? 0),
+                      pct: num(edible.pct),
+                      source: t(
+                        `edit.edible.source.${edible.chosen ? 'user' : edible.source}`,
+                      ),
+                    })}
+                  </p>
+                ))}
             </div>
             <button
               type="button"

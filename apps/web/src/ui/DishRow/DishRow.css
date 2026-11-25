@@ -246,6 +246,27 @@
   text-decoration: line-through;
 }
 
+/* Gross → edible: a line of its own under the stepper (ADR-0039 §5). */
+.dish-row__edible {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+  color: var(--color-text-secondary);
+  overflow-wrap: break-word;
+}
+
+.dish-row__relink {
+  min-height: var(--tap-min);
+  padding: 0 var(--space-1);
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: var(--text-headline-weight);
+  color: var(--color-accent);
+  cursor: pointer;
+}
+
 /* The old name always gets a line of its own under the stepper, at most two lines. */
 .dish-row__was--name {
   flex-basis: 100%;

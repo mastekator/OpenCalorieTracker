@@ -127,9 +127,11 @@ import {
   remembers,
   requestDishes,
   shownQuestion,
+  relink,
   toRequest,
   toRow,
   toRows,
+  unlink,
   withFixed,
   type Applied,
   type Recognized,
@@ -515,7 +517,7 @@ export function MealEditScreen({
       rs.map((r, i) =>
         i === index
           ? {
-              ...r,
+              ...unlink(r),
               grams,
               shown: grams ?? r.shown,
               amount: amount ?? { mode: 'weight', value: grams ?? r.shown },
@@ -567,7 +569,8 @@ export function MealEditScreen({
       rs.map((r) =>
         r.id === id
           ? {
-              ...r,
+              // Grams typed in the sheet are the user's, not the share of the gross weight.
+              ...(grams !== r.grams ? unlink(r) : r),
               original: replaced
                 ? {
                     ...r.original,
@@ -580,7 +583,10 @@ export function MealEditScreen({
                     alt: undefined,
                   }
                 : { ...r.original, name },
-              ...(replaced?.dish && { source: 'barcode' as const }),
+              ...(replaced?.dish && {
+                source: 'barcode' as const,
+                edible: undefined,
+              }),
               grams,
               shown: grams,
               amount,
@@ -685,6 +691,7 @@ export function MealEditScreen({
                 carbsG,
               },
               source: 'history',
+              edible: undefined,
               grams,
               shown: grams,
               fixed: [],
@@ -717,6 +724,7 @@ export function MealEditScreen({
               },
               source: 'recipe',
               recipeId: recipe.id,
+              edible: undefined,
               fixed: [],
               recipe: undefined,
               question: undefined,
@@ -1445,6 +1453,13 @@ export function MealEditScreen({
                         }}
                         units={units}
                         onGramsChange={(g) => setGrams(i, g)}
+                        edible={row.edible}
+                        onRelink={() => {
+                          setApplied(null);
+                          setRows((rs) =>
+                            rs.map((r) => (r.id === row.id ? relink(r) : r)),
+                          );
+                        }}
                         share={
                           share && {
                             ...share,

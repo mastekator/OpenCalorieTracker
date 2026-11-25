@@ -3,6 +3,7 @@ import { fn } from 'storybook/test';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import {
   amountGrams,
+  edibleGrams,
   scaleItem,
   type Amount,
   type Product,
@@ -29,6 +30,7 @@ function Demo({
   mark,
   children,
   share,
+  edible: initialEdible,
 }: {
   dish: DishRowDish;
   units: Units;
@@ -38,21 +40,34 @@ function Demo({
   children?: ComponentProps<typeof DishRow>['children'];
   /** A package share instead of grams (OCT-389). */
   share?: { product: Product; amount: Amount };
+  /** Gross → edible (ADR-0039 §5): a weight edit unlinks, «Restore» relinks. */
+  edible?: ComponentProps<typeof DishRow>['edible'];
 }) {
   const [row, setRow] = useState(dish);
+  const [edible, setEdible] = useState(initialEdible);
   const [amount, setAmount] = useState(share?.amount);
   const original = { ...dish, grams: dish.grams ?? 1 };
   return (
     <DishRow
       dish={row}
       units={units}
-      onGramsChange={(grams) =>
+      onGramsChange={(grams) => {
+        setEdible((e) => e && { ...e, unlinked: true });
         setRow(
           grams === null
             ? { ...row, grams: null }
             : { ...scaleItem(original, grams), confidence: undefined },
-        )
-      }
+        );
+      }}
+      edible={edible}
+      onRelink={() => {
+        if (!edible) return;
+        setEdible({ ...edible, unlinked: false });
+        setRow({
+          ...scaleItem(original, edibleGrams(edible.grossG, edible.pct)),
+          confidence: undefined,
+        });
+      }}
       onEdit={() => {}}
       onDelete={onDelete}
       onIllustration={onIllustration}
@@ -346,4 +361,69 @@ export const FluidOunces: Story = { args: { dish: juice, units: 'us' } };
 export const FluidOuncesDark: Story = {
   ...FluidOunces,
   globals: { theme: 'dark' },
+};
+
+const sapodilla = {
+  name: 'Sapodilla',
+  grams: 617.6,
+  kcal: 513,
+  proteinG: 2.7,
+  fatG: 6.8,
+  carbsG: 123,
+  source: 'ai' as const,
+  confidence: 0.8,
+};
+const gross = { grossG: 772, pct: 80, key: 'sapodilla' };
+/** ADR-0039 §5: «772 g with peel → edible 618 g · 80% · USDA». */
+export const EdibleRef: Story = {
+  args: { dish: sapodilla, edible: { ...gross, source: 'ref' } },
+};
+export const EdibleRefDark: Story = {
+  ...EdibleRef,
+  globals: { theme: 'dark' },
+};
+export const EdibleAi: Story = {
+  args: { dish: sapodilla, edible: { ...gross, source: 'ai' } },
+};
+export const EdibleAiDark: Story = { ...EdibleAi, globals: { theme: 'dark' } };
+/** The user's share from «How much is edible?». */
+export const EdibleMine: Story = {
+  args: {
+    dish: { ...sapodilla, grams: 579, kcal: 480.6 },
+    edible: { ...gross, pct: 75, source: 'ai', chosen: true },
+  },
+};
+export const EdibleMineDark: Story = {
+  ...EdibleMine,
+  globals: { theme: 'dark' },
+};
+/** Grams set by hand: «Manual weight · was 772 g with peel» and «Restore». */
+export const EdibleManual: Story = {
+  args: {
+    dish: { ...sapodilla, grams: 500, kcal: 415.4 },
+    edible: { ...gross, source: 'ref', unlinked: true },
+  },
+};
+export const EdibleManualDark: Story = {
+  ...EdibleManual,
+  globals: { theme: 'dark' },
+};
+export const EdibleRussian: Story = {
+  args: {
+    dish: { ...sapodilla, name: 'Саподилла' },
+    edible: { ...gross, source: 'ref' },
+  },
+  globals: { locale: 'ru' },
+};
+export const EdibleManualRussian: Story = {
+  ...EdibleManual,
+  args: {
+    ...EdibleManual.args,
+    dish: { ...sapodilla, grams: 500, kcal: 415.4, name: 'Саподилла' },
+  },
+  globals: { locale: 'ru' },
+};
+export const EdibleOunces: Story = {
+  ...EdibleRef,
+  args: { ...EdibleRef.args, units: 'us' },
 };

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import {
   DISH_GRAMS,
+  edibleGrams,
   illustrationIdSchema,
   nameKey,
   recipePortion,
@@ -12,6 +13,7 @@ import {
   type AiQuestion,
   type Amount,
   type DishSource,
+  type Edible,
   type FixedField,
   type IllustrationId,
   type MealItemInput,
@@ -82,7 +84,14 @@ export type Row = {
   amount?: Amount;
   /** Package weight and pieces typed in the sheet: sent with the meal, not stored with it (AC-2.5). */
   pack?: Pack;
+  /**
+   * Gross weight → edible share from the server (ADR-0039 §5): `grams` follow it. `chosen`: the
+   * user picked the share, it is remembered on save; `unlinked`: the grams were set by hand.
+   */
+  edible?: RowEdible;
 };
+
+export type RowEdible = Edible & { chosen?: true; unlinked?: true };
 
 export type Question = Omit<AiQuestion, 'dish'> & { chosen?: number };
 
@@ -129,8 +138,40 @@ export const itemOf = (row: Row): MealItemInput => {
     ...(row.original.illustration && {
       illustration: row.original.illustration,
     }),
+    // Only the user's own share is remembered; the gross weight is never stored (ADR-0039 §4).
+    ...(row.edible?.chosen &&
+      !row.edible.unlinked && {
+        edible: { key: row.edible.key, pct: row.edible.pct },
+      }),
   };
 };
+
+/** The grams of the row's share, relinked; `pct` is the user's choice, `grossG` keeps the share. */
+export function setEdible(
+  row: Row,
+  { pct, grossG }: { pct?: number; grossG?: number } = {},
+): Row {
+  if (!row.edible) return row;
+  const { grossG: gross, pct: share, source, key, chosen } = row.edible;
+  const edible: RowEdible = {
+    grossG: grossG ?? gross,
+    pct: pct ?? share,
+    source,
+    key,
+    ...((chosen || pct !== undefined) && { chosen: true }),
+  };
+  const g = edibleGrams(edible.grossG, edible.pct);
+  return { ...row, edible, grams: inRange(g) ? g : null, shown: g };
+}
+
+/** Grams set by hand: no longer the share of the gross weight. */
+export const unlink = (row: Row): Row =>
+  row.edible && !row.edible.unlinked
+    ? { ...row, edible: { ...row.edible, unlinked: true } }
+    : row;
+
+/** «Restore»: the grams of the share again. */
+export const relink = (row: Row) => setEdible(row);
 
 /** `fixed` plus `field`, once. */
 export const withFixed = (fixed: FixedField[], field: FixedField) =>
@@ -239,6 +280,7 @@ const unasked = (row: Row): Row =>
 /** A recognized dish; glued with a package (`mergePackages`) it carries its source and code. */
 export type Recognized = Omit<Dish, 'barcode' | 'unit'> & {
   source?: DishSource;
+  edible?: Edible;
   barcode?: string | null;
   /** Loose as the AI's answer; anything but 'ml' is grams. */
   unit?: string | null;
@@ -247,9 +289,10 @@ export type Recognized = Omit<Dish, 'barcode' | 'unit'> & {
 /** Initial rows of a recognition with its questions. */
 export const toRows = (dishes: Recognized[], questions?: AiQuestion[]) =>
   withQuestions(
-    dishes.map(({ source, barcode, unit, ...d }) =>
-      toRow({ ...d, ...unitOf(unit), ...(barcode && { barcode }) }, source),
-    ),
+    dishes.map(({ source, barcode, unit, edible, ...d }) => ({
+      ...toRow({ ...d, ...unitOf(unit), ...(barcode && { barcode }) }, source),
+      ...(edible && { edible }),
+    })),
     questions,
   );
 
@@ -290,6 +333,7 @@ export function answer(
         original: { name, grams, kcal, proteinG, fatG, carbsG },
         source: 'recipe' as const,
         recipeId: recipe.id,
+        edible: undefined,
         // As «Use the recipe»: a weight edit recalculates from the recipe.
         fixed: [],
       };
@@ -297,7 +341,14 @@ export function answer(
     const { name, grams, kcal, proteinG, fatG, carbsG } = o;
     // Moved off the dish's own weight: the user's, not the AI's (the guess's grams may differ).
     const keep = row.grams !== null && row.shown !== round1(row.original.grams);
-    const g = keep ? row.shown : round1(grams);
+    // «How much is edible?»: the option's share of the gross weight, the user's choice (ADR-0039 §5).
+    const e = o.edible;
+    const g = e
+      ? edibleGrams(e.grossG, e.pct)
+      : keep
+        ? row.shown
+        : round1(grams);
+    const same = nameKey(name) === nameKey(row.original.name);
     return {
       ...row,
       ...common,
@@ -310,14 +361,20 @@ export function answer(
         carbsG,
         ...unitOf(row.original.unit),
         // Another dish: its picture follows the new name (as a rename in the sheet).
-        ...(nameKey(name) === nameKey(row.original.name) &&
+        ...(same &&
           row.original.illustration && {
             illustration: row.original.illustration,
           }),
       },
       source: 'ai' as const,
       recipeId: undefined,
-      grams: keep || inRange(g) ? g : null,
+      // Another product: the gross weight was about the old one.
+      edible: e
+        ? { ...e, chosen: true as const }
+        : same
+          ? row.edible
+          : undefined,
+      grams: (keep && !e) || inRange(g) ? g : null,
       shown: g,
       fixed: ALL,
     };
@@ -374,8 +431,9 @@ const aiRow = ({
   carbsG,
   confidence,
   unit,
-}: RecognizedDish) =>
-  toRow({
+  edible,
+}: RecognizedDish): Row => ({
+  ...toRow({
     name,
     grams,
     kcal,
@@ -384,7 +442,9 @@ const aiRow = ({
     carbsG,
     confidence,
     ...unitOf(unit),
-  });
+  }),
+  ...(edible && { edible }),
+});
 
 /**
  * «Refine»: the answer is the whole new list; `ref` points at the dish it replaces. An unknown

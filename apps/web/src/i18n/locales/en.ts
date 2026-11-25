@@ -1661,6 +1661,13 @@ export const en = {
       err_ml: 'Volume 1–5,000 ml',
       err_fl_oz: 'Volume 0.1–169 fl oz',
     },
+    edible: {
+      line: '{gross} with peel \u2192 edible {net} \u00b7 {pct}% \u00b7 {source}',
+      source: { ref: 'USDA', ai: 'AI estimate', user: 'yours' },
+      manual: 'Manual weight \u00b7 was {gross} with peel',
+      relink: 'Restore',
+      relink_label: 'Restore the edible weight of {dish}',
+    },
     recipe: {
       hint: 'Your recipe: {name} · {k}\u00a0kcal/100\u00a0g',
       apply: 'Use the recipe',
