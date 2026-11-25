@@ -148,6 +148,35 @@ describe('IntegrationsScreen (OCT-313 §4)', () => {
     expect(await screen.findByText('2 imports · 1,234 entries')).toBeTruthy();
   });
 
+  it('the export card shows the last export, or what it does before one', async () => {
+    await seed(false);
+    serveBlocked(false);
+    await wrap(<IntegrationsScreen />);
+    expect(
+      await screen.findByText('Download your diary as CSV or JSON'),
+    ).toBeTruthy();
+    cleanup();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: string) =>
+        String(input).endsWith('/api/integrations')
+          ? Promise.resolve(
+              Response.json({
+                barcode: { enabled: false, blocked: false },
+                export: {
+                  lastAt: '2026-11-12T12:00:00.000Z',
+                  lastFormat: 'json',
+                },
+                tokens: { count: 0, blocked: false },
+              }),
+            )
+          : new Promise(() => {}),
+      ),
+    );
+    await wrap(<IntegrationsScreen />);
+    expect(await screen.findByText('Last export — Nov 12, JSON')).toBeTruthy();
+  });
+
   it('offline shows the last known ban', async () => {
     offline();
     await seed(true, true);

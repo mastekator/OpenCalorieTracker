@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Barcode, Lock, Upload } from 'lucide-react';
+import { Barcode, Download, Lock, Upload } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { listImports, type PastImport } from '../../api/imports';
 import { useDb, useOutboundBlocked, useSettings } from '../../data/DataContext';
@@ -14,11 +14,13 @@ import {
 import { List, ListRow } from '../../ui/List/List';
 import { useOnline } from '../../ui/OfflineBar/OfflineBar';
 import { Switch } from '../../ui/Switch/Switch';
+import { useExportCard } from './ExportScreen';
 import './settings.css';
 
 export const INTEGRATIONS_PATH = '/settings/integrations';
 export const BARCODE_PATH = `${INTEGRATIONS_PATH}/barcode`;
 export const IMPORT_PATH = `${INTEGRATIONS_PATH}/import`;
+export const EXPORT_PATH = `${INTEGRATIONS_PATH}/export`;
 
 /** The admin's ban wins over the user's own switch, which is kept for when it is lifted (E-6). */
 function useBarcodeState(): { on: boolean; state: IntegrationState } {
@@ -34,6 +36,7 @@ export function IntegrationsScreen() {
   const [, navigate] = useLocation();
   const { state } = useBarcodeState();
   const online = useOnline();
+  const exportCard = useExportCard();
   const [imports, setImports] = useState<PastImport[]>([]);
   // The count needs the server: offline the card keeps its plain description.
   useEffect(() => {
@@ -69,6 +72,13 @@ export function IntegrationsScreen() {
         </ListRow>
       </List>
       <List title={t('integr.your_data')}>
+        <ListRow
+          icon={<Download />}
+          description={exportCard}
+          onClick={() => navigate(EXPORT_PATH)}
+        >
+          {t('integr.export.title')}
+        </ListRow>
         <ListRow
           icon={<Upload />}
           description={

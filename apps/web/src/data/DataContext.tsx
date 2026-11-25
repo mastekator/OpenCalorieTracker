@@ -265,11 +265,8 @@ export function useAiStatus(ask = true) {
   };
 }
 
-/**
- * Whether the admin forbade outbound requests (ADR-0034 §5). The user's own switch is
- * `settings.offEnabled`; this only reads `blocked`, kept in kv so offline shows the last known.
- */
-export function useOutboundBlocked() {
+/** GET /api/integrations, kept in kv so offline shows the last known; undefined until either answers. */
+export function useIntegrations() {
   const db = useDb();
   const online = useOnline();
   const stored = useLocal(
@@ -292,8 +289,15 @@ export function useOutboundBlocked() {
       live = false;
     };
   }, [db, online]);
-  return (fresh ?? stored)?.barcode.blocked ?? false;
+  return fresh ?? stored;
 }
+
+/**
+ * Whether the admin forbade outbound requests (ADR-0034 §5). The user's own switch is
+ * `settings.offEnabled`; this only reads `blocked`.
+ */
+export const useOutboundBlocked = () =>
+  useIntegrations()?.barcode.blocked ?? false;
 
 /** A profile never saved (what GET /api/profile answers for it). */
 export const EMPTY_PROFILE: ProfileResponse = {
