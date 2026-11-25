@@ -198,15 +198,35 @@ Food amounts are metric, as in the API. `list_meals` gives at most 31 days from 
 answer is cut and has `truncated: true`, so ask again for a shorter period. A bad argument or a too long `get_days`
 period comes back as a tool result with `isError: true` and the error in the text.
 
-A client configuration usually looks like this:
+**Settings → Integrations → MCP** creates a read token and shows the configuration to paste. For an
+assistant that speaks HTTP itself, such as Cursor (**Settings → MCP → Add new server**):
 
 ```json
 {
   "mcpServers": {
-    "calories": {
-      "type": "http",
+    "oct": {
       "url": "https://food.example.com/mcp",
-      "headers": { "Authorization": "Bearer oct_…" }
+      "headers": {
+        "Authorization": "Bearer oct_…"
+      }
+    }
+  }
+}
+```
+
+Claude Desktop (**Settings → Developer → Edit Config**, then restart) reaches it through `mcp-remote`, which needs Node.js:
+
+```json
+{
+  "mcpServers": {
+    "oct": {
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "https://food.example.com/mcp",
+        "--header",
+        "Authorization: Bearer oct_…"
+      ]
     }
   }
 }

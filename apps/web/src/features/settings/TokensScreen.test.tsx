@@ -228,6 +228,9 @@ describe('IntegrationsScreen: the tokens card', () => {
     serve([token(1, 'A'), token(2, 'B')], true);
     await wrap(<IntegrationsScreen />);
     expect(await screen.findByText('2 tokens')).toBeTruthy();
-    expect(screen.getAllByText('Turned off by your admin').length).toBe(1);
+    // The ban covers the tokens card and the MCP card.
+    await waitFor(() =>
+      expect(screen.getAllByText('Turned off by your admin').length).toBe(2),
+    );
   });
 });

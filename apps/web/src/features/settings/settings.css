@@ -331,6 +331,34 @@
   border-color: var(--color-danger);
 }
 
+/* OCT-187 §6: MCP. A titled group that isn't a list of rows. */
+.mcp__group {
+  display: grid;
+  gap: var(--space-2);
+}
+
+/* The config keeps its JSON layout and scrolls sideways on a phone. */
+.mcp__code {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-caption-size);
+  line-height: var(--text-footnote-lh);
+  white-space: pre;
+  overflow-x: auto;
+}
+
+.mcp__key {
+  color: var(--color-accent);
+}
+
+.mcp__mark {
+  color: var(--color-warning);
+  font-weight: 600;
+}
+
 /* OCT-187 5.5: «Send test» and «Edit» share the row. */
 .webhook__actions {
   display: flex;

@@ -18,6 +18,7 @@ import {
   EXPORT_PATH,
   TOKENS_PATH,
   WEBHOOKS_PATH,
+  MCP_PATH,
   IMPORT_PATH,
   INTEGRATIONS_PATH,
   IntegrationsScreen,
@@ -26,6 +27,7 @@ import { ExportScreen } from '../features/settings/ExportScreen';
 import { TokensScreen } from '../features/settings/TokensScreen';
 import { WebhookScreen } from '../features/settings/WebhookScreen';
 import { WebhooksScreen } from '../features/settings/WebhooksScreen';
+import { McpScreen } from '../features/settings/McpScreen';
 import { ImportScreen } from '../features/settings/ImportScreen';
 import { AdminIntegrationsScreen } from '../features/admin/AdminIntegrationsScreen';
 import { BlocksScreen } from '../features/admin/BlocksScreen';
@@ -285,6 +287,14 @@ export function AppScreens() {
           <WebhooksScreen />
         </Screen>
       </Route>
+      <Route path={MCP_PATH}>
+        <Screen
+          title={t('integr.mcp.title')}
+          back={{ href: INTEGRATIONS_PATH, label: t('settings.integrations') }}
+        >
+          <McpRoute />
+        </Screen>
+      </Route>
       <Route path={`${WEBHOOKS_PATH}/:id`}>
         {({ id }) => (
           <Screen
@@ -333,6 +343,19 @@ export function AppScreens() {
         <Redirect to="/" replace />
       </Route>
     </Switch>
+  );
+}
+
+/** Only the MCP screen needs the config, so other screens render without its provider. */
+function McpConfigScreen() {
+  return <McpScreen publicUrl={useConfig().publicUrl} />;
+}
+
+function McpRoute() {
+  return (
+    <ConfigProvider>
+      <McpConfigScreen />
+    </ConfigProvider>
   );
 }
 

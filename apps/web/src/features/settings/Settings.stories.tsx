@@ -7,6 +7,7 @@ import { atPath } from '../../ui/navStory';
 import { ToastProvider } from '../../ui/Toast/Toast';
 import { AdminIntegrationsScreen } from '../admin/AdminIntegrationsScreen';
 import { AiProviderScreen } from './AiProviderScreen';
+import { McpScreen } from './McpScreen';
 import {
   BarcodeIntegrationScreen,
   IntegrationsScreen,
@@ -343,6 +344,7 @@ const integrations =
         normDisclaimerHidden: false,
         offEnabled: on,
         offHintAt: null,
+        mcpEnabled: on,
       },
       'settings',
     );
@@ -364,11 +366,24 @@ const integrations =
               failing: on ? 'ntfy' : null,
               blocked,
             },
-            mcp: { enabled: false, blocked: false },
+            mcp: { enabled: on, blocked },
           })
         : String(input).endsWith('/api/admin/integrations')
           ? Response.json(admin)
-          : new Response(null, { status: 204 });
+          : String(input) === '/api/tokens'
+            ? Response.json(
+                {
+                  id: 9,
+                  name: 'Claude Desktop',
+                  scope: 'read',
+                  createdAt: '2026-11-26T10:00:00.000Z',
+                  expiresAt: null,
+                  lastUsedAt: null,
+                  token: 'oct_Q2xhdWRlIG1hZGUgdGhpcyB0b2tlbiBmb3IgYSBzdG9yeQ',
+                },
+                { status: 201 },
+              )
+            : new Response(null, { status: 204 });
     return () => {
       globalThis.fetch = real;
     };
@@ -431,6 +446,49 @@ export const BarcodeDesktop: Story = {
 };
 export const BarcodeDesktopDark: Story = {
   ...BarcodeDesktop,
+  globals: { ...desktop, theme: 'dark' },
+};
+
+const PUBLIC_URL = 'https://calories.home.lan';
+const mcp = () => withData(<McpScreen publicUrl={PUBLIC_URL} />);
+
+/** OCT-187 6.1: MCP off, the warning already on screen. */
+export const Mcp: Story = {
+  beforeEach: integrations(false, false),
+  render: mcp,
+};
+export const McpDark: Story = { ...Mcp, ...dark };
+/** 6.2: on, no token yet: the placeholder in the snippet. */
+export const McpOn: Story = {
+  beforeEach: integrations(true, false),
+  render: mcp,
+};
+export const McpOnDark: Story = { ...McpOn, ...dark };
+/** 6.3: a token just created, Cursor. */
+export const McpToken: Story = {
+  ...McpOn,
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.click(
+      await canvas.findByText(/Create a token for MCP|Создать токен для MCP/),
+    );
+    await canvas.findByText(/just created|создан только что/);
+    await userEvent.click(canvas.getByRole('radio', { name: 'Cursor' }));
+  },
+};
+export const McpTokenDark: Story = { ...McpToken, ...dark };
+/** The admin turned tokens off: lock, inactive switch, no address. */
+export const McpBlocked: Story = {
+  beforeEach: integrations(true, true),
+  render: mcp,
+};
+export const McpBlockedDark: Story = { ...McpBlocked, ...dark };
+export const McpDesktop: Story = {
+  ...McpToken,
+  render: () => column(mcp()),
+  globals: desktop,
+};
+export const McpDesktopDark: Story = {
+  ...McpDesktop,
   globals: { ...desktop, theme: 'dark' },
 };
 
