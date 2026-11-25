@@ -14,6 +14,7 @@ import {
   weightWarning,
   type Amount,
   type DishUnit,
+  type EdibleChoice,
   type IngredientSource,
   type Meal,
   type Nutrients,
@@ -51,12 +52,14 @@ import { Segment } from '../../ui/Segment/Segment';
 import { ConfirmDialog } from '../../ui/ConfirmDialog/ConfirmDialog';
 import { StepEditorRow } from '../../ui/StepEditorRow/StepEditorRow';
 import { useOnline } from '../../ui/OfflineBar/OfflineBar';
+import { useAiStatus } from '../../data/DataContext';
 import { usePressRepeat } from '../../ui/usePressRepeat';
 import { useToast } from '../../ui/Toast/Toast';
 import { ImageDecodeError, prepareImage } from '../meals/prepareImage';
 import '../../ui/WeightStepper/WeightStepper.css';
 import { unitOf, useWeight, weightIn } from '../../ui/weightUnits';
 import { useUnits } from './units';
+import { IngredientPhotoSheet } from './IngredientPhotoSheet';
 import { Per100Fields, type MacroKey, type Per100Values } from './Per100Fields';
 import './RecipeEditor.css';
 
@@ -92,6 +95,7 @@ export function RecipeEditorScreen({ id }: { id?: string }) {
   const recipe = useRecipe(Number(id ?? 0));
   const search = useCallback((q: string) => findHistoryDishes(db, q), [db]);
   const units = useUnits();
+  const ai = useAiStatus();
   if (id !== undefined && recipe === null)
     return <Redirect to="/kitchen" replace />;
   if (id !== undefined && !recipe) return null;
@@ -103,6 +107,7 @@ export function RecipeEditorScreen({ id }: { id?: string }) {
       fromMeal={state?.fromMeal}
       compose={state?.compose}
       online={online}
+      photo={ai.status?.recognition === 'ready'}
       units={units}
       search={search}
       lookup={(code) => lookupProduct(db, code)}
@@ -135,6 +140,10 @@ type Row = {
   /** The found product and the share picked of it: «½ pack · 200 g» until the grams are edited. */
   product?: Product;
   amount?: Amount;
+  /** Weight read from a scale or a package on a photo: its tag instead of «estimate» (OCT-435 3.6). */
+  from?: 'scale' | 'package';
+  /** The user's share of the gross weight, remembered by the server on save (ADR-0039 §4). */
+  edible?: EdibleChoice;
 };
 
 type Props = {
@@ -150,6 +159,8 @@ type Props = {
   compose?: boolean;
   /** Offline «Save» is disabled (E-10.5, ADR-0023 §4). */
   online: boolean;
+  /** AI recognition is set up: «Photograph the ingredients» in «+ Ingredient» (AC-B1). */
+  photo?: boolean;
   /** Weights shown and typed in grams or ounces; saved in grams (AC-2.6). */
   units?: Units;
   search: (query: string) => Promise<HistoryDish[]>;
@@ -217,6 +228,7 @@ export function RecipeEditor({
   fromMeal,
   compose,
   online,
+  photo,
   units,
   search,
   lookup,
@@ -273,6 +285,7 @@ export function RecipeEditor({
   const [sheet, setSheet] = useState<
     | { kind: 'picker' }
     | { kind: 'manual'; name: string }
+    | { kind: 'photo'; file: File; n: number }
     | { kind: 'edit'; key: number }
     | { kind: 'step'; key: number }
     | null
@@ -287,6 +300,7 @@ export function RecipeEditor({
   const nameRef = useRef<HTMLInputElement>(null);
   const cookedRef = useRef<HTMLInputElement>(null);
   const photoInput = useRef<HTMLInputElement>(null);
+  const productsInput = useRef<HTMLInputElement>(null);
 
   const cookedIn = cooked.trim() ? typedG(cooked, w, start?.cookedG) : null;
   const cookedValid =
@@ -328,6 +342,7 @@ export function RecipeEditor({
           (row.amount || row.pack) && {
             pack: { ...row.pack, ...(row.amount && { amount: row.amount }) },
           }),
+        ...(row.edible && { edible: row.edible }),
       }),
     ),
     // An empty step is dropped rather than an error: «+ Step» tapped and left blank.
@@ -760,8 +775,9 @@ export function RecipeEditor({
                           })
                         : undefined
                     }
-                    estimate={row.source === 'ai'}
-                    barcode={row.source === 'barcode'}
+                    estimate={row.source === 'ai' && !row.from}
+                    barcode={row.source === 'barcode' && !row.from}
+                    from={row.from}
                     share={shareOf(row)}
                     unsure={
                       row.unsure && g === 0
@@ -1029,6 +1045,43 @@ export function RecipeEditor({
           search={search}
           onPick={(d) => addRow({ ...d, source: 'history' })}
           onManual={(q) => setSheet({ kind: 'manual', name: q })}
+          photo={
+            photo
+              ? { online, onPick: () => productsInput.current?.click() }
+              : undefined
+          }
+          onClose={() => setSheet(null)}
+        />
+      )}
+      <input
+        ref={productsInput}
+        type="file"
+        accept="image/*"
+        hidden
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          e.target.value = '';
+          if (file) setSheet({ kind: 'photo', file, n: nextKey++ });
+        }}
+      />
+      {sheet?.kind === 'photo' && (
+        <IngredientPhotoSheet
+          key={sheet.n}
+          file={sheet.file}
+          units={units ?? 'metric'}
+          // Appended, nothing replaced (AC-C1); the same product twice is two rows (AC-C3).
+          onAdd={(found) => {
+            setRows((rs) => [
+              ...rs,
+              ...found.map(({ ingredient: i, ...extra }) => ({
+                ...rowOf(i, w.as(i.unit)),
+                ...extra,
+              })),
+            ]);
+            setSheet(null);
+          }}
+          onRetake={() => productsInput.current?.click()}
+          onManual={() => setSheet({ kind: 'manual', name: '' })}
           onClose={() => setSheet(null)}
         />
       )}

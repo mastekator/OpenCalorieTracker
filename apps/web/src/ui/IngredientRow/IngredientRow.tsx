@@ -1,5 +1,11 @@
 import { useId } from 'react';
-import { Barcode, CircleAlert, TriangleAlert } from 'lucide-react';
+import {
+  Barcode,
+  CircleAlert,
+  Package,
+  Scale,
+  TriangleAlert,
+} from 'lucide-react';
 import type { DishUnit, Units } from '@oct/shared';
 import { useT } from '../../i18n';
 import { Badge } from '../Badge/Badge';
@@ -24,8 +30,12 @@ type Props = {
   estimate?: boolean;
   /** Found by barcode: a «barcode» badge after the name (OCT-435 2.3). */
   barcode?: boolean;
+  /** The weight was read from a scale or a package on a photo (OCT-435 3.2): a tag after the name. */
+  from?: 'scale' | 'package';
   /** The package share the grams came from, «½ pack · 200 g»; dropped once the grams are edited. */
   share?: string;
+  /** A line under the kcal, e.g. «400 g with peel → edible 360 g · 90% · USDA». */
+  note?: string;
   /** Why the row needs a look (the AI couldn't estimate it): warning background and this text. */
   unsure?: string;
   onGramsChange: (text: string) => void;
@@ -43,7 +53,9 @@ export function IngredientRow({
   error,
   estimate,
   barcode,
+  from,
   share,
+  note,
   unsure,
   onGramsChange,
   onEdit,
@@ -66,6 +78,19 @@ export function IngredientRow({
                 <Badge>{t('editor.ai.estimate')}</Badge>
               </>
             )}
+            {from && (
+              <>
+                {' '}
+                <Badge tone="ok">
+                  {from === 'scale' ? (
+                    <Scale aria-hidden="true" />
+                  ) : (
+                    <Package aria-hidden="true" />
+                  )}
+                  {t(`editor.products.from_${from}`)}
+                </Badge>
+              </>
+            )}
             {barcode && (
               <>
                 {' '}
@@ -81,6 +106,9 @@ export function IngredientRow({
               <Barcode aria-hidden="true" />
               {share}
             </span>
+          )}
+          {note && (
+            <span className="ingredient-row__kcal tabular-nums">{note}</span>
           )}
         </button>
         <label className="stepper__box ingredient-row__grams">

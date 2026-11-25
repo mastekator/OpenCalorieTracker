@@ -71,3 +71,23 @@ export const BarcodeDark: Story = { ...Barcode, globals: dark };
 export const BarcodeEdited: Story = {
   args: { ...Barcode.args, grams: '180', kcal: 792, share: undefined },
 };
+
+/** Weight read from a scale on a photo of the ingredients (OCT-435 3.2). */
+export const FromScale: Story = {
+  args: { name: 'Wheat flour', kcal: 1710, grams: '512', from: 'scale' },
+};
+export const FromScaleDark: Story = { ...FromScale, globals: dark };
+export const FromPackage: Story = {
+  args: { name: 'Butter 82.5%', kcal: 1346, grams: '180', from: 'package' },
+};
+/** Gross → edible line under the kcal (OCT-435 3.2, AC-B7). */
+export const Edible: Story = {
+  args: {
+    name: 'Carrots',
+    kcal: 126,
+    grams: '360',
+    estimate: true,
+    note: '400 g with peel → edible 360 g · 90% · USDA',
+  },
+};
+export const EdibleDark: Story = { ...Edible, globals: dark };

@@ -85,6 +85,10 @@ type Props = {
   onClose: () => void;
   /** «How much you used» in a recipe; «How much you ate» by default. */
   amountTitle?: string;
+  /** The edible block's label, «Goes into the recipe» in a recipe. */
+  edibleTitle?: string;
+  /** «Remove from list» in a review list; «Delete» by default. */
+  deleteLabel?: string;
 };
 
 /** Sheet «Dish» (OCT-16 4.4): rename, weight with live numbers, delete. The screen mounts it while open. */
@@ -102,6 +106,8 @@ export function DishSheet({
   onDelete,
   onClose,
   amountTitle,
+  edibleTitle,
+  deleteLabel,
 }: Props) {
   const { t, num } = useT();
   const [name, setName] = useState(original.name);
@@ -220,7 +226,7 @@ export function DishSheet({
         <>
           <Button onClick={done}>{t('edit.dish.done')}</Button>
           <Button variant="danger-plain" onClick={onDelete}>
-            {t('edit.dish.delete')}
+            {deleteLabel ?? t('edit.dish.delete')}
           </Button>
         </>
       }
@@ -240,6 +246,7 @@ export function DishSheet({
         {edible && !edible.unlinked && !merged ? (
           <EdibleBlock
             edible={edible}
+            title={edibleTitle}
             name={name.trim() || base.name}
             units={units}
             onChange={(e, g) => {

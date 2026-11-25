@@ -2248,6 +2248,32 @@ export const en = {
     enter_manually: 'Enter “{q}” manually',
     picker_note:
       'Then set the grams. Entering manually has the same fields as a dish entered by hand.',
+    photo_row: 'Photograph the ingredients',
+    photo_row_sub:
+      'AI finds the products and weights — from a scale, a package or by eye',
+    photo_offline: 'Needs internet',
+    products: {
+      title: 'Ingredients from photo',
+      wait: 'Looking for the ingredients…',
+      wait_sub: 'Usually under 15 seconds',
+      step_ai: 'AI looks for ingredients and weights',
+      step_ai_sub: 'Scale, package labels, by eye',
+      not_kept: 'The photo is used for recognition only — we don’t keep it.',
+      note: 'Check the grams on “estimate” rows. Calories are counted from the raw ingredients.',
+      from_scale: 'from scale',
+      from_package: 'from package',
+      add: 'Add · {n}',
+      remove: 'Remove from list',
+      edible_title: 'Goes into the recipe',
+      none: 'No ingredients found in the photo',
+      none_body:
+        'Take the photo closer and in good light, so packages or the scale are visible.',
+      retake: 'Take another',
+      manual: 'Enter manually',
+      error: 'Couldn’t recognize the photo',
+      error_body:
+        'The AI didn’t answer or the answer made no sense. The recipe and its ingredients are safe.',
+    },
     save_error: 'Couldn’t save the recipe. Try again.',
     changed:
       'The recipe changed on another device — showing the latest version.',
