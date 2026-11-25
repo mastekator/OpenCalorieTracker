@@ -38,6 +38,7 @@ describe('PATCH /api/account/settings', () => {
       normDisclaimerHidden: false,
       offEnabled: false,
       offHintAt: null,
+      timeZone: null,
     });
     expect(await (await patch({ theme: 'dark' })).json()).toMatchObject({
       theme: 'dark',
@@ -52,6 +53,7 @@ describe('PATCH /api/account/settings', () => {
       normDisclaimerHidden: false,
       offEnabled: false,
       offHintAt: null,
+      timeZone: null,
     });
     expect(syncRev()).toBe(3);
   });

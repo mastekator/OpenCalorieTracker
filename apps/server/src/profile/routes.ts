@@ -1,3 +1,4 @@
+import type { Database } from 'better-sqlite3';
 import { Hono } from 'hono';
 import {
   birthDateError,
@@ -14,6 +15,17 @@ import { readProfile } from './norm.js';
 
 /** Local date of the process, i.e. in the installation's TZ (ADR-0014 §3). */
 export const serverToday = () => new Date().toLocaleDateString('sv');
+
+/** The user's IANA zone; undefined = the server's (ADR-0027 §4). */
+export const userTimeZone = (db: Database, userId: number) =>
+  (db
+    .prepare('SELECT time_zone FROM users WHERE id = ?')
+    .pluck()
+    .get(userId) as string | null) ?? undefined;
+
+/** Today in the user's zone, for requests without a device: tokens, MCP, schedules (ADR-0027 §5). */
+export const userToday = (db: Database, userId: number) =>
+  new Date().toLocaleDateString('sv', { timeZone: userTimeZone(db, userId) });
 
 /** The current user's profile and manual norm (ADR-0014 §5). */
 export function profileRoutes({ db }: AppDeps) {

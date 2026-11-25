@@ -38,6 +38,8 @@ export type ErrorCode =
   | 'tokens_env_managed'
   | 'integrations_disabled'
   | 'invalid_token'
+  | 'insufficient_scope'
+  | 'period_too_long'
   | 'rate_limited'
   | 'limit_reached'
   | 'barcode_invalid'
