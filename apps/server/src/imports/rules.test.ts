@@ -72,6 +72,14 @@ describe('import rules (ADR-0026 §5)', () => {
     });
   });
 
+  it("drops the export's formula guard from the name", () => {
+    const name = (n: string) =>
+      (record(['2024-03-04', '', '', n, '', '1']) as ImportRecord).name;
+    expect(name("'=1+1")).toBe('=1+1');
+    expect(name("'-x")).toBe('-x');
+    expect(name("'Tea")).toBe("'Tea");
+  });
+
   it('maps meal words in RU and EN', () => {
     expect(mealTypeOf('завтрак', null)).toBe('breakfast');
     expect(mealTypeOf('Обед', null)).toBe('lunch');

@@ -248,7 +248,8 @@ export function toRecord(
 
   const mealWord = cell(columns.meal);
   const mealType = mealTypeOf(mealWord, time);
-  let name = cell(columns.name);
+  // Undo the formula guard of the OCT CSV export (`'=1+1` → `=1+1`).
+  let name = cell(columns.name).replace(/^'(?=[=+\-@\t\r])/, '');
   if (!name) {
     // Without a name column every row is its meal's total, whatever the meal is called.
     if (columns.name !== undefined && !mealTypeFromWord(mealWord))

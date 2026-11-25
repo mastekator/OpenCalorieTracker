@@ -107,7 +107,7 @@ Numbers are written as stored, without rounding.
 
 ## CSV
 
-UTF-8 with BOM, comma separator, dot as the decimal mark, quoting by RFC 4180. Headers are in English and do not change with the app language.
+UTF-8 with BOM, comma separator, dot as the decimal mark, quoting by RFC 4180. A text cell starting with `=`, `+`, `-`, `@`, a tab or a carriage return gets a leading `'`, so a spreadsheet shows it as text instead of running it as a formula; numbers are never prefixed. CSV import drops that `'` from the dish name. Headers are in English and do not change with the app language.
 
 `meals.csv`, one row per dish:
 
