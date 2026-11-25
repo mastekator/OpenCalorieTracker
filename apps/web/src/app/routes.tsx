@@ -17,12 +17,14 @@ import {
   BarcodeIntegrationScreen,
   EXPORT_PATH,
   TOKENS_PATH,
+  MCP_PATH,
   IMPORT_PATH,
   INTEGRATIONS_PATH,
   IntegrationsScreen,
 } from '../features/settings/IntegrationsScreen';
 import { ExportScreen } from '../features/settings/ExportScreen';
 import { TokensScreen } from '../features/settings/TokensScreen';
+import { McpScreen } from '../features/settings/McpScreen';
 import { ImportScreen } from '../features/settings/ImportScreen';
 import { AdminIntegrationsScreen } from '../features/admin/AdminIntegrationsScreen';
 import { BlocksScreen } from '../features/admin/BlocksScreen';
@@ -274,6 +276,14 @@ export function AppScreens() {
           <TokensScreen />
         </Screen>
       </Route>
+      <Route path={MCP_PATH}>
+        <Screen
+          title={t('integr.mcp.title')}
+          back={{ href: INTEGRATIONS_PATH, label: t('settings.integrations') }}
+        >
+          <McpRoute />
+        </Screen>
+      </Route>
       {user.role !== 'admin' && (
         <Route path="/settings/admin/*">
           <Redirect to="/settings" replace />
@@ -319,6 +329,11 @@ export function AppScreens() {
  * Sign-in; a signed-in user goes on to `next` (AC-5.3) before the config is needed,
  * so an offline start from the local copy never waits for /api/config.
  */
+/** Only the MCP screen needs the config, so other screens render without its provider. */
+function McpRoute() {
+  return <McpScreen publicUrl={useConfig().publicUrl} />;
+}
+
 function Login() {
   const { user, signedIn } = useSession();
   const params = new URLSearchParams(useSearch());

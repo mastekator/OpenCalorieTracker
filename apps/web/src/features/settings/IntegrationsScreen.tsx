@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Barcode, Download, KeyRound, Lock, Upload } from 'lucide-react';
+import { Barcode, Bot, Download, KeyRound, Lock, Upload } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { listImports, type PastImport } from '../../api/imports';
 import { useDb, useOutboundBlocked, useSettings } from '../../data/DataContext';
@@ -15,6 +15,7 @@ import { List, ListRow } from '../../ui/List/List';
 import { useOnline } from '../../ui/OfflineBar/OfflineBar';
 import { Switch } from '../../ui/Switch/Switch';
 import { useExportCard } from './ExportScreen';
+import { useMcpState } from './McpScreen';
 import { useTokensCard } from './TokensScreen';
 import './settings.css';
 
@@ -23,6 +24,7 @@ export const BARCODE_PATH = `${INTEGRATIONS_PATH}/barcode`;
 export const IMPORT_PATH = `${INTEGRATIONS_PATH}/import`;
 export const EXPORT_PATH = `${INTEGRATIONS_PATH}/export`;
 export const TOKENS_PATH = `${INTEGRATIONS_PATH}/tokens`;
+export const MCP_PATH = `${INTEGRATIONS_PATH}/mcp`;
 
 /** The admin's ban wins over the user's own switch, which is kept for when it is lifted (E-6). */
 function useBarcodeState(): { on: boolean; state: IntegrationState } {
@@ -32,7 +34,7 @@ function useBarcodeState(): { on: boolean; state: IntegrationState } {
   return { on, state: blocked ? 'blocked' : on ? 'on' : 'off' };
 }
 
-/** OCT-187 §1: «Connections» (barcode lookup, tokens) and «Your data». */
+/** OCT-187 §1: «Connections» (barcode lookup, tokens, MCP) and «Your data». */
 export function IntegrationsScreen() {
   const { t, num } = useT();
   const [, navigate] = useLocation();
@@ -40,6 +42,7 @@ export function IntegrationsScreen() {
   const online = useOnline();
   const exportCard = useExportCard();
   const tokensCard = useTokensCard();
+  const mcp = useMcpState();
   const [imports, setImports] = useState<PastImport[]>([]);
   // The count needs the server: offline the card keeps its plain description.
   useEffect(() => {
@@ -86,6 +89,21 @@ export function IntegrationsScreen() {
           onClick={() => navigate(TOKENS_PATH)}
         >
           {t('integr.tokens.title')}
+        </ListRow>
+        <ListRow
+          icon={<Bot />}
+          description={
+            <>
+              {t('integr.mcp.desc')}
+              <span className="settings__status">
+                <IntegrationStatus state={mcp} />
+                {mcp === 'on' && ` · ${t('integr.mcp.read_only')}`}
+              </span>
+            </>
+          }
+          onClick={() => navigate(MCP_PATH)}
+        >
+          {t('integr.mcp.title')}
         </ListRow>
       </List>
       <List title={t('integr.your_data')}>

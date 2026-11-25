@@ -500,6 +500,30 @@ const ru: DeepPartial<typeof en> = {
       uncopied_body: 'Токен больше не покажем.',
       uncopied_ok: 'Закрыть',
     },
+    mcp: {
+      title: 'MCP для ИИ-ассистентов',
+      desc: 'Claude Desktop, Cursor и др. читают дневник',
+      read_only: 'только чтение',
+      switch: 'Доступ через MCP',
+      on: 'Включено · только чтение',
+      blocked:
+        'Админ выключил токены API, поэтому MCP тоже не работает. Ваш выбор сохранён.',
+      warn: 'Данные дневника будут уходить ИИ-провайдеру вашего ассистента (Claude, Cursor…) по его правилам. OCT это не контролирует.',
+      address: 'Адрес',
+      token: 'Токен',
+      create: 'Создать токен для MCP',
+      create_sub: 'Только чтение, без срока',
+      created_sub: 'Только чтение · создан только что',
+      setup: 'Настройка ассистента',
+      snippet: 'Фрагмент конфигурации',
+      placeholder: 'ВАШ_ТОКЕН',
+      copy: 'Скопировать конфигурацию',
+      hint_claude:
+        'Claude Desktop → Settings → Developer → Edit Config, вставьте и перезапустите.',
+      hint_cursor:
+        'Cursor → Settings → MCP → Add new server, вставьте целиком.',
+      read: 'Пока только чтение: итоги, записи и норма. Записывать еду ассистент не может.',
+    },
     admin: {
       tokens: 'Личные API-токены',
       tokens_sub: 'Home Assistant, скрипты и ИИ-ассистенты (MCP)',
