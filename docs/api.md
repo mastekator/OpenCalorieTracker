@@ -181,7 +181,7 @@ on your installation (for example `https://food.example.com/mcp`). It only reads
 
 - Turn it on in **Settings → Integrations → MCP**; it is off by default and answers `403 mcp_disabled` until then.
 - Sign in with a personal access token, `read` is enough: `Authorization: Bearer oct_…`. The token limits and the administrator's switch apply as above.
-- Transport: Streamable HTTP without sessions. `POST /mcp` takes one JSON-RPC 2.0 message or a batch and answers with `application/json`; notifications get `202` with no body. There is no stream: `GET /mcp` answers `405`.
+- Transport: Streamable HTTP without sessions. `POST /mcp` takes one JSON-RPC 2.0 message or a batch of at most 10 (a longer one gets `400` Invalid Request) and answers with `application/json`; notifications get `202` with no body. There is no stream: `GET /mcp` answers `405`.
 - Protocol versions `2025-06-18` and `2025-03-26`.
 - A request from a browser with an `Origin` other than the installation's `PUBLIC_URL` is refused with `403`.
 

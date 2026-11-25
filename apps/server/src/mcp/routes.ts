@@ -24,6 +24,8 @@ import { appVersion } from '../version.js';
 export const MCP_VERSIONS = ['2025-06-18', '2025-03-26'];
 /** list_meals cuts a longer answer and says so with `truncated: true`. */
 export const MAX_MCP_MEALS = 200;
+/** The token rate limit counts HTTP requests, so a batch is capped to keep it meaningful. */
+export const MAX_BATCH = 10;
 
 const PARSE_ERROR = -32700;
 const INVALID_REQUEST = -32600;
@@ -243,6 +245,11 @@ export function mcpRoutes(deps: AppDeps) {
       }
       if (!body.length)
         return c.json(rpcError(null, INVALID_REQUEST, 'Empty batch'), 400);
+      if (body.length > MAX_BATCH)
+        return c.json(
+          rpcError(null, INVALID_REQUEST, `Batch too large (max ${MAX_BATCH})`),
+          400,
+        );
       const res = body.map((m) => handle(userId, m)).filter((r) => r);
       return res.length ? c.json(res) : c.body(null, 202);
     });
