@@ -2630,6 +2630,7 @@ const ru: DeepPartial<typeof en> = {
     invalid_token: 'Токен неверный, истёк или отозван',
     rate_limited: 'Слишком много запросов. Повторите через минуту',
     insufficient_scope: 'Этот токен только для чтения',
+    mcp_disabled: 'Доступ через MCP выключен в настройках',
     period_too_long: 'Слишком длинный период. Выберите короче',
     limit_reached: 'У вас уже 20 токенов — удалите один, чтобы создать новый',
     http_not_private:

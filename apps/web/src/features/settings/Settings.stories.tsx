@@ -359,6 +359,7 @@ const integrations =
             // «On» also shows two tokens; the ban covers tokens too.
             tokens: { count: on ? 2 : 0, blocked },
             webhooks: { count: 0, failing: null, blocked },
+            mcp: { enabled: false, blocked: false },
           })
         : String(input).endsWith('/api/admin/integrations')
           ? Response.json(admin)

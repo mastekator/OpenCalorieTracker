@@ -67,10 +67,11 @@ export function integrationRoutes({ db, config }: AppDeps) {
     .get('/integrations', requireUser, (c) => {
       const u = db
         .prepare(
-          'SELECT off_enabled AS off, last_export_at AS at, last_export_format AS format FROM users WHERE id = ?',
+          'SELECT off_enabled AS off, mcp_enabled AS mcp, last_export_at AS at, last_export_format AS format FROM users WHERE id = ?',
         )
         .get(c.var.user.id) as {
         off: number;
+        mcp: number;
         at: number | null;
         format: 'json' | 'csv' | null;
       };
@@ -98,6 +99,8 @@ export function integrationRoutes({ db, config }: AppDeps) {
         },
         tokens: { count: tokens, blocked: !p.tokens },
         webhooks: { ...hooks, blocked: !p.outbound },
+        // MCP signs in with a token, so the tokens switch blocks it too.
+        mcp: { enabled: u.mcp === 1, blocked: !p.tokens },
       } satisfies Integrations);
     });
 }

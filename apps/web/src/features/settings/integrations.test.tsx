@@ -58,6 +58,7 @@ const seed = async (offEnabled: boolean, blocked?: boolean) => {
         export: { lastAt: null, lastFormat: null },
         tokens: { count: 0, blocked: false },
         webhooks: { count: 0, failing: null, blocked: false },
+        mcp: { enabled: false, blocked: false },
       },
       'integrations',
     );
@@ -85,6 +86,7 @@ const serveBlocked = (blocked: boolean) =>
               export: { lastAt: null, lastFormat: null },
               tokens: { count: 0, blocked: false },
               webhooks: { count: 0, failing: null, blocked: false },
+              mcp: { enabled: false, blocked: false },
             }),
           )
         : new Promise(() => {}),
@@ -172,6 +174,7 @@ describe('IntegrationsScreen (OCT-313 §4)', () => {
                 },
                 tokens: { count: 0, blocked: false },
                 webhooks: { count: 0, failing: null, blocked: false },
+                mcp: { enabled: false, blocked: false },
               }),
             )
           : new Promise(() => {}),

@@ -2459,6 +2459,7 @@ export const en = {
     invalid_token: 'The token is invalid, expired or revoked',
     rate_limited: 'Too many requests. Try again in a minute',
     insufficient_scope: 'This token can only read',
+    mcp_disabled: 'MCP access is turned off in your settings',
     period_too_long: 'The period is too long. Choose a shorter one',
     limit_reached: 'You have 20 tokens already — delete one to create another',
     http_not_private:

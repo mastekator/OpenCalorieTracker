@@ -48,6 +48,7 @@ function serve(list: ApiToken[], blocked = false) {
           export: { lastAt: null, lastFormat: null },
           tokens: { count: list.length, blocked },
           webhooks: { count: 0, failing: null, blocked },
+          mcp: { enabled: false, blocked: false },
         });
       if (url.startsWith('/api/tokens')) {
         if (method === 'GET') return Response.json(list);

@@ -63,6 +63,8 @@ export const accountSettingsSchema = z.object({
   offEnabled: z.boolean(),
   /** When the "turn on barcode lookup" hint was dismissed, or null. */
   offHintAt: z.iso.datetime().nullable(),
+  /** Read-only access through /mcp with a token (ADR-0027 §7); off by default. Absent in settings stored by older clients. */
+  mcpEnabled: z.boolean().optional(),
   /** IANA zone the server counts "today" by (ADR-0027 §4); null = the server's. Absent in settings stored by older clients. */
   timeZone: z.string().nullable().optional(),
 });
@@ -77,6 +79,7 @@ export const accountSettingsPatchSchema = z.object({
   normDisclaimerHidden: z.literal(true).optional(),
   offEnabled: z.boolean().optional(),
   offHintAt: z.iso.datetime().nullable().optional(),
+  mcpEnabled: z.boolean().optional(),
   /** A property of the device, not an edit: not subject to `editedAt`, does not move `settingsRev`. */
   timeZone: timeZoneSchema.optional(),
   editedAt: z.number().int().nonnegative().optional(),
