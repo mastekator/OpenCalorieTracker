@@ -5,6 +5,7 @@ import type { AppDeps } from '../app.js';
 import { requireUser, type AuthEnv } from '../auth/session.js';
 import { ApiError } from '../http/errors.js';
 import { validate } from '../http/validate.js';
+import { userToday } from '../profile/routes.js';
 import { planExport } from './build.js';
 import { writeZip, ZIP_MAX_BYTES, ZIP_MAX_ENTRIES } from './zip.js';
 
@@ -55,8 +56,7 @@ export function exportRoutes({ db, config }: AppDeps) {
           {
             'Content-Type': plan.json ? 'application/json' : 'application/zip',
             'Content-Length': String(plan.bytes),
-            // Date by UTC: the user's time zone is not stored yet.
-            'Content-Disposition': `attachment; filename="oct-export-${now.toISOString().slice(0, 10)}.${ext}"`,
+            'Content-Disposition': `attachment; filename="oct-export-${userToday(db, userId)}.${ext}"`,
             'Cache-Control': 'no-store',
           },
         );
