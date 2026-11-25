@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { ExportFormat, ExportSummary } from '@oct/shared';
 import { downloadExport, exportSummary, saveFile } from '../../api/export';
 import { ApiError } from '../../api/client';
-import { useIntegrations } from '../../data/DataContext';
+import { useIntegrations, usePendingCount } from '../../data/DataContext';
 import { localToday } from '../diary/useToday';
 import { useT } from '../../i18n';
 import { Banner } from '../../ui/Banner/Banner';
@@ -47,6 +47,7 @@ export function useExportCard() {
 export function ExportScreen() {
   const { t, num, locale } = useT();
   const online = useOnline();
+  const unsent = usePendingCount() ?? 0;
   const toast = useToast();
   const [format, setFormat] = useState<ExportFormat>('csv');
   const [range, setRange] = useState<'all' | 'dates'>('all');
@@ -199,6 +200,11 @@ export function ExportScreen() {
             ].join(' · ')}
       </p>
       <p className="import__note">{t('integr.export.not_included')}</p>
+      {unsent > 0 && (
+        <p className="import__note">
+          {t('integr.export.unsent', count(unsent))}
+        </p>
+      )}
       {error && (
         <Banner tone="danger">{t(`integr.export.error_${error}`)}</Banner>
       )}

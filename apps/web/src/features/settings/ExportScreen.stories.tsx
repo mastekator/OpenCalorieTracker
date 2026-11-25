@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import type { MeResponse } from '@oct/shared';
 import { DataProvider } from '../../data/DataContext';
+import { openUserDb } from '../../data/db';
 import { atPath } from '../../ui/navStory';
 import { ToastProvider } from '../../ui/Toast/Toast';
 import { ExportScreen } from './ExportScreen';
@@ -97,3 +98,26 @@ export const TooLargeDark: Story = { ...TooLarge, ...dark };
 /** Offline: the button is off. */
 export const Offline: Story = { beforeEach: serve(halfway, true) };
 export const OfflineDark: Story = { ...Offline, ...dark };
+
+/** 2.x: offline with 3 entries queued, they will not be in the file (AC-1.7). */
+export const Unsent: Story = {
+  beforeEach: async () => {
+    const db = await openUserDb(user.id);
+    await db.clear('outbox');
+    for (let editedAt = 1; editedAt <= 3; editedAt++)
+      await db.add('outbox', {
+        kind: 'patchSettings',
+        clientId: 'settings',
+        body: { theme: 'dark', editedAt },
+      });
+    db.close();
+    const restore = serve(halfway, true)();
+    return async () => {
+      restore();
+      const db = await openUserDb(user.id);
+      await db.clear('outbox');
+      db.close();
+    };
+  },
+};
+export const UnsentDark: Story = { ...Unsent, ...dark };

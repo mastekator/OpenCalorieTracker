@@ -138,6 +138,33 @@ describe('ExportScreen (OCT-187 §2)', () => {
     expect(downloadButton().disabled).toBe(true);
   });
 
+  it('unsent entries: says they will not be in the file', async () => {
+    // Offline, so the queue is not flushed under the test.
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('offline')));
+    const db = await openUserDb(user.id);
+    for (const theme of ['dark', 'light'] as const)
+      await db.add('outbox', {
+        kind: 'patchSettings',
+        clientId: 'settings',
+        body: { theme, editedAt: 1 },
+      });
+    db.close();
+    await wrap();
+    expect(
+      await screen.findByText(
+        "2 entries are not sent yet — they won't be in the file",
+      ),
+    ).toBeTruthy();
+  });
+
+  it('empty queue: no unsent caption', async () => {
+    serve(() => new Response(null));
+    await wrap();
+    await screen.findByText(/12 days/);
+    expect(screen.queryByText(/not sent yet/)).toBeNull();
+  });
+
   it('413: «Pick a shorter period»', async () => {
     serve(() =>
       Response.json({ error: { code: 'export_too_large' } }, { status: 413 }),

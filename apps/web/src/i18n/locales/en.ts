@@ -273,6 +273,10 @@ export const en = {
       dishes: { one: '{n} dish', other: '{n} dishes' },
       not_included:
         'Not included: password, AI provider keys and access tokens.',
+      unsent: {
+        one: "{n} entry is not sent yet — it won't be in the file",
+        other: "{n} entries are not sent yet — they won't be in the file",
+      },
       need_net: 'Needs a network: the file is built on the server',
       download_json: 'Download JSON',
       download_zip: 'Download ZIP',
