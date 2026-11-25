@@ -330,3 +330,10 @@
 .webhooks__time[aria-invalid='true'] {
   border-color: var(--color-danger);
 }
+
+/* OCT-187 5.5: «Send test» and «Edit» share the row. */
+.webhook__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+}

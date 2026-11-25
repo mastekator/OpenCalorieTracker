@@ -24,6 +24,7 @@ import {
 } from '../features/settings/IntegrationsScreen';
 import { ExportScreen } from '../features/settings/ExportScreen';
 import { TokensScreen } from '../features/settings/TokensScreen';
+import { WebhookScreen } from '../features/settings/WebhookScreen';
 import { WebhooksScreen } from '../features/settings/WebhooksScreen';
 import { ImportScreen } from '../features/settings/ImportScreen';
 import { AdminIntegrationsScreen } from '../features/admin/AdminIntegrationsScreen';
@@ -283,6 +284,16 @@ export function AppScreens() {
         >
           <WebhooksScreen />
         </Screen>
+      </Route>
+      <Route path={`${WEBHOOKS_PATH}/:id`}>
+        {({ id }) => (
+          <Screen
+            title={t('integr.webhooks.one')}
+            back={{ href: WEBHOOKS_PATH, label: t('integr.webhooks.title') }}
+          >
+            <WebhookScreen id={id} />
+          </Screen>
+        )}
       </Route>
       {user.role !== 'admin' && (
         <Route path="/settings/admin/*">

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { CircleAlert, Lock, Webhook as WebhookIcon } from 'lucide-react';
+import { useLocation } from 'wouter';
 import {
   MAX_WEBHOOKS,
   webhookEventSchema,
@@ -25,12 +26,13 @@ import { ScreenState } from '../../ui/ScreenState/ScreenState';
 import { Sheet } from '../../ui/Sheet/Sheet';
 import { Switch } from '../../ui/Switch/Switch';
 import { useToast } from '../../ui/Toast/Toast';
+import { WEBHOOKS_PATH } from './IntegrationsScreen';
 import { SecretSheet } from './TokensScreen';
 import './settings.css';
 
 const EVENTS = webhookEventSchema.options;
 /** i18n keys can't hold dots. */
-const EV_KEY = {
+export const EV_KEY = {
   'meal.saved': 'meal_saved',
   'day.closed': 'day_closed',
   'day.empty': 'day_empty',
@@ -60,10 +62,47 @@ export function useWebhooksCard(): { text: string; state: IntegrationState } {
 }
 
 /** The admin's ban (403 outbound_disabled) reads the same as the banner. */
-function errorText(t: ReturnType<typeof useT>['t'], code: ClientErrorCode) {
+export function errorText(
+  t: ReturnType<typeof useT>['t'],
+  code: ClientErrorCode,
+) {
   if (code === 'outbound_disabled') return t('integr.webhooks.blocked');
   if (code === 'limit_reached') return t('integr.webhooks.limit');
   return t(`errors.${code}`);
+}
+
+export const webhookPath = (id: number) => `${WEBHOOKS_PATH}/${id}`;
+
+/** The address and the state line: on, failing N in a row, off after failures, banned. */
+export function WebhookSummary({
+  w,
+  blocked,
+}: {
+  w: Webhook;
+  blocked: boolean;
+}) {
+  const { t, num } = useT();
+  const [state, note]: [IntegrationState, string?] = blocked
+    ? ['blocked']
+    : !w.enabled
+      ? [
+          'off',
+          w.disabledReason
+            ? t('integr.webhooks.auto_off', { n: num(w.failStreak) })
+            : undefined,
+        ]
+      : w.failStreak > 0
+        ? ['error', t('integr.webhooks.fails', { n: num(w.failStreak) })]
+        : ['on'];
+  return (
+    <>
+      <span className="webhooks__url">{w.url}</span>
+      <span className="settings__status">
+        <IntegrationStatus state={state} />
+        {note && <span className="webhooks__note">{note}</span>}
+      </span>
+    </>
+  );
 }
 
 /** OCT-187 5.1–5.4, 5.6–5.7: the list with states, add and edit, the secret once, «Turn off all». */
@@ -71,10 +110,11 @@ export function WebhooksScreen() {
   const { t, num } = useT();
   const toast = useToast();
   const online = useOnline();
+  const [, navigate] = useLocation();
   const blocked = useIntegrations()?.webhooks.blocked ?? false;
   const [hooks, setHooks] = useState<Webhook[] | null>(null);
   const [failed, setFailed] = useState<ClientErrorCode | null>(null);
-  const [editing, setEditing] = useState<Webhook | 'new' | null>(null);
+  const [editing, setEditing] = useState<'new' | null>(null);
   // The secret lives only here, never in kv or a cache.
   const [secret, setSecret] = useState<{ name: string; value: string } | null>(
     null,
@@ -140,30 +180,6 @@ export function WebhooksScreen() {
       {t('integr.webhooks.add')}
     </Button>
   );
-  const describe = (w: Webhook) => {
-    const [state, note]: [IntegrationState, string?] = blocked
-      ? ['blocked']
-      : !w.enabled
-        ? [
-            'off',
-            w.disabledReason
-              ? t('integr.webhooks.auto_off', { n: num(w.failStreak) })
-              : undefined,
-          ]
-        : w.failStreak > 0
-          ? ['error', t('integr.webhooks.fails', { n: num(w.failStreak) })]
-          : ['on'];
-    return (
-      <>
-        <span className="webhooks__url">{w.url}</span>
-        <span className="settings__status">
-          <IntegrationStatus state={state} />
-          {note && <span className="webhooks__note">{note}</span>}
-        </span>
-      </>
-    );
-  };
-
   return (
     <div className="settings">
       {blocked && (
@@ -192,9 +208,9 @@ export function WebhooksScreen() {
               <ListRow
                 key={w.id}
                 icon={<WebhookIcon />}
-                description={describe(w)}
+                description={<WebhookSummary w={w} blocked={blocked} />}
                 disabled={!online}
-                onClick={() => online && setEditing(w)}
+                onClick={() => online && navigate(webhookPath(w.id))}
                 action={
                   !w.enabled &&
                   !blocked && (
@@ -247,7 +263,7 @@ export function WebhooksScreen() {
             const { secret: value, ...item } = w;
             setHooks((list) => [...(list ?? []), item]);
             setSecret({ name: item.name, value });
-          } else put(w);
+          }
         }}
       />
       <SecretSheet
@@ -293,7 +309,7 @@ function fieldErrors(e: unknown, text: string): Errors | null {
 }
 
 /** OCT-187 5.2–5.3: name, address, events with their times; the same sheet edits. */
-function EditSheet({
+export function EditSheet({
   target,
   onClose,
   onSaved,
