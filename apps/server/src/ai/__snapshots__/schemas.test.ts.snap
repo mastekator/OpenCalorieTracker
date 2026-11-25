@@ -62,6 +62,12 @@ exports[`model response schemas (OCT-437) > ingredients: no optional fields, sha
             "minLength": 1,
             "type": "string",
           },
+          "pieces": {
+            "type": [
+              "number",
+              "null",
+            ],
+          },
           "printedBarcode": {
             "type": [
               "string",
@@ -132,6 +138,7 @@ exports[`model response schemas (OCT-437) > ingredients: no optional fields, sha
           "readUnit",
           "weightFrom",
           "estimateG",
+          "pieces",
           "unit",
           "kcal100",
           "protein100",
