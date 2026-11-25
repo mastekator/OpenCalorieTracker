@@ -430,7 +430,7 @@ describe('IntegrationsScreen: «Turn off» on the hub (OCT-187 1.2, 1.4)', () =>
         if (url === '/api/webhooks') return Response.json(hooks);
         const m = /^\/api\/webhooks\/(\d+)$/.exec(url);
         if (m && method === 'PATCH') {
-          const h = hooks.find((x) => x.id === +m[1])!;
+          const h = hooks.find((x) => x.id === Number(m[1]))!;
           h.enabled = body.enabled;
           return Response.json(h);
         }
