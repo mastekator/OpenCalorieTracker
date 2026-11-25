@@ -7,13 +7,14 @@ import {
   waitFor,
   within,
 } from '@testing-library/react';
-import type { MeResponse, Webhook } from '@oct/shared';
+import type { MeResponse, Webhook, WebhookDelivery } from '@oct/shared';
 import { DataProvider } from '../../data/DataContext';
 import { openUserDb } from '../../data/db';
 import { clearLocal } from '../../data/user';
 import { I18nProvider, LOCALE_STORAGE_KEY } from '../../i18n';
 import { ToastProvider } from '../../ui/Toast/Toast';
 import { IntegrationsScreen } from './IntegrationsScreen';
+import { WebhookScreen } from './WebhookScreen';
 import { WebhooksScreen } from './WebhooksScreen';
 
 const user = { id: 4, role: 'user', locale: 'en' } as MeResponse;
@@ -39,12 +40,14 @@ type Opts = {
   failing?: string | null;
   /** The error the POST or PATCH answers with. */
   error?: { status: number; code: string; details?: unknown };
+  /** GET /:id/deliveries; POST /:id/test answers like the first one. */
+  log?: WebhookDelivery[];
 };
 
 /** /api/webhooks and /api/integrations answer; anything else (sync) never settles. */
 function serve(
   list: Webhook[],
-  { blocked = false, failing = null, error }: Opts = {},
+  { blocked = false, failing = null, error, log = [] }: Opts = {},
 ) {
   const calls: Call[] = [];
   vi.stubGlobal(
@@ -63,12 +66,19 @@ function serve(
           mcp: { enabled: false, blocked: false },
         });
       if (url.startsWith('/api/webhooks')) {
+        if (url.endsWith('/deliveries')) return Response.json(log);
         if (method === 'GET') return Response.json(list);
         if (error)
           return Response.json(
             { error: { code: error.code, details: error.details } },
             { status: error.status },
           );
+        // A fresh row id: the test adds a row on top of the log.
+        if (url.endsWith('/test'))
+          return Response.json({ ...log[0], id: 1000 });
+        if (url.endsWith('/secret'))
+          return Response.json({ ...list[0], secret: SECRET });
+        if (method === 'DELETE') return new Response(null, { status: 204 });
         if (method === 'POST')
           return Response.json(
             { ...hook(99, body.name), ...body, secret: SECRET },
@@ -269,8 +279,8 @@ describe('WebhooksScreen (OCT-187 §5)', () => {
 
   it('edits through the same sheet with PATCH', async () => {
     const calls = serve([hook(1, 'HA')]);
-    await wrap();
-    fireEvent.click(await screen.findByText('HA'));
+    await wrap(<WebhookScreen id="1" />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit' }));
     const sheet = await screen.findByRole('dialog');
     fireEvent.click(within(sheet).getByRole('switch', { name: 'Day closed' }));
     fireEvent.change(within(sheet).getByLabelText('Day closed at'), {
@@ -287,6 +297,110 @@ describe('WebhooksScreen (OCT-187 §5)', () => {
       dayClosedAt: '22:30',
       emptyBy: '20:00',
     });
+  });
+});
+
+const delivery = (
+  id: number,
+  more: Partial<WebhookDelivery> = {},
+): WebhookDelivery => ({
+  id,
+  event: 'test',
+  at: '2026-11-20T19:05:00.000Z',
+  status: 200,
+  error: null,
+  attempts: 1,
+  durationMs: 180,
+  ...more,
+});
+
+describe('WebhookScreen (OCT-187 5.5)', () => {
+  it('a delivered test shows its status and time', async () => {
+    serve([hook(1, 'HA')], { log: [delivery(7)] });
+    await wrap(<WebhookScreen id="1" />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Send test' }));
+    expect(
+      await screen.findByText('Test delivered · 200 · 180 ms'),
+    ).toBeTruthy();
+  });
+
+  it('a failed test names the reason', async () => {
+    serve([hook(1, 'HA')], {
+      log: [delivery(7, { status: null, error: 'timeout', durationMs: null })],
+    });
+    await wrap(<WebhookScreen id="1" />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Send test' }));
+    expect(
+      await screen.findByText('Test not delivered · no reply in 10 s'),
+    ).toBeTruthy();
+  });
+
+  it('403 outbound_disabled on test reads as the ban', async () => {
+    serve([hook(1, 'HA')], {
+      error: { status: 403, code: 'outbound_disabled' },
+    });
+    await wrap(<WebhookScreen id="1" />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Send test' }));
+    expect(
+      await screen.findByText(/Your webhooks are kept but send nothing/),
+    ).toBeTruthy();
+  });
+
+  it('the log shows each delivery with its response', async () => {
+    serve([hook(1, 'HA')], {
+      log: [
+        delivery(3, { event: 'meal.saved', status: 503, attempts: 3 }),
+        delivery(2, { event: 'day.closed', status: null, error: 'dns' }),
+        delivery(1, { event: 'meal.saved', status: 204 }),
+        delivery(0, { status: null, error: 'secret', durationMs: 0 }),
+      ],
+    });
+    await wrap(<WebhookScreen id="1" />);
+    expect(await screen.findByText('503 ×3')).toBeTruthy();
+    expect(screen.getByText('host not found')).toBeTruthy();
+    expect(screen.getByText('204')).toBeTruthy();
+    expect(screen.getByText('secret unreadable — rotate it')).toBeTruthy();
+    expect(screen.getAllByText('Meal saved')).toHaveLength(2);
+  });
+
+  it('a rotated secret is shown once, after confirming', async () => {
+    const calls = serve([hook(1, 'HA')]);
+    const view = await wrap(<WebhookScreen id="1" />);
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Rotate the secret' }),
+    );
+    expect(calls.some((c) => c.url.endsWith('/secret'))).toBe(false);
+    fireEvent.click(
+      within(screen.getByRole('alertdialog')).getByRole('button', {
+        name: 'Rotate',
+      }),
+    );
+    expect(await screen.findByText(SECRET)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+    fireEvent.click(
+      within(await screen.findByRole('alertdialog')).getByRole('button', {
+        name: 'Close',
+      }),
+    );
+    await waitFor(() => expect(screen.queryByText(SECRET)).toBeNull());
+    view.unmount();
+    await wrap(<WebhookScreen id="1" />);
+    await screen.findByText('HA');
+    expect(screen.queryByText(SECRET)).toBeNull();
+  });
+
+  it('deletes after confirming', async () => {
+    const calls = serve([hook(1, 'HA')]);
+    await wrap(<WebhookScreen id="1" />);
+    fireEvent.click(await screen.findByText('Delete webhook'));
+    fireEvent.click(
+      within(screen.getByRole('alertdialog')).getByRole('button', {
+        name: 'Delete',
+      }),
+    );
+    await waitFor(() =>
+      expect(calls.some((c) => c.method === 'DELETE')).toBe(true),
+    );
   });
 });
 
