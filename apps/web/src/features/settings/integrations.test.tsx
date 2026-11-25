@@ -57,6 +57,7 @@ const seed = async (offEnabled: boolean, blocked?: boolean) => {
         barcode: { enabled: offEnabled, blocked },
         export: { lastAt: null, lastFormat: null },
         tokens: { count: 0, blocked: false },
+        webhooks: { count: 0, failing: null, blocked: false },
       },
       'integrations',
     );
@@ -83,6 +84,7 @@ const serveBlocked = (blocked: boolean) =>
               barcode: { enabled: false, blocked },
               export: { lastAt: null, lastFormat: null },
               tokens: { count: 0, blocked: false },
+              webhooks: { count: 0, failing: null, blocked: false },
             }),
           )
         : new Promise(() => {}),
@@ -169,6 +171,7 @@ describe('IntegrationsScreen (OCT-313 §4)', () => {
                   lastFormat: 'json',
                 },
                 tokens: { count: 0, blocked: false },
+                webhooks: { count: 0, failing: null, blocked: false },
               }),
             )
           : new Promise(() => {}),

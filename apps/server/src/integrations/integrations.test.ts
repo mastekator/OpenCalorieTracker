@@ -48,6 +48,7 @@ describe('outbound switches (ADR-0034 §5)', () => {
       barcode: { enabled: false, blocked: false },
       export: { lastAt: null, lastFormat: null },
       tokens: { count: 0, blocked: false },
+      webhooks: { count: 0, failing: null, blocked: false },
     });
   });
 
@@ -67,6 +68,7 @@ describe('outbound switches (ADR-0034 §5)', () => {
       barcode: { enabled: true, blocked: true },
       export: { lastAt: null, lastFormat: null },
       tokens: { count: 0, blocked: false },
+      webhooks: { count: 0, failing: null, blocked: true },
     });
     await t.call('PUT', '/api/admin/integrations', t.cookie, {
       outbound: true,
@@ -75,6 +77,7 @@ describe('outbound switches (ADR-0034 §5)', () => {
       barcode: { enabled: true, blocked: false },
       export: { lastAt: null, lastFormat: null },
       tokens: { count: 0, blocked: false },
+      webhooks: { count: 0, failing: null, blocked: false },
     });
   });
 

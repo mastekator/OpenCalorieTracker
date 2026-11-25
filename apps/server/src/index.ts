@@ -17,6 +17,7 @@ import { openDb } from './db/open.js';
 import { sweepImports } from './imports/sweep.js';
 import { SWEEP_INTERVAL_MS, sweepPhotos } from './photos/sweep.js';
 import { loadSecrets } from './secrets.js';
+import { startWebhookDelivery } from './webhooks/outbox.js';
 
 const config = loadConfig(process.env);
 config.dataDirWritable = dataDirWritable(config.dataDir);
@@ -53,6 +54,7 @@ const sweep = () =>
 if (config.dataDirWritable) {
   void sweep();
   setInterval(sweep, SWEEP_INTERVAL_MS).unref();
+  startWebhookDelivery({ db, config, secrets });
 }
 
 serve(

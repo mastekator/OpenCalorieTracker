@@ -44,6 +44,8 @@ export function integrationRoutes({ db, config }: AppDeps) {
           throw new ApiError(409, 'outbound_env_managed');
         if (tokens !== undefined && config.tokens !== undefined)
           throw new ApiError(409, 'tokens_env_managed');
+        // Queued webhook events are dropped, not held for later (ADR-0027 §6).
+        if (outbound === false) db.prepare('DELETE FROM webhook_outbox').run();
         // A missing switch keeps its value; the users' own switches and tokens stay too (E-6).
         // The table value, not the policy: env may override the other switch.
         db.prepare(
@@ -76,6 +78,17 @@ export function integrationRoutes({ db, config }: AppDeps) {
         .prepare('SELECT count(*) FROM api_tokens WHERE user_id = ?')
         .pluck()
         .get(c.var.user.id) as number;
+      const hooks = db
+        .prepare(
+          `SELECT count(*) AS count,
+             (SELECT name FROM webhooks WHERE user_id = @id
+              AND (disabled_reason = 'failures' OR fail_streak > 0) ORDER BY id LIMIT 1) AS failing
+           FROM webhooks WHERE user_id = @id`,
+        )
+        .get({ id: c.var.user.id }) as {
+        count: number;
+        failing: string | null;
+      };
       const p = policy();
       return c.json({
         barcode: { enabled: u.off === 1, blocked: !p.outbound },
@@ -84,6 +97,7 @@ export function integrationRoutes({ db, config }: AppDeps) {
           lastFormat: u.format,
         },
         tokens: { count: tokens, blocked: !p.tokens },
+        webhooks: { ...hooks, blocked: !p.outbound },
       } satisfies Integrations);
     });
 }

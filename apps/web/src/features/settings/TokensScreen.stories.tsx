@@ -45,6 +45,7 @@ const serve =
           barcode: { enabled: false, blocked: false },
           export: { lastAt: null, lastFormat: null },
           tokens: { count: list.length, blocked },
+          webhooks: { count: 0, failing: null, blocked },
         });
       if (url.startsWith('/api/tokens'))
         return init?.method === 'POST'
