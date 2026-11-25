@@ -91,6 +91,28 @@ from a queue within a few seconds. Meals added by an import do not send events.
 
 `date` is the diary day of the meal, `mealType` is `breakfast`, `lunch`, `dinner` or `snack`.
 
+### `day.closed` and `day.empty`
+
+Both go out at most once a local day, at the time you chose in your time zone (the server's zone if
+you did not set one). The app checks the clock once a minute, so an event may come up to a minute
+late. A day the server was off is not caught up; after a restart today's event still goes if the
+day has not ended. Moving the time later on a day whose event has already gone does not send it again.
+
+`day.closed` has the day's totals, your target (`null` without one) and what is left:
+
+```json
+{
+  "date": "2026-11-25",
+  "eaten": { "kcal": 1840, "proteinG": 96, "fatG": 61, "carbsG": 210 },
+  "norm": { "kcal": 2100, "proteinG": 120, "fatG": 70, "carbsG": 240 },
+  "remaining": { "kcal": 260, "proteinG": 24, "fatG": 9, "carbsG": 30 }
+}
+```
+
+`day.empty` is `{ "date": "2026-11-25" }`. It goes only if no meal of that day exists at the chosen
+time; once that time has passed with a meal logged, the day is settled and deleting the meal later
+does not send it.
+
 ## Signature
 
 `v1` is the hex HMAC-SHA256 of the string `<t>.<body>`:

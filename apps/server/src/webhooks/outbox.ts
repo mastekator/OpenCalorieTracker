@@ -3,6 +3,7 @@ import type { Database } from 'better-sqlite3';
 import type { Meal } from '@oct/shared';
 import type { Config } from '../config.js';
 import { integrationsPolicy } from '../integrations/routes.js';
+import { readDay } from '../public-api/routes.js';
 import type { Secrets } from '../secrets.js';
 import { logDelivery, WEBHOOK_SECRET_PURPOSE } from './routes.js';
 import { deliver as realDeliver, type Deliver } from './send.js';
@@ -69,23 +70,105 @@ export function enqueueMealSaved(
       }),
     },
   };
-  const insert = db.prepare(
-    `INSERT INTO webhook_outbox (webhook_id, event, body, next_at) VALUES (?, 'meal.saved', ?, ?)`,
-  );
   // One id per webhook: it is X-OCT-Delivery, the receiver's key for dropping repeats.
-  for (const id of hooks)
-    insert.run(
-      id,
-      JSON.stringify({
-        version: 1,
-        id: randomUUID(),
-        event: 'meal.saved',
-        occurredAt: new Date(now).toISOString(),
-        user: { id: userId },
-        data,
-      }),
-      now,
-    );
+  for (const id of hooks) queue(db, id, 'meal.saved', userId, data, now);
+}
+
+function queue(
+  db: Database,
+  webhookId: number,
+  event: string,
+  userId: number,
+  data: object,
+  now: number,
+) {
+  db.prepare(
+    'INSERT INTO webhook_outbox (webhook_id, event, body, next_at) VALUES (?, ?, ?, ?)',
+  ).run(
+    webhookId,
+    event,
+    JSON.stringify({
+      version: 1,
+      id: randomUUID(),
+      event,
+      occurredAt: new Date(now).toISOString(),
+      user: { id: userId },
+      data,
+    }),
+    now,
+  );
+}
+
+interface TimedRow {
+  id: number;
+  user_id: number;
+  event: 'day.closed' | 'day.empty';
+  at: string;
+  time_zone: string | null;
+  last_date: string | null;
+}
+
+/**
+ * Queues `day.closed` / `day.empty` once a local day, when the user's clock passes the chosen
+ * time (ADR-0027 §4). Missed days are not caught up; after a restart today's event still goes.
+ */
+export function enqueueTimed(db: Database, config: Policy, now = Date.now()) {
+  if (!integrationsPolicy(db, config).outbound) return;
+  const rows = db
+    .prepare(
+      `SELECT w.id, w.user_id, e.value AS event,
+         CASE e.value WHEN 'day.closed' THEN w.day_closed_at ELSE w.empty_by END AS at,
+         u.time_zone, s.last_date
+       FROM webhooks w
+       JOIN json_each(w.events) e ON e.value IN ('day.closed', 'day.empty')
+       JOIN users u ON u.id = w.user_id
+       LEFT JOIN webhook_schedule s ON s.webhook_id = w.id AND s.event = e.value
+       WHERE w.enabled = 1`,
+    )
+    .all() as TimedRow[];
+  for (const r of rows) {
+    try {
+      // 'sv' gives YYYY-MM-DD HH:MM; h23 keeps midnight 00:00, not 24:00, so strings compare.
+      const [date, time] = new Date(now)
+        .toLocaleString('sv', {
+          timeZone: r.time_zone ?? undefined,
+          hourCycle: 'h23',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+        .split(' ') as [string, string];
+      if (!r.at || time < r.at || r.last_date === date) continue;
+      db.transaction(() => {
+        if (r.event === 'day.closed')
+          queue(
+            db,
+            r.id,
+            r.event,
+            r.user_id,
+            readDay(db, r.user_id, date),
+            now,
+          );
+        else if (
+          !db
+            .prepare('SELECT 1 FROM meals WHERE user_id = ? AND local_date = ?')
+            .get(r.user_id, date)
+        )
+          queue(db, r.id, r.event, r.user_id, { date }, now);
+        // Marked even when a meal exists: the day is settled, a later delete does not fire it.
+        db.prepare(
+          `INSERT INTO webhook_schedule (webhook_id, event, last_date) VALUES (?, ?, ?)
+           ON CONFLICT (webhook_id, event) DO UPDATE SET last_date = excluded.last_date`,
+        ).run(r.id, r.event, date);
+      })();
+    } catch (err) {
+      console.error(
+        `[webhooks] ${r.event} of ${r.id}: ${(err as Error).message}`,
+      );
+    }
+  }
 }
 
 interface DueRow {
@@ -180,12 +263,25 @@ export async function deliverDue(
   );
 }
 
+/** Timed events are checked this often. */
+export const TIMED_INTERVAL_MS = 60_000;
+
 /** The background deliverer; a pass still running skips the next tick. Returns stop(). */
 export function startWebhookDelivery(deps: DeliveryDeps) {
   let busy = false;
+  let timedAt = -Infinity;
   const timer = setInterval(() => {
     if (busy) return;
     busy = true;
+    const now = Date.now();
+    if (now - timedAt >= TIMED_INTERVAL_MS) {
+      timedAt = now;
+      try {
+        enqueueTimed(deps.db, deps.config, now);
+      } catch (err) {
+        console.error(`[webhooks] timed events: ${(err as Error).message}`);
+      }
+    }
     deliverDue(deps)
       .catch((err) =>
         console.error(`[webhooks] delivery failed: ${(err as Error).message}`),
