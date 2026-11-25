@@ -236,3 +236,32 @@
   justify-content: flex-end;
   gap: var(--space-3);
 }
+
+/* OCT-187 §4: personal API tokens. */
+.tokens__soon {
+  color: var(--color-warning);
+}
+
+.tokens__expired {
+  color: var(--color-text-secondary);
+}
+
+.tokens__secret {
+  display: grid;
+  gap: var(--space-3);
+}
+
+/* The token has no spaces: it wraps anywhere instead of running off the sheet. */
+.tokens__secret .command-line__word {
+  white-space: normal;
+  word-break: break-all;
+}
+
+.tokens__docs {
+  color: var(--color-accent);
+}
+
+.tokens__form {
+  display: grid;
+  gap: var(--space-4);
+}

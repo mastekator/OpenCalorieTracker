@@ -4,7 +4,14 @@ import { useT } from '../../i18n';
 import './CommandLine.css';
 
 /** A shell command in mono with a copy button; wraps only at spaces (OCT-244 1.2). */
-export function CommandLine({ command }: { command: string }) {
+export function CommandLine({
+  command,
+  onCopy,
+}: {
+  command: string;
+  /** After a successful copy. */
+  onCopy?: () => void;
+}) {
   const { t } = useT();
   const [copied, setCopied] = useState(false);
   return (
@@ -25,7 +32,10 @@ export function CommandLine({ command }: { command: string }) {
         onClick={() =>
           // No clipboard (webview, http): the command stays selectable by hand.
           navigator.clipboard?.writeText(command).then(
-            () => setCopied(true),
+            () => {
+              setCopied(true);
+              onCopy?.();
+            },
             () => {},
           )
         }
