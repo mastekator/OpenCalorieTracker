@@ -236,6 +236,8 @@ const ru: DeepPartial<typeof en> = {
     turn_on: 'Включить',
     not_now: 'Не сейчас',
     turn_off: 'Отключить',
+    turn_off_label: 'Отключить «{name}»',
+    off_need_net: 'Отключить можно только в сети',
     barcode: {
       title: 'Поиск по штрихкоду',
       desc: 'Open Food Facts · уходит только номер штрихкода',
@@ -593,6 +595,8 @@ const ru: DeepPartial<typeof en> = {
       title: 'MCP для ИИ-ассистентов',
       desc: 'Claude Desktop, Cursor и др. читают дневник',
       read_only: 'только чтение',
+      off_title: 'Отключить MCP?',
+      off_body: 'Ассистенты потеряют доступ к дневнику. Токены сохранятся.',
       switch: 'Доступ через MCP',
       on: 'Включено · только чтение',
       blocked:

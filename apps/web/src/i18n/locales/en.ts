@@ -232,6 +232,8 @@ export const en = {
     turn_on: 'Turn on',
     not_now: 'Not now',
     turn_off: 'Turn off',
+    turn_off_label: 'Turn off «{name}»',
+    off_need_net: 'Turning off needs a network',
     barcode: {
       title: 'Barcode lookup',
       desc: 'Open Food Facts · only the barcode number is sent',
@@ -532,6 +534,9 @@ export const en = {
       title: 'MCP for AI assistants',
       desc: 'Claude Desktop, Cursor and others read your diary',
       read_only: 'read-only',
+      off_title: 'Turn off MCP?',
+      off_body:
+        'AI assistants lose access to your diary. Your tokens are kept.',
       switch: 'Access over MCP',
       on: 'On · read-only',
       blocked:

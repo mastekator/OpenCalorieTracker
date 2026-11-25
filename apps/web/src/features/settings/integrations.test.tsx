@@ -57,7 +57,7 @@ const seed = async (offEnabled: boolean, blocked?: boolean) => {
         barcode: { enabled: offEnabled, blocked },
         export: { lastAt: null, lastFormat: null },
         tokens: { count: 0, blocked: false },
-        webhooks: { count: 0, failing: null, blocked: false },
+        webhooks: { count: 0, enabled: 0, failing: null, blocked: false },
         mcp: { enabled: false, blocked: false },
       },
       'integrations',
@@ -85,7 +85,7 @@ const serveBlocked = (blocked: boolean) =>
               barcode: { enabled: false, blocked },
               export: { lastAt: null, lastFormat: null },
               tokens: { count: 0, blocked: false },
-              webhooks: { count: 0, failing: null, blocked: false },
+              webhooks: { count: 0, enabled: 0, failing: null, blocked: false },
               mcp: { enabled: false, blocked: false },
             }),
           )
@@ -188,7 +188,12 @@ describe('IntegrationsScreen (OCT-313 §4)', () => {
                   lastFormat: 'json',
                 },
                 tokens: { count: 0, blocked: false },
-                webhooks: { count: 0, failing: null, blocked: false },
+                webhooks: {
+                  count: 0,
+                  enabled: 0,
+                  failing: null,
+                  blocked: false,
+                },
                 mcp: { enabled: false, blocked: false },
               }),
             )
@@ -371,5 +376,178 @@ describe('AdminIntegrationsScreen (OCT-187 7.1–7.3)', () => {
       fetch.mock.calls.filter(([, i]) => !i?.method || i.method === 'GET')
         .length,
     ).toBe(2);
+  });
+});
+
+describe('IntegrationsScreen: «Turn off» on the hub (OCT-187 1.2, 1.4)', () => {
+  type Call = { url: string; method: string; body?: unknown };
+  const hook = (id: number, enabled: boolean) => ({
+    id,
+    name: `hook${id}`,
+    url: `https://hook${id}.example.com/`,
+    events: ['meal.saved'],
+    dayClosedAt: '23:59',
+    emptyBy: null,
+    enabled,
+    disabledReason: null,
+    failStreak: 0,
+    createdAt: '2026-11-01T10:00:00.000Z',
+  });
+  /** A tiny server: tokens and webhooks change under DELETE and PATCH; the summary follows them. */
+  function serve({ fail = false } = {}) {
+    let tokens = 2;
+    const hooks = [hook(1, true), hook(2, false), hook(3, true)];
+    const calls: Call[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: string, init?: RequestInit) => {
+        const url = String(input);
+        const method = init?.method ?? 'GET';
+        const body = init?.body ? JSON.parse(String(init.body)) : undefined;
+        if (method !== 'GET') calls.push({ url, method, body });
+        if (url.endsWith('/api/integrations'))
+          return Response.json({
+            barcode: { enabled: true, blocked: false },
+            export: { lastAt: null, lastFormat: null },
+            tokens: { count: tokens, blocked: false },
+            webhooks: {
+              count: hooks.length,
+              enabled: hooks.filter((h) => h.enabled).length,
+              failing: null,
+              blocked: false,
+            },
+            mcp: { enabled: true, blocked: false },
+          });
+        if (url === '/api/tokens' && method === 'DELETE') {
+          if (fail)
+            return Response.json(
+              { error: { code: 'forbidden' } },
+              { status: 403 },
+            );
+          tokens = 0;
+          return new Response(null, { status: 204 });
+        }
+        if (url === '/api/webhooks') return Response.json(hooks);
+        const m = /^\/api\/webhooks\/(\d+)$/.exec(url);
+        if (m && method === 'PATCH') {
+          const h = hooks.find((x) => x.id === +m[1])!;
+          h.enabled = body.enabled;
+          return Response.json(h);
+        }
+        return new Promise(() => {});
+      }),
+    );
+    return calls;
+  }
+  const seedOn = async () => {
+    const db = await openUserDb(user.id);
+    await db.put('kv', { ...settings(true), mcpEnabled: true }, 'settings');
+    await db.put('kv', 1, 'rev');
+    db.close();
+  };
+  const offOf = (name: string) =>
+    screen.findByRole('button', { name: `Turn off «${name}»` });
+
+  it('each card that is on has its own «Turn off»; Cancel changes nothing', async () => {
+    await seedOn();
+    const calls = serve();
+    await wrap(<IntegrationsScreen />);
+    for (const name of [
+      'Barcode lookup',
+      'Access tokens',
+      'Webhooks',
+      'MCP for AI assistants',
+    ])
+      await offOf(name);
+    fireEvent.click(await offOf('Access tokens'));
+    expect(await screen.findByText('Revoke all tokens?')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await waitFor(() =>
+      expect(screen.queryByText('Revoke all tokens?')).toBeNull(),
+    );
+    expect(calls).toEqual([]);
+    expect((await local()).s.offEnabled).toBe(true);
+  });
+
+  it('cards that are off have no «Turn off»', async () => {
+    await seed(false);
+    serveBlocked(false);
+    await wrap(<IntegrationsScreen />);
+    await screen.findByText('Barcode lookup');
+    expect(screen.queryAllByRole('button', { name: /^Turn off/ })).toEqual([]);
+  });
+
+  it('tokens: revokes all and the card reads «Off» without a reload', async () => {
+    await seedOn();
+    const calls = serve();
+    await wrap(<IntegrationsScreen />);
+    fireEvent.click(await offOf('Access tokens'));
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Revoke all tokens' }),
+    );
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('button', { name: 'Turn off «Access tokens»' }),
+      ).toBeNull(),
+    );
+    expect(calls).toEqual([{ url: '/api/tokens', method: 'DELETE' }]);
+  });
+
+  it('webhooks: one PATCH per webhook that is on, then «Off»', async () => {
+    await seedOn();
+    const calls = serve();
+    await wrap(<IntegrationsScreen />);
+    fireEvent.click(await offOf('Webhooks'));
+    expect(await screen.findByText('Turn off all webhooks?')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Turn off' }));
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('button', { name: 'Turn off «Webhooks»' }),
+      ).toBeNull(),
+    );
+    expect(calls).toEqual([
+      { url: '/api/webhooks/1', method: 'PATCH', body: { enabled: false } },
+      { url: '/api/webhooks/3', method: 'PATCH', body: { enabled: false } },
+    ]);
+  });
+
+  it.each([
+    ['Barcode lookup', 'offEnabled'],
+    ['MCP for AI assistants', 'mcpEnabled'],
+  ] as const)('%s: turns the user switch off', async (name, key) => {
+    await seedOn();
+    serve();
+    await wrap(<IntegrationsScreen />);
+    fireEvent.click(await offOf(name));
+    fireEvent.click(await screen.findByRole('button', { name: 'Turn off' }));
+    await waitFor(async () => expect((await local()).s[key]).toBe(false));
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('button', { name: `Turn off «${name}»` }),
+      ).toBeNull(),
+    );
+  });
+
+  it('a failure shows a toast and the card keeps what is still on', async () => {
+    await seedOn();
+    serve({ fail: true });
+    await wrap(<IntegrationsScreen />);
+    fireEvent.click(await offOf('Access tokens'));
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Revoke all tokens' }),
+    );
+    expect(
+      await screen.findByText('You don’t have access to this'),
+    ).toBeTruthy();
+    expect(await offOf('Access tokens')).toBeTruthy();
+  });
+
+  it('offline the buttons are inactive and say why (1.5)', async () => {
+    await seedOn();
+    offline();
+    await wrap(<IntegrationsScreen />);
+    const button = (await offOf('Barcode lookup')) as HTMLButtonElement;
+    expect(button.disabled).toBe(true);
+    expect(screen.getByText('Turning off needs a network')).toBeTruthy();
   });
 });

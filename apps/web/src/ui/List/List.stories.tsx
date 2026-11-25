@@ -158,3 +158,37 @@ export const Current: Story = {
   ),
 };
 export const CurrentDark: Story = { ...Current, globals: { theme: 'dark' } };
+/** A danger text action under the row: «Turn off» on an integration card (OCT-187 1.2). */
+export const ActionBelow: Story = {
+  render: function Render() {
+    const { t } = useT();
+    return (
+      <List>
+        {[false, true].map((disabled) => (
+          <ListRow
+            key={String(disabled)}
+            icon={<KeyRound />}
+            description={t('integr.status.on')}
+            onClick={noop}
+            action={
+              <button
+                type="button"
+                className="list-row__action list-row__action--danger list-row__action--below"
+                disabled={disabled}
+                onClick={noop}
+              >
+                {t('integr.turn_off')}
+              </button>
+            }
+          >
+            {t('integr.tokens.title')}
+          </ListRow>
+        ))}
+      </List>
+    );
+  },
+};
+export const ActionBelowDark: Story = {
+  ...ActionBelow,
+  globals: { theme: 'dark' },
+};

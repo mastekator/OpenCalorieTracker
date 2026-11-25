@@ -43,6 +43,8 @@ export function useWebhooksCard(): { text: string; state: IntegrationState } {
   const { t, num } = useT();
   const hooks = useIntegrations()?.webhooks;
   const n = hooks?.count ?? 0;
+  // A summary cached before the enabled count reads all as on until it is fetched again.
+  const on = (hooks?.enabled ?? n) > 0;
   const failing = hooks?.failing ?? null;
   return {
     text: failing
@@ -50,14 +52,7 @@ export function useWebhooksCard(): { text: string; state: IntegrationState } {
       : n > 0
         ? t('integr.webhooks.n_webhooks', { count: n, n: num(n) })
         : t('integr.webhooks.desc'),
-    // shortcut: the summary has no enabled count, so all-off still reads «On»; add one if it confuses.
-    state: hooks?.blocked
-      ? 'blocked'
-      : failing
-        ? 'error'
-        : n > 0
-          ? 'on'
-          : 'off',
+    state: hooks?.blocked ? 'blocked' : failing ? 'error' : on ? 'on' : 'off',
   };
 }
 

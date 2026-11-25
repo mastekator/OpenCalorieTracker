@@ -283,6 +283,14 @@ export function useAiStatus(ask = true) {
   };
 }
 
+/** GET /api/integrations into kv; every useIntegrations re-reads it, so one call refreshes all cards. */
+export async function refreshIntegrations(db: Db) {
+  const s = await api('/api/integrations', integrationsSchema);
+  await db.put('kv', s, 'integrations').catch(() => {}); // closed by a user switch
+  emitChange();
+  return s;
+}
+
 /** GET /api/integrations, kept in kv so offline shows the last known; undefined until either answers. */
 export function useIntegrations() {
   const db = useDb();
@@ -291,23 +299,20 @@ export function useIntegrations() {
     'integrations',
     (d) => d.get('kv', 'integrations') as Promise<Integrations | undefined>,
   );
+  // Only for when kv can't be written; otherwise `stored` follows every refresh.
   const [fresh, setFresh] = useState<Integrations>();
   useEffect(() => {
     if (!online) return;
     let live = true;
-    api('/api/integrations', integrationsSchema).then(
-      (s) => {
-        if (!live) return;
-        setFresh(s);
-        db.put('kv', s, 'integrations').catch(() => {});
-      },
+    refreshIntegrations(db).then(
+      (s) => live && setFresh(s),
       () => {},
     );
     return () => {
       live = false;
     };
   }, [db, online]);
-  return fresh ?? stored;
+  return stored ?? fresh;
 }
 
 /**

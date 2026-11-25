@@ -52,7 +52,7 @@ function serve(blocked = false) {
           barcode: { enabled: false, blocked: false },
           export: { lastAt: null, lastFormat: null },
           tokens: { count: 0, blocked },
-          webhooks: { count: 0, failing: null, blocked },
+          webhooks: { count: 0, enabled: 0, failing: null, blocked },
           mcp: { enabled: true, blocked },
         });
       if (url.endsWith('/api/config'))

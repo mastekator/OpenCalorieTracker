@@ -370,6 +370,7 @@ const integrations =
             // «On» also shows a failing webhook (design 1.2).
             webhooks: {
               count: on ? 2 : 0,
+              enabled: on ? 2 : 0,
               failing: on ? 'ntfy' : null,
               blocked,
             },
@@ -410,6 +411,47 @@ export const IntegrationsOn: Story = {
   render: () => withData(<IntegrationsScreen />),
 };
 export const IntegrationsOnDark: Story = { ...IntegrationsOn, ...dark };
+/** 1.4: «Turn off» on the webhooks card asks first and names what happens. */
+export const IntegrationsTurnOff: Story = {
+  ...IntegrationsOn,
+  play: async ({ canvas, globals, userEvent }) => {
+    await userEvent.click(
+      await canvas.findByRole('button', {
+        name: tr(globals, 'integr.turn_off_label', {
+          name: tr(globals, 'integr.webhooks.title'),
+        }),
+      }),
+    );
+  },
+};
+export const IntegrationsTurnOffDark: Story = {
+  ...IntegrationsTurnOff,
+  ...dark,
+};
+/** 1.5: offline the cards keep the last known state, «Turn off» is inactive and says why. */
+export const IntegrationsOffline: Story = {
+  beforeEach: async (ctx) => {
+    const undo = await integrations(true, false)(ctx);
+    // Seeds the last known summary, then cuts the network.
+    const db = await openUserDb(user.id);
+    await db.put(
+      'kv',
+      await (await fetch('/api/integrations')).json(),
+      'integrations',
+    );
+    db.close();
+    const back = offline();
+    return () => {
+      back();
+      undo();
+    };
+  },
+  render: () => withData(<IntegrationsScreen />),
+};
+export const IntegrationsOfflineDark: Story = {
+  ...IntegrationsOffline,
+  ...dark,
+};
 export const IntegrationsBlocked: Story = {
   beforeEach: integrations(true, true),
   render: () => withData(<IntegrationsScreen />),
