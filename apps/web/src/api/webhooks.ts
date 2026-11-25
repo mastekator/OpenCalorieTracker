@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import {
   createdWebhookSchema,
+  webhookDeliverySchema,
   webhookSchema,
   type CreateWebhookRequest,
   type UpdateWebhookRequest,
@@ -16,3 +17,18 @@ export const createWebhook = (body: CreateWebhookRequest) =>
 
 export const updateWebhook = (id: number, body: UpdateWebhookRequest) =>
   api(`/api/webhooks/${id}`, webhookSchema, { method: 'PATCH', body });
+
+/** A new signing secret, shown once; the old one stops verifying at once. */
+export const rotateWebhookSecret = (id: number) =>
+  api(`/api/webhooks/${id}/secret`, createdWebhookSchema, { method: 'POST' });
+
+/** Sends a `test` event now and answers with its log row. */
+export const testWebhook = (id: number) =>
+  api(`/api/webhooks/${id}/test`, webhookDeliverySchema, { method: 'POST' });
+
+/** The last MAX_WEBHOOK_DELIVERIES deliveries, newest first. */
+export const listDeliveries = (id: number) =>
+  api(`/api/webhooks/${id}/deliveries`, z.array(webhookDeliverySchema));
+
+export const deleteWebhook = (id: number) =>
+  api(`/api/webhooks/${id}`, z.undefined(), { method: 'DELETE' });

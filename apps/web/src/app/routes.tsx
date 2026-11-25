@@ -25,6 +25,7 @@ import {
 } from '../features/settings/IntegrationsScreen';
 import { ExportScreen } from '../features/settings/ExportScreen';
 import { TokensScreen } from '../features/settings/TokensScreen';
+import { WebhookScreen } from '../features/settings/WebhookScreen';
 import { WebhooksScreen } from '../features/settings/WebhooksScreen';
 import { McpScreen } from '../features/settings/McpScreen';
 import { ImportScreen } from '../features/settings/ImportScreen';
@@ -286,6 +287,7 @@ export function AppScreens() {
           <WebhooksScreen />
         </Screen>
       </Route>
+<<<<<<< HEAD
       <Route path={MCP_PATH}>
         <Screen
           title={t('integr.mcp.title')}
@@ -293,6 +295,17 @@ export function AppScreens() {
         >
           <McpRoute />
         </Screen>
+=======
+      <Route path={`${WEBHOOKS_PATH}/:id`}>
+        {({ id }) => (
+          <Screen
+            title={t('integr.webhooks.one')}
+            back={{ href: WEBHOOKS_PATH, label: t('integr.webhooks.title') }}
+          >
+            <WebhookScreen id={id} />
+          </Screen>
+        )}
+>>>>>>> origin/main
       </Route>
       {user.role !== 'admin' && (
         <Route path="/settings/admin/*">
