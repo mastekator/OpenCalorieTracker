@@ -2433,6 +2433,12 @@ const ru: DeepPartial<typeof en> = {
       shot_wait_sub: 'строки появятся здесь',
       shot_error: 'Не получилось распознать снимок {n}',
       shot_none: 'На снимке {n} продуктов не нашли',
+      pieces: {
+        one: '{count}\u00a0шт. {rest}',
+        few: '{count}\u00a0шт. {rest}',
+        many: '{count}\u00a0шт. {rest}',
+        other: '{count}\u00a0шт. {rest}',
+      },
       wont_fit: 'не поместится',
       limit_fit:
         'Можно не больше 50 ингредиентов. В рецепте уже {have} — поместятся первые {n}.',

@@ -30,6 +30,7 @@ export const ingredientModelSchema = z.object({
   readUnit: looseEnum(READ_UNITS),
   weightFrom: looseEnum(['scale', 'package']),
   estimateG: looseNumber,
+  pieces: looseNumber,
   unit: looseEnum(['ml']),
   kcal100: looseNumber,
   protein100: looseNumber,
@@ -76,6 +77,8 @@ export const recognizedIngredientSchema = z.object({
   product: productSchema.optional(),
   /** `grams` is the edible part of `edible.grossG` (ADR-0039 §3). */
   edible: edibleSchema.optional(),
+  /** How many whole items the estimate is for («3 pcs ≈ 55 g»); only with weight 'estimate'. */
+  pieces: z.number().int().positive().optional(),
 });
 export type RecognizedIngredient = z.infer<typeof recognizedIngredientSchema>;
 
@@ -129,6 +132,14 @@ export function toIngredient(
         : null;
   if (!pick) return null;
   const [grams, weight, unit] = pick;
+  const pieces =
+    weight === 'estimate' &&
+    row.pieces !== null &&
+    Number.isInteger(row.pieces) &&
+    row.pieces >= 1 &&
+    row.pieces <= 99
+      ? row.pieces
+      : undefined;
 
   const per100 = {
     kcal: nonNeg(product?.kcal100 ?? row.kcal100),
@@ -149,5 +160,6 @@ export function toIngredient(
     weight,
     source: product ? 'barcode' : 'ai',
     ...(product && { barcode: product.code, product }),
+    ...(pieces && { pieces }),
   };
 }

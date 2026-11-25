@@ -10,6 +10,7 @@ const row = {
   readUnit: 'kg',
   weightFrom: 'scale',
   estimateG: 400,
+  pieces: null,
   unit: null,
   kcal100: 41,
   protein100: 0.9,
@@ -121,6 +122,31 @@ it('is 409 ai_not_configured without AI', async () => {
   const res = await t.ingredients('A'.repeat(22));
   expect(res.status).toBe(409);
   expect(await res.json()).toEqual({ error: { code: 'ai_not_configured' } });
+});
+
+it('passes whole pieces of an estimated product; an answer without the field is as before', async () => {
+  const old: Partial<typeof row> = { ...row };
+  delete old.pieces;
+  const estimated = { weightFrom: null, readValue: null, readUnit: null };
+  const t = await setup(
+    mockModel({
+      items: [
+        { ...row, ...estimated, name: 'Egg', estimateG: 165, pieces: 3 },
+        { ...old, ...estimated, name: 'Onion' },
+      ],
+    }),
+  );
+  const id = await t.upload();
+  const body = (await (await t.ingredients(id)).json()) as {
+    items: Record<string, unknown>[];
+  };
+  expect(body.items[0]).toMatchObject({
+    grams: 165,
+    weight: 'estimate',
+    pieces: 3,
+  });
+  expect(body.items[1]).toMatchObject({ grams: 400, weight: 'estimate' });
+  expect(body.items[1]).not.toHaveProperty('pieces');
 });
 
 it('picks the edible share without asking (AC-B7)', async () => {

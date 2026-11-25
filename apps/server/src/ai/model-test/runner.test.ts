@@ -14,6 +14,7 @@ const carrot = {
   readUnit: 'g',
   weightFrom: 'scale',
   estimateG: 400,
+  pieces: null,
   unit: null,
   kcal100: 41,
   protein100: 0.9,

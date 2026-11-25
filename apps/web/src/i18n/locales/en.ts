@@ -2282,6 +2282,10 @@ export const en = {
       shot_wait_sub: 'rows will appear here',
       shot_error: 'Couldn’t recognize photo {n}',
       shot_none: 'No ingredients found in photo {n}',
+      pieces: {
+        one: '{count}\u00a0pc {rest}',
+        other: '{count}\u00a0pcs {rest}',
+      },
       wont_fit: 'won’t fit',
       limit_fit:
         'A recipe can have up to 50 ingredients. It already has {have} — the first {n} will fit.',

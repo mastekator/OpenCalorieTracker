@@ -13,7 +13,7 @@ import type { AiModel } from './model.js';
 import { askVision, PET_FOOD_RULE } from './recognize.js';
 
 /** Bump on every prompt change; it is logged with each call. */
-export const INGREDIENTS_PROMPT_VERSION = 1;
+export const INGREDIENTS_PROMPT_VERSION = 2;
 
 /** Rules only, no user data (ADR-0020 §7, ADR-0040 §3). */
 export function ingredientsPrompt(locale: string) {
@@ -25,6 +25,7 @@ Weight — only read, never convert units or count portions:
 - otherwise "weightFrom", "readValue" and "readUnit" are null.
 "readUnit" is one of g, kg, ml, l, lb, oz.
 Always set "estimateG" to your estimate of the product's weight in grams (millilitres for a liquid).
+For a product counted in whole items (eggs, apples, garlic cloves) set "pieces" to how many whole items you see; otherwise null.
 Set "unit" to "ml" for a liquid, otherwise null.
 kcal100, protein100, fat100 and carbs100 are kcal and grams per 100 g (100 ml) of the raw product.
 Confidence is 0..1; blurry, dark or partial photos: below 0.5.
