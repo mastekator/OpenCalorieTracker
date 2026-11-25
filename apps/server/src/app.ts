@@ -24,6 +24,7 @@ import { integrationRoutes } from './integrations/routes.js';
 import { normAgentRoutes } from './norm-agent/routes.js';
 import { photoRoutes } from './photos/routes.js';
 import { profileRoutes } from './profile/routes.js';
+import { publicApiRoutes } from './public-api/routes.js';
 import { recipeRoutes } from './recipes/routes.js';
 import { setupRoutes } from './setup/routes.js';
 import { syncRoutes } from './sync/routes.js';
@@ -89,6 +90,7 @@ export function createApp(appDeps: AppDeps) {
   const byToken = tokenAuth(deps);
   app.use('/api/v1/*', byToken);
   app.use('/mcp', byToken);
+  app.route('/api/v1', publicApiRoutes(deps));
   app.route('/api', authRoutes(deps));
   app.route('/api', passkeyRoutes(deps));
   app.route('/api', setupRoutes(deps));

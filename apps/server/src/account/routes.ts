@@ -19,7 +19,7 @@ export const readSettings = (db: Database, userId: number): AccountSettings => {
     .prepare(
       `SELECT locale, theme, units, settings_rev AS settingsRev,
        photo_retention_days AS photoRetentionDays, norm_disclaimer_hidden AS normDisclaimerHidden,
-       off_enabled AS offEnabled, off_hint_at AS offHintAt
+       off_enabled AS offEnabled, off_hint_at AS offHintAt, time_zone AS timeZone
        FROM users WHERE id = ?`,
     )
     .get(userId) as Omit<
@@ -101,13 +101,20 @@ export function accountRoutes({ db, config }: AppDeps) {
       validate('json', accountSettingsPatchSchema),
       (c) => {
         const userId = c.var.user.id;
-        const { editedAt, normDisclaimerHidden, ...fields } =
+        const { editedAt, normDisclaimerHidden, timeZone, ...fields } =
           c.req.valid('json');
         const changes = Object.entries(fields)
           .filter(([, v]) => v !== undefined)
           // SQLite has no booleans.
           .map(([k, v]) => [COLUMNS[k] ?? k, typeof v === 'boolean' ? +v : v]);
         db.transaction(() => {
+          // The device's zone, not an edit: no last-edit-wins and no settingsRev, so two devices
+          // in different zones do not bounce settings through sync (ADR-0027 §4).
+          if (timeZone)
+            db.prepare('UPDATE users SET time_zone = ? WHERE id = ?').run(
+              timeZone,
+              userId,
+            );
           // Only ever set, so it cannot conflict and an old offline edit must not lose it.
           if (normDisclaimerHidden)
             db.prepare(

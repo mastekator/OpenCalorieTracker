@@ -33,6 +33,22 @@ export const photoRetentionImpactSchema = z.object({
 });
 export type PhotoRetentionImpact = z.infer<typeof photoRetentionImpactSchema>;
 
+/**
+ * An IANA time zone name. Checked by Intl itself, not `Intl.supportedValuesOf('timeZone')`:
+ * that list lacks 'UTC' and aliases such as 'Europe/Kiev', which browsers do report.
+ */
+export const timeZoneSchema = z
+  .string()
+  .max(64)
+  .refine((timeZone) => {
+    try {
+      new Intl.DateTimeFormat('en', { timeZone });
+      return true;
+    } catch {
+      return false;
+    }
+  });
+
 export const accountSettingsSchema = z.object({
   locale: localeSchema,
   theme: themeSchema,
@@ -47,6 +63,8 @@ export const accountSettingsSchema = z.object({
   offEnabled: z.boolean(),
   /** When the "turn on barcode lookup" hint was dismissed, or null. */
   offHintAt: z.iso.datetime().nullable(),
+  /** IANA zone the server counts "today" by (ADR-0027 §4); null = the server's. Absent in settings stored by older clients. */
+  timeZone: z.string().nullable().optional(),
 });
 export type AccountSettings = z.infer<typeof accountSettingsSchema>;
 
@@ -59,6 +77,8 @@ export const accountSettingsPatchSchema = z.object({
   normDisclaimerHidden: z.literal(true).optional(),
   offEnabled: z.boolean().optional(),
   offHintAt: z.iso.datetime().nullable().optional(),
+  /** A property of the device, not an edit: not subject to `editedAt`, does not move `settingsRev`. */
+  timeZone: timeZoneSchema.optional(),
   editedAt: z.number().int().nonnegative().optional(),
 });
 export type AccountSettingsPatch = z.infer<typeof accountSettingsPatchSchema>;

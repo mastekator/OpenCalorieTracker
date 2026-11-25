@@ -2368,6 +2368,8 @@ export const en = {
     integrations_disabled: 'The administrator turned off API tokens',
     invalid_token: 'The token is invalid, expired or revoked',
     rate_limited: 'Too many requests. Try again in a minute',
+    insufficient_scope: 'This token can only read',
+    period_too_long: 'The period is too long. Choose a shorter one',
     limit_reached: 'You have 20 tokens already — delete one to create another',
     barcode_invalid: 'This barcode is not valid — check the digits',
     ai_settings_changed:
