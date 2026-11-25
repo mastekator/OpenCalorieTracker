@@ -1,10 +1,19 @@
 import { useCallback, useId, useRef, useState, type ChangeEvent } from 'react';
 import { flushSync } from 'react-dom';
-import { Camera, CircleAlert, History, Minus, Plus, Scale } from 'lucide-react';
+import {
+  Camera,
+  CircleAlert,
+  History,
+  Info,
+  Minus,
+  Plus,
+  Scale,
+} from 'lucide-react';
 import { Redirect, useLocation } from 'wouter';
 import { z } from 'zod';
 import {
   fromPer100,
+  MAX_RECIPE_INGREDIENTS,
   per100,
   recipeInputSchema,
   recipeTotals,
@@ -144,6 +153,10 @@ type Row = {
   from?: 'scale' | 'package';
   /** The user's share of the gross weight, remembered by the server on save (ADR-0039 §4). */
   edible?: EdibleChoice;
+  /** Grams typed by hand: the weight tag («from scale», «estimate») goes (OCT-435 3.6). */
+  byHand?: boolean;
+  /** Just added from a photo: lit once on mount. */
+  fresh?: boolean;
 };
 
 type Props = {
@@ -775,9 +788,10 @@ export function RecipeEditor({
                           })
                         : undefined
                     }
-                    estimate={row.source === 'ai' && !row.from}
+                    estimate={row.source === 'ai' && !row.from && !row.byHand}
                     barcode={row.source === 'barcode' && !row.from}
-                    from={row.from}
+                    from={row.byHand ? undefined : row.from}
+                    highlight={row.fresh}
                     share={shareOf(row)}
                     unsure={
                       row.unsure && g === 0
@@ -789,6 +803,7 @@ export function RecipeEditor({
                         grams,
                         unsure: false,
                         amount: undefined,
+                        byHand: true,
                       })
                     }
                     onEdit={() => setSheet({ kind: 'edit', key: row.key })}
@@ -800,13 +815,20 @@ export function RecipeEditor({
                     {t('editor.empty_body')}
                   </li>
                 )}
-                <ListRow
-                  accent
-                  icon={<Plus />}
-                  onClick={() => setSheet({ kind: 'picker' })}
-                >
-                  {t('editor.ingredient')}
-                </ListRow>
+                {rows.length < MAX_RECIPE_INGREDIENTS ? (
+                  <ListRow
+                    accent
+                    icon={<Plus />}
+                    onClick={() => setSheet({ kind: 'picker' })}
+                  >
+                    {t('editor.ingredient')}
+                  </ListRow>
+                ) : (
+                  <li className="list__item list-row recipe-editor__full">
+                    <Info aria-hidden="true" />
+                    {t('editor.ingredients_full')}
+                  </li>
+                )}
               </List>
               {touched.rows && errors.rows && (
                 <p className="recipe-editor__error" role="alert">
@@ -1069,6 +1091,7 @@ export function RecipeEditor({
           key={sheet.n}
           file={sheet.file}
           units={units ?? 'metric'}
+          free={MAX_RECIPE_INGREDIENTS - rows.length}
           // Appended, nothing replaced (AC-C1); the same product twice is two rows (AC-C3).
           onAdd={(found) => {
             setRows((rs) => [
@@ -1076,9 +1099,13 @@ export function RecipeEditor({
               ...found.map(({ ingredient: i, ...extra }) => ({
                 ...rowOf(i, w.as(i.unit)),
                 ...extra,
+                fresh: true,
               })),
             ]);
             setSheet(null);
+            toast({
+              text: t('editor.products.added', { count: found.length }),
+            });
           }}
           onRetake={() => productsInput.current?.click()}
           onManual={() => setSheet({ kind: 'manual', name: '' })}

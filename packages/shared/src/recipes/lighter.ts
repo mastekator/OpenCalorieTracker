@@ -3,6 +3,7 @@ import { round1 } from '../units.js';
 import { fromPer100, scaleItem, type Nutrients } from '../nutrition.js';
 import {
   COOKED_G_MAX,
+  MAX_RECIPE_INGREDIENTS,
   per100,
   recipeTotals,
   type RecipeInput,
@@ -73,7 +74,6 @@ export interface LighterResponse {
   variants: LighterVariant[];
 }
 
-const MAX_INGREDIENTS = 50;
 const MAX_GRAMS = 5000;
 
 /** Per 100 g a food can have: no more than pure fat. */
@@ -136,7 +136,7 @@ export function lighterVariant(
   if (
     !changes.length ||
     !ingredients.length ||
-    ingredients.length > MAX_INGREDIENTS ||
+    ingredients.length > MAX_RECIPE_INGREDIENTS ||
     recipeTotals(ingredients).kcal >= recipeTotals(original).kcal
   )
     return null;

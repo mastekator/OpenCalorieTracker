@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
-import { CircleAlert, SearchX, Sparkle } from 'lucide-react';
+import { Fragment, useEffect, useRef, useState } from 'react';
+import { Camera, CircleAlert, SearchX, Sparkle } from 'lucide-react';
 import { z } from 'zod';
 import {
   defaultAmount,
   grossKind,
   ingredientsRecognitionSchema,
+  MAX_RECIPE_INGREDIENTS,
   round1,
   scaleItem,
   type Amount,
@@ -17,6 +18,7 @@ import {
 import { api, ApiError } from '../../api/client';
 import { useT } from '../../i18n';
 import { type Pack, useAmountText } from '../../ui/AmountPicker/AmountPicker';
+import { Banner } from '../../ui/Banner/Banner';
 import { Button } from '../../ui/Button/Button';
 import { DishSheet } from '../../ui/DishSheet/DishSheet';
 import { parseDecimal } from '../../ui/FormList/FormList';
@@ -28,6 +30,13 @@ import { Sheet } from '../../ui/Sheet/Sheet';
 import { unitOf, useWeight } from '../../ui/weightUnits';
 import { edibleShare, type RowEdible } from '../meals/refine';
 import { ImageDecodeError, prepareImage } from '../meals/prepareImage';
+import {
+  MAX_SHOTS,
+  mapRows,
+  shotRows,
+  withShot,
+  type Shot,
+} from './photoShots';
 import '../meals/RecognitionState.css';
 import './IngredientPhotoSheet.css';
 
@@ -41,12 +50,16 @@ export type PhotoIngredient = {
   pack?: Pack;
   /** The user's own share, remembered by the server on save (ADR-0039 §4). */
   edible?: EdibleChoice;
+  /** Grams typed by hand: no weight tag («from scale», «estimate») any more. */
+  byHand?: boolean;
 };
 
 type Props = {
   /** The photo picked in «+ Ingredient»; the sheet prepares, uploads and recognizes it. */
   file: File;
   units: Units;
+  /** Rows the recipe still has room for: the rest are «won't fit» (AC-C2). */
+  free: number;
   /** «Add · N»: appended to the recipe, nothing replaced (AC-C1). */
   onAdd: (rows: PhotoIngredient[]) => void;
   /** «Take another»: the file picker again. */
@@ -65,6 +78,7 @@ type ReviewRow = {
   product?: Product;
   amount?: Amount;
   pack?: Pack;
+  byHand?: boolean;
 };
 
 const photoSchema = z.object({ photoId: z.string() });
@@ -73,13 +87,15 @@ const MAX_G = 5000;
 let nextKey = 0;
 
 /**
- * «Ingredients from photo» (OCT-435 3.1–3.3, ADR-0040 §6): waiting, then one photo's products to
- * check — weight source tags, gross → edible, «How much you used» — and «Add · N». Empty and AI
- * error states keep the recipe as it is (E2).
+ * «Ingredients from photo» (OCT-435 3.1–3.6, 4.3, ADR-0040 §6): waiting, then the products of up
+ * to 5 photos to check — weight source tags, gross → edible, «How much you used» — and «Add · N».
+ * Empty and AI error states of the first photo keep the recipe as it is (E2); a later photo's
+ * failure is a line in the sheet, the rows found before stay.
  */
 export function IngredientPhotoSheet({
   file,
   units,
+  free,
   onAdd,
   onRetake,
   onManual,
@@ -91,70 +107,100 @@ export function IngredientPhotoSheet({
     g: useAmountText(units, 'g'),
     ml: useAmountText(units, 'ml'),
   };
-  const [state, setState] = useState<'wait' | 'error' | ReviewRow[]>('wait');
-  const [attempt, setAttempt] = useState(0);
+  const [shots, setShots] = useState<Shot<ReviewRow>[]>(() => [
+    { key: nextKey++, file, url: URL.createObjectURL(file), state: 'wait' },
+  ]);
   const [editing, setEditing] = useState<number | null>(null);
-  const [url] = useState(() => URL.createObjectURL(file));
-  useEffect(() => () => URL.revokeObjectURL(url), [url]);
-  // Prepared once: «Retry» uploads the same JPEG again, the server deleted the failed one (AC-B9).
-  const blob = useRef<Promise<Blob>>(null);
+  const moreInput = useRef<HTMLInputElement>(null);
+  // Prepared once per photo: «Retry» uploads the same JPEG again, the server deleted the failed one (AC-B9).
+  const blobs = useRef(new Map<number, Promise<Blob>>());
+  // The latest run of each photo: an older or unmounted run's answer is dropped.
+  const runs = useRef(new Map<number, number>());
+  const urls = useRef<string[]>([]);
+
+  const recognize = async ({ key, file: f }: Shot<ReviewRow>) => {
+    const run = nextKey++;
+    runs.current.set(key, run);
+    const settle = (state: Shot<ReviewRow>['state']) => {
+      if (runs.current.get(key) === run)
+        setShots((s) => withShot(s, key, state));
+    };
+    settle('wait');
+    try {
+      let blob = blobs.current.get(key);
+      if (!blob) blobs.current.set(key, (blob = prepareImage(f)));
+      const { photoId } = await api('/api/photos', photoSchema, {
+        method: 'POST',
+        body: await blob,
+      });
+      const { items } = await api(
+        `/api/photos/${photoId}/recognize?mode=ingredients`,
+        ingredientsRecognitionSchema,
+        { method: 'POST' },
+      );
+      settle(
+        items.map((item) => ({
+          key: nextKey++,
+          item,
+          name: item.name,
+          grams: String(w.as(item.unit).show(item.grams)),
+          edible: item.edible,
+          product: item.product,
+          amount:
+            item.weight === 'barcode' && item.product
+              ? defaultAmount(item.product)
+              : undefined,
+        })),
+      );
+    } catch (err) {
+      if (!(err instanceof ApiError || err instanceof ImageDecodeError))
+        throw err;
+      settle('error');
+    }
+  };
 
   useEffect(() => {
-    let live = true;
-    setState('wait');
-    void (async () => {
-      try {
-        blob.current ??= prepareImage(file);
-        const { photoId } = await api('/api/photos', photoSchema, {
-          method: 'POST',
-          body: await blob.current,
-        });
-        const { items } = await api(
-          `/api/photos/${photoId}/recognize?mode=ingredients`,
-          ingredientsRecognitionSchema,
-          { method: 'POST' },
-        );
-        if (!live) return;
-        const wu = (i: RecognizedIngredient) => w.as(i.unit);
-        setState(
-          items.map((item) => ({
-            key: nextKey++,
-            item,
-            name: item.name,
-            grams: String(wu(item).show(item.grams)),
-            edible: item.edible,
-            product: item.product,
-            amount:
-              item.weight === 'barcode' && item.product
-                ? defaultAmount(item.product)
-                : undefined,
-          })),
-        );
-      } catch (err) {
-        if (!(err instanceof ApiError || err instanceof ImageDecodeError))
-          throw err;
-        if (live) setState('error');
-      }
-    })();
-    return () => {
-      live = false;
-    };
-    // `w` follows the units, fixed while the sheet is open.
-  }, [file, attempt]);
+    urls.current.push(first.url);
+    void recognize(first);
+    return () => runs.current.clear();
+  }, []);
+  useEffect(
+    () => () => urls.current.forEach((u) => URL.revokeObjectURL(u)),
+    [],
+  );
 
-  const rows = typeof state === 'string' ? [] : state;
+  const more = (f: File) => {
+    const shot: Shot<ReviewRow> = {
+      key: nextKey++,
+      file: f,
+      url: URL.createObjectURL(f),
+      state: 'wait',
+    };
+    urls.current.push(shot.url);
+    setShots((s) => [...s, shot]);
+    void recognize(shot);
+  };
+
+  const rows = shotRows(shots);
   const setRow = (key: number, patch: Partial<ReviewRow>) =>
-    setState(rows.map((r) => (r.key === key ? { ...r, ...patch } : r)));
+    setShots((s) =>
+      mapRows(s, (rs) =>
+        rs.map((r) => (r.key === key ? { ...r, ...patch } : r)),
+      ),
+    );
   const gramsOf = (r: ReviewRow) => {
     const n = parseDecimal(r.grams.trim());
     const g = n === null ? null : w.as(r.item.unit).toG(n);
     return g !== null && g >= 0 && g <= MAX_G ? g : null;
   };
-  const valid = rows.length > 0 && rows.every((r) => gramsOf(r) !== null);
+  // AC-C2: rows past the recipe's room «won't fit»; «Add the first N» takes them in sheet order.
+  const fit = Math.min(rows.length, Math.max(free, 0));
+  const fits = rows.slice(0, fit);
+  const valid = fit > 0 && fits.every((r) => gramsOf(r) !== null);
 
   const add = () =>
     onAdd(
-      rows.map((r) => {
+      fits.map((r) => {
         const g = gramsOf(r)!;
         const v = scaleItem(r.item, g);
         const e = r.edible;
@@ -172,6 +218,7 @@ export function IngredientPhotoSheet({
           ...(r.item.weight === 'scale' || r.item.weight === 'package'
             ? { from: r.item.weight }
             : {}),
+          ...(r.byHand && { byHand: true }),
           barcode: r.item.barcode,
           product: r.product,
           amount: r.amount,
@@ -200,12 +247,14 @@ export function IngredientPhotoSheet({
     p && a && a.mode !== 'weight' ? amountText[p.per].row(p, a) : undefined;
   const open = rows.find((r) => r.key === editing);
 
+  const first = shots[0]!;
+  const one = shots.length === 1;
   let body;
-  if (state === 'wait')
+  if (one && first.state === 'wait')
     body = (
       <div className="photo-ingredients__wait recog__wait" role="status">
         <div className="recog__photo">
-          <img src={url} alt="" />
+          <img src={first.url} alt="" />
           <span className="recog__glint" aria-hidden="true" />
         </div>
         <p className="recog__title">{t('editor.products.wait')}</p>
@@ -232,7 +281,7 @@ export function IngredientPhotoSheet({
         </p>
       </div>
     );
-  else if (state === 'error')
+  else if (one && first.state === 'error')
     body = (
       <ScreenState
         icon={<CircleAlert />}
@@ -241,7 +290,7 @@ export function IngredientPhotoSheet({
         title={t('editor.products.error')}
         action={
           <>
-            <Button onClick={() => setAttempt((a) => a + 1)}>
+            <Button onClick={() => void recognize(first)}>
               {t('common.retry')}
             </Button>
             <Button variant="tonal" onClick={onManual}>
@@ -253,7 +302,7 @@ export function IngredientPhotoSheet({
         {t('editor.products.error_body')}
       </ScreenState>
     );
-  else if (!state.length)
+  else if (one && !rows.length)
     body = (
       <ScreenState
         icon={<SearchX />}
@@ -271,54 +320,181 @@ export function IngredientPhotoSheet({
         {t('editor.products.none_body')}
       </ScreenState>
     );
-  else
+  else {
+    const full = shots.length >= MAX_SHOTS;
     body = (
       <div className="photo-ingredients">
+        <div className="photo-ingredients__shots">
+          {shots.map((s, i) => (
+            <span
+              key={s.key}
+              className="photo-ingredients__shot"
+              role="img"
+              aria-label={t('editor.products.shot', { n: num(i + 1) })}
+            >
+              <img src={s.url} alt="" />
+              <span className="photo-ingredients__shot-n" aria-hidden="true">
+                {num(i + 1)}
+              </span>
+              {s.state === 'wait' && (
+                <span
+                  className="button__spinner photo-ingredients__spinner"
+                  aria-hidden="true"
+                />
+              )}
+            </span>
+          ))}
+          {!full && (
+            <button
+              type="button"
+              className="photo-ingredients__shot photo-ingredients__more"
+              aria-label={t('editor.products.more_a11y')}
+              onClick={() => moreInput.current?.click()}
+            >
+              <Camera aria-hidden="true" />
+            </button>
+          )}
+          <span className="photo-ingredients__shots-note">
+            {t(full ? 'editor.products.more_full' : 'editor.products.more')}
+          </span>
+        </div>
         <p className="photo-ingredients__hint">
           <Sparkle aria-hidden="true" />
           {t('editor.products.note')}
         </p>
         <List>
-          {state.map((r) => {
-            const g = gramsOf(r);
-            const wu = w.as(r.item.unit);
+          {shots.map((s, i) => {
+            const n = num(i + 1);
             return (
-              <IngredientRow
-                key={r.key}
-                name={r.name}
-                kcal={g === null ? 0 : scaleItem(r.item, g).kcal}
-                grams={r.grams}
-                units={units}
-                unit={r.item.unit}
-                error={
-                  g === null
-                    ? t('editor.grams_err', { max: wu.fmt(MAX_G), u: wu.u })
-                    : undefined
-                }
-                estimate={r.item.weight === 'estimate'}
-                barcode={r.item.weight === 'barcode'}
-                from={
-                  r.item.weight === 'scale' || r.item.weight === 'package'
-                    ? r.item.weight
-                    : undefined
-                }
-                share={shareOf(r)}
-                note={edibleLine(r, g)}
-                onGramsChange={(grams) =>
-                  setRow(r.key, {
-                    grams,
-                    amount: undefined,
-                    // Grams by hand: no longer the share of the gross weight.
-                    edible: r.edible && { ...r.edible, unlinked: true },
+              <Fragment key={s.key}>
+                {!one && (
+                  <li className="photo-ingredients__sep">
+                    {t('editor.products.shot', { n })}
+                  </li>
+                )}
+                {s.state === 'wait' ? (
+                  <li className="list__item">
+                    <div
+                      className="list-row photo-ingredients__line"
+                      role="status"
+                    >
+                      <span>
+                        {t('editor.products.shot_wait')}
+                        <span className="photo-ingredients__line-sub">
+                          {t('editor.products.shot_wait_sub')}
+                        </span>
+                      </span>
+                      <span
+                        className="button__spinner photo-ingredients__spinner"
+                        aria-hidden="true"
+                      />
+                    </div>
+                  </li>
+                ) : s.state === 'error' ? (
+                  <li className="list__item">
+                    <div
+                      className="list-row photo-ingredients__line"
+                      role="alert"
+                    >
+                      <span>{t('editor.products.shot_error', { n })}</span>
+                      <Button
+                        small
+                        variant="tonal"
+                        onClick={() => void recognize(s)}
+                      >
+                        {t('common.retry')}
+                      </Button>
+                    </div>
+                  </li>
+                ) : !s.state.length ? (
+                  <li className="list__item">
+                    <div
+                      className="list-row photo-ingredients__line"
+                      role="status"
+                    >
+                      <span>{t('editor.products.shot_none', { n })}</span>
+                    </div>
+                  </li>
+                ) : (
+                  s.state.map((r) => {
+                    const g = gramsOf(r);
+                    const wu = w.as(r.item.unit);
+                    const tag = r.byHand ? undefined : r.item.weight;
+                    return (
+                      <IngredientRow
+                        key={r.key}
+                        name={r.name}
+                        kcal={g === null ? 0 : scaleItem(r.item, g).kcal}
+                        grams={r.grams}
+                        units={units}
+                        unit={r.item.unit}
+                        error={
+                          g === null
+                            ? t('editor.grams_err', {
+                                max: wu.fmt(MAX_G),
+                                u: wu.u,
+                              })
+                            : undefined
+                        }
+                        estimate={tag === 'estimate'}
+                        barcode={r.item.weight === 'barcode'}
+                        from={
+                          tag === 'scale' || tag === 'package' ? tag : undefined
+                        }
+                        wontFit={!fits.includes(r)}
+                        share={shareOf(r)}
+                        note={edibleLine(r, g)}
+                        onGramsChange={(grams) =>
+                          setRow(r.key, {
+                            grams,
+                            byHand: true,
+                            amount: undefined,
+                            // Grams by hand: no longer the share of the gross weight.
+                            edible: r.edible && { ...r.edible, unlinked: true },
+                          })
+                        }
+                        onEdit={() => setEditing(r.key)}
+                      />
+                    );
                   })
-                }
-                onEdit={() => setEditing(r.key)}
-              />
+                )}
+              </Fragment>
             );
           })}
         </List>
+        <input
+          ref={moreInput}
+          type="file"
+          accept="image/*"
+          hidden
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            e.target.value = '';
+            if (f && shots.length < MAX_SHOTS) more(f);
+          }}
+        />
       </div>
     );
+  }
+
+  const over = rows.length > fit;
+  const footer = rows.length > 0 && (
+    <>
+      {over && (
+        <Banner tone="warning">
+          {t('editor.products.limit_fit', {
+            have: num(MAX_RECIPE_INGREDIENTS - free),
+            n: num(fit),
+          })}
+        </Banner>
+      )}
+      <Button disabled={!valid} onClick={add}>
+        {over
+          ? t('editor.products.add_first', { n: num(fit) })
+          : t('editor.products.add', { n: num(rows.length) })}
+      </Button>
+    </>
+  );
 
   return (
     <>
@@ -327,14 +503,7 @@ export function IngredientPhotoSheet({
         full
         onClose={onClose}
         title={t('editor.products.title')}
-        footer={
-          Array.isArray(state) &&
-          state.length > 0 && (
-            <Button disabled={!valid} onClick={add}>
-              {t('editor.products.add', { n: num(state.length) })}
-            </Button>
-          )
-        }
+        footer={footer}
       >
         {body}
       </Sheet>
@@ -366,7 +535,9 @@ export function IngredientPhotoSheet({
             setEditing(null);
           }}
           onDelete={() => {
-            setState(rows.filter((r) => r.key !== open.key));
+            setShots((s) =>
+              mapRows(s, (rs) => rs.filter((r) => r.key !== open.key)),
+            );
             setEditing(null);
           }}
           onClose={() => setEditing(null)}

@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { fn } from 'storybook/test';
+import { fn, userEvent, waitFor } from 'storybook/test';
 import type { RecognizedIngredient } from '@oct/shared';
 import { IngredientPhotoSheet } from './IngredientPhotoSheet';
 
@@ -101,13 +101,14 @@ async function photo() {
   return new File([blob], 'products.jpg', { type: 'image/jpeg' });
 }
 
-/** POST /api/photos answers at once; recognition answers with `reply`. */
-const answer = (reply: () => Promise<Response>) => () => {
+/** POST /api/photos answers at once; recognition of photo `n` (from 0) answers with `reply(n)`. */
+const answer = (reply: (n: number) => Promise<Response>) => () => {
   const real = window.fetch;
+  let n = 0;
   window.fetch = async (input, init) => {
     const url = String(input instanceof Request ? input.url : input);
     if (url.endsWith('/api/photos')) return Response.json({ photoId: 'p1' });
-    if (url.includes('mode=ingredients')) return reply();
+    if (url.includes('mode=ingredients')) return reply(n++);
     return real(input, init);
   };
   return () => {
@@ -121,6 +122,7 @@ const meta = {
   args: {
     file: new File([], 'stand-in.jpg'),
     units: 'metric',
+    free: 50,
     onAdd: fn(),
     onRetake: fn(),
     onManual: fn(),
@@ -170,3 +172,61 @@ const failed: Story = {
 };
 export const Failed: Story = failed;
 export const FailedDark: Story = { ...failed, globals: dark };
+
+const never = () => new Promise<Response>(() => {});
+const items = (list: RecognizedIngredient[]) => async () =>
+  Response.json({ items: list });
+
+/** «Another photo» `count` times, each after the sheet shows the review. */
+const takeMore =
+  (count: number): Story['play'] =>
+  async ({ loaded }) => {
+    for (let i = 0; i < count; i++) {
+      const input = await waitFor(() => {
+        const el = document.querySelector<HTMLInputElement>(
+          '.photo-ingredients input[type=file]',
+        );
+        if (!el) throw new Error('no review yet');
+        return el;
+      });
+      await userEvent.upload(input, loaded.file as File);
+    }
+  };
+
+/** 3.4: photo 2 recognizing in the sheet; the rows of photo 1 stay editable. */
+const second: Story = {
+  beforeEach: answer((n) => (n ? never() : items(ITEMS)())),
+  play: takeMore(1),
+};
+export const SecondPhoto: Story = second;
+export const SecondPhotoDark: Story = { ...second, globals: dark };
+
+/** 3.5: five photos — no camera tile, «5 of 5 photos». */
+const five: Story = {
+  beforeEach: answer((n) => items([ITEMS[n % ITEMS.length]!])()),
+  play: takeMore(4),
+};
+export const FivePhotos: Story = five;
+export const FivePhotosDark: Story = { ...five, globals: dark };
+export const FivePhotosDesktop: Story = { ...five, globals: desktop };
+
+/** 4.2: photo 2 failed — a line with «Try again»; photo 1's rows stay. Photo 3 found nothing. */
+const secondFailed: Story = {
+  beforeEach: answer((n) =>
+    n === 0
+      ? items(ITEMS.slice(0, 2))()
+      : n === 1
+        ? Promise.resolve(
+            Response.json({ error: { code: 'ai_failed' } }, { status: 502 }),
+          )
+        : items([])(),
+  ),
+  play: takeMore(2),
+};
+export const SecondFailed: Story = secondFailed;
+export const SecondFailedDark: Story = { ...secondFailed, globals: dark };
+
+/** 4.3: the recipe has 47 — the last two rows «won't fit», «Add the first 3». */
+const limit: Story = { ...review, args: { free: 3 } };
+export const Limit: Story = limit;
+export const LimitDark: Story = { ...limit, globals: dark };

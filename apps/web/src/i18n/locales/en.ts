@@ -2174,6 +2174,7 @@ export const en = {
     ingredients_cols: 'grams · kcal',
     ingredients_cols_oz: 'ounces · kcal',
     ingredient: 'Ingredient',
+    ingredients_full: 'A recipe can have up to 50 ingredients',
     mode: {
       label: 'How to set calories',
       ingredients: 'By ingredients',
@@ -2273,6 +2274,22 @@ export const en = {
       error: 'Couldn’t recognize the photo',
       error_body:
         'The AI didn’t answer or the answer made no sense. The recipe and its ingredients are safe.',
+      shot: 'Photo {n}',
+      more: 'Another photo for what didn’t fit in the frame',
+      more_full: '5 of 5 photos — that’s the limit for one go',
+      more_a11y: 'Another photo',
+      shot_wait: 'Recognizing…',
+      shot_wait_sub: 'rows will appear here',
+      shot_error: 'Couldn’t recognize photo {n}',
+      shot_none: 'No ingredients found in photo {n}',
+      wont_fit: 'won’t fit',
+      limit_fit:
+        'A recipe can have up to 50 ingredients. It already has {have} — the first {n} will fit.',
+      add_first: 'Add the first {n}',
+      added: {
+        one: 'Added {count} ingredient',
+        other: 'Added {count} ingredients',
+      },
     },
     save_error: 'Couldn’t save the recipe. Try again.',
     changed:

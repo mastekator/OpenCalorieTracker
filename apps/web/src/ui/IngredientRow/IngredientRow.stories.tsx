@@ -91,3 +91,16 @@ export const Edible: Story = {
   },
 };
 export const EdibleDark: Story = { ...Edible, globals: dark };
+export const WontFit: Story = {
+  args: {
+    name: 'Carrot',
+    grams: '360',
+    kcal: 148,
+    estimate: true,
+    wontFit: true,
+  },
+};
+export const WontFitDark: Story = { ...WontFit, globals: dark };
+/** Lit for about a second on mount; remount the story to see it again. */
+export const Highlight: Story = { args: { highlight: true } };
+export const HighlightDark: Story = { ...Highlight, globals: dark };

@@ -64,6 +64,20 @@ export const WeightWarningDark: Story = {
 };
 /** E-10.5: offline «Save» is disabled; the app's offline bar says why. */
 export const Offline: Story = { args: { recipe: PILAF, online: false } };
+
+/** 4.4: 50 ingredients — the line instead of «+ Ingredient», no button (AC-C2). */
+const full: Story = {
+  args: {
+    recipe: {
+      ...SALAD,
+      ingredients: Array.from({ length: 50 }, (_, i) => ({
+        ...SALAD.ingredients[i % SALAD.ingredients.length]!,
+      })),
+    },
+  },
+};
+export const Full: Story = full;
+export const FullDark: Story = { ...full, globals: dark };
 /** 2.5: «+ Ingredient» opens the search sheet. */
 export const AddIngredient: Story = {
   args: { recipe: SALAD },

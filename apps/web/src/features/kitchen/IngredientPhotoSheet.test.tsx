@@ -102,7 +102,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const view = async (online = true) => {
+const view = async (online = true, recipe = SALAD) => {
   const onSave = vi.fn<(input: RecipeInput) => Promise<Recipe>>(
     async () => SALAD,
   );
@@ -110,7 +110,7 @@ const view = async (online = true) => {
     <I18nProvider>
       <ToastProvider>
         <RecipeEditor
-          recipe={SALAD}
+          recipe={recipe}
           online={online}
           photo
           search={async () => []}
@@ -135,6 +135,22 @@ const shoot = async () => {
     target: { files: [new File(['x'], 'a.jpg', { type: 'image/jpeg' })] },
   });
 };
+
+/** «Another photo» in the review sheet. */
+const more = async () => {
+  const input = await waitFor(() => {
+    const el = document.querySelector<HTMLInputElement>(
+      '.photo-ingredients input[type=file]',
+    );
+    expect(el).toBeTruthy();
+    return el!;
+  });
+  fireEvent.change(input, {
+    target: { files: [new File(['y'], 'b.jpg', { type: 'image/jpeg' })] },
+  });
+};
+const fail = () =>
+  Response.json({ error: { code: 'ai_failed' } }, { status: 502 });
 
 describe('Photograph the ingredients (ADR-0040 §6)', () => {
   it('«Add · N» appends the found rows with barcode, pack and edible, keeping the recipe’s own (AC-C1)', async () => {
@@ -239,5 +255,115 @@ describe('Photograph the ingredients (ADR-0040 §6)', () => {
     const click = vi.spyOn(input, 'click');
     fireEvent.click(row);
     expect(click).not.toHaveBeenCalled();
+  });
+
+  it('«Another photo» appends photo 2’s rows after photo 1’s, nothing merged (AC-B6)', async () => {
+    stub([found(FLOUR), found(CHEESE, FLOUR)]);
+    const onSave = await view();
+    await shoot();
+    expect(await screen.findByText('Wheat flour')).toBeTruthy();
+    await more();
+    expect(await screen.findByText(CURD.name!)).toBeTruthy();
+    expect(screen.getByText('Photo 2')).toBeTruthy();
+    expect(screen.getAllByText('Wheat flour')).toHaveLength(2);
+    fireEvent.click(screen.getByRole('button', { name: 'Add · 3' }));
+    expect(await screen.findByText('Added 3 ingredients')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(
+      onSave.mock.calls[0]![0].ingredients.slice(-3).map((r) => r.name),
+    ).toEqual(['Wheat flour', CURD.name, 'Wheat flour']);
+  });
+
+  it('after the 5th photo there is no «Another photo»', async () => {
+    stub([1, 2, 3, 4, 5].map(() => found(FLOUR)));
+    await view();
+    await shoot();
+    await screen.findByText('Wheat flour');
+    for (let i = 2; i <= 5; i++) {
+      await more();
+      await screen.findByText(`Photo ${i}`);
+    }
+    await waitFor(() =>
+      expect(screen.getAllByText('Wheat flour')).toHaveLength(5),
+    );
+    expect(screen.queryByRole('button', { name: 'Another photo' })).toBeNull();
+    expect(
+      screen.getByText('5 of 5 photos — that’s the limit for one go'),
+    ).toBeTruthy();
+  });
+
+  it('photo 2 failing keeps photo 1’s rows; «Try again» recognizes it again', async () => {
+    stub([found(FLOUR), fail, found(CHEESE)]);
+    await view();
+    await shoot();
+    await screen.findByText('Wheat flour');
+    await more();
+    expect(await screen.findByText('Couldn’t recognize photo 2')).toBeTruthy();
+    expect(screen.getByText('Wheat flour')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Add · 1' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(await screen.findByText(CURD.name!)).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Add · 2' })).toBeTruthy();
+  });
+
+  it('50 at most: «won’t fit» rows, «Add the first N», then no «+ Ingredient» (AC-C2)', async () => {
+    const big = {
+      ...SALAD,
+      ingredients: Array.from({ length: 47 }, (_, i) => ({
+        ...SALAD.ingredients[0]!,
+        name: `Item ${i}`,
+      })),
+    };
+    stub([found(FLOUR, CHEESE, CARROTS, FLOUR, CHEESE)]);
+    const onSave = await view(true, big);
+    await shoot();
+    expect(
+      await screen.findByRole('button', { name: 'Add the first 3' }),
+    ).toBeTruthy();
+    expect(screen.getAllByText('won’t fit')).toHaveLength(2);
+    expect(
+      screen.getByText(
+        'A recipe can have up to 50 ingredients. It already has 47 — the first 3 will fit.',
+      ),
+    ).toBeTruthy();
+
+    // A row above removed: the next one fits.
+    fireEvent.click(screen.getByText('Carrots'));
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Remove from list' }),
+    );
+    await waitFor(() =>
+      expect(screen.getAllByText('won’t fit')).toHaveLength(1),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Add the first 3' }));
+    expect(await screen.findByText('Added 3 ingredients')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Ingredient' })).toBeNull();
+    expect(
+      screen.getByText('A recipe can have up to 50 ingredients'),
+    ).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(
+      onSave.mock.calls[0]![0].ingredients.slice(-3).map((r) => r.name),
+    ).toEqual(['Wheat flour', CURD.name, 'Wheat flour']);
+  });
+
+  it('grams typed by hand drop the «from scale» tag, in the sheet and in the recipe', async () => {
+    stub([found(FLOUR)]);
+    await view();
+    await shoot();
+    const field = await screen.findByRole('textbox', { name: /Wheat flour/ });
+    expect(screen.getByText('from scale')).toBeTruthy();
+    fireEvent.change(field, { target: { value: '500' } });
+    expect(screen.queryByText('from scale')).toBeNull();
+    expect(screen.queryByText('estimate')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Add · 1' }));
+    await waitFor(() =>
+      expect(screen.queryByText('Ingredients from photo')).toBeNull(),
+    );
+    expect(screen.getByText('Wheat flour')).toBeTruthy();
+    expect(screen.queryByText('from scale')).toBeNull();
+    expect(screen.queryByText('estimate')).toBeNull();
   });
 });
