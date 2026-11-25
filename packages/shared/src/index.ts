@@ -42,6 +42,8 @@ export type ErrorCode =
   | 'period_too_long'
   | 'rate_limited'
   | 'limit_reached'
+  | 'http_not_private'
+  | 'outbound_disabled'
   | 'barcode_invalid'
   | 'ai_settings_changed'
   | 'ai_key_required'

@@ -74,3 +74,75 @@ export const createdApiTokenSchema = apiTokenSchema.extend({
   token: z.string(),
 });
 export type CreatedApiToken = z.infer<typeof createdApiTokenSchema>;
+
+/** At most this many webhooks per user; the next POST answers 409 limit_reached. */
+export const MAX_WEBHOOKS = 10;
+/** The delivery log keeps this many rows per webhook (ADR-0027 §3). */
+export const MAX_WEBHOOK_DELIVERIES = 20;
+
+export const webhookEventSchema = z.enum([
+  'meal.saved',
+  'day.closed',
+  'day.empty',
+]);
+export type WebhookEvent = z.infer<typeof webhookEventSchema>;
+
+const hhmm = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
+const webhookFields = z.object({
+  name: z.string().trim().min(1).max(60),
+  url: z.url({ protocol: /^https?$/ }).max(2000),
+  events: z
+    .array(webhookEventSchema)
+    .min(1)
+    .refine((list) => new Set(list).size === list.length),
+  dayClosedAt: hhmm,
+  emptyBy: hhmm.nullable(),
+  enabled: z.boolean(),
+});
+/** day.empty needs its «nothing logged by» time. */
+export const webhookEmptyByOk = (w: {
+  events: WebhookEvent[];
+  emptyBy: string | null;
+}) => !w.events.includes('day.empty') || w.emptyBy !== null;
+
+export const createWebhookRequestSchema = webhookFields
+  .extend({
+    dayClosedAt: hhmm.default('23:59'),
+    emptyBy: hhmm.nullable().default(null),
+    enabled: z.boolean().default(true),
+  })
+  .refine(webhookEmptyByOk, { path: ['emptyBy'] });
+export type CreateWebhookRequest = z.input<typeof createWebhookRequestSchema>;
+
+/** Any subset; the server checks the merged webhook (emptyBy) and a new url again. */
+export const updateWebhookRequestSchema = webhookFields.partial();
+export type UpdateWebhookRequest = z.infer<typeof updateWebhookRequestSchema>;
+
+/** GET /webhooks item; the secret is shown only on create and on a new secret. */
+export const webhookSchema = webhookFields.extend({
+  id: z.number().int(),
+  /** 'failures': turned off after 20 failed deliveries in a row. */
+  disabledReason: z.enum(['failures']).nullable(),
+  failStreak: z.number().int(),
+  createdAt: z.iso.datetime(),
+});
+export type Webhook = z.infer<typeof webhookSchema>;
+
+export const createdWebhookSchema = webhookSchema.extend({
+  secret: z.string(),
+});
+export type CreatedWebhook = z.infer<typeof createdWebhookSchema>;
+
+/** A delivery log row; `test` comes from «Send test». */
+export const webhookDeliverySchema = z.object({
+  id: z.number().int(),
+  event: z.union([webhookEventSchema, z.literal('test')]),
+  at: z.iso.datetime(),
+  /** HTTP status; null: no response. */
+  status: z.number().int().nullable(),
+  /** timeout | refused | blocked_address | dns | network; null with any status. */
+  error: z.string().nullable(),
+  attempts: z.number().int(),
+  durationMs: z.number().int().nullable(),
+});
+export type WebhookDelivery = z.infer<typeof webhookDeliverySchema>;

@@ -30,6 +30,8 @@ import { setupRoutes } from './setup/routes.js';
 import { syncRoutes } from './sync/routes.js';
 import { tokenAuth } from './tokens/auth.js';
 import { tokenRoutes } from './tokens/routes.js';
+import type { Deliver } from './webhooks/send.js';
+import { webhookRoutes } from './webhooks/routes.js';
 import { weightRoutes } from './weight/routes.js';
 import { setupErrors, setupMode, type Config } from './config.js';
 import { apiVersion } from './http/apiVersion.js';
@@ -54,6 +56,8 @@ export interface AppDeps {
   secrets: Secrets;
   /** Outbound HTTP (Open Food Facts); tests pass a fake. Defaults to the global fetch. */
   fetch?: typeof fetch;
+  /** Webhook sender; tests pass one that allows a local receiver. */
+  deliverWebhook?: Deliver;
 }
 
 /** AppDeps plus the state createApp shares between routes. */
@@ -99,6 +103,7 @@ export function createApp(appDeps: AppDeps) {
   app.route('/api', accountRoutes(deps));
   app.route('/api', integrationRoutes(deps));
   app.route('/api', tokenRoutes(deps));
+  app.route('/api', webhookRoutes(deps));
   app.route('/api', barcodeRoutes(deps));
   app.route('/api', aiRoutes(deps));
   app.route('/api', photoRoutes(deps));
