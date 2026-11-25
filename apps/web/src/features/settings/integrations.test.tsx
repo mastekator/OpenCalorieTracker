@@ -125,7 +125,8 @@ describe('IntegrationsScreen (OCT-313 §4)', () => {
     await seed(on);
     serveBlocked(blocked);
     await wrap(<IntegrationsScreen />);
-    expect(await screen.findByText(status)).toBeTruthy();
+    // The tokens card, with none, says «Off» too.
+    expect((await screen.findAllByText(status)).length).toBeGreaterThan(0);
     expect(screen.getByText('Barcode lookup')).toBeTruthy();
   });
 
@@ -291,6 +292,39 @@ describe('AdminIntegrationsScreen (OCT-187 7.1–7.3)', () => {
     expect(((await switchOf()) as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getByText('Set in .env')).toBeTruthy();
     expect(screen.getByText('ALLOW_OUTBOUND_REQUESTS=false')).toBeTruthy();
+  });
+
+  it('tokens: turning off asks first, then PUTs only tokens', async () => {
+    const fetch = serve({
+      outbound: true,
+      outboundFromEnv: false,
+      tokens: true,
+      tokensFromEnv: false,
+    });
+    await wrap(<AdminIntegrationsScreen />, false);
+    fireEvent.click(
+      await screen.findByRole('switch', { name: 'Personal API tokens' }),
+    );
+    expect(screen.getByText('Turn off API tokens?')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Block' }));
+    await waitFor(() => expect(puts(fetch)).toEqual([{ tokens: false }]));
+  });
+
+  it('tokens set in .env: the switch is locked and the banner names it', async () => {
+    serve({
+      outbound: true,
+      outboundFromEnv: false,
+      tokens: false,
+      tokensFromEnv: true,
+    });
+    await wrap(<AdminIntegrationsScreen />, false);
+    const tokens = (await screen.findByRole('switch', {
+      name: 'Personal API tokens',
+    })) as HTMLButtonElement;
+    expect(tokens.disabled).toBe(true);
+    expect(((await switchOf()) as HTMLButtonElement).disabled).toBe(false);
+    expect(screen.getByText('ALLOW_API_TOKENS=false')).toBeTruthy();
+    expect(screen.queryByText(/ALLOW_OUTBOUND_REQUESTS/)).toBeNull();
   });
 
   it('409 outbound_env_managed: the error and a fresh read', async () => {
