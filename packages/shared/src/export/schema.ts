@@ -111,6 +111,7 @@ export type ExportQuery = z.infer<typeof exportQuerySchema>;
 export const exportSummarySchema = z.object({
   days: z.number().int(),
   dishes: z.number().int(),
+  /** Photos in the period, counted even with photos=0 so the screen can warn first. */
   photos: z.number().int(),
   bytes: z.number().int(),
 });

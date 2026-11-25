@@ -18,7 +18,7 @@ const serve =
         return Response.json({
           days: 412,
           dishes: 1630,
-          photos: url.includes('photos=1') ? 380 : 0,
+          photos: 380,
           bytes: url.includes('photos=1') ? 96_000_000 : 1_400_000,
         });
       if (url.startsWith('/api/export?')) return download();
@@ -65,15 +65,15 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 const dark = { globals: { theme: 'dark' } };
 
-/** JSON, all time, no photos. */
+/** CSV, all time, no photos: «~380 photos» warns before the switch. */
 export const Default: Story = { beforeEach: serve(halfway) };
 export const DefaultDark: Story = { ...Default, ...dark };
 
-/** CSV, dates and photos: a ZIP, ~N photos. */
+/** JSON, dates (this year so far) and photos: a ZIP. */
 export const DatesPhotos: Story = {
   beforeEach: serve(halfway),
   play: async ({ canvas, userEvent }) => {
-    await userEvent.click(await canvas.findByRole('radio', { name: 'CSV' }));
+    await userEvent.click(await canvas.findByRole('radio', { name: 'JSON' }));
     await userEvent.click(canvas.getByRole('radio', { name: /dates|даты/i }));
     await userEvent.click(canvas.getByRole('switch'));
   },
@@ -85,7 +85,7 @@ export const Downloading: Story = {
   beforeEach: serve(halfway),
   play: async ({ canvas, userEvent }) => {
     await canvas.findByText(/412/);
-    await userEvent.click(canvas.getByRole('button', { name: /JSON/ }));
+    await userEvent.click(canvas.getByRole('button', { name: /ZIP/ }));
   },
 };
 export const DownloadingDark: Story = { ...Downloading, ...dark };

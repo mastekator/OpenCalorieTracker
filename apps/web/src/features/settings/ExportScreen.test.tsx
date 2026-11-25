@@ -91,7 +91,7 @@ describe('ExportScreen (OCT-187 §2)', () => {
       .mockImplementation(() => {});
     await wrap();
     expect(await screen.findByText('12 days · 40 dishes · ~1 kB')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Download JSON' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Download ZIP' }));
     await waitFor(() => expect(s.controller).toBeTruthy());
     s.controller.enqueue(new Uint8Array(42));
     expect(
@@ -103,7 +103,7 @@ describe('ExportScreen (OCT-187 §2)', () => {
       await screen.findByText('File downloaded · oct-export-2026-11-25.json'),
     ).toBeTruthy();
     expect(click).toHaveBeenCalledOnce();
-    expect(downloadButton().textContent).toBe('Download JSON');
+    expect(downloadButton().textContent).toBe('Download ZIP');
   });
 
   it('«Cancel» aborts the download and brings the button back', async () => {
@@ -111,12 +111,12 @@ describe('ExportScreen (OCT-187 §2)', () => {
     const fetch = serve(s.response);
     await wrap();
     await screen.findByText(/12 days/);
-    fireEvent.click(screen.getByRole('button', { name: 'Download JSON' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Download ZIP' }));
     s.controller.enqueue(new Uint8Array(10));
     await screen.findByRole('button', { name: 'Preparing the file… 10%' });
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     await waitFor(() =>
-      expect(downloadButton().textContent).toBe('Download JSON'),
+      expect(downloadButton().textContent).toBe('Download ZIP'),
     );
     const init = fetch.mock.calls.find(([u]) =>
       u.startsWith('/api/export?'),
@@ -144,18 +144,35 @@ describe('ExportScreen (OCT-187 §2)', () => {
     );
     await wrap();
     await screen.findByText(/12 days/);
-    fireEvent.click(screen.getByRole('button', { name: 'Download JSON' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Download ZIP' }));
     expect(await screen.findByText(/Pick a shorter period/)).toBeTruthy();
   });
 
-  it('photos: how many go in, and the file becomes a ZIP', async () => {
+  it('opens on CSV; photos: how many, before the switch is on; JSON with photos is a ZIP', async () => {
     serve(() => new Response(null, { status: 500 }));
     await wrap();
-    expect(await screen.findByText('Dish photos go into the ZIP')).toBeTruthy();
-    fireEvent.click(screen.getByRole('switch', { name: 'Add photos' }));
-    expect(screen.getByRole('button', { name: 'Download ZIP' })).toBeTruthy();
     expect(
       await screen.findByText('The file gets bigger: ~3 photos'),
     ).toBeTruthy();
+    expect(downloadButton().textContent).toBe('Download ZIP');
+    fireEvent.click(screen.getByRole('radio', { name: 'JSON' }));
+    expect(downloadButton().textContent).toBe('Download JSON');
+    fireEvent.click(screen.getByRole('switch', { name: 'Add photos' }));
+    expect(downloadButton().textContent).toBe('Download ZIP');
+  });
+
+  it('«Pick dates» opens on 1 January to today, ready to download', async () => {
+    const fetch = serve(() => new Response(null, { status: 500 }));
+    await wrap();
+    await screen.findByText(/12 days/);
+    fireEvent.click(screen.getByRole('radio', { name: 'Pick dates' }));
+    const today = new Date().toLocaleDateString('sv');
+    await waitFor(() =>
+      expect(fetch).toHaveBeenCalledWith(
+        `/api/export/summary?format=csv&photos=0&from=${today.slice(0, 4)}-01-01&to=${today}`,
+        expect.anything(),
+      ),
+    );
+    expect(downloadButton().disabled).toBe(false);
   });
 });

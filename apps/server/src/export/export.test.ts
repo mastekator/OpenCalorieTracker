@@ -181,7 +181,7 @@ describe('GET /api/export', () => {
     });
   });
 
-  it('adds photos only when asked: the full one, else the preview', async () => {
+  it('counts photos always, adds them only when asked: the full one, else the preview', async () => {
     const t = await setup();
     const full = await t.upload();
     const expiring = await t.upload();
@@ -221,9 +221,15 @@ describe('GET /api/export', () => {
     ).toString();
     expect(csv).toContain(`,photos/${full}.jpg\r\n`);
 
-    expect(await (await t.get('/export/summary')).json()).toMatchObject({
-      photos: 0,
+    // Counted without photos=1 too, but neither zipped nor linked.
+    const plain = await t.download('/export');
+    expect(await (await t.get('/export/summary')).json()).toEqual({
+      days: 1,
+      dishes: 4,
+      photos: 2,
+      bytes: plain.body.length,
     });
+    expect(plain.body.toString()).not.toContain('photos/');
   });
 
   it('rejects a half-open or reversed period and a request without a session', async () => {

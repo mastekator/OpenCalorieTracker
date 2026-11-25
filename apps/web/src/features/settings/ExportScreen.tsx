@@ -3,6 +3,7 @@ import type { ExportFormat, ExportSummary } from '@oct/shared';
 import { downloadExport, exportSummary, saveFile } from '../../api/export';
 import { ApiError } from '../../api/client';
 import { useIntegrations } from '../../data/DataContext';
+import { localToday } from '../diary/useToday';
 import { useT } from '../../i18n';
 import { Banner } from '../../ui/Banner/Banner';
 import { Button } from '../../ui/Button/Button';
@@ -47,10 +48,13 @@ export function ExportScreen() {
   const { t, num, locale } = useT();
   const online = useOnline();
   const toast = useToast();
-  const [format, setFormat] = useState<ExportFormat>('json');
+  const [format, setFormat] = useState<ExportFormat>('csv');
   const [range, setRange] = useState<'all' | 'dates'>('all');
-  const [from, setFrom] = useState<string | null>(null);
-  const [to, setTo] = useState<string | null>(null);
+  // OCT-187 §2.2: «Pick dates» opens on this year so far, never on empty fields.
+  const [to, setTo] = useState<string | null>(localToday);
+  const [from, setFrom] = useState<string | null>(
+    () => `${to!.slice(0, 4)}-01-01`,
+  );
   const [photos, setPhotos] = useState(false);
   const [summary, setSummary] = useState<ExportSummary | null>(null);
   // undefined: idle; null: downloading with no size to count against.
@@ -172,7 +176,7 @@ export function ExportScreen() {
         <FormRow
           label={t('integr.export.photos')}
           description={
-            photos && summary && summary.photos > 0
+            summary && summary.photos > 0
               ? t('integr.export.photos_more', count(summary.photos))
               : t('integr.export.photos_sub')
           }
