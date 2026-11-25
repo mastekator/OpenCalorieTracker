@@ -87,6 +87,12 @@
   block-size: var(--icon-size-sm);
 }
 
+/* OCT-187 §1: the in-app hint is not a control — dashed, no fill. */
+.integr__in-app .list__rows {
+  background: transparent;
+  border: 1px dashed var(--color-border-strong);
+}
+
 /* Desktop only (8.2): a phone opens the picker from the source rows. */
 .import__drop {
   display: none;
@@ -291,6 +297,18 @@
 
 .tokens__docs {
   color: var(--color-accent);
+}
+
+/* Padding grows the hit area to --tap-min, the equal negative margin keeps the line height; the empty state's link already has it. */
+.settings__lead .tokens__docs {
+  --docs-pad: round(
+    up,
+    (var(--tap-min) - var(--text-subhead-size) * var(--text-subhead-lh)) / 2,
+    1px
+  );
+  display: inline-block;
+  padding-block: var(--docs-pad);
+  margin-block: calc(-1 * var(--docs-pad));
 }
 
 .tokens__form {

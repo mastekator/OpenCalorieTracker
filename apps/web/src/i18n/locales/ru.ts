@@ -260,6 +260,11 @@ const ru: DeepPartial<typeof en> = {
         'Будем искать упаковки в Open Food Facts — открытой базе продуктов с ккал и БЖУ.',
     },
     your_data: 'Ваши данные',
+    in_app: 'В приложении',
+    health: {
+      title: 'Apple Health и Health Connect',
+      desc: 'Доступно в приложении для iOS и Android',
+    },
     export: {
       title: 'Экспорт данных',
       desc: 'Скачать дневник в CSV или JSON',

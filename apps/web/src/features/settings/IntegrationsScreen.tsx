@@ -3,6 +3,7 @@ import {
   Barcode,
   Bot,
   Download,
+  Heart,
   KeyRound,
   Lock,
   Upload,
@@ -44,7 +45,7 @@ function useBarcodeState(): { on: boolean; state: IntegrationState } {
   return { on, state: blocked ? 'blocked' : on ? 'on' : 'off' };
 }
 
-/** OCT-187 §1: «Connections» (barcode lookup, tokens, webhooks, MCP) and «Your data». */
+/** OCT-187 §1: «Your data», «Connections» (barcode lookup, tokens, webhooks, MCP) and the in-app hint. */
 export function IntegrationsScreen() {
   const { t, num } = useT();
   const [, navigate] = useLocation();
@@ -72,6 +73,26 @@ export function IntegrationsScreen() {
   return (
     <div className="settings">
       <p className="settings__lead">{t('integr.lead')}</p>
+      <List title={t('integr.your_data')}>
+        <ListRow
+          icon={<Download />}
+          description={exportCard}
+          onClick={() => navigate(EXPORT_PATH)}
+        >
+          {t('integr.export.title')}
+        </ListRow>
+        <ListRow
+          icon={<Upload />}
+          description={
+            imports.length > 0
+              ? `${t('integr.import.n_imports', count(imports.length))} · ${t('integr.import.records', count(entries))}`
+              : t('integr.import.desc')
+          }
+          onClick={() => navigate(IMPORT_PATH)}
+        >
+          {t('integr.import.title')}
+        </ListRow>
+      </List>
       <List title={t('integr.connections')}>
         <ListRow
           icon={<Barcode />}
@@ -132,26 +153,17 @@ export function IntegrationsScreen() {
           {t('integr.mcp.title')}
         </ListRow>
       </List>
-      <List title={t('integr.your_data')}>
-        <ListRow
-          icon={<Download />}
-          description={exportCard}
-          onClick={() => navigate(EXPORT_PATH)}
-        >
-          {t('integr.export.title')}
-        </ListRow>
-        <ListRow
-          icon={<Upload />}
-          description={
-            imports.length > 0
-              ? `${t('integr.import.n_imports', count(imports.length))} · ${t('integr.import.records', count(entries))}`
-              : t('integr.import.desc')
-          }
-          onClick={() => navigate(IMPORT_PATH)}
-        >
-          {t('integr.import.title')}
-        </ListRow>
-      </List>
+      <div className="integr__in-app">
+        <List title={t('integr.in_app')}>
+          <ListRow
+            icon={<Heart />}
+            description={t('integr.health.desc')}
+            chevron={false}
+          >
+            {t('integr.health.title')}
+          </ListRow>
+        </List>
+      </div>
     </div>
   );
 }

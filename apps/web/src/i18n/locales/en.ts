@@ -256,6 +256,11 @@ export const en = {
         'We’ll look up packages in Open Food Facts, an open food database with calories and macros.',
     },
     your_data: 'Your data',
+    in_app: 'In the app',
+    health: {
+      title: 'Apple Health and Health Connect',
+      desc: 'Available in the iOS and Android app',
+    },
     export: {
       title: 'Export data',
       desc: 'Download your diary as CSV or JSON',
