@@ -1,5 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Barcode, Download, KeyRound, Lock, Upload } from 'lucide-react';
+import {
+  Barcode,
+  Download,
+  KeyRound,
+  Lock,
+  Upload,
+  Webhook,
+} from 'lucide-react';
 import { useLocation } from 'wouter';
 import { listImports, type PastImport } from '../../api/imports';
 import { useDb, useOutboundBlocked, useSettings } from '../../data/DataContext';
@@ -16,6 +23,7 @@ import { useOnline } from '../../ui/OfflineBar/OfflineBar';
 import { Switch } from '../../ui/Switch/Switch';
 import { useExportCard } from './ExportScreen';
 import { useTokensCard } from './TokensScreen';
+import { useWebhooksCard } from './WebhooksScreen';
 import './settings.css';
 
 export const INTEGRATIONS_PATH = '/settings/integrations';
@@ -23,6 +31,7 @@ export const BARCODE_PATH = `${INTEGRATIONS_PATH}/barcode`;
 export const IMPORT_PATH = `${INTEGRATIONS_PATH}/import`;
 export const EXPORT_PATH = `${INTEGRATIONS_PATH}/export`;
 export const TOKENS_PATH = `${INTEGRATIONS_PATH}/tokens`;
+export const WEBHOOKS_PATH = `${INTEGRATIONS_PATH}/webhooks`;
 
 /** The admin's ban wins over the user's own switch, which is kept for when it is lifted (E-6). */
 function useBarcodeState(): { on: boolean; state: IntegrationState } {
@@ -32,7 +41,7 @@ function useBarcodeState(): { on: boolean; state: IntegrationState } {
   return { on, state: blocked ? 'blocked' : on ? 'on' : 'off' };
 }
 
-/** OCT-187 §1: «Connections» (barcode lookup, tokens) and «Your data». */
+/** OCT-187 §1: «Connections» (barcode lookup, tokens, webhooks) and «Your data». */
 export function IntegrationsScreen() {
   const { t, num } = useT();
   const [, navigate] = useLocation();
@@ -40,6 +49,7 @@ export function IntegrationsScreen() {
   const online = useOnline();
   const exportCard = useExportCard();
   const tokensCard = useTokensCard();
+  const webhooksCard = useWebhooksCard();
   const [imports, setImports] = useState<PastImport[]>([]);
   // The count needs the server: offline the card keeps its plain description.
   useEffect(() => {
@@ -86,6 +96,20 @@ export function IntegrationsScreen() {
           onClick={() => navigate(TOKENS_PATH)}
         >
           {t('integr.tokens.title')}
+        </ListRow>
+        <ListRow
+          icon={<Webhook />}
+          description={
+            <>
+              {webhooksCard.text}
+              <span className="settings__status">
+                <IntegrationStatus state={webhooksCard.state} />
+              </span>
+            </>
+          }
+          onClick={() => navigate(WEBHOOKS_PATH)}
+        >
+          {t('integr.webhooks.title')}
         </ListRow>
       </List>
       <List title={t('integr.your_data')}>
