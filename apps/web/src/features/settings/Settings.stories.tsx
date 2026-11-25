@@ -352,7 +352,10 @@ const integrations =
       String(input).endsWith('/api/integrations')
         ? Response.json({
             barcode: { enabled: on, blocked },
-            export: { lastAt: null, lastFormat: null },
+            // «On» also shows the card after an export.
+            export: on
+              ? { lastAt: '2026-11-12T12:00:00.000Z', lastFormat: 'json' }
+              : { lastAt: null, lastFormat: null },
             tokens: { count: 0, blocked: false },
           })
         : String(input).endsWith('/api/admin/integrations')

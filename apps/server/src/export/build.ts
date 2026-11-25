@@ -134,22 +134,22 @@ export async function planExport(
   const { profile, manual } = readProfile(db, userId);
   const settings = readSettings(db, userId);
 
+  // Counted even without photos=1, so the screen can warn before the switch is on.
   const photos: ZipEntry[] = [];
-  if (q.photos === '1') {
-    for (const { meal, id, full } of withPhoto) {
-      const sizes: PhotoSize[] = full ? ['full', 'preview'] : ['preview'];
-      for (const size of sizes) {
-        const path = photoPath(dataDir, userId, id, size);
-        const st = path && (await stat(path).catch(() => null));
-        if (!path || !st) continue;
-        meal.photo = `photos/${id}.${size === 'full' ? 'jpg' : 'webp'}`;
-        photos.push({
-          name: meal.photo,
-          size: st.size,
-          data: () => createReadStream(path),
-        });
-        break;
-      }
+  for (const { meal, id, full } of withPhoto) {
+    const sizes: PhotoSize[] = full ? ['full', 'preview'] : ['preview'];
+    for (const size of sizes) {
+      const path = photoPath(dataDir, userId, id, size);
+      const st = path && (await stat(path).catch(() => null));
+      if (!path || !st) continue;
+      const name = `photos/${id}.${size === 'full' ? 'jpg' : 'webp'}`;
+      if (q.photos === '1') meal.photo = name;
+      photos.push({
+        name,
+        size: st.size,
+        data: () => createReadStream(path),
+      });
+      break;
     }
   }
 
@@ -228,7 +228,7 @@ export async function planExport(
       size: data.length,
       data: () => [data],
     })),
-    ...photos,
+    ...(q.photos === '1' ? photos : []),
   ];
   return { ...counts, bytes: zipSize(entries), entries };
 }
