@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { within } from 'storybook/test';
+import { tr } from '../../../.storybook/tr';
 import type { MeResponse, Webhook } from '@oct/shared';
 import { DataProvider } from '../../data/DataContext';
 import { atPath } from '../../ui/navStory';
@@ -82,7 +83,10 @@ const meta = {
       <ToastProvider>
         <DataProvider user={user}>
           <div className="screen__body">
-            <Story />
+            {/* The app's column, so the desktop stories show its width. */}
+            <div className="screen">
+              <Story />
+            </div>
           </div>
         </DataProvider>
       </ToastProvider>
@@ -109,13 +113,23 @@ export const ListDesktopDark: Story = {
   globals: { viewport: { value: 'desktop' }, theme: 'dark' },
 };
 
-const openNew: Story['play'] = async ({ canvas, canvasElement, userEvent }) => {
+const openNew: Story['play'] = async ({
+  canvas,
+  canvasElement,
+  globals,
+  userEvent,
+}) => {
   await userEvent.click(
-    await canvas.findByRole('button', { name: 'Add webhook' }),
+    await canvas.findByRole('button', {
+      name: tr(globals, 'integr.webhooks.add'),
+    }),
   );
   // The sheet is a modal <dialog> outside the canvas.
   const page = within(canvasElement.ownerDocument.body);
-  await userEvent.type(await page.findByLabelText('Name'), 'Home Assistant');
+  await userEvent.type(
+    await page.findByLabelText(tr(globals, 'integr.tokens.name')),
+    'Home Assistant',
+  );
 };
 
 /** 5.2: the form, «Meal saved» on by default. */
@@ -132,12 +146,12 @@ export const HttpError: Story = {
     await openNew(ctx);
     const page = within(ctx.canvasElement.ownerDocument.body);
     await ctx.userEvent.type(
-      page.getByLabelText('URL'),
+      page.getByLabelText(tr(ctx.globals, 'integr.webhooks.url')),
       'http://example.com/hook',
     );
     await ctx.userEvent.click(
       within(page.getByRole('dialog')).getByRole('button', {
-        name: 'Add webhook',
+        name: tr(ctx.globals, 'integr.webhooks.add'),
       }),
     );
   },
@@ -151,12 +165,12 @@ export const Created: Story = {
     await openNew(ctx);
     const page = within(ctx.canvasElement.ownerDocument.body);
     await ctx.userEvent.type(
-      page.getByLabelText('URL'),
+      page.getByLabelText(tr(ctx.globals, 'integr.webhooks.url')),
       'https://ha.home.lan/api/webhook/oct-meals',
     );
     await ctx.userEvent.click(
       within(page.getByRole('dialog')).getByRole('button', {
-        name: 'Add webhook',
+        name: tr(ctx.globals, 'integr.webhooks.add'),
       }),
     );
   },

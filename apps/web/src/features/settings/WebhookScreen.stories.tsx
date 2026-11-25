@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { within } from 'storybook/test';
+import { tr } from '../../../.storybook/tr';
 import type { MeResponse, Webhook, WebhookDelivery } from '@oct/shared';
 import { DataProvider } from '../../data/DataContext';
 import { atPath } from '../../ui/navStory';
@@ -89,7 +90,10 @@ const meta = {
       <ToastProvider>
         <DataProvider user={user}>
           <div className="screen__body">
-            <Story />
+            {/* The app's column, so the desktop stories show its width. */}
+            <div className="screen">
+              <Story />
+            </div>
           </div>
         </DataProvider>
       </ToastProvider>
@@ -116,9 +120,11 @@ export const EmptyLog: Story = {
 };
 export const EmptyLogDark: Story = { ...EmptyLog, ...dark };
 
-const sendTest: Story['play'] = async ({ canvas, userEvent }) => {
+const sendTest: Story['play'] = async ({ canvas, globals, userEvent }) => {
   await userEvent.click(
-    await canvas.findByRole('button', { name: 'Send test' }),
+    await canvas.findByRole('button', {
+      name: tr(globals, 'integr.webhooks.send_test'),
+    }),
   );
 };
 
@@ -145,14 +151,16 @@ export const AutoOffDark: Story = { ...AutoOff, ...dark };
 /** «Rotate» → confirm → the new secret, once. */
 export const Rotated: Story = {
   ...Default,
-  play: async ({ canvas, canvasElement, userEvent }) => {
+  play: async ({ canvas, canvasElement, globals, userEvent }) => {
     await userEvent.click(
-      await canvas.findByRole('button', { name: 'Rotate the secret' }),
+      await canvas.findByRole('button', {
+        name: tr(globals, 'integr.webhooks.rotate_label'),
+      }),
     );
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(
       within(await page.findByRole('alertdialog')).getByRole('button', {
-        name: 'Rotate',
+        name: tr(globals, 'integr.webhooks.rotate'),
       }),
     );
   },
@@ -162,8 +170,10 @@ export const RotatedDark: Story = { ...Rotated, ...dark };
 /** «Delete webhook» asks first. */
 export const Delete: Story = {
   ...Default,
-  play: async ({ canvas, userEvent }) => {
-    await userEvent.click(await canvas.findByText('Delete webhook'));
+  play: async ({ canvas, globals, userEvent }) => {
+    await userEvent.click(
+      await canvas.findByText(tr(globals, 'integr.webhooks.delete')),
+    );
   },
 };
 export const DeleteDark: Story = { ...Delete, ...dark };

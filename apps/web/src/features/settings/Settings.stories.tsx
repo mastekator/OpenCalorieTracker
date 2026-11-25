@@ -1,8 +1,14 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import type { ReactNode } from 'react';
-import type { AiStatus, MeResponse, Passkey } from '@oct/shared';
+import {
+  isLocale,
+  type AiStatus,
+  type MeResponse,
+  type Passkey,
+} from '@oct/shared';
 import { DataProvider } from '../../data/DataContext';
 import { openUserDb } from '../../data/db';
+import { tr } from '../../../.storybook/tr';
 import { atPath } from '../../ui/navStory';
 import { ToastProvider } from '../../ui/Toast/Toast';
 import { AdminIntegrationsScreen } from '../admin/AdminIntegrationsScreen';
@@ -193,9 +199,9 @@ export const AiProviderLimitDark: Story = { ...AiProviderLimit, ...dark };
 /** The limit field with a value out of 1..50: the error under it. */
 export const AiProviderLimitInvalid: Story = {
   ...AiProviderLimit,
-  play: async ({ canvas, userEvent }) => {
+  play: async ({ canvas, globals, userEvent }) => {
     const field = await canvas.findByRole('textbox', {
-      name: 'Refinements per meal per visit',
+      name: tr(globals, 'ai.form.limit'),
     });
     await userEvent.clear(field);
     await userEvent.type(field, '80');
@@ -331,12 +337,13 @@ const integrations =
       tokensFromEnv: false,
     },
   ) =>
-  async () => {
+  async ({ globals }: { globals: { locale?: unknown } }) => {
     const db = await openUserDb(user.id);
     await db.put(
       'kv',
       {
-        locale: 'en',
+        // The stored settings win over the toolbar, so store the toolbar's language.
+        locale: isLocale(globals.locale) ? globals.locale : 'en',
         theme: 'system',
         units: 'metric',
         settingsRev: 1,
@@ -501,10 +508,10 @@ export const ServerIntegrationsDark: Story = { ...ServerIntegrations, ...dark };
 /** 7.2: blocking asks first. */
 export const ServerIntegrationsBlock: Story = {
   ...ServerIntegrations,
-  play: async ({ canvas, userEvent }) => {
+  play: async ({ canvas, globals, userEvent }) => {
     await userEvent.click(
       await canvas.findByRole('switch', {
-        name: 'Outgoing requests from the server',
+        name: tr(globals, 'integr.admin.outbound'),
       }),
     );
   },
