@@ -18,6 +18,8 @@ export const WEIGHT_WARNING_RATIO = 3;
 
 /** Largest cooked weight of a recipe, grams (E-10.1). */
 export const COOKED_G_MAX = 50000;
+/** Most ingredients one recipe can have (AC-C2). */
+export const MAX_RECIPE_INGREDIENTS = 50;
 
 const photoId = z.string().min(1).nullable();
 
@@ -66,7 +68,7 @@ export const recipeInputSchema = z
             path: ['pack'],
           }),
       )
-      .max(50),
+      .max(MAX_RECIPE_INGREDIENTS),
     steps: z
       .array(z.object({ text: z.string().trim().min(1).max(1000), photoId }))
       .max(30),

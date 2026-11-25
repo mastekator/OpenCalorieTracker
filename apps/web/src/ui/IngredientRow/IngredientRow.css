@@ -68,3 +68,15 @@
   width: 1.2em;
   height: 1.2em;
 }
+
+/* Just added from a photo: lit for about a second, then fades (OCT-435 3.6), as a just-saved meal. */
+.list-row.ingredient-row--new {
+  animation: ingredient-row-new var(--duration-highlight) var(--ease-in-out);
+}
+
+@keyframes ingredient-row-new {
+  0%,
+  60% {
+    background: var(--color-accent-soft);
+  }
+}

@@ -38,6 +38,10 @@ type Props = {
   note?: string;
   /** Why the row needs a look (the AI couldn't estimate it): warning background and this text. */
   unsure?: string;
+  /** Past the recipe's 50: tagged «won't fit», left out of «Add the first N» (AC-C2). */
+  wontFit?: boolean;
+  /** Just added: lit accent-soft for about a second on mount (OCT-435 3.6). */
+  highlight?: boolean;
   onGramsChange: (text: string) => void;
   /** Tap on the name: the ingredient sheet (rename, weight, delete). */
   onEdit: () => void;
@@ -57,6 +61,8 @@ export function IngredientRow({
   share,
   note,
   unsure,
+  wontFit,
+  highlight,
   onGramsChange,
   onEdit,
 }: Props) {
@@ -67,7 +73,7 @@ export function IngredientRow({
   return (
     <li className="list__item">
       <div
-        className={`list-row ingredient-row${error ? ' stepper--error' : ''}${unsure ? ' ingredient-row--unsure' : ''}`}
+        className={`list-row ingredient-row${error ? ' stepper--error' : ''}${unsure ? ' ingredient-row--unsure' : ''}${highlight ? ' ingredient-row--new' : ''}`}
       >
         <button type="button" className="ingredient-row__main" onClick={onEdit}>
           <span className="ingredient-row__name">
@@ -95,6 +101,12 @@ export function IngredientRow({
               <>
                 {' '}
                 <SourceBadge kind="barcode" />
+              </>
+            )}
+            {wontFit && (
+              <>
+                {' '}
+                <Badge tone="warn">{t('editor.products.wont_fit')}</Badge>
               </>
             )}
           </span>
