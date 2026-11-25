@@ -1488,6 +1488,8 @@ export const en = {
         empty: 'Expected empty',
         nothing: 'Nothing found',
         no_question: 'Expected a question',
+        grams: '{dish}: {grams}\u00a0g, out of range',
+        barcode: '{dish}: barcode not read',
         error: 'Provider error',
       },
       copy_row: 'Copy row for MODELS.md',

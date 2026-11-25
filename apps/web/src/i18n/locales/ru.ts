@@ -1581,6 +1581,8 @@ const ru: DeepPartial<typeof en> = {
         empty: 'Ждали пусто',
         nothing: 'Ничего не нашла',
         no_question: 'Ждали вопрос',
+        grams: '{dish}: {grams}\u00a0г, вне диапазона',
+        barcode: '{dish}: штрихкод не прочитан',
         error: 'Ошибка провайдера',
       },
       copy_row: 'Скопировать строку для MODELS.md',

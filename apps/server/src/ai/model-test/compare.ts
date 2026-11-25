@@ -38,9 +38,30 @@ const foodSchema = z
     message: 'exactly one of ref and per100',
   });
 
+/** Raw products for a recipe, run through `?mode=ingredients` recognition (ADR-0040 §7). */
+const ingredientsSchema = z.strictObject({
+  file: z.string().min(1),
+  mode: z.literal('ingredients'),
+  /** Grams within ±20% for `exact` (scale, package), ±30% for `notExact` (an estimate). */
+  level: z.enum(['exact', 'notExact']),
+  items: z
+    .array(
+      z.strictObject({
+        words: z.array(z.string().trim().min(1)).min(1),
+        /** Edible grams of the product in the photo. */
+        grams: z.number().positive(),
+        /** A GTIN the answer must carry for this product, read or printed. */
+        barcode: z.string().min(1).optional(),
+      }),
+    )
+    .min(1),
+});
+
+const caseSchema = z.union([foodSchema, ingredientsSchema]);
+
 const photoSchema = z.union([
   z.strictObject({ file: z.string().min(1), empty: z.literal(true) }),
-  foodSchema,
+  caseSchema,
 ]);
 
 export const expectedFileSchema = z.strictObject({
@@ -48,14 +69,16 @@ export const expectedFileSchema = z.strictObject({
   set: z.number().int().positive(),
   photos: z.array(photoSchema).min(1),
   /** Cases waiting for a free photo: never run, moved to `photos` when one comes. */
-  awaiting: z.array(foodSchema).optional(),
+  awaiting: z.array(caseSchema).optional(),
 });
 
 export type Expected = z.infer<typeof photoSchema>;
+export type ExpectedIngredients = z.infer<typeof ingredientsSchema>;
+type ExpectedMeal = Exclude<Expected, { empty: true } | ExpectedIngredients>;
 export type ExpectedFile = z.infer<typeof expectedFileSchema>;
 
 /** ±20% for countable items, ±30% for mixed dishes (AC-9a). */
-export function kcalRange(e: Exclude<Expected, { empty: true }>) {
+export function kcalRange(e: ExpectedMeal) {
   if (e.per100)
     return [Math.round(e.per100[0] * 0.9), Math.round(e.per100[1] * 1.1)];
   const d = e.level === 'exact' ? 0.2 : 0.3;
@@ -107,7 +130,10 @@ export const totalKcal = (r: Recognition) =>
   Math.round(r.dishes.reduce((sum, d) => sum + d.kcal, 0));
 
 /** Every reason the recognition misses the expectation, none when it matches (ADR-0033 §2). */
-export function compare(expected: Expected, got: Recognition): AiTestMiss[] {
+export function compare(
+  expected: Exclude<Expected, ExpectedIngredients>,
+  got: Recognition,
+): AiTestMiss[] {
   if ('empty' in expected)
     return got.dishes.length === 0 ? [] : [{ code: 'empty' }];
   if (got.dishes.length === 0) return [{ code: 'nothing' }];
@@ -156,6 +182,46 @@ export function compare(expected: Expected, got: Recognition): AiTestMiss[] {
   return misses;
 }
 
+/** A recognized raw product with every code the answer gave for it. */
+export type GotIngredient = { name: string; grams: number; codes: string[] };
+
+const gramsRange = (e: ExpectedIngredients, grams: number) => {
+  const d = e.level === 'exact' ? 0.2 : 0.3;
+  return [Math.round(grams * (1 - d)), Math.round(grams * (1 + d))] as const;
+};
+
+/** Every miss of a raw-products answer (ADR-0040 §7): names by words, grams by range, codes. */
+export function compareIngredients(
+  expected: ExpectedIngredients,
+  got: GotIngredient[],
+): AiTestMiss[] {
+  if (got.length === 0) return [{ code: 'nothing' }];
+  // Each row goes to the first expected product it names, like a meal's dish (E-5).
+  const rows = expected.items.map(() => [] as GotIngredient[]);
+  for (const g of got) {
+    const name = norm(g.name);
+    const i = expected.items.findIndex((e) =>
+      e.words.some((w) => matches(name, w)),
+    );
+    if (i >= 0) rows[i]!.push(g);
+  }
+  const misses: AiTestMiss[] = [];
+  const label = (i: number) => expected.items[i]!.words[0]!;
+  const missing = rows.flatMap((r, i) => (r.length ? [] : [label(i)]));
+  if (missing.length) misses.push({ code: 'not_recognized', dishes: missing });
+  expected.items.forEach((e, i) => {
+    const r = rows[i]!;
+    if (!r.length) return;
+    const grams = Math.round(r.reduce((sum, g) => sum + g.grams, 0));
+    const [min, max] = gramsRange(expected, e.grams);
+    if (grams < min || grams > max)
+      misses.push({ code: 'grams', dish: label(i), got: grams });
+    if (e.barcode && !r.some((g) => g.codes.includes(e.barcode!)))
+      misses.push({ code: 'barcode', dish: label(i) });
+  });
+  return misses;
+}
+
 /** A miss in English, for `result`, the report and check-model (ADR-0033 §3). */
 function missText(m: AiTestMiss) {
   switch (m.code) {
@@ -175,6 +241,10 @@ function missText(m: AiTestMiss) {
       return 'no dishes';
     case 'no_question':
       return 'no question asked';
+    case 'grams':
+      return `${m.dish}: ${m.got} g out of range`;
+    case 'barcode':
+      return `${m.dish}: barcode not read`;
   }
 }
 
@@ -191,6 +261,10 @@ export async function readExpected(): Promise<ExpectedFile> {
 /** What the photo expects, for the report: `egg ×3; 172-258 kcal; exact`. */
 export function expectedText(e: Expected) {
   if ('empty' in e) return '(none)';
+  if ('mode' in e)
+    return `${e.items
+      .map((i) => `${i.words[0]} ${gramsRange(e, i.grams).join('-')} g`)
+      .join(', ')}; ${e.level}`;
   const dishes = e.dishes
     .map((d) => (d.count ? `${d.words[0]} ×${d.count}` : d.words[0]))
     .join(', ');
@@ -199,12 +273,31 @@ export function expectedText(e: Expected) {
 }
 
 /** One photo's columns of a model test, from a recognition. */
-export function checkPhoto(expected: Expected, got: Recognition) {
+export function checkPhoto(
+  expected: Exclude<Expected, ExpectedIngredients>,
+  got: Recognition,
+) {
   const misses = compare(expected, got);
   return {
     got: got.dishes.map((d) => d.name).join(', ') || '(none)',
     kcal: totalKcal(got),
     levels: got.dishes.map((d) => confidenceLevel(d.confidence)).join(','),
+    misses,
+    result: misses.map(missText).join(' · ') || 'ok',
+  };
+}
+
+/** One raw-products photo's columns of a model test. */
+export function checkIngredients(
+  expected: ExpectedIngredients,
+  got: (GotIngredient & { kcal: number })[],
+) {
+  const misses = compareIngredients(expected, got);
+  return {
+    got:
+      got.map((g) => `${g.name} ${Math.round(g.grams)} g`).join(', ') ||
+      '(none)',
+    kcal: Math.round(got.reduce((sum, g) => sum + g.kcal, 0)),
     misses,
     result: misses.map(missText).join(' · ') || 'ok',
   };

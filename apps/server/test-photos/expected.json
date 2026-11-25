@@ -1,5 +1,5 @@
 {
-  "set": 3,
+  "set": 4,
   "photos": [
     {
       "file": "banana.jpg",
@@ -177,6 +177,42 @@
       "ref": 513,
       "question": true,
       "dishes": [{ "words": ["sapodilla", "sapota", "chiku", "chikoo"] }]
+    },
+    {
+      "file": "flour-on-scale-grams.jpg",
+      "mode": "ingredients",
+      "level": "exact",
+      "items": [{ "words": ["flour"], "grams": 500 }]
+    },
+    {
+      "file": "potatoes-on-scale-pounds.jpg",
+      "mode": "ingredients",
+      "level": "exact",
+      "items": [{ "words": ["potato"], "grams": 454 }]
+    },
+    {
+      "file": "rice-package.jpg",
+      "mode": "ingredients",
+      "level": "exact",
+      "items": [{ "words": ["rice"], "grams": 900 }]
+    },
+    {
+      "file": "pasta-package-barcode.jpg",
+      "mode": "ingredients",
+      "level": "exact",
+      "items": [
+        {
+          "words": ["pasta", "spaghetti"],
+          "grams": 500,
+          "barcode": "8076800195057"
+        }
+      ]
+    },
+    {
+      "file": "carrots.jpg",
+      "mode": "ingredients",
+      "level": "notExact",
+      "items": [{ "words": ["carrot"], "grams": 270 }]
     }
   ]
 }

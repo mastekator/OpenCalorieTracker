@@ -3,6 +3,7 @@ import { access, readdir, readFile } from 'node:fs/promises';
 import {
   checkPhoto,
   compare,
+  compareIngredients,
   expectedFileSchema,
   expectedText,
   quantityOf,
@@ -257,6 +258,36 @@ describe('expectedText', () => {
   });
 });
 
+describe('compareIngredients', () => {
+  const flour = {
+    file: 'flour.jpg',
+    mode: 'ingredients' as const,
+    level: 'exact' as const,
+    items: [{ words: ['flour'], grams: 1000, barcode: '4006381333931' }],
+  };
+  const got = (grams: number, codes = ['4006381333931']) => [
+    { name: 'Wheat flour', grams, codes },
+  ];
+
+  it('matches names by words, grams within ±20%, and the barcode', () => {
+    expect(compareIngredients(flour, got(1150))).toEqual([]);
+    expect(compareIngredients(flour, got(1250, []))).toEqual([
+      { code: 'grams', dish: 'flour', got: 1250 },
+      { code: 'barcode', dish: 'flour' },
+    ]);
+    expect(compareIngredients(flour, [])).toEqual([{ code: 'nothing' }]);
+    expect(
+      compareIngredients(flour, [{ name: 'Sugar', grams: 1000, codes: [] }]),
+    ).toEqual([{ code: 'not_recognized', dishes: ['flour'] }]);
+  });
+
+  it('takes ±30% for an estimate and reads in the report', () => {
+    const est = { ...flour, level: 'notExact' as const };
+    expect(compareIngredients(est, got(1250))).toEqual([]);
+    expect(expectedText(est)).toBe('flour 700-1300 g; notExact');
+  });
+});
+
 describe('expected.json', () => {
   it('rejects a broken file', () => {
     const ok = { set: 2, photos: [eggs] };
@@ -275,9 +306,9 @@ describe('expected.json', () => {
     expect(expectedFileSchema.safeParse([eggs]).success).toBe(false);
   });
 
-  it('is set 3 and every photo is next to the server package', async () => {
+  it('is set 4 and every photo is next to the server package', async () => {
     const { set, photos } = await readExpected();
-    expect(set).toBe(3);
+    expect(set).toBe(4);
     for (const e of photos)
       await expect(
         access(new URL(e.file, TEST_PHOTOS_DIR)),
@@ -291,6 +322,11 @@ describe('expected.json', () => {
       'walnuts-in-shell.jpg',
       'chicken-drumsticks.jpg',
       'sapodilla-receipt.jpg',
+      'flour-on-scale-grams.jpg',
+      'potatoes-on-scale-pounds.jpg',
+      'rice-package.jpg',
+      'pasta-package-barcode.jpg',
+      'carrots.jpg',
     ]);
     const run = (await pendingPhotos()).photos.map((p) => p.file);
     expect(run).toEqual(photos.map((e) => e.file));

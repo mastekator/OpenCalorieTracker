@@ -1,17 +1,25 @@
 import { readFile } from 'node:fs/promises';
 import type { Database } from 'better-sqlite3';
-import type { AiTestPhoto, AiTestStopReason } from '@oct/shared';
+import {
+  toIngredient,
+  type AiTestPhoto,
+  type AiTestStopReason,
+} from '@oct/shared';
+import { readBarcodes } from '../../barcodes/read.js';
 import { ApiError } from '../../http/errors.js';
 import { appVersion } from '../../version.js';
 import type { AiModel } from '../model.js';
 import { listModels } from '../models.js';
 import { applyEdible } from '../edible.js';
+import { applyIngredientEdible, recognizeIngredients } from '../ingredients.js';
 import { recognizeMeal, RECOGNIZE_PROMPT_VERSION } from '../recognize.js';
 import type { AiSettings } from '../settings.js';
 import { aiResultOf, redactSecrets } from '../status.js';
 import {
+  checkIngredients,
   checkPhoto,
   expectedText,
+  type ExpectedIngredients,
   readExpected,
   TEST_PHOTOS_DIR,
 } from './compare.js';
@@ -21,6 +29,36 @@ const HOUR_MS = 60 * 60 * 1000;
 const RUNS_PER_HOUR = 10;
 // Every next photo fails the same way: stop early (ADR-0019 §3, AC-2.8).
 const FATAL = ['auth_error', 'model_not_found', 'quota_exceeded'] as const;
+
+/**
+ * A raw-products photo like `?mode=ingredients` (ADR-0040 §7): barcodes read, the weight picked
+ * and the edible part applied as in the app, but no product lookup: it tests the model, not the network.
+ */
+async function testIngredients(
+  model: AiModel,
+  exp: ExpectedIngredients,
+  jpeg: Uint8Array,
+  opts: Parameters<typeof recognizeIngredients>[4],
+) {
+  const codes = await readBarcodes(jpeg).catch(() => []);
+  const rows = (
+    await recognizeIngredients(model, jpeg, 'en', codes, opts)
+  ).flatMap((row) => {
+    const item = toIngredient(row, null);
+    return item ? [{ row, item }] : [];
+  });
+  const items = applyIngredientEdible(rows, () => new Map());
+  return checkIngredients(
+    exp,
+    items.map((item, i) => {
+      const { barcode, printedBarcode } = rows[i]!.row;
+      return {
+        ...item,
+        codes: [barcode, printedBarcode].filter((c) => c !== null),
+      };
+    }),
+  );
+}
 
 /** The test set version and its photos, none run yet. */
 export async function pendingPhotos() {
@@ -58,17 +96,27 @@ export async function testPhotos(
     const started = Date.now();
     let fatal: AiTestStopReason | undefined;
     try {
-      // Scored on edible grams like the app shows them; never the user's own shares (ADR-0039 §6).
-      const got = applyEdible(
-        await recognizeMeal(model, jpeg, 'en', opts.signal, opts.onUsage),
-        () => new Map(),
-        'en',
-      );
-      photos[i] = {
-        ...photo,
-        ...checkPhoto(exp, got),
-        questions: got.questions.length,
-      };
+      if ('mode' in exp) {
+        photos[i] = {
+          ...photo,
+          ...(await testIngredients(model, exp, jpeg, {
+            signal: opts.signal,
+            onUsage: opts.onUsage,
+          })),
+        };
+      } else {
+        // Scored on edible grams like the app shows them; never the user's own shares (ADR-0039 §6).
+        const got = applyEdible(
+          await recognizeMeal(model, jpeg, 'en', opts.signal, opts.onUsage),
+          () => new Map(),
+          'en',
+        );
+        photos[i] = {
+          ...photo,
+          ...checkPhoto(exp, got),
+          questions: got.questions.length,
+        };
+      }
     } catch (err) {
       if (opts.signal?.aborted) return 'user';
       let result: string;
