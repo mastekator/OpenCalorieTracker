@@ -2,7 +2,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { aiSetup } from '../test/ai.js';
 import type { Deliver } from './send.js';
 import { sign } from './send.js';
-import { WEBHOOK_SECRET_PURPOSE } from './routes.js';
+import {
+  logDelivery,
+  WEBHOOK_SECRET_PURPOSE,
+  WEBHOOK_TEST_RATE_LIMIT,
+} from './routes.js';
 
 let cleanup: (() => Promise<void>) | undefined;
 const setup = async (env: Record<string, string> = {}) => {
@@ -232,10 +236,53 @@ describe('send test', () => {
     expect(sign(hook.secret, 1, o.body)).toMatch(/^[0-9a-f]{64}$/);
 
     for (let i = 0; i < 21; i++)
-      await t.call('POST', `/api/webhooks/${hook.id}/test`);
+      logDelivery(t.db, hook.id, 'test', 1, {
+        status: 200,
+        error: null,
+        durationMs: 1,
+      });
     const log = await t.call('GET', `/api/webhooks/${hook.id}/deliveries`);
     expect(log.body).toHaveLength(20);
     expect(log.body[0].id).toBeGreaterThan(log.body[19].id);
+  });
+
+  it('answers 429 past 10 test sends a minute per user', async () => {
+    const t = await setup();
+    const { body: hook } = await t.create();
+    const send = (cookie = t.cookie) =>
+      t.call('POST', `/api/webhooks/${hook.id}/test`, undefined, cookie);
+    const start = Date.now();
+    const now = vi.spyOn(Date, 'now').mockReturnValue(start);
+    for (let i = 0; i < WEBHOOK_TEST_RATE_LIMIT; i++)
+      expect((await send()).status).toBe(200);
+    const res = await t.app.request(`/api/webhooks/${hook.id}/test`, {
+      method: 'POST',
+      headers: { cookie: t.cookie, origin: 'http://localhost:3000' },
+    });
+    expect(res.status).toBe(429);
+    expect(res.headers.get('Retry-After')).toBe('60');
+    expect(await res.json()).toEqual({
+      error: { code: 'too_many_attempts', details: { retryAfterSec: 60 } },
+    });
+    expect(t.deliverWebhook).toHaveBeenCalledTimes(WEBHOOK_TEST_RATE_LIMIT);
+
+    // Another user's budget is separate; their webhook id is not ours.
+    const other = await t.signIn('b@example.com');
+    const { body: theirs } = await t.create({}, other);
+    expect(
+      (
+        await t.call(
+          'POST',
+          `/api/webhooks/${theirs.id}/test`,
+          undefined,
+          other,
+        )
+      ).status,
+    ).toBe(200);
+
+    now.mockReturnValue(start + 60_000);
+    expect((await send()).status).toBe(200);
+    now.mockRestore();
   });
 
   it('logs a failure', async () => {
