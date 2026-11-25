@@ -49,9 +49,10 @@ export interface ExportPlan {
 
 const BOM = '\ufeff';
 
-/** RFC 4180: quote a field holding a comma, a quote or a line break; double the quotes. */
+/** RFC 4180: quote a field holding a comma, a quote or a line break; double the quotes. Text that a spreadsheet would run as a formula gets a leading `'`. */
 export const csvField = (v: string | number) => {
-  const s = String(v);
+  const s =
+    typeof v === 'string' && /^[=+\-@\t\r]/.test(v) ? `'${v}` : String(v);
   return /[",\r\n]/.test(s) ? `"${s.replaceAll('"', '""')}"` : s;
 };
 const csvLine = (fields: (string | number)[]) =>

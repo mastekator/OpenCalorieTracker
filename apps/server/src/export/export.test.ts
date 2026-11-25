@@ -67,6 +67,16 @@ describe('csvField', () => {
     expect(csvField('Tea')).toBe('Tea');
     expect(csvField(183.4)).toBe('183.4');
   });
+
+  it('guards text that a spreadsheet would run as a formula', () => {
+    expect(csvField('=1+1')).toBe("'=1+1");
+    expect(csvField('+7')).toBe("'+7");
+    expect(csvField('-x')).toBe("'-x");
+    expect(csvField('@SUM(A1)')).toBe("'@SUM(A1)");
+    expect(csvField('\tTea')).toBe("'\tTea");
+    expect(csvField('=A1,B1')).toBe(`"'=A1,B1"`);
+    expect(csvField(-12.5)).toBe('-12.5');
+  });
 });
 
 const meal = (patch: Partial<MealInput> = {}): MealInput => ({
