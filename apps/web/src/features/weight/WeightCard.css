@@ -145,8 +145,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-3);
-  row-gap: 0;
+  gap: var(--button-row-gap-y) var(--space-3);
   font-size: var(--text-subhead-size);
 }
 

@@ -155,3 +155,11 @@
     grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 }
+
+/* A group of buttons: wraps with a gap on both axes, never edge to edge (OCT-457). */
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--button-row-gap-y) var(--button-row-gap-x);
+}

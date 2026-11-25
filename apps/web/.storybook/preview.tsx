@@ -36,6 +36,10 @@ const preview: Preview = {
           name: 'iPhone 390',
           styles: { width: '390px', height: '844px' },
         },
+        narrow: {
+          name: 'Narrow window 800',
+          styles: { width: '800px', height: '800px' },
+        },
         desktop: {
           name: 'Desktop 1280',
           styles: { width: '1280px', height: '800px' },
