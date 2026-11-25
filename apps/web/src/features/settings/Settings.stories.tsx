@@ -357,6 +357,7 @@ const integrations =
               ? { lastAt: '2026-11-12T12:00:00.000Z', lastFormat: 'json' }
               : { lastAt: null, lastFormat: null },
             tokens: { count: 0, blocked: false },
+            webhooks: { count: 0, failing: null, blocked: false },
           })
         : String(input).endsWith('/api/admin/integrations')
           ? Response.json(admin)

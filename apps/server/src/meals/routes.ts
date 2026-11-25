@@ -24,6 +24,7 @@ import { CHOICE_JOIN, resolveIllustration } from '../illustrations/routes.js';
 import { rememberer } from '../barcodes/remember.js';
 import { readMeal, type MealRow } from './read.js';
 import { deleteMeals } from './remove.js';
+import { enqueueMealSaved } from '../webhooks/outbox.js';
 
 const DAY_MS = 86_400_000;
 const FUTURE_SLACK_MS = 5 * 60_000;
@@ -205,6 +206,7 @@ export function mealStore({
         ) as number;
       insertItems(userId, id, input.items);
       touchRecipes(userId, id, eatenAt);
+      enqueueMealSaved(db, config, userId, 'created', () => readMeal(db, id));
       // Re-created after a delete: the newer rev of the meal must not sit next to a tombstone.
       db.prepare(
         'DELETE FROM meal_tombstones WHERE user_id = ? AND client_id = ?',
@@ -343,6 +345,9 @@ export function mealRoutes(deps: AppDeps) {
             insertItems(userId, meal.id, patch.items, recognizedBy);
           }
           touchRecipes(userId, meal.id, eatenAt);
+          enqueueMealSaved(db, config, userId, 'updated', () =>
+            readMeal(db, meal.id),
+          );
           return attach !== undefined && !full;
         })();
         if (dropFull)
@@ -397,7 +402,7 @@ export function mealRoutes(deps: AppDeps) {
       const userId = c.var.user.id;
       // Idempotent for the offline queue: missing, already deleted or another user's → 204, no change.
       const meal = findMeal(userId, c.req.param('id'));
-      if (meal) await deleteMeals(db, config.dataDir, userId, [meal]);
+      if (meal) await deleteMeals(db, config.dataDir, userId, [meal], config);
       return c.body(null, 204);
     });
 }
