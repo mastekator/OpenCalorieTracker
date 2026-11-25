@@ -168,6 +168,7 @@ export function WebhookScreen({ id }: { id: string }) {
       <div className="webhook__actions">
         <Button
           variant="tonal"
+          small
           loading={busy === 'test'}
           disabled={off || blocked}
           onClick={() => void test()}
@@ -177,6 +178,7 @@ export function WebhookScreen({ id }: { id: string }) {
         </Button>
         {!hook.enabled && !blocked ? (
           <Button
+            small
             loading={busy === 'on'}
             disabled={off}
             onClick={() => void turnOn()}
@@ -186,6 +188,7 @@ export function WebhookScreen({ id }: { id: string }) {
         ) : (
           <Button
             variant="plain"
+            small
             disabled={!online}
             onClick={() => setEditing(true)}
           >

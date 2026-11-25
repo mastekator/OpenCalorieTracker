@@ -333,7 +333,13 @@
 
 /* OCT-187 5.5: «Send test» and «Edit» share the row. */
 .webhook__actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-wrap: wrap;
   gap: var(--space-2);
+}
+
+/* Buttons split the row evenly but never wrap a label; too narrow, they stack. */
+.webhook__actions > .button {
+  flex: 1 1 0;
+  min-width: max-content;
 }
