@@ -527,6 +527,16 @@ const refineGone = {
 } satisfies Partial<Props>;
 export const RefinePhotoGone: Story = { args: refineGone };
 export const RefinePhotoGoneDark: Story = { args: refineGone, globals: dark };
+/** OCT-457: a narrow window keeps the phone layout; Save and Delete entry keep their gap. */
+const narrow = { viewport: { value: 'narrow' } };
+export const RefinePhotoGoneNarrow: Story = {
+  args: refineGone,
+  globals: narrow,
+};
+export const RefinePhotoGoneNarrowDark: Story = {
+  args: refineGone,
+  globals: { ...narrow, ...dark },
+};
 
 /** OCT-234 H.1: the AI's question under its dish, the guess checked, the count on the estimate line. */
 const questions = {

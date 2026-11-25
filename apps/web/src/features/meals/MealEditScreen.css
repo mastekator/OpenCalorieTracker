@@ -191,6 +191,7 @@
 }
 
 .meal-edit__actions {
+  /* Phone: stacked full-width buttons; the gap comes from .button-row. */
   display: grid;
 }
 
@@ -243,7 +244,6 @@
   .meal-edit__actions {
     display: flex;
     justify-content: flex-end;
-    gap: var(--space-3);
   }
 
   .meal-edit__actions .button {

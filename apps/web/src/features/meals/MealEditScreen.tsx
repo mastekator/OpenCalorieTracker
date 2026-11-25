@@ -1620,7 +1620,7 @@ export function MealEditScreen({
           {!online && !canRefine && (
             <p className="meal-edit__note">{t('edit.offline_note')}</p>
           )}
-          <div className="meal-edit__actions">
+          <div className="meal-edit__actions button-row">
             <span className="meal-edit__cancel">
               <Button variant="plain" onClick={onClose}>
                 {t('common.cancel')}

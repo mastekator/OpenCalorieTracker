@@ -101,3 +101,5 @@ export const PendingDark: Story = { ...Pending, globals: dark };
 export const PendingRussian: Story = { ...Pending, globals: { locale: 'ru' } };
 export const Refused: Story = { args: { weighings: last('error') } };
 export const RefusedDark: Story = { ...Refused, globals: dark };
+/** OCT-457: badge and Retry wrap with a gap between the lines. */
+export const RefusedRussian: Story = { ...Refused, globals: { locale: 'ru' } };

@@ -65,6 +65,7 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
+  row-gap: var(--button-row-gap-y);
 }
 
 .navbar__large-row:first-child {
