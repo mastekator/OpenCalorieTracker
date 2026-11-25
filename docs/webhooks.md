@@ -95,8 +95,9 @@ from a queue within a few seconds. Meals added by an import do not send events.
 
 Both go out at most once a local day, at the time you chose in your time zone (the server's zone if
 you did not set one). The app checks the clock once a minute, so an event may come up to a minute
-late. A day the server was off is not caught up; after a restart today's event still goes if the
-day has not ended. Moving the time later on a day whose event has already gone does not send it again.
+late. If the check for yesterday was missed (the server was off or busy at the chosen time), the
+event for yesterday, with yesterday's date, goes on the next check; older days are not caught up,
+nor days before the webhook was created. Moving the time later on a day whose event has already gone does not send it again.
 
 `day.closed` has the day's totals, your target (`null` without one) and what is left:
 

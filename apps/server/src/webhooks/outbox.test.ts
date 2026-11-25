@@ -11,6 +11,7 @@ import {
   FAILS_TO_DISABLE,
   RETRY_MS,
   startWebhookDelivery,
+  TIMED_INTERVAL_MS,
 } from './outbox.js';
 import type { Deliver, DeliveryResult } from './send.js';
 
@@ -374,15 +375,38 @@ describe('timed webhook events (ADR-0027 §4)', () => {
     ]);
   });
 
-  it('missed days are not caught up', async () => {
+  it('only yesterday is caught up, with its own date, once', async () => {
     const t = await timed();
-    await t.hook({ events: ['day.closed'], dayClosedAt: '23:00' });
-    t.run('2026-01-10T20:00:00Z');
-    t.run('2026-01-13T20:30:00Z');
+    await t.hook({ events: ['day.closed'], dayClosedAt: '23:59' });
+    t.db
+      .prepare('UPDATE webhooks SET created_at = ?')
+      .run(at('2026-01-10T06:00:00Z'));
+    t.run('2026-01-10T20:58:00Z'); // 23:58
+    t.run('2026-01-10T21:01:00Z'); // 00:01 on the 11th: the 23:59 check was missed
+    t.run('2026-01-10T21:02:00Z');
+    t.run('2026-01-11T12:00:00Z');
+    expect(t.events()).toEqual([['day.closed', '2026-01-10']]);
+    t.run('2026-01-13T20:59:00Z'); // the 11th is too old, the 12th is yesterday
+    t.run('2026-01-13T21:00:00Z');
     expect(t.events()).toEqual([
       ['day.closed', '2026-01-10'],
+      ['day.closed', '2026-01-12'],
       ['day.closed', '2026-01-13'],
     ]);
+  });
+
+  it('a webhook made today sends nothing for yesterday', async () => {
+    const t = await timed();
+    await t.hook({
+      events: ['day.closed', 'day.empty'],
+      dayClosedAt: '23:00',
+      emptyBy: '00:00',
+    });
+    t.db
+      .prepare('UPDATE webhooks SET created_at = ?')
+      .run(at('2026-01-10T21:30:00Z')); // 00:30 on the 11th in Moscow
+    t.run('2026-01-10T22:00:00Z');
+    expect(t.events()).toEqual([['day.empty', '2026-01-11']]);
   });
 
   it('day.closed carries the totals, the norm and what is left', async () => {
@@ -461,6 +485,32 @@ describe('timed webhook events (ADR-0027 §4)', () => {
     });
     await vi.advanceTimersByTimeAsync(DELIVERY_INTERVAL_MS * 3);
     expect(d.sent.map((s) => s.event)).toEqual(['day.closed']);
+    stop();
+  });
+
+  it('a delivery pass stuck at 23:59 does not hold the check back', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'Date'] });
+    vi.setSystemTime(at('2026-01-10T20:58:00Z')); // 23:58 in Moscow
+    const t = await timed();
+    await t.hook({
+      events: ['meal.saved', 'day.closed'],
+      dayClosedAt: '23:59',
+    });
+    await t.meal();
+    const deliver = vi.fn<Deliver>(() => new Promise(() => {})); // a dead receiver
+    const stop = startWebhookDelivery({
+      db: t.db,
+      config: t.config,
+      secrets: t.secrets,
+      deliver,
+    });
+    await vi.advanceTimersByTimeAsync(DELIVERY_INTERVAL_MS);
+    expect(deliver).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(TIMED_INTERVAL_MS);
+    expect(deliver).toHaveBeenCalledTimes(1);
+    expect(t.events().filter(([e]) => e === 'day.closed')).toEqual([
+      ['day.closed', '2026-01-10'],
+    ]);
     stop();
   });
 });
