@@ -8,6 +8,7 @@ import {
   applyRefine,
   fixedOf,
   itemOf,
+  nudgePct,
   relink,
   requestDishes,
   setEdible,
@@ -503,6 +504,29 @@ describe('gross → edible (ADR-0039 §5)', () => {
     expect(back.edible?.unlinked).toBeUndefined();
     expect(back.shown).toBe(579);
     expect(itemOf(back).edible).toEqual({ key: 'sapodilla', pct: 75 });
+  });
+
+  it('«Whole» sends 100 % and keeps the share for «Peeled»', () => {
+    const whole = {
+      ...row(),
+      edible: { ...edible, whole: true as const, chosen: true as const },
+    };
+    const r = relink(unlink(whole));
+    expect(r.shown).toBe(772);
+    expect(itemOf(r).edible).toEqual({ key: 'sapodilla', pct: 100 });
+    // A share picked after «Whole» is «Peeled» again.
+    expect(setEdible(r, { pct: 75 }).edible).not.toHaveProperty('whole');
+    expect(setEdible(r, { pct: 75 }).shown).toBe(579);
+  });
+
+  it('«Change %» steps by 5 within 10–100, an odd share goes to the next 5 first', () => {
+    expect(nudgePct(80, 1)).toBe(85);
+    expect(nudgePct(80, -1)).toBe(75);
+    expect(nudgePct(64, 1)).toBe(65);
+    expect(nudgePct(64, -1)).toBe(60);
+    expect(nudgePct(100, 1)).toBe(100);
+    expect(nudgePct(10, -1)).toBe(10);
+    expect(nudgePct(12, -1)).toBe(10);
   });
 
   it('an option of «How much is edible?» applies its share as the user’s', () => {

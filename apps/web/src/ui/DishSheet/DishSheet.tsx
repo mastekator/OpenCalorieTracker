@@ -11,8 +11,10 @@ import {
   type MergedDish,
   type Nutrients,
   type Product,
+  grossKind,
   type Units,
 } from '@oct/shared';
+import type { RowEdible } from '../../features/meals/refine';
 import type { BarcodeResult } from '../../data/products';
 import { useT } from '../../i18n';
 import {
@@ -23,6 +25,11 @@ import { AmountPicker, type Pack } from '../AmountPicker/AmountPicker';
 import { hasShares } from '../AmountPicker/amount';
 import { Button } from '../Button/Button';
 import { DishSourceBlock } from '../DishSourceBlock/DishSourceBlock';
+import {
+  EdibleBlock,
+  EdibleSource,
+  edibleGramsOf,
+} from '../EdibleBlock/EdibleBlock';
 import type { PackageKind } from '../SourceBadge/SourceBadge';
 import { useWeight } from '../weightUnits';
 import { Field } from '../Field/Field';
@@ -62,6 +69,8 @@ type Props = {
   product?: Product;
   /** The amount the dish is at; none: its grams. */
   amount?: Amount;
+  /** Gross weight → edible share (ADR-0039 §5): «Peeled · Whole» and «Change %» instead of the weight. */
+  edible?: RowEdible;
   /** «Done» with a non-empty name and a valid weight; `replaced` after «Replace»; `amount` and the typed `pack` with a product. */
   onDone: (
     name: string,
@@ -69,6 +78,7 @@ type Props = {
     replaced?: Replaced,
     amount?: Amount,
     pack?: Pack,
+    edible?: RowEdible,
   ) => void;
   onDelete: () => void;
   /** Close button, Esc, scrim, swipe down: the draft is dropped. */
@@ -87,6 +97,7 @@ export function DishSheet({
   lookup,
   product,
   amount: initialAmount,
+  edible: initialEdible,
   onDone,
   onDelete,
   onClose,
@@ -109,6 +120,8 @@ export function DishSheet({
   );
   // Typed in the sheet, kept with the dish until the meal is saved (AC-2.5).
   const [pack, setPack] = useState<Pack>({});
+  // The share is part of the draft too: «Close» drops it.
+  const [edible, setEdible] = useState(initialEdible);
   const merged = prod && { ...prod, ...pack };
   const [hint, setHint] = useState<AltHintState | undefined>(
     alt && {
@@ -149,6 +162,8 @@ export function DishSheet({
       from: r.from,
     };
     setReplaced({ barcode: code, dish });
+    // Another product: the gross weight was about the old one.
+    setEdible(undefined);
     setName(dish.name);
     setNameErr(false);
     setProd(r.product);
@@ -193,7 +208,7 @@ export function DishSheet({
       return nameRef.current?.focus();
     }
     if (grams !== null)
-      onDone(trimmed, grams, replaced, prod && amount, prod && pack);
+      onDone(trimmed, grams, replaced, prod && amount, prod && pack, edible);
   };
 
   return (
@@ -222,7 +237,17 @@ export function DishSheet({
             setNameErr(false);
           }}
         />
-        {merged ? (
+        {edible && !edible.unlinked && !merged ? (
+          <EdibleBlock
+            edible={edible}
+            name={name.trim() || base.name}
+            units={units}
+            onChange={(e, g) => {
+              setEdible(e);
+              setGrams(g);
+            }}
+          />
+        ) : merged ? (
           <AmountPicker
             title={amountTitle}
             // Another product after «Replace»: the typing form starts closed.
@@ -247,6 +272,31 @@ export function DishSheet({
             onChange={setGrams}
           />
         )}
+        {edible?.unlinked && !merged && (
+          <p className="dish-sheet__serving dish-sheet__manual">
+            {t('edit.edible.manual', {
+              gross: w.text(edible.grossG),
+              kind: edible.whole
+                ? t('edit.edible.whole')
+                : t(`edit.edible.gross_kind.${grossKind(edible.key)}`),
+            })}{' '}
+            <Button
+              variant="plain"
+              small
+              aria-label={t('edit.edible.relink_label', {
+                dish: name.trim() || base.name,
+              })}
+              onClick={() => {
+                // The share's grams again, as «Restore» in the row.
+                const linked = { ...edible, unlinked: undefined };
+                setEdible(linked);
+                setGrams(edibleGramsOf(linked));
+              }}
+            >
+              {t('edit.edible.relink')}
+            </Button>
+          </p>
+        )}
         {fromPack && (
           <p className="dish-sheet__serving">{t('edit.dish.unit_from_pack')}</p>
         )}
@@ -267,6 +317,9 @@ export function DishSheet({
             c: num(shown.carbsG),
           })}
         </p>
+        {edible && !edible.unlinked && !merged && (
+          <EdibleSource edible={edible} original={base} />
+        )}
         {source && (
           <DishSourceBlock
             kind={

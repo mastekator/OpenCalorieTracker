@@ -405,6 +405,107 @@ describe('gross → edible (ADR-0039 §5)', () => {
     });
   });
 
+  describe('in the «Dish» sheet (OCT-420 2.x)', () => {
+    const sheet = () => within(screen.getByRole('dialog'));
+    const open = async () =>
+      fireEvent.click(
+        await screen.findByRole('button', { name: 'Edit Sapodilla' }),
+      );
+    const kcal = () =>
+      document
+        .querySelector('.dish-sheet__kcal')
+        ?.textContent?.replace(/\s/g, ' ');
+    const done = () =>
+      fireEvent.click(sheet().getByRole('button', { name: 'Done' }));
+
+    it('«Whole» recalculates grams and kcal and is sent as 100 %', async () => {
+      const { onSave } = await setup(recognition());
+      await open();
+      expect(kcal()).toBe('513 kcal');
+      fireEvent.click(sheet().getByRole('radio', { name: 'Whole' }));
+      expect(kcal()).toBe('641 kcal');
+      fireEvent.click(sheet().getByRole('radio', { name: 'Peeled' }));
+      expect(kcal()).toBe('513 kcal');
+      fireEvent.click(sheet().getByRole('radio', { name: 'Whole' }));
+      done();
+      expect(line()).toBe('772 g whole → edible 772 g · 100% · yours');
+      expect(await save(onSave)).toMatchObject({
+        grams: 772,
+        edible: { key: 'k', pct: 100 },
+      });
+    });
+
+    it('«Change %» steps by 5, a gross edit keeps the share', async () => {
+      const { onSave } = await setup(recognition());
+      await open();
+      fireEvent.click(
+        sheet().getByRole('button', { name: 'Change the percentage, now 80%' }),
+      );
+      fireEvent.click(sheet().getByRole('button', { name: 'More by 5%' }));
+      expect(
+        sheet().getByRole('textbox', { name: 'How much is edible' }),
+      ).toHaveProperty('value', '85');
+      fireEvent.click(sheet().getByRole('button', { name: '50%' }));
+      fireEvent.change(
+        sheet().getByRole('textbox', { name: 'Weight with skin' }),
+        { target: { value: '900' } },
+      );
+      expect(sheet().getByText('edible · 450 g')).toBeTruthy();
+      done();
+      expect(line()).toBe('900 g with skin → edible 450 g · 50% · yours');
+      expect(await save(onSave)).toMatchObject({
+        grams: 450,
+        edible: { key: 'k', pct: 50 },
+      });
+    });
+
+    it('a share out of 10–100 shows the error and keeps the previous one', async () => {
+      const { onSave } = await setup(recognition());
+      await open();
+      fireEvent.click(
+        sheet().getByRole('button', { name: 'Change the percentage, now 80%' }),
+      );
+      const pct = sheet().getByRole('textbox', { name: 'How much is edible' });
+      fireEvent.change(pct, { target: { value: '110' } });
+      expect(sheet().getByText('10–100%')).toBeTruthy();
+      expect(sheet().getByText('edible · 618 g')).toBeTruthy();
+      done();
+      const item = await save(onSave);
+      expect(item).toMatchObject({ grams: 617.6 });
+      expect(item).not.toHaveProperty('edible');
+    });
+
+    it('«Close» drops the choice', async () => {
+      const { onSave } = await setup(recognition());
+      await open();
+      fireEvent.click(sheet().getByRole('radio', { name: 'Whole' }));
+      fireEvent.click(sheet().getByRole('button', { name: 'Close' }));
+      expect(line()).toBe('772 g with skin → edible 618 g · 80% · USDA');
+      expect(await save(onSave)).not.toHaveProperty('edible');
+    });
+
+    it('grams by hand show «Weight set by hand», «Restore» relinks', async () => {
+      const { onSave } = await setup(recognition());
+      fireEvent.change(
+        screen.getByRole('textbox', { name: 'Weight of Sapodilla' }),
+        { target: { value: '300' } },
+      );
+      await open();
+      expect(sheet().queryByRole('radio', { name: 'Whole' })).toBeNull();
+      fireEvent.click(
+        sheet().getByRole('button', {
+          name: 'Restore the edible weight of Sapodilla',
+        }),
+      );
+      fireEvent.click(sheet().getByRole('radio', { name: 'Whole' }));
+      done();
+      expect(await save(onSave)).toMatchObject({
+        grams: 772,
+        edible: { key: 'k', pct: 100 },
+      });
+    });
+  });
+
   it('a dish unlinked at save goes without edible', async () => {
     const { onSave } = await setup(recognition());
     fireEvent.change(
