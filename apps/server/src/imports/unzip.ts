@@ -1,5 +1,6 @@
 import { open } from 'node:fs/promises';
-import { inflateRawSync } from 'node:zlib';
+import { promisify } from 'node:util';
+import { inflateRaw } from 'node:zlib';
 import {
   CENTRAL,
   CENTRAL_SIG,
@@ -9,9 +10,9 @@ import {
   LOCAL_SIG,
 } from '../export/zip.js';
 import { ApiError } from '../http/errors.js';
+import { MAX_IMPORT_BYTES } from './draft.js';
 
-/** A zip bomb stops here (ADR-0026 §6): declared or actual unpacked size. */
-export const MAX_UNZIPPED_BYTES = 200 * 1024 * 1024;
+const inflate = promisify(inflateRaw);
 
 const bad = () => new ApiError(400, 'validation_failed');
 const tooBig = () => new ApiError(413, 'import_too_large');
@@ -36,7 +37,8 @@ export async function isZip(path: string) {
 export async function readZipEntry(
   path: string,
   want: (name: string) => boolean,
-  maxBytes = MAX_UNZIPPED_BYTES,
+  // A zip bomb stops here (ADR-0026 §6): no larger than the same file sent unzipped.
+  maxBytes = MAX_IMPORT_BYTES,
 ): Promise<Buffer | null> {
   const fh = await open(path);
   const read = async (length: number, position: number) => {
@@ -91,8 +93,8 @@ export async function readZipEntry(
       if (method === 0) out = data;
       else
         try {
-          // The declared size can lie: the output limit holds whatever it says.
-          out = inflateRawSync(data, { maxOutputLength: maxBytes });
+          // Off the event loop; the declared size can lie, the output limit holds whatever it says.
+          out = await inflate(data, { maxOutputLength: maxBytes });
         } catch (err) {
           throw (err as { code?: string }).code === 'ERR_BUFFER_TOO_LARGE'
             ? tooBig()

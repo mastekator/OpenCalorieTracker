@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { octExportSchema, type MealInput, type OctExport } from '@oct/shared';
 import { sweepPhotos } from '../photos/sweep.js';
 import { aiSetup } from '../test/ai.js';
@@ -12,6 +12,7 @@ import { writeZip, zipSize, type ZipEntry } from './zip.js';
 
 const cleanups: (() => Promise<void>)[] = [];
 afterEach(async () => {
+  vi.useRealTimers();
   await Promise.all(cleanups.splice(0).map((f) => f()));
 });
 
@@ -171,6 +172,28 @@ describe('GET /api/export', () => {
     expect(await (await t.get('/integrations')).json()).toMatchObject({
       export: { lastAt: expect.any(String), lastFormat: 'json' },
     });
+  });
+
+  it('names the file by today in the user zone', async () => {
+    const t = await setup();
+    vi.useFakeTimers({
+      toFake: ['Date'],
+      now: Date.parse('2027-01-01T23:30:00Z'),
+    });
+    const name = async (zone: string) => {
+      t.db
+        .prepare(
+          "UPDATE users SET time_zone = ? WHERE email = 'admin@example.com'",
+        )
+        .run(zone);
+      const { res } = await t.download('/export?from=2027-01-01&to=2027-01-02');
+      return res.headers.get('content-disposition');
+    };
+    expect(await name('UTC')).toContain('oct-export-2027-01-01.json');
+    expect(await name('Pacific/Kiritimati')).toContain(
+      // UTC+14
+      'oct-export-2027-01-02.json',
+    );
   });
 
   it('exports CSV in a ZIP: BOM, RFC 4180 quoting, local time', async () => {
