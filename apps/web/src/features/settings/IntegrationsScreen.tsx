@@ -1,5 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Barcode, Bot, Download, KeyRound, Lock, Upload } from 'lucide-react';
+import {
+  Barcode,
+  Bot,
+  Download,
+  KeyRound,
+  Lock,
+  Upload,
+  Webhook,
+} from 'lucide-react';
 import { useLocation } from 'wouter';
 import { listImports, type PastImport } from '../../api/imports';
 import { useDb, useOutboundBlocked, useSettings } from '../../data/DataContext';
@@ -17,6 +25,7 @@ import { Switch } from '../../ui/Switch/Switch';
 import { useExportCard } from './ExportScreen';
 import { useMcpState } from './McpScreen';
 import { useTokensCard } from './TokensScreen';
+import { useWebhooksCard } from './WebhooksScreen';
 import './settings.css';
 
 export const INTEGRATIONS_PATH = '/settings/integrations';
@@ -24,6 +33,7 @@ export const BARCODE_PATH = `${INTEGRATIONS_PATH}/barcode`;
 export const IMPORT_PATH = `${INTEGRATIONS_PATH}/import`;
 export const EXPORT_PATH = `${INTEGRATIONS_PATH}/export`;
 export const TOKENS_PATH = `${INTEGRATIONS_PATH}/tokens`;
+export const WEBHOOKS_PATH = `${INTEGRATIONS_PATH}/webhooks`;
 export const MCP_PATH = `${INTEGRATIONS_PATH}/mcp`;
 
 /** The admin's ban wins over the user's own switch, which is kept for when it is lifted (E-6). */
@@ -34,7 +44,7 @@ function useBarcodeState(): { on: boolean; state: IntegrationState } {
   return { on, state: blocked ? 'blocked' : on ? 'on' : 'off' };
 }
 
-/** OCT-187 §1: «Connections» (barcode lookup, tokens, MCP) and «Your data». */
+/** OCT-187 §1: «Connections» (barcode lookup, tokens, webhooks, MCP) and «Your data». */
 export function IntegrationsScreen() {
   const { t, num } = useT();
   const [, navigate] = useLocation();
@@ -42,6 +52,7 @@ export function IntegrationsScreen() {
   const online = useOnline();
   const exportCard = useExportCard();
   const tokensCard = useTokensCard();
+  const webhooksCard = useWebhooksCard();
   const mcp = useMcpState();
   const [imports, setImports] = useState<PastImport[]>([]);
   // The count needs the server: offline the card keeps its plain description.
@@ -89,6 +100,20 @@ export function IntegrationsScreen() {
           onClick={() => navigate(TOKENS_PATH)}
         >
           {t('integr.tokens.title')}
+        </ListRow>
+        <ListRow
+          icon={<Webhook />}
+          description={
+            <>
+              {webhooksCard.text}
+              <span className="settings__status">
+                <IntegrationStatus state={webhooksCard.state} />
+              </span>
+            </>
+          }
+          onClick={() => navigate(WEBHOOKS_PATH)}
+        >
+          {t('integr.webhooks.title')}
         </ListRow>
         <ListRow
           icon={<Bot />}

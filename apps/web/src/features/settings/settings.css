@@ -298,6 +298,39 @@
   gap: var(--space-4);
 }
 
+/* OCT-187 §5: webhooks. The address has no spaces: it wraps anywhere. */
+.webhooks__url {
+  display: block;
+  font-family: var(--font-mono);
+  overflow-wrap: anywhere;
+}
+
+.webhooks__note {
+  display: block;
+  color: var(--color-text-secondary);
+}
+
+.webhooks__event {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.webhooks__time {
+  min-height: var(--tap-min);
+  padding-inline: var(--space-2);
+  border: 1px solid var(--color-separator);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+.webhooks__time[aria-invalid='true'] {
+  border-color: var(--color-danger);
+}
+
 /* OCT-187 §6: MCP. A titled group that isn't a list of rows. */
 .mcp__group {
   display: grid;

@@ -3,14 +3,14 @@ import { useT } from '../../i18n';
 import '../ProviderStatus/ProviderStatus.css';
 import './IntegrationStatus.css';
 
-export type IntegrationState = 'off' | 'on' | 'blocked';
+export type IntegrationState = 'off' | 'on' | 'error' | 'blocked';
 
-/** Text and shape, never colour alone (OCT-187 §1): ring — off, dot — on, lock — the admin's ban. */
+/** Text and shape, never colour alone (OCT-187 §1): ring — off, dot — on, diamond — error, lock — the admin's ban. */
 export function IntegrationStatus({ state }: { state: IntegrationState }) {
   const { t } = useT();
   return (
     <span
-      className={`status-line status-line--${state === 'on' ? 'ok' : 'off'}`}
+      className={`status-line status-line--${state === 'on' ? 'ok' : state === 'error' ? 'err' : 'off'}`}
     >
       {state === 'blocked' ? (
         <Lock className="integration-status__lock" aria-hidden="true" />

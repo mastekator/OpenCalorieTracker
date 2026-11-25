@@ -237,7 +237,11 @@ export function TokensScreen() {
           setSecret(token);
         }}
       />
-      <SecretSheet secret={secret} onClose={() => setSecret(null)} />
+      <SecretSheet
+        secret={secret}
+        title={t('integr.tokens.created_title')}
+        onClose={() => setSecret(null)}
+      />
       <ConfirmDialog
         open={revoke !== null}
         title={
@@ -391,12 +395,17 @@ function CreateSheet({
   );
 }
 
-/** OCT-187 4.3: the token once; «Done» before copying asks first. */
-function SecretSheet({
+/** OCT-187 4.3 and 5.4: a token or a webhook secret, once; «Done» before copying asks first. */
+export function SecretSheet({
   secret,
+  title,
+  ns = 'tokens',
   onClose,
 }: {
   secret: string | null;
+  title: string;
+  /** Whose texts: «the token won’t be shown again» or «the secret…». */
+  ns?: 'tokens' | 'webhooks';
   onClose: () => void;
 }) {
   const { t } = useT();
@@ -409,7 +418,7 @@ function SecretSheet({
       <Sheet
         open={secret !== null}
         onClose={done}
-        title={t('integr.tokens.created_title')}
+        title={title}
         footer={
           <>
             <Button
@@ -433,14 +442,14 @@ function SecretSheet({
         }
       >
         <div className="tokens__secret">
-          <p>{t('integr.tokens.created_body')}</p>
+          <p>{t(`integr.${ns}.created_body`)}</p>
           {secret && <code className="tokens__token">{secret}</code>}
         </div>
       </Sheet>
       <ConfirmDialog
         open={asking}
         title={t('integr.tokens.uncopied_title')}
-        body={t('integr.tokens.uncopied_body')}
+        body={t(`integr.${ns}.uncopied_body`)}
         confirmLabel={t('integr.tokens.uncopied_ok')}
         onConfirm={() => {
           setAsking(false);

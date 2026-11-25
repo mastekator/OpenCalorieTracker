@@ -6,7 +6,15 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react';
-import type { AccountSettings, MeResponse } from '@oct/shared';
+import { Router } from 'wouter';
+import { memoryLocation } from 'wouter/memory-location';
+import {
+  API_VERSION,
+  type AccountSettings,
+  type MeResponse,
+} from '@oct/shared';
+import { AppScreens } from '../../app/routes';
+import { SessionContext } from '../../app/SessionContext';
 import { DataProvider } from '../../data/DataContext';
 import { openUserDb } from '../../data/db';
 import { clearLocal } from '../../data/user';
@@ -15,7 +23,12 @@ import { ToastProvider } from '../../ui/Toast/Toast';
 import { IntegrationsScreen } from './IntegrationsScreen';
 import { McpScreen, mcpConfig } from './McpScreen';
 
-const user = { id: 6, role: 'user', locale: 'en' } as MeResponse;
+const user = {
+  id: 6,
+  role: 'user',
+  locale: 'en',
+  methods: ['password'],
+} as MeResponse;
 const PUBLIC_URL = 'https://food.example.com';
 const SECRET = 'oct_mcp-secret-shown-once';
 
@@ -41,6 +54,16 @@ function serve(blocked = false) {
           tokens: { count: 0, blocked },
           webhooks: { count: 0, failing: null, blocked },
           mcp: { enabled: true, blocked },
+        });
+      if (url.endsWith('/api/config'))
+        return Response.json({
+          version: '1.0.0',
+          apiVersion: API_VERSION,
+          publicUrl: PUBLIC_URL,
+          authMethods: ['password'],
+          registration: 'invite',
+          setupError: null,
+          setupRequired: false,
         });
       if (url === '/api/tokens' && method === 'POST')
         return Response.json(
@@ -216,5 +239,29 @@ describe('IntegrationsScreen MCP card', () => {
     await wrap(<IntegrationsScreen />);
     expect(await screen.findByText('MCP for AI assistants')).toBeTruthy();
     expect(await screen.findByText(/· read-only/)).toBeTruthy();
+  });
+});
+
+describe('MCP route', () => {
+  it('opens with the address from /api/config', async () => {
+    serve();
+    await seed(true);
+    const location = memoryLocation({ path: '/settings/integrations/mcp' });
+    await wrap(
+      <Router hook={location.hook}>
+        <SessionContext.Provider
+          value={{
+            user,
+            refresh: async () => {},
+            signedIn: async () => {},
+            logout: async () => {},
+          }}
+        >
+          <AppScreens />
+        </SessionContext.Provider>
+      </Router>,
+    );
+    await screen.findByText('Address');
+    expect(snippet()).toContain(`${PUBLIC_URL}/mcp`);
   });
 });

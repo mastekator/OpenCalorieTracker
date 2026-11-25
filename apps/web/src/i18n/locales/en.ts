@@ -223,7 +223,12 @@ export const en = {
   integr: {
     lead: 'Everything is off until you turn it on. Anything connected shows up here and turns off in one tap.',
     connections: 'Connections',
-    status: { off: 'Off', on: 'On', blocked: 'Turned off by your admin' },
+    status: {
+      off: 'Off',
+      on: 'On',
+      error: 'Error',
+      blocked: 'Turned off by your admin',
+    },
     turn_on: 'Turn on',
     not_now: 'Not now',
     turn_off: 'Turn off',
@@ -439,6 +444,52 @@ export const en = {
       uncopied_title: 'Close without copying?',
       uncopied_body: 'The token won’t be shown again.',
       uncopied_ok: 'Close',
+    },
+    webhooks: {
+      title: 'Webhooks',
+      desc: 'Events to Home Assistant, n8n, ntfy',
+      n_webhooks: { one: '{n} webhook', other: '{n} webhooks' },
+      failing: '{name} isn’t delivering',
+      empty_title: 'No webhooks yet',
+      empty_body:
+        'A webhook sends an event to Home Assistant, n8n or ntfy when you save a meal or close the day.',
+      add: 'Add webhook',
+      new_title: 'New webhook',
+      edit: 'Edit webhook',
+      save: 'Save',
+      name_hint: 'Where events go, e.g. Home Assistant',
+      url: 'URL',
+      https_only:
+        'Internet addresses need HTTPS. HTTP works only inside your home network (192.168.…, .lan, .local).',
+      events: 'Events',
+      tz: 'Times use your time zone.',
+      data: 'Sent: event, time, dishes with grams, calories and macros. No photos, no email.',
+      ev: {
+        meal_saved: 'Meal saved',
+        meal_saved_desc: 'Also when edited or deleted',
+        day_closed: 'Day closed',
+        day_closed_desc: 'With the day’s totals',
+        day_closed_time: 'Day closed at',
+        day_empty: 'Nothing logged by',
+        day_empty_desc: 'If the day has no entries yet',
+        day_empty_time: 'Nothing logged by time',
+      },
+      fails: '{n} failed in a row',
+      auto_off: 'after {n} failures in a row',
+      turn_on_label: 'Turn on «{name}»',
+      never_holds:
+        'Food is saved right away and the event follows — a webhook never holds up saving.',
+      off_all: 'Turn off all webhooks',
+      off_all_title: 'Turn off all webhooks?',
+      off_all_body:
+        'Events stop going out. Addresses and settings are kept — turn each one back on when you need it.',
+      limit: 'You have 10 webhooks already — delete one to add another',
+      blocked:
+        'The admin has turned off outgoing requests. Your webhooks are kept but send nothing.',
+      created_title: '“{name}” webhook added',
+      created_body:
+        'Copy the signing secret now: we show it only once. Your receiver uses it to check the X-OCT-Signature header.',
+      uncopied_body: 'The secret won’t be shown again.',
     },
     mcp: {
       title: 'MCP for AI assistants',

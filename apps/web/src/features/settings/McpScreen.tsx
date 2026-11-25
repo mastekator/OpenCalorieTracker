@@ -38,7 +38,9 @@ export function mcpConfig(client: McpClient, url: string, token: string) {
 /** Keys in accent, the placeholder in warning (OCT-187 6.2). */
 function Snippet({ text, mark }: { text: string; mark?: string }) {
   const parts = text.split(
-    new RegExp(`("\\w+"(?=:)${mark ? `|${mark}` : ''})`),
+    new RegExp(
+      `("\\w+"(?=:)${mark ? `|${mark.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}` : ''})`,
+    ),
   );
   return parts.map((part, i) =>
     i % 2 ? (
