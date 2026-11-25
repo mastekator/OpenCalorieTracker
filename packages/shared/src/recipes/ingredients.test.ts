@@ -12,6 +12,7 @@ const row = (over: Partial<IngredientModelRow> = {}): IngredientModelRow => ({
   readUnit: null,
   weightFrom: null,
   estimateG: 300,
+  pieces: null,
   unit: null,
   kcal100: 340,
   protein100: 10,
@@ -129,6 +130,27 @@ describe('toIngredient (ADR-0040 §4)', () => {
       weightFrom: 'scale',
       kcal100: null,
       barcode: null,
+      pieces: null,
     });
+  });
+
+  it('keeps whole pieces only on an estimated weight', () => {
+    expect(toIngredient(row({ pieces: 3 }), null)).toMatchObject({
+      weight: 'estimate',
+      pieces: 3,
+    });
+    for (const pieces of [null, 2.5, 0, 100]) {
+      expect(toIngredient(row({ pieces }), null)).not.toHaveProperty('pieces');
+    }
+    const scale = row({
+      pieces: 3,
+      weightFrom: 'scale',
+      readValue: 250,
+      readUnit: 'g',
+    });
+    expect(toIngredient(scale, null)).not.toHaveProperty('pieces');
+    expect(toIngredient(row({ pieces: 3 }), product)).not.toHaveProperty(
+      'pieces',
+    );
   });
 });

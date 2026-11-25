@@ -243,6 +243,17 @@ export function IngredientPhotoSheet({
       source: t(`edit.edible.source.${e.chosen ? 'user' : e.source}`),
     });
   };
+  /** «3 pcs ≈ 55 g» while the weight is still the model's estimate of whole items. */
+  const noteOf = (r: ReviewRow, g: number | null) => {
+    const edible = edibleLine(r, g);
+    const count = r.item.pieces;
+    if (!count || r.byHand || r.item.weight !== 'estimate' || g === null)
+      return edible;
+    const rest = edible
+      ? `\u00b7 ${edible}`
+      : `\u2248 ${w.as(r.item.unit).text(g)}`;
+    return t('editor.products.pieces', { count, rest });
+  };
   const shareOf = ({ product: p, amount: a }: ReviewRow) =>
     p && a && a.mode !== 'weight' ? amountText[p.per].row(p, a) : undefined;
   const open = rows.find((r) => r.key === editing);
@@ -443,7 +454,7 @@ export function IngredientPhotoSheet({
                         }
                         wontFit={!fits.includes(r)}
                         share={shareOf(r)}
-                        note={edibleLine(r, g)}
+                        note={noteOf(r, g)}
                         onGramsChange={(grams) =>
                           setRow(r.key, {
                             grams,

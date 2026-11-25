@@ -72,6 +72,7 @@ const ITEMS: RecognizedIngredient[] = [
     per100: per100(157, 12.6, 11, 0.7),
     weight: 'estimate',
     source: 'ai',
+    pieces: 3,
   },
   {
     name: 'Carrots',

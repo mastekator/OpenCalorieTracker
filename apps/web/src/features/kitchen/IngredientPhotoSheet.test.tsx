@@ -123,11 +123,13 @@ const view = async (online = true, recipe = SALAD) => {
   return onSave;
 };
 
-const shoot = async () => {
-  fireEvent.click(screen.getByRole('button', { name: 'Ingredient' }));
-  fireEvent.click(
-    await screen.findByRole('button', { name: /Photograph the ingredients/ }),
-  );
+const shoot = async (
+  ingredient = 'Ingredient',
+  photo = /Photograph the ingredients/,
+) => {
+  // The ru dictionary loads lazily.
+  fireEvent.click(await screen.findByRole('button', { name: ingredient }));
+  fireEvent.click(await screen.findByRole('button', { name: photo }));
   // The last file input is the products one; the first is the recipe photo.
   const inputs =
     document.querySelectorAll<HTMLInputElement>('input[type=file]');
@@ -365,5 +367,40 @@ describe('Photograph the ingredients (ADR-0040 §6)', () => {
     expect(screen.getByText('Wheat flour')).toBeTruthy();
     expect(screen.queryByText('from scale')).toBeNull();
     expect(screen.queryByText('estimate')).toBeNull();
+  });
+
+  const EGGS: RecognizedIngredient = {
+    ...CARROTS,
+    name: 'Eggs',
+    grams: 165,
+    edible: undefined,
+    pieces: 3,
+  };
+
+  it('an estimated row with pieces reads «3 pcs ≈ 165 g»; typed grams or the recipe drop it', async () => {
+    stub([found(EGGS, { ...CARROTS, pieces: 1 }, { ...FLOUR, pieces: 2 })]);
+    await view();
+    await shoot();
+    expect(await screen.findByText(/^3\spcs \u2248 165\s?g$/)).toBeTruthy();
+    expect(screen.getByText(/^1\spc \u00b7 400/)).toBeTruthy();
+    // Not an estimate: no pieces.
+    expect(screen.queryByText(/^2\spcs/)).toBeNull();
+    fireEvent.change(screen.getByRole('textbox', { name: /Eggs/ }), {
+      target: { value: '200' },
+    });
+    expect(screen.queryByText(/pcs/)).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Add · 3' }));
+    await waitFor(() =>
+      expect(screen.queryByText('Ingredients from photo')).toBeNull(),
+    );
+    expect(screen.queryByText(/\bpcs?\b/)).toBeNull();
+  });
+
+  it('pieces in Russian: «3 шт. ≈ 165 г»', async () => {
+    localStorage.setItem(LOCALE_STORAGE_KEY, 'ru');
+    stub([found(EGGS)]);
+    await view();
+    await shoot('Ингредиент', /Сфотографировать продукты/);
+    expect(await screen.findByText(/^3\sшт\. \u2248 165\s?г$/)).toBeTruthy();
   });
 });
