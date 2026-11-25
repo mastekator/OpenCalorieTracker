@@ -22,3 +22,11 @@
   line-height: var(--text-footnote-lh);
   color: var(--color-text-secondary);
 }
+
+/* «Weight set by hand · was 772 g with skin · Restore» (OCT-420 1.2). */
+.dish-sheet__manual {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}

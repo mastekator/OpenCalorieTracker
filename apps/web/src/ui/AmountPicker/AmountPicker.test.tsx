@@ -97,6 +97,7 @@ describe('AmountPicker in the dish sheet', () => {
       undefined,
       { mode: 'pack', value: 0.75 },
       {},
+      undefined,
     );
   });
 
@@ -133,6 +134,7 @@ describe('AmountPicker in the dish sheet', () => {
       undefined,
       { mode: 'weight', value: 45 },
       {},
+      undefined,
     );
   });
 
@@ -179,6 +181,7 @@ describe('AmountPicker: unknown package data (OCT-380 3.1–3.4)', () => {
       undefined,
       { mode: 'pack', value: 1 },
       { packG: 40 },
+      undefined,
     );
   });
 
@@ -200,6 +203,7 @@ describe('AmountPicker: unknown package data (OCT-380 3.1–3.4)', () => {
       undefined,
       { mode: 'weight', value: 100 },
       {},
+      undefined,
     );
   });
 
@@ -214,6 +218,7 @@ describe('AmountPicker: unknown package data (OCT-380 3.1–3.4)', () => {
       undefined,
       { mode: 'pack', value: 1 },
       { packG: 200 },
+      undefined,
     );
   });
 
@@ -241,6 +246,7 @@ describe('AmountPicker: unknown package data (OCT-380 3.1–3.4)', () => {
       undefined,
       { mode: 'weight', value: 100 },
       {},
+      undefined,
     );
   });
 
@@ -271,6 +277,7 @@ describe('AmountPicker: unknown package data (OCT-380 3.1–3.4)', () => {
       undefined,
       { mode: 'piece', value: 1 },
       { pieces: 12 },
+      undefined,
     );
   });
 

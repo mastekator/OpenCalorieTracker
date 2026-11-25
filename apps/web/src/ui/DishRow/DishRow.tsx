@@ -68,8 +68,8 @@ type Props = {
   children?: ReactNode;
   /** A package share instead of grams: «1 pack · 120 g», ± in its mode (OCT-380 1.1). */
   share?: { product: Product; amount: Amount; onChange: (a: Amount) => void };
-  /** Gross weight → edible share (ADR-0039 §5); `chosen`: the user's share, `unlinked`: grams by hand. */
-  edible?: Edible & { chosen?: boolean; unlinked?: boolean };
+  /** Gross weight → edible share (ADR-0039 §5); `chosen`: the user's share, `unlinked`: grams by hand, `whole`: all of it. */
+  edible?: Edible & { chosen?: boolean; unlinked?: boolean; whole?: boolean };
   /** «Restore» after `unlinked`: the grams of the share again. */
   onRelink?: () => void;
 };
@@ -246,9 +246,11 @@ export function DishRow({
                     <span>
                       {t('edit.edible.manual', {
                         gross: text.weight(edible.grossG),
-                        kind: t(
-                          `edit.edible.gross_kind.${grossKind(edible.key)}`,
-                        ),
+                        kind: edible.whole
+                          ? t('edit.edible.whole')
+                          : t(
+                              `edit.edible.gross_kind.${grossKind(edible.key)}`,
+                            ),
                       })}
                     </span>
                     {onRelink && (
@@ -270,11 +272,13 @@ export function DishRow({
                     <p className="dish-row__edible tabular-nums">
                       {t('edit.edible.line', {
                         gross: text.weight(edible.grossG),
-                        kind: t(
-                          `edit.edible.gross_kind.${grossKind(edible.key)}`,
-                        ),
+                        kind: edible.whole
+                          ? t('edit.edible.whole')
+                          : t(
+                              `edit.edible.gross_kind.${grossKind(edible.key)}`,
+                            ),
                         net: text.weight(dish.grams),
-                        pct: num(edible.pct),
+                        pct: num(edible.whole ? 100 : edible.pct),
                         source: t(
                           `edit.edible.source.${edible.chosen ? 'user' : edible.source}`,
                         ),

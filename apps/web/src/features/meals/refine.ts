@@ -86,12 +86,32 @@ export type Row = {
   pack?: Pack;
   /**
    * Gross weight → edible share from the server (ADR-0039 §5): `grams` follow it. `chosen`: the
-   * user picked the share, it is remembered on save; `unlinked`: the grams were set by hand.
+   * user picked the share, it is remembered on save; `unlinked`: the grams were set by hand;
+   * `whole`: «Whole», all of it is eaten, `pct` stays for «Peeled».
    */
   edible?: RowEdible;
 };
 
-export type RowEdible = Edible & { chosen?: true; unlinked?: true };
+export type RowEdible = Edible & {
+  chosen?: true;
+  unlinked?: true;
+  whole?: true;
+};
+
+/** The share in effect: 100 % for «Whole». */
+export const edibleShare = (e: RowEdible) => (e.whole ? 100 : e.pct);
+
+/** «Change %» − / +: steps of 5 within 10–100; 64 goes to 65 or 60 first (OCT-420 2.3). */
+export const nudgePct = (pct: number, dir: 1 | -1) =>
+  Math.min(
+    100,
+    Math.max(
+      10,
+      pct % 5
+        ? (dir > 0 ? Math.ceil(pct / 5) : Math.floor(pct / 5)) * 5
+        : pct + 5 * dir,
+    ),
+  );
 
 export type Question = Omit<AiQuestion, 'dish'> & { chosen?: number };
 
@@ -141,7 +161,7 @@ export const itemOf = (row: Row): MealItemInput => {
     // Only the user's own share is remembered; the gross weight is never stored (ADR-0039 §4).
     ...(row.edible?.chosen &&
       !row.edible.unlinked && {
-        edible: { key: row.edible.key, pct: row.edible.pct },
+        edible: { key: row.edible.key, pct: edibleShare(row.edible) },
       }),
   };
 };
@@ -152,15 +172,17 @@ export function setEdible(
   { pct, grossG }: { pct?: number; grossG?: number } = {},
 ): Row {
   if (!row.edible) return row;
-  const { grossG: gross, pct: share, source, key, chosen } = row.edible;
+  const { grossG: gross, pct: share, source, key, chosen, whole } = row.edible;
   const edible: RowEdible = {
     grossG: grossG ?? gross,
     pct: pct ?? share,
     source,
     key,
     ...((chosen || pct !== undefined) && { chosen: true }),
+    // A share picked after «Whole» is «Peeled» again.
+    ...(whole && pct === undefined && { whole }),
   };
-  const g = edibleGrams(edible.grossG, edible.pct);
+  const g = edibleGrams(edible.grossG, edibleShare(edible));
   return { ...row, edible, grams: inRange(g) ? g : null, shown: g };
 }
 

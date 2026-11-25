@@ -1,6 +1,6 @@
 import { useState, type ComponentProps } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { fn, within } from 'storybook/test';
+import { fn, userEvent, within } from 'storybook/test';
 import { useT } from '../../i18n';
 import { Button } from '../Button/Button';
 import type { BarcodeResult } from '../../data/products';
@@ -388,5 +388,117 @@ export const PiecesAndWeightUnknown: Story = {
 };
 export const PiecesAndWeightUnknownDark: Story = {
   ...PiecesAndWeightUnknown,
+  globals: { theme: 'dark' },
+};
+
+/** OCT-420 2.1: a dish weighed with its skin: «Peeled · Whole», the gross weight, «Change %». */
+const sapodilla = {
+  original: {
+    name: 'Sapodilla',
+    grams: 617.6,
+    kcal: 512.6,
+    proteinG: 2.5,
+    fatG: 6.8,
+    carbsG: 123.5,
+  },
+  grams: 617.6,
+  edible: {
+    grossG: 772,
+    pct: 80,
+    source: 'ref' as const,
+    key: 'sapodilla',
+  },
+};
+export const Edible: Story = { args: sapodilla };
+export const EdibleDark: Story = {
+  args: sapodilla,
+  globals: { theme: 'dark' },
+};
+export const EdibleRussian: Story = {
+  args: {
+    ...sapodilla,
+    original: { ...sapodilla.original, name: 'Саподилла' },
+  },
+  globals: { locale: 'ru' },
+};
+export const EdibleDesktop: Story = {
+  args: sapodilla,
+  globals: { viewport: { value: 'desktop' } },
+};
+export const EdibleDesktopDark: Story = {
+  args: sapodilla,
+  globals: { viewport: { value: 'desktop' }, theme: 'dark' },
+};
+/** 2.2: «Whole» is 100 %; the label is just «Weight», the source block hides. */
+const whole = {
+  ...sapodilla,
+  grams: 772,
+  edible: { ...sapodilla.edible, whole: true as const, chosen: true as const },
+};
+export const EdibleWhole: Story = { args: whole };
+export const EdibleWholeDark: Story = {
+  args: whole,
+  globals: { theme: 'dark' },
+};
+/** An AI estimate: grey source, sparkle in the source block. */
+const aiShare = {
+  ...sapodilla,
+  grams: 193,
+  edible: {
+    grossG: 772,
+    pct: 25,
+    source: 'ai' as const,
+    key: 'ice_cream_bean',
+  },
+};
+export const EdibleAi: Story = { args: aiShare };
+export const EdibleAiDark: Story = {
+  args: aiShare,
+  globals: { theme: 'dark' },
+};
+/** 2.3: «Change %» opens the share stepper with 90 · 75 · 50 · 25. */
+export const EdibleChange: Story = {
+  args: sapodilla,
+  play: tap(/^(Change the percentage|Изменить процент)/, 'button'),
+};
+export const EdibleChangeDark: Story = {
+  ...EdibleChange,
+  globals: { theme: 'dark' },
+};
+export const EdibleChangeRussian: Story = {
+  ...EdibleChange,
+  args: EdibleRussian.args,
+  globals: { locale: 'ru' },
+};
+export const EdibleChangeDesktop: Story = {
+  ...EdibleChange,
+  globals: { viewport: { value: 'desktop' } },
+};
+/** 2.4: 0 or over 100 typed: «10–100%», the result keeps the previous share. */
+export const EdibleError: Story = {
+  args: sapodilla,
+  async play(ctx) {
+    await EdibleChange.play!(ctx);
+    const body = within(ctx.canvasElement.ownerDocument.body);
+    const input = await body.findByRole('textbox', {
+      name: /How much is edible|Сколько съедобно/,
+    });
+    await userEvent.clear(input);
+    await userEvent.type(input, '0');
+  },
+};
+export const EdibleErrorDark: Story = {
+  ...EdibleError,
+  globals: { theme: 'dark' },
+};
+/** 1.2: grams set by hand in the row: the usual weight and «Restore». */
+const manual = {
+  ...sapodilla,
+  grams: 300,
+  edible: { ...sapodilla.edible, unlinked: true as const },
+};
+export const EdibleManual: Story = { args: manual };
+export const EdibleManualDark: Story = {
+  args: manual,
   globals: { theme: 'dark' },
 };

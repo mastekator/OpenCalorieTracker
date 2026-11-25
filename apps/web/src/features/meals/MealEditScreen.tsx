@@ -137,6 +137,7 @@ import {
   type Recognized,
   type Previous,
   type Row,
+  type RowEdible,
   type ShownQuestion,
 } from './refine';
 import { usePackages } from './usePackages';
@@ -557,6 +558,7 @@ export function MealEditScreen({
     replaced?: Replaced,
     amount?: Amount,
     pack?: Pack,
+    edible?: RowEdible,
   ) => {
     setEditing(null);
     const row = rows.find((r) => r.id === id);
@@ -569,8 +571,12 @@ export function MealEditScreen({
       rs.map((r) =>
         r.id === id
           ? {
-              // Grams typed in the sheet are the user's, not the share of the gross weight.
-              ...(grams !== r.grams ? unlink(r) : r),
+              // The share from the sheet; otherwise grams typed there are the user's, not the share.
+              ...(edible
+                ? { ...r, edible }
+                : grams !== r.grams
+                  ? unlink(r)
+                  : r),
               original: replaced
                 ? {
                     ...r.original,
@@ -1765,8 +1771,17 @@ export function MealEditScreen({
           lookup={onBarcode}
           product={shareOf(editingRow)?.product}
           amount={shareOf(editingRow)?.amount}
-          onDone={(name, grams, replaced, amount, pack) =>
-            applySheet(editingRow.id, name, grams, replaced, amount, pack)
+          edible={editingRow.edible}
+          onDone={(name, grams, replaced, amount, pack, edible) =>
+            applySheet(
+              editingRow.id,
+              name,
+              grams,
+              replaced,
+              amount,
+              pack,
+              edible,
+            )
           }
           onDelete={() => {
             setEditing(null);
