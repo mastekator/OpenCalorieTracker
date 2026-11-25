@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { MealInput } from '@oct/shared';
 import { aiSetup } from '../test/ai.js';
+import { MAX_BATCH } from './routes.js';
 
 let cleanup: (() => Promise<void>) | undefined;
 const setup = async ({ enabled = true } = {}) => {
@@ -163,6 +164,28 @@ describe('MCP over Streamable HTTP (ADR-0027 §7)', () => {
     expect((await bad.json()).error.code).toBe(-32700);
 
     expect((await t.mcp(undefined, { method: 'GET' })).status).toBe(405);
+  });
+
+  it('caps the batch length', async () => {
+    const t = await setup();
+    const pings = (n: number) =>
+      Array.from({ length: n }, (_, i) => ({
+        jsonrpc: '2.0',
+        id: i,
+        method: 'ping',
+      }));
+    const full = await t.mcp(pings(MAX_BATCH));
+    expect(full.status).toBe(200);
+    expect(await full.json()).toHaveLength(MAX_BATCH);
+
+    const over = await t.mcp(pings(MAX_BATCH + 1));
+    expect(over.status).toBe(400);
+    // One error object, not an array of answers: no message was handled.
+    expect(await over.json()).toEqual({
+      jsonrpc: '2.0',
+      id: null,
+      error: { code: -32600, message: `Batch too large (max ${MAX_BATCH})` },
+    });
   });
 
   it('returns tool errors as isError', async () => {
