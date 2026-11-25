@@ -47,14 +47,17 @@ type Props = {
   units: Units;
   /** Every change: the share and its edible grams, null while the gross or the result is invalid. */
   onChange: (edible: RowEdible, grams: number | null) => void;
+  /** «Goes into the recipe» in a recipe; «How you ate it» by default. */
+  title?: string;
 };
 
 /**
  * Dish sheet, a dish weighed with its skin (OCT-420 2.1–2.4): «Peeled · Whole», the gross weight
  * and the edible result with «Change %» (10–100 %, steps of 5).
  */
-export function EdibleBlock({ edible, name, units, onChange }: Props) {
+export function EdibleBlock({ edible, name, units, onChange, title }: Props) {
   const { t, num } = useT();
+  const how = title ?? t('edit.edible.how');
   const w = useWeight(units);
   const errorId = useId();
   const [editing, setEditing] = useState(false);
@@ -89,9 +92,9 @@ export function EdibleBlock({ edible, name, units, onChange }: Props) {
   return (
     <div className="edible">
       <div className="amount__head">
-        <span className="amount__label">{t('edit.edible.how')}</span>
+        <span className="amount__label">{how}</span>
         <Segment
-          label={t('edit.edible.how')}
+          label={how}
           options={(['peeled', 'whole'] as const).map((m) => ({
             value: m,
             label: t(`edit.edible.mode.${m}`),

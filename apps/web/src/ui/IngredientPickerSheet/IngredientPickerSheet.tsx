@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { History, Pencil } from 'lucide-react';
+import { Camera, History, Pencil } from 'lucide-react';
 import { useT } from '../../i18n';
 import type { HistoryDish } from '../../data/DataContext';
 import { Field } from '../Field/Field';
@@ -13,6 +13,8 @@ type Props = {
   onPick: (dish: HistoryDish) => void;
   /** «Enter “…” manually»: the typed text becomes the name. */
   onManual: (query: string) => void;
+  /** «Photograph the ingredients» (ADR-0040 §6); none: no AI recognition, no row. Offline: greyed out. */
+  photo?: { online: boolean; onPick: () => void };
   onClose: () => void;
 };
 
@@ -24,6 +26,7 @@ export function IngredientPickerSheet({
   search,
   onPick,
   onManual,
+  photo,
   onClose,
 }: Props) {
   const { t, num, locale } = useT();
@@ -82,6 +85,20 @@ export function IngredientPickerSheet({
           </List>
         )}
         <List footer={t('editor.picker_note')}>
+          {photo && (
+            <ListRow
+              accent={photo.online}
+              disabled={!photo.online}
+              icon={<Camera />}
+              description={t(
+                photo.online ? 'editor.photo_row_sub' : 'editor.photo_offline',
+              )}
+              // A disabled row still takes the tap (ListRow keeps it for toasts); offline it does nothing.
+              onClick={() => photo.online && photo.onPick()}
+            >
+              {t('editor.photo_row')}
+            </ListRow>
+          )}
           <ListRow accent icon={<Pencil />} onClick={() => onManual(q)}>
             {q ? t('editor.enter_manually', { q }) : t('recipes.manual')}
           </ListRow>

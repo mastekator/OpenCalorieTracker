@@ -1,0 +1,31 @@
+.photo-ingredients {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.photo-ingredients__hint,
+.photo-ingredients__note {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+}
+
+.photo-ingredients__hint {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.photo-ingredients__hint svg {
+  flex: none;
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+}
+
+.photo-ingredients__wait > p {
+  margin: 0;
+}
+
+.photo-ingredients__note {
+  text-align: center;
+}

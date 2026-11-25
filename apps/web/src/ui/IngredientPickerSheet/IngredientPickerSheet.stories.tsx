@@ -60,3 +60,19 @@ export const Desktop: Story = {
   play: type('car'),
   globals: { viewport: { value: 'desktop' } },
 };
+/** AI recognition set up: «Photograph the ingredients» above «Enter manually» (OCT-435 1.1). */
+export const WithPhoto: Story = {
+  args: { photo: { online: true, onPick: fn() } },
+};
+export const WithPhotoDark: Story = {
+  args: { photo: { online: true, onPick: fn() } },
+  globals: dark,
+};
+/** Offline: the row stays, greyed out, «Needs internet» (OCT-435 1.3). */
+export const PhotoOffline: Story = {
+  args: { photo: { online: false, onPick: fn() } },
+};
+export const PhotoOfflineDark: Story = {
+  args: { photo: { online: false, onPick: fn() } },
+  globals: dark,
+};
