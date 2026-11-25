@@ -12,7 +12,7 @@ export function IntegrationStatus({
   children,
 }: {
   state: IntegrationState;
-  /** A note on the same line, after the state ("· read-only"). */
+  /** A plain note on the same line, after the state ("· read-only"). */
   children?: ReactNode;
 }) {
   const { t } = useT();
@@ -26,7 +26,7 @@ export function IntegrationStatus({
         <i className="status-line__dot" aria-hidden="true" />
       )}
       {t(`integr.status.${state}`)}
-      {children}
+      {children && <span className="integration-status__note">{children}</span>}
     </span>
   );
 }

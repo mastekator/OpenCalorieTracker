@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import {
   Barcode,
   Bot,
@@ -100,18 +100,54 @@ export function IntegrationsScreen() {
     }
   }
 
-  const offButton = (k: Off, name: string) =>
-    canOff[k] && (
-      <button
-        type="button"
-        className="list-row__action list-row__action--danger list-row__action--below"
-        disabled={!online || busy}
-        aria-label={t('integr.turn_off_label', { name })}
-        onClick={() => setOff(k)}
-      >
-        {t('integr.turn_off')}
-      </button>
-    );
+  /** OCT-187 1.2: an on card keeps its plain description; the state and «Turn off» share its footer. */
+  const connection = (
+    k: Off,
+    icon: ReactNode,
+    path: string,
+    title: string,
+    s: IntegrationState,
+    text: string,
+    desc: string,
+    detail?: string,
+  ) => (
+    <ListRow
+      icon={icon}
+      description={
+        canOff[k] ? (
+          desc
+        ) : (
+          <>
+            {text}
+            <span className="settings__status">
+              <IntegrationStatus state={s} />
+            </span>
+          </>
+        )
+      }
+      onClick={() => navigate(path)}
+      action={
+        canOff[k] && (
+          <div className="list-row__foot">
+            <IntegrationStatus state={s}>
+              {detail && `·\u00a0${detail}`}
+            </IntegrationStatus>
+            <button
+              type="button"
+              className="list-row__action list-row__action--danger"
+              disabled={!online || busy}
+              aria-label={t('integr.turn_off_label', { name: title })}
+              onClick={() => setOff(k)}
+            >
+              {t('integr.turn_off')}
+            </button>
+          </div>
+        )
+      }
+    >
+      {title}
+    </ListRow>
+  );
   const dialog = {
     barcode: { title: t('integr.barcode.off_confirm') },
     tokens: {
@@ -171,68 +207,45 @@ export function IntegrationsScreen() {
             : undefined
         }
       >
-        <ListRow
-          icon={<Barcode />}
-          description={
-            <>
-              {t('integr.barcode.desc')}
-              <span className="settings__status">
-                <IntegrationStatus state={state} />
-              </span>
-            </>
-          }
-          onClick={() => navigate(BARCODE_PATH)}
-          action={offButton('barcode', t('integr.barcode.title'))}
-        >
-          {t('integr.barcode.title')}
-        </ListRow>
-        <ListRow
-          icon={<KeyRound />}
-          description={
-            <>
-              {tokensCard.text}
-              <span className="settings__status">
-                <IntegrationStatus state={tokensCard.state} />
-              </span>
-            </>
-          }
-          onClick={() => navigate(TOKENS_PATH)}
-          action={offButton('tokens', t('integr.tokens.title'))}
-        >
-          {t('integr.tokens.title')}
-        </ListRow>
-        <ListRow
-          icon={<Webhook />}
-          description={
-            <>
-              {webhooksCard.text}
-              <span className="settings__status">
-                <IntegrationStatus state={webhooksCard.state} />
-              </span>
-            </>
-          }
-          onClick={() => navigate(WEBHOOKS_PATH)}
-          action={offButton('webhooks', t('integr.webhooks.title'))}
-        >
-          {t('integr.webhooks.title')}
-        </ListRow>
-        <ListRow
-          icon={<Bot />}
-          description={
-            <>
-              {t('integr.mcp.desc')}
-              <span className="settings__status">
-                <IntegrationStatus state={mcp}>
-                  {mcp === 'on' && ` · ${t('integr.mcp.read_only')}`}
-                </IntegrationStatus>
-              </span>
-            </>
-          }
-          onClick={() => navigate(MCP_PATH)}
-          action={offButton('mcp', t('integr.mcp.title'))}
-        >
-          {t('integr.mcp.title')}
-        </ListRow>
+        {connection(
+          'barcode',
+          <Barcode />,
+          BARCODE_PATH,
+          t('integr.barcode.title'),
+          state,
+          t('integr.barcode.desc'),
+          t('integr.barcode.desc'),
+        )}
+        {connection(
+          'tokens',
+          <KeyRound />,
+          TOKENS_PATH,
+          t('integr.tokens.title'),
+          tokensCard.state,
+          tokensCard.text,
+          t('integr.tokens.desc'),
+          tokensCard.text,
+        )}
+        {connection(
+          'webhooks',
+          <Webhook />,
+          WEBHOOKS_PATH,
+          t('integr.webhooks.title'),
+          webhooksCard.state,
+          webhooksCard.text,
+          t('integr.webhooks.desc'),
+          webhooksCard.text,
+        )}
+        {connection(
+          'mcp',
+          <Bot />,
+          MCP_PATH,
+          t('integr.mcp.title'),
+          mcp,
+          t('integr.mcp.desc'),
+          t('integr.mcp.desc'),
+          t('integr.mcp.read_only'),
+        )}
       </List>
       <div className="integr__in-app">
         <List title={t('integr.in_app')}>
