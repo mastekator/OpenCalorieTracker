@@ -134,6 +134,21 @@ describe('IntegrationsScreen (OCT-313 §4)', () => {
     expect(screen.getByText('Barcode lookup')).toBeTruthy();
   });
 
+  it('groups follow OCT-187 1.1; the in-app hint is not a control', async () => {
+    await seed(false);
+    serveBlocked(false);
+    await wrap(<IntegrationsScreen />);
+    await screen.findByText('Barcode lookup');
+    expect(
+      screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent),
+    ).toEqual(['Your data', 'Connections', 'In the app']);
+    const health = screen.getByText('Apple Health and Health Connect');
+    expect(health.closest('button, a')).toBeNull();
+    expect(
+      screen.getByText('Available in the iOS and Android app'),
+    ).toBeTruthy();
+  });
+
   it('the import card counts imports and entries', async () => {
     await seed(false);
     vi.stubGlobal(
