@@ -69,9 +69,18 @@ export function createDeliver({
       durationMs: Date.now() - started,
     });
     const target = new URL(url);
+    // One deadline for DNS and the request together.
+    const signal = AbortSignal.timeout(timeoutMs);
     let addresses: { address: string; family: number }[];
     try {
-      addresses = await lookup(hostOf(target));
+      addresses = await Promise.race([
+        lookup(hostOf(target)),
+        new Promise<never>((_, reject) =>
+          signal.addEventListener('abort', () => reject(signal.reason), {
+            once: true,
+          }),
+        ),
+      ]);
     } catch (e) {
       return done(null, errorOf(e as NodeJS.ErrnoException));
     }
@@ -90,7 +99,7 @@ export function createDeliver({
           method: 'POST',
           // An IP literal never calls lookup; it was checked above all the same.
           lookup: pin,
-          signal: AbortSignal.timeout(timeoutMs),
+          signal,
           headers: {
             'content-type': 'application/json',
             'user-agent': 'OpenCalorieTracker-Webhook',

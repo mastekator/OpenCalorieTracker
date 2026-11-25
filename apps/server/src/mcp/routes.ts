@@ -134,7 +134,10 @@ const rpcError = (id: Id | null, code: number, message: string) => ({
 const sameOrigin = (publicUrl: string | null) =>
   createMiddleware(async (c, next) => {
     const origin = c.req.header('origin');
-    if (origin !== undefined && origin !== publicUrl)
+    if (
+      origin !== undefined &&
+      origin !== (publicUrl ?? new URL(c.req.url).origin)
+    )
       throw new ApiError(403, 'forbidden');
     await next();
   });

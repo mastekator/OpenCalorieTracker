@@ -40,6 +40,13 @@ export const integrationsSchema = z.object({
     /** The admin forbade tokens; they are kept but answer 403. */
     blocked: z.boolean(),
   }),
+  webhooks: z.object({
+    count: z.number().int(),
+    /** The first webhook switched off after failures or whose last event failed; null if none. */
+    failing: z.string().nullable(),
+    /** The admin forbade outbound requests; nothing is queued or sent. */
+    blocked: z.boolean(),
+  }),
   mcp: z.object({
     /** The user's own switch (mcpEnabled). */
     enabled: z.boolean(),

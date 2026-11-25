@@ -11,6 +11,7 @@ import type { AppDeps } from '../app.js';
 import { requireUser, type AuthEnv, type User } from '../auth/session.js';
 import { ApiError } from '../http/errors.js';
 import { validate } from '../http/validate.js';
+import type { MealRow } from '../meals/read.js';
 import { deleteMeals } from '../meals/remove.js';
 import { COMMIT_BATCH, commitMeals, draftMeals } from './commit.js';
 import {
@@ -279,14 +280,10 @@ export function importRoutes({ config, db }: AppDeps) {
       const row = ownImport(user, c.req.param('id'));
       if (row) {
         const batch = db.prepare(
-          'SELECT id, client_id, photo_id FROM meals WHERE user_id = ? AND import_id = ? LIMIT ?',
+          'SELECT id, client_id, photo_id, local_date, meal_type FROM meals WHERE user_id = ? AND import_id = ? LIMIT ?',
         );
         for (;;) {
-          const meals = batch.all(user.id, row.id, COMMIT_BATCH) as {
-            id: number;
-            client_id: string;
-            photo_id: string | null;
-          }[];
+          const meals = batch.all(user.id, row.id, COMMIT_BATCH) as MealRow[];
           if (!meals.length) break;
           await deleteMeals(db, config.dataDir, user.id, meals);
           await new Promise(setImmediate);

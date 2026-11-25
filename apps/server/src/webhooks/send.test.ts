@@ -165,6 +165,14 @@ describe('deliver', () => {
     server!.closeAllConnections();
   });
 
+  it('counts a hanging DNS lookup into the timeout', async () => {
+    const res = await createDeliver({
+      lookup: () => new Promise(() => {}),
+      timeoutMs: 50,
+    })(out('https://example.com/hook'));
+    expect(res).toMatchObject({ status: null, error: 'timeout' });
+  });
+
   it('reports a refused connection', async () => {
     const r = await receiver();
     await new Promise<void>((done) => server!.close(() => done()));

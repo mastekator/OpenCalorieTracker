@@ -55,6 +55,42 @@ Body:
   After 20 failed events in a row the webhook is switched off; switching it on again starts the count over.
 - The app keeps the last 20 deliveries of each webhook in its log.
 
+### `meal.saved`
+
+`data.action` is `created`, `updated` or `deleted`. A deleted meal has only its id, `clientId`, `date` and `mealType`.
+Each webhook gets its own `id` for the same event. Saving does not wait for the delivery: events go out
+from a queue within a few seconds. Meals added by an import do not send events.
+
+```json
+{
+  "action": "created",
+  "meal": {
+    "id": 128,
+    "clientId": "5b1e0c9a-3f7d-4c1e-9a52-0f6d2c8e7b41",
+    "date": "2026-11-25",
+    "mealType": "lunch",
+    "eatenAt": "2026-11-25T09:30:00.000Z",
+    "items": [
+      {
+        "name": "Buckwheat with chicken",
+        "grams": 280,
+        "unit": "g",
+        "kcal": 410,
+        "proteinG": 30,
+        "fatG": 10,
+        "carbsG": 50
+      }
+    ],
+    "kcal": 410,
+    "proteinG": 30,
+    "fatG": 10,
+    "carbsG": 50
+  }
+}
+```
+
+`date` is the diary day of the meal, `mealType` is `breakfast`, `lunch`, `dinner` or `snack`.
+
 ## Signature
 
 `v1` is the hex HMAC-SHA256 of the string `<t>.<body>`:
