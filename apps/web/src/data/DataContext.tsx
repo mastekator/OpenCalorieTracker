@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from 'react';
 import {
+  accountSettingsSchema,
   aiStatusSchema,
   effectiveNorm,
   integrationsSchema,
@@ -81,6 +82,7 @@ export function DataProvider({
         document.removeEventListener('visibilitychange', onVisible);
       try {
         await flush(d); // pulls at the end
+        await sendTimeZone(d).catch(() => {});
         await refreshMyProducts(d).catch(() => {});
         if (!closed)
           await prefetchThumbs(
@@ -141,6 +143,22 @@ export function DataProvider({
 
   if (!db) return null;
   return <DataContext value={db}>{children}</DataContext>;
+}
+
+/**
+ * Tells the server this device's zone when it differs from the saved one, so "today" for tokens
+ * follows the user (ADR-0027 §4). Not queued: the next start sends it again.
+ */
+async function sendTimeZone(db: Db) {
+  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const s = (await db.get('kv', 'settings')) as AccountSettings | undefined;
+  if (!s || !timeZone || s.timeZone === timeZone) return;
+  // Does not move settingsRev, so no pull brings it back: keep the answer locally.
+  const saved = await api('/api/account/settings', accountSettingsSchema, {
+    method: 'PATCH',
+    body: { timeZone },
+  });
+  await db.put('kv', { ...s, timeZone: saved.timeZone }, 'settings');
 }
 
 /** The user's database, for the actions in outbox.ts. */

@@ -134,9 +134,8 @@ describe('tokenAuth (ADR-0027 §1)', () => {
   it('lets a token through /api/v1 only, never the internal API', async () => {
     const t = await setup();
     const { token } = (await t.create()).body;
-    // Past tokenAuth: no /api/v1 routes yet, so the catch-all answers.
     const v1 = await t.bearer('/api/v1/day', token);
-    expect(v1.status).toBe(404);
+    expect(v1.status).toBe(200);
     for (const path of ['/api/profile', '/api/tokens', '/api/admin/users']) {
       const res = await t.bearer(path, token);
       expect(res.status).toBe(401);
@@ -159,7 +158,7 @@ describe('tokenAuth (ADR-0027 §1)', () => {
       .run(Date.now() - 1, id);
     expect((await t.bearer('/api/v1/day', token)).status).toBe(401);
     t.db.prepare('UPDATE api_tokens SET expires_at = NULL').run();
-    expect((await t.bearer('/api/v1/day', token)).status).toBe(404);
+    expect((await t.bearer('/api/v1/day', token)).status).toBe(200);
     // Deleting the user cascades to the token.
     t.db.prepare("DELETE FROM users WHERE email = 'b@example.com'").run();
     expect((await t.bearer('/api/v1/day', token)).status).toBe(401);
@@ -217,17 +216,17 @@ describe('tokenAuth (ADR-0027 §1)', () => {
     let now = 1_000_000_000_000;
     vi.spyOn(Date, 'now').mockImplementation(() => now);
     for (let i = 0; i < TOKEN_RATE_LIMIT; i++)
-      expect((await t.bearer('/api/v1/day', token)).status).toBe(404);
+      expect((await t.bearer('/api/v1/day', token)).status).toBe(200);
     now += 20_500;
     const res = await t.bearer('/api/v1/day', token);
     expect(res.status).toBe(429);
     expect(res.headers.get('retry-after')).toBe('40');
     expect(await res.json()).toEqual({ error: { code: 'rate_limited' } });
     // Per token.
-    expect((await t.bearer('/api/v1/day', other)).status).toBe(404);
+    expect((await t.bearer('/api/v1/day', other)).status).toBe(200);
     // The next window starts afresh.
     now += 40_000;
-    expect((await t.bearer('/api/v1/day', token)).status).toBe(404);
+    expect((await t.bearer('/api/v1/day', token)).status).toBe(200);
   });
 
   it('never logs the token or the Authorization header', async () => {
@@ -281,7 +280,7 @@ describe('the admin switch for tokens (ADR-0027 §6)', () => {
     ).toEqual({ count: 1, blocked: true });
 
     await t.call('PUT', '/api/admin/integrations', t.cookie, { tokens: true });
-    expect((await t.bearer('/api/v1/day', token)).status).toBe(404);
+    expect((await t.bearer('/api/v1/day', token)).status).toBe(200);
   });
 
   it('lets ALLOW_API_TOKENS win over the table and refuses PUT of that switch only', async () => {

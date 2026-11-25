@@ -2563,6 +2563,8 @@ const ru: DeepPartial<typeof en> = {
     integrations_disabled: 'Администратор выключил токены доступа',
     invalid_token: 'Токен неверный, истёк или отозван',
     rate_limited: 'Слишком много запросов. Повторите через минуту',
+    insufficient_scope: 'Этот токен только для чтения',
+    period_too_long: 'Слишком длинный период. Выберите короче',
     limit_reached: 'У вас уже 20 токенов — удалите один, чтобы создать новый',
     barcode_invalid: 'Такого штрихкода не бывает — проверьте цифры',
     ai_settings_changed:

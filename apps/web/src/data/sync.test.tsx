@@ -341,3 +341,64 @@ describe('network back (OCT-19 2.9)', () => {
     expect(await screen.findByText('Synced 1 entry')).toBeTruthy();
   });
 });
+
+describe('time zone (ADR-0027 §4)', () => {
+  const settings = {
+    locale: 'en',
+    theme: 'system',
+    units: 'metric',
+    settingsRev: 3,
+    photoRetentionDays: null,
+    normDisclaimerHidden: false,
+    offEnabled: false,
+    offHintAt: null,
+  } as const;
+  const here = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  /** Starts the provider with `saved` as the server's zone; returns the PATCH bodies sent. */
+  const start = async (saved: string | null) => {
+    const patches: unknown[] = [];
+    const urls: string[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string, init?: RequestInit) => {
+        urls.push(url);
+        if (url === '/api/account/settings' && init?.method === 'PATCH') {
+          const body = JSON.parse(String(init.body)) as { timeZone: string };
+          patches.push(body);
+          return Response.json({ ...settings, timeZone: body.timeZone });
+        }
+        if (url.startsWith('/api/sync'))
+          return Response.json(
+            page({
+              settings: {
+                ...settings,
+                timeZone: saved,
+              } as SyncResponse['settings'],
+            }),
+          );
+        throw new TypeError(`unexpected ${url}`);
+      }),
+    );
+    render(
+      withApp(
+        <DataProvider user={{ id: 7, email: 'a@example.com' } as MeResponse}>
+          <p>ready</p>
+        </DataProvider>,
+      ),
+    );
+    await open();
+    // My products are fetched right after the zone is sent.
+    await waitFor(() => expect(urls).toContain('/api/products/mine'));
+    return patches;
+  };
+
+  it('sends the device zone once when the saved one differs', async () => {
+    expect(await start('Pacific/Kiritimati')).toEqual([{ timeZone: here }]);
+    expect(await db.get('kv', 'settings')).toMatchObject({ timeZone: here });
+  });
+
+  it('sends nothing when the zone is already saved', async () => {
+    expect(await start(here)).toEqual([]);
+  });
+});

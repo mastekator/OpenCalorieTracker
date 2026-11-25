@@ -9,6 +9,7 @@ import {
   nameKey,
   previousDishesSchema,
   sameMealContent,
+  type MealInput,
   type MealItemInput,
   type PreviousDish,
   type PreviousDishesResponse,
@@ -53,8 +54,12 @@ export function checkWhen(
   return ms;
 }
 
-/** Create, read, edit and delete one's own meals (ADR-0009 "API", ADR-0010 for deletion). */
-export function mealRoutes({ config, db, ai }: AppDeps) {
+/** Meal writes shared by the internal API and /api/v1 (ADR-0027 §2). */
+export function mealStore({
+  config,
+  db,
+  ai,
+}: Pick<AppDeps, 'config' | 'db' | 'ai'>) {
   const findMeal = (userId: number, id: string) =>
     /^\d+$/.test(id)
       ? (db
@@ -149,73 +154,92 @@ export function mealRoutes({ config, db, ai }: AppDeps) {
     };
   };
 
+  /**
+   * Saves a new meal; a repeat of `clientId` returns the saved one with `created: false`
+   * before any other check (E-4.1).
+   */
+  const createMeal = async (userId: number, input: MealInput) => {
+    const result = db.transaction(() => {
+      // A repeat (double tap, offline queue) returns the saved meal before any other check,
+      // so a retry with a photo is not refused as photo_in_use (E-4.1).
+      const existing = db
+        .prepare('SELECT id FROM meals WHERE user_id = ? AND client_id = ?')
+        .pluck()
+        .get(userId, input.clientId) as number | undefined;
+      if (existing !== undefined)
+        return { id: existing, created: false, dropFull: false };
+
+      const eatenAt = checkWhen(
+        input.eatenAt,
+        input.tzOffsetMin,
+        input.localDate,
+      );
+      const { full, expiresAt } =
+        input.photoId === undefined
+          ? { full: 0, expiresAt: null }
+          : photoTerms(userId, input.photoId, eatenAt);
+      const now = Date.now();
+      const rev = bumpRev(db, userId);
+      const id = db
+        .prepare(
+          `INSERT INTO meals (user_id, client_id, eaten_at, tz_offset_min, local_date, meal_type,
+           photo_id, photo_full, photo_expires_at, recalc_offer, rev, edit_rev, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+        )
+        .pluck()
+        .get(
+          userId,
+          input.clientId,
+          eatenAt,
+          input.tzOffsetMin,
+          input.localDate,
+          input.mealType,
+          input.photoId ?? null,
+          full,
+          expiresAt,
+          input.recalcOffer ? 1 : 0,
+          rev,
+          rev,
+          now,
+          now,
+        ) as number;
+      insertItems(userId, id, input.items);
+      touchRecipes(userId, id, eatenAt);
+      // Re-created after a delete: the newer rev of the meal must not sit next to a tombstone.
+      db.prepare(
+        'DELETE FROM meal_tombstones WHERE user_id = ? AND client_id = ?',
+      ).run(userId, input.clientId);
+      return {
+        id,
+        created: true,
+        dropFull: input.photoId !== undefined && !full,
+      };
+    })();
+    if (result.dropFull)
+      await removePhoto(config.dataDir, userId, input.photoId!, ['full']);
+    return { meal: readMeal(db, result.id), created: result.created };
+  };
+
+  return { findMeal, insertItems, touchRecipes, photoTerms, createMeal };
+}
+
+/** Create, read, edit and delete one's own meals (ADR-0009 "API", ADR-0010 for deletion). */
+export function mealRoutes(deps: AppDeps) {
+  const { config, db } = deps;
+  const { findMeal, insertItems, touchRecipes, photoTerms, createMeal } =
+    mealStore(deps);
+
   return new Hono<AuthEnv>()
     .post(
       '/meals',
       requireUser,
       validate('json', mealInputSchema),
       async (c) => {
-        const userId = c.var.user.id;
-        const input = c.req.valid('json');
-        const result = db.transaction(() => {
-          // A repeat (double tap, offline queue) returns the saved meal before any other check,
-          // so a retry with a photo is not refused as photo_in_use (E-4.1).
-          const existing = db
-            .prepare('SELECT id FROM meals WHERE user_id = ? AND client_id = ?')
-            .pluck()
-            .get(userId, input.clientId) as number | undefined;
-          if (existing !== undefined)
-            return { id: existing, created: false, dropFull: false };
-
-          const eatenAt = checkWhen(
-            input.eatenAt,
-            input.tzOffsetMin,
-            input.localDate,
-          );
-          const { full, expiresAt } =
-            input.photoId === undefined
-              ? { full: 0, expiresAt: null }
-              : photoTerms(userId, input.photoId, eatenAt);
-          const now = Date.now();
-          const rev = bumpRev(db, userId);
-          const id = db
-            .prepare(
-              `INSERT INTO meals (user_id, client_id, eaten_at, tz_offset_min, local_date, meal_type,
-               photo_id, photo_full, photo_expires_at, recalc_offer, rev, edit_rev, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
-            )
-            .pluck()
-            .get(
-              userId,
-              input.clientId,
-              eatenAt,
-              input.tzOffsetMin,
-              input.localDate,
-              input.mealType,
-              input.photoId ?? null,
-              full,
-              expiresAt,
-              input.recalcOffer ? 1 : 0,
-              rev,
-              rev,
-              now,
-              now,
-            ) as number;
-          insertItems(userId, id, input.items);
-          touchRecipes(userId, id, eatenAt);
-          // Re-created after a delete: the newer rev of the meal must not sit next to a tombstone.
-          db.prepare(
-            'DELETE FROM meal_tombstones WHERE user_id = ? AND client_id = ?',
-          ).run(userId, input.clientId);
-          return {
-            id,
-            created: true,
-            dropFull: input.photoId !== undefined && !full,
-          };
-        })();
-        if (result.dropFull)
-          await removePhoto(config.dataDir, userId, input.photoId!, ['full']);
-        return c.json(readMeal(db, result.id), result.created ? 201 : 200);
+        const { meal, created } = await createMeal(
+          c.var.user.id,
+          c.req.valid('json'),
+        );
+        return c.json(meal, created ? 201 : 200);
       },
     )
     .get('/meals/:id', requireUser, (c) => {
