@@ -47,6 +47,7 @@ function serve(list: ApiToken[], blocked = false) {
           barcode: { enabled: false, blocked: false },
           export: { lastAt: null, lastFormat: null },
           tokens: { count: list.length, blocked },
+          mcp: { enabled: false, blocked: false },
         });
       if (url.startsWith('/api/tokens')) {
         if (method === 'GET') return Response.json(list);

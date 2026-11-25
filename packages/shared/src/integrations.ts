@@ -40,6 +40,12 @@ export const integrationsSchema = z.object({
     /** The admin forbade tokens; they are kept but answer 403. */
     blocked: z.boolean(),
   }),
+  mcp: z.object({
+    /** The user's own switch (mcpEnabled). */
+    enabled: z.boolean(),
+    /** The admin forbade tokens, so /mcp answers 403 too. */
+    blocked: z.boolean(),
+  }),
 });
 export type Integrations = z.infer<typeof integrationsSchema>;
 

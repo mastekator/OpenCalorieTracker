@@ -39,6 +39,7 @@ export type ErrorCode =
   | 'integrations_disabled'
   | 'invalid_token'
   | 'insufficient_scope'
+  | 'mcp_disabled'
   | 'period_too_long'
   | 'rate_limited'
   | 'limit_reached'

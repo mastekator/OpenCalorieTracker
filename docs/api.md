@@ -1,6 +1,6 @@
 # Public API v1
 
-A small, stable HTTP API for scripts and home automation: read your diary and log a meal.
+A small, stable HTTP API for scripts and home automation: read your diary and log a meal. AI assistants can read it through [MCP](#mcp).
 It lives under `/api/v1` on your installation (for example `https://food.example.com/api/v1`).
 Incompatible changes never land in `v1`; they would come as `/api/v2` next to it.
 
@@ -172,4 +172,42 @@ Logging a meal from a script with `curl`:
 curl -X POST https://food.example.com/api/v1/meals \
   -H "Authorization: Bearer $OCT_TOKEN" -H "Content-Type: application/json" \
   -d '{"dishes":[{"name":"Coffee with milk","grams":250,"kcal":60,"proteinG":3,"fatG":3,"carbsG":5}]}'
+```
+
+## MCP
+
+An AI assistant can read your diary through the Model Context Protocol. The server is at `/mcp`
+on your installation (for example `https://food.example.com/mcp`). It only reads: nothing can be logged or changed through it.
+
+- Turn it on in **Settings → Integrations → MCP**; it is off by default and answers `403 mcp_disabled` until then.
+- Sign in with a personal access token, `read` is enough: `Authorization: Bearer oct_…`. The token limits and the administrator's switch apply as above.
+- Transport: Streamable HTTP without sessions. `POST /mcp` takes one JSON-RPC 2.0 message or a batch and answers with `application/json`; notifications get `202` with no body. There is no stream: `GET /mcp` answers `405`.
+- Protocol versions `2025-06-18` and `2025-03-26`.
+- A request from a browser with an `Origin` other than the installation's `PUBLIC_URL` is refused with `403`.
+
+Tools:
+
+| Tool          | Arguments                     | Returns                                                                                                                                  |
+| ------------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `get_day`     | `date` (optional, YYYY-MM-DD) | The same as `GET /day`                                                                                                                   |
+| `get_days`    | `from`, `to`                  | The same as `GET /days`, up to 366 days                                                                                                  |
+| `list_meals`  | `from`, `to`                  | The same as `GET /meals`; see below                                                                                                      |
+| `get_profile` | none                          | As `GET /profile`, with `height`, `weight` and `targetWeight` in the user's units (`heightUnit` `cm` or `in`, `weightUnit` `kg` or `lb`) |
+
+Food amounts are metric, as in the API. `list_meals` gives at most 31 days from `from` and 200 meals; a longer
+answer is cut and has `truncated: true`, so ask again for a shorter period. A bad argument or a too long `get_days`
+period comes back as a tool result with `isError: true` and the error in the text.
+
+A client configuration usually looks like this:
+
+```json
+{
+  "mcpServers": {
+    "calories": {
+      "type": "http",
+      "url": "https://food.example.com/mcp",
+      "headers": { "Authorization": "Bearer oct_…" }
+    }
+  }
+}
 ```

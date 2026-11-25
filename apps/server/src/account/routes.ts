@@ -19,17 +19,19 @@ export const readSettings = (db: Database, userId: number): AccountSettings => {
     .prepare(
       `SELECT locale, theme, units, settings_rev AS settingsRev,
        photo_retention_days AS photoRetentionDays, norm_disclaimer_hidden AS normDisclaimerHidden,
-       off_enabled AS offEnabled, off_hint_at AS offHintAt, time_zone AS timeZone
+       off_enabled AS offEnabled, off_hint_at AS offHintAt, time_zone AS timeZone,
+       mcp_enabled AS mcpEnabled
        FROM users WHERE id = ?`,
     )
     .get(userId) as Omit<
     AccountSettings,
-    'normDisclaimerHidden' | 'offEnabled'
-  > & { normDisclaimerHidden: 0 | 1; offEnabled: 0 | 1 };
+    'normDisclaimerHidden' | 'offEnabled' | 'mcpEnabled'
+  > & { normDisclaimerHidden: 0 | 1; offEnabled: 0 | 1; mcpEnabled: 0 | 1 };
   return {
     ...row,
     normDisclaimerHidden: row.normDisclaimerHidden === 1,
     offEnabled: row.offEnabled === 1,
+    mcpEnabled: row.mcpEnabled === 1,
   };
 };
 
@@ -37,6 +39,7 @@ export const readSettings = (db: Database, userId: number): AccountSettings => {
 const COLUMNS: Record<string, string> = {
   offEnabled: 'off_enabled',
   offHintAt: 'off_hint_at',
+  mcpEnabled: 'mcp_enabled',
 };
 
 /** Language, theme, units and photo retention of one's own account (ADR-0011 §3, AC-0.3, ADR-0008). */

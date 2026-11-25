@@ -21,6 +21,7 @@ import { mealRoutes } from './meals/routes.js';
 import { importRoutes } from './imports/routes.js';
 import { illustrationRoutes } from './illustrations/routes.js';
 import { integrationRoutes } from './integrations/routes.js';
+import { mcpRoutes } from './mcp/routes.js';
 import { normAgentRoutes } from './norm-agent/routes.js';
 import { photoRoutes } from './photos/routes.js';
 import { profileRoutes } from './profile/routes.js';
@@ -91,10 +92,12 @@ export function createApp(appDeps: AppDeps) {
   app.use('/api/*', device(config));
   app.use('/api/*', session(deps));
   // After session: a token request is the token's user, never the cookie's. Internal /api/* ignore tokens.
+  app.use('/mcp', jsonLimit);
   const byToken = tokenAuth(deps);
   app.use('/api/v1/*', byToken);
   app.use('/mcp', byToken);
   app.route('/api/v1', publicApiRoutes(deps));
+  app.route('/mcp', mcpRoutes(deps));
   app.route('/api', authRoutes(deps));
   app.route('/api', passkeyRoutes(deps));
   app.route('/api', setupRoutes(deps));
