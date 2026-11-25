@@ -16,11 +16,13 @@ import {
   BARCODE_PATH,
   BarcodeIntegrationScreen,
   EXPORT_PATH,
+  TOKENS_PATH,
   IMPORT_PATH,
   INTEGRATIONS_PATH,
   IntegrationsScreen,
 } from '../features/settings/IntegrationsScreen';
 import { ExportScreen } from '../features/settings/ExportScreen';
+import { TokensScreen } from '../features/settings/TokensScreen';
 import { ImportScreen } from '../features/settings/ImportScreen';
 import { AdminIntegrationsScreen } from '../features/admin/AdminIntegrationsScreen';
 import { BlocksScreen } from '../features/admin/BlocksScreen';
@@ -262,6 +264,14 @@ export function AppScreens() {
           back={{ href: INTEGRATIONS_PATH, label: t('settings.integrations') }}
         >
           <ExportScreen />
+        </Screen>
+      </Route>
+      <Route path={TOKENS_PATH}>
+        <Screen
+          title={t('integr.tokens.title')}
+          back={{ href: INTEGRATIONS_PATH, label: t('settings.integrations') }}
+        >
+          <TokensScreen />
         </Screen>
       </Route>
       {user.role !== 'admin' && (

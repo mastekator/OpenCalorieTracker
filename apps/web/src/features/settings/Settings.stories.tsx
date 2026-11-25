@@ -356,8 +356,9 @@ const integrations =
             export: on
               ? { lastAt: '2026-11-12T12:00:00.000Z', lastFormat: 'json' }
               : { lastAt: null, lastFormat: null },
-            tokens: { count: 0, blocked: false },
-            webhooks: { count: 0, failing: null, blocked: false },
+            // «On» also shows two tokens; the ban covers tokens too.
+            tokens: { count: on ? 2 : 0, blocked },
+            webhooks: { count: 0, failing: null, blocked },
           })
         : String(input).endsWith('/api/admin/integrations')
           ? Response.json(admin)
@@ -448,13 +449,13 @@ export const ServerIntegrationsBlockDark: Story = {
   ...ServerIntegrationsBlock,
   ...dark,
 };
-/** 7.3: set in .env, the switch is read-only. */
+/** 7.3: set in .env, both switches read-only. */
 export const ServerIntegrationsEnv: Story = {
   beforeEach: integrations(false, true, {
     outbound: false,
     outboundFromEnv: true,
     tokens: true,
-    tokensFromEnv: false,
+    tokensFromEnv: true,
   }),
   render: () => <AdminIntegrationsScreen />,
 };

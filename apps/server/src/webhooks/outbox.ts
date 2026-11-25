@@ -167,7 +167,15 @@ export async function deliverDue(
   let next = 0;
   await Promise.all(
     Array.from({ length: PARALLEL }, async () => {
-      while (next < rows.length) await one(rows[next++]!);
+      while (next < rows.length) {
+        const row = rows[next++]!;
+        // A webhook deleted mid-send fails its log insert; the pass must not end while others still send.
+        await one(row).catch((err) =>
+          console.error(
+            `[webhooks] event ${row.id}: ${(err as Error).message}`,
+          ),
+        );
+      }
     }),
   );
 }
