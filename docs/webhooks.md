@@ -18,6 +18,13 @@ the app shows its **secret** once; keep it to check that requests really come fr
 - The whole request, answer included, must finish in 10 seconds (`timeout`). The answer body is ignored.
 - The administrator can turn off outgoing requests for the whole installation. Then **Send test** and saving
   an enabled webhook answer `403 outbound_disabled`.
+- **Send test** works 10 times a minute per user; past that it answers `429 too_many_attempts` with `Retry-After`.
+
+**For the administrator.** Any user of the installation can point a webhook at an address in the server's local
+network, and the delivery log shows whether that address answered, refused or timed out. This is on purpose, so
+webhooks reach Home Assistant or n8n at home. If you don't want users to reach your local network, turn off outgoing
+requests in the admin settings or set `ALLOW_OUTBOUND_REQUESTS=false`. This stops all webhooks, not only the ones
+to local addresses.
 
 ## Request
 

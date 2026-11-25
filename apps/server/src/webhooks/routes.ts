@@ -21,6 +21,9 @@ import { deliver as realDeliver, type DeliveryResult } from './send.js';
 
 /** Secrets.seal() purpose of webhooks.secret_enc. */
 export const WEBHOOK_SECRET_PURPOSE = 'webhook.secret';
+/** Test sends per user per minute: the answer tells refused from timeout, so unlimited it scans the host's LAN. */
+export const WEBHOOK_TEST_RATE_LIMIT = 10;
+const MINUTE = 60_000;
 
 interface Row {
   id: number;
@@ -124,6 +127,8 @@ export function webhookRoutes({
     if (!integrationsPolicy(db, config).outbound)
       throw new ApiError(403, 'outbound_disabled');
   };
+  // shortcut: per-process fixed window; fine for one container, a restart resets it.
+  const testWindows = new Map<number, { start: number; count: number }>();
 
   return new Hono<AuthEnv>()
     .get('/webhooks', requireUser, (c) => {
@@ -229,6 +234,17 @@ export function webhookRoutes({
       // Works for a switched-off webhook too; only the admin's ban stops it.
       outboundOr403();
       const row = own(c.req.param('id'), c.var.user.id);
+      const now = Date.now();
+      let w = testWindows.get(c.var.user.id);
+      if (!w || now - w.start >= MINUTE) {
+        w = { start: now, count: 0 };
+        testWindows.set(c.var.user.id, w);
+      }
+      if (++w.count > WEBHOOK_TEST_RATE_LIMIT) {
+        const wait = Math.max(1, Math.ceil((w.start + MINUTE - now) / 1000));
+        c.header('Retry-After', String(wait));
+        throw new ApiError(429, 'too_many_attempts', { retryAfterSec: wait });
+      }
       const secret = secrets.open(row.secret_enc, WEBHOOK_SECRET_PURPOSE);
       if (secret === null) throw new ApiError(500, 'internal');
       const deliveryId = `test-${randomUUID()}`;
