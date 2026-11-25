@@ -336,3 +336,83 @@ describe('a recipe option (ADR-0035 §6, OCT-352 3.x)', () => {
     ).not.toContain('question');
   });
 });
+
+describe('gross → edible (ADR-0039 §5)', () => {
+  const edible = { grossG: 772, pct: 80, source: 'ref' as const, key: 'k' };
+  const fruit = {
+    name: 'Sapodilla',
+    grams: 617.6,
+    kcal: 512.6,
+    proteinG: 2.7,
+    fatG: 6.8,
+    carbsG: 123,
+    confidence: 0.8,
+  };
+  const recognition = (questions?: Recognition['questions']) => ({
+    dishes: [{ ...fruit, edible }],
+    questions,
+  });
+  const line = () =>
+    document
+      .querySelector('.dish-row__edible')
+      ?.textContent?.replace(/\s/g, ' ');
+  const save = async (onSave: ReturnType<typeof vi.fn>) => {
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    return (onSave.mock.calls[0]![0] as MealInput).items[0]!;
+  };
+
+  it('shows the share, sends no edible the user did not choose', async () => {
+    const { onSave } = await setup(recognition());
+    expect(line()).toBe('772 g with skin → edible 618 g · 80% · USDA');
+    const item = await save(onSave);
+    expect(item).toMatchObject({ grams: 617.6 });
+    expect(item).not.toHaveProperty('edible');
+  });
+
+  it('a chosen share is sent; grams by hand unlink, «Restore» relinks', async () => {
+    const { onSave } = await setup(
+      recognition([
+        {
+          dish: 0,
+          text: 'About how much is edible?',
+          guess: 0,
+          options: [80, 50].map((pct) => ({
+            label: `${pct}%`,
+            ...fruit,
+            grams: (772 * pct) / 100,
+            edible: { ...edible, pct, source: 'ai' as const },
+          })),
+        },
+      ]),
+    );
+    fireEvent.click(chip(group('Not sure: About how much is edible?'), '50%'));
+    expect(line()).toBe('772 g with skin → edible 386 g · 50% · yours');
+    fireEvent.change(
+      screen.getByRole('textbox', { name: 'Weight of Sapodilla' }),
+      { target: { value: '300' } },
+    );
+    expect(line()).toBe('Weight set by hand · was 772 g with skinRestore');
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Restore the edible weight of Sapodilla',
+      }),
+    );
+    expect(line()).toBe('772 g with skin → edible 386 g · 50% · yours');
+    expect(await save(onSave)).toMatchObject({
+      grams: 386,
+      edible: { key: 'k', pct: 50 },
+    });
+  });
+
+  it('a dish unlinked at save goes without edible', async () => {
+    const { onSave } = await setup(recognition());
+    fireEvent.change(
+      screen.getByRole('textbox', { name: 'Weight of Sapodilla' }),
+      { target: { value: '300' } },
+    );
+    const item = await save(onSave);
+    expect(item).toMatchObject({ grams: 300 });
+    expect(item).not.toHaveProperty('edible');
+  });
+});

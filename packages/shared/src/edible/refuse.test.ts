@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { EDIBLE_KEYS, REFUSE, edibleGrams, edibleOf } from './refuse.js';
+import {
+  EDIBLE_KEYS,
+  REFUSE,
+  edibleGrams,
+  edibleOf,
+  grossKind,
+} from './refuse.js';
 import { oneDecimal } from '../meals.js';
 
 describe('refuse reference', () => {
@@ -34,5 +40,19 @@ describe('edibleGrams', () => {
     expect(edibleGrams(333, 64)).toBe(213.1);
     expect(oneDecimal(edibleGrams(123.4, 73))).toBe(true);
     expect(edibleGrams(500, 100)).toBe(500);
+  });
+
+  it('names what the gross weight includes', () => {
+    expect(grossKind('banana')).toBe('skin');
+    expect(grossKind('nameKey_outside')).toBe('skin');
+    expect(grossKind('walnut_in_shell')).toBe('shell');
+    expect(grossKind('egg')).toBe('shell');
+    expect(grossKind('quail_egg')).toBe('shell');
+    expect(grossKind('coconut')).toBe('shell');
+    expect(grossKind('shrimp_in_shell')).toBe('carapace');
+    expect(grossKind('chicken_leg')).toBe('bone');
+    expect(grossKind('t_bone_steak')).toBe('bone');
+    expect(grossKind('trout_whole')).toBe('bone');
+    expect(grossKind('corn_on_cob')).toBe('cob');
   });
 });

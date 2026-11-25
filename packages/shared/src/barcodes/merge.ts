@@ -153,6 +153,8 @@ export function mergePackages(
         barcode,
         confidence,
         ...(alt && { alt }),
+        // Gross → edible the server applied (ADR-0039 §5); a package has no inedible parts.
+        ...(dish.edible && { edible: dish.edible }),
       });
     }
   }

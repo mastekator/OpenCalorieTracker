@@ -81,6 +81,16 @@ describe('mergePackages', () => {
     expect(plain).toMatchObject({ unit: 'ml', source: 'ai' });
   });
 
+  it('a plain AI dish keeps the gross → edible the server applied', () => {
+    const edible = {
+      grossG: 772,
+      pct: 80,
+      source: 'ref' as const,
+      key: 'sapodilla',
+    };
+    expect(mergePackages([ai({ edible })], [])[0]?.edible).toEqual(edible);
+  });
+
   it('takes 100 g for a product without a serving', () => {
     const [dish] = mergePackages(
       [ai({ barcode: A })],

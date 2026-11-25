@@ -101,3 +101,18 @@ export const edibleOf = (key: string) => byKey.get(key);
 /** Edible grams of a gross weight, one decimal like `oneDecimal`. Rescale the dish with `scaleItem`. */
 export const edibleGrams = (grossG: number, pct: number) =>
   round1((grossG * pct) / 100);
+
+/** What the gross weight includes, for the «772 g with skin» label (OCT-420 `gross_kind`). */
+export type GrossKind = 'skin' | 'shell' | 'bone' | 'carapace' | 'cob';
+export const grossKind = (key: string): GrossKind =>
+  key === 'shrimp_in_shell'
+    ? 'carapace'
+    : key === 'corn_on_cob'
+      ? 'cob'
+      : /_in_shell$|^(quail_)?egg$|^coconut$/.test(key)
+        ? 'shell'
+        : /^(chicken|duck|goose|turkey|trout|pork|lamb)_|^t_bone_steak$/.test(
+              key,
+            )
+          ? 'bone'
+          : 'skin';
