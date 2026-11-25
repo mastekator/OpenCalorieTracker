@@ -358,7 +358,12 @@ const integrations =
               : { lastAt: null, lastFormat: null },
             // «On» also shows two tokens; the ban covers tokens too.
             tokens: { count: on ? 2 : 0, blocked },
-            webhooks: { count: 0, failing: null, blocked },
+            // «On» also shows a failing webhook (design 1.2).
+            webhooks: {
+              count: on ? 2 : 0,
+              failing: on ? 'ntfy' : null,
+              blocked,
+            },
             mcp: { enabled: false, blocked: false },
           })
         : String(input).endsWith('/api/admin/integrations')

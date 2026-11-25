@@ -17,12 +17,14 @@ import {
   BarcodeIntegrationScreen,
   EXPORT_PATH,
   TOKENS_PATH,
+  WEBHOOKS_PATH,
   IMPORT_PATH,
   INTEGRATIONS_PATH,
   IntegrationsScreen,
 } from '../features/settings/IntegrationsScreen';
 import { ExportScreen } from '../features/settings/ExportScreen';
 import { TokensScreen } from '../features/settings/TokensScreen';
+import { WebhooksScreen } from '../features/settings/WebhooksScreen';
 import { ImportScreen } from '../features/settings/ImportScreen';
 import { AdminIntegrationsScreen } from '../features/admin/AdminIntegrationsScreen';
 import { BlocksScreen } from '../features/admin/BlocksScreen';
@@ -272,6 +274,14 @@ export function AppScreens() {
           back={{ href: INTEGRATIONS_PATH, label: t('settings.integrations') }}
         >
           <TokensScreen />
+        </Screen>
+      </Route>
+      <Route path={WEBHOOKS_PATH}>
+        <Screen
+          title={t('integr.webhooks.title')}
+          back={{ href: INTEGRATIONS_PATH, label: t('settings.integrations') }}
+        >
+          <WebhooksScreen />
         </Screen>
       </Route>
       {user.role !== 'admin' && (
