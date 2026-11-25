@@ -121,8 +121,9 @@ export function IntegrationsScreen() {
             <>
               {t('integr.mcp.desc')}
               <span className="settings__status">
-                <IntegrationStatus state={mcp} />
-                {mcp === 'on' && ` · ${t('integr.mcp.read_only')}`}
+                <IntegrationStatus state={mcp}>
+                  {mcp === 'on' && ` · ${t('integr.mcp.read_only')}`}
+                </IntegrationStatus>
               </span>
             </>
           }

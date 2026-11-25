@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Lock } from 'lucide-react';
 import { useT } from '../../i18n';
 import '../ProviderStatus/ProviderStatus.css';
@@ -6,7 +7,14 @@ import './IntegrationStatus.css';
 export type IntegrationState = 'off' | 'on' | 'error' | 'blocked';
 
 /** Text and shape, never colour alone (OCT-187 §1): ring — off, dot — on, diamond — error, lock — the admin's ban. */
-export function IntegrationStatus({ state }: { state: IntegrationState }) {
+export function IntegrationStatus({
+  state,
+  children,
+}: {
+  state: IntegrationState;
+  /** A note on the same line, after the state ("· read-only"). */
+  children?: ReactNode;
+}) {
   const { t } = useT();
   return (
     <span
@@ -18,6 +26,7 @@ export function IntegrationStatus({ state }: { state: IntegrationState }) {
         <i className="status-line__dot" aria-hidden="true" />
       )}
       {t(`integr.status.${state}`)}
+      {children}
     </span>
   );
 }

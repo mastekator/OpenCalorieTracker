@@ -8,6 +8,7 @@ import { codeOf } from '../admin/useAdminList';
 import { Banner } from '../../ui/Banner/Banner';
 import { Button } from '../../ui/Button/Button';
 import { CommandLine } from '../../ui/CommandLine/CommandLine';
+import { copyText, CopySheet } from '../../ui/CopySheet/CopySheet';
 import type { IntegrationState } from '../../ui/IntegrationStatus/IntegrationStatus';
 import { List, ListRow } from '../../ui/List/List';
 import { useOnline } from '../../ui/OfflineBar/OfflineBar';
@@ -75,6 +76,8 @@ export function McpScreen({ publicUrl }: { publicUrl: string | null }) {
   );
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
+  // No clipboard (webview, plain http): the full config in a sheet, since the snippet masks the token.
+  const [sheet, setSheet] = useState<string | null>(null);
   // Without PUBLIC_URL the server checks Origin against the request's own origin.
   const url = `${(publicUrl ?? location.origin).replace(/\/+$/, '')}/mcp`;
   const placeholder = t('integr.mcp.placeholder');
@@ -179,15 +182,11 @@ export function McpScreen({ publicUrl }: { publicUrl: string | null }) {
             <div>
               <Button
                 variant="tonal"
-                onClick={() =>
-                  // No clipboard (webview, http): the snippet stays selectable by hand.
-                  navigator.clipboard
-                    ?.writeText(mcpConfig(client, url, secret ?? placeholder))
-                    .then(
-                      () => setCopied(true),
-                      () => {},
-                    )
-                }
+                onClick={async () => {
+                  const text = mcpConfig(client, url, secret ?? placeholder);
+                  if (await copyText(text)) setCopied(true);
+                  else setSheet(text);
+                }}
               >
                 {copied ? (
                   <Check aria-hidden="true" />
@@ -202,6 +201,11 @@ export function McpScreen({ publicUrl }: { publicUrl: string | null }) {
         </>
       )}
       <p className="settings__lead">{t('integr.mcp.read')}</p>
+      <CopySheet
+        text={sheet}
+        title={t('integr.mcp.copy')}
+        onClose={() => setSheet(null)}
+      />
     </div>
   );
 }

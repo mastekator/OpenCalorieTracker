@@ -468,8 +468,10 @@ export const McpOnDark: Story = { ...McpOn, ...dark };
 export const McpToken: Story = {
   ...McpOn,
   play: async ({ canvas, userEvent }) => {
-    await userEvent.click(await canvas.findByText('Create a token for MCP'));
-    await canvas.findByText('Read-only · just created');
+    await userEvent.click(
+      await canvas.findByText(/Create a token for MCP|Создать токен для MCP/),
+    );
+    await canvas.findByText(/just created|создан только что/);
     await userEvent.click(canvas.getByRole('radio', { name: 'Cursor' }));
   },
 };

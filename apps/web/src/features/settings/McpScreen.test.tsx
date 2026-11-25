@@ -223,6 +223,20 @@ describe('McpScreen (OCT-187 §6)', () => {
         mcpConfig('cursor', `${PUBLIC_URL}/mcp`, SECRET),
       ),
     );
+    await screen.findByRole('button', { name: 'Copied' });
+    // Another client, another snippet: the label goes back.
+    fireEvent.click(screen.getByRole('radio', { name: 'Claude Desktop' }));
+    expect(screen.getByRole('button', { name: 'Copy config' })).toBeTruthy();
+
+    // No clipboard (plain http): the whole config, token included, in a sheet.
+    writeText.mockRejectedValueOnce(new Error('denied'));
+    fireEvent.click(screen.getByRole('button', { name: 'Copy config' }));
+    const full = mcpConfig('claude', `${PUBLIC_URL}/mcp`, SECRET);
+    expect(
+      await screen.findByText(
+        (_, el) => el?.textContent === full && el.tagName === 'PRE',
+      ),
+    ).toBeTruthy();
 
     view.unmount();
     await wrap();
