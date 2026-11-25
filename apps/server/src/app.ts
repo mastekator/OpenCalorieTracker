@@ -27,6 +27,8 @@ import { profileRoutes } from './profile/routes.js';
 import { recipeRoutes } from './recipes/routes.js';
 import { setupRoutes } from './setup/routes.js';
 import { syncRoutes } from './sync/routes.js';
+import { tokenAuth } from './tokens/auth.js';
+import { tokenRoutes } from './tokens/routes.js';
 import { weightRoutes } from './weight/routes.js';
 import { setupErrors, setupMode, type Config } from './config.js';
 import { apiVersion } from './http/apiVersion.js';
@@ -83,6 +85,10 @@ export function createApp(appDeps: AppDeps) {
   app.use('/api/*', apiVersion);
   app.use('/api/*', device(config));
   app.use('/api/*', session(deps));
+  // After session: a token request is the token's user, never the cookie's. Internal /api/* ignore tokens.
+  const byToken = tokenAuth(deps);
+  app.use('/api/v1/*', byToken);
+  app.use('/mcp', byToken);
   app.route('/api', authRoutes(deps));
   app.route('/api', passkeyRoutes(deps));
   app.route('/api', setupRoutes(deps));
@@ -90,6 +96,7 @@ export function createApp(appDeps: AppDeps) {
   app.route('/api', profileRoutes(deps));
   app.route('/api', accountRoutes(deps));
   app.route('/api', integrationRoutes(deps));
+  app.route('/api', tokenRoutes(deps));
   app.route('/api', barcodeRoutes(deps));
   app.route('/api', aiRoutes(deps));
   app.route('/api', photoRoutes(deps));

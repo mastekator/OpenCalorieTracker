@@ -56,6 +56,7 @@ const seed = async (offEnabled: boolean, blocked?: boolean) => {
       {
         barcode: { enabled: offEnabled, blocked },
         export: { lastAt: null, lastFormat: null },
+        tokens: { count: 0, blocked: false },
       },
       'integrations',
     );
@@ -81,6 +82,7 @@ const serveBlocked = (blocked: boolean) =>
             Response.json({
               barcode: { enabled: false, blocked },
               export: { lastAt: null, lastFormat: null },
+              tokens: { count: 0, blocked: false },
             }),
           )
         : new Promise(() => {}),
@@ -223,7 +225,12 @@ describe('AdminIntegrationsScreen (OCT-187 7.1–7.3)', () => {
     screen.findByRole('switch', { name: 'Outgoing requests from the server' });
 
   it('blocking asks first, then PUTs', async () => {
-    const fetch = serve({ outbound: true, outboundFromEnv: false });
+    const fetch = serve({
+      outbound: true,
+      outboundFromEnv: false,
+      tokens: true,
+      tokensFromEnv: false,
+    });
     await wrap(<AdminIntegrationsScreen />, false);
     fireEvent.click(await switchOf());
     expect(screen.getByText('Block outgoing requests?')).toBeTruthy();
@@ -233,14 +240,24 @@ describe('AdminIntegrationsScreen (OCT-187 7.1–7.3)', () => {
   });
 
   it('allowing PUTs at once', async () => {
-    const fetch = serve({ outbound: false, outboundFromEnv: false });
+    const fetch = serve({
+      outbound: false,
+      outboundFromEnv: false,
+      tokens: true,
+      tokensFromEnv: false,
+    });
     await wrap(<AdminIntegrationsScreen />, false);
     fireEvent.click(await switchOf());
     await waitFor(() => expect(puts(fetch)).toEqual([{ outbound: true }]));
   });
 
   it('set in .env: a banner and a switch that does not toggle', async () => {
-    serve({ outbound: false, outboundFromEnv: true });
+    serve({
+      outbound: false,
+      outboundFromEnv: true,
+      tokens: true,
+      tokensFromEnv: false,
+    });
     await wrap(<AdminIntegrationsScreen />, false);
     expect(((await switchOf()) as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getByText('Set in .env')).toBeTruthy();
@@ -248,11 +265,18 @@ describe('AdminIntegrationsScreen (OCT-187 7.1–7.3)', () => {
   });
 
   it('409 outbound_env_managed: the error and a fresh read', async () => {
-    const fetch = serve({ outbound: false, outboundFromEnv: false }, () =>
-      Response.json(
-        { error: { code: 'outbound_env_managed' } },
-        { status: 409 },
-      ),
+    const fetch = serve(
+      {
+        outbound: false,
+        outboundFromEnv: false,
+        tokens: true,
+        tokensFromEnv: false,
+      },
+      () =>
+        Response.json(
+          { error: { code: 'outbound_env_managed' } },
+          { status: 409 },
+        ),
     );
     await wrap(<AdminIntegrationsScreen />, false);
     fireEvent.click(await switchOf());

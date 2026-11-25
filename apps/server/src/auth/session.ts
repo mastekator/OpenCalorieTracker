@@ -2,7 +2,13 @@ import { createHash, randomBytes } from 'node:crypto';
 import type { Context } from 'hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { createMiddleware } from 'hono/factory';
-import type { AuthMethod, Locale, Theme, Units } from '@oct/shared';
+import type {
+  ApiTokenScope,
+  AuthMethod,
+  Locale,
+  Theme,
+  Units,
+} from '@oct/shared';
 import type { AppDeps } from '../app.js';
 import type { Config } from '../config.js';
 import { ApiError } from '../http/errors.js';
@@ -26,10 +32,20 @@ export interface User {
 }
 
 export type AuthEnv = {
-  Variables: { user?: User; deviceId?: string; sessionId?: number };
+  Variables: {
+    user?: User;
+    deviceId?: string;
+    sessionId?: number;
+    /** Set by tokenAuth on /api/v1 and /mcp only. */
+    tokenScope?: ApiTokenScope;
+  };
 };
 
-const tokenHash = (token: string) =>
+/** The User fields, from `users u`. */
+export const USER_COLUMNS = `u.id, u.email, u.name, u.role, u.locale, u.theme, u.units,
+  u.password_from_config, u.norm_disclaimer_hidden`;
+
+export const tokenHash = (token: string) =>
   createHash('sha256').update(token).digest();
 
 export const cookieOptions = (config: Config) => ({
@@ -88,8 +104,7 @@ export const session = ({ config, db }: AppDeps) =>
       // Deleting a user cascades to its sessions, so this also covers E-5.4.
       const row = db
         .prepare(
-          `SELECT s.id AS session_id, s.last_seen_at, u.id, u.email, u.name, u.role,
-                  u.locale, u.theme, u.units, u.password_from_config, u.norm_disclaimer_hidden
+          `SELECT s.id AS session_id, s.last_seen_at, ${USER_COLUMNS}
            FROM sessions s JOIN users u ON u.id = s.user_id
            WHERE s.token_hash = ? AND s.expires_at > ?`,
         )
