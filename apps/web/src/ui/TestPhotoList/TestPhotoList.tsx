@@ -85,7 +85,11 @@ export function TestPhotoList({ photos, running = false }: Props) {
             expected: num(m.expected),
             got: num(m.got),
           })
-        : t(`ai.test.why.${m.code}`);
+        : m.code === 'grams'
+          ? t('ai.test.why.grams', { dish: m.dish, grams: num(m.got) })
+          : m.code === 'barcode'
+            ? t('ai.test.why.barcode', { dish: m.dish })
+            : t(`ai.test.why.${m.code}`);
   const reasons = (p: AiTestPhoto) =>
     p.misses?.length
       ? p.misses.map(reason).join(' · ')

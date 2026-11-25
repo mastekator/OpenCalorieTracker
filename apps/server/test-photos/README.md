@@ -10,6 +10,7 @@ The model test set: **Settings → AI provider → Test model** and `pnpm --filt
 - `level`: `exact` for countable single items (every dish must come back `exact`), `notExact` for mixed dishes (none may).
 - `"empty": true`: not food; the dish list must be empty.
 - `"question": true`: the answer must ask at least one question, of any kind.
+- `"mode": "ingredients"`: raw products for a recipe, run through the ingredient recognition (`?mode=ingredients`, ADR-0040 §7) with barcodes read and the edible part applied, but no product lookup. Instead of `dishes` and `ref`, `items` lists each product: `words` as above, `grams` its edible grams (±20% for `exact` — scales or a package, ±30% for `notExact` — an estimate), and an optional `barcode`, a GTIN the answer must carry for it, decoded or printed.
 
 Dishes with an inedible part (peel, stones, shells, bones) are scored on the edible part: the run passes the answer through the edible-share reference as the app does, so `ref` is the kcal of the edible grams, and the gross weight on a scale or receipt falls out of range (ADR-0039 §6).
 
@@ -45,6 +46,16 @@ Awaiting cases (ADR-0039 §6), edible grams × kcal per 100 g:
 | walnuts-in-shell.jpg   | walnuts in shell ~110 g; 45% edible ≈ 50 g × 654                                                                              | 324 | 227–421 |
 | chicken-drumsticks.jpg | 2 roasted drumsticks ~240 g with bone; 67% edible ≈ 160 g × 216                                                               | 345 | 242–449 |
 | sapodilla-receipt.jpg  | the project owner's sapodilla in a bag, 772 g on the receipt; 80% edible ≈ 618 g × 83; a question (receipt or photo) expected | 513 | 410–616 |
+
+Awaiting raw-product cases (`"mode": "ingredients"`), edible grams:
+
+| File                         | Estimate                                                          | grams | Range    |
+| ---------------------------- | ----------------------------------------------------------------- | ----- | -------- |
+| flour-on-scale-grams.jpg     | flour on a kitchen scale showing 500 g                            | 500   | 400–600  |
+| potatoes-on-scale-pounds.jpg | potatoes on a scale showing 1 lb (454 g), peel kept as eaten      | 454   | 363–545  |
+| rice-package.jpg             | a rice package with 900 g net printed                             | 900   | 720–1080 |
+| pasta-package-barcode.jpg    | a 500 g pasta package, its barcode in the frame and on the answer | 500   | 400–600  |
+| carrots.jpg                  | 3 raw carrots ~300 g, no scale; 90% edible ≈ 270 g                | 270   | 189–351  |
 
 Sushi is `exact`, and the level is checked on every returned dish, extras included: wasabi or ginger returned below `exact` fails the photo, an honest fail.
 

@@ -87,15 +87,15 @@ describe('model test', () => {
       inputTokens: N,
       outputTokens: N,
       costUsd: null,
-      testSet: 3,
-      currentSet: 3,
+      testSet: 4,
+      currentSet: 4,
     });
     expect(run.photos).toHaveLength(N);
     expect(run.photos.every((p) => p.ms !== undefined)).toBe(true);
     expect(run.passed).toBe(run.photos.filter((p) => p.result === 'ok').length);
     expect(run.modelsMdRow).toBe(modelsMdRow(run));
     expect(run.modelsMdRow).toMatch(
-      new RegExp(`^\\| openai \\| gpt-x \\| \\d/${N} \\|.*, set 3 \\|$`),
+      new RegExp(`^\\| openai \\| gpt-x \\| \\d/${N} \\|.*, set 4 \\|$`),
     );
     expect(run.report?.endsWith(run.modelsMdRow!)).toBe(true);
 
@@ -105,8 +105,8 @@ describe('model test', () => {
         id: run.id,
         status: 'done',
         total: N,
-        testSet: 3,
-        currentSet: 3,
+        testSet: 4,
+        currentSet: 4,
       }),
     ]);
     expect(list[0]).not.toHaveProperty('photos');
@@ -314,7 +314,7 @@ describe('model test', () => {
     const cut = await t.get(20);
     expect(cut.status).toBe('interrupted');
     // A run from before the column is set 1 (ADR-0033 §4).
-    expect(cut).toMatchObject({ testSet: 1, currentSet: 3 });
+    expect(cut).toMatchObject({ testSet: 1, currentSet: 4 });
     expect(cut.photos[0]!.result).toBe('not_run');
     expect(cut.modelsMdRow).toBeUndefined();
 

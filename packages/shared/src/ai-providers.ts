@@ -171,6 +171,10 @@ export const aiTestMissSchema = z.discriminatedUnion('code', [
     expected: z.number(),
     got: z.number(),
   }),
+  /** A raw product's grams out of range (ADR-0040 §7). */
+  z.object({ code: z.literal('grams'), dish: z.string(), got: z.number() }),
+  /** A raw product without the expected barcode. */
+  z.object({ code: z.literal('barcode'), dish: z.string() }),
   z.object({
     code: z.enum([
       'kcal',

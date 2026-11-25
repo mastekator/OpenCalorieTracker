@@ -46,6 +46,7 @@ export function recognizeIngredients(
   jpeg: Uint8Array,
   locale: string,
   barcodes: string[] = [],
+  opts: Pick<Parameters<typeof askVision>[2], 'signal' | 'onUsage'> = {},
 ): Promise<IngredientModelRow[]> {
   return askVision(
     model,
@@ -59,6 +60,7 @@ export function recognizeIngredients(
       schema: ingredientsModelSchema,
       promptVersion: INGREDIENTS_PROMPT_VERSION,
       logExtra: (r) => `items=${r?.length ?? 0}`,
+      ...opts,
     },
     (output) =>
       output.items.map((row) => {

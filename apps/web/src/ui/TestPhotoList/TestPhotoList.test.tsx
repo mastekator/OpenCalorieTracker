@@ -151,6 +151,36 @@ it('words a case that expected a question and got none', async () => {
   ).toBeTruthy();
 });
 
+it('words the grams and barcode misses of a raw-products case', async () => {
+  localStorage.setItem(LOCALE_STORAGE_KEY, 'ru');
+  render(
+    <I18nProvider>
+      <TestPhotoList
+        photos={[
+          {
+            file: 'flour-package.jpg',
+            expected: 'flour 800-1200 g; exact',
+            got: 'Flour 500 g',
+            kcal: 1820,
+            ms: 2100,
+            result: 'flour: 500 g out of range · flour: barcode not read',
+            misses: [
+              { code: 'grams', dish: 'flour', got: 500 },
+              { code: 'barcode', dish: 'flour' },
+            ],
+          },
+        ]}
+      />
+    </I18nProvider>,
+  );
+  const why = (await screen.findByText(/штрихкод не прочитан/)).closest(
+    '.test-photos__why',
+  );
+  expect(why?.textContent).toContain(
+    'flour: 500\u00a0г, вне диапазона · flour: штрихкод не прочитан',
+  );
+});
+
 it('names the dishes the model returned in «Got», repeats as × N', async () => {
   render(
     <I18nProvider>
