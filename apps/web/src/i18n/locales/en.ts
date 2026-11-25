@@ -2406,6 +2406,9 @@ export const en = {
     insufficient_scope: 'This token can only read',
     period_too_long: 'The period is too long. Choose a shorter one',
     limit_reached: 'You have 20 tokens already — delete one to create another',
+    http_not_private:
+      'Plain http works only for home network addresses; use https',
+    outbound_disabled: 'The administrator turned off outgoing requests',
     barcode_invalid: 'This barcode is not valid — check the digits',
     ai_settings_changed:
       'Someone else changed the AI settings. Reload and try again',

@@ -2,7 +2,7 @@ import { randomBytes } from 'node:crypto';
 import type { AiModel } from '../ai/model.js';
 import { createAiRuntime } from '../ai/runtime.js';
 import { getAiSettings } from '../ai/settings.js';
-import { createApp } from '../app.js';
+import { createApp, type AppDeps } from '../app.js';
 import { loadConfig } from '../config.js';
 import { migrate } from '../db/migrate.js';
 import { openDb } from '../db/open.js';
@@ -13,6 +13,7 @@ export function testApp(
   env: Record<string, string | undefined> = {},
   model: AiModel | null = null,
   fetch?: typeof globalThis.fetch,
+  deliverWebhook?: AppDeps['deliverWebhook'],
 ) {
   const config = loadConfig({
     PUBLIC_URL: 'http://localhost:3000',
@@ -37,7 +38,7 @@ export function testApp(
     },
   );
   return {
-    app: createApp({ config, db, ai, secrets, fetch }),
+    app: createApp({ config, db, ai, secrets, fetch, deliverWebhook }),
     config,
     db,
     ai,
