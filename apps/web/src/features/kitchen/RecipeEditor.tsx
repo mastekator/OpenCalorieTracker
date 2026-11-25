@@ -107,7 +107,7 @@ export function RecipeEditorScreen({ id }: { id?: string }) {
       fromMeal={state?.fromMeal}
       compose={state?.compose}
       online={online}
-      photo={!!ai.status && ai.status.recognition !== 'not_configured'}
+      photo={ai.status?.recognition === 'ready'}
       units={units}
       search={search}
       lookup={(code) => lookupProduct(db, code)}
