@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { Database } from 'better-sqlite3';
-import type { Meal } from '@oct/shared';
+import { addDays, type Meal } from '@oct/shared';
 import type { Config } from '../config.js';
 import { integrationsPolicy } from '../integrations/routes.js';
 import { readDay } from '../public-api/routes.js';
@@ -106,11 +106,48 @@ interface TimedRow {
   at: string;
   time_zone: string | null;
   last_date: string | null;
+  created_at: number;
+}
+
+/** [YYYY-MM-DD, HH:MM] of `ms` in the time zone. */
+function localDateTime(ms: number, timeZone: string | null) {
+  // 'sv' gives YYYY-MM-DD HH:MM; h23 keeps midnight 00:00, not 24:00, so strings compare.
+  return new Date(ms)
+    .toLocaleString('sv', {
+      timeZone: timeZone ?? undefined,
+      hourCycle: 'h23',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+    .split(' ') as [string, string];
+}
+
+/** Queues the event of `r` for `date` and marks the date settled, in one transaction. */
+function settle(db: Database, r: TimedRow, date: string, now: number) {
+  db.transaction(() => {
+    if (r.event === 'day.closed')
+      queue(db, r.id, r.event, r.user_id, readDay(db, r.user_id, date), now);
+    else if (
+      !db
+        .prepare('SELECT 1 FROM meals WHERE user_id = ? AND local_date = ?')
+        .get(r.user_id, date)
+    )
+      queue(db, r.id, r.event, r.user_id, { date }, now);
+    // Marked even when a meal exists: the day is settled, a later delete does not fire it.
+    db.prepare(
+      `INSERT INTO webhook_schedule (webhook_id, event, last_date) VALUES (?, ?, ?)
+       ON CONFLICT (webhook_id, event) DO UPDATE SET last_date = excluded.last_date`,
+    ).run(r.id, r.event, date);
+  })();
 }
 
 /**
  * Queues `day.closed` / `day.empty` once a local day, when the user's clock passes the chosen
- * time (ADR-0027 §4). Missed days are not caught up; after a restart today's event still goes.
+ * time (ADR-0027 §4). A missed yesterday (busy deliverer at 23:59, restart) is caught up with
+ * yesterday's date, if the webhook existed then; older missed days are not.
  */
 export function enqueueTimed(db: Database, config: Policy, now = Date.now()) {
   if (!integrationsPolicy(db, config).outbound) return;
@@ -118,7 +155,7 @@ export function enqueueTimed(db: Database, config: Policy, now = Date.now()) {
     .prepare(
       `SELECT w.id, w.user_id, e.value AS event,
          CASE e.value WHEN 'day.closed' THEN w.day_closed_at ELSE w.empty_by END AS at,
-         u.time_zone, s.last_date
+         u.time_zone, s.last_date, w.created_at
        FROM webhooks w
        JOIN json_each(w.events) e ON e.value IN ('day.closed', 'day.empty')
        JOIN users u ON u.id = w.user_id
@@ -126,48 +163,25 @@ export function enqueueTimed(db: Database, config: Policy, now = Date.now()) {
        WHERE w.enabled = 1`,
     )
     .all() as TimedRow[];
-  for (const r of rows) {
+  const attempt = (r: TimedRow, date: string) => {
     try {
-      // 'sv' gives YYYY-MM-DD HH:MM; h23 keeps midnight 00:00, not 24:00, so strings compare.
-      const [date, time] = new Date(now)
-        .toLocaleString('sv', {
-          timeZone: r.time_zone ?? undefined,
-          hourCycle: 'h23',
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit',
-        })
-        .split(' ') as [string, string];
-      if (!r.at || time < r.at || r.last_date === date) continue;
-      db.transaction(() => {
-        if (r.event === 'day.closed')
-          queue(
-            db,
-            r.id,
-            r.event,
-            r.user_id,
-            readDay(db, r.user_id, date),
-            now,
-          );
-        else if (
-          !db
-            .prepare('SELECT 1 FROM meals WHERE user_id = ? AND local_date = ?')
-            .get(r.user_id, date)
-        )
-          queue(db, r.id, r.event, r.user_id, { date }, now);
-        // Marked even when a meal exists: the day is settled, a later delete does not fire it.
-        db.prepare(
-          `INSERT INTO webhook_schedule (webhook_id, event, last_date) VALUES (?, ?, ?)
-           ON CONFLICT (webhook_id, event) DO UPDATE SET last_date = excluded.last_date`,
-        ).run(r.id, r.event, date);
-      })();
+      settle(db, r, date, now);
     } catch (err) {
       console.error(
         `[webhooks] ${r.event} of ${r.id}: ${(err as Error).message}`,
       );
     }
+  };
+  for (const r of rows) {
+    if (!r.at) continue;
+    const [date, time] = localDateTime(now, r.time_zone);
+    const yesterday = addDays(date, -1);
+    if (
+      (r.last_date ?? '') < yesterday &&
+      localDateTime(r.created_at, r.time_zone)[0] <= yesterday
+    )
+      attempt(r, yesterday);
+    if (time >= r.at && r.last_date !== date) attempt(r, date);
   }
 }
 
@@ -271,9 +285,8 @@ export function startWebhookDelivery(deps: DeliveryDeps) {
   let busy = false;
   let timedAt = -Infinity;
   const timer = setInterval(() => {
-    if (busy) return;
-    busy = true;
     const now = Date.now();
+    // Before the busy guard: a slow pass at 23:59 must not push the check past midnight.
     if (now - timedAt >= TIMED_INTERVAL_MS) {
       timedAt = now;
       try {
@@ -282,6 +295,8 @@ export function startWebhookDelivery(deps: DeliveryDeps) {
         console.error(`[webhooks] timed events: ${(err as Error).message}`);
       }
     }
+    if (busy) return;
+    busy = true;
     deliverDue(deps)
       .catch((err) =>
         console.error(`[webhooks] delivery failed: ${(err as Error).message}`),
