@@ -42,6 +42,8 @@ export const integrationsSchema = z.object({
   }),
   webhooks: z.object({
     count: z.number().int(),
+    /** How many of them are switched on. */
+    enabled: z.number().int(),
     /** The first webhook switched off after failures or whose last event failed; null if none. */
     failing: z.string().nullable(),
     /** The admin forbade outbound requests; nothing is queued or sent. */

@@ -3,3 +3,12 @@
   width: var(--icon-xs);
   height: var(--icon-xs);
 }
+
+/* OCT-187 1.2: «● On · 2 tokens» — the note is plain secondary text. */
+.integration-status__note {
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+  font-weight: 400;
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+}

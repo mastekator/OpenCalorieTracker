@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import {
   Barcode,
   Bot,
@@ -11,7 +11,15 @@ import {
 } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { listImports, type PastImport } from '../../api/imports';
-import { useDb, useOutboundBlocked, useSettings } from '../../data/DataContext';
+import { deleteAllTokens } from '../../api/tokens';
+import { listWebhooks, updateWebhook } from '../../api/webhooks';
+import {
+  refreshIntegrations,
+  useDb,
+  useIntegrations,
+  useOutboundBlocked,
+  useSettings,
+} from '../../data/DataContext';
 import { patchSettings } from '../../data/outbox';
 import { useT } from '../../i18n';
 import { Banner } from '../../ui/Banner/Banner';
@@ -23,10 +31,12 @@ import {
 import { List, ListRow } from '../../ui/List/List';
 import { useOnline } from '../../ui/OfflineBar/OfflineBar';
 import { Switch } from '../../ui/Switch/Switch';
+import { useToast } from '../../ui/Toast/Toast';
+import { codeOf } from '../admin/useAdminList';
 import { useExportCard } from './ExportScreen';
 import { useMcpState } from './McpScreen';
 import { useTokensCard } from './TokensScreen';
-import { useWebhooksCard } from './WebhooksScreen';
+import { errorText, useWebhooksCard } from './WebhooksScreen';
 import './settings.css';
 
 export const INTEGRATIONS_PATH = '/settings/integrations';
@@ -45,16 +55,112 @@ function useBarcodeState(): { on: boolean; state: IntegrationState } {
   return { on, state: blocked ? 'blocked' : on ? 'on' : 'off' };
 }
 
+type Off = 'barcode' | 'tokens' | 'webhooks' | 'mcp';
+
 /** OCT-187 §1: «Your data», «Connections» (barcode lookup, tokens, webhooks, MCP) and the in-app hint. */
 export function IntegrationsScreen() {
   const { t, num } = useT();
   const [, navigate] = useLocation();
+  const db = useDb();
+  const toast = useToast();
   const { state } = useBarcodeState();
   const online = useOnline();
   const exportCard = useExportCard();
   const tokensCard = useTokensCard();
   const webhooksCard = useWebhooksCard();
   const mcp = useMcpState();
+  const hooks = useIntegrations()?.webhooks;
+  const [off, setOff] = useState<Off | null>(null);
+  const [busy, setBusy] = useState(false);
+  // OCT-187 1.2: only what is on gets «Turn off»; a failing webhook may have none left on.
+  const canOff: Record<Off, boolean> = {
+    barcode: state === 'on',
+    tokens: tokensCard.state === 'on',
+    webhooks: !hooks?.blocked && (hooks?.enabled ?? 0) > 0,
+    mcp: mcp === 'on',
+  };
+
+  /** The same calls as each screen's own «Turn off»; webhooks go one PATCH at a time. */
+  async function turnOff(k: Off) {
+    setOff(null);
+    if (k === 'barcode') return void patchSettings(db, { offEnabled: false });
+    if (k === 'mcp') return void patchSettings(db, { mcpEnabled: false });
+    setBusy(true);
+    try {
+      if (k === 'tokens') await deleteAllTokens();
+      else
+        for (const w of await listWebhooks())
+          if (w.enabled) await updateWebhook(w.id, { enabled: false });
+    } catch (e) {
+      toast({ text: errorText(t, codeOf(e)) });
+    } finally {
+      // After a failure too: the cards show what is actually left on.
+      await refreshIntegrations(db).catch(() => {});
+      setBusy(false);
+    }
+  }
+
+  /** OCT-187 1.2: an on card keeps its plain description; the state and «Turn off» share its footer. */
+  const connection = (
+    k: Off,
+    icon: ReactNode,
+    path: string,
+    title: string,
+    s: IntegrationState,
+    text: string,
+    desc: string,
+    detail?: string,
+  ) => (
+    <ListRow
+      icon={icon}
+      description={
+        canOff[k] ? (
+          desc
+        ) : (
+          <>
+            {text}
+            <span className="settings__status">
+              <IntegrationStatus state={s} />
+            </span>
+          </>
+        )
+      }
+      onClick={() => navigate(path)}
+      action={
+        canOff[k] && (
+          <div className="list-row__foot">
+            <IntegrationStatus state={s}>
+              {detail && `·\u00a0${detail}`}
+            </IntegrationStatus>
+            <button
+              type="button"
+              className="list-row__action list-row__action--danger"
+              disabled={!online || busy}
+              aria-label={t('integr.turn_off_label', { name: title })}
+              onClick={() => setOff(k)}
+            >
+              {t('integr.turn_off')}
+            </button>
+          </div>
+        )
+      }
+    >
+      {title}
+    </ListRow>
+  );
+  const dialog = {
+    barcode: { title: t('integr.barcode.off_confirm') },
+    tokens: {
+      title: t('integr.tokens.revoke_all_title'),
+      body: t('integr.tokens.revoke_all_body'),
+      confirmLabel: t('integr.tokens.revoke_all'),
+    },
+    webhooks: {
+      title: t('integr.webhooks.off_all_title'),
+      body: t('integr.webhooks.off_all_body'),
+    },
+    mcp: { title: t('integr.mcp.off_title'), body: t('integr.mcp.off_body') },
+  }[off ?? 'barcode'];
   const [imports, setImports] = useState<PastImport[]>([]);
   // The count needs the server: offline the card keeps its plain description.
   useEffect(() => {
@@ -93,65 +199,53 @@ export function IntegrationsScreen() {
           {t('integr.import.title')}
         </ListRow>
       </List>
-      <List title={t('integr.connections')}>
-        <ListRow
-          icon={<Barcode />}
-          description={
-            <>
-              {t('integr.barcode.desc')}
-              <span className="settings__status">
-                <IntegrationStatus state={state} />
-              </span>
-            </>
-          }
-          onClick={() => navigate(BARCODE_PATH)}
-        >
-          {t('integr.barcode.title')}
-        </ListRow>
-        <ListRow
-          icon={<KeyRound />}
-          description={
-            <>
-              {tokensCard.text}
-              <span className="settings__status">
-                <IntegrationStatus state={tokensCard.state} />
-              </span>
-            </>
-          }
-          onClick={() => navigate(TOKENS_PATH)}
-        >
-          {t('integr.tokens.title')}
-        </ListRow>
-        <ListRow
-          icon={<Webhook />}
-          description={
-            <>
-              {webhooksCard.text}
-              <span className="settings__status">
-                <IntegrationStatus state={webhooksCard.state} />
-              </span>
-            </>
-          }
-          onClick={() => navigate(WEBHOOKS_PATH)}
-        >
-          {t('integr.webhooks.title')}
-        </ListRow>
-        <ListRow
-          icon={<Bot />}
-          description={
-            <>
-              {t('integr.mcp.desc')}
-              <span className="settings__status">
-                <IntegrationStatus state={mcp}>
-                  {mcp === 'on' && ` · ${t('integr.mcp.read_only')}`}
-                </IntegrationStatus>
-              </span>
-            </>
-          }
-          onClick={() => navigate(MCP_PATH)}
-        >
-          {t('integr.mcp.title')}
-        </ListRow>
+      <List
+        title={t('integr.connections')}
+        footer={
+          !online && Object.values(canOff).some(Boolean)
+            ? t('integr.off_need_net')
+            : undefined
+        }
+      >
+        {connection(
+          'barcode',
+          <Barcode />,
+          BARCODE_PATH,
+          t('integr.barcode.title'),
+          state,
+          t('integr.barcode.desc'),
+          t('integr.barcode.desc'),
+        )}
+        {connection(
+          'tokens',
+          <KeyRound />,
+          TOKENS_PATH,
+          t('integr.tokens.title'),
+          tokensCard.state,
+          tokensCard.text,
+          t('integr.tokens.desc'),
+          tokensCard.text,
+        )}
+        {connection(
+          'webhooks',
+          <Webhook />,
+          WEBHOOKS_PATH,
+          t('integr.webhooks.title'),
+          webhooksCard.state,
+          webhooksCard.text,
+          t('integr.webhooks.desc'),
+          webhooksCard.text,
+        )}
+        {connection(
+          'mcp',
+          <Bot />,
+          MCP_PATH,
+          t('integr.mcp.title'),
+          mcp,
+          t('integr.mcp.desc'),
+          t('integr.mcp.desc'),
+          t('integr.mcp.read_only'),
+        )}
       </List>
       <div className="integr__in-app">
         <List title={t('integr.in_app')}>
@@ -164,6 +258,14 @@ export function IntegrationsScreen() {
           </ListRow>
         </List>
       </div>
+      <ConfirmDialog
+        open={off !== null}
+        title={dialog.title}
+        body={dialog.body}
+        confirmLabel={dialog.confirmLabel ?? t('integr.turn_off')}
+        onConfirm={() => off && void turnOff(off)}
+        onCancel={() => setOff(null)}
+      />
     </div>
   );
 }

@@ -81,13 +81,14 @@ export function integrationRoutes({ db, config }: AppDeps) {
         .get(c.var.user.id) as number;
       const hooks = db
         .prepare(
-          `SELECT count(*) AS count,
+          `SELECT count(*) AS count, coalesce(sum(enabled), 0) AS enabled,
              (SELECT name FROM webhooks WHERE user_id = @id
               AND (disabled_reason = 'failures' OR fail_streak > 0) ORDER BY id LIMIT 1) AS failing
            FROM webhooks WHERE user_id = @id`,
         )
         .get({ id: c.var.user.id }) as {
         count: number;
+        enabled: number;
         failing: string | null;
       };
       const p = policy();

@@ -62,7 +62,12 @@ function serve(
           barcode: { enabled: false, blocked },
           export: { lastAt: null, lastFormat: null },
           tokens: { count: 0, blocked: false },
-          webhooks: { count: list.length, failing, blocked },
+          webhooks: {
+            count: list.length,
+            enabled: list.filter((w) => w.enabled).length,
+            failing,
+            blocked,
+          },
           mcp: { enabled: false, blocked: false },
         });
       if (url.startsWith('/api/webhooks')) {

@@ -268,6 +268,7 @@ describe('webhook outbox (ADR-0027 §3)', () => {
     });
     expect((await t.call('GET', '/api/integrations')).body.webhooks).toEqual({
       count: 1,
+      enabled: 1,
       failing: 'HA',
       blocked: false,
     });
@@ -277,6 +278,9 @@ describe('webhook outbox (ADR-0027 §3)', () => {
       fail_streak: FAILS_TO_DISABLE,
       disabled_reason: 'failures',
     });
+    expect(
+      (await t.call('GET', '/api/integrations')).body.webhooks,
+    ).toMatchObject({ count: 1, enabled: 0, failing: 'HA' });
     await t.meal();
     expect(t.outbox()).toEqual([]);
   });
@@ -315,6 +319,7 @@ describe('webhook outbox (ADR-0027 §3)', () => {
     expect(t.outbox()).toEqual([]);
     expect((await t.call('GET', '/api/integrations')).body.webhooks).toEqual({
       count: 1,
+      enabled: 1,
       failing: null,
       blocked: true,
     });

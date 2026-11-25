@@ -213,3 +213,53 @@
     background: var(--color-hover);
   }
 }
+
+.list-row__action--danger {
+  color: var(--color-danger);
+}
+
+/* The card's footer under the row, aligned with its text: the state, then a text action at the end (OCT-187 1.2). */
+.list__item--action:has(> .list-row__foot) {
+  flex-wrap: wrap;
+}
+
+.list__item--action:has(> .list-row__foot) > .list-row {
+  flex-basis: 100%;
+}
+
+.list-row__foot {
+  display: flex;
+  flex-basis: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-block-start: calc(-1 * var(--space-2));
+  padding-inline: var(--space-4);
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+  color: var(--color-text-secondary);
+}
+
+.list-row--icon ~ .list-row__foot {
+  padding-inline-start: calc(
+    var(--space-4) + var(--icon-size) * 1.25 + var(--space-3)
+  );
+}
+
+/* The state takes the free room and wraps; the action never shrinks. */
+.list-row__foot > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.list-row__foot > .list-row__action {
+  min-height: var(--tap-min);
+  padding-inline: 0;
+  font: inherit;
+  font-size: var(--text-subhead-size);
+  font-weight: 600;
+}
+
+.list-row__foot > .list-row__action::before {
+  content: none;
+}

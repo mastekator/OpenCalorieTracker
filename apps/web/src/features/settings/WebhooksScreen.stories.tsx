@@ -48,7 +48,12 @@ const serve =
           barcode: { enabled: false, blocked },
           export: { lastAt: null, lastFormat: null },
           tokens: { count: 0, blocked: false },
-          webhooks: { count: list.length, failing: null, blocked },
+          webhooks: {
+            count: list.length,
+            enabled: list.filter((w) => w.enabled).length,
+            failing: null,
+            blocked,
+          },
           mcp: { enabled: false, blocked: false },
         });
       if (url.startsWith('/api/webhooks')) {

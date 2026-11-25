@@ -2,6 +2,10 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Globe, KeyRound, LogOut, Mail, Moon, Plus, Users } from 'lucide-react';
 import { useT } from '../../i18n';
 import { Badge } from '../Badge/Badge';
+import {
+  IntegrationStatus,
+  type IntegrationState,
+} from '../IntegrationStatus/IntegrationStatus';
 import { List, ListRow } from './List';
 
 const noop = () => {};
@@ -158,3 +162,52 @@ export const Current: Story = {
   ),
 };
 export const CurrentDark: Story = { ...Current, globals: { theme: 'dark' } };
+/** The card's footer: the state on the left, a danger «Turn off» at the end; a long state wraps (OCT-187 1.2). */
+export const ActionFooter: Story = {
+  render: function Render() {
+    const { t } = useT();
+    return (
+      <List>
+        {[
+          { state: 'on', detail: '', disabled: false },
+          {
+            state: 'error',
+            detail: t('integr.webhooks.failing', {
+              name: 'ntfy.example.org/very-long-topic-name',
+            }),
+            disabled: false,
+          },
+          { state: 'on', detail: '', disabled: true },
+        ].map(({ state, detail, disabled }, k) => (
+          <ListRow
+            key={k}
+            icon={<KeyRound />}
+            description={t('integr.tokens.desc')}
+            onClick={noop}
+            action={
+              <div className="list-row__foot">
+                <IntegrationStatus state={state as IntegrationState}>
+                  {detail && `·\u00a0${detail}`}
+                </IntegrationStatus>
+                <button
+                  type="button"
+                  className="list-row__action list-row__action--danger"
+                  disabled={disabled}
+                  onClick={noop}
+                >
+                  {t('integr.turn_off')}
+                </button>
+              </div>
+            }
+          >
+            {t('integr.tokens.title')}
+          </ListRow>
+        ))}
+      </List>
+    );
+  },
+};
+export const ActionFooterDark: Story = {
+  ...ActionFooter,
+  globals: { theme: 'dark' },
+};

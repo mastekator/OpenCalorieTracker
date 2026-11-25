@@ -63,7 +63,7 @@ const serve =
           barcode: { enabled: false, blocked },
           export: { lastAt: null, lastFormat: null },
           tokens: { count: 0, blocked: false },
-          webhooks: { count: 1, failing: null, blocked },
+          webhooks: { count: 1, enabled: 1, failing: null, blocked },
           mcp: { enabled: false, blocked: false },
         });
       if (url.endsWith('/deliveries')) return Response.json(log);
