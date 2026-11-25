@@ -449,7 +449,7 @@ describe('shownQuestion', () => {
 });
 
 describe('gross → edible (ADR-0039 §5)', () => {
-  // 772 g with peel at 80%: 617.6 g edible, 83 kcal per 100 g.
+  // 772 g with skin at 80%: 617.6 g edible, 83 kcal per 100 g.
   const edible = {
     grossG: 772,
     pct: 80,

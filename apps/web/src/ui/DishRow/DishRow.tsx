@@ -12,6 +12,7 @@ import {
   type DishSource,
   type DishUnit,
   type Edible,
+  grossKind,
   type IllustrationId,
   type Nutrients,
   type Product,
@@ -241,10 +242,15 @@ export function DishRow({
               )}
               {edible &&
                 (edible.unlinked ? (
-                  <p className="dish-row__edible">
-                    {t('edit.edible.manual', {
-                      gross: text.weight(edible.grossG),
-                    })}{' '}
+                  <div className="dish-row__edible dish-row__edible--manual">
+                    <span>
+                      {t('edit.edible.manual', {
+                        gross: text.weight(edible.grossG),
+                        kind: t(
+                          `edit.edible.gross_kind.${grossKind(edible.key)}`,
+                        ),
+                      })}
+                    </span>
                     {onRelink && (
                       <button
                         type="button"
@@ -257,18 +263,24 @@ export function DishRow({
                         {t('edit.edible.relink')}
                       </button>
                     )}
-                  </p>
+                  </div>
                 ) : (
-                  <p className="dish-row__edible tabular-nums">
-                    {t('edit.edible.line', {
-                      gross: text.weight(edible.grossG),
-                      net: text.weight(dish.grams ?? 0),
-                      pct: num(edible.pct),
-                      source: t(
-                        `edit.edible.source.${edible.chosen ? 'user' : edible.source}`,
-                      ),
-                    })}
-                  </p>
+                  // No «edible 0 g» while the dish has no grams yet.
+                  !!dish.grams && (
+                    <p className="dish-row__edible tabular-nums">
+                      {t('edit.edible.line', {
+                        gross: text.weight(edible.grossG),
+                        kind: t(
+                          `edit.edible.gross_kind.${grossKind(edible.key)}`,
+                        ),
+                        net: text.weight(dish.grams),
+                        pct: num(edible.pct),
+                        source: t(
+                          `edit.edible.source.${edible.chosen ? 'user' : edible.source}`,
+                        ),
+                      })}
+                    </p>
+                  )
                 ))}
             </div>
             <button

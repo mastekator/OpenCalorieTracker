@@ -256,9 +256,24 @@
   overflow-wrap: break-word;
 }
 
+/* Label left, «Restore» right on the same line; wraps whole, flush left. */
+.dish-row__edible--manual {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  column-gap: var(--space-2);
+}
+
+/* The label wraps first; «Restore» drops to its own line only below the label's longest word. */
+.dish-row__edible--manual > span {
+  flex: 1 1 0;
+}
+
 .dish-row__relink {
+  min-width: var(--tap-min);
   min-height: var(--tap-min);
-  padding: 0 var(--space-1);
+  padding: 0;
   border: 0;
   background: none;
   font: inherit;

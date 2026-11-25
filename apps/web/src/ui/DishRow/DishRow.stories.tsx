@@ -374,7 +374,7 @@ const sapodilla = {
   confidence: 0.8,
 };
 const gross = { grossG: 772, pct: 80, key: 'sapodilla' };
-/** ADR-0039 §5: «772 g with peel → edible 618 g · 80% · USDA». */
+/** ADR-0039 §5: «772 g with skin → edible 618 g · 80% · USDA». */
 export const EdibleRef: Story = {
   args: { dish: sapodilla, edible: { ...gross, source: 'ref' } },
 };
@@ -397,7 +397,7 @@ export const EdibleMineDark: Story = {
   ...EdibleMine,
   globals: { theme: 'dark' },
 };
-/** Grams set by hand: «Manual weight · was 772 g with peel» and «Restore». */
+/** Grams set by hand: «Weight set by hand · was 772 g with skin» and «Restore». */
 export const EdibleManual: Story = {
   args: {
     dish: { ...sapodilla, grams: 500, kcal: 415.4 },
@@ -426,4 +426,38 @@ export const EdibleManualRussian: Story = {
 export const EdibleOunces: Story = {
   ...EdibleRef,
   args: { ...EdibleRef.args, units: 'us' },
+};
+/** The gross word follows the key: «in shell», «on the bone», «on the cob» (OCT-420 `gross_kind`). */
+export const EdibleInShell: Story = {
+  args: {
+    dish: { ...sapodilla, name: 'Walnuts', grams: 90 },
+    edible: { grossG: 200, pct: 45, key: 'walnut_in_shell', source: 'ref' },
+  },
+};
+export const EdibleOnTheBoneRussian: Story = {
+  args: {
+    dish: { ...sapodilla, name: 'Куриная ножка', grams: 730 },
+    edible: { grossG: 1000, pct: 73, key: 'chicken_leg', source: 'ref' },
+  },
+  globals: { locale: 'ru' },
+};
+export const EdibleOnTheBoneManualDark: Story = {
+  args: {
+    dish: { ...sapodilla, name: 'Chicken leg', grams: 700 },
+    edible: {
+      grossG: 1000,
+      pct: 73,
+      key: 'chicken_leg',
+      source: 'ref',
+      unlinked: true,
+    },
+  },
+  globals: { theme: 'dark' },
+};
+/** No grams yet: the share line hides instead of «edible 0 g». */
+export const EdibleNoGrams: Story = {
+  args: {
+    dish: { ...sapodilla, grams: 0, kcal: 0 },
+    edible: { ...gross, source: 'ref' },
+  },
 };

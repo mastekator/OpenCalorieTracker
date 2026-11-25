@@ -1757,9 +1757,16 @@ const ru: DeepPartial<typeof en> = {
       err_fl_oz: 'Объём от 0,1 до 169 fl oz',
     },
     edible: {
-      line: '{gross} с кожурой \u2192 съедобно {net} \u00b7 {pct}\u00a0% \u00b7 {source}',
+      line: '{gross} {kind} \u2192 съедобно {net} \u00b7 {pct}\u00a0% \u00b7 {source}',
       source: { ref: 'USDA', ai: 'оценка ИИ', user: 'ваш' },
-      manual: 'Вес вручную \u00b7 было {gross} с кожурой',
+      manual: 'Вес вручную \u00b7 было {gross} {kind}',
+      gross_kind: {
+        skin: 'с кожурой',
+        shell: 'в скорлупе',
+        bone: 'на кости',
+        carapace: 'в панцире',
+        cob: 'в початке',
+      },
       relink: 'Вернуть',
       relink_label: 'Вернуть съедобный вес: {dish}',
     },

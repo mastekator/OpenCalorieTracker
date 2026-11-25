@@ -364,7 +364,7 @@ describe('gross → edible (ADR-0039 §5)', () => {
 
   it('shows the share, sends no edible the user did not choose', async () => {
     const { onSave } = await setup(recognition());
-    expect(line()).toBe('772 g with peel → edible 618 g · 80% · USDA');
+    expect(line()).toBe('772 g with skin → edible 618 g · 80% · USDA');
     const item = await save(onSave);
     expect(item).toMatchObject({ grams: 617.6 });
     expect(item).not.toHaveProperty('edible');
@@ -387,18 +387,18 @@ describe('gross → edible (ADR-0039 §5)', () => {
       ]),
     );
     fireEvent.click(chip(group('Not sure: About how much is edible?'), '50%'));
-    expect(line()).toBe('772 g with peel → edible 386 g · 50% · yours');
+    expect(line()).toBe('772 g with skin → edible 386 g · 50% · yours');
     fireEvent.change(
       screen.getByRole('textbox', { name: 'Weight of Sapodilla' }),
       { target: { value: '300' } },
     );
-    expect(line()).toBe('Manual weight · was 772 g with peel Restore');
+    expect(line()).toBe('Weight set by hand · was 772 g with skinRestore');
     fireEvent.click(
       screen.getByRole('button', {
         name: 'Restore the edible weight of Sapodilla',
       }),
     );
-    expect(line()).toBe('772 g with peel → edible 386 g · 50% · yours');
+    expect(line()).toBe('772 g with skin → edible 386 g · 50% · yours');
     expect(await save(onSave)).toMatchObject({
       grams: 386,
       edible: { key: 'k', pct: 50 },
