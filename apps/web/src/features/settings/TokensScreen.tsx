@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { CircleAlert, KeyRound, Lock } from 'lucide-react';
+import { Fragment, useEffect, useRef, useState } from 'react';
+import { Check, CircleAlert, KeyRound, Lock } from 'lucide-react';
 import { MAX_API_TOKENS, type ApiToken, type ApiTokenScope } from '@oct/shared';
 import type { ClientErrorCode } from '../../api/client';
 import {
@@ -13,12 +13,11 @@ import { useT } from '../../i18n';
 import { codeOf } from '../admin/useAdminList';
 import { Banner } from '../../ui/Banner/Banner';
 import { Button } from '../../ui/Button/Button';
-import { CommandLine } from '../../ui/CommandLine/CommandLine';
 import { ConfirmDialog } from '../../ui/ConfirmDialog/ConfirmDialog';
 import { Field } from '../../ui/Field/Field';
-import { FormRow } from '../../ui/FormList/FormList';
 import type { IntegrationState } from '../../ui/IntegrationStatus/IntegrationStatus';
 import { List, ListRow } from '../../ui/List/List';
+import '../../ui/List/List.css';
 import { useOnline } from '../../ui/OfflineBar/OfflineBar';
 import { ScreenState } from '../../ui/ScreenState/ScreenState';
 import { Segment } from '../../ui/Segment/Segment';
@@ -134,18 +133,23 @@ export function TokensScreen() {
           })}
         </span>
       );
-    return (
-      <>
-        {t(`integr.tokens.scope_${x.scope}`)} ·{' '}
-        {t('integr.tokens.created', { date: shortDate(x.createdAt, locale) })} ·{' '}
-        {expiry} ·{' '}
-        {x.lastUsedAt
-          ? t('integr.tokens.last_used', {
-              date: shortDate(x.lastUsedAt, locale),
-            })
-          : t('integr.tokens.never_used')}
-      </>
-    );
+    // Each part stays on one line; the row wraps only at « · » (dates never split).
+    const parts = [
+      t(`integr.tokens.scope_${x.scope}`),
+      t('integr.tokens.created', { date: shortDate(x.createdAt, locale) }),
+      expiry,
+      x.lastUsedAt
+        ? t('integr.tokens.last_used', {
+            date: shortDate(x.lastUsedAt, locale),
+          })
+        : t('integr.tokens.never_used'),
+    ];
+    return parts.map((part, i) => (
+      <Fragment key={i}>
+        {i > 0 && ' · '}
+        <span className="tokens__part">{part}</span>
+      </Fragment>
+    ));
   };
 
   return (
@@ -276,12 +280,14 @@ function CreateSheet({
   const [scope, setScope] = useState<ApiTokenScope>('read');
   const [expiry, setExpiry] = useState<Expiry>('90');
   const [busy, setBusy] = useState(false);
-  // A fresh form each time the sheet opens.
+  const nameRef = useRef<HTMLInputElement>(null);
+  // A fresh form each time the sheet opens; runs after the sheet focused its title.
   useEffect(() => {
     if (!open) return;
     setName('');
     setScope('read');
     setExpiry('90');
+    nameRef.current?.focus();
   }, [open]);
 
   async function submit() {
@@ -330,33 +336,56 @@ function CreateSheet({
           hint={t('integr.tokens.name_hint')}
           value={name}
           maxLength={60}
-          autoFocus
+          ref={nameRef}
           onChange={(e) => setName(e.target.value)}
         />
-        <List>
-          <FormRow label={t('integr.tokens.scope')} stacked>
-            <Segment
-              label={t('integr.tokens.scope')}
-              options={[
-                { value: 'read', label: t('integr.tokens.scope_read') },
-                { value: 'write', label: t('integr.tokens.scope_write') },
-              ]}
-              value={scope}
-              onChange={setScope}
-            />
-          </FormRow>
-          <FormRow label={t('integr.tokens.expiry')} stacked>
-            <Segment
-              label={t('integr.tokens.expiry')}
-              options={EXPIRY.map((value) => ({
-                value,
-                label: t(`integr.tokens.expiry_${value}`),
-              }))}
-              value={expiry}
-              onChange={setExpiry}
-            />
-          </FormRow>
-        </List>
+        <div className="tokens__group">
+          <span className="field__label" id="tokens-scope">
+            {t('integr.tokens.scope')}
+          </span>
+          {/* Radio cells, not a segment: the person sees what write access allows (OCT-187 4.2). */}
+          <ul
+            className="list__rows"
+            role="radiogroup"
+            aria-labelledby="tokens-scope"
+          >
+            {(['read', 'write'] as const).map((value) => (
+              <li key={value} className="list__item" role="none">
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={scope === value}
+                  className="list-row list-row--interactive"
+                  onClick={() => setScope(value)}
+                >
+                  <span className="list-row__label">
+                    {t(`integr.tokens.scope_${value}`)}
+                    <span className="list-row__description">
+                      {t(`integr.tokens.scope_${value}_desc`)}
+                    </span>
+                  </span>
+                  <span className="tokens__check" aria-hidden="true">
+                    {scope === value && <Check />}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="tokens__group">
+          <span className="field__label" id="tokens-expiry">
+            {t('integr.tokens.expiry')}
+          </span>
+          <Segment
+            label={t('integr.tokens.expiry')}
+            options={EXPIRY.map((value) => ({
+              value,
+              label: t(`integr.tokens.expiry_${value}`),
+            }))}
+            value={expiry}
+            onChange={setExpiry}
+          />
+        </div>
       </form>
     </Sheet>
   );
@@ -382,16 +411,30 @@ function SecretSheet({
         onClose={done}
         title={t('integr.tokens.created_title')}
         footer={
-          <Button variant="tonal" onClick={done}>
-            {t('common.done')}
-          </Button>
+          <>
+            <Button
+              variant={copied ? 'tonal' : 'primary'}
+              onClick={() =>
+                // No clipboard (webview, http): the token stays selectable by hand.
+                secret &&
+                navigator.clipboard?.writeText(secret).then(
+                  () => setCopied(true),
+                  () => {},
+                )
+              }
+            >
+              {copied && <Check aria-hidden="true" />}
+              {t(copied ? 'integr.tokens.copied' : 'integr.tokens.copy')}
+            </Button>
+            <Button variant="plain" onClick={done}>
+              {t('common.done')}
+            </Button>
+          </>
         }
       >
         <div className="tokens__secret">
           <p>{t('integr.tokens.created_body')}</p>
-          {secret && (
-            <CommandLine command={secret} onCopy={() => setCopied(true)} />
-          )}
+          {secret && <code className="tokens__token">{secret}</code>}
         </div>
       </Sheet>
       <ConfirmDialog

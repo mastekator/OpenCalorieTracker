@@ -108,21 +108,25 @@ describe('TokensScreen (OCT-187 §4)', () => {
     const view = await wrap();
     await screen.findByText('No tokens yet');
     fireEvent.click(createButton());
-    fireEvent.change(await screen.findByLabelText('Name'), {
-      target: { value: ' Home Assistant ' },
-    });
+    const name = await screen.findByLabelText('Name');
+    expect(document.activeElement).toBe(name);
+    fireEvent.change(name, { target: { value: ' Home Assistant ' } });
     const sheet = screen.getByRole('dialog');
+    fireEvent.click(
+      within(sheet).getByRole('radio', { name: /Read and write/ }),
+    );
     fireEvent.click(
       within(sheet).getByRole('button', { name: 'Create token' }),
     );
     expect(await screen.findByText(SECRET)).toBeTruthy();
     expect(calls.find((c) => c.method === 'POST')?.body).toEqual({
       name: 'Home Assistant',
-      scope: 'read',
+      scope: 'write',
       expiresInDays: 90,
     });
-    fireEvent.click(screen.getByRole('button', { name: /copy/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Copy' }));
     await waitFor(() => expect(writeText).toHaveBeenCalledWith(SECRET));
+    expect(screen.getByRole('button', { name: 'Copied' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Done' }));
     await waitFor(() => expect(screen.queryByText(SECRET)).toBeNull());
     expect(screen.getByText('Home Assistant')).toBeTruthy();
