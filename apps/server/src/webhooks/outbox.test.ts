@@ -7,6 +7,7 @@ import { aiSetup } from '../test/ai.js';
 import {
   DELIVERY_INTERVAL_MS,
   deliverDue,
+  enqueueTimed,
   FAILS_TO_DISABLE,
   RETRY_MS,
   startWebhookDelivery,
@@ -334,5 +335,132 @@ describe('webhook outbox (ADR-0027 §3)', () => {
     await banned;
     expect(d.sent).toHaveLength(1);
     expect(t.outbox()).toEqual([]);
+  });
+});
+
+describe('timed webhook events (ADR-0027 §4)', () => {
+  // 2026-01-10 20:00 UTC = 23:00 in Moscow (+3), 20:00 in London.
+  const at = (iso: string) => Date.parse(iso);
+  const timed = async () => {
+    const t = await setup();
+    const zone = (tz: string | null) =>
+      t.db.prepare('UPDATE users SET time_zone = ?').run(tz);
+    zone('Europe/Moscow');
+    const run = (iso: string) => enqueueTimed(t.db, t.config, at(iso));
+    const events = () =>
+      t.outbox().map((o) => {
+        const b = JSON.parse(o.body) as {
+          event: string;
+          data: { date: string };
+        };
+        return [b.event, b.data.date];
+      });
+    return { ...t, zone, run, events };
+  };
+
+  it('day.closed goes once a day at the chosen local time, also after a restart', async () => {
+    const t = await timed();
+    await t.hook({ events: ['day.closed'], dayClosedAt: '23:00' });
+    t.run('2026-01-10T19:59:00Z');
+    expect(t.events()).toEqual([]);
+    t.run('2026-01-10T20:00:00Z');
+    t.run('2026-01-10T20:01:00Z');
+    t.run('2026-01-10T20:59:00Z'); // a new process reads last_date from the database
+    expect(t.events()).toEqual([['day.closed', '2026-01-10']]);
+    t.run('2026-01-11T20:00:00Z');
+    expect(t.events()).toEqual([
+      ['day.closed', '2026-01-10'],
+      ['day.closed', '2026-01-11'],
+    ]);
+  });
+
+  it('missed days are not caught up', async () => {
+    const t = await timed();
+    await t.hook({ events: ['day.closed'], dayClosedAt: '23:00' });
+    t.run('2026-01-10T20:00:00Z');
+    t.run('2026-01-13T20:30:00Z');
+    expect(t.events()).toEqual([
+      ['day.closed', '2026-01-10'],
+      ['day.closed', '2026-01-13'],
+    ]);
+  });
+
+  it('day.closed carries the totals, the norm and what is left', async () => {
+    const t = await timed();
+    await t.hook({ events: ['day.closed'], dayClosedAt: '23:00' });
+    await t.meal();
+    t.run('2026-01-10T20:00:00Z');
+    const body = JSON.parse(t.outbox()[0]!.body) as {
+      data: { date: string; eaten: { kcal: number } };
+    };
+    expect(body.data).toMatchObject({
+      date: '2026-01-10',
+      eaten: { kcal: 300 },
+    });
+    expect(body.data).toHaveProperty('norm');
+    expect(body.data).toHaveProperty('remaining');
+  });
+
+  it("the user's time zone moves the event", async () => {
+    const t = await timed();
+    await t.hook({ events: ['day.closed'], dayClosedAt: '23:00' });
+    t.zone('Europe/London');
+    t.run('2026-01-10T20:00:00Z');
+    expect(t.events()).toEqual([]);
+    t.run('2026-01-10T23:00:00Z');
+    expect(t.events()).toEqual([['day.closed', '2026-01-10']]);
+  });
+
+  it('a midnight time compares as 00:00', async () => {
+    const t = await timed();
+    await t.hook({ events: ['day.empty'], emptyBy: '00:00' });
+    t.run('2026-01-10T21:00:00Z'); // 00:00 on the 11th in Moscow
+    expect(t.events()).toEqual([['day.empty', '2026-01-11']]);
+  });
+
+  it('day.empty goes only when nothing was logged that day', async () => {
+    const t = await timed();
+    await t.hook({ events: ['day.empty'], emptyBy: '12:00' });
+    await t.meal();
+    t.run('2026-01-10T09:00:00Z');
+    expect(t.events()).toEqual([]);
+    t.db.prepare('DELETE FROM meals').run();
+    t.run('2026-01-10T10:00:00Z'); // the day was settled
+    t.run('2026-01-11T09:00:00Z');
+    expect(t.events()).toEqual([['day.empty', '2026-01-11']]);
+  });
+
+  it('a switched-off webhook and the outbound ban send no timed events', async () => {
+    const t = await timed();
+    const { id } = await t.hook({
+      events: ['day.closed'],
+      dayClosedAt: '23:00',
+    });
+    t.db.prepare('UPDATE webhooks SET enabled = 0 WHERE id = ?').run(id);
+    t.run('2026-01-10T20:00:00Z');
+    t.db.prepare('UPDATE webhooks SET enabled = 1 WHERE id = ?').run(id);
+    enqueueTimed(
+      t.db,
+      { ...t.config, outbound: false },
+      at('2026-01-10T20:00:00Z'),
+    );
+    expect(t.events()).toEqual([]);
+  });
+
+  it('the deliverer checks timed events on its own timer', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'Date'] });
+    vi.setSystemTime(at('2026-01-10T20:00:00Z'));
+    const t = await timed();
+    await t.hook({ events: ['day.closed'], dayClosedAt: '23:00' });
+    const d = t.deliverer();
+    const stop = startWebhookDelivery({
+      db: t.db,
+      config: t.config,
+      secrets: t.secrets,
+      deliver: d.deliver,
+    });
+    await vi.advanceTimersByTimeAsync(DELIVERY_INTERVAL_MS * 3);
+    expect(d.sent.map((s) => s.event)).toEqual(['day.closed']);
+    stop();
   });
 });
