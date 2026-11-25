@@ -323,7 +323,12 @@ const integrations =
   (
     on: boolean,
     blocked: boolean,
-    admin = { outbound: !blocked, outboundFromEnv: false },
+    admin = {
+      outbound: !blocked,
+      outboundFromEnv: false,
+      tokens: true,
+      tokensFromEnv: false,
+    },
   ) =>
   async () => {
     const db = await openUserDb(user.id);
@@ -348,6 +353,7 @@ const integrations =
         ? Response.json({
             barcode: { enabled: on, blocked },
             export: { lastAt: null, lastFormat: null },
+            tokens: { count: 0, blocked: false },
           })
         : String(input).endsWith('/api/admin/integrations')
           ? Response.json(admin)
@@ -443,6 +449,8 @@ export const ServerIntegrationsEnv: Story = {
   beforeEach: integrations(false, true, {
     outbound: false,
     outboundFromEnv: true,
+    tokens: true,
+    tokensFromEnv: false,
   }),
   render: () => <AdminIntegrationsScreen />,
 };

@@ -38,10 +38,16 @@ describe('outbound switches (ADR-0034 §5)', () => {
     const t = await setup();
     expect(
       await (await t.call('GET', '/api/admin/integrations')).json(),
-    ).toEqual({ outbound: true, outboundFromEnv: false });
+    ).toEqual({
+      outbound: true,
+      outboundFromEnv: false,
+      tokens: true,
+      tokensFromEnv: false,
+    });
     expect(await t.summary()).toEqual({
       barcode: { enabled: false, blocked: false },
       export: { lastAt: null, lastFormat: null },
+      tokens: { count: 0, blocked: false },
     });
   });
 
@@ -54,10 +60,13 @@ describe('outbound switches (ADR-0034 §5)', () => {
     expect(await res.json()).toEqual({
       outbound: false,
       outboundFromEnv: false,
+      tokens: true,
+      tokensFromEnv: false,
     });
     expect(await t.summary()).toEqual({
       barcode: { enabled: true, blocked: true },
       export: { lastAt: null, lastFormat: null },
+      tokens: { count: 0, blocked: false },
     });
     await t.call('PUT', '/api/admin/integrations', t.cookie, {
       outbound: true,
@@ -65,6 +74,7 @@ describe('outbound switches (ADR-0034 §5)', () => {
     expect(await t.summary()).toEqual({
       barcode: { enabled: true, blocked: false },
       export: { lastAt: null, lastFormat: null },
+      tokens: { count: 0, blocked: false },
     });
   });
 
@@ -77,7 +87,12 @@ describe('outbound switches (ADR-0034 §5)', () => {
       .run();
     expect(
       await (await t.call('GET', '/api/admin/integrations')).json(),
-    ).toEqual({ outbound: false, outboundFromEnv: true });
+    ).toEqual({
+      outbound: false,
+      outboundFromEnv: true,
+      tokens: true,
+      tokensFromEnv: false,
+    });
     const res = await t.call('PUT', '/api/admin/integrations', t.cookie, {
       outbound: true,
     });

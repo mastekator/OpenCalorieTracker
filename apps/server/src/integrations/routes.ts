@@ -11,19 +11,23 @@ import type { Config } from '../config.js';
 import { ApiError } from '../http/errors.js';
 import { validate } from '../http/validate.js';
 
-/** Whether outbound requests are allowed: ALLOW_OUTBOUND_REQUESTS wins over the admin's switch (ADR-0034 §5). */
+/** The admin's switches; ALLOW_OUTBOUND_REQUESTS and ALLOW_API_TOKENS win over the table (ADR-0034 §5, ADR-0027 §6). */
 export function integrationsPolicy(
   db: Database,
-  config: Pick<Config, 'outbound'>,
+  config: Pick<Config, 'outbound' | 'tokens'>,
 ): AdminIntegrations {
-  if (config.outbound !== undefined)
-    return { outbound: config.outbound, outboundFromEnv: true };
-  const allowed = db
-    .prepare('SELECT outbound_allowed FROM integration_settings')
-    .pluck()
-    .get() as number | undefined;
-  // No row: allowed (AC-0.6).
-  return { outbound: allowed !== 0, outboundFromEnv: false };
+  const row = db
+    .prepare(
+      'SELECT outbound_allowed AS outbound, tokens_allowed AS tokens FROM integration_settings',
+    )
+    .get() as { outbound: number; tokens: number } | undefined;
+  // No row: both allowed (AC-0.6).
+  return {
+    outbound: config.outbound ?? row?.outbound !== 0,
+    outboundFromEnv: config.outbound !== undefined,
+    tokens: config.tokens ?? row?.tokens !== 0,
+    tokensFromEnv: config.tokens !== undefined,
+  };
 }
 
 export function integrationRoutes({ db, config }: AppDeps) {
@@ -35,16 +39,23 @@ export function integrationRoutes({ db, config }: AppDeps) {
       requireAdmin,
       validate('json', adminIntegrationsRequestSchema),
       (c) => {
-        if (config.outbound !== undefined)
+        const { outbound, tokens } = c.req.valid('json');
+        if (outbound !== undefined && config.outbound !== undefined)
           throw new ApiError(409, 'outbound_env_managed');
-        // The users' own switches stay as they are (E-6).
+        if (tokens !== undefined && config.tokens !== undefined)
+          throw new ApiError(409, 'tokens_env_managed');
+        // A missing switch keeps its value; the users' own switches and tokens stay too (E-6).
+        // The table value, not the policy: env may override the other switch.
         db.prepare(
-          `INSERT INTO integration_settings (id, outbound_allowed, updated_at, updated_by)
-           VALUES (1, @allowed, @now, @userId)
-           ON CONFLICT (id) DO UPDATE SET outbound_allowed = excluded.outbound_allowed,
+          `INSERT INTO integration_settings (id, outbound_allowed, tokens_allowed, updated_at, updated_by)
+           VALUES (1, coalesce(@outbound, 1), coalesce(@tokens, 1), @now, @userId)
+           ON CONFLICT (id) DO UPDATE SET
+             outbound_allowed = coalesce(@outbound, outbound_allowed),
+             tokens_allowed = coalesce(@tokens, tokens_allowed),
              updated_at = excluded.updated_at, updated_by = excluded.updated_by`,
         ).run({
-          allowed: +c.req.valid('json').outbound,
+          outbound: outbound === undefined ? null : +outbound,
+          tokens: tokens === undefined ? null : +tokens,
           now: Date.now(),
           userId: c.var.user.id,
         });
@@ -61,12 +72,18 @@ export function integrationRoutes({ db, config }: AppDeps) {
         at: number | null;
         format: 'json' | 'csv' | null;
       };
+      const tokens = db
+        .prepare('SELECT count(*) FROM api_tokens WHERE user_id = ?')
+        .pluck()
+        .get(c.var.user.id) as number;
+      const p = policy();
       return c.json({
-        barcode: { enabled: u.off === 1, blocked: !policy().outbound },
+        barcode: { enabled: u.off === 1, blocked: !p.outbound },
         export: {
           lastAt: u.at === null ? null : new Date(u.at).toISOString(),
           lastFormat: u.format,
         },
+        tokens: { count: tokens, blocked: !p.tokens },
       } satisfies Integrations);
     });
 }

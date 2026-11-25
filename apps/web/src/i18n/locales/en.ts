@@ -2363,6 +2363,12 @@ export const en = {
       'AI is set in the server environment (AI_*); change it there',
     outbound_env_managed:
       'Outbound requests are set in the server environment (ALLOW_OUTBOUND_REQUESTS); change them there',
+    tokens_env_managed:
+      'API tokens are set in the server environment (ALLOW_API_TOKENS); change them there',
+    integrations_disabled: 'The administrator turned off API tokens',
+    invalid_token: 'The token is invalid, expired or revoked',
+    rate_limited: 'Too many requests. Try again in a minute',
+    limit_reached: 'You have 20 tokens already — delete one to create another',
     barcode_invalid: 'This barcode is not valid — check the digits',
     ai_settings_changed:
       'Someone else changed the AI settings. Reload and try again',

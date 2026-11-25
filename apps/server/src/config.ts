@@ -21,6 +21,11 @@ import {
 import { isCommonPassword } from './auth/password.js';
 import { aiProviders } from './ai/settings.js';
 
+const envBool = z
+  .enum(['true', 'false', '1', '0'])
+  .transform((v) => v === 'true' || v === '1')
+  .optional();
+
 const envSchema = z.object({
   PUBLIC_URL: z.string().optional(),
   AUTH_METHODS: z
@@ -41,10 +46,8 @@ const envSchema = z.object({
   AI_MODEL: z.string().optional(),
   AI_API_KEY: z.string().optional(),
   AI_BASE_URL: z.url().optional(),
-  ALLOW_OUTBOUND_REQUESTS: z
-    .enum(['true', 'false', '1', '0'])
-    .transform((v) => v === 'true' || v === '1')
-    .optional(),
+  ALLOW_OUTBOUND_REQUESTS: envBool,
+  ALLOW_API_TOKENS: envBool,
 });
 
 export interface Config {
@@ -69,6 +72,8 @@ export interface Config {
   };
   /** ALLOW_OUTBOUND_REQUESTS; when set, it overrides the admin's switch (ADR-0034 §5). */
   outbound: boolean | undefined;
+  /** ALLOW_API_TOKENS; when set, it overrides the admin's switch (ADR-0027 §6). */
+  tokens: boolean | undefined;
 }
 
 /** Parses the environment once. Nonsense values throw; installation problems surface via setupErrors(). */
@@ -100,6 +105,7 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
       baseUrl: e.AI_BASE_URL,
     },
     outbound: e.ALLOW_OUTBOUND_REQUESTS,
+    tokens: e.ALLOW_API_TOKENS,
   };
 }
 

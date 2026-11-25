@@ -128,7 +128,7 @@ async function findProduct(
     askOff,
   }: {
     db: Database;
-    config: Pick<Config, 'outbound'>;
+    config: Pick<Config, 'outbound' | 'tokens'>;
     askOff: (code: string) => Promise<OffResult>;
   },
   user: { id: number; locale: Locale },
