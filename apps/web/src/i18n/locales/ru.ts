@@ -576,6 +576,7 @@ const ru: DeepPartial<typeof en> = {
         blocked_address: 'адрес запрещён',
         dns: 'хост не найден',
         network: 'ошибка сети',
+        secret: 'секрет не читается — смените его',
       },
       delete: 'Удалить вебхук',
       delete_title: 'Удалить «{name}»?',

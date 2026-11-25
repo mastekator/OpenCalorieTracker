@@ -352,12 +352,14 @@ describe('WebhookScreen (OCT-187 5.5)', () => {
         delivery(3, { event: 'meal.saved', status: 503, attempts: 3 }),
         delivery(2, { event: 'day.closed', status: null, error: 'dns' }),
         delivery(1, { event: 'meal.saved', status: 204 }),
+        delivery(0, { status: null, error: 'secret', durationMs: 0 }),
       ],
     });
     await wrap(<WebhookScreen id="1" />);
     expect(await screen.findByText('503 ×3')).toBeTruthy();
     expect(screen.getByText('host not found')).toBeTruthy();
     expect(screen.getByText('204')).toBeTruthy();
+    expect(screen.getByText('secret unreadable — rotate it')).toBeTruthy();
     expect(screen.getAllByText('Meal saved')).toHaveLength(2);
   });
 

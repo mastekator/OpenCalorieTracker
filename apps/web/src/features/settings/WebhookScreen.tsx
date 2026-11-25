@@ -27,7 +27,14 @@ import { SecretSheet } from './TokensScreen';
 import { EditSheet, errorText, EV_KEY, WebhookSummary } from './WebhooksScreen';
 import './settings.css';
 
-const ERRORS = ['timeout', 'refused', 'blocked_address', 'dns', 'network'];
+const ERRORS = [
+  'timeout',
+  'refused',
+  'blocked_address',
+  'dns',
+  'network',
+  'secret',
+];
 
 /** «200», «503 ×3», «no reply in 10 s»: the response, or why there was none. */
 function useOutcome() {

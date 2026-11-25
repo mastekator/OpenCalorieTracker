@@ -515,6 +515,7 @@ export const en = {
         blocked_address: 'address not allowed',
         dns: 'host not found',
         network: 'network error',
+        secret: 'secret unreadable — rotate it',
       },
       delete: 'Delete webhook',
       delete_title: 'Delete “{name}”?',
