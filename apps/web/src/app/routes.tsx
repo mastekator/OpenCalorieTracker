@@ -287,7 +287,6 @@ export function AppScreens() {
           <WebhooksScreen />
         </Screen>
       </Route>
-<<<<<<< HEAD
       <Route path={MCP_PATH}>
         <Screen
           title={t('integr.mcp.title')}
@@ -295,7 +294,7 @@ export function AppScreens() {
         >
           <McpRoute />
         </Screen>
-=======
+      </Route>
       <Route path={`${WEBHOOKS_PATH}/:id`}>
         {({ id }) => (
           <Screen
@@ -305,7 +304,6 @@ export function AppScreens() {
             <WebhookScreen id={id} />
           </Screen>
         )}
->>>>>>> origin/main
       </Route>
       {user.role !== 'admin' && (
         <Route path="/settings/admin/*">
