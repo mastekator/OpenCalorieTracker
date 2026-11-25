@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { within } from 'storybook/test';
+import { tr } from '../../../.storybook/tr';
 import type { ApiToken, MeResponse } from '@oct/shared';
 import { DataProvider } from '../../data/DataContext';
 import { atPath } from '../../ui/navStory';
@@ -104,9 +105,11 @@ export const ListDark: Story = { ...List, ...dark };
 /** 4.2: the form, 90 days by default. */
 export const Create: Story = {
   beforeEach: serve(LIST),
-  play: async ({ canvas, userEvent }) => {
+  play: async ({ canvas, globals, userEvent }) => {
     await userEvent.click(
-      await canvas.findByRole('button', { name: 'Create token' }),
+      await canvas.findByRole('button', {
+        name: tr(globals, 'integr.tokens.create'),
+      }),
     );
   },
 };
@@ -115,16 +118,21 @@ export const CreateDark: Story = { ...Create, ...dark };
 /** 4.3: the token, once. */
 export const Created: Story = {
   beforeEach: serve(LIST),
-  play: async ({ canvas, canvasElement, userEvent }) => {
+  play: async ({ canvas, canvasElement, globals, userEvent }) => {
     await userEvent.click(
-      await canvas.findByRole('button', { name: 'Create token' }),
+      await canvas.findByRole('button', {
+        name: tr(globals, 'integr.tokens.create'),
+      }),
     );
     // The sheet is a modal <dialog> outside the canvas.
     const page = within(canvasElement.ownerDocument.body);
-    await userEvent.type(await page.findByLabelText('Name'), 'Home Assistant');
+    await userEvent.type(
+      await page.findByLabelText(tr(globals, 'integr.tokens.name')),
+      'Home Assistant',
+    );
     await userEvent.click(
       within(page.getByRole('dialog')).getByRole('button', {
-        name: 'Create token',
+        name: tr(globals, 'integr.tokens.create'),
       }),
     );
   },
