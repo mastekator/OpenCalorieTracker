@@ -41,6 +41,11 @@ select {
   color: inherit;
 }
 
+/* A swipe on a modal or its backdrop must not chain to the page (body is also fixed, ui/useModalDialog). */
+dialog {
+  overscroll-behavior: contain;
+}
+
 ::selection {
   background: var(--color-selection);
 }

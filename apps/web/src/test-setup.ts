@@ -6,6 +6,8 @@ HTMLDialogElement.prototype.showModal ??= function (this: HTMLDialogElement) {
 HTMLDialogElement.prototype.close ??= function (this: HTMLDialogElement) {
   this.open = false;
 };
+// jsdom only logs "not implemented"; the modal scroll lock restores the offset with it.
+window.scrollTo = () => {};
 
 // A full parallel run on a loaded CI runner renders slower than findBy*'s default 1 s.
 import { configure } from '@testing-library/react';
