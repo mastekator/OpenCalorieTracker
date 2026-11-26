@@ -1,6 +1,6 @@
 import { useState, type ComponentProps } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { within } from 'storybook/test';
+import { userEvent, within } from 'storybook/test';
 import { EdibleBlock, EdibleSource } from './EdibleBlock';
 
 const original = {
@@ -74,4 +74,37 @@ export const AiOddShare: Story = {
 export const AiOddShareDark: Story = {
   ...AiOddShare,
   globals: { theme: 'dark' },
+};
+/** OCT-479: under 1 g edible, the reason «Done» does nothing. */
+export const UnderOneGram: Story = {
+  args: {
+    edible: { grossG: 5, pct: 10, source: 'ref', key: 'k', chosen: true },
+    name: 'Pistachio',
+  },
+};
+export const UnderOneGramDark: Story = {
+  ...UnderOneGram,
+  globals: { theme: 'dark' },
+};
+/** OCT-420 2.4: 0 % typed — only the field and «10–100%» until fixed. */
+export const PctError: Story = {
+  async play({ canvasElement }) {
+    const c = within(canvasElement);
+    await userEvent.click(
+      await c.findByRole('button', {
+        name: /^(Change the percentage|Изменить процент)/,
+      }),
+    );
+    const input = await c.findByRole('textbox', {
+      name: /How much is edible|Сколько съедобно/,
+    });
+    await userEvent.clear(input);
+    await userEvent.type(input, '0');
+  },
+};
+export const PctErrorDark: Story = { ...PctError, globals: { theme: 'dark' } };
+export const PctErrorRussian: Story = {
+  ...PctError,
+  args: { name: 'Саподилла' },
+  globals: { locale: 'ru' },
 };

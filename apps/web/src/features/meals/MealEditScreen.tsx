@@ -593,6 +593,8 @@ export function MealEditScreen({
                 source: 'barcode' as const,
                 edible: undefined,
               }),
+              // Another product: the share was the old one's, it must not be saved under its key.
+              ...(renamed && { edible: undefined }),
               grams,
               shown: grams,
               amount,

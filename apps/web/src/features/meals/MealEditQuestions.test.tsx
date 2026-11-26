@@ -468,10 +468,39 @@ describe('gross → edible (ADR-0039 §5)', () => {
       const pct = sheet().getByRole('textbox', { name: 'How much is edible' });
       fireEvent.change(pct, { target: { value: '110' } });
       expect(sheet().getByText('10–100%')).toBeTruthy();
-      expect(sheet().getByText('edible · 618 g')).toBeTruthy();
+      // OCT-504: only the field and its error until fixed.
+      expect(sheet().queryByText(/^edible · /)).toBeNull();
       done();
       const item = await save(onSave);
       expect(item).toMatchObject({ grams: 617.6 });
+      expect(item).not.toHaveProperty('edible');
+    });
+
+    it('edible under 1 g says why «Done» does nothing (OCT-479)', async () => {
+      await setup(recognition());
+      await open();
+      fireEvent.change(
+        sheet().getByRole('textbox', { name: 'Weight with skin' }),
+        { target: { value: '1' } },
+      );
+      expect(sheet().getByRole('alert').textContent).toBe(
+        'Under 1 g edible: raise the weight or %',
+      );
+      expect(sheet().getByText('< 1 g')).toBeTruthy();
+      done();
+      expect(screen.getByRole('dialog')).toBeTruthy();
+    });
+
+    it('a renamed dish goes without the old share (OCT-479)', async () => {
+      const { onSave } = await setup(recognition());
+      await open();
+      fireEvent.click(sheet().getByRole('radio', { name: 'Whole' }));
+      fireEvent.change(sheet().getByRole('textbox', { name: 'Name' }), {
+        target: { value: 'Apple' },
+      });
+      done();
+      const item = await save(onSave);
+      expect(item).toMatchObject({ name: 'Apple', grams: 772 });
       expect(item).not.toHaveProperty('edible');
     });
 

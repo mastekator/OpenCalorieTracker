@@ -1900,6 +1900,7 @@ export const en = {
         '10–100%, steps of 5%. Saved for “{name}” when you save the meal, just for you.',
       pct_edible: 'edible · {net}',
       pct_err: '10–100%',
+      net_err: 'Under 1 g edible: raise the weight or %',
       less: 'Less by 5%',
       more: 'More by 5%',
       src: {

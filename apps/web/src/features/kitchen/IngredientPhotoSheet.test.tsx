@@ -215,6 +215,36 @@ describe('Photograph the ingredients (ADR-0040 §6)', () => {
     expect(screen.queryByText('Wheat flour')).toBeNull();
   });
 
+  it('closing the ingredient sheet puts focus back on its row (OCT-503)', async () => {
+    stub([found(FLOUR, CARROTS)]);
+    await view();
+    await shoot();
+    const row = (await screen.findByText('Wheat flour')).closest('button')!;
+    row.focus();
+    fireEvent.click(row);
+    const dish = await screen.findByRole('button', {
+      name: 'Remove from list',
+    });
+    fireEvent.keyDown(dish.closest('dialog')!, { key: 'Escape' });
+    // The sheet remounts its content: the same row, a new element.
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        screen.getByText('Wheat flour').closest('button'),
+      ),
+    );
+  });
+
+  it('closing the photo sheet puts focus back on «+ Ingredient» (OCT-503)', async () => {
+    stub([found(FLOUR)]);
+    await view();
+    const add = await screen.findByRole('button', { name: 'Ingredient' });
+    add.focus();
+    await shoot();
+    const title = await screen.findByText('Wheat flour');
+    fireEvent.keyDown(title.closest('dialog')!, { key: 'Escape' });
+    await waitFor(() => expect(document.activeElement).toBe(add));
+  });
+
   it('nothing found: «Take another» and «Enter manually»', async () => {
     stub([found()]);
     await view();
@@ -394,6 +424,67 @@ describe('Photograph the ingredients (ADR-0040 §6)', () => {
       expect(screen.queryByText('Ingredients from photo')).toBeNull(),
     );
     expect(screen.queryByText(/\bpcs?\b/)).toBeNull();
+  });
+
+  /** Grams in the dish sheet: the stepper of the opened row, then «Done». */
+  const cardGrams = async (name: string, value: string) => {
+    fireEvent.click(await screen.findByText(name));
+    await screen.findByRole('button', { name: 'Done' });
+    const fields = screen.getAllByRole('textbox', {
+      name: new RegExp(`Weight of ${name}`),
+    });
+    fireEvent.change(fields.at(-1)!, { target: { value } });
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+  };
+
+  it('grams changed in the dish sheet drop «from scale» and «3 pcs ≈», in the sheet and in the recipe', async () => {
+    stub([found(FLOUR, EGGS)]);
+    await view();
+    await shoot();
+    expect(await screen.findByText('from scale')).toBeTruthy();
+    await cardGrams('Wheat flour', '450');
+    await cardGrams('Eggs', '100');
+    await waitFor(() => expect(screen.queryByText('from scale')).toBeNull());
+    expect(screen.queryByText(/pcs/)).toBeNull();
+    expect(screen.queryByText('estimate')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Add · 2' }));
+    await waitFor(() =>
+      expect(screen.queryByText('Ingredients from photo')).toBeNull(),
+    );
+    expect(screen.queryByText('from scale')).toBeNull();
+  });
+
+  it('the dish sheet with the same grams keeps «from scale»', async () => {
+    stub([found(FLOUR)]);
+    await view();
+    await shoot();
+    fireEvent.click(await screen.findByText('Wheat flour'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Done' }));
+    expect(await screen.findByText('from scale')).toBeTruthy();
+  });
+
+  it('closing the sheet aborts the upload and the recognition, with no error after', async () => {
+    const abort = vi.spyOn(AbortController.prototype, 'abort');
+    const error = vi.spyOn(console, 'error');
+    let signal: AbortSignal | undefined;
+    vi.stubGlobal('fetch', (_: string, init: RequestInit) => {
+      signal = init.signal!;
+      return new Promise((_, reject) =>
+        signal!.addEventListener('abort', () =>
+          reject(new DOMException('aborted', 'AbortError')),
+        ),
+      );
+    });
+    await view();
+    await shoot();
+    await waitFor(() => expect(signal).toBeDefined());
+    fireEvent.click(await screen.findByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(signal!.aborted).toBe(true));
+    expect(abort).toHaveBeenCalled();
+    expect(screen.queryByText('Couldn’t recognize the photo')).toBeNull();
+    expect(error).not.toHaveBeenCalled();
+    abort.mockRestore();
+    error.mockRestore();
   });
 
   it('pieces in Russian: «3 шт. ≈ 165 г»', async () => {

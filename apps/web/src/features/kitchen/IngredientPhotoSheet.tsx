@@ -108,7 +108,8 @@ export function IngredientPhotoSheet({
     ml: useAmountText(units, 'ml'),
   };
   const [shots, setShots] = useState<Shot<ReviewRow>[]>(() => [
-    { key: nextKey++, file, url: URL.createObjectURL(file), state: 'wait' },
+    // The URL is made (and revoked) by the mount effect, so a StrictMode remount keeps a live one.
+    { key: nextKey++, file, url: '', state: 'wait' },
   ]);
   const [editing, setEditing] = useState<number | null>(null);
   const moreInput = useRef<HTMLInputElement>(null);
@@ -117,6 +118,8 @@ export function IngredientPhotoSheet({
   // The latest run of each photo: an older or unmounted run's answer is dropped.
   const runs = useRef(new Map<number, number>());
   const urls = useRef<string[]>([]);
+  // Closing the sheet cancels every upload and recognition still running: no quota spent for nothing.
+  const ctrl = useRef(new AbortController());
 
   const recognize = async ({ key, file: f }: Shot<ReviewRow>) => {
     const run = nextKey++;
@@ -126,17 +129,19 @@ export function IngredientPhotoSheet({
         setShots((s) => withShot(s, key, state));
     };
     settle('wait');
+    const { signal } = ctrl.current;
     try {
       let blob = blobs.current.get(key);
       if (!blob) blobs.current.set(key, (blob = prepareImage(f)));
       const { photoId } = await api('/api/photos', photoSchema, {
         method: 'POST',
         body: await blob,
+        signal,
       });
       const { items } = await api(
         `/api/photos/${photoId}/recognize?mode=ingredients`,
         ingredientsRecognitionSchema,
-        { method: 'POST' },
+        { method: 'POST', signal },
       );
       settle(
         items.map((item) => ({
@@ -153,6 +158,7 @@ export function IngredientPhotoSheet({
         })),
       );
     } catch (err) {
+      if (signal.aborted) return;
       if (!(err instanceof ApiError || err instanceof ImageDecodeError))
         throw err;
       settle('error');
@@ -160,14 +166,18 @@ export function IngredientPhotoSheet({
   };
 
   useEffect(() => {
-    urls.current.push(first.url);
+    const c = (ctrl.current = new AbortController());
+    const url = URL.createObjectURL(file);
+    urls.current.push(url);
+    setShots((s) => s.map((x) => (x.key === first.key ? { ...x, url } : x)));
     void recognize(first);
-    return () => runs.current.clear();
+    return () => {
+      c.abort();
+      runs.current.clear();
+      urls.current.forEach((u) => URL.revokeObjectURL(u));
+      urls.current = [];
+    };
   }, []);
-  useEffect(
-    () => () => urls.current.forEach((u) => URL.revokeObjectURL(u)),
-    [],
-  );
 
   const more = (f: File) => {
     const shot: Shot<ReviewRow> = {
@@ -265,7 +275,7 @@ export function IngredientPhotoSheet({
     body = (
       <div className="photo-ingredients__wait recog__wait" role="status">
         <div className="recog__photo">
-          <img src={first.url} alt="" />
+          {first.url && <img src={first.url} alt="" />}
           <span className="recog__glint" aria-hidden="true" />
         </div>
         <p className="recog__title">{t('editor.products.wait')}</p>
@@ -343,7 +353,7 @@ export function IngredientPhotoSheet({
               role="img"
               aria-label={t('editor.products.shot', { n: num(i + 1) })}
             >
-              <img src={s.url} alt="" />
+              {s.url && <img src={s.url} alt="" />}
               <span className="photo-ingredients__shot-n" aria-hidden="true">
                 {num(i + 1)}
               </span>
@@ -512,6 +522,7 @@ export function IngredientPhotoSheet({
       <Sheet
         open={!open}
         full
+        fit
         onClose={onClose}
         title={t('editor.products.title')}
         footer={footer}
@@ -529,6 +540,7 @@ export function IngredientPhotoSheet({
             (open.amount ?? { mode: 'weight', value: gramsOf(open) ?? 0 })
           }
           edible={open.edible}
+          title={t('editor.ingredient')}
           amountTitle={t('editor.used')}
           edibleTitle={t('editor.products.edible_title')}
           deleteLabel={t('editor.products.remove')}
@@ -537,6 +549,10 @@ export function IngredientPhotoSheet({
               name,
               grams: String(w.as(open.item.unit).show(g)),
               edible,
+              // New grams not taken from the gross weight are the user's own, as typed in the row.
+              ...(!open.product &&
+                g !== gramsOf(open) &&
+                !(edible && !edible.unlinked) && { byHand: true }),
               ...(open.product && {
                 amount,
                 pack: { ...open.pack, ...pack },

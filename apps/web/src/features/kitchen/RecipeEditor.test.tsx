@@ -324,6 +324,22 @@ describe('RecipeEditor', () => {
     expect(name.value).toBe('Onion');
   });
 
+  it('closing «Enter manually» puts focus back on «+ Ingredient» (OCT-503)', async () => {
+    await view({ recipe: SALAD });
+    const add = screen.getByRole('button', { name: 'Ingredient' });
+    add.focus();
+    fireEvent.click(add);
+    fireEvent.change(await screen.findByRole('searchbox'), {
+      target: { value: 'Onion' },
+    });
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Enter “Onion” manually' }),
+    );
+    const name = await screen.findByLabelText(/^Name ·/);
+    fireEvent.keyDown(name.closest('dialog')!, { key: 'Escape' });
+    await waitFor(() => expect(document.activeElement).toBe(add));
+  });
+
   describe('barcode in «Enter manually» (ADR-0040 §1)', () => {
     const COOKIES: Product = {
       code: '4006381333931',
@@ -601,6 +617,14 @@ describe('RecipeEditor', () => {
       expect(screen.getByText('AI draft')).toBeTruthy();
       expect(screen.getAllByText('estimate')).toHaveLength(5);
       expect(screen.getByText(zero)).toBeTruthy();
+    });
+
+    it('a tap on a row opens the «Ingredient» sheet', async () => {
+      await view({ draft, ai: { unsure: [4] } });
+      fireEvent.click(screen.getByRole('button', { name: /^Tomatoes/ }));
+      expect(
+        await screen.findByRole('dialog', { name: 'Ingredient' }),
+      ).toBeTruthy();
     });
 
     it('the mark follows its row when a row above is deleted', async () => {

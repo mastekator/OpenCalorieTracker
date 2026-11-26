@@ -4,6 +4,46 @@ All notable changes to this project are documented in this file.
 
 ## Unreleased
 
+## 0.4.0 — 2026-11-26
+
+Integrations, diary import and export, edible part of products and recipe ingredients by photo.
+
+### Integrations
+
+- Personal API tokens and a read-only public API `/api/v1` (days, meals, totals in your time zone); the admin can turn tokens off (`ALLOW_API_TOKENS`)
+- Webhooks for meal changes and the timed events `day.closed` and `day.empty`: signed deliveries, retries, delivery log, test send, secret rotation, auto-disable after repeated failures
+- Read-only MCP server on `/mcp` for AI assistants, switched on per user
+- Integrations hub that gathers tokens, webhooks, MCP, import and export
+
+### Import and export
+
+- Export the diary as JSON, CSV or a ZIP with photos
+- Import from MyFitnessPal, Cronometer or any CSV: column mapping, preview, import history and undo of an import
+
+### Edible part
+
+- The AI reads the gross weight; the edible share (peeled / whole) is picked from a USDA refuse reference, and you can change the percentage in the dish sheet
+
+### Recipes
+
+- Add ingredients by photo (up to 5 photos, up to 50 ingredients), by barcode or by hand with «how much you used»
+- Whole pieces on estimated ingredients, for example «3 pcs ≈ 55 g»
+
+### Sync
+
+- Offline edits that conflict with a change made on another device are kept: you choose which version to keep
+
+### Fixes
+
+- Page scroll is locked behind an open sheet; focus returns to the row or button that opened a sheet
+- Button rows no longer wrap into each other on desktop and in the recipe screen
+- Weight chart axis starts at the first weighing
+- CSV export cells are guarded against spreadsheet formulas; `/mcp` batch size is capped; webhook test sends are rate-limited
+
+### Upgrade from 0.3.2
+
+Set `image: ghcr.io/mastekator/opencalorietracker:0.4.0` in `docker-compose.yml`, then `docker compose pull && docker compose up -d`. Database migrations run on start. New optional variable: `ALLOW_API_TOKENS` (see `.env.example`).
+
 ## 0.3.2 — 2026-11-22
 
 Fix for Google Gemini after 0.3.1.

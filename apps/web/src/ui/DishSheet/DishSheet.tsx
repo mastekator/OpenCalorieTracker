@@ -89,6 +89,8 @@ type Props = {
   edibleTitle?: string;
   /** «Remove from list» in a review list; «Delete» by default. */
   deleteLabel?: string;
+  /** «Ingredient» in a recipe; «Dish» by default. */
+  title?: string;
 };
 
 /** Sheet «Dish» (OCT-16 4.4): rename, weight with live numbers, delete. The screen mounts it while open. */
@@ -108,6 +110,7 @@ export function DishSheet({
   amountTitle,
   edibleTitle,
   deleteLabel,
+  title,
 }: Props) {
   const { t, num } = useT();
   const [name, setName] = useState(original.name);
@@ -221,7 +224,7 @@ export function DishSheet({
     <Sheet
       open
       onClose={onClose}
-      title={t('edit.dish.title')}
+      title={title ?? t('edit.dish.title')}
       footer={
         <>
           <Button onClick={done}>{t('edit.dish.done')}</Button>
@@ -270,6 +273,20 @@ export function DishSheet({
             }}
             onPack={(p) => setPack((was) => ({ ...was, ...p }))}
           />
+        ) : edible ? (
+          // Weight set by hand: labelled and centred as in the edible block (OCT-504).
+          <div className="amount__head">
+            <span className="amount__label">{t('edit.edible.weight')}</span>
+            <div className="portion__grams">
+              <WeightStepper
+                grams={grams}
+                units={units}
+                unit={unit}
+                label={label}
+                onChange={setGrams}
+              />
+            </div>
+          </div>
         ) : (
           <WeightStepper
             grams={grams}

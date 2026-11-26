@@ -81,6 +81,16 @@ export function EdibleBlock({ edible, name, units, onChange, title }: Props) {
   const press = usePressRepeat(nudge);
 
   const err = typed !== null && pctOf(typed) === null;
+  // Under 1 g there is nothing to save: say why «Done» does nothing (OCT-479).
+  const netErr = !err && net < DISH_GRAMS.min;
+  // The rounded value would read «1 g» right above the error.
+  const netText = netErr ? `< ${w.text(DISH_GRAMS.min)}` : w.text(net);
+  const netError = netErr && (
+    <p id={errorId} className="stepper__error" role="alert">
+      <CircleAlert aria-hidden="true" />
+      {t('edit.edible.net_err')}
+    </p>
+  );
 
   const onKeyDown = (e: KeyboardEvent) => {
     const dir = { ArrowUp: 1, ArrowDown: -1 }[e.key] as 1 | -1 | undefined;
@@ -154,8 +164,8 @@ export function EdibleBlock({ edible, name, units, onChange, title }: Props) {
                   className="stepper__input tabular-nums"
                   inputMode="numeric"
                   aria-label={t('edit.edible.pct_label')}
-                  aria-invalid={err}
-                  aria-describedby={err ? errorId : undefined}
+                  aria-invalid={err || netErr}
+                  aria-describedby={err || netErr ? errorId : undefined}
                   value={typed ?? String(edible.pct)}
                   onChange={(e) => {
                     setTyped(e.target.value);
@@ -180,43 +190,51 @@ export function EdibleBlock({ edible, name, units, onChange, title }: Props) {
                 <Plus aria-hidden="true" />
               </button>
             </div>
+            {netError}
             {err && (
-              <p id={errorId} className="stepper__error">
+              <p id={errorId} className="stepper__error" role="alert">
                 <CircleAlert aria-hidden="true" />
                 {t('edit.edible.pct_err')}
               </p>
             )}
           </div>
-          <p className="edible__note tabular-nums" aria-live="polite">
-            {t('edit.edible.pct_edible', { net: w.text(net) })}
-          </p>
-          <div
-            className="portion__chips"
-            role="group"
-            aria-label={t('edit.amount.quick')}
-          >
-            {QUICK.map((n) => (
-              <button
-                key={n}
-                type="button"
-                className="portion__chip tabular-nums"
-                aria-pressed={edible.pct === n}
-                onClick={() => {
-                  setTyped(null);
-                  share(n);
-                }}
+          {/* Out of range: only the field and its error until fixed (OCT-420 2.4). */}
+          {!err && (
+            <>
+              <p className="edible__note tabular-nums" aria-live="polite">
+                {t('edit.edible.pct_edible', { net: netText })}
+              </p>
+              <div
+                className="portion__chips"
+                role="group"
+                aria-label={t('edit.amount.quick')}
               >
-                {t('edit.edible.pct', { n: num(n) })}
-              </button>
-            ))}
-          </div>
-          <p className="edible__note">{t('edit.edible.pct_hint', { name })}</p>
+                {QUICK.map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    className="portion__chip tabular-nums"
+                    aria-pressed={edible.pct === n}
+                    onClick={() => {
+                      setTyped(null);
+                      share(n);
+                    }}
+                  >
+                    {t('edit.edible.pct', { n: num(n) })}
+                  </button>
+                ))}
+              </div>
+              <p className="edible__note">
+                {t('edit.edible.pct_hint', { name })}
+              </p>
+            </>
+          )}
         </div>
       ) : (
         <div className="edible__result tabular-nums">
           <span className="edible__main">
             <span>{t('edit.edible.result')}</span>
-            <b>{w.text(net)}</b>
+            <b>{netText}</b>
             <span>
               {t('edit.edible.pct', { n: num(pct) })} ·{' '}
               <span
@@ -246,6 +264,7 @@ export function EdibleBlock({ edible, name, units, onChange, title }: Props) {
           )}
         </div>
       )}
+      {!editing && netError}
     </div>
   );
 }

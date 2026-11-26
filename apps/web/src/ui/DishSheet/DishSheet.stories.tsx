@@ -491,6 +491,11 @@ export const EdibleErrorDark: Story = {
   ...EdibleError,
   globals: { theme: 'dark' },
 };
+export const EdibleErrorRussian: Story = {
+  ...EdibleError,
+  args: EdibleRussian.args,
+  globals: { locale: 'ru' },
+};
 /** 1.2: grams set by hand in the row: the usual weight and «Restore». */
 const manual = {
   ...sapodilla,
@@ -501,4 +506,12 @@ export const EdibleManual: Story = { args: manual };
 export const EdibleManualDark: Story = {
   args: manual,
   globals: { theme: 'dark' },
+};
+export const EdibleManualRussian: Story = {
+  args: { ...manual, original: EdibleRussian.args!.original! },
+  globals: { locale: 'ru' },
+};
+export const EdibleManualRussianDark: Story = {
+  ...EdibleManualRussian,
+  globals: { locale: 'ru', theme: 'dark' },
 };
