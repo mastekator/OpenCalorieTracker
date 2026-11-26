@@ -80,6 +80,8 @@ interface CallOptions<T> {
     timedOut: boolean,
     model: AiModel,
   ) => ApiError | undefined;
+  /** A key to cut out of the log line: provider texts may echo it. */
+  secret?: string;
   /** Log fields before result=…; gets undefined on failure. */
   logExtra: (output: T | undefined) => string;
 }
@@ -91,7 +93,15 @@ interface CallOptions<T> {
  */
 export async function callModel<T>(
   model: AiModel,
-  { op, promptVersion, timeoutMs, signal, mapError, logExtra }: CallOptions<T>,
+  {
+    op,
+    promptVersion,
+    timeoutMs,
+    signal,
+    mapError,
+    secret,
+    logExtra,
+  }: CallOptions<T>,
   call: (abortSignal: AbortSignal) => Promise<T>,
 ): Promise<T> {
   // A timer, not AbortSignal.timeout(): fake timers in tests must be able to fire it.
@@ -135,8 +145,7 @@ export async function callModel<T>(
     throw apiError;
   } finally {
     clearTimeout(timer);
-    console.log(
-      `ai.${op} provider=${model.provider} model=${model.modelId} prompt=${promptVersion} ms=${Date.now() - started} ${logExtra(output)} result=${result}${failure}`,
-    );
+    const line = `ai.${op} provider=${model.provider} model=${model.modelId} prompt=${promptVersion} ms=${Date.now() - started} ${logExtra(output)} result=${result}${failure}`;
+    console.log(secret ? line.replaceAll(secret, '[redacted]') : line);
   }
 }

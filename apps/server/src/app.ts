@@ -8,6 +8,7 @@ import { accountRoutes } from './account/routes.js';
 import { adminRoutes } from './admin/routes.js';
 import { aiRoutes } from './ai/routes.js';
 import { consentRoutes } from './ai/consents.js';
+import { ownAiRoutes } from './ai/own.js';
 import type { AiRuntime } from './ai/runtime.js';
 import { authRoutes } from './auth/routes.js';
 import { photoBarcodes, type PhotoBarcodes } from './barcodes/read.js';
@@ -116,6 +117,7 @@ export function createApp(appDeps: AppDeps) {
   app.route('/api', barcodeRoutes(deps));
   app.route('/api', aiRoutes(deps));
   app.route('/api', consentRoutes(deps));
+  app.route('/api', ownAiRoutes(deps));
   app.route('/api', photoRoutes(deps));
   app.route('/api', mealRoutes(deps));
   app.route('/api', recipeRoutes(deps));
