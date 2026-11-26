@@ -17,6 +17,7 @@ import { passkeyRoutes } from './auth/passkeys.js';
 import { dummyHash } from './auth/password.js';
 import { session } from './auth/session.js';
 import { diaryRoutes } from './diary/routes.js';
+import { drinkRoutes } from './drinks/routes.js';
 import { exportRoutes } from './export/routes.js';
 import { mealRoutes } from './meals/routes.js';
 import { importRoutes } from './imports/routes.js';
@@ -122,6 +123,7 @@ export function createApp(appDeps: AppDeps) {
   app.route('/api', normAgentRoutes(deps));
   app.route('/api', syncRoutes(deps));
   app.route('/api', weightRoutes(deps));
+  app.route('/api', drinkRoutes(deps));
   app.route('/api', exportRoutes(deps));
   app.route('/api', importRoutes(deps));
 

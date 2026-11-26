@@ -20,18 +20,32 @@ export const readSettings = (db: Database, userId: number): AccountSettings => {
       `SELECT locale, theme, units, settings_rev AS settingsRev,
        photo_retention_days AS photoRetentionDays, norm_disclaimer_hidden AS normDisclaimerHidden,
        off_enabled AS offEnabled, off_hint_at AS offHintAt, time_zone AS timeZone,
-       mcp_enabled AS mcpEnabled
+       mcp_enabled AS mcpEnabled, water_enabled AS waterEnabled, hidden_drinks AS hiddenDrinks
        FROM users WHERE id = ?`,
     )
     .get(userId) as Omit<
     AccountSettings,
-    'normDisclaimerHidden' | 'offEnabled' | 'mcpEnabled'
-  > & { normDisclaimerHidden: 0 | 1; offEnabled: 0 | 1; mcpEnabled: 0 | 1 };
+    | 'normDisclaimerHidden'
+    | 'offEnabled'
+    | 'mcpEnabled'
+    | 'waterEnabled'
+    | 'hiddenDrinks'
+  > & {
+    normDisclaimerHidden: 0 | 1;
+    offEnabled: 0 | 1;
+    mcpEnabled: 0 | 1;
+    waterEnabled: 0 | 1;
+    hiddenDrinks: string;
+  };
   return {
     ...row,
     normDisclaimerHidden: row.normDisclaimerHidden === 1,
     offEnabled: row.offEnabled === 1,
     mcpEnabled: row.mcpEnabled === 1,
+    waterEnabled: row.waterEnabled === 1,
+    hiddenDrinks: JSON.parse(
+      row.hiddenDrinks,
+    ) as AccountSettings['hiddenDrinks'],
   };
 };
 
@@ -40,6 +54,8 @@ const COLUMNS: Record<string, string> = {
   offEnabled: 'off_enabled',
   offHintAt: 'off_hint_at',
   mcpEnabled: 'mcp_enabled',
+  waterEnabled: 'water_enabled',
+  hiddenDrinks: 'hidden_drinks',
 };
 
 /** Language, theme, units and photo retention of one's own account (ADR-0011 §3, AC-0.3, ADR-0008). */
@@ -108,8 +124,15 @@ export function accountRoutes({ db, config }: AppDeps) {
           c.req.valid('json');
         const changes = Object.entries(fields)
           .filter(([, v]) => v !== undefined)
-          // SQLite has no booleans.
-          .map(([k, v]) => [COLUMNS[k] ?? k, typeof v === 'boolean' ? +v : v]);
+          // SQLite has no booleans or arrays.
+          .map(([k, v]) => [
+            COLUMNS[k] ?? k,
+            typeof v === 'boolean'
+              ? +v
+              : Array.isArray(v)
+                ? JSON.stringify([...new Set(v)])
+                : v,
+          ]);
         db.transaction(() => {
           // The device's zone, not an edit: no last-edit-wins and no settingsRev, so two devices
           // in different zones do not bounce settings through sync (ADR-0027 §4).

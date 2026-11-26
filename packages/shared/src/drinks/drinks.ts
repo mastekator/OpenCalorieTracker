@@ -189,3 +189,25 @@ export const drinkRowOrder = ({
   rest.sort((a, b) => (count.get(b) ?? 0) - (count.get(a) ?? 0));
   return ['water', ...rest];
 };
+
+/** The user's own drink as the server returns it; `deleted` ones stay for sync. */
+export interface Drink extends DrinkInput {
+  id: number;
+  deleted: boolean;
+}
+
+/** A logged entry as the server returns it: the snapshot plus where it came from. */
+export interface DrinkEntry extends DrinkSnapshot {
+  clientId: string;
+  date: string;
+  takenAt: string;
+  /** NULL — a drink from a photo. */
+  drinkKey: string | null;
+  deleted: boolean;
+}
+
+/** `PUT /api/water/goal` body. */
+export const waterGoalPutSchema = z.object({
+  date: z.iso.date(),
+  goalMl: waterGoalSchema,
+});

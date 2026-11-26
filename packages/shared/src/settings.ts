@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { BUILTIN_DRINKS, builtinDrinkKeySchema } from './drinks/drinks.js';
 import { LOCALES } from './locales.js';
 import { unitsSchema } from './units.js';
 
@@ -67,6 +68,10 @@ export const accountSettingsSchema = z.object({
   mcpEnabled: z.boolean().optional(),
   /** IANA zone the server counts "today" by (ADR-0027 §4); null = the server's. Absent in settings stored by older clients. */
   timeZone: z.string().nullable().optional(),
+  /** The water module is on (ADR-0028 §3); off by default. Absent in settings stored by older clients. */
+  waterEnabled: z.boolean().optional(),
+  /** Built-in drinks hidden from the row; water cannot be hidden. Absent in settings stored by older clients. */
+  hiddenDrinks: z.array(builtinDrinkKeySchema).optional(),
 });
 export type AccountSettings = z.infer<typeof accountSettingsSchema>;
 
@@ -80,6 +85,11 @@ export const accountSettingsPatchSchema = z.object({
   offEnabled: z.boolean().optional(),
   offHintAt: z.iso.datetime().nullable().optional(),
   mcpEnabled: z.boolean().optional(),
+  waterEnabled: z.boolean().optional(),
+  hiddenDrinks: z
+    .array(builtinDrinkKeySchema.exclude(['water']))
+    .max(BUILTIN_DRINKS.length)
+    .optional(),
   /** A property of the device, not an edit: not subject to `editedAt`, does not move `settingsRev`. */
   timeZone: timeZoneSchema.optional(),
   editedAt: z.number().int().nonnegative().optional(),
