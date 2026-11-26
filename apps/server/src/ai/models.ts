@@ -31,10 +31,12 @@ export async function listModels({
   provider,
   baseUrl,
   apiKey,
+  fetch = globalThis.fetch,
 }: {
   provider: AiProviderId;
   baseUrl?: string;
   apiKey?: string;
+  fetch?: typeof globalThis.fetch;
 }): Promise<AiModelInfo[]> {
   const base = (baseUrl ?? DEFAULT_BASE[provider])!.replace(/\/+$/, '');
   // One deadline for the whole call, Google's pages included.

@@ -152,6 +152,23 @@ export const aiCheckResultSchema = adminAiStatusSchema.pick({
 });
 export type AiCheckResult = z.infer<typeof aiCheckResultSchema>;
 
+/**
+ * GET, PUT and DELETE /api/ai/own (ADR-0031 §2): the user's own key, null without one. Never the key;
+ * state is the last check since start. PUT takes aiDraftSchema and always checks first.
+ */
+export const ownAiSchema = z
+  .object({
+    provider: aiDraftFields.provider,
+    model: z.string(),
+    baseUrl: z.string().nullable(),
+    keyLast4: z.string().nullable(),
+    /** The saved key does not decrypt (another secret.key): enter it again. */
+    keyUnreadable: z.boolean(),
+  })
+  .extend(aiCheckResultSchema.shape)
+  .nullable();
+export type OwnAi = z.infer<typeof ownAiSchema>;
+
 /** POST /api/admin/ai/tests body: the form's draft, as for a check (ADR-0019 §3). */
 export const aiTestStartRequestSchema = aiDraftSchema;
 

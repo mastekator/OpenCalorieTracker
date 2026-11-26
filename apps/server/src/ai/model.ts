@@ -9,7 +9,9 @@ export type AiModel = Exclude<LanguageModel, string>;
  * package is loaded. The AI runtime keeps the result until the settings change.
  */
 export async function createModel(
-  settings: AiSettings | null,
+  settings: Omit<AiSettings, 'source'> | null,
+  /** Every provider request goes through it; the SSRF guard of users' own addresses (ADR-0031 §2). */
+  fetch?: typeof globalThis.fetch,
 ): Promise<AiModel | null> {
   if (!settings) return null;
   const { provider, model, apiKey } = settings;
@@ -17,15 +19,15 @@ export async function createModel(
   switch (provider) {
     case 'google': {
       const { createGoogleGenerativeAI } = await import('@ai-sdk/google');
-      return createGoogleGenerativeAI({ apiKey, baseURL })(model);
+      return createGoogleGenerativeAI({ apiKey, baseURL, fetch })(model);
     }
     case 'openai': {
       const { createOpenAI } = await import('@ai-sdk/openai');
-      return createOpenAI({ apiKey, baseURL })(model);
+      return createOpenAI({ apiKey, baseURL, fetch })(model);
     }
     case 'anthropic': {
       const { createAnthropic } = await import('@ai-sdk/anthropic');
-      return createAnthropic({ apiKey, baseURL })(model);
+      return createAnthropic({ apiKey, baseURL, fetch })(model);
     }
     case 'openrouter':
     case 'openai-compatible': {
@@ -35,6 +37,7 @@ export async function createModel(
         name: provider,
         baseURL: baseURL ?? 'https://openrouter.ai/api/v1',
         apiKey,
+        fetch,
         // Send the JSON schema (response_format json_schema); OpenRouter, Ollama and LM Studio accept it.
         supportsStructuredOutputs: true,
       })(model);

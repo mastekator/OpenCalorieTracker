@@ -1,5 +1,4 @@
 import { readFile, rm } from 'node:fs/promises';
-import { generateText } from 'ai';
 import { Hono } from 'hono';
 import {
   AI_PROVIDERS,
@@ -23,12 +22,17 @@ import {
   type Invite,
   type UserKeysResponse,
 } from '@oct/shared';
-import { callModel, noVisionError, quickReasoning } from '../ai/common.js';
+import {
+  draftConnection as connectionOf,
+  fetchModels,
+  redacted,
+  runCheck,
+  throttle,
+} from '../ai/check.js';
 import { readExpected, TEST_PHOTOS_DIR } from '../ai/model-test/compare.js';
 import { modelsMdRow, reportMarkdown } from '../ai/model-test/format.js';
 import { createModelTestRunner } from '../ai/model-test/runner.js';
 import { createModel, type AiModel } from '../ai/model.js';
-import { listModels, MODELS_TIMEOUT_MS } from '../ai/models.js';
 import {
   API_KEY_PURPOSE,
   baseUrlHost,
@@ -37,13 +41,7 @@ import {
   userKeysAllowed,
   type AiSettings,
 } from '../ai/settings.js';
-import {
-  aiResultOf,
-  providerState,
-  recordAiResult,
-  redactSecrets,
-  type AiResult,
-} from '../ai/status.js';
+import { providerState, recordAiResult } from '../ai/status.js';
 import type { AppDeps } from '../app.js';
 import { DEVICE_FAILS, IP_FAILS } from '../auth/guard.js';
 import { createLink, LINK_TTL } from '../auth/invites.js';
@@ -53,14 +51,6 @@ import { ApiError } from '../http/errors.js';
 import { validate } from '../http/validate.js';
 import { draftPath } from '../imports/draft.js';
 import { deleteUserPhotos } from '../photos/store.js';
-
-const CHECK_INTERVAL_MS = 10_000;
-const CHECK_TIMEOUT_MS = 20_000;
-// Not 1 as in ADR-0013: OpenAI's Responses API rejects max_output_tokens below 16.
-const CHECK_MAX_TOKENS = 16;
-// 1×1 transparent PNG.
-const PIXEL_PNG =
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
 
 interface TestRunRow {
   id: number;
@@ -141,15 +131,6 @@ export function adminRoutes({ config, db, ai, secrets }: AppDeps) {
     return row;
   };
 
-  const redacted = (details: AiResult['details'], apiKey: string | undefined) =>
-    details && {
-      details: {
-        status: details.status,
-        timeoutSec: details.timeoutSec,
-        message: details.message && redactSecrets(details.message, apiKey),
-      },
-    };
-
   const aiStatus = async (): Promise<AdminAiStatus> => {
     const { settings = null, model = null } = ai.current() ?? {};
     const saved = savedAiRow(db, secrets);
@@ -176,90 +157,24 @@ export function adminRoutes({ config, db, ai, secrets }: AppDeps) {
       ...redacted(details, settings?.apiKey),
     };
   };
-  // Counted from the start of a check, so a double click never reaches the provider twice.
-  const throttle = () => {
-    let last = -Infinity;
-    return () => {
-      const wait = last + CHECK_INTERVAL_MS - Date.now();
-      if (wait > 0)
-        throw new ApiError(429, 'too_many_attempts', {
-          retryAfterSec: Math.ceil(wait / 1000),
-        });
-      last = Date.now();
-    };
-  };
   // Separate, so Save right after a passed check is not refused.
   const throttleCheck = throttle();
   const throttleSave = throttle();
-
-  // One tiny request with an image, so no_vision is told apart (ADR-0013). Records the global
-  // state only when `model` is the active one.
-  const runCheck = async (model: AiModel): Promise<AiResult> => {
-    let failure: AiResult | undefined;
-    try {
-      await callModel(
-        model,
-        {
-          op: 'check',
-          promptVersion: 0,
-          timeoutMs: CHECK_TIMEOUT_MS,
-          mapError: (err, timedOut, m) => {
-            failure = aiResultOf(err, timedOut ? CHECK_TIMEOUT_MS : undefined);
-            return noVisionError(err, timedOut, m);
-          },
-          logExtra: () => '',
-        },
-        (abortSignal) =>
-          generateText({
-            model,
-            messages: [
-              {
-                role: 'user',
-                content: [
-                  { type: 'text', text: 'Reply OK.' },
-                  { type: 'file', data: PIXEL_PNG, mediaType: 'image/png' },
-                ],
-              },
-            ],
-            maxOutputTokens: CHECK_MAX_TOKENS,
-            maxRetries: 0,
-            reasoning: quickReasoning(model),
-            abortSignal,
-          }),
-      );
-    } catch (err) {
-      // A check that found a failure is not itself an error: the state says what failed.
-      if (!(err instanceof ApiError)) throw err;
-      // A schema mismatch still means the provider answered.
-      return failure ?? aiResultOf();
-    }
-    return aiResultOf();
-  };
 
   const envManaged = () => {
     if (config.ai.provider) throw new ApiError(409, 'ai_env_managed');
   };
 
-  /** Without apiKey or baseUrl the saved one is kept if the provider stays (AC-1.5): the admin sees only the host. */
+  /** The admin sees only the host, so the saved key and address stand in for missing ones. */
   const draftConnection = (
     draft: Pick<AiDraft, 'provider' | 'apiKey' | 'baseUrl'>,
   ) => {
     // Under AI_* in env the saved row does nothing: the env key stands in (AC-0.2, test the current model).
     const active = ai.current()?.settings;
-    const saved = active?.source === 'env' ? active : savedAiRow(db, secrets);
-    const same = saved?.provider === draft.provider;
-    const host = (url: string | undefined) => url?.trim().replace(/\/+$/, '');
-    // A saved or env key goes only to its own address, never to a new one from the draft.
-    const keyFits =
-      same && (!draft.baseUrl || host(draft.baseUrl) === host(saved.baseUrl));
-    const apiKey = draft.apiKey ?? (keyFits ? saved.apiKey : undefined);
-    const compatible = draft.provider === 'openai-compatible';
-    const baseUrl = compatible
-      ? (draft.baseUrl ?? (same ? saved.baseUrl : undefined))
-      : draft.baseUrl;
-    if (compatible && !baseUrl) throw new ApiError(400, 'validation_failed');
-    if (!apiKey && !compatible) throw new ApiError(400, 'ai_key_required');
-    return { apiKey, baseUrl };
+    return connectionOf(
+      draft,
+      active?.source === 'env' ? active : savedAiRow(db, secrets),
+    );
   };
   const draftSettings = (draft: AiDraft): AiSettings => ({
     provider: draft.provider,
@@ -280,7 +195,7 @@ export function adminRoutes({ config, db, ai, secrets }: AppDeps) {
           const model = ai.current()?.model;
           if (!model) throw new ApiError(409, 'ai_not_configured');
           throttleCheck();
-          await runCheck(model);
+          await runCheck(model, ai.current()?.settings.apiKey);
           return c.json(await aiStatus());
         }
         let body: unknown;
@@ -295,6 +210,7 @@ export function adminRoutes({ config, db, ai, secrets }: AppDeps) {
         throttleCheck();
         const { state, checkedAt, details } = await runCheck(
           (await createModel(settings))!,
+          settings.apiKey,
         );
         return c.json({
           state,
@@ -318,7 +234,7 @@ export function adminRoutes({ config, db, ai, secrets }: AppDeps) {
           if (!force) {
             throttleSave();
             const model = (await createModel(settings))!;
-            const { state, details } = await runCheck(model);
+            const { state, details } = await runCheck(model, settings.apiKey);
             if (state !== 'ok')
               throw new ApiError(422, 'ai_check_failed', {
                 state,
@@ -404,20 +320,9 @@ export function adminRoutes({ config, db, ai, secrets }: AppDeps) {
         async (c) => {
           const draft = c.req.valid('json');
           const { apiKey, baseUrl } = draftConnection(draft);
-          try {
-            const models = await listModels({ ...draft, apiKey, baseUrl });
-            return c.json({ models } satisfies AiModelsResponse);
-          } catch (err) {
-            const timedOut = (err as Error)?.name === 'TimeoutError';
-            const { state, details } = aiResultOf(
-              err,
-              timedOut ? MODELS_TIMEOUT_MS : undefined,
-            );
-            throw new ApiError(502, 'ai_models_failed', {
-              state,
-              ...redacted(details, apiKey),
-            });
-          }
+          return c.json({
+            models: await fetchModels({ ...draft, apiKey, baseUrl }),
+          } satisfies AiModelsResponse);
         },
       )
       // The active model when the draft is the active settings, so its calls set the status

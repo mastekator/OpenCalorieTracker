@@ -38,6 +38,9 @@ const check = (b: BlockList, ip: string) => {
 /** At every delivery, for each address the name resolves to (ADR-0027 §3). */
 export const isBlockedIp = (ip: string) => check(blocked, ip);
 
+/** RFC 1918 or unique local IPv6: the admin's network, off limits to users' own AI addresses (ADR-0031 §2). */
+export const isPrivateIp = (ip: string) => check(privateNets, ip);
+
 /** The URL's host without IPv6 brackets. */
 export const hostOf = (url: URL) => url.hostname.replace(/^\[|\]$/g, '');
 
