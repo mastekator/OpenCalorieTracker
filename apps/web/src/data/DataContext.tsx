@@ -30,6 +30,7 @@ import { useT } from '../i18n';
 import { useOnline } from '../ui/OfflineBar/OfflineBar';
 import { useToast } from '../ui/Toast/Toast';
 import { unitOf } from '../ui/weightUnits';
+import { useSession } from '../app/SessionContext';
 import { emitChange, onChange } from './changes';
 import { openUserDb, type Choices, type Conflict, type Db } from './db';
 import {
@@ -43,6 +44,7 @@ import { refreshMyProducts } from './products';
 import { streaks } from './streaks';
 import { pull } from './sync';
 import { photoIds, prefetchThumbs } from './thumbs';
+import { useDeviceAi } from './deviceAi';
 
 /** Exported for stories: a stub database shows queue states without IndexedDB. */
 export const DataContext = createContext<Db | null>(null);
@@ -253,9 +255,11 @@ export const useSettings = () =>
 /**
  * GET /api/ai/status, one request per screen online; offline (or while it loads) the last
  * answer stored on this device. `loading`: online and not answered yet; `ask` false: no request.
+ * «AI on this device» off (ADR-0031 §6): no request, and every AI way in reads «not set up».
  */
 export function useAiStatus(ask = true) {
   const db = useDb();
+  const [deviceAi] = useDeviceAi(useSession().user?.id);
   const online = useOnline();
   const stored = useLocal(
     'aiStatus',
@@ -264,7 +268,7 @@ export function useAiStatus(ask = true) {
   // null: the request failed.
   const [fresh, setFresh] = useState<AiStatus | null>();
   useEffect(() => {
-    if (!online || !ask) return;
+    if (!online || !ask || !deviceAi) return;
     let live = true;
     api('/api/ai/status', aiStatusSchema).then(
       (s) => {
@@ -277,11 +281,19 @@ export function useAiStatus(ask = true) {
     return () => {
       live = false;
     };
-  }, [db, online, ask]);
-  return {
-    status: fresh ?? stored,
-    loading: online && fresh === undefined,
-  };
+  }, [db, online, ask, deviceAi]);
+  const status = fresh ?? stored;
+  if (!deviceAi)
+    return {
+      status: status && {
+        ...status,
+        recognition: 'not_configured' as const,
+        interview: 'not_configured' as const,
+      },
+      loading: false,
+      off: true,
+    };
+  return { status, loading: online && fresh === undefined, off: false };
 }
 
 /** GET /api/integrations into kv; every useIntegrations re-reads it, so one call refreshes all cards. */
