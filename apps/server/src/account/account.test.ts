@@ -40,6 +40,8 @@ describe('PATCH /api/account/settings', () => {
       offHintAt: null,
       mcpEnabled: false,
       timeZone: null,
+      waterEnabled: false,
+      hiddenDrinks: [],
     });
     expect(await (await patch({ theme: 'dark' })).json()).toMatchObject({
       theme: 'dark',
@@ -56,8 +58,24 @@ describe('PATCH /api/account/settings', () => {
       offHintAt: null,
       mcpEnabled: false,
       timeZone: null,
+      waterEnabled: false,
+      hiddenDrinks: [],
     });
     expect(syncRev()).toBe(3);
+  });
+
+  it('saves the water module switch and hidden built-in drinks, never water', async () => {
+    const { patch } = await setup();
+    expect(
+      await (
+        await patch({
+          waterEnabled: true,
+          hiddenDrinks: ['soda', 'kefir', 'soda'],
+        })
+      ).json(),
+    ).toMatchObject({ waterEnabled: true, hiddenDrinks: ['soda', 'kefir'] });
+    expect((await patch({ hiddenDrinks: ['water'] })).status).toBe(400);
+    expect((await patch({ hiddenDrinks: ['custom:1'] })).status).toBe(400);
   });
 
   it('ignores an edit older than the stored one and answers with current values', async () => {
