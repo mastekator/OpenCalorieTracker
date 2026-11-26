@@ -1,5 +1,6 @@
 import { deleteDB } from 'idb';
 import type { MeResponse } from '@oct/shared';
+import { clearConsents } from './aiConsents';
 import { dbName, openUserDb } from './db';
 import { THUMBS_CACHE } from './thumbs';
 
@@ -25,6 +26,7 @@ export function setLastUser({ id, email }: LastUser) {
  */
 export async function clearLocal(userId: number) {
   await deleteDB(dbName(userId));
+  clearConsents(userId);
   if (typeof caches !== 'undefined') await caches.delete(THUMBS_CACHE);
   if (getLastUser()?.id === userId) localStorage.removeItem(LAST_USER_KEY);
 }

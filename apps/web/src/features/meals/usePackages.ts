@@ -16,6 +16,7 @@ import { useT } from '../../i18n';
 import { useToast } from '../../ui/Toast/Toast';
 import { ImageDecodeError, prepareImage } from './prepareImage';
 import { toRows, type Recognized, type Row } from './refine';
+import { useAiConsent } from '../ai/AiConsent';
 
 const photoSchema = z.object({ photoId: z.string() });
 
@@ -47,6 +48,7 @@ export function usePackages({
 }) {
   const { t } = useT();
   const toast = useToast();
+  const withConsent = useAiConsent();
   // «Photograph the label»: the code it is read for (OCT-313 2.4).
   const labelInput = useRef<HTMLInputElement>(null);
   const labelCode = useRef<string | null>(null);
@@ -105,10 +107,12 @@ export function usePackages({
         method: 'POST',
         body: blob,
       });
-      const read = await api(
-        `/api/photos/${encodeURIComponent(id)}/recognize?mode=label&barcode=${code}`,
-        packageRecognitionSchema,
-        { method: 'POST' },
+      const read = await withConsent('photo', () =>
+        api(
+          `/api/photos/${encodeURIComponent(id)}/recognize?mode=label&barcode=${code}`,
+          packageRecognitionSchema,
+          { method: 'POST' },
+        ),
       );
       const found = mergePackages(
         read.dishes

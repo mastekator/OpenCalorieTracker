@@ -1,3 +1,4 @@
+import { AiConsentProvider } from '../features/ai/AiConsent';
 import { I18nProvider } from '../i18n';
 import { Splash } from '../ui/Splash/Splash';
 import { ToastProvider } from '../ui/Toast/Toast';
@@ -11,7 +12,9 @@ export function App() {
       <ToastProvider>
         <LeaveGuard>
           <SessionProvider>
-            <Routes />
+            <AiConsentProvider>
+              <Routes />
+            </AiConsentProvider>
           </SessionProvider>
         </LeaveGuard>
       </ToastProvider>

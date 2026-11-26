@@ -346,6 +346,7 @@ describe('AgentChat errors and exits (OCT-91)', () => {
     'ai_unavailable',
     'ai_quota_exceeded',
     'ai_not_configured',
+    'ai_consent_required', // «Not now» in the consent sheet (OCT-178 2.4)
   ] as const)(
     '%s: the form instead of the field, with the draft (9.10)',
     async (code) => {

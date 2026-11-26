@@ -21,6 +21,7 @@ import {
   type PhotoCodes,
   type RecognitionStateKind,
 } from './RecognitionState';
+import { useAiConsent } from '../ai/AiConsent';
 
 /** The edit screen (OCT-58). */
 export const MEAL_EDIT_PATH = `${MEAL_NEW_PATH}/edit`;
@@ -88,6 +89,7 @@ export function RecognitionScreen({
   recalc?: Recalc;
 }) {
   const { t } = useT();
+  const withConsent = useAiConsent();
   const [, navigate] = useLocation();
   const capture = useCapture();
   // None in view tests and stories: nothing is kept then.
@@ -162,16 +164,14 @@ export function RecognitionScreen({
 
     const run = async (): Promise<void> => {
       try {
-        const recognized = await api(
-          `${photo}/recognize`,
-          packageRecognitionSchema,
-          {
+        const recognized = await withConsent('photo', () =>
+          api(`${photo}/recognize`, packageRecognitionSchema, {
             method: 'POST',
             signal: AbortSignal.any([
               ctrl.signal,
               AbortSignal.timeout(TIMEOUT_MS),
             ]),
-          },
+          }),
         );
         const found = await barcodes;
         if (ctrl.signal.aborted) return;
@@ -207,6 +207,8 @@ export function RecognitionScreen({
             return withoutAi('not_configured');
           case 'ai_no_vision':
             return withoutAi('no_vision');
+          case 'ai_consent_required': // «Not now»: manual entry with the photo (OCT-178 2.4)
+            return toEdit({ manual: 'user' });
           case 'ai_quota_exceeded':
             return setState('quota');
           case 'ai_invalid_response':
