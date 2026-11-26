@@ -522,7 +522,7 @@ describe('meals', () => {
       .prepare("SELECT id FROM users WHERE email = 'b@example.com'")
       .pluck()
       .get() as number;
-    const dish = { ...input().items[1]!, edible: { key: ' banana ', pct: 65 } };
+    const dish = { ...input().items[1]!, edible: { key: ' banana ', pct: 64 } };
 
     // Without edible nothing is written.
     expect((await t.call(t.cookie, 'POST', '/meals', input())).status).toBe(
@@ -535,10 +535,14 @@ describe('meals', () => {
     const meal = (await (
       await t.call(t.cookie, 'POST', '/meals', input({ items: [dish] }))
     ).json()) as Meal;
+    // A non-multiple-of-5 share (banana 64 %) saves the meal.
+    expect((await t.call(t.cookie, 'GET', `/meals/${meal.id}`)).status).toBe(
+      200,
+    );
     const all = () =>
       t.db.prepare('SELECT user_id, key, pct FROM edible_prefs').all();
     expect(all()).toEqual([
-      { user_id: expect.any(Number), key: 'banana', pct: 65 },
+      { user_id: expect.any(Number), key: 'banana', pct: 64 },
     ]);
     const owner = (all()[0] as { user_id: number }).user_id;
 
@@ -563,7 +567,6 @@ describe('meals', () => {
     for (const edible of [
       { key: 'banana', pct: 0 },
       { key: 'banana', pct: 105 },
-      { key: 'banana', pct: 33 },
       { key: 'banana', pct: 62.5 },
       { key: '  ', pct: 50 },
       { key: 'x'.repeat(81), pct: 50 },

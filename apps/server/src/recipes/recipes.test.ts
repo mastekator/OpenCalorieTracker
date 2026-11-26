@@ -267,7 +267,7 @@ describe('recipes', () => {
       ...rice!,
       barcode: code,
       pack: { packG: 900, amount: { mode: 'weight' as const, value: 500 } },
-      edible: { key: 'banana', pct: 65 },
+      edible: { key: 'banana', pct: 64 },
     };
     expect(
       (
@@ -278,6 +278,10 @@ describe('recipes', () => {
         )
       ).status,
     ).toBe(201);
+    // A non-multiple-of-5 share (banana 64 %) saves the whole recipe.
+    expect(
+      ((await t.sync(0)).recipes![0] as Recipe).ingredients.map((i) => i.name),
+    ).toEqual([rice!.name, salt!.name]);
     const look = async () =>
       (await t.call('GET', `/barcodes/${code}`)).body as {
         from: string;
@@ -292,7 +296,7 @@ describe('recipes', () => {
       },
     });
     expect(t.db.prepare('SELECT key, pct FROM edible_prefs').all()).toEqual([
-      { key: 'banana', pct: 65 },
+      { key: 'banana', pct: 64 },
     ]);
     // Stored nowhere in the recipe.
     expect(
