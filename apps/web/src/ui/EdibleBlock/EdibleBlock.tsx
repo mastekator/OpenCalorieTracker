@@ -81,6 +81,14 @@ export function EdibleBlock({ edible, name, units, onChange, title }: Props) {
   const press = usePressRepeat(nudge);
 
   const err = typed !== null && pctOf(typed) === null;
+  // Under 1 g there is nothing to save: say why «Done» does nothing (OCT-479).
+  const netErr = !err && net < DISH_GRAMS.min;
+  const netError = netErr && (
+    <p id={errorId} className="stepper__error" role="alert">
+      <CircleAlert aria-hidden="true" />
+      {t('edit.edible.net_err')}
+    </p>
+  );
 
   const onKeyDown = (e: KeyboardEvent) => {
     const dir = { ArrowUp: 1, ArrowDown: -1 }[e.key] as 1 | -1 | undefined;
@@ -154,8 +162,8 @@ export function EdibleBlock({ edible, name, units, onChange, title }: Props) {
                   className="stepper__input tabular-nums"
                   inputMode="numeric"
                   aria-label={t('edit.edible.pct_label')}
-                  aria-invalid={err}
-                  aria-describedby={err ? errorId : undefined}
+                  aria-invalid={err || netErr}
+                  aria-describedby={err || netErr ? errorId : undefined}
                   value={typed ?? String(edible.pct)}
                   onChange={(e) => {
                     setTyped(e.target.value);
@@ -180,8 +188,9 @@ export function EdibleBlock({ edible, name, units, onChange, title }: Props) {
                 <Plus aria-hidden="true" />
               </button>
             </div>
+            {netError}
             {err && (
-              <p id={errorId} className="stepper__error">
+              <p id={errorId} className="stepper__error" role="alert">
                 <CircleAlert aria-hidden="true" />
                 {t('edit.edible.pct_err')}
               </p>
@@ -246,6 +255,7 @@ export function EdibleBlock({ edible, name, units, onChange, title }: Props) {
           )}
         </div>
       )}
+      {!editing && netError}
     </div>
   );
 }
