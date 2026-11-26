@@ -23,15 +23,24 @@ const httpCodes: Partial<Record<number, ErrorCode>> = {
   404: 'not_found',
 };
 
+const isPlainObject = (v: unknown) =>
+  typeof v === 'object' && v !== null && !Array.isArray(v);
+
 export function onError(err: Error, c: Context) {
   let status: ContentfulStatusCode = 500;
   let error: ErrorBody['error'] = { code: 'internal' };
   if (err instanceof ApiError) {
     status = err.status;
+    // Which model failed: the server's or the user's own key (ADR-0031 §1).
+    const aiSource: unknown = err.code.startsWith('ai_')
+      ? c.get('aiSource')
+      : undefined;
+    const details =
+      aiSource && (err.details === undefined || isPlainObject(err.details))
+        ? { ...(err.details as object | undefined), aiSource }
+        : err.details;
     error =
-      err.details === undefined
-        ? { code: err.code }
-        : { code: err.code, details: err.details };
+      details === undefined ? { code: err.code } : { code: err.code, details };
   } else if (err instanceof HTTPException && httpCodes[err.status]) {
     status = err.status as ContentfulStatusCode;
     error = { code: httpCodes[err.status]! };

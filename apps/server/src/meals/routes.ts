@@ -76,7 +76,7 @@ export function mealStore({
     by: {
       provider: string | null;
       model: string | null;
-    } | null = ai.current()?.settings ?? null,
+    } | null = ai.forUser({ id: userId })?.settings ?? null,
   ) => {
     const insert = db.prepare(
       `INSERT INTO meal_items (meal_id, position, name, name_key, grams, unit, kcal, protein_g,

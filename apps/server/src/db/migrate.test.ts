@@ -16,10 +16,11 @@ describe('migrate', () => {
   it('brings an empty database to the latest version', () => {
     const db = openDb(':memory:');
     migrate(db);
-    expect(db.pragma('user_version', { simple: true })).toBe(31);
+    expect(db.pragma('user_version', { simple: true })).toBe(32);
     expect(tables(db)).toEqual([
       'agent_drafts',
       'agent_messages',
+      'ai_consents',
       'ai_limits',
       'ai_settings',
       'ai_test_runs',
@@ -89,7 +90,7 @@ describe('migrate', () => {
       .pluck()
       .all();
     migrate(db);
-    expect(db.pragma('user_version', { simple: true })).toBe(31);
+    expect(db.pragma('user_version', { simple: true })).toBe(32);
     expect(
       db.prepare('SELECT sql FROM sqlite_master ORDER BY name').pluck().all(),
     ).toEqual(before);
@@ -196,7 +197,7 @@ describe('migrate', () => {
     const before = db.prepare('SELECT * FROM meal_items ORDER BY id').all();
 
     migrate(db);
-    expect(db.pragma('user_version', { simple: true })).toBe(31);
+    expect(db.pragma('user_version', { simple: true })).toBe(32);
     // Old dishes are grams (ADR-0038 §1).
     expect(db.prepare('SELECT * FROM meal_items ORDER BY id').all()).toEqual(
       before.map((r) => ({

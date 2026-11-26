@@ -7,6 +7,7 @@ import { API_VERSION, type ConfigResponse } from '@oct/shared';
 import { accountRoutes } from './account/routes.js';
 import { adminRoutes } from './admin/routes.js';
 import { aiRoutes } from './ai/routes.js';
+import { consentRoutes } from './ai/consents.js';
 import type { AiRuntime } from './ai/runtime.js';
 import { authRoutes } from './auth/routes.js';
 import { photoBarcodes, type PhotoBarcodes } from './barcodes/read.js';
@@ -52,7 +53,10 @@ const jsonLimit = bodyLimit({
 export interface AppDeps {
   config: Config;
   db: Database;
-  /** The active AI model; read ai.current() in each request, never once per route. */
+  /**
+   * The active AI model, read in each request, never once per route. Routes with a user's data take
+   * it through userAi() (ai.forUser() + consent); ai.current() is for admin checks only.
+   */
   ai: AiRuntime;
   secrets: Secrets;
   /** Outbound HTTP (Open Food Facts); tests pass a fake. Defaults to the global fetch. */
@@ -109,6 +113,7 @@ export function createApp(appDeps: AppDeps) {
   app.route('/api', webhookRoutes(deps));
   app.route('/api', barcodeRoutes(deps));
   app.route('/api', aiRoutes(deps));
+  app.route('/api', consentRoutes(deps));
   app.route('/api', photoRoutes(deps));
   app.route('/api', mealRoutes(deps));
   app.route('/api', recipeRoutes(deps));
