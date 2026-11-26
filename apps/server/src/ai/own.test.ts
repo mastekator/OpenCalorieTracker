@@ -234,6 +234,22 @@ describe('own openai-compatible address of a non-admin (SSRF)', () => {
     ).rejects.toMatchObject({ code: 'ai_base_url_private' });
   });
 
+  it('does not follow a redirect from a public address', async () => {
+    const t = await setup();
+    vi.mocked(createModel).mockResolvedValueOnce(mockModel('OK'));
+    expect((await t.put(compatible)).status).toBe(200);
+    const guard = vi.mocked(createModel).mock.calls[0]![1]!;
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response('{}'));
+    await guard('https://llm.example.com/v1/chat', { method: 'POST' });
+    expect(fetchSpy).toHaveBeenCalledWith('https://llm.example.com/v1/chat', {
+      method: 'POST',
+      redirect: 'error',
+    });
+    fetchSpy.mockRestore();
+  });
+
   it('leaves the admin’s own address alone', async () => {
     const t = await setup();
     vi.mocked(createModel).mockResolvedValueOnce(mockModel('OK'));

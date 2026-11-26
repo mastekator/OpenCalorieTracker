@@ -95,7 +95,8 @@ export async function assertPublicUrl(raw: string) {
 // between lookup and connect gets through; pin it with an undici Agent lookup if that matters.
 const publicFetch: typeof fetch = async (input, init) => {
   await assertPublicUrl(input instanceof Request ? input.url : String(input));
-  return fetch(input, init);
+  // A redirect would skip the check: a public host could send the request to a private one.
+  return fetch(input, { ...init, redirect: 'error' });
 };
 
 /** The model of a user's own key; a non-admin's own address is checked at every request. */
