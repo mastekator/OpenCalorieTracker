@@ -475,6 +475,34 @@ describe('gross → edible (ADR-0039 §5)', () => {
       expect(item).not.toHaveProperty('edible');
     });
 
+    it('edible under 1 g says why «Done» does nothing (OCT-479)', async () => {
+      await setup(recognition());
+      await open();
+      fireEvent.change(
+        sheet().getByRole('textbox', { name: 'Weight with skin' }),
+        { target: { value: '1' } },
+      );
+      expect(sheet().getByRole('alert').textContent).toBe(
+        'Under 1 g edible: raise the weight or %',
+      );
+      expect(sheet().getByText('< 1 g')).toBeTruthy();
+      done();
+      expect(screen.getByRole('dialog')).toBeTruthy();
+    });
+
+    it('a renamed dish goes without the old share (OCT-479)', async () => {
+      const { onSave } = await setup(recognition());
+      await open();
+      fireEvent.click(sheet().getByRole('radio', { name: 'Whole' }));
+      fireEvent.change(sheet().getByRole('textbox', { name: 'Name' }), {
+        target: { value: 'Apple' },
+      });
+      done();
+      const item = await save(onSave);
+      expect(item).toMatchObject({ name: 'Apple', grams: 772 });
+      expect(item).not.toHaveProperty('edible');
+    });
+
     it('«Close» drops the choice', async () => {
       const { onSave } = await setup(recognition());
       await open();
