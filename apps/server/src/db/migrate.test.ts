@@ -162,6 +162,10 @@ describe('migrate', () => {
     item.run(1, 1, 'ai');
     meal.run(2, 'b', 222);
     item.run(2, 0, 'manual');
+    db.prepare(
+      `INSERT INTO meals (id, user_id, client_id, eaten_at, tz_offset_min, local_date, meal_type, created_at, updated_at)
+       VALUES (3, 1, 'import:1:0', 50, 0, '1970-01-01', 'lunch', 333, 0)`,
+    ).run();
 
     migrate(db);
     expect(
@@ -171,6 +175,7 @@ describe('migrate', () => {
     ).toEqual([
       { id: 1, recognized: 1, logged_at: 111 },
       { id: 2, recognized: 0, logged_at: 222 },
+      { id: 3, recognized: 0, logged_at: 50 },
     ]);
     expect(
       db.prepare('SELECT DISTINCT ai_grams FROM meal_items').pluck().all(),
