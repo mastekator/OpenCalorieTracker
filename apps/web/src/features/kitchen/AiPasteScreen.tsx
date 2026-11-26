@@ -12,6 +12,7 @@ import { useOnline } from '../../ui/OfflineBar/OfflineBar';
 import { NEW_RECIPE_PATH } from './KitchenScreen';
 import type { RecipeEditorState } from './RecipeEditor';
 import './AiPasteScreen.css';
+import { useAiConsent } from '../ai/AiConsent';
 
 const responseSchema = z.custom<RecipeParseResponse>(
   (v) =>
@@ -22,15 +23,18 @@ const responseSchema = z.custom<RecipeParseResponse>(
 /** /kitchen/paste: the draft opens in the editor; nothing is saved until the user saves it there. */
 export function AiPasteScreen() {
   const online = useOnline();
+  const withConsent = useAiConsent();
   const [, navigate] = useLocation();
   return (
     <AiPasteView
       online={online}
       parse={(text) =>
-        api('/api/ai/recipes/parse', responseSchema, {
-          method: 'POST',
-          body: { text },
-        })
+        withConsent('text', () =>
+          api('/api/ai/recipes/parse', responseSchema, {
+            method: 'POST',
+            body: { text },
+          }),
+        )
       }
       onParsed={({ draft, unsure }) =>
         navigate(NEW_RECIPE_PATH, {

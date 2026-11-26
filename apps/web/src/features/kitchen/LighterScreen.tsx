@@ -30,6 +30,7 @@ import { useToast } from '../../ui/Toast/Toast';
 import { useWeight } from '../../ui/weightUnits';
 import { useUnits } from './units';
 import './LighterScreen.css';
+import { useAiConsent } from '../ai/AiConsent';
 
 const responseSchema = z.custom<LighterResponse>((v) =>
   Array.isArray((v as LighterResponse | null)?.variants),
@@ -40,6 +41,7 @@ export function LighterScreen({ id }: { id: string }) {
   const db = useDb();
   const recipe = useRecipe(Number(id));
   const online = useOnline();
+  const withConsent = useAiConsent();
   const [, navigate] = useLocation();
   const units = useUnits();
   if (recipe === null) return <Redirect to="/kitchen" replace />;
@@ -50,9 +52,11 @@ export function LighterScreen({ id }: { id: string }) {
       online={online}
       units={units}
       load={() =>
-        api(`/api/ai/recipes/${recipe.id}/lighter`, responseSchema, {
-          method: 'POST',
-        })
+        withConsent('text', () =>
+          api(`/api/ai/recipes/${recipe.id}/lighter`, responseSchema, {
+            method: 'POST',
+          }),
+        )
       }
       onSave={(input, base) =>
         saveRecipe(db, input, base).catch((err: unknown) => {

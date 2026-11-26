@@ -44,6 +44,7 @@ import { HowCalculated } from '../../ui/HowCalculated/HowCalculated';
 import { OfflineBar, useOnline } from '../../ui/OfflineBar/OfflineBar';
 import { Sheet } from '../../ui/Sheet/Sheet';
 import { useToast } from '../../ui/Toast/Toast';
+import { useAiConsent } from '../ai/AiConsent';
 
 // Our own server: trust the shape, as data/sync.ts does.
 const agentResponse = z.custom<AgentResponse>();
@@ -55,6 +56,7 @@ const AI_DOWN = new Set([
   'ai_unavailable',
   'ai_quota_exceeded',
   'ai_not_configured',
+  'ai_consent_required', // «Not now»: the form (OCT-178 2.4)
 ]);
 
 /** 9.9 retry banner, 9.10 AI gone, `agent_closed`: only the form or a fresh start. */
@@ -113,6 +115,7 @@ export function AgentChat({
   const pending = useRef<string | null>(null);
   const online = useOnline();
   const toast = useToast();
+  const withConsent = useAiConsent();
   const endRef = useRef<HTMLDivElement>(null);
 
   const take = (r: AgentResponse) => {
@@ -157,10 +160,12 @@ export function AgentChat({
     }
     setTyping(true);
     try {
-      const r = await api('/api/norm-agent/messages', agentResponse, {
-        method: 'POST',
-        body: body === null ? { retry: true } : { text: body },
-      });
+      const r = await withConsent('agent', () =>
+        api('/api/norm-agent/messages', agentResponse, {
+          method: 'POST',
+          body: body === null ? { retry: true } : { text: body },
+        }),
+      );
       // A new turn's messages start with the saved copy of the user's one.
       setMessages((m) => [
         ...(body === null ? m : m.slice(0, -1)),

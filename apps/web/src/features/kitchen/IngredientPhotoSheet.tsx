@@ -39,6 +39,7 @@ import {
 } from './photoShots';
 import '../meals/RecognitionState.css';
 import './IngredientPhotoSheet.css';
+import { useAiConsent } from '../ai/AiConsent';
 
 /** One found product going into the recipe: the ingredient and what the editor keeps beside it. */
 export type PhotoIngredient = {
@@ -102,6 +103,7 @@ export function IngredientPhotoSheet({
   onClose,
 }: Props) {
   const { t, num } = useT();
+  const withConsent = useAiConsent();
   const w = useWeight(units);
   const amountText = {
     g: useAmountText(units, 'g'),
@@ -138,10 +140,12 @@ export function IngredientPhotoSheet({
         body: await blob,
         signal,
       });
-      const { items } = await api(
-        `/api/photos/${photoId}/recognize?mode=ingredients`,
-        ingredientsRecognitionSchema,
-        { method: 'POST', signal },
+      const { items } = await withConsent('photo', () =>
+        api(
+          `/api/photos/${photoId}/recognize?mode=ingredients`,
+          ingredientsRecognitionSchema,
+          { method: 'POST', signal },
+        ),
       );
       settle(
         items.map((item) => ({

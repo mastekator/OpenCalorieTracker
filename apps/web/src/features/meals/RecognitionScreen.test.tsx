@@ -8,7 +8,10 @@ import {
 } from '@testing-library/react';
 import { Route, Router, Switch } from 'wouter';
 import { memoryLocation } from 'wouter/memory-location';
+import type { MeResponse } from '@oct/shared';
+import { SessionContext } from '../../app/SessionContext';
 import { I18nProvider, LOCALE_STORAGE_KEY } from '../../i18n';
+import { AiConsentProvider } from '../ai/AiConsent';
 import { renderLoaded } from '../../test-utils';
 import { RecognitionScreen, SLOW_MS, TIMEOUT_MS } from './RecognitionScreen';
 
@@ -88,7 +91,9 @@ function respond(...answers: (() => Response)[]) {
       ? Promise.resolve(aiStatus())
       : url === BARCODES
         ? Promise.resolve(barcodes())
-        : fetch(url, init),
+        : url === '/api/ai/consents'
+          ? Promise.resolve(json(200, { consents: [], server: null })())
+          : fetch(url, init),
   );
   return fetch;
 }
@@ -176,6 +181,49 @@ describe('RecognitionScreen', () => {
     respond(json(200, { dishes: [] }));
     await setup();
     expect(await alertText()).toContain('No food found in the photo');
+  });
+
+  it('no consent, «Not now» → manual entry with the photo, no second request (OCT-178 2.4)', async () => {
+    const fetch = respond(
+      json(403, {
+        error: {
+          code: 'ai_consent_required',
+          details: {
+            providerKey: 'openai',
+            provider: 'openai',
+            aiSource: 'server',
+          },
+        },
+      }),
+      ok, // must not be asked for
+    );
+    const location = memoryLocation({
+      path: '/meal/new?photo=p1',
+      record: true,
+    });
+    await renderLoaded(
+      <I18nProvider>
+        <SessionContext.Provider
+          value={{
+            user: { id: 1 } as MeResponse,
+            refresh: async () => {},
+            signedIn: async () => {},
+            logout: async () => {},
+          }}
+        >
+          <AiConsentProvider>
+            <Router hook={location.hook} searchHook={location.searchHook}>
+              <Route path="/meal/new">
+                <RecognitionScreen photoId="p1" />
+              </Route>
+            </Router>
+          </AiConsentProvider>
+        </SessionContext.Provider>
+      </I18nProvider>,
+    );
+    fireEvent.click(await screen.findByRole('button', { name: 'Not now' }));
+    await waitFor(() => expect(location.history.at(-1)).toBe(EDIT));
+    expect(fetch).toHaveBeenCalledTimes(1);
   });
 
   it('AI not configured → the edit screen with manual entry', async () => {

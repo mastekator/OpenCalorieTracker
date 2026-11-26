@@ -7,6 +7,7 @@ import {
 } from '@oct/shared';
 import { api, ApiError, type ClientErrorCode } from '../../api/client';
 import { SLOW_MS, TIMEOUT_MS, whenBack } from './RecognitionScreen';
+import { useAiConsent } from '../ai/AiConsent';
 
 export type RefineState =
   | { status: 'idle' | 'busy' | 'slow' }
@@ -24,6 +25,7 @@ const IDLE: RefineState = { status: 'idle' };
  */
 export function useRefine<S>() {
   const [sessionId] = useState(uuid);
+  const withConsent = useAiConsent();
   const [state, setState] = useState<RefineState>(IDLE);
   const [undoTo, setUndoTo] = useState<{ snapshot: S } | null>(null);
   // Refinements left in this session from the last answer; null: no limit or not known yet (ADR-0020 §6).
@@ -54,14 +56,16 @@ export function useRefine<S>() {
 
     const call = async (): Promise<RefineResponse> => {
       try {
-        return await api('/api/ai/refine', refineResponseSchema, {
-          method: 'POST',
-          body,
-          signal: AbortSignal.any([
-            ctrl.signal,
-            AbortSignal.timeout(TIMEOUT_MS),
-          ]),
-        });
+        return await withConsent('text', () =>
+          api('/api/ai/refine', refineResponseSchema, {
+            method: 'POST',
+            body,
+            signal: AbortSignal.any([
+              ctrl.signal,
+              AbortSignal.timeout(TIMEOUT_MS),
+            ]),
+          }),
+        );
       } catch (err) {
         if (err instanceof ApiError && err.status === 0 && !resumed) {
           // The server answers the same requestId from its cache: no second paid call (E-6.2).

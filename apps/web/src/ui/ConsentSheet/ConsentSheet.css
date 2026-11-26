@@ -1,0 +1,34 @@
+.consent-sheet__sub {
+  display: block;
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+  color: var(--color-text-secondary);
+}
+
+.consent-sheet__sub--mono {
+  font-family: var(--font-mono);
+}
+
+.consent-sheet__after {
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+  color: var(--color-text-secondary);
+}
+
+/* Same link as «Where your data goes» in the admin AI screen. */
+.consent-sheet__link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: var(--tap-min);
+  justify-self: start;
+  color: var(--color-accent);
+  font-size: var(--text-subhead-size);
+  font-weight: 500;
+}
+
+.consent-sheet__link svg {
+  display: inline-block;
+  width: var(--space-4);
+  height: var(--space-4);
+}
