@@ -13,7 +13,9 @@ it('learns no_vision from the first call and then refuses up front (AC-6.1)', as
   for (let i = 0; i < 2; i++) {
     const res = await t.recognize(id);
     expect(res.status).toBe(409);
-    expect(await res.json()).toEqual({ error: { code: 'ai_no_vision' } });
+    expect(await res.json()).toEqual({
+      error: { code: 'ai_no_vision', details: { aiSource: 'server' } },
+    });
   }
   expect(await t.status()).toMatchObject({ recognition: 'no_vision' });
   const ingredients = await t.app.request(
@@ -25,6 +27,6 @@ it('learns no_vision from the first call and then refuses up front (AC-6.1)', as
   );
   expect(ingredients.status).toBe(409);
   expect(await ingredients.json()).toEqual({
-    error: { code: 'ai_no_vision' },
+    error: { code: 'ai_no_vision', details: { aiSource: 'server' } },
   });
 });

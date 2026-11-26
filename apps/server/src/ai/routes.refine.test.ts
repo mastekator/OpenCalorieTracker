@@ -129,7 +129,9 @@ it('learns no_vision from a refine with the photo, then refines by text and refu
   const id = await t.upload();
   const first = await t.refine({ photoId: id });
   expect(first.status).toBe(409);
-  expect(await first.json()).toEqual({ error: { code: 'ai_no_vision' } });
+  expect(await first.json()).toEqual({
+    error: { code: 'ai_no_vision', details: { aiSource: 'server' } },
+  });
 
   expect((await t.refine({ photoId: id })).status).toBe(200);
   expect(sentPhoto(model, 1)).toBe(false);
@@ -167,7 +169,9 @@ it('is 422 ai_empty_result for an empty list and calls the model again on retry'
   const requestId = randomUUID();
   const res = await t.refine({ requestId });
   expect(res.status).toBe(422);
-  expect(await res.json()).toEqual({ error: { code: 'ai_empty_result' } });
+  expect(await res.json()).toEqual({
+    error: { code: 'ai_empty_result', details: { aiSource: 'server' } },
+  });
   // The lock is released and the failure is not cached.
   expect((await t.refine({ requestId })).status).toBe(200);
   expect(model.doGenerateCalls).toHaveLength(2);

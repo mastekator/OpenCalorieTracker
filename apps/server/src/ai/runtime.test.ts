@@ -45,6 +45,7 @@ it('apply(): new requests use the new model, the one in flight ends on the old, 
   vi.mocked(createModel).mockResolvedValueOnce(b);
   await t.ai.apply(settingsB);
   expect(t.ai.current()).toEqual({ settings: settingsB, model: b });
+  t.consentAll();
 
   // Another user: the first one still has a call running (one per user).
   const other = await t.signIn('b@example.com');

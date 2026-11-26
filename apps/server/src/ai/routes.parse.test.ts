@@ -78,7 +78,9 @@ it('retries once on garbage, then answers ai_invalid_response', async () => {
 
   const res = await t.ask({ text: `${text} again` });
   expect(res.status).toBe(502);
-  expect(await res.json()).toEqual({ error: { code: 'ai_invalid_response' } });
+  expect(await res.json()).toEqual({
+    error: { code: 'ai_invalid_response', details: { aiSource: 'server' } },
+  });
   expect(model.doGenerateCalls).toHaveLength(4);
   const logs = vi.mocked(console.log).mock.calls.flat().join('\n');
   expect(logs).not.toContain('Grandma');

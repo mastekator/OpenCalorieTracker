@@ -100,7 +100,9 @@ describe('POST /api/photos/:id/recognize', () => {
       const res = await t.recognize(await t.upload());
       expect(res.status).toBe(status);
       const text = await res.text();
-      expect(JSON.parse(text)).toEqual({ error: { code } });
+      expect(JSON.parse(text)).toEqual({
+        error: { code, details: { aiSource: 'server' } },
+      });
       expect(text).not.toMatch(/provider/);
     },
   );

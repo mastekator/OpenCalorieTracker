@@ -2749,6 +2749,11 @@ const ru: DeepPartial<typeof en> = {
     ai_unavailable: 'ИИ-провайдер недоступен. Повторите позже',
     ai_invalid_response: 'ИИ вернул непонятный ответ. Попробуйте ещё раз',
     ai_empty_result: 'ИИ убрал все блюда — список не изменён',
+    ai_consent_required:
+      'Чтобы пользоваться ИИ, разрешите передачу данных провайдеру',
+    ai_user_keys_disabled: 'Администратор выключил свои API-ключи',
+    ai_base_url_private:
+      'Это адрес в частной сети — укажите публичный адрес https',
     ai_env_managed: 'ИИ задан в окружении сервера (AI_*) — менять там',
     outbound_env_managed:
       'Запросы наружу заданы в окружении сервера (ALLOW_OUTBOUND_REQUESTS) — менять там',
