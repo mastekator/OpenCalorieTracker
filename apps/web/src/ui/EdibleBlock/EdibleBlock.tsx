@@ -198,30 +198,37 @@ export function EdibleBlock({ edible, name, units, onChange, title }: Props) {
               </p>
             )}
           </div>
-          <p className="edible__note tabular-nums" aria-live="polite">
-            {t('edit.edible.pct_edible', { net: netText })}
-          </p>
-          <div
-            className="portion__chips"
-            role="group"
-            aria-label={t('edit.amount.quick')}
-          >
-            {QUICK.map((n) => (
-              <button
-                key={n}
-                type="button"
-                className="portion__chip tabular-nums"
-                aria-pressed={edible.pct === n}
-                onClick={() => {
-                  setTyped(null);
-                  share(n);
-                }}
+          {/* Out of range: only the field and its error until fixed (OCT-420 2.4). */}
+          {!err && (
+            <>
+              <p className="edible__note tabular-nums" aria-live="polite">
+                {t('edit.edible.pct_edible', { net: netText })}
+              </p>
+              <div
+                className="portion__chips"
+                role="group"
+                aria-label={t('edit.amount.quick')}
               >
-                {t('edit.edible.pct', { n: num(n) })}
-              </button>
-            ))}
-          </div>
-          <p className="edible__note">{t('edit.edible.pct_hint', { name })}</p>
+                {QUICK.map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    className="portion__chip tabular-nums"
+                    aria-pressed={edible.pct === n}
+                    onClick={() => {
+                      setTyped(null);
+                      share(n);
+                    }}
+                  >
+                    {t('edit.edible.pct', { n: num(n) })}
+                  </button>
+                ))}
+              </div>
+              <p className="edible__note">
+                {t('edit.edible.pct_hint', { name })}
+              </p>
+            </>
+          )}
         </div>
       ) : (
         <div className="edible__result tabular-nums">
