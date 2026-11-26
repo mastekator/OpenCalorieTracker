@@ -42,6 +42,7 @@ describe('PATCH /api/account/settings', () => {
       timeZone: null,
       waterEnabled: false,
       hiddenDrinks: [],
+      streaksEnabled: null,
     });
     expect(await (await patch({ theme: 'dark' })).json()).toMatchObject({
       theme: 'dark',
@@ -60,6 +61,7 @@ describe('PATCH /api/account/settings', () => {
       timeZone: null,
       waterEnabled: false,
       hiddenDrinks: [],
+      streaksEnabled: null,
     });
     expect(syncRev()).toBe(3);
   });

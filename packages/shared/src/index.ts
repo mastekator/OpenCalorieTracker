@@ -140,6 +140,7 @@ export * from './streaks/streaks.js';
 export * from './streaks/awards.js';
 export * from './streaks/challenges.js';
 export * from './streaks/activity.js';
+export * from './streaks/facts.js';
 export * from './drinks/drinks.js';
 export * from './edible/refuse.js';
 export * from './imports/schema.js';

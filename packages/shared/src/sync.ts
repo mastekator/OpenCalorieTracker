@@ -4,6 +4,7 @@ import type { Meal } from './meals.js';
 import type { ProfileResponse } from './norm/schemas.js';
 import type { Recipe } from './recipes/recipes.js';
 import type { AccountSettings } from './settings.js';
+import type { ChallengeMonth, StoredAward } from './streaks/awards.js';
 
 /** At most this many changes per `GET /api/sync` page. */
 export const SYNC_PAGE_SIZE = 500;
@@ -36,4 +37,7 @@ export interface SyncResponse {
   /** Created or edited recipes, by rev (ADR-0023 §4). */
   recipes?: Recipe[];
   deletedRecipeIds?: number[];
+  /** Earned awards, by rev; never deleted (ADR-0032 §4). */
+  awards?: StoredAward[];
+  challengeMonths?: ChallengeMonth[];
 }
