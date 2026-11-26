@@ -215,6 +215,36 @@ describe('Photograph the ingredients (ADR-0040 §6)', () => {
     expect(screen.queryByText('Wheat flour')).toBeNull();
   });
 
+  it('closing the ingredient sheet puts focus back on its row (OCT-503)', async () => {
+    stub([found(FLOUR, CARROTS)]);
+    await view();
+    await shoot();
+    const row = (await screen.findByText('Wheat flour')).closest('button')!;
+    row.focus();
+    fireEvent.click(row);
+    const dish = await screen.findByRole('button', {
+      name: 'Remove from list',
+    });
+    fireEvent.keyDown(dish.closest('dialog')!, { key: 'Escape' });
+    // The sheet remounts its content: the same row, a new element.
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        screen.getByText('Wheat flour').closest('button'),
+      ),
+    );
+  });
+
+  it('closing the photo sheet puts focus back on «+ Ingredient» (OCT-503)', async () => {
+    stub([found(FLOUR)]);
+    await view();
+    const add = await screen.findByRole('button', { name: 'Ingredient' });
+    add.focus();
+    await shoot();
+    const title = await screen.findByText('Wheat flour');
+    fireEvent.keyDown(title.closest('dialog')!, { key: 'Escape' });
+    await waitFor(() => expect(document.activeElement).toBe(add));
+  });
+
   it('nothing found: «Take another» and «Enter manually»', async () => {
     stub([found()]);
     await view();

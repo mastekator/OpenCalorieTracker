@@ -28,6 +28,41 @@ if (typeof document !== 'undefined') {
   document.addEventListener('keydown', () => (viaKeyboard = true), true);
 }
 
+// A sheet that replaces another in the same commit (one closes, the next opens)
+// can't see the real opener: focus has already left. The closing dialog leaves its
+// opener and where focus last was inside it; the next one to open in the same
+// tick takes them over. `back` is that spot of the dialog under the closing one:
+// when it reopens, focus goes there instead of data-autofocus. A spot is an index
+// among the focusables, as a Sheet remounts its content on reopen.
+type Spot = { dialog: HTMLDialogElement; at: number };
+type Handoff = {
+  opener: HTMLElement | null;
+  inner: Spot | null;
+  back: Spot | null;
+};
+let handoff: Handoff | null = null;
+
+function pass(next: Handoff) {
+  handoff = next;
+  // A dialog opened later, by a new action, must not inherit it.
+  queueMicrotask(() => {
+    if (handoff === next) handoff = null;
+  });
+}
+
+// Focus returned to where the user was. iOS Safari rings a programmatically
+// focused button even after a tap: base.css hides it while data-pointer-focus is
+// set (until blur).
+function restore(el: HTMLElement) {
+  if (!viaKeyboard) {
+    el.dataset.pointerFocus = '';
+    el.addEventListener('blur', () => delete el.dataset.pointerFocus, {
+      once: true,
+    });
+  }
+  el.focus();
+}
+
 // Background scroll lock shared by every open modal: a nested ConfirmDialog over a
 // sheet keeps it until the last one closes. `overflow: hidden` doesn't stop iOS
 // Safari (or the PWA) from scrolling the page under a swipe, so body gets fixed
@@ -74,32 +109,46 @@ export function useModalDialog(open: boolean, onClose: () => void) {
   useEffect(() => {
     const dialog = ref.current;
     if (!open || !dialog) return;
+    const from = handoff;
+    handoff = null;
     const active = document.activeElement;
-    const opener =
-      active instanceof HTMLElement && active !== document.body
+    const opener = from
+      ? from.opener
+      : active instanceof HTMLElement && active !== document.body
         ? active
         : pressed;
+    // Where focus is inside, kept as it moves: at close the content may already be
+    // unmounted and the next sheet's autoFocus may hold focus. pointerdown too, as
+    // Safari doesn't focus a tapped button.
+    let at = -1;
+    const track = (event: Event) => {
+      const el =
+        event.target instanceof Element
+          ? event.target.closest<HTMLElement>(FOCUSABLE)
+          : null;
+      if (el && el !== dialog)
+        at = [...dialog.querySelectorAll(FOCUSABLE)].indexOf(el);
+    };
+    dialog.addEventListener('focusin', track);
+    dialog.addEventListener('pointerdown', track);
     dialog.showModal();
     lockScroll();
-    (
-      dialog.querySelector<HTMLElement>('[data-autofocus]') ??
-      dialog.querySelector<HTMLElement>(FOCUSABLE)
-    )?.focus();
+    const back = from?.back?.dialog === dialog ? from.back.at : -1;
+    const spot = dialog.querySelectorAll<HTMLElement>(FOCUSABLE)[back];
+    if (spot) restore(spot);
+    else
+      (
+        dialog.querySelector<HTMLElement>('[data-autofocus]') ??
+        dialog.querySelector<HTMLElement>(FOCUSABLE)
+      )?.focus();
     return () => {
+      dialog.removeEventListener('focusin', track);
+      dialog.removeEventListener('pointerdown', track);
+      const inner = at === -1 ? null : { dialog, at };
       dialog.close();
       unlockScroll();
-      if (!opener) return;
-      // iOS Safari rings a programmatically focused button even after a tap:
-      // base.css hides it while data-pointer-focus is set (until blur).
-      if (!viaKeyboard) {
-        opener.dataset.pointerFocus = '';
-        opener.addEventListener(
-          'blur',
-          () => delete opener.dataset.pointerFocus,
-          { once: true },
-        );
-      }
-      opener.focus();
+      pass({ opener, inner, back: from?.inner ?? null });
+      if (opener) restore(opener);
     };
   }, [open]);
 
