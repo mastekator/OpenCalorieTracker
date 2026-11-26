@@ -3,7 +3,6 @@ import { AI_PROVIDERS, type AiConsentRequired } from '@oct/shared';
 import { useT } from '../../i18n';
 import { Banner } from '../Banner/Banner';
 import { Button } from '../Button/Button';
-import { List, ListRow } from '../List/List';
 import { Sheet } from '../Sheet/Sheet';
 import '../BarcodeConsentSheet/BarcodeConsentSheet.css';
 import './ConsentSheet.css';
@@ -57,28 +56,24 @@ export function ConsentSheet({
       }
     >
       <div className="consent-sheet">
-        <p>{t('ai.consent.lead')}</p>
-        <List>
+        <p>{t(what === 'photo' ? 'ai.consent.lead' : 'ai.consent.lead_ai')}</p>
+        <dl className="consent-sheet__rows">
           {rows.map(([k, value, sub]) => (
-            <ListRow
-              key={k}
-              description={
-                <>
-                  {value}
-                  {sub && (
-                    <span
-                      className={`consent-sheet__sub${k === 'route' ? ' consent-sheet__sub--mono' : ''}`}
-                    >
-                      {sub}
-                    </span>
-                  )}
-                </>
-              }
-            >
-              {t(`ai.consent.${k}`)}
-            </ListRow>
+            <div key={k} className="consent-sheet__row">
+              <dt>{t(`ai.consent.${k}`)}</dt>
+              <dd>
+                {value}
+                {sub && (
+                  <span
+                    className={`consent-sheet__sub${k === 'route' ? ' consent-sheet__sub--mono' : ''}`}
+                  >
+                    {sub}
+                  </span>
+                )}
+              </dd>
+            </div>
           ))}
-        </List>
+        </dl>
         {details.provider === 'google' && (
           <Banner tone="warning" title={t('ai.gemini.title')}>
             {t('ai.consent.gemini_body')}

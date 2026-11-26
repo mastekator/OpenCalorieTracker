@@ -1736,6 +1736,8 @@ export const en = {
     consent: {
       title: 'Send data to {provider}?',
       lead: 'AI recognition needs to send data to an outside service. It’s up to you — everything works without AI too.',
+      lead_ai:
+        'AI needs to send data to an outside service. It’s up to you — everything works without AI too.',
       who: 'To',
       route: 'How',
       what: 'What’s sent',

@@ -1,3 +1,46 @@
+/* OCT-178 §1: label secondary in a fixed column, value in body text. */
+.consent-sheet__rows {
+  margin: 0;
+  background: var(--color-surface-2);
+  border-radius: var(--radius-md);
+}
+
+.consent-sheet__row {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+}
+
+/* Separator inset to the text, as in List. */
+.consent-sheet__row + .consent-sheet__row::before {
+  content: '';
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: var(--space-4) 0;
+  border-block-start: 1px solid var(--color-separator);
+}
+
+.consent-sheet__row dt {
+  flex: 0 0 30%;
+  min-width: min-content;
+  font-size: var(--text-subhead-size);
+  line-height: var(--text-subhead-lh);
+  color: var(--color-text-secondary);
+}
+
+/* Wraps under the label when large text no longer fits beside it. */
+.consent-sheet__row dd {
+  flex: 1 1 10rem;
+  min-width: 0;
+  margin: 0;
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-lh);
+  color: var(--color-text);
+}
+
 .consent-sheet__sub {
   display: block;
   font-size: var(--text-footnote-size);
