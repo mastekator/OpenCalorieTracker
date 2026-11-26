@@ -20,7 +20,8 @@ export const readSettings = (db: Database, userId: number): AccountSettings => {
       `SELECT locale, theme, units, settings_rev AS settingsRev,
        photo_retention_days AS photoRetentionDays, norm_disclaimer_hidden AS normDisclaimerHidden,
        off_enabled AS offEnabled, off_hint_at AS offHintAt, time_zone AS timeZone,
-       mcp_enabled AS mcpEnabled, water_enabled AS waterEnabled, hidden_drinks AS hiddenDrinks
+       mcp_enabled AS mcpEnabled, water_enabled AS waterEnabled, hidden_drinks AS hiddenDrinks,
+       streaks_enabled AS streaksEnabled
        FROM users WHERE id = ?`,
     )
     .get(userId) as Omit<
@@ -30,12 +31,14 @@ export const readSettings = (db: Database, userId: number): AccountSettings => {
     | 'mcpEnabled'
     | 'waterEnabled'
     | 'hiddenDrinks'
+    | 'streaksEnabled'
   > & {
     normDisclaimerHidden: 0 | 1;
     offEnabled: 0 | 1;
     mcpEnabled: 0 | 1;
     waterEnabled: 0 | 1;
     hiddenDrinks: string;
+    streaksEnabled: 0 | 1 | null;
   };
   return {
     ...row,
@@ -46,6 +49,8 @@ export const readSettings = (db: Database, userId: number): AccountSettings => {
     hiddenDrinks: JSON.parse(
       row.hiddenDrinks,
     ) as AccountSettings['hiddenDrinks'],
+    streaksEnabled:
+      row.streaksEnabled === null ? null : row.streaksEnabled === 1,
   };
 };
 
@@ -56,6 +61,7 @@ const COLUMNS: Record<string, string> = {
   mcpEnabled: 'mcp_enabled',
   waterEnabled: 'water_enabled',
   hiddenDrinks: 'hidden_drinks',
+  streaksEnabled: 'streaks_enabled',
 };
 
 /** Language, theme, units and photo retention of one's own account (ADR-0011 §3, AC-0.3, ADR-0008). */

@@ -35,6 +35,7 @@ import { tokenAuth } from './tokens/auth.js';
 import { tokenRoutes } from './tokens/routes.js';
 import type { Deliver } from './webhooks/send.js';
 import { webhookRoutes } from './webhooks/routes.js';
+import { streakRoutes } from './streaks/routes.js';
 import { weightRoutes } from './weight/routes.js';
 import { setupErrors, setupMode, type Config } from './config.js';
 import { apiVersion } from './http/apiVersion.js';
@@ -124,6 +125,7 @@ export function createApp(appDeps: AppDeps) {
   app.route('/api', syncRoutes(deps));
   app.route('/api', weightRoutes(deps));
   app.route('/api', drinkRoutes(deps));
+  app.route('/api', streakRoutes(deps));
   app.route('/api', exportRoutes(deps));
   app.route('/api', importRoutes(deps));
 

@@ -72,6 +72,8 @@ export const accountSettingsSchema = z.object({
   waterEnabled: z.boolean().optional(),
   /** Built-in drinks hidden from the row; water cannot be hidden. Absent in settings stored by older clients. */
   hiddenDrinks: z.array(builtinDrinkKeySchema).optional(),
+  /** Streaks and awards (ADR-0032 §3); null = the default by age, see `streaksOn`. Absent in settings stored by older clients. */
+  streaksEnabled: z.boolean().nullable().optional(),
 });
 export type AccountSettings = z.infer<typeof accountSettingsSchema>;
 
@@ -90,6 +92,7 @@ export const accountSettingsPatchSchema = z.object({
     .array(builtinDrinkKeySchema.exclude(['water']))
     .max(BUILTIN_DRINKS.length)
     .optional(),
+  streaksEnabled: z.boolean().nullable().optional(),
   /** A property of the device, not an edit: not subject to `editedAt`, does not move `settingsRev`. */
   timeZone: timeZoneSchema.optional(),
   editedAt: z.number().int().nonnegative().optional(),
