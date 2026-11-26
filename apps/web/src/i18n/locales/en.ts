@@ -182,8 +182,9 @@ export const en = {
     units_hint:
       'Food in oz, body weight in lb. Calories and macros stay the same.',
     install: 'Add to Home Screen',
-    recognition: 'Photo recognition',
-    recognition_on: '{provider}. Your photos are sent to this service',
+    ai: 'AI',
+    ai_server: 'Through the server · {provider}',
+    ai_device_off: 'Off on this device',
     recognition_off: 'AI isn’t set up — manual entry is available',
     offline:
       'Everything works offline except sign-in and admin settings. We’ll sync your changes when you’re back online.',
@@ -789,6 +790,7 @@ export const en = {
       agent: 'The goal assistant needs a connection',
       auth: 'Passkeys and password can only be changed online',
       admin: 'Admin settings need a connection',
+      ai: 'Needs a connection',
     },
   },
   nav: {
@@ -1467,6 +1469,30 @@ export const en = {
       title: 'No connection',
       body: 'Your photo is kept. Reconnect and try again, or enter the dishes manually.',
     },
+  },
+  ai_settings: {
+    device: 'On this device',
+    device_switch: 'AI on this device',
+    device_note:
+      'Turn it off and nothing from this device goes to AI providers — you log food manually. Your other devices don’t change. Stored in this browser and reset if you clear site data.',
+    device_off: 'AI is off on this device',
+    device_off_body:
+      'Nothing is sent to providers from here. The consents below still apply on your other devices.',
+    consents: 'Consents',
+    revoke: 'Revoke',
+    via_server: 'Through the server · since {date}',
+    local: 'Local model {host}',
+    local_sub: 'Your data stays on your network',
+    consents_note:
+      'Data already sent can’t be taken back — the provider keeps it under its own rules.',
+    consents_empty:
+      'You haven’t allowed any provider yet. We’ll ask before the first AI request.',
+    revoke_q: 'Revoke consent for {provider}?',
+    revoke_body:
+      'AI will stop sending your data there. We’ll ask again on your next photo. Data already sent stays with the provider.',
+    revoked: 'Consent revoked',
+    offline_body:
+      'You can see the settings, but revoking consent needs a connection. The device switch works offline.',
   },
   ai: {
     status_label: 'AI status',

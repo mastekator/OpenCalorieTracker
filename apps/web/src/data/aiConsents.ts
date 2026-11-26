@@ -51,5 +51,13 @@ export function addConsent(userId: number, providerKey: string) {
   write(userId, value);
 }
 
+/** After the server deleted a consent (ADR-0031 §6). */
+export function removeConsent(userId: number, providerKey: string) {
+  const value = readConsents(userId);
+  if (!value) return;
+  value.consents = value.consents.filter((c) => c.providerKey !== providerKey);
+  write(userId, value);
+}
+
 export const clearConsents = (userId: number) =>
   localStorage.removeItem(key(userId));
