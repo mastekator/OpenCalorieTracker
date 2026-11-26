@@ -468,7 +468,8 @@ describe('gross → edible (ADR-0039 §5)', () => {
       const pct = sheet().getByRole('textbox', { name: 'How much is edible' });
       fireEvent.change(pct, { target: { value: '110' } });
       expect(sheet().getByText('10–100%')).toBeTruthy();
-      expect(sheet().getByText('edible · 618 g')).toBeTruthy();
+      // OCT-504: only the field and its error until fixed.
+      expect(sheet().queryByText(/^edible · /)).toBeNull();
       done();
       const item = await save(onSave);
       expect(item).toMatchObject({ grams: 617.6 });

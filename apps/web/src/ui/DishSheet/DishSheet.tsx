@@ -270,6 +270,20 @@ export function DishSheet({
             }}
             onPack={(p) => setPack((was) => ({ ...was, ...p }))}
           />
+        ) : edible ? (
+          // Weight set by hand: labelled and centred as in the edible block (OCT-504).
+          <div className="amount__head">
+            <span className="amount__label">{t('edit.edible.weight')}</span>
+            <div className="portion__grams">
+              <WeightStepper
+                grams={grams}
+                units={units}
+                unit={unit}
+                label={label}
+                onChange={setGrams}
+              />
+            </div>
+          </div>
         ) : (
           <WeightStepper
             grams={grams}
