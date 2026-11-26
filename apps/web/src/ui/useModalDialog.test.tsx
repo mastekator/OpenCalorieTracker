@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { StrictMode } from 'react';
-import { cleanup, render } from '@testing-library/react';
+import { act, cleanup, render, screen } from '@testing-library/react';
 import { useModalDialog } from './useModalDialog';
 
 function Modal({ open }: { open: boolean }) {
@@ -68,5 +68,72 @@ describe('useModalDialog scroll lock', () => {
     unmount();
     expect(body.position).toBe('');
     expect(document.body.hasAttribute('style')).toBe(false);
+  });
+});
+
+// Like Sheet: the content is only mounted while open.
+function Box({ open, items }: { open: boolean; items: string[] }) {
+  const { ref } = useModalDialog(open, () => {});
+  return (
+    <dialog ref={ref}>
+      {open && items.map((name) => <button key={name}>{name}</button>)}
+    </dialog>
+  );
+}
+
+function Chain({ a, b, c = false }: { a: boolean; b: boolean; c?: boolean }) {
+  return (
+    <>
+      <button>Opener</button>
+      <Box open={a} items={['x', 'y']} />
+      <Box open={b} items={['inner']} />
+      <Box open={c} items={['confirm']} />
+    </>
+  );
+}
+
+const button = (name: string) => screen.getByRole('button', { name });
+
+describe('useModalDialog focus between sheets (OCT-503)', () => {
+  afterEach(cleanup);
+
+  const start = () => {
+    const view = render(<Chain a={false} b={false} />);
+    button('Opener').focus();
+    view.rerender(<Chain a b={false} />);
+    button('y').focus();
+    return view;
+  };
+
+  it('a sheet replacing another returns focus to the first one’s opener', () => {
+    const { rerender } = start();
+    rerender(<Chain a={false} b />);
+    expect(document.activeElement).toBe(button('inner'));
+    rerender(<Chain a={false} b={false} />);
+    expect(document.activeElement).toBe(button('Opener'));
+  });
+
+  it('a sheet reopening under a closed one focuses where it was', () => {
+    const { rerender } = start();
+    rerender(<Chain a={false} b />);
+    rerender(<Chain a b={false} />);
+    expect(document.activeElement).toBe(button('y'));
+    rerender(<Chain a={false} b={false} />);
+    expect(document.activeElement).toBe(button('Opener'));
+  });
+
+  it('a sheet opened later, by a new action, starts from the top', async () => {
+    const { rerender } = start();
+    rerender(<Chain a={false} b={false} />);
+    await act(async () => {});
+    rerender(<Chain a b={false} />);
+    expect(document.activeElement).toBe(button('x'));
+  });
+
+  it('a dialog over a sheet returns focus inside the sheet', () => {
+    const { rerender } = start();
+    rerender(<Chain a b={false} c />);
+    rerender(<Chain a b={false} />);
+    expect(document.activeElement).toBe(button('y'));
   });
 });

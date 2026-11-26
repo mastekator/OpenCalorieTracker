@@ -324,6 +324,22 @@ describe('RecipeEditor', () => {
     expect(name.value).toBe('Onion');
   });
 
+  it('closing «Enter manually» puts focus back on «+ Ingredient» (OCT-503)', async () => {
+    await view({ recipe: SALAD });
+    const add = screen.getByRole('button', { name: 'Ingredient' });
+    add.focus();
+    fireEvent.click(add);
+    fireEvent.change(await screen.findByRole('searchbox'), {
+      target: { value: 'Onion' },
+    });
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Enter “Onion” manually' }),
+    );
+    const name = await screen.findByLabelText(/^Name ·/);
+    fireEvent.keyDown(name.closest('dialog')!, { key: 'Escape' });
+    await waitFor(() => expect(document.activeElement).toBe(add));
+  });
+
   describe('barcode in «Enter manually» (ADR-0040 §1)', () => {
     const COOKIES: Product = {
       code: '4006381333931',
