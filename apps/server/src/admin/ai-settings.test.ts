@@ -103,6 +103,7 @@ describe('PUT /api/admin/ai/settings', () => {
       '[info] AI settings changed by admin: provider openai, model gpt-x',
     );
 
+    t.consentAll();
     const rec = await t.recognize(await t.upload());
     expect(await rec.json()).toEqual({ dishes: [egg], questions: [] });
     expect(model.doGenerateCalls).toHaveLength(2);

@@ -2576,6 +2576,10 @@ export const en = {
     ai_unavailable: 'The AI provider is unavailable. Try later',
     ai_invalid_response: 'The AI returned an unreadable answer. Try again',
     ai_empty_result: 'The AI removed every dish — the list is unchanged',
+    ai_consent_required: 'Allow sending your data to the AI provider to use AI',
+    ai_user_keys_disabled: 'The administrator turned off own API keys',
+    ai_base_url_private:
+      'This address is in a private network — use a public https address',
     ai_env_managed:
       'AI is set in the server environment (AI_*); change it there',
     outbound_env_managed:

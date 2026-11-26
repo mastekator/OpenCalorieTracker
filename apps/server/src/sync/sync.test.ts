@@ -344,7 +344,7 @@ describe('GET /api/sync', () => {
     t.db.exec(
       'DROP TABLE weighings; DROP TABLE ai_settings; DROP TABLE setup_code; DROP TABLE ai_test_runs; DROP TABLE ai_limits; ' +
         'DROP TABLE recipe_tombstones; DROP TABLE recipe_steps; DROP TABLE recipe_ingredients; DROP TABLE recipes; ' +
-        'DROP TABLE edible_prefs; DROP TABLE product_prefs; DROP TABLE user_products; DROP TABLE food_products; DROP TABLE integration_settings; ALTER TABLE users DROP COLUMN off_enabled; ALTER TABLE users DROP COLUMN off_hint_at; ALTER TABLE meals DROP COLUMN edit_rev; ALTER TABLE users DROP COLUMN last_export_at; ALTER TABLE users DROP COLUMN last_export_format; DROP INDEX meals_import; ALTER TABLE meals DROP COLUMN import_id; DROP TABLE imports; DROP TABLE api_tokens; ALTER TABLE users DROP COLUMN time_zone; DROP TABLE webhook_schedule; DROP TABLE webhook_deliveries; DROP TABLE webhook_outbox; DROP TABLE webhooks; ALTER TABLE users DROP COLUMN mcp_enabled',
+        'DROP TABLE edible_prefs; DROP TABLE product_prefs; DROP TABLE user_products; DROP TABLE food_products; DROP TABLE integration_settings; ALTER TABLE users DROP COLUMN off_enabled; ALTER TABLE users DROP COLUMN off_hint_at; ALTER TABLE meals DROP COLUMN edit_rev; ALTER TABLE users DROP COLUMN last_export_at; ALTER TABLE users DROP COLUMN last_export_format; DROP INDEX meals_import; ALTER TABLE meals DROP COLUMN import_id; DROP TABLE imports; DROP TABLE api_tokens; ALTER TABLE users DROP COLUMN time_zone; DROP TABLE webhook_schedule; DROP TABLE webhook_deliveries; DROP TABLE webhook_outbox; DROP TABLE webhooks; ALTER TABLE users DROP COLUMN mcp_enabled; DROP TABLE ai_consents',
     );
     t.db.pragma('user_version = 8');
     migrate(t.db);

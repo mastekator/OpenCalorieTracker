@@ -30,6 +30,7 @@ import { readRecipe, recipeNames } from '../recipes/read.js';
 import { lighterRecipe } from './lighter.js';
 import { parseRecipe } from './parse.js';
 import { readEdiblePrefs } from '../edible/prefs.js';
+import { userAi } from './consents.js';
 import { applyEdible } from './edible.js';
 import { applyIngredientEdible, recognizeIngredients } from './ingredients.js';
 import type { AiModel } from './model.js';
@@ -140,7 +141,8 @@ export function aiRoutes({ config, db, ai, photoBarcodes, fetch }: RouteDeps) {
 
   return new Hono<AuthEnv>()
     .get('/ai/status', requireUser, (c) => {
-      const { settings = null, model = null } = ai.current() ?? {};
+      // No data goes out here, so no consent check.
+      const { settings = null, model = null } = ai.forUser(c.var.user) ?? {};
       return c.json({
         recognition: recognitionStatus(model),
         interview: interviewStatus(model),
@@ -154,16 +156,14 @@ export function aiRoutes({ config, db, ai, photoBarcodes, fetch }: RouteDeps) {
     })
     .post('/photos/:id/recognize', requireUser, async (c) => {
       // Taken once: a model change mid-request does not touch this call (ADR-0018 §3).
-      const model = ai.current()?.model ?? null;
-      const status = recognitionStatus(model);
-      if (status === 'not_configured')
-        throw new ApiError(409, 'ai_not_configured');
-      if (status === 'no_vision') throw new ApiError(409, 'ai_no_vision');
+      const { model } = userAi(c, db, ai);
+      if (recognitionStatus(model) === 'no_vision')
+        throw new ApiError(409, 'ai_no_vision');
 
       const user = c.var.user;
       const photoId = c.req.param('id');
       if (c.req.query('mode') === 'ingredients')
-        return c.json(await recognizeIngredientsOf(user, photoId, model!));
+        return c.json(await recognizeIngredientsOf(user, photoId, model));
       const label = c.req.query('mode') === 'label';
       const code = label ? normalizeGtin(c.req.query('barcode') ?? '') : null;
       if (label && !code) throw new ApiError(400, 'barcode_invalid');
@@ -175,7 +175,7 @@ export function aiRoutes({ config, db, ai, photoBarcodes, fetch }: RouteDeps) {
       const result = code
         ? once(`${photoKey}:label:${code}`, user.id, () =>
             readJpeg(jpg, preview).then((bytes) =>
-              readLabel(model!, bytes, user.locale, code),
+              readLabel(model, bytes, user.locale, code),
             ),
           )
         : once(photoKey, user.id, async () => {
@@ -185,7 +185,7 @@ export function aiRoutes({ config, db, ai, photoBarcodes, fetch }: RouteDeps) {
               readBarcodes(bytes),
             ).catch(() => []);
             const recognized = await recognizeMeal(
-              model!,
+              model,
               bytes,
               user.locale,
               undefined,
@@ -224,8 +224,7 @@ export function aiRoutes({ config, db, ai, photoBarcodes, fetch }: RouteDeps) {
       requireUser,
       validate('json', refineRequestSchema),
       async (c) => {
-        const model = ai.current()?.model ?? null;
-        if (!model) throw new ApiError(409, 'ai_not_configured');
+        const { model } = userAi(c, db, ai);
         const user = c.var.user;
         const { mode, requestId, sessionId, photoId, text, dishes } =
           c.req.valid('json');
@@ -337,8 +336,7 @@ export function aiRoutes({ config, db, ai, photoBarcodes, fetch }: RouteDeps) {
       },
     )
     .post('/ai/recipes/:id/lighter', requireUser, async (c) => {
-      const model = ai.current()?.model ?? null;
-      if (!model) throw new ApiError(409, 'ai_not_configured');
+      const { model } = userAi(c, db, ai);
       const user = c.var.user;
       const id = c.req.param('id');
       // The recipe is read here, never taken from the client (ADR-0023 §8).
@@ -368,8 +366,7 @@ export function aiRoutes({ config, db, ai, photoBarcodes, fetch }: RouteDeps) {
       requireUser,
       validate('json', recipeParseRequestSchema),
       async (c) => {
-        const model = ai.current()?.model ?? null;
-        if (!model) throw new ApiError(409, 'ai_not_configured');
+        const { model } = userAi(c, db, ai);
         const user = c.var.user;
         const { text } = c.req.valid('json');
         // By a hash, so the key kept for 10 minutes holds no recipe text; a retry joins the call.

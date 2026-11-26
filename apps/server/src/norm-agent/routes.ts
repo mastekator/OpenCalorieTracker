@@ -12,6 +12,7 @@ import {
 import type { AppDeps } from '../app.js';
 import { normInterview } from '../ai/interview.js';
 import { requireUser, type AuthEnv } from '../auth/session.js';
+import { userAi } from '../ai/consents.js';
 import { ApiError } from '../http/errors.js';
 import { validate } from '../http/validate.js';
 import { readProfile } from '../profile/norm.js';
@@ -114,8 +115,7 @@ export function normAgentRoutes({ db, ai }: AppDeps) {
           ('text' in body && row.user_turns >= MAX_USER_TURNS)
         )
           throw new ApiError(409, 'agent_closed');
-        const model = ai.current()?.model;
-        if (!model) throw new ApiError(409, 'ai_not_configured');
+        const { model } = userAi(c, db, ai);
 
         const added: ChatMessage[] = [];
         if ('text' in body) {

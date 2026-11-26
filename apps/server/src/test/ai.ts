@@ -73,6 +73,18 @@ export async function aiSetup(
       "INSERT INTO passwords (user_id, hash, updated_at) VALUES ((SELECT id FROM users WHERE email = 'b@example.com'), ?, 0)",
     )
     .run(await hashPassword(PASSWORD));
+  /** Every user consents to the server's current provider; again after a provider change. */
+  const consentAll = () => {
+    const key = t.ai.forUser({ id: 0 })?.providerKey;
+    if (key)
+      t.db
+        .prepare(
+          'INSERT OR IGNORE INTO ai_consents (user_id, provider_key, granted_at) SELECT id, ?, 0 FROM users',
+        )
+        .run(key);
+  };
+  // So AI tests keep the cloud path; consent tests delete the rows.
+  consentAll();
 
   const signIn = async (email: string) => {
     const res = await t.app.request('/api/auth/login', {
@@ -112,6 +124,7 @@ export async function aiSetup(
     upload,
     recognize,
     status,
+    consentAll,
     cleanup: () => rm(dataDir, { recursive: true }),
   };
 }

@@ -139,7 +139,9 @@ it('retries once on garbage, then answers ai_invalid_response', async () => {
 
   const res = await t.ask(await t.create());
   expect(res.status).toBe(502);
-  expect(await res.json()).toEqual({ error: { code: 'ai_invalid_response' } });
+  expect(await res.json()).toEqual({
+    error: { code: 'ai_invalid_response', details: { aiSource: 'server' } },
+  });
   expect(model.doGenerateCalls).toHaveLength(4);
 });
 

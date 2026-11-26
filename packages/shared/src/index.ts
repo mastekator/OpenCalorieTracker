@@ -33,6 +33,9 @@ export type ErrorCode =
   | 'ai_unavailable'
   | 'ai_invalid_response'
   | 'ai_empty_result'
+  | 'ai_consent_required'
+  | 'ai_user_keys_disabled'
+  | 'ai_base_url_private'
   | 'ai_env_managed'
   | 'outbound_env_managed'
   | 'tokens_env_managed'
@@ -107,6 +110,7 @@ export * from './units.js';
 export * from './recognition.js';
 export * from './refine.js';
 export * from './ai-providers.js';
+export * from './ai-consent.js';
 export * from './meals.js';
 export * from './meals/content.js';
 export * from './nutrition.js';

@@ -3,6 +3,7 @@ import type { Context } from 'hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { createMiddleware } from 'hono/factory';
 import type {
+  AiSource,
   ApiTokenScope,
   AuthMethod,
   Locale,
@@ -38,6 +39,8 @@ export type AuthEnv = {
     sessionId?: number;
     /** Set by tokenAuth on /api/v1 and /mcp only. */
     tokenScope?: ApiTokenScope;
+    /** Set by userAi() before an AI call; AI errors report it (ADR-0031 §1). */
+    aiSource?: AiSource;
   };
 };
 
