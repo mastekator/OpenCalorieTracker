@@ -12,6 +12,10 @@ import { validate } from '../http/validate.js';
 import { readMealsByRev } from '../meals/read.js';
 import { readProfile } from '../profile/norm.js';
 import { readRecipesByRev } from '../recipes/read.js';
+import {
+  readAwardsByRev,
+  readChallengeMonthsByRev,
+} from '../streaks/routes.js';
 
 type Change =
   | { rev: number; kind: 'meal' }
@@ -26,7 +30,9 @@ type Change =
   | { rev: number; kind: 'profile' }
   | { rev: number; kind: 'weighing'; date: string; weightKg: number | null }
   | { rev: number; kind: 'recipe' }
-  | { rev: number; kind: 'deletedRecipe'; recipeId: number };
+  | { rev: number; kind: 'deletedRecipe'; recipeId: number }
+  | { rev: number; kind: 'award' }
+  | { rev: number; kind: 'challengeMonth' };
 
 /**
  * Everything of the user changed after `since`, by rev (ADR-0011 §3). Each change has its own
@@ -57,6 +63,13 @@ export function syncRoutes({ db }: AppDeps) {
     `SELECT rev, 'deletedRecipe' AS kind, recipe_id AS recipeId FROM recipe_tombstones
      WHERE user_id = ? AND rev > ? ORDER BY rev LIMIT ${limit}`,
   );
+  const awards = db.prepare(
+    `SELECT rev, 'award' AS kind FROM awards WHERE user_id = ? AND rev > ? ORDER BY rev LIMIT ${limit}`,
+  );
+  const challengeMonths = db.prepare(
+    `SELECT rev, 'challengeMonth' AS kind FROM challenge_months
+     WHERE user_id = ? AND rev > ? ORDER BY rev LIMIT ${limit}`,
+  );
   const profile = db.prepare(
     `SELECT rev, 'profile' AS kind FROM profiles WHERE user_id = ? AND rev > ?`,
   );
@@ -83,6 +96,8 @@ export function syncRoutes({ db }: AppDeps) {
           ...(weighings.all(userId, since) as Change[]),
           ...(recipes.all(userId, since) as Change[]),
           ...(recipeTombstones.all(userId, since) as Change[]),
+          ...(awards.all(userId, since) as Change[]),
+          ...(challengeMonths.all(userId, since) as Change[]),
           ...(profile.all(userId, since) as Change[]),
           // since = 0 is the first load: never-changed settings (settings_rev 0) come too.
           ...(settingsRev > since || since === 0
@@ -102,6 +117,15 @@ export function syncRoutes({ db }: AppDeps) {
         };
         if (page.some((x) => x.kind === 'recipe'))
           out.recipes = readRecipesByRev(db, userId, since, rev);
+        if (page.some((x) => x.kind === 'award'))
+          out.awards = readAwardsByRev(db, userId, since, rev);
+        if (page.some((x) => x.kind === 'challengeMonth'))
+          out.challengeMonths = readChallengeMonthsByRev(
+            db,
+            userId,
+            since,
+            rev,
+          );
         for (const x of page)
           if (x.kind === 'deleted') out.deletedMealClientIds.push(x.clientId);
           else if (x.kind === 'choice')
