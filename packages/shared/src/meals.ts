@@ -66,7 +66,7 @@ export const barcodeSchema = z
 /** The edible share the user chose for a reference key (ADR-0039 §4). */
 export const edibleChoiceSchema = z.object({
   key: z.string().trim().min(1).max(80),
-  pct: z.number().int().min(10).max(100).multipleOf(5),
+  pct: z.number().int().min(10).max(100),
 });
 export type EdibleChoice = z.infer<typeof edibleChoiceSchema>;
 
