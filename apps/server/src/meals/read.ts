@@ -16,6 +16,8 @@ export interface MealRow {
   edited_at: number | null;
   created_at: number;
   edit_rev: number;
+  recognized: number;
+  logged_at: number | null;
 }
 
 /** Meals matching `where` (over `meals m`) in `order`: one query for meals, one for their dishes. */
@@ -33,7 +35,7 @@ function selectMeals(
     .prepare(
       `SELECT i.meal_id AS mealId, i.name, i.grams, i.unit, i.kcal, i.protein_g AS proteinG,
          i.fat_g AS fatG, i.carbs_g AS carbsG, i.source, i.ai_provider AS aiProvider,
-         i.ai_model AS aiModel, i.confidence, i.recipe_id AS recipeId, i.barcode, i.illustration IS NOT NULL AS manual,
+         i.ai_model AS aiModel, i.confidence, i.ai_grams AS aiGrams, i.recipe_id AS recipeId, i.barcode, i.illustration IS NOT NULL AS manual,
          COALESCE(i.illustration, c.illustration) AS illustration
        FROM meal_items i JOIN meals m ON m.id = i.meal_id ${CHOICE_JOIN}
        WHERE ${where} ORDER BY i.meal_id, i.position`,
@@ -72,6 +74,8 @@ function selectMeals(
       editRev: m.edit_rev,
       // A meal never edited since it was created has no edited_at.
       editedAt: m.edited_at ?? m.created_at,
+      recognized: !!m.recognized,
+      loggedAt: new Date(m.logged_at ?? m.created_at).toISOString(),
     };
   });
 }

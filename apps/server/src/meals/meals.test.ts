@@ -142,6 +142,61 @@ describe('meals', () => {
     expect(t.db.prepare('SELECT COUNT(*) FROM meals').pluck().get()).toBe(2);
   });
 
+  it('keeps record marks: sticky recognized, clamped loggedAt, aiGrams for AI dishes (ADR-0032 §2)', async () => {
+    const t = await setup();
+    const base = input();
+    const ai = { ...base.items[0]!, aiGrams: 250 };
+    const before = Date.now();
+    const meal = (await (
+      await t.call(t.cookie, 'POST', '/meals', {
+        ...base,
+        items: [ai, base.items[1]],
+        loggedAt: '2099-01-01T00:00:00.000Z',
+      })
+    ).json()) as Meal;
+    expect(meal.recognized).toBe(true);
+    expect(meal.items.map((i) => i.aiGrams)).toEqual([250, null]);
+    const logged = Date.parse(meal.loggedAt!);
+    expect(logged).toBeGreaterThanOrEqual(before);
+    expect(logged).toBeLessThanOrEqual(Date.now());
+
+    // Rewriting every dish by hand keeps the photo mark.
+    const edited = (await (
+      await t.call(t.cookie, 'PATCH', `/meals/${meal.id}`, {
+        items: [{ ...base.items[1]!, name: 'Rice' }],
+      })
+    ).json()) as Meal;
+    expect(edited.recognized).toBe(true);
+    expect(edited.loggedAt).toBe(meal.loggedAt);
+
+    // A meal saved offline earlier keeps its own moment; without one, it is the creation time.
+    const manual = base.items[1]!;
+    const queued = (await (
+      await t.call(t.cookie, 'POST', '/meals', {
+        ...input({ items: [manual] }),
+        loggedAt: '2026-01-10T12:05:00.000+03:00',
+      })
+    ).json()) as Meal;
+    expect(queued.recognized).toBe(false);
+    expect(queued.loggedAt).toBe('2026-01-10T09:05:00.000Z');
+    const plain = (await (
+      await t.call(t.cookie, 'POST', '/meals', input({ items: [manual] }))
+    ).json()) as Meal;
+    const created = t.db
+      .prepare('SELECT created_at FROM meals WHERE id = ?')
+      .pluck()
+      .get(plain.id) as number;
+    expect(plain.loggedAt).toBe(new Date(created).toISOString());
+
+    const bad = await t.call(
+      t.cookie,
+      'POST',
+      '/meals',
+      input({ items: [{ ...manual, aiGrams: 100 }] }),
+    );
+    expect(bad.status).toBe(400);
+  });
+
   it('stores the values as sent and sums them on the server (AC-4.2)', async () => {
     const t = await setup();
     const body = input();

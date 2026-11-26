@@ -33,6 +33,8 @@ import { unitOf } from '../../ui/weightUnits';
  */
 export type Dish = ManualDish & {
   confidence?: number;
+  /** Grams as recognition returned them, kept through edits and sent on an AI dish (ADR-0032 §2). */
+  aiGrams?: number;
   /** `source: 'barcode'` from `mergePackages`: whose product the numbers are. */
   from?: BarcodeResult['from'];
   /** Found by barcode without kcal, no label: the AI's estimate to check (E-12). */
@@ -117,6 +119,12 @@ export type Question = Omit<AiQuestion, 'dish'> & { chosen?: number };
 
 const inRange = (g: number) => g >= DISH_GRAMS.min && g <= DISH_GRAMS.max;
 
+/** `aiGrams` of a recognized weight; one the API refuses is left out. */
+const aiGramsOf = (grams: number) => {
+  const g = round1(grams);
+  return inRange(g) ? { aiGrams: g } : {};
+};
+
 export function toRow(original: Dish, source: Row['source'] = 'ai'): Row {
   // AI grams may carry any decimals; the API takes one (mealItemInputSchema).
   const g = round1(original.grams);
@@ -148,6 +156,8 @@ export const itemOf = (row: Row): MealItemInput => {
     ...(row.source === 'recipe' && row.recipeId && { recipeId: row.recipeId }),
     // A manual dish has no confidence (AC-3.9).
     ...(row.source === 'ai' && !row.fixed.length && { confidence }),
+    ...(row.source === 'ai' &&
+      row.original.aiGrams !== undefined && { aiGrams: row.original.aiGrams }),
     ...(row.original.barcode && { barcode: row.original.barcode }),
     // Remembered for the code by the server, and on this device by the outbox (ADR-0037 §2).
     ...(row.original.barcode &&
@@ -312,7 +322,15 @@ export type Recognized = Omit<Dish, 'barcode' | 'unit'> & {
 export const toRows = (dishes: Recognized[], questions?: AiQuestion[]) =>
   withQuestions(
     dishes.map(({ source, barcode, unit, edible, ...d }) => ({
-      ...toRow({ ...d, ...unitOf(unit), ...(barcode && { barcode }) }, source),
+      ...toRow(
+        {
+          ...d,
+          ...unitOf(unit),
+          ...(barcode && { barcode }),
+          ...((source ?? 'ai') === 'ai' && aiGramsOf(d.grams)),
+        },
+        source,
+      ),
       ...(edible && { edible }),
     })),
     questions,
@@ -463,6 +481,7 @@ const aiRow = ({
     fatG,
     carbsG,
     confidence,
+    ...aiGramsOf(grams),
     ...unitOf(unit),
   }),
   ...(edible && { edible }),

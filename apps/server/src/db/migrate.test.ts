@@ -16,7 +16,7 @@ describe('migrate', () => {
   it('brings an empty database to the latest version', () => {
     const db = openDb(':memory:');
     migrate(db);
-    expect(db.pragma('user_version', { simple: true })).toBe(33);
+    expect(db.pragma('user_version', { simple: true })).toBe(34);
     expect(tables(db)).toEqual([
       'agent_drafts',
       'agent_messages',
@@ -92,7 +92,7 @@ describe('migrate', () => {
       .pluck()
       .all();
     migrate(db);
-    expect(db.pragma('user_version', { simple: true })).toBe(33);
+    expect(db.pragma('user_version', { simple: true })).toBe(34);
     expect(
       db.prepare('SELECT sql FROM sqlite_master ORDER BY name').pluck().all(),
     ).toEqual(before);
@@ -135,6 +135,51 @@ describe('migrate', () => {
         ),
       },
     ]);
+  });
+
+  it('marks existing meals recognized and logged when created (0034)', () => {
+    const db = openDb(':memory:');
+    const dir = new URL('./migrations/', import.meta.url);
+    // The database as version 33 left it.
+    for (const f of readdirSync(dir)
+      .filter((f) => /^\d{4}_\w+\.sql$/.test(f) && f < '0034')
+      .sort())
+      db.exec(readFileSync(new URL(f, dir), 'utf8'));
+    db.pragma('user_version = 33');
+    db.prepare(
+      "INSERT INTO users (id, email, role, webauthn_user_id, created_at) VALUES (1, 'a@b.c', 'user', x'01', 0)",
+    ).run();
+    const meal = db.prepare(
+      `INSERT INTO meals (id, user_id, client_id, eaten_at, tz_offset_min, local_date, meal_type, created_at, updated_at)
+       VALUES (?, 1, ?, 0, 0, '1970-01-01', 'lunch', ?, 0)`,
+    );
+    const item = db.prepare(
+      `INSERT INTO meal_items (meal_id, position, name, name_key, grams, kcal, protein_g, fat_g, carbs_g, source)
+       VALUES (?, ?, 'x', 'x', 100, 1, 0, 0, 0, ?)`,
+    );
+    meal.run(1, 'a', 111);
+    item.run(1, 0, 'manual');
+    item.run(1, 1, 'ai');
+    meal.run(2, 'b', 222);
+    item.run(2, 0, 'manual');
+    db.prepare(
+      `INSERT INTO meals (id, user_id, client_id, eaten_at, tz_offset_min, local_date, meal_type, created_at, updated_at)
+       VALUES (3, 1, 'import:1:0', 50, 0, '1970-01-01', 'lunch', 333, 0)`,
+    ).run();
+
+    migrate(db);
+    expect(
+      db
+        .prepare('SELECT id, recognized, logged_at FROM meals ORDER BY id')
+        .all(),
+    ).toEqual([
+      { id: 1, recognized: 1, logged_at: 111 },
+      { id: 2, recognized: 0, logged_at: 222 },
+      { id: 3, recognized: 0, logged_at: 50 },
+    ]);
+    expect(
+      db.prepare('SELECT DISTINCT ai_grams FROM meal_items').pluck().all(),
+    ).toEqual([null]);
   });
 
   it('keeps edible_prefs.pct within 10..100', () => {
@@ -219,7 +264,7 @@ describe('migrate', () => {
     const before = db.prepare('SELECT * FROM meal_items ORDER BY id').all();
 
     migrate(db);
-    expect(db.pragma('user_version', { simple: true })).toBe(33);
+    expect(db.pragma('user_version', { simple: true })).toBe(34);
     // Old dishes are grams (ADR-0038 §1).
     expect(db.prepare('SELECT * FROM meal_items ORDER BY id').all()).toEqual(
       before.map((r) => ({
@@ -227,6 +272,7 @@ describe('migrate', () => {
         recipe_id: null,
         barcode: null,
         unit: 'g',
+        ai_grams: null,
       })),
     );
     db.prepare("UPDATE meal_items SET unit = 'ml' WHERE name = 'Чай'").run();

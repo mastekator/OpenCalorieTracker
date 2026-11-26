@@ -31,4 +31,9 @@ export const logPortion = (
   db: Db,
   item: MealItemInput,
   when: { mealType: MealType; at: Date },
-) => createMeal(db, portionMeal(item, when.mealType, when.at));
+) =>
+  createMeal(db, {
+    ...portionMeal(item, when.mealType, when.at),
+    // The tap; the queue sends this very value later (ADR-0032 §2).
+    loggedAt: new Date().toISOString(),
+  });

@@ -86,8 +86,8 @@ export function mealStore({
   ) => {
     const insert = db.prepare(
       `INSERT INTO meal_items (meal_id, position, name, name_key, grams, unit, kcal, protein_g,
-         fat_g, carbs_g, source, ai_provider, ai_model, confidence, illustration, recipe_id, barcode)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         fat_g, carbs_g, source, ai_provider, ai_model, confidence, ai_grams, illustration, recipe_id, barcode)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     );
     const remember = rememberer(db);
     const now = Date.now();
@@ -112,6 +112,7 @@ export function mealStore({
         isAi ? (by?.provider ?? null) : null,
         isAi ? (by?.model ?? null) : null,
         i.confidence ?? null,
+        i.aiGrams ?? null,
         i.illustration ?? null,
         i.recipeId === undefined
           ? null
@@ -120,10 +121,11 @@ export function mealStore({
       );
       remember(userId, i, now);
     });
-    db.prepare('UPDATE meals SET ai_source = ? WHERE id = ?').run(
-      items.some((i) => i.source === 'ai') ? (by?.source ?? null) : null,
-      mealId,
-    );
+    const recognized = items.some((i) => i.source === 'ai');
+    // `recognized` is sticky (ADR-0032 §2): rewriting the dishes by hand never clears it.
+    db.prepare(
+      'UPDATE meals SET ai_source = ?, recognized = MAX(recognized, ?) WHERE id = ?',
+    ).run(recognized ? (by?.source ?? null) : null, Number(recognized), mealId);
   };
 
   /** Moves `last_logged_at` of the meal's recipes up to `eatenAt`, never back (ADR-0023 §5). */
@@ -194,8 +196,8 @@ export function mealStore({
       const id = db
         .prepare(
           `INSERT INTO meals (user_id, client_id, eaten_at, tz_offset_min, local_date, meal_type,
-           photo_id, photo_full, photo_expires_at, recalc_offer, rev, edit_rev, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+           photo_id, photo_full, photo_expires_at, recalc_offer, rev, edit_rev, logged_at, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
         )
         .pluck()
         .get(
@@ -211,6 +213,11 @@ export function mealStore({
           input.recalcOffer ? 1 : 0,
           rev,
           rev,
+          // The device's "Save" moment, clamped like editedAt; a queued meal keeps its own.
+          Math.min(
+            input.loggedAt === undefined ? now : Date.parse(input.loggedAt),
+            now,
+          ),
           now,
           now,
         ) as number;
