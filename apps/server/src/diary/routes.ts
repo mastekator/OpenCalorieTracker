@@ -11,6 +11,7 @@ import {
   type SummaryResponse,
 } from '@oct/shared';
 import type { AppDeps } from '../app.js';
+import { readDrinkEntries } from '../drinks/routes.js';
 import { requireUser, type AuthEnv } from '../auth/session.js';
 import { validate } from '../http/validate.js';
 import { readMeals } from '../meals/read.js';
@@ -28,7 +29,11 @@ export function diaryRoutes({ db }: AppDeps) {
       const userId = c.var.user.id;
       const { date } = c.req.valid('param');
       const meals = readMeals(db, userId, date, date);
-      const total = sumDay(meals);
+      // Drinks count in totals even with the water module off (ADR-0028 §4).
+      const total = sumDay([
+        ...meals,
+        ...readDrinkEntries(db, userId, date, date),
+      ]);
       const norm = getDailyNorm(db, userId, date);
       return c.json({
         date,
@@ -42,10 +47,16 @@ export function diaryRoutes({ db }: AppDeps) {
       const userId = c.var.user.id;
       const { from, to, today } = c.req.valid('query');
       const meals = readMeals(db, userId, from, to);
+      const drinks = readDrinkEntries(db, userId, from, to);
       const days = Array.from({ length: daysBetween(from, to) + 1 }, (_, i) => {
         const date = addDays(from, i);
         const ofDay = meals.filter((m) => m.localDate === date);
-        return { date, ...sumDay(ofDay), meals: ofDay.length };
+        const ofDrinks = drinks.filter((d) => d.date === date);
+        return {
+          date,
+          ...sumDay([...ofDay, ...ofDrinks]),
+          meals: ofDay.length,
+        };
       });
       const norm = getDailyNorm(db, userId, today);
       return c.json({

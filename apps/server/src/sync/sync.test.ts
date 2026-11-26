@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   SYNC_PAGE_SIZE,
   addDays,
+  type Drink,
   type Meal,
   type MealInput,
   type SyncResponse,
@@ -80,6 +81,23 @@ async function setup() {
 }
 
 const TODAY = serverToday();
+
+const LATTE = {
+  name: 'Latte',
+  illustration: 'coffee',
+  kcal: 50,
+  proteinG: 3,
+  fatG: 2,
+  carbsG: 5,
+  countsWater: false,
+};
+const entry = () => ({
+  clientId: randomUUID(),
+  date: TODAY,
+  takenAt: '2026-01-01T08:00:00.000Z',
+  ml: 200,
+  drinkKey: 'water',
+});
 
 const PROFILE = {
   sex: 'female',
@@ -233,6 +251,9 @@ describe('GET /api/sync', () => {
     await t.call(other, 'PUT', '/profile', { profile: PROFILE, manual: null });
     await t.call(other, 'PUT', `/weighings/${TODAY}`, { weightKg: 71 });
     await t.call(other, 'DELETE', `/weighings/${TODAY}`);
+    await t.call(other, 'POST', '/drinks', LATTE);
+    await t.call(other, 'POST', '/drink-entries', entry());
+    await t.call(other, 'PUT', '/water/goal', { date: TODAY, goalMl: 2500 });
     expect(await t.sync(0)).toEqual({
       rev: 0,
       more: false,
@@ -357,6 +378,48 @@ describe('GET /api/sync', () => {
     expect(res.weighings).toEqual([{ date: TODAY, weightKg: 72.5 }]);
     expect(rev).toBeLessThanOrEqual(res.rev);
     expect((await t.sync(res.rev)).weighings).toBeUndefined();
+  });
+
+  it('sends new, changed and deleted drinks, drink entries and water goals by since', async () => {
+    const t = await setup();
+    const drink = (await t.call(t.cookie, 'POST', '/drinks', LATTE))
+      .body as Drink;
+    const water = entry();
+    await t.call(t.cookie, 'POST', '/drink-entries', water);
+    await t.call(t.cookie, 'PUT', '/water/goal', {
+      date: TODAY,
+      goalMl: 2500,
+    });
+    const first = await t.sync(0);
+    expect(first.drinks).toEqual([drink]);
+    expect(first.drinkEntries).toEqual([
+      expect.objectContaining({ clientId: water.clientId, deleted: false }),
+    ]);
+    expect(first.waterGoals).toEqual([{ fromDate: TODAY, goalMl: 2500 }]);
+    expect((await t.sync(first.rev)).drinks).toBeUndefined();
+
+    await t.call(t.cookie, 'DELETE', `/drinks/${drink.id}`);
+    await t.call(t.cookie, 'DELETE', `/drink-entries/${water.clientId}`);
+    await t.call(t.cookie, 'PUT', '/water/goal', { date: TODAY, goalMl: null });
+    const next = await t.sync(first.rev);
+    expect(next.drinks).toEqual([{ ...drink, deleted: true }]);
+    expect(next.drinkEntries).toEqual([
+      expect.objectContaining({ clientId: water.clientId, deleted: true }),
+    ]);
+    expect(next.waterGoals).toEqual([{ fromDate: TODAY, goalMl: null }]);
+    expect(next.meals).toEqual([]);
+  });
+
+  it('a page can end on drink entries', async () => {
+    const t = await setup();
+    for (let i = 0; i <= SYNC_PAGE_SIZE; i++)
+      await t.call(t.cookie, 'POST', '/drink-entries', entry());
+    const p1 = await t.sync(0);
+    expect(p1.more).toBe(true);
+    expect(p1.drinkEntries).toHaveLength(SYNC_PAGE_SIZE - 1);
+    const p2 = await t.sync(p1.rev);
+    expect(p2.more).toBe(false);
+    expect(p2.drinkEntries).toHaveLength(2);
   });
 
   it('needs a session and a valid since', async () => {
