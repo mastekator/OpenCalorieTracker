@@ -619,6 +619,14 @@ describe('RecipeEditor', () => {
       expect(screen.getByText(zero)).toBeTruthy();
     });
 
+    it('a tap on a row opens the «Ingredient» sheet', async () => {
+      await view({ draft, ai: { unsure: [4] } });
+      fireEvent.click(screen.getByRole('button', { name: /^Tomatoes/ }));
+      expect(
+        await screen.findByRole('dialog', { name: 'Ingredient' }),
+      ).toBeTruthy();
+    });
+
     it('the mark follows its row when a row above is deleted', async () => {
       await view({ draft, ai: { unsure: [4] } });
       fireEvent.click(screen.getByRole('button', { name: /^Tomatoes/ }));

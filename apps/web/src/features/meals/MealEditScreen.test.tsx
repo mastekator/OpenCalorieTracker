@@ -356,6 +356,12 @@ describe('MealEditScreen', () => {
       expect(document.activeElement).toBe(name());
     });
 
+    it('the dish sheet is titled «Dish»', async () => {
+      await setup();
+      open();
+      expect(screen.getByRole('dialog', { name: 'Dish' })).toBeTruthy();
+    });
+
     it('the weight recalculates live in the sheet and applies on Done', async () => {
       await setup();
       open();

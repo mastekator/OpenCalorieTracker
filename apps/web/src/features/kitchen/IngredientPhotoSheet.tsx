@@ -522,6 +522,7 @@ export function IngredientPhotoSheet({
       <Sheet
         open={!open}
         full
+        fit
         onClose={onClose}
         title={t('editor.products.title')}
         footer={footer}
@@ -539,6 +540,7 @@ export function IngredientPhotoSheet({
             (open.amount ?? { mode: 'weight', value: gramsOf(open) ?? 0 })
           }
           edible={open.edible}
+          title={t('editor.ingredient')}
           amountTitle={t('editor.used')}
           edibleTitle={t('editor.products.edible_title')}
           deleteLabel={t('editor.products.remove')}

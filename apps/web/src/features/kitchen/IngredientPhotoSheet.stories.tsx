@@ -156,6 +156,19 @@ export const ReviewDesktopDark: Story = {
   ...review,
   globals: { ...desktop, ...dark },
 };
+/** 15 rows on desktop: the list scrolls, «Add» stays in view. */
+const long: Story = {
+  beforeEach: answer(async () =>
+    Response.json({
+      items: Array.from({ length: 15 }, (_, i) => ITEMS[i % ITEMS.length]!),
+    }),
+  ),
+};
+export const LongDesktop: Story = { ...long, globals: desktop };
+export const LongDesktopDark: Story = {
+  ...long,
+  globals: { ...desktop, ...dark },
+};
 export const ReviewOunces: Story = { ...review, args: { units: 'us' } };
 
 /** No products on the photo: «Take another» / «Enter manually». */

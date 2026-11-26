@@ -1146,6 +1146,7 @@ export function RecipeEditor({
               value: gramsOf(editing.grams, w.as(editing.base.unit)) ?? 0,
             })
           }
+          title={t('editor.ingredient')}
           amountTitle={t('editor.used')}
           onDone={(n, g, _, amount, pack) => {
             setRow(editing.key, {
