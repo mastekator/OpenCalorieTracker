@@ -485,6 +485,7 @@ describe('gross → edible (ADR-0039 §5)', () => {
       expect(sheet().getByRole('alert').textContent).toBe(
         'Under 1 g edible: raise the weight or %',
       );
+      expect(sheet().getByText('< 1 g')).toBeTruthy();
       done();
       expect(screen.getByRole('dialog')).toBeTruthy();
     });

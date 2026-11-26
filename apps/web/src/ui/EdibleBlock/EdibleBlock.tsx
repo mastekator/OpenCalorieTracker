@@ -83,6 +83,8 @@ export function EdibleBlock({ edible, name, units, onChange, title }: Props) {
   const err = typed !== null && pctOf(typed) === null;
   // Under 1 g there is nothing to save: say why «Done» does nothing (OCT-479).
   const netErr = !err && net < DISH_GRAMS.min;
+  // The rounded value would read «1 g» right above the error.
+  const netText = netErr ? `< ${w.text(DISH_GRAMS.min)}` : w.text(net);
   const netError = netErr && (
     <p id={errorId} className="stepper__error" role="alert">
       <CircleAlert aria-hidden="true" />
@@ -197,7 +199,7 @@ export function EdibleBlock({ edible, name, units, onChange, title }: Props) {
             )}
           </div>
           <p className="edible__note tabular-nums" aria-live="polite">
-            {t('edit.edible.pct_edible', { net: w.text(net) })}
+            {t('edit.edible.pct_edible', { net: netText })}
           </p>
           <div
             className="portion__chips"
@@ -225,7 +227,7 @@ export function EdibleBlock({ edible, name, units, onChange, title }: Props) {
         <div className="edible__result tabular-nums">
           <span className="edible__main">
             <span>{t('edit.edible.result')}</span>
-            <b>{w.text(net)}</b>
+            <b>{netText}</b>
             <span>
               {t('edit.edible.pct', { n: num(pct) })} ·{' '}
               <span
