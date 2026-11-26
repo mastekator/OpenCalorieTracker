@@ -37,7 +37,8 @@ export function ConsentsList({ consents, server, onRevoke }: Props) {
           key={c.providerKey}
           icon={<Server />}
           description={t('ai_settings.via_server', {
-            date: date.format(c.grantedAt),
+            // The date never splits across lines.
+            date: date.format(c.grantedAt).replaceAll(' ', '\u00a0'),
           })}
           value={
             <Button

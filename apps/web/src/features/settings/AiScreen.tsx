@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Power, WifiOff } from 'lucide-react';
 import { z } from 'zod';
 import type { AiConsentsResponse, MeResponse } from '@oct/shared';
@@ -36,6 +36,21 @@ export function AiScreen({ user }: { user: MeResponse }) {
     readConsents(user.id),
   );
   const [revoke, setRevoke] = useState<string | null>(null);
+  const consentsCol = useRef<HTMLDivElement>(null);
+  // Index of the revoked row: its button is gone, so focus moves on instead of falling to body.
+  const focusAt = useRef<number | null>(null);
+
+  useEffect(() => {
+    const i = focusAt.current;
+    const col = consentsCol.current;
+    if (i === null || !col) return;
+    focusAt.current = null;
+    const buttons = col.querySelectorAll<HTMLButtonElement>('button');
+    const title = col.querySelector<HTMLElement>('h2');
+    const next = buttons[i] ?? buttons[i - 1] ?? title;
+    if (next === title && title) title.tabIndex = -1;
+    next?.focus();
+  }, [data]);
 
   useEffect(() => {
     if (!online) return;
@@ -63,6 +78,8 @@ export function AiScreen({ user }: { user: MeResponse }) {
       return;
     }
     removeConsent(user.id, providerKey);
+    focusAt.current =
+      data?.consents.findIndex((c) => c.providerKey === providerKey) ?? null;
     setData(
       (d) =>
         d && {
@@ -111,7 +128,7 @@ export function AiScreen({ user }: { user: MeResponse }) {
           </Banner>
         )}
       </div>
-      <div className="settings__col">
+      <div className="settings__col" ref={consentsCol}>
         {data && (
           <ConsentsList
             {...data}

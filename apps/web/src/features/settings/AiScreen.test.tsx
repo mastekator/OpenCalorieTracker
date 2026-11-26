@@ -97,6 +97,22 @@ describe('AiScreen (OCT-178 §1)', () => {
     ]);
   });
 
+  it('revoke moves focus to the next «Revoke», then to the group title', async () => {
+    serve(CONSENTS);
+    wrap();
+    await revoke('Google Gemini');
+    await screen.findByText('Consent revoked');
+    expect(document.activeElement).toBe(
+      screen.getByRole('button', { name: 'Revoke llm.example.com:8080' }),
+    );
+    await revoke('llm.example.com:8080');
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        screen.getByRole('heading', { name: 'Consents' }),
+      ),
+    );
+  });
+
   it('a failed DELETE keeps the row and the copy', async () => {
     serve(CONSENTS, 500);
     wrap();
