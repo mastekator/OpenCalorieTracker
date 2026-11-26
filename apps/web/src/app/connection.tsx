@@ -44,7 +44,7 @@ export function useBarVariant() {
 
 const BLOCKED_TOAST_MS = 4000;
 
-export type OnlineReason = 'agent' | 'auth' | 'admin';
+export type OnlineReason = 'agent' | 'auth' | 'admin' | 'ai';
 
 /**
  * Actions that run on the server (OCT-25 3.6): online they run, offline a toast tells why.

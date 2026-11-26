@@ -35,6 +35,7 @@ import {
 } from '../../app/install';
 import { applyTheme } from '../../app/theme';
 import { useAiStatus, useDb, useSettings } from '../../data/DataContext';
+import { useDeviceAi } from '../../data/deviceAi';
 import {
   conflictCount,
   expiringPhotos,
@@ -61,6 +62,7 @@ import { SegmentedRow } from '../../ui/SegmentedRow/SegmentedRow';
 import { useToast } from '../../ui/Toast/Toast';
 import { BLOCKS_API, blocksSchema } from '../admin/BlocksScreen';
 import { AI_STATUS_PATH } from './AiProviderScreen';
+import { AI_SETTINGS_PATH } from './AiScreen';
 import { INTEGRATIONS_PATH } from './IntegrationsScreen';
 import { enabledMethods } from './methods';
 import './settings.css';
@@ -75,11 +77,17 @@ const languageName = (l: Locale) => {
 };
 const LANGUAGES = LOCALES.map((l) => ({ value: l, label: languageName(l) }));
 
-/** Who gets the photos (AC-6.10): the provider, an own server's host, or nobody. */
-function recognitionText(t: ReturnType<typeof useT>['t'], status: AiStatus) {
+/** Where AI goes from here (AC-6.10, OCT-178 §1): off on this device, the server's provider, or nowhere. */
+function aiText(
+  t: ReturnType<typeof useT>['t'],
+  deviceAi: boolean,
+  status: AiStatus | null | undefined,
+) {
+  if (!deviceAi) return t('settings.ai_device_off');
+  if (!status) return undefined;
   const provider = status.providerName ?? status.baseUrlHost;
   return status.recognition === 'ready' && provider
-    ? t('settings.recognition_on', { provider })
+    ? t('settings.ai_server', { provider })
     : t('settings.recognition_off');
 }
 
@@ -104,6 +112,7 @@ export function SettingsScreen({ user, onLogout, platform: given }: Props) {
   const db = useDb();
   const settings = useSettings();
   const ai = useAiStatus();
+  const [deviceAi] = useDeviceAi(user.id);
   const prompt = useInstallPrompt();
   const [platform] = useState(() =>
     given === undefined ? currentInstallPlatform() : given,
@@ -396,15 +405,14 @@ export function SettingsScreen({ user, onLogout, platform: given }: Props) {
               </ListRow>
             )
           )}
-          {/* Hidden until the first status arrives: a guessed line could be untrue (OCT-172). */}
-          {ai.status && (
-            <ListRow
-              icon={<Sparkle />}
-              description={recognitionText(t, ai.status)}
-            >
-              {t('settings.recognition')}
-            </ListRow>
-          )}
+          {/* No provider line until the first status arrives: a guessed one could be untrue (OCT-172). */}
+          <ListRow
+            icon={<Sparkle />}
+            description={aiText(t, deviceAi, ai.status)}
+            onClick={go(AI_SETTINGS_PATH)}
+          >
+            {t('settings.ai')}
+          </ListRow>
         </List>
         {platform && (
           <InstallSheet

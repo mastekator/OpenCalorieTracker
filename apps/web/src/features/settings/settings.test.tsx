@@ -20,6 +20,7 @@ import { THEME_STORAGE_KEY } from '../../app/theme';
 import { emitChange } from '../../data/changes';
 import { DataProvider } from '../../data/DataContext';
 import { openUserDb } from '../../data/db';
+import { setDeviceAi } from '../../data/deviceAi';
 import { clearLocal } from '../../data/user';
 import { I18nProvider, LOCALE_STORAGE_KEY } from '../../i18n';
 import { ToastProvider } from '../../ui/Toast/Toast';
@@ -369,9 +370,7 @@ describe('Offline (4.8)', () => {
       await screen.findByText(/Everything works offline except sign-in/),
     ).toBeTruthy();
     expect(
-      await screen.findByText(
-        'Google Gemini. Your photos are sent to this service',
-      ),
+      await screen.findByText('Through the server · Google Gemini'),
     ).toBeTruthy();
     for (const name of ['English', 'Dark', 'US'])
       expect(
@@ -404,16 +403,25 @@ describe('Offline (4.8)', () => {
     });
     await wrap(screenOf(), true);
     expect(
-      await screen.findByText(
-        'Google Gemini. Your photos are sent to this service',
-      ),
+      await screen.findByText('Through the server · Google Gemini'),
     ).toBeTruthy();
     cleanup();
     await clearLocal(user.id);
     await seed(synced);
     await wrap(screenOf(), true);
     await screen.findByRole('radio', { name: 'English' });
-    expect(screen.queryByText('Photo recognition')).toBeNull();
+    expect(screen.getByRole('button', { name: 'AI' })).toBeTruthy();
+  });
+
+  it('AI off on this device: the row says so and opens Settings → AI', async () => {
+    offlineNow();
+    setDeviceAi(user.id, false);
+    await wrap(screenOf(), true);
+    fireEvent.click(
+      await screen.findByRole('button', { name: /^AI\s*Off on this device/ }),
+    );
+    expect(location.pathname).toBe('/settings/ai');
+    history.replaceState(null, '', '/');
   });
 
   it('no AI: the manual-entry line; own server: its host', async () => {
@@ -441,9 +449,7 @@ describe('Offline (4.8)', () => {
     });
     await wrap(screenOf(), true);
     expect(
-      await screen.findByText(
-        '192.168.1.20:11434. Your photos are sent to this service',
-      ),
+      await screen.findByText('Through the server · 192.168.1.20:11434'),
     ).toBeTruthy();
   });
 

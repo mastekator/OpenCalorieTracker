@@ -5,7 +5,7 @@
   align-content: start;
 }
 
-/* D.1: the main Settings screen only (wide); nested screens stay one column. */
+/* D.1: the main Settings screen and Settings → AI (wide); other nested screens stay one column. */
 @media (min-width: 1024px) {
   .settings--columns {
     grid-template-columns: 1fr 1fr;
