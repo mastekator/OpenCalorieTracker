@@ -10,6 +10,7 @@ import {
   createInviteRequestSchema,
   refineLimitRequestSchema,
   saveAiSettingsRequestSchema,
+  userKeysRequestSchema,
   type AdminAiStatus,
   type AiCheckResult,
   type AiDraft,
@@ -20,6 +21,7 @@ import {
   type AdminUser,
   type CreatedLinkResponse,
   type Invite,
+  type UserKeysResponse,
 } from '@oct/shared';
 import { callModel, noVisionError, quickReasoning } from '../ai/common.js';
 import { readExpected, TEST_PHOTOS_DIR } from '../ai/model-test/compare.js';
@@ -32,6 +34,7 @@ import {
   baseUrlHost,
   refineLimit,
   savedAiRow,
+  userKeysAllowed,
   type AiSettings,
 } from '../ai/settings.js';
 import {
@@ -165,6 +168,8 @@ export function adminRoutes({ config, db, ai, secrets }: AppDeps) {
       savedInactive: settings?.source === 'env' && !!saved,
       rev: saved?.rev ?? null,
       refineLimit: refineLimit(db),
+      allowUserKeys: userKeysAllowed(db, config),
+      userKeysLocked: config.ai.userKeys !== undefined,
       state,
       testPhotoCount: (await readExpected()).photos.length,
       checkedAt,
@@ -367,6 +372,29 @@ export function adminRoutes({ config, db, ai, secrets }: AppDeps) {
              ON CONFLICT (id) DO UPDATE SET refine_per_session = excluded.refine_per_session`,
           ).run(limit);
           return c.json(await aiStatus());
+        },
+      )
+      // Turning off deletes every saved key at once, not just hides them (ADR-0031 §2).
+      .put(
+        '/admin/ai/user-keys',
+        validate('json', userKeysRequestSchema),
+        (c) => {
+          if (config.ai.userKeys !== undefined)
+            throw new ApiError(409, 'user_ai_keys_env_managed');
+          const { allow } = c.req.valid('json');
+          const deleted = db.transaction(() => {
+            db.prepare('UPDATE instance_ai SET allow_user_keys = ?').run(
+              +allow,
+            );
+            if (allow) return 0;
+            db.prepare(
+              'UPDATE users SET ai_notice_seen = 0 WHERE id IN (SELECT user_id FROM user_ai_settings)',
+            ).run();
+            return db.prepare('DELETE FROM user_ai_settings').run().changes;
+          })();
+          if (deleted)
+            console.log(`[info] ${deleted} own AI keys deleted by admin`);
+          return c.json({ deleted } satisfies UserKeysResponse);
         },
       )
       // No throttle and no global state: listing models costs nothing and changes nothing.

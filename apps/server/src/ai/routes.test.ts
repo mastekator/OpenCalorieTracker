@@ -55,6 +55,7 @@ describe('GET /api/ai/status', () => {
       providerName: null,
       baseUrlHost: null,
       refineLimit: null,
+      userKeysDisabledNotice: false,
     });
     await cleanup!();
     expect(await (await setup(mockModel())).status()).toEqual({
@@ -63,6 +64,7 @@ describe('GET /api/ai/status', () => {
       providerName: null,
       baseUrlHost: null,
       refineLimit: null,
+      userKeysDisabledNotice: false,
     });
   });
 

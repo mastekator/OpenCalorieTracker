@@ -13,6 +13,8 @@ const gemini: AdminAiStatus = {
   keyUnreadable: false,
   savedInactive: false,
   rev: null,
+  allowUserKeys: true,
+  userKeysLocked: false,
   refineLimit: null,
   testPhotoCount: 9,
   state: 'ok',

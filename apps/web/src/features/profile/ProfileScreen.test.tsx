@@ -112,6 +112,7 @@ describe('ProfileScreen, AI configured but not answering (8.14)', () => {
               providerName: 'x',
               baseUrlHost: null,
               refineLimit: null,
+              userKeysDisabledNotice: false,
             })
           : Promise.reject(new TypeError('no server in this test')),
       ),
@@ -182,6 +183,7 @@ describe('ProfileScreen, AI status refreshing (OCT-448)', () => {
         providerName: 'x',
         baseUrlHost: null,
         refineLimit: null,
+        userKeysDisabledNotice: false,
       },
       'aiStatus',
     );
@@ -227,6 +229,7 @@ describe('ProfileScreen, goal applied in the chat (OCT-225)', () => {
             providerName: 'x',
             baseUrlHost: null,
             refineLimit: null,
+            userKeysDisabledNotice: false,
           });
         if (url === '/api/norm-agent')
           return Response.json({

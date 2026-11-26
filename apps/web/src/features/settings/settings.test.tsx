@@ -358,6 +358,7 @@ describe('Offline (4.8)', () => {
       providerName: 'Google Gemini',
       baseUrlHost: null,
       refineLimit: null,
+      userKeysDisabledNotice: false,
     });
     await wrap(
       screenOf({ ...admin, id: user.id, passwordFromConfig: false }),
@@ -399,6 +400,7 @@ describe('Offline (4.8)', () => {
       providerName: 'Google Gemini',
       baseUrlHost: null,
       refineLimit: null,
+      userKeysDisabledNotice: false,
     });
     await wrap(screenOf(), true);
     expect(
@@ -421,6 +423,7 @@ describe('Offline (4.8)', () => {
       providerName: null,
       baseUrlHost: null,
       refineLimit: null,
+      userKeysDisabledNotice: false,
     });
     await wrap(screenOf(), true);
     expect(
@@ -434,6 +437,7 @@ describe('Offline (4.8)', () => {
       providerName: null,
       baseUrlHost: '192.168.1.20:11434',
       refineLimit: null,
+      userKeysDisabledNotice: false,
     });
     await wrap(screenOf(), true);
     expect(

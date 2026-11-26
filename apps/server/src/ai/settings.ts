@@ -107,3 +107,26 @@ export function refineLimit(db: Database) {
     .get() as { n: number | null } | undefined;
   return row?.n ?? null;
 }
+
+/** Whether users may use their own AI key; ALLOW_USER_AI_KEYS wins over the admin's switch (ADR-0031 §2). */
+export function userKeysAllowed(db: Database, config: Pick<Config, 'ai'>) {
+  return (
+    config.ai.userKeys ??
+    db.prepare('SELECT allow_user_keys FROM instance_ai').pluck().get() !== 0
+  );
+}
+
+/** The admin turned own keys off and deleted this user's key, and the user has not opened AI settings since. */
+export function userKeysDisabledNotice(
+  db: Database,
+  config: Pick<Config, 'ai'>,
+  userId: number,
+) {
+  return (
+    !userKeysAllowed(db, config) &&
+    db
+      .prepare('SELECT ai_notice_seen FROM users WHERE id = ?')
+      .pluck()
+      .get(userId) === 0
+  );
+}

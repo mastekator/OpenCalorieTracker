@@ -59,6 +59,10 @@ export const adminAiStatusSchema = z.object({
   rev: z.number().nullable(),
   /** Refinements per meal per edit session; null without a limit. Set even with AI_* in env. */
   refineLimit: z.number().int().nullable(),
+  /** Users may connect their own AI key (ADR-0031 §2). */
+  allowUserKeys: z.boolean().default(true),
+  /** ALLOW_USER_AI_KEYS in env decides; the switch on the screen is locked. */
+  userKeysLocked: z.boolean().default(false),
   state: aiProviderStateSchema,
   /** Photos in the model test set (expected.json), for the texts before the first run. */
   testPhotoCount: z.number().int(),
@@ -93,6 +97,12 @@ export const refineLimitRequestSchema = z.object({
   limit: z.number().int().min(1).max(50).nullable(),
 });
 export type RefineLimitRequest = z.infer<typeof refineLimitRequestSchema>;
+
+/** PUT /api/admin/ai/user-keys body (ADR-0031 §2); turning off deletes every user's key. */
+export const userKeysRequestSchema = z.object({ allow: z.boolean() });
+export type UserKeysRequest = z.infer<typeof userKeysRequestSchema>;
+/** PUT /api/admin/ai/user-keys response: how many users' keys were deleted. */
+export type UserKeysResponse = { deleted: number };
 
 /** POST /api/admin/ai/check body: settings checked without saving (ADR-0018 §4). */
 export const aiDraftSchema = z.object(aiDraftFields);

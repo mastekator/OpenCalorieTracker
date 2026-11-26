@@ -48,6 +48,7 @@ const envSchema = z.object({
   AI_BASE_URL: z.url().optional(),
   ALLOW_OUTBOUND_REQUESTS: envBool,
   ALLOW_API_TOKENS: envBool,
+  ALLOW_USER_AI_KEYS: envBool,
 });
 
 export interface Config {
@@ -69,6 +70,8 @@ export interface Config {
     model: string | undefined;
     apiKey: string | undefined;
     baseUrl: string | undefined;
+    /** ALLOW_USER_AI_KEYS; when set, it overrides the admin's switch (ADR-0031 §2). */
+    userKeys: boolean | undefined;
   };
   /** ALLOW_OUTBOUND_REQUESTS; when set, it overrides the admin's switch (ADR-0034 §5). */
   outbound: boolean | undefined;
@@ -103,6 +106,7 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
       model: e.AI_MODEL,
       apiKey: e.AI_API_KEY,
       baseUrl: e.AI_BASE_URL,
+      userKeys: e.ALLOW_USER_AI_KEYS,
     },
     outbound: e.ALLOW_OUTBOUND_REQUESTS,
     tokens: e.ALLOW_API_TOKENS,
