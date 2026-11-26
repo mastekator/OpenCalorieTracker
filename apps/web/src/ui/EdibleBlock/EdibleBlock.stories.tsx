@@ -75,3 +75,14 @@ export const AiOddShareDark: Story = {
   ...AiOddShare,
   globals: { theme: 'dark' },
 };
+/** OCT-479: under 1 g edible, the reason «Done» does nothing. */
+export const UnderOneGram: Story = {
+  args: {
+    edible: { grossG: 5, pct: 10, source: 'ref', key: 'k', chosen: true },
+    name: 'Pistachio',
+  },
+};
+export const UnderOneGramDark: Story = {
+  ...UnderOneGram,
+  globals: { theme: 'dark' },
+};
