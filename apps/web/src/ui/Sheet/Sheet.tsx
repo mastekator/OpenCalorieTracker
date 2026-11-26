@@ -14,6 +14,8 @@ type Props = {
   footer?: ReactNode;
   /** Full screen on the phone, 88 % high and wider on desktop (chat, D.2). */
   full?: boolean;
+  /** With `full`: on desktop as high as the content, up to the full height. */
+  fit?: boolean;
   /** An icon button left of the close button, e.g. «More» in the chat (9.13). */
   action?: { label: string; icon: LucideIcon; onClick: () => void };
   /** The close button's label when closing means more than «Close». */
@@ -30,6 +32,7 @@ export function Sheet({
   children,
   footer,
   full = false,
+  fit = false,
   action,
   closeLabel,
 }: Props) {
@@ -55,7 +58,13 @@ export function Sheet({
   return (
     <dialog
       ref={ref}
-      className={full ? 'sheet sheet--full' : 'sheet'}
+      className={
+        full
+          ? fit
+            ? 'sheet sheet--full sheet--fit'
+            : 'sheet sheet--full'
+          : 'sheet'
+      }
       aria-labelledby={titleId}
       onKeyDown={onKeyDown}
       onCancel={onCancel}
