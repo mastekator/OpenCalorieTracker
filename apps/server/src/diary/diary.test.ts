@@ -132,6 +132,55 @@ describe('diary', () => {
     expect(sum.perRemainingDay).toBe((14_000 - day.total.kcal) / 2);
   });
 
+  it('adds live drink entries to day and period totals, not to the meal count, module off too', async () => {
+    const t = await setup();
+    const other = await t.addUser('other@example.com');
+    await t.log(t.cookie, '2026-11-10T06:00:00Z', '2026-11-10', 100);
+    const drink = async (cookie: string, date: string, ml: number) => {
+      const clientId = randomUUID();
+      const res = await t.app.request('/api/drink-entries', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', cookie },
+        body: JSON.stringify({
+          clientId,
+          date,
+          takenAt: '2026-11-10T08:00:00.000Z',
+          ml,
+          drinkKey: 'milk',
+        }),
+      });
+      expect(res.status).toBe(201);
+      return clientId;
+    };
+    // Milk: 52 kcal, 2.8 / 2.5 / 4.7 g per 100 ml; the water module stays off (default).
+    await drink(t.cookie, '2026-11-10', 200);
+    const gone = await drink(t.cookie, '2026-11-10', 500);
+    const del = await t.app.request(`/api/drink-entries/${gone}`, {
+      method: 'DELETE',
+      headers: { 'content-type': 'application/json', cookie: t.cookie },
+    });
+    expect(del.status).toBe(204);
+    await drink(t.cookie, '2026-11-11', 100);
+    await drink(other, '2026-11-10', 1000);
+
+    const day = (await (
+      await t.get(t.cookie, '/days/2026-11-10')
+    ).json()) as DayResponse;
+    expect(day.meals).toHaveLength(1);
+    expect(day.total.kcal).toBeCloseTo(100 + 104);
+    expect(day.total.proteinG).toBeCloseTo(0.5 + 5.6);
+
+    const sum = (await (
+      await t.get(
+        t.cookie,
+        '/summary?from=2026-11-09&to=2026-11-15&today=2026-11-14',
+      )
+    ).json()) as SummaryResponse;
+    expect(sum.days[1]).toEqual({ date: '2026-11-10', ...day.total, meals: 1 });
+    expect(sum.days[2]).toMatchObject({ kcal: 52, meals: 0 });
+    expect(sum.days[3]).toMatchObject({ kcal: 0, meals: 0 });
+  });
+
   it('accepts only a whole week or month with a valid today', async () => {
     const t = await setup();
     const status = async (q: string) =>

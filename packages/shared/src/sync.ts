@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { Drink, DrinkEntry, WaterGoal } from './drinks/drinks.js';
 import type { IllustrationId } from './illustrations/dictionary.js';
 import type { Meal } from './meals.js';
 import type { ProfileResponse } from './norm/schemas.js';
@@ -15,7 +16,7 @@ export const syncQuerySchema = z.object({
 
 /**
  * Changes with `rev > since` (ADR-0011 §3). Ask again with `since = rev` while `more` is true.
- * `settings`, `illustrationChoices`, `profile`, `weighings` and recipes are omitted when unchanged.
+ * `settings`, `illustrationChoices`, `profile`, `weighings`, recipes and drinks are omitted when unchanged.
  */
 export interface SyncResponse {
   rev: number;
@@ -36,4 +37,10 @@ export interface SyncResponse {
   /** Created or edited recipes, by rev (ADR-0023 §4). */
   recipes?: Recipe[];
   deletedRecipeIds?: number[];
+  /** The user's own drinks, `deleted: true` included (ADR-0028 §3). */
+  drinks?: Drink[];
+  /** Drink entries, `deleted: true` included. */
+  drinkEntries?: DrinkEntry[];
+  /** Water goal history rows. */
+  waterGoals?: WaterGoal[];
 }

@@ -19,7 +19,7 @@ import { validate } from '../http/validate.js';
 import { serverToday } from '../profile/routes.js';
 import { bumpRev } from '../sync/rev.js';
 
-interface DrinkRow {
+export interface DrinkRow {
   id: number;
   name: string;
   illustration: IllustrationId;
@@ -31,7 +31,7 @@ interface DrinkRow {
   deleted: 0 | 1;
 }
 
-interface EntryRow {
+export interface EntryRow {
   client_id: string;
   date: string;
   taken_at: number;
@@ -47,7 +47,7 @@ interface EntryRow {
   deleted: 0 | 1;
 }
 
-const toDrink = (r: DrinkRow): Drink => ({
+export const toDrink = (r: DrinkRow): Drink => ({
   id: r.id,
   name: r.name,
   illustration: r.illustration,
@@ -74,6 +74,21 @@ export const toDrinkEntry = (r: EntryRow): DrinkEntry => ({
   carbsG: r.carbs_g,
   deleted: r.deleted === 1,
 });
+
+/** Live drink entries of `from…to` as `DrinkEntry`, for the diary totals (ADR-0028 §4). */
+export const readDrinkEntries = (
+  db: AppDeps['db'],
+  userId: number,
+  from: string,
+  to: string,
+) =>
+  (
+    db
+      .prepare(
+        'SELECT * FROM drink_entries WHERE user_id = ? AND date BETWEEN ? AND ? AND deleted = 0',
+      )
+      .all(userId, from, to) as EntryRow[]
+  ).map(toDrinkEntry);
 
 /** Today + 1: the device may already be in tomorrow (as weighings, ADR-0028 §3). */
 const checkDate = (date: string) => {

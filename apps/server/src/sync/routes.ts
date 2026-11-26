@@ -9,6 +9,12 @@ import type { AppDeps } from '../app.js';
 import { readSettings } from '../account/routes.js';
 import { requireUser, type AuthEnv } from '../auth/session.js';
 import { validate } from '../http/validate.js';
+import {
+  toDrink,
+  toDrinkEntry,
+  type DrinkRow,
+  type EntryRow,
+} from '../drinks/routes.js';
 import { readMealsByRev } from '../meals/read.js';
 import { readProfile } from '../profile/norm.js';
 import { readRecipesByRev } from '../recipes/read.js';
@@ -26,7 +32,15 @@ type Change =
   | { rev: number; kind: 'profile' }
   | { rev: number; kind: 'weighing'; date: string; weightKg: number | null }
   | { rev: number; kind: 'recipe' }
-  | { rev: number; kind: 'deletedRecipe'; recipeId: number };
+  | { rev: number; kind: 'deletedRecipe'; recipeId: number }
+  | ({ kind: 'drink' } & DrinkRow & { rev: number })
+  | ({ kind: 'drink_entry' } & EntryRow & { rev: number })
+  | {
+      rev: number;
+      kind: 'water_goal';
+      fromDate: string;
+      goalMl: number | null;
+    };
 
 /**
  * Everything of the user changed after `since`, by rev (ADR-0011 §3). Each change has its own
@@ -57,6 +71,17 @@ export function syncRoutes({ db }: AppDeps) {
     `SELECT rev, 'deletedRecipe' AS kind, recipe_id AS recipeId FROM recipe_tombstones
      WHERE user_id = ? AND rev > ? ORDER BY rev LIMIT ${limit}`,
   );
+  const drinks = db.prepare(
+    `SELECT *, 'drink' AS kind FROM drinks WHERE user_id = ? AND rev > ? ORDER BY rev LIMIT ${limit}`,
+  );
+  const drinkEntries = db.prepare(
+    `SELECT *, 'drink_entry' AS kind FROM drink_entries
+     WHERE user_id = ? AND rev > ? ORDER BY rev LIMIT ${limit}`,
+  );
+  const waterGoals = db.prepare(
+    `SELECT rev, 'water_goal' AS kind, from_date AS fromDate, goal_ml AS goalMl FROM water_goals
+     WHERE user_id = ? AND rev > ? ORDER BY rev LIMIT ${limit}`,
+  );
   const profile = db.prepare(
     `SELECT rev, 'profile' AS kind FROM profiles WHERE user_id = ? AND rev > ?`,
   );
@@ -83,6 +108,9 @@ export function syncRoutes({ db }: AppDeps) {
           ...(weighings.all(userId, since) as Change[]),
           ...(recipes.all(userId, since) as Change[]),
           ...(recipeTombstones.all(userId, since) as Change[]),
+          ...(drinks.all(userId, since) as Change[]),
+          ...(drinkEntries.all(userId, since) as Change[]),
+          ...(waterGoals.all(userId, since) as Change[]),
           ...(profile.all(userId, since) as Change[]),
           // since = 0 is the first load: never-changed settings (settings_rev 0) come too.
           ...(settingsRev > since || since === 0
@@ -116,6 +144,14 @@ export function syncRoutes({ db }: AppDeps) {
             (out.weighings ??= []).push({ date: x.date, weightKg: x.weightKg });
           else if (x.kind === 'deletedRecipe')
             (out.deletedRecipeIds ??= []).push(x.recipeId);
+          else if (x.kind === 'drink') (out.drinks ??= []).push(toDrink(x));
+          else if (x.kind === 'drink_entry')
+            (out.drinkEntries ??= []).push(toDrinkEntry(x));
+          else if (x.kind === 'water_goal')
+            (out.waterGoals ??= []).push({
+              fromDate: x.fromDate,
+              goalMl: x.goalMl,
+            });
         return out;
       })();
       return c.json(res);
