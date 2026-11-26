@@ -2165,6 +2165,16 @@ export const en = {
       body: 'Showing the preview for now. Check your connection.',
     },
   },
+  drinks: {
+    water: 'Water',
+    tea: 'Tea',
+    coffee: 'Coffee',
+    coffee_milk: 'Coffee with milk',
+    juice: 'Juice',
+    milk: 'Milk',
+    soda: 'Soda',
+    kefir: 'Kefir',
+  },
   day: { today: 'Today', yesterday: 'Yesterday' },
   week: {
     mode: { label: 'Period', week: 'Week', month: 'Month' },

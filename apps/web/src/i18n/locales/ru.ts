@@ -2306,6 +2306,16 @@ const ru: DeepPartial<typeof en> = {
       body: 'Пока показываем превью. Проверьте сеть.',
     },
   },
+  drinks: {
+    water: 'Вода',
+    tea: 'Чай',
+    coffee: 'Кофе',
+    coffee_milk: 'Кофе с молоком',
+    juice: 'Сок',
+    milk: 'Молоко',
+    soda: 'Газировка',
+    kefir: 'Кефир',
+  },
   day: { today: 'Сегодня', yesterday: 'Вчера' },
   week: {
     mode: { label: 'Период', week: 'Неделя', month: 'Месяц' },
