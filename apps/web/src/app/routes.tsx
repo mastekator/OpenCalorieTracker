@@ -10,6 +10,7 @@ import { useT } from '../i18n';
 import { NavBar } from '../ui/NavBar/NavBar';
 import { PasskeysScreen } from '../features/settings/PasskeysScreen';
 import { AiProviderScreen } from '../features/settings/AiProviderScreen';
+import { AI_SETTINGS_PATH, AiScreen } from '../features/settings/AiScreen';
 import { PasswordScreen } from '../features/settings/PasswordScreen';
 import { SettingsScreen } from '../features/settings/SettingsScreen';
 import {
@@ -217,6 +218,11 @@ export function AppScreens() {
           back={{ href: '/profile', label: t('nav.profile'), mobileOnly: true }}
         >
           <SettingsScreen user={user} onLogout={logout} />
+        </Screen>
+      </Route>
+      <Route path={AI_SETTINGS_PATH}>
+        <Screen wide title={t('settings.ai')} back={toSettings}>
+          <AiScreen user={user} />
         </Screen>
       </Route>
       <Route path="/settings/passkeys">
