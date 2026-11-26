@@ -13,6 +13,7 @@ type Props = {
   unsaved?: boolean;
   toast?: boolean;
   full?: boolean;
+  fit?: boolean;
   action?: boolean;
 };
 
@@ -23,6 +24,7 @@ function Demo({
   unsaved = false,
   toast = false,
   full = false,
+  fit = false,
   action = false,
 }: Props) {
   const { t } = useT();
@@ -38,6 +40,7 @@ function Demo({
       <Sheet
         open={open}
         full={full}
+        fit={fit}
         action={
           action
             ? { label: t('chat.more'), icon: Ellipsis, onClick: () => {} }
@@ -112,6 +115,15 @@ export const DesktopLongDark: Story = {
 export const Full: Story = { args: { full: true } };
 export const FullDesktopDark: Story = {
   args: { full: true, long: true },
+  globals: { viewport: { value: 'desktop' }, theme: 'dark' },
+};
+/** `fit`: on desktop as high as the content, capped at the full height. */
+export const FitDesktop: Story = {
+  args: { full: true, fit: true },
+  globals: { viewport: { value: 'desktop' } },
+};
+export const FitDesktopLongDark: Story = {
+  args: { full: true, fit: true, long: true },
   globals: { viewport: { value: 'desktop' }, theme: 'dark' },
 };
 /** «More» left of × (chat menu, OCT-22 9.13). */

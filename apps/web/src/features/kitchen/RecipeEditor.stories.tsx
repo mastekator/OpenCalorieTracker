@@ -86,6 +86,26 @@ export const AddIngredient: Story = {
     await within(canvasElement.ownerDocument.body).findByRole('dialog');
   },
 };
+/** 3.3: a tap on an ingredient row opens the «Ingredient» sheet. */
+export const IngredientSheet: Story = {
+  args: { recipe: SALAD },
+  play: async ({ canvas, canvasElement }) => {
+    fireEvent.click(await canvas.findByRole('button', { name: /^Tomatoes/ }));
+    await within(canvasElement.ownerDocument.body).findByRole('dialog');
+  },
+};
+export const IngredientSheetDark: Story = {
+  ...IngredientSheet,
+  globals: dark,
+};
+export const IngredientSheetRussian: Story = {
+  args: { recipe: SALAD },
+  globals: { locale: 'ru' },
+  play: async ({ canvas, canvasElement }) => {
+    fireEvent.click(await canvas.findByRole('button', { name: /^Tomatoes/ }));
+    await within(canvasElement.ownerDocument.body).findByRole('dialog');
+  },
+};
 /** 2.4: steps with a photo, «+ Step»; the handle drags, a tap on it opens «Move up / Move down / Delete». */
 export const Steps: Story = {
   args: { recipe: PILAF },
