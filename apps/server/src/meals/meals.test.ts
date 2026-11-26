@@ -191,6 +191,10 @@ describe('meals', () => {
       ['ai', 'google', 'gemini-x', 0.82],
       ['manual', null, null, null],
     ]);
+    // Support only, not in the API (ADR-0031 §2).
+    const aiSource = (t: typeof withAi, id: number) =>
+      t.db.prepare('SELECT ai_source FROM meals WHERE id = ?').pluck().get(id);
+    expect(aiSource(withAi, meal.id)).toBe('server');
 
     // An edit after the server switched models keeps the model that recognized the photo.
     withAi.db
@@ -198,6 +202,7 @@ describe('meals', () => {
         "UPDATE meal_items SET ai_provider = 'openai', ai_model = 'gpt-old'",
       )
       .run();
+    withAi.db.prepare("UPDATE meals SET ai_source = 'own_key'").run();
     const edited = (await (
       await withAi.call(withAi.cookie, 'PATCH', `/meals/${meal.id}`, {
         items: input().items,
@@ -207,6 +212,7 @@ describe('meals', () => {
       aiProvider: 'openai',
       aiModel: 'gpt-old',
     });
+    expect(aiSource(withAi, meal.id)).toBe('own_key');
 
     // A recalculation from the photo is the current model's (AC-10.10).
     const recalced = (await (
@@ -220,6 +226,13 @@ describe('meals', () => {
       aiProvider: 'google',
       aiModel: 'gemini-x',
     });
+    expect(aiSource(withAi, meal.id)).toBe('server');
+
+    // Without AI items nothing came from AI.
+    await withAi.call(withAi.cookie, 'PATCH', `/meals/${meal.id}`, {
+      items: [input().items[1]],
+    });
+    expect(aiSource(withAi, meal.id)).toBeNull();
 
     const manual = await setup();
     const m2 = (await (
@@ -230,6 +243,7 @@ describe('meals', () => {
       aiProvider: null,
       aiModel: null,
     });
+    expect(aiSource(manual, m2.id)).toBeNull();
   });
 
   it('stores the dish unit: g by default, ml when sent (ADR-0038 §2)', async () => {

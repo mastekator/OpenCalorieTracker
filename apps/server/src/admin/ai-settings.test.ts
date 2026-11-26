@@ -54,6 +54,7 @@ const setup = async (
     check: req('POST', '/check'),
     models: req('POST', '/models'),
     limit: req('PUT', '/refine-limit'),
+    userKeys: req('PUT', '/user-keys'),
     get,
     row,
   };
@@ -359,6 +360,88 @@ describe('PUT /api/admin/ai/refine-limit', () => {
     const user = await t.signIn('b@example.com');
     expect((await t.limit({ limit: 3 }, user)).status).toBe(403);
     expect(await t.get()).toMatchObject({ refineLimit: null });
+  });
+});
+
+describe('PUT /api/admin/ai/user-keys', () => {
+  const ownKey = (t: Awaited<ReturnType<typeof setup>>, email: string) =>
+    t.db
+      .prepare(
+        "INSERT INTO user_ai_settings (user_id, provider, model, updated_at) SELECT id, 'openai', 'gpt-x', 0 FROM users WHERE email = ?",
+      )
+      .run(email);
+  const userStatus = async (
+    t: Awaited<ReturnType<typeof setup>>,
+    cookie: string,
+  ) =>
+    (await (
+      await t.app.request('/api/ai/status', { headers: { cookie } })
+    ).json()) as { userKeysDisabledNotice: boolean };
+
+  it('turning off deletes every own key and tells their owners (ADR-0031 §2)', async () => {
+    const t = await setup();
+    const user = await t.signIn('b@example.com');
+    expect(await t.get()).toMatchObject({
+      allowUserKeys: true,
+      userKeysLocked: false,
+    });
+    ownKey(t, 'admin@example.com');
+    ownKey(t, 'b@example.com');
+
+    const res = await t.userKeys({ allow: false });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ deleted: 2 });
+    expect(
+      t.db.prepare('SELECT COUNT(*) FROM user_ai_settings').pluck().get(),
+    ).toBe(0);
+    expect(await t.get()).toMatchObject({ allowUserKeys: false });
+    expect(await userStatus(t, user)).toMatchObject({
+      userKeysDisabledNotice: true,
+    });
+
+    // Back on: nothing to delete, no notice about keys being off.
+    expect(await (await t.userKeys({ allow: true })).json()).toEqual({
+      deleted: 0,
+    });
+    expect(await t.get()).toMatchObject({ allowUserKeys: true });
+    expect(await userStatus(t, user)).toMatchObject({
+      userKeysDisabledNotice: false,
+    });
+  });
+
+  it('shows no notice to a user who had no own key', async () => {
+    const t = await setup();
+    const user = await t.signIn('b@example.com');
+    ownKey(t, 'admin@example.com');
+    await t.userKeys({ allow: false });
+    expect(await userStatus(t, user)).toMatchObject({
+      userKeysDisabledNotice: false,
+    });
+  });
+
+  it('is 409 while ALLOW_USER_AI_KEYS is set, which wins over the table', async () => {
+    const t = await setup({ ALLOW_USER_AI_KEYS: 'false' });
+    ownKey(t, 'b@example.com');
+    const res = await t.userKeys({ allow: true });
+    expect(res.status).toBe(409);
+    expect(await res.json()).toMatchObject({
+      error: { code: 'user_ai_keys_env_managed' },
+    });
+    expect(await t.get()).toMatchObject({
+      allowUserKeys: false,
+      userKeysLocked: true,
+    });
+    expect(
+      t.db.prepare('SELECT COUNT(*) FROM user_ai_settings').pluck().get(),
+    ).toBe(1);
+  });
+
+  it('is 403 for a non-admin and 400 without allow', async () => {
+    const t = await setup();
+    const user = await t.signIn('b@example.com');
+    expect((await t.userKeys({ allow: false }, user)).status).toBe(403);
+    expect((await t.userKeys({})).status).toBe(400);
+    expect(await t.get()).toMatchObject({ allowUserKeys: true });
   });
 });
 

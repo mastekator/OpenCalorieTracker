@@ -195,6 +195,8 @@ export const aiStatusSchema = z.object({
   baseUrlHost: z.string().nullable(),
   /** Refinements per meal per edit session; null without a limit (ADR-0020 §6). */
   refineLimit: z.number().int().nullable(),
+  /** The admin deleted this user's own key; true until the AI settings are opened (ADR-0031 §2). Default: a status cached before it. */
+  userKeysDisabledNotice: z.boolean().default(false),
 });
 export type AiStatus = z.infer<typeof aiStatusSchema>;
 export type RecognitionStatus = AiStatus['recognition'];

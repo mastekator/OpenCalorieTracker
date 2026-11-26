@@ -68,15 +68,21 @@ export function mealStore({
           .get(Number(id), userId) as MealRow | undefined)
       : undefined;
 
+  const currentAi = (userId: number) => {
+    const r = ai.forUser({ id: userId });
+    return r && { ...r.settings, source: r.source };
+  };
+
   const insertItems = (
     userId: number,
     mealId: number,
     items: MealItemInput[],
-    // Provider and model come from the server, never from the client (AC-4.1).
+    // Provider, model and AI source come from the server, never from the client (AC-4.1).
     by: {
       provider: string | null;
       model: string | null;
-    } | null = ai.forUser({ id: userId })?.settings ?? null,
+      source: string | null;
+    } | null = currentAi(userId),
   ) => {
     const insert = db.prepare(
       `INSERT INTO meal_items (meal_id, position, name, name_key, grams, unit, kcal, protein_g,
@@ -114,6 +120,10 @@ export function mealStore({
       );
       remember(userId, i, now);
     });
+    db.prepare('UPDATE meals SET ai_source = ? WHERE id = ?').run(
+      items.some((i) => i.source === 'ai') ? (by?.source ?? null) : null,
+      mealId,
+    );
   };
 
   /** Moves `last_logged_at` of the meal's recipes up to `eatenAt`, never back (ADR-0023 §5). */
@@ -335,11 +345,16 @@ export function mealRoutes(deps: AppDeps) {
                 ? undefined
                 : (db
                     .prepare(
-                      `SELECT ai_provider AS provider, ai_model AS model FROM meal_items
-                 WHERE meal_id = ? AND source = 'ai' LIMIT 1`,
+                      `SELECT i.ai_provider AS provider, i.ai_model AS model, m.ai_source AS source
+                 FROM meal_items i JOIN meals m ON m.id = i.meal_id
+                 WHERE i.meal_id = ? AND i.source = 'ai' LIMIT 1`,
                     )
                     .get(meal.id) as
-                    | { provider: string | null; model: string | null }
+                    | {
+                        provider: string | null;
+                        model: string | null;
+                        source: string | null;
+                      }
                     | undefined);
             db.prepare('DELETE FROM meal_items WHERE meal_id = ?').run(meal.id);
             insertItems(userId, meal.id, patch.items, recognizedBy);

@@ -2586,6 +2586,8 @@ export const en = {
       'Outbound requests are set in the server environment (ALLOW_OUTBOUND_REQUESTS); change them there',
     tokens_env_managed:
       'API tokens are set in the server environment (ALLOW_API_TOKENS); change them there',
+    user_ai_keys_env_managed:
+      'Own API keys are set in the server environment (ALLOW_USER_AI_KEYS); change them there',
     integrations_disabled: 'The administrator turned off API tokens',
     invalid_token: 'The token is invalid, expired or revoked',
     rate_limited: 'Too many requests. Try again in a minute',

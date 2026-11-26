@@ -36,7 +36,11 @@ import { applyIngredientEdible, recognizeIngredients } from './ingredients.js';
 import type { AiModel } from './model.js';
 import { readLabel, recognizeMeal } from './recognize.js';
 import { refineMeal, type Refined } from './refine.js';
-import { baseUrlHost, refineLimit } from './settings.js';
+import {
+  baseUrlHost,
+  refineLimit,
+  userKeysDisabledNotice,
+} from './settings.js';
 import { interviewStatus, recognitionStatus } from './status.js';
 
 export const RESULT_TTL_MS = 10 * 60_000;
@@ -152,6 +156,11 @@ export function aiRoutes({ config, db, ai, photoBarcodes, fetch }: RouteDeps) {
             ? baseUrlHost(settings)
             : null,
         refineLimit: refineLimit(db),
+        userKeysDisabledNotice: userKeysDisabledNotice(
+          db,
+          config,
+          c.var.user.id,
+        ),
       } satisfies AiStatus);
     })
     .post('/photos/:id/recognize', requireUser, async (c) => {

@@ -64,6 +64,7 @@ const geminiStatus: AiStatus = {
   providerName: 'Google Gemini',
   baseUrlHost: null,
   refineLimit: null,
+  userKeysDisabledNotice: false,
 };
 
 /** Answers GET /api/account/passkeys with `list`, /api/admin/ai with a quota state, /api/ai/status with Gemini; anything else succeeds empty. */
@@ -86,6 +87,8 @@ const serve = (list: Passkey[]) => () => {
               keyUnreadable: false,
               savedInactive: false,
               rev: null,
+              allowUserKeys: true,
+              userKeysLocked: false,
               refineLimit: 3,
               testPhotoCount: 9,
               state: 'quota_exceeded',

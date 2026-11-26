@@ -16,7 +16,7 @@ describe('migrate', () => {
   it('brings an empty database to the latest version', () => {
     const db = openDb(':memory:');
     migrate(db);
-    expect(db.pragma('user_version', { simple: true })).toBe(32);
+    expect(db.pragma('user_version', { simple: true })).toBe(33);
     expect(tables(db)).toEqual([
       'agent_drafts',
       'agent_messages',
@@ -29,6 +29,7 @@ describe('migrate', () => {
       'food_products',
       'illustration_choices',
       'imports',
+      'instance_ai',
       'integration_settings',
       'invites',
       'login_guards',
@@ -46,6 +47,7 @@ describe('migrate', () => {
       'sessions',
       'setup_code',
       'sqlite_sequence',
+      'user_ai_settings',
       'user_products',
       'users',
       'webhook_deliveries',
@@ -90,7 +92,7 @@ describe('migrate', () => {
       .pluck()
       .all();
     migrate(db);
-    expect(db.pragma('user_version', { simple: true })).toBe(32);
+    expect(db.pragma('user_version', { simple: true })).toBe(33);
     expect(
       db.prepare('SELECT sql FROM sqlite_master ORDER BY name').pluck().all(),
     ).toEqual(before);
@@ -108,11 +110,31 @@ describe('migrate', () => {
     db.prepare(
       "INSERT INTO edible_prefs (user_id, key, pct, updated_at) VALUES (1, 'banana', 65, 0)",
     ).run();
+    db.prepare(
+      "INSERT INTO user_ai_settings (user_id, provider, model, updated_at) VALUES (1, 'google', 'm', 0)",
+    ).run();
     db.prepare('DELETE FROM users WHERE id = 1').run();
     expect(db.prepare('SELECT COUNT(*) FROM passwords').pluck().get()).toBe(0);
     expect(db.prepare('SELECT COUNT(*) FROM edible_prefs').pluck().get()).toBe(
       0,
     );
+    expect(
+      db.prepare('SELECT COUNT(*) FROM user_ai_settings').pluck().get(),
+    ).toBe(0);
+  });
+
+  it('creates the one instance_ai row with a UUID host id (0033)', () => {
+    const db = openDb(':memory:');
+    migrate(db);
+    expect(db.prepare('SELECT * FROM instance_ai').all()).toEqual([
+      {
+        id: 1,
+        allow_user_keys: 1,
+        host_id: expect.stringMatching(
+          /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+        ),
+      },
+    ]);
   });
 
   it('keeps edible_prefs.pct within 10..100', () => {
@@ -197,7 +219,7 @@ describe('migrate', () => {
     const before = db.prepare('SELECT * FROM meal_items ORDER BY id').all();
 
     migrate(db);
-    expect(db.pragma('user_version', { simple: true })).toBe(32);
+    expect(db.pragma('user_version', { simple: true })).toBe(33);
     // Old dishes are grams (ADR-0038 §1).
     expect(db.prepare('SELECT * FROM meal_items ORDER BY id').all()).toEqual(
       before.map((r) => ({

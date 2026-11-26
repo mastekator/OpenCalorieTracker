@@ -2759,6 +2759,8 @@ const ru: DeepPartial<typeof en> = {
       'Запросы наружу заданы в окружении сервера (ALLOW_OUTBOUND_REQUESTS) — менять там',
     tokens_env_managed:
       'Токены доступа заданы в окружении сервера (ALLOW_API_TOKENS) — менять там',
+    user_ai_keys_env_managed:
+      'Свои API-ключи заданы в окружении сервера (ALLOW_USER_AI_KEYS) — менять там',
     integrations_disabled: 'Администратор выключил токены доступа',
     invalid_token: 'Токен неверный, истёк или отозван',
     rate_limited: 'Слишком много запросов. Повторите через минуту',

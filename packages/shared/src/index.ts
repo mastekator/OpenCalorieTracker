@@ -39,6 +39,7 @@ export type ErrorCode =
   | 'ai_env_managed'
   | 'outbound_env_managed'
   | 'tokens_env_managed'
+  | 'user_ai_keys_env_managed'
   | 'integrations_disabled'
   | 'invalid_token'
   | 'insufficient_scope'

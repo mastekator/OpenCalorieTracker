@@ -25,6 +25,8 @@ const status: AdminAiStatus = {
   rev: 1,
   state: 'ok',
   checkedAt: 0,
+  allowUserKeys: true,
+  userKeysLocked: false,
   refineLimit: null,
   testPhotoCount: 17,
 };
