@@ -637,7 +637,7 @@ describe('POST /api/imports/:id/commit', () => {
     expect(
       t.db
         .prepare(
-          "SELECT local_date, eaten_at, tz_offset_min, meal_type FROM meals WHERE import_id = ? AND local_date = '2024-04-03'",
+          "SELECT local_date, eaten_at, tz_offset_min, meal_type, logged_at, recognized FROM meals WHERE import_id = ? AND local_date = '2024-04-03'",
         )
         .get(id),
     ).toEqual({
@@ -646,6 +646,9 @@ describe('POST /api/imports/:id/commit', () => {
       eaten_at: Date.parse('2024-04-03T09:00:00.000Z'),
       tz_offset_min: 180,
       meal_type: 'breakfast',
+      // Imported history counts as logged when eaten, not as a backfill (ADR-0032 §2).
+      logged_at: Date.parse('2024-04-03T09:00:00.000Z'),
+      recognized: 0,
     });
   });
 

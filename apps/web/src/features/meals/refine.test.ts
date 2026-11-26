@@ -185,6 +185,24 @@ describe('applyRefine', () => {
   });
 });
 
+describe('aiGrams (ADR-0032 §2)', () => {
+  it('keeps the recognized weight through an edit; «Refine» and «Recognize again» bring a new one', () => {
+    const [row] = toRows([dish('Rice', 180.04, 230)]);
+    const edited: Row = { ...row!, grams: 200, shown: 200, fixed: ['grams'] };
+    expect(itemOf(edited)).toMatchObject({ grams: 200, aiGrams: 180 });
+    expect(itemOf({ ...edited, source: 'manual' }).aiGrams).toBeUndefined();
+    expect(
+      toRows([{ ...dish('Yogurt', 125, 80), source: 'barcode' }]).map(
+        itemOf,
+      )[0]!.aiGrams,
+    ).toBeUndefined();
+    const refined = applyRefine([edited], [ai('Rice', 150, 190, 'd1')]);
+    expect(itemOf(refined.rows[0]!).aiGrams).toBe(150);
+    const again = applyAgain([edited], [ai('Rice', 160, 200)]);
+    expect(itemOf(again.rows[0]!).aiGrams).toBe(160);
+  });
+});
+
 describe('applyAgain', () => {
   it('replaces every AI dish, edited ones too, and keeps the user’s dishes', () => {
     const edited: Row = {

@@ -102,6 +102,8 @@ function withChange(
       illustrationManual: illustration !== undefined,
     }),
   );
+  // Sticky, as on the server (ADR-0032 §2).
+  if (items.some((i) => i.source === 'ai')) next.recognized = true;
   for (const k of ['kcal', 'proteinG', 'fatG', 'carbsG'] as const)
     next[k] = next.items.reduce((s, i) => s + i[k], 0);
   return next;
@@ -686,6 +688,7 @@ const inputItem = (i: MealItem): MealItemInput => ({
   source: i.source,
   ...(i.source === 'ai' &&
     i.confidence !== null && { confidence: i.confidence }),
+  ...(i.source === 'ai' && i.aiGrams != null && { aiGrams: i.aiGrams }),
   ...(i.source === 'recipe' && i.recipeId && { recipeId: i.recipeId }),
   ...(i.barcode && { barcode: i.barcode }),
   ...(i.illustrationManual && { illustration: i.illustration }),
@@ -774,7 +777,13 @@ export const restoreMine = (db: Db, clientId: string, shown: Conflict) =>
     await outbox.add({
       kind: 'createMeal',
       clientId,
-      body: { clientId, ...contentOf(meal), recalcOffer: meal.recalcOffer },
+      body: {
+        clientId,
+        ...contentOf(meal),
+        recalcOffer: meal.recalcOffer,
+        // Still logged when it was first saved (ADR-0032 §2).
+        ...(meal.loggedAt && { loggedAt: meal.loggedAt }),
+      },
     });
     await tx
       .objectStore('meals')

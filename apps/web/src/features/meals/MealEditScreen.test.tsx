@@ -938,9 +938,12 @@ describe('MealEditScreen: same as last time (4.3, OCT-61)', () => {
   it('without a tap the AI estimate is saved', async () => {
     const { onSave, save } = await withHistory();
     await act(async () => fireEvent.click(save()));
+    // The «Save» moment goes with the meal (ADR-0032 §2).
+    expect(Date.parse(onSave.mock.calls[0]![0].loggedAt!)).not.toBeNaN();
     expect(onSave.mock.calls[0]![0].items[0]).toEqual({
       ...buckwheat,
       source: 'ai',
+      aiGrams: buckwheat.grams,
     });
   });
 
@@ -1005,6 +1008,7 @@ describe('MealEditScreen: same as last time (4.3, OCT-61)', () => {
     expect(onSave.mock.calls[0]![0].items[0]).toEqual({
       ...buckwheat,
       source: 'ai',
+      aiGrams: buckwheat.grams,
     });
   });
 
@@ -1108,6 +1112,7 @@ describe('MealEditScreen: recipes (OCT-160 §5, ADR-0023 §5–6)', () => {
     expect(again.mock.calls[0]![0].items[0]).toEqual({
       ...buckwheat,
       source: 'ai',
+      aiGrams: buckwheat.grams,
     });
   });
 

@@ -92,8 +92,8 @@ export async function commitMeals(
   );
   const insertMeal = db.prepare(
     `INSERT INTO meals (user_id, client_id, eaten_at, tz_offset_min, local_date, meal_type,
-       rev, edit_rev, import_id, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       rev, edit_rev, import_id, logged_at, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT (user_id, client_id) DO NOTHING RETURNING id`,
   );
   const insertItem = db.prepare(
@@ -110,21 +110,21 @@ export async function commitMeals(
     for (const [n, m] of batch) {
       const clientId = `import:${importId}:${n}`;
       const rev = bumpRev(db, userId);
-      const id = insertMeal
-        .pluck()
-        .get(
-          userId,
-          clientId,
-          m.eatenAt,
-          m.tzOffsetMin,
-          m.localDate,
-          m.mealType,
-          rev,
-          rev,
-          importId,
-          now,
-          now,
-        ) as number | undefined;
+      const id = insertMeal.pluck().get(
+        userId,
+        clientId,
+        m.eatenAt,
+        m.tzOffsetMin,
+        m.localDate,
+        m.mealType,
+        rev,
+        rev,
+        importId,
+        // Imported history was logged in its own time, not backfilled now (ADR-0032 §2).
+        Math.min(m.eatenAt, now),
+        now,
+        now,
+      ) as number | undefined;
       if (id === undefined) continue;
       m.dishes.forEach((d, i) =>
         insertItem.run(

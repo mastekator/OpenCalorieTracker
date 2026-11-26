@@ -83,6 +83,8 @@ export const mealItemInputSchema = z
     carbsG: macro,
     source: dishSourceSchema,
     confidence: z.number().min(0).max(1).optional(),
+    /** Grams as recognition returned them (ADR-0032 §2); AI dishes only. */
+    aiGrams: grams.optional(),
     /** The recipe this portion was logged from (ADR-0023 §5); the dish stays a snapshot. */
     recipeId: z.number().int().positive().optional(),
     /** The product's barcode; stored normalized (ADR-0034 §3). */
@@ -96,6 +98,9 @@ export const mealItemInputSchema = z
   })
   .refine((i) => i.confidence === undefined || i.source === 'ai', {
     path: ['confidence'],
+  })
+  .refine((i) => i.aiGrams === undefined || i.source === 'ai', {
+    path: ['aiGrams'],
   })
   .refine((i) => i.recipeId === undefined || i.source === 'recipe', {
     path: ['recipeId'],
@@ -120,6 +125,8 @@ export const mealInputSchema = z.object({
   mealType: mealTypeSchema,
   photoId: z.string().optional(),
   recalcOffer: z.boolean().optional(),
+  /** When "Save" was pressed on the device; the server keeps it, never later than its now (ADR-0032 §2). */
+  loggedAt: z.iso.datetime({ offset: true }).optional(),
   items,
 });
 export type MealInput = z.infer<typeof mealInputSchema>;
@@ -155,6 +162,8 @@ export interface MealItem {
   aiProvider: string | null;
   aiModel: string | null;
   confidence: number | null;
+  /** Grams as recognition returned them; null for other dishes. Absent on meals cached before v0.5. */
+  aiGrams?: number | null;
   /** Recipe the portion was logged from; null once that recipe is deleted (the dish stays). */
   recipeId: number | null;
   /** Normalized GTIN of the packaged product, if the dish has one. */
@@ -184,6 +193,10 @@ export interface Meal {
   editRev?: number;
   /** Unix ms of the last user edit. Both are absent on meals not yet synced or cached before v0.4. */
   editedAt?: number;
+  /** Sticky: an AI dish was ever saved in the meal. Absent on meals cached before v0.5 (ADR-0032 §2). */
+  recognized?: boolean;
+  /** When the meal was saved on the device (ISO). Absent on meals cached before v0.5. */
+  loggedAt?: string;
 }
 
 /** `POST /api/dishes/previous`: the dishes on the edit screen, to look up in the user's history. */

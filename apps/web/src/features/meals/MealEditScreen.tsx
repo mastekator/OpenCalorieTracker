@@ -201,6 +201,7 @@ const savedRow = (item: Meal['items'][number]): Row => ({
       fatG: item.fatG,
       carbsG: item.carbsG,
       confidence: item.confidence ?? undefined,
+      ...(item.aiGrams != null && { aiGrams: item.aiGrams }),
       ...(item.illustrationManual && { illustration: item.illustration }),
       ...(item.barcode && { barcode: item.barcode }),
     },
@@ -900,6 +901,8 @@ export function MealEditScreen({
           ...(photo && 'id' in photo && { photoId: photo.id }),
           // Entered by hand because of the AI, with a photo: recalculable later (5.6).
           ...(manual && manual !== 'user' && photo && { recalcOffer: true }),
+          // The moment of «Save»; the queue sends this very value later (ADR-0032 §2).
+          loggedAt: now().toISOString(),
           items,
         },
         photo && 'blob' in photo ? photo.blob : undefined,

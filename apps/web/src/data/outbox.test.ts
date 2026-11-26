@@ -393,6 +393,24 @@ describe('flush', () => {
     expect(await mealStatus(db, A)).toBe('synced');
   });
 
+  it('a meal saved offline goes later with its own loggedAt and an AI dish marks the copy (ADR-0032 §2)', async () => {
+    const loggedAt = '2026-11-14T12:05:00.000Z';
+    const ai = { ...item('Rice', 200), source: 'ai' as const, aiGrams: 150 };
+    await createMeal(db, { ...input(A), loggedAt, items: [ai] });
+    await settle();
+    expect(await db.get('meals', A)).toMatchObject({
+      loggedAt,
+      recognized: true,
+      items: [{ aiGrams: 150 }],
+    });
+    serve({ 'POST /api/meals': created });
+    await flush(db);
+    expect(calls[0]).toEqual([
+      'POST /api/meals',
+      { ...input(A), loggedAt, items: [ai] },
+    ]);
+  });
+
   it('a break after the server saved a meal resends the same clientId', async () => {
     serve({ 'POST /api/meals': async (b) => (await created(b), offline(b)) });
     await createMeal(db, input(A));
