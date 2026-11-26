@@ -405,7 +405,7 @@ export function SettingsScreen({ user, onLogout, platform: given }: Props) {
               </ListRow>
             )
           )}
-          {/* No line until the first status arrives: a guessed one could be untrue (OCT-172). */}
+          {/* No provider line until the first status arrives: a guessed one could be untrue (OCT-172). */}
           <ListRow
             icon={<Sparkle />}
             description={aiText(t, deviceAi, ai.status)}
