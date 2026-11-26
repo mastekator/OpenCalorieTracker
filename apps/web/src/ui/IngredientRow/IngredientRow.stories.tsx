@@ -91,6 +91,20 @@ export const Edible: Story = {
   },
 };
 export const EdibleDark: Story = { ...Edible, globals: dark };
+export const EdibleRussian: Story = {
+  args: {
+    name: 'Морковь',
+    kcal: 126,
+    grams: '360',
+    estimate: true,
+    note: '400 г с кожурой → съедобно 360 г · 90 % · USDA',
+  },
+  globals: { locale: 'ru' },
+};
+export const EdibleRussianDark: Story = {
+  ...EdibleRussian,
+  globals: { locale: 'ru', ...dark },
+};
 export const WontFit: Story = {
   args: {
     name: 'Carrot',
