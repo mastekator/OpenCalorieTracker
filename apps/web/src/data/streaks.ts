@@ -24,8 +24,6 @@ import { putAwards, putChallengeMonth } from './outbox';
 
 /** Catalog version: awards are only ever added (AC-3.6), so its length changes with each release that adds some. */
 export const AWARDS_CATALOG = AWARDS.length;
-/** An import marks the next grants retro until its pull is done; a crash mid-import must not mute live grants forever. */
-const IMPORT_RETRO_MS = 3_600_000;
 
 export interface Streaks {
   /** The effective switch (AC-6.2). */
@@ -138,14 +136,13 @@ async function compute(db: Db, today: string): Promise<Streaks> {
   );
 
   if (write) {
-    const [catalog, importedAt] = await Promise.all([
+    const [catalog, importRev, rev] = await Promise.all([
       db.get('kv', 'awardsCatalog') as Promise<number | undefined>,
       db.get('kv', 'awardsRetro') as Promise<number | undefined>,
+      db.get('kv', 'rev') as Promise<number | undefined>,
     ]);
     // First run after turning on, a new catalog or an import: no congratulation storm (AC-3.5).
-    const retro =
-      catalog !== AWARDS_CATALOG ||
-      (!!importedAt && Date.now() - importedAt < IMPORT_RETRO_MS);
+    const retro = catalog !== AWARDS_CATALOG || importRev !== undefined;
     const grant = grantAwards(awards, stored, retro ? 'retro' : 'live');
     if (grant.awards.length) {
       if (retro) {
@@ -157,6 +154,9 @@ async function compute(db: Db, today: string): Promise<Streaks> {
     }
     if (catalog !== AWARDS_CATALOG)
       await db.put('kv', AWARDS_CATALOG, 'awardsCatalog');
+    // A pull after the commit has brought the imported meals: they are granted, live again.
+    if (importRev !== undefined && rev !== importRev)
+      await db.delete('kv', 'awardsRetro');
   } else if (!on && (await db.get('kv', 'awardsCatalog')) !== undefined) {
     // Turning the switch back on grants what was earned meanwhile retro.
     await db.delete('kv', 'awardsCatalog');
@@ -195,9 +195,14 @@ export const markSeen = (db: Db, awards: StoredAward[]) =>
     awards.map((a) => ({ ...a, seen: true })),
   );
 
-/** After a committed import: the awards of the imported diary come retro (ADR-0026, AC-3.5). */
-export const markImportRetro = (db: Db) =>
-  db.put('kv', Date.now(), 'awardsRetro');
-
-/** The import's pull is done. */
-export const clearImportRetro = (db: Db) => db.delete('kv', 'awardsRetro');
+/**
+ * After a committed import: grants stay retro until a pull moves rev past this one, so the
+ * imported diary is never congratulated, even when the pull comes late (ADR-0026, AC-3.5).
+ */
+export async function markImportRetro(db: Db) {
+  await db.put(
+    'kv',
+    ((await db.get('kv', 'rev')) as number) ?? 0,
+    'awardsRetro',
+  );
+}

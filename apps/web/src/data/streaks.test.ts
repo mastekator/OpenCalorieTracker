@@ -74,14 +74,27 @@ describe('grants', () => {
     expect(s.celebrate).toEqual([]);
   });
 
-  it('an import is retro', async () => {
+  it('an import is retro until its pull, then live', async () => {
     await streaks(db, TODAY);
     await markImportRetro(db);
-    await db.put('meals', meal(TODAY, true));
+    // The pull has not come yet: the marker holds.
+    await streaks(db, TODAY);
+    expect(await db.get('kv', 'awardsRetro')).toBe(1);
+
+    await db.put('meals', meal('2026-11-25', true));
     await db.put('kv', 2, 'rev');
-    const s = await streaks(db, TODAY);
+    let s = await streaks(db, TODAY);
     expect(await keys()).toContain('photo_1');
     expect(s.celebrate).toEqual([]);
+    expect(await db.get('kv', 'awardsRetro')).toBeUndefined();
+
+    for (let d = 1; d <= 30; d++)
+      await db.put('meals', meal(`2026-10-${String(d).padStart(2, '0')}`));
+    await db.put('kv', 3, 'rev');
+    s = await streaks(db, TODAY);
+    const live = s.celebrate.map((a) => a.key);
+    expect(live).toContain('days_30');
+    expect(live).not.toContain('photo_1');
   });
 
   it('switched off: nothing is written; on again: retro', async () => {

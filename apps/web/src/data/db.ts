@@ -31,7 +31,7 @@ export interface OctDb extends DBSchema {
     /**
      * `aiStatus`, `integrations`: the last GET /api/ai/status, /api/integrations, shown offline.
      * `fullSyncAt`: when a pull from `since = 0` last reached `more: false` (ADR-0032 §4).
-     * `awardsCatalog`: the catalog version awards were last granted by; `awardsRetro`: when an
+     * `awardsCatalog`: the catalog version awards were last granted by; `awardsRetro`: rev when an
      * import was committed; `awardsQuiet`: keys granted retro here, never congratulated.
      */
     key:
