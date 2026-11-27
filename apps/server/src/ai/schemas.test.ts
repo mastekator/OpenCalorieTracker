@@ -42,13 +42,17 @@ async function geminiRequest(schema: z.ZodType) {
 interface Stats {
   optional: number;
   depth: number;
+  bounds: string[];
 }
 
-/** Optional object properties and nesting depth of a JSON schema. */
+const BOUNDS = ['maxItems', 'minItems', 'maxLength', 'minLength'];
+
+/** Optional object properties, nesting depth and length bounds of a JSON schema. */
 function stats(s: unknown, depth = 0): Stats {
-  const out = { optional: 0, depth };
+  const out: Stats = { optional: 0, depth, bounds: [] };
   if (!s || typeof s !== 'object') return out;
   const node = s as Record<string, unknown>;
+  out.bounds.push(...BOUNDS.filter((k) => k in node));
   const props = (node.properties ?? {}) as Record<string, unknown>;
   const required = new Set((node.required ?? []) as string[]);
   out.optional += Object.keys(props).filter((k) => !required.has(k)).length;
@@ -60,12 +64,14 @@ function stats(s: unknown, depth = 0): Stats {
   for (const c of children) {
     const sub = stats(c, depth + 1);
     out.optional += sub.optional;
+    out.bounds.push(...sub.bounds);
     out.depth = Math.max(out.depth, sub.depth);
   }
   return out;
 }
 
-// Gemini answers 400 to a response schema with too many optional and nullable fields (OCT-437).
+// Gemini answers 400 to a response schema with too many optional and nullable fields (OCT-437)
+// and to length bounds, which it unrolls into too many states (OCT-525). No live key needed to catch either.
 const schemas = {
   recognize: packageModelSchema,
   refine: refineModelSchema,
@@ -77,11 +83,12 @@ const schemas = {
 
 describe('model response schemas (OCT-437)', () => {
   it.each(Object.entries(schemas))(
-    '%s: no optional fields, shallow and small',
+    '%s: no optional fields or length bounds, shallow and small',
     async (name, schema) => {
       const { jsonSchema } = await geminiRequest(schema);
-      const { optional, depth } = stats(jsonSchema);
+      const { optional, depth, bounds } = stats(jsonSchema);
       expect(optional).toBe(0);
+      expect(bounds).toEqual([]);
       expect(depth).toBeLessThanOrEqual(8);
       expect(JSON.stringify(jsonSchema).length).toBeLessThan(4000);
       // Any change to what the model is asked for shows up in the PR.
@@ -110,6 +117,23 @@ describe('model response schemas (OCT-437)', () => {
       ['ml', null, null],
       [null, null, null],
     ]);
+  });
+
+  it('still checks the bounds after parsing', () => {
+    const dish = {
+      name: 'Tea',
+      grams: 200,
+      kcal: 2,
+      proteinG: 0,
+      fatG: 0,
+      carbsG: 0,
+      confidence: 1,
+    };
+    const ok = (v: unknown) => packageModelSchema.safeParse(v).success;
+    expect(ok({ dishes: Array(20).fill(dish) })).toBe(true);
+    expect(ok({ dishes: Array(21).fill(dish) })).toBe(false);
+    expect(ok({ dishes: [{ ...dish, name: '' }] })).toBe(false);
+    expect(ok({ dishes: [{ ...dish, name: 'x'.repeat(81) }] })).toBe(false);
   });
 
   it('logs the provider text of a 400 without the key', async () => {
