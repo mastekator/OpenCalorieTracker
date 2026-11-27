@@ -244,6 +244,21 @@ export const useDrinkEntries = (from: string, to: string) =>
     db.getAllFromIndex('drinkEntries', 'date', IDBKeyRange.bound(from, to)),
   );
 
+/** Any drink entry in the local copy: the Water card hint shows until the first one (OCT-147 1.6). */
+export const useHasDrinkEntries = () =>
+  useLocal(
+    'hasDrinkEntries',
+    async (db) => (await db.count('drinkEntries')) > 0,
+  );
+
+/** The user's own drinks, deleted ones dropped. */
+export const useCustomDrinks = () =>
+  useLocal('customDrinks', (db) => db.getAll('drinks'));
+
+/** Water goal history, by `fromDate`. */
+export const useWaterGoals = () =>
+  useLocal('waterGoals', (db) => db.getAll('waterGoals'));
+
 /** One meal by clientId; null when it is not in the local copy. */
 export const useMeal = (clientId: string) =>
   useLocal(
