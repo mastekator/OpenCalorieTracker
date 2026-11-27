@@ -12,6 +12,7 @@ import { AI_PROVIDERS, type AiConsentRequired } from '@oct/shared';
 import { api, ApiError } from '../../api/client';
 import { useSession } from '../../app/SessionContext';
 import { addConsent, refreshConsents } from '../../data/aiConsents';
+import { readDeviceAi } from '../../data/deviceAi';
 import {
   ConsentSheet,
   type ConsentWhat,
@@ -57,27 +58,32 @@ export function AiConsentProvider({ children }: { children: ReactNode }) {
       void refreshConsents(userId).catch(() => {});
   }, [userId]);
 
-  const withConsent = useCallback<WithConsent>(async (what, call) => {
-    try {
-      return await call();
-    } catch (err) {
-      const details = err instanceof ApiError && consentDetails(err);
-      if (!details) throw err;
-      pending.current ??= new Promise<boolean>((resolve) =>
-        setAsk({
-          details,
-          what,
-          answer: resolve,
-        }),
-      ).finally(() => {
-        pending.current = null;
-        setAsk(null);
-      });
-      if (!(await pending.current)) throw err;
-      // Once only: a second 403 (the provider changed meanwhile) goes to the caller as is.
-      return call();
-    }
-  }, []);
+  const withConsent = useCallback<WithConsent>(
+    async (what, call) => {
+      // AI off on this device (ADR-0031 §6): nothing leaves it, every screen reads it as «no AI».
+      if (!readDeviceAi(userId)) throw new ApiError(409, 'ai_not_configured');
+      try {
+        return await call();
+      } catch (err) {
+        const details = err instanceof ApiError && consentDetails(err);
+        if (!details) throw err;
+        pending.current ??= new Promise<boolean>((resolve) =>
+          setAsk({
+            details,
+            what,
+            answer: resolve,
+          }),
+        ).finally(() => {
+          pending.current = null;
+          setAsk(null);
+        });
+        if (!(await pending.current)) throw err;
+        // Once only: a second 403 (the provider changed meanwhile) goes to the caller as is.
+        return call();
+      }
+    },
+    [userId],
+  );
 
   async function allow({ details, answer }: Ask) {
     setBusy(true);

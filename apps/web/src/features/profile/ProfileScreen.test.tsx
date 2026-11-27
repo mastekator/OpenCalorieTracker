@@ -12,7 +12,8 @@ import {
   type ProfileResponse,
 } from '@oct/shared';
 import { SessionContext } from '../../app/SessionContext';
-import { DataProvider } from '../../data/DataContext';
+import { DataProvider, useAiStatus } from '../../data/DataContext';
+import { setDeviceAi } from '../../data/deviceAi';
 import { openUserDb } from '../../data/db';
 import { clearLocal } from '../../data/user';
 import { localToday } from '../diary/day';
@@ -210,6 +211,72 @@ describe('ProfileScreen, AI status refreshing (OCT-448)', () => {
     expect(await screen.findByDisplayValue('180')).toBeTruthy();
     expect(fetch).toHaveBeenCalledWith('/api/ai/status', expect.anything());
   });
+});
+
+describe('AI off on this device (ADR-0031 §6)', () => {
+  /** What every recognition-gated way in reads: refine, recalc, kitchen, label photos. */
+  function Recognition() {
+    const { status } = useAiStatus();
+    return <output>{`recognition: ${status?.recognition}`}</output>;
+  }
+
+  it.each([true, false])(
+    'online %s: no assistant, every AI way in reads «not configured», no status request',
+    async (online) => {
+      setDeviceAi(USER.id, false);
+      vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(online);
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(() => new Promise(() => {})),
+      );
+      const db = await openUserDb(USER.id);
+      await db.put('kv', PROFILE, 'profile');
+      await db.put('kv', 3, 'rev');
+      await db.put(
+        'kv',
+        {
+          recognition: 'ready',
+          interview: 'ready',
+          providerName: 'x',
+          baseUrlHost: null,
+          refineLimit: null,
+          userKeysDisabledNotice: false,
+        },
+        'aiStatus',
+      );
+      db.close();
+      render(
+        <I18nProvider>
+          <ToastProvider>
+            <SessionContext
+              value={{
+                user: USER,
+                refresh: async () => {},
+                signedIn: async () => {},
+                logout: async () => {},
+              }}
+            >
+              <DataProvider user={USER}>
+                <ProfileScreen />
+                <Recognition />
+              </DataProvider>
+            </SessionContext>
+          </ToastProvider>
+        </I18nProvider>,
+      );
+
+      expect(await screen.findByDisplayValue('180')).toBeTruthy();
+      expect(
+        await screen.findByText('recognition: not_configured'),
+      ).toBeTruthy();
+      expect(screen.queryByRole('button', { name: /assistant/ })).toBeNull();
+      expect(fetch).not.toHaveBeenCalledWith(
+        '/api/ai/status',
+        expect.anything(),
+      );
+      setDeviceAi(USER.id, true);
+    },
+  );
 });
 
 describe('ProfileScreen, goal applied in the chat (OCT-225)', () => {

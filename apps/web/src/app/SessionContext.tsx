@@ -209,6 +209,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   );
 }
 
+/** The signed-in user's id; undefined outside the provider (screen tests, stories). */
+export const useUserId = () => useContext(SessionContext)?.user?.id;
+
 export function useSession() {
   const session = useContext(SessionContext);
   if (!session) throw new Error('useSession outside SessionProvider');

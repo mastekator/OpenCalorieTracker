@@ -30,7 +30,7 @@ import { useT } from '../i18n';
 import { useOnline } from '../ui/OfflineBar/OfflineBar';
 import { useToast } from '../ui/Toast/Toast';
 import { unitOf } from '../ui/weightUnits';
-import { useSession } from '../app/SessionContext';
+import { useUserId } from '../app/SessionContext';
 import { emitChange, onChange } from './changes';
 import { openUserDb, type Choices, type Conflict, type Db } from './db';
 import {
@@ -259,7 +259,7 @@ export const useSettings = () =>
  */
 export function useAiStatus(ask = true) {
   const db = useDb();
-  const [deviceAi] = useDeviceAi(useSession().user?.id);
+  const [deviceAi] = useDeviceAi(useUserId());
   const online = useOnline();
   const stored = useLocal(
     'aiStatus',

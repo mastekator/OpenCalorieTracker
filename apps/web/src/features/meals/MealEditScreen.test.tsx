@@ -547,8 +547,9 @@ describe('MealEditScreen: manual entry (OCT-60)', () => {
     manual: Manual | undefined,
     {
       photoId,
+      photoBlob,
       dishes = [],
-    }: { photoId?: string; dishes?: RecognizedDish[] } = {},
+    }: { photoId?: string; photoBlob?: Blob; dishes?: RecognizedDish[] } = {},
   ) {
     const onSave = vi.fn(async (input: MealInput, photo?: Blob) => {
       void input;
@@ -561,6 +562,7 @@ describe('MealEditScreen: manual entry (OCT-60)', () => {
             dishes={dishes}
             manual={manual}
             photoId={photoId}
+            photoBlob={photoBlob}
             units="metric"
             onSave={onSave}
             onClose={() => {}}
@@ -745,6 +747,31 @@ describe('MealEditScreen: manual entry (OCT-60)', () => {
     );
     expect(document.querySelector('.button__spinner')).toBeNull();
   });
+
+  it.each([
+    ['AI off on this device', 'user', undefined],
+    ['offline without consent', 'ai_down', true],
+  ] as const)(
+    '%s: the photo taken without AI is queued with the meal, recalc offer %s',
+    async (_, manual, offer) => {
+      const fetch = vi.fn(async (_path: string) => Response.json([]));
+      vi.stubGlobal('fetch', fetch);
+      URL.createObjectURL = () => 'blob:photo';
+      URL.revokeObjectURL = () => {};
+      const blob = new Blob(['jpeg'], { type: 'image/jpeg' });
+      const onSave = await open(manual, { photoBlob: blob });
+      expect(document.querySelector('.meal-edit__thumb img')).toBeTruthy();
+      enter();
+      await save();
+      expect(onSave.mock.calls[0]![0].recalcOffer).toBe(offer);
+      expect(onSave.mock.calls[0]![1]).toBe(blob);
+      // Back online nothing is recognized.
+      await act(async () => window.dispatchEvent(new Event('online')));
+      expect(
+        fetch.mock.calls.some(([path]) => String(path).includes('recognize')),
+      ).toBe(false);
+    },
+  );
 
   it('a slot photo that failed to upload is queued with the meal', async () => {
     vi.stubGlobal(
