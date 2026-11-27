@@ -34,7 +34,7 @@ import {
 import type { z } from 'zod';
 
 /** Bump on every prompt change; it is logged with each call. */
-export const RECOGNIZE_PROMPT_VERSION = 9;
+export const RECOGNIZE_PROMPT_VERSION = 10;
 
 /** Same rule in the photo and label prompts (OCT-372). */
 export const PET_FOOD_RULE =
@@ -42,6 +42,9 @@ export const PET_FOOD_RULE =
 /** Same rule in the photo and refine prompts (ADR-0038 §3). */
 export const UNIT_RULE =
   'For a drink or a liquid dish in a glass, cup or bottle set "unit" to "ml" and put its volume in millilitres in "grams"; for anything else set "unit" to null.';
+/** Same rule in the photo and refine prompts (ADR-0028 §6). */
+export const DRINK_RULE =
+  'Set "drink" to true only for something people drink (water, coffee, tea, juice, milk, soda, beer); soup, smoothie, yogurt and other liquid food are food, set "drink" to false.';
 export const RECOGNIZE_TIMEOUT_MS = 60_000;
 
 /** A sanitized dish before the server looks up its printed code (ADR-0036 §3). */
@@ -64,6 +67,7 @@ export function recognizePrompt(locale: string, hasRecipes = false) {
 List every separate dish or food item visible. Identical items on different plates are separate entries.
 For each item estimate the weight of the edible part in grams and the kcal, protein, fat and carbohydrates in grams for that weight (the whole portion, not per 100 g).
 ${UNIT_RULE}
+${DRINK_RULE}
 ${EDIBLE_PROMPT}
 Write dish names in ${languageName(locale)}.
 Confidence is 0..1:
@@ -291,5 +295,6 @@ export function sanitizeDish(d: RecognizedDish): RecognizedDish & {
     carbsG: amount(d.carbsG, 1000),
     confidence: suspicious ? 0 : Math.min(1, Math.max(0, d.confidence)),
     unit: modelUnit(d.unit) ?? 'g',
+    ...(d.drink === true && { drink: true }),
   };
 }

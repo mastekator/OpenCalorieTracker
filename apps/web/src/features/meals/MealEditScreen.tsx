@@ -14,6 +14,7 @@ import {
   Camera,
   ChefHat,
   Clock,
+  Droplet,
   Ellipsis,
   ImageOff,
   Plus,
@@ -70,7 +71,9 @@ import {
 } from '../../data/products';
 import type { Choices } from '../../data/db';
 import {
+  createDrinkEntry,
   createMeal,
+  deleteDrinkEntry,
   flush,
   patchMeal,
   patchSettings,
@@ -124,6 +127,7 @@ import {
   answer,
   applyAgain,
   applyRefine,
+  drinkOf,
   itemOf,
   previousSchema,
   remembers,
@@ -136,6 +140,7 @@ import {
   unlink,
   withFixed,
   type Applied,
+  type PhotoDrink,
   type Recognized,
   type Previous,
   type Row,
@@ -227,7 +232,16 @@ type Props = {
    * Writes the meal; a rejection keeps the edits and offers «Try again» (E-4.3).
    * `photo`: added from the photo slot while its upload failed, queued with the meal.
    */
-  onSave: (input: MealInput, photo?: Blob) => Promise<void>;
+  onSave: (
+    input: MealInput,
+    photo?: Blob,
+    drinks?: PhotoDrink[],
+  ) => Promise<void>;
+  /**
+   * The water module is on: a drink row gets the «Drink ↔ Food» chip and is passed to `onSave`
+   * in `drinks`, not in the meal; no food, no meal and no photo (ADR-0028 §6).
+   */
+  waterEnabled?: boolean;
   onClose: () => void;
   /** A past day (`YYYY-MM-DD`) from «Add an entry for this day» (AC-2.11); none: now. */
   date?: string;
@@ -308,6 +322,7 @@ export function MealEditScreen({
   offSuggest,
   onOffHint,
   draft,
+  waterEnabled = false,
 }: Props) {
   const { t, num, locale } = useT();
   const online = useOnline();
@@ -492,6 +507,9 @@ export function MealEditScreen({
   // Follows the name live (AC-3.6, AC-4.5): hand-picked, then remembered for the name, then matched.
   const illustrationOf = ({ original: { name, illustration } }: Row) =>
     illustration ?? choices?.[nameKey(name)] ?? matchIllustration(name);
+  // A saved meal stays a meal: its dishes cannot leave it as drink entries.
+  const chip = (r: Row) => waterEnabled && !meal && r.drink !== undefined;
+  const isDrink = (r: Row) => chip(r) && r.drink === true;
   const total = (k: 'kcal' | 'proteinG' | 'fatG' | 'carbsG') =>
     items.reduce((s, i) => s + i[k], 0);
   const valid =
@@ -898,6 +916,9 @@ export function MealEditScreen({
         await onPatch?.(patchOf());
         return true;
       }
+      const food = items.filter((_, i) => !isDrink(rows[i]!));
+      // Drinks only: no meal, so the photo has nobody to belong to.
+      const kept = food.length ? photo : null;
       await onSave(
         {
           clientId,
@@ -905,14 +926,17 @@ export function MealEditScreen({
           tzOffsetMin: offsetAt(at),
           localDate: date ?? entryDay(at, offsetAt(at), day),
           mealType,
-          ...(photo && 'id' in photo && { photoId: photo.id }),
+          ...(kept && 'id' in kept && { photoId: kept.id }),
           // Entered by hand because of the AI, with a photo: recalculable later (5.6).
-          ...(manual && manual !== 'user' && photo && { recalcOffer: true }),
+          ...(manual && manual !== 'user' && kept && { recalcOffer: true }),
           // The moment of «Save»; the queue sends this very value later (ADR-0032 §2).
           loggedAt: now().toISOString(),
-          items,
+          items: food,
         },
-        photo && 'blob' in photo ? photo.blob : undefined,
+        kept && 'blob' in kept ? kept.blob : undefined,
+        rows.flatMap((r, i) =>
+          isDrink(r) ? [drinkOf(items[i]!, illustrationOf(r))] : [],
+        ),
       );
       return true;
     } catch {
@@ -1495,6 +1519,21 @@ export function MealEditScreen({
                           setPicking(row.id);
                         }}
                         mark={applied?.marks[row.id]}
+                        kind={
+                          chip(row)
+                            ? {
+                                drink: row.drink === true,
+                                onToggle: () =>
+                                  setRows((rs) =>
+                                    rs.map((r) =>
+                                      r.id === row.id
+                                        ? { ...r, drink: !r.drink }
+                                        : r,
+                                    ),
+                                  ),
+                              }
+                            : undefined
+                        }
                       >
                         {shown[i] && (
                           <Question
@@ -1902,7 +1941,7 @@ export function MealEditRoute() {
   const ai = useAiStatus();
   const recipes = useRecipes();
   const products = useProducts();
-  const { t } = useT();
+  const { t, num } = useT();
   const toast = useToast();
   if (!state && photoId)
     return <Redirect to={`${MEAL_NEW_PATH}?${search}`} replace />;
@@ -1953,18 +1992,47 @@ export function MealEditRoute() {
       units={settings?.units ?? user?.units ?? 'metric'}
       choices={choices}
       onChoice={(name, id) => void putIllustrationChoice(db, name, id)}
-      onSave={async (input, photo) => {
-        await createMeal(db, input, photo);
+      waterEnabled={settings?.waterEnabled ?? false}
+      onSave={async (input, photo, drinks = []) => {
+        const ids: string[] = [];
+        for (const d of drinks)
+          ids.push(
+            await createDrinkEntry(db, {
+              ...d,
+              date: input.localDate,
+              takenAt: input.eatenAt,
+            }),
+          );
+        const meal = input.items.length > 0;
+        if (meal) await createMeal(db, input, photo);
         // A new meal only: an edit of a saved one says nothing (AC-4.5).
         const names = input.items.filter(remembers).map((i) => i.name);
         if (date) navigate(`/diary/${date}`, { replace: true });
         else
           navigate('/', {
             replace: true,
-            state: { saved: input.clientId } satisfies TodayState,
+            ...(meal && {
+              state: { saved: input.clientId } satisfies TodayState,
+            }),
           });
         if (names.length)
           toast({ text: t('today.remembered', { name: names.join(', ') }) });
+        // Drinks only: nothing new in the list says where they went (OCT-147 4.5).
+        else if (!meal)
+          toast({
+            text: t('water.saved_drinks', {
+              count: ids.length,
+              kcal: num(drinks.reduce((s, d) => s + d.photo.kcal, 0)),
+            }),
+            icon: <Droplet aria-hidden="true" />,
+            ms: 5000,
+            action: {
+              label: t('water.undo'),
+              onClick: () => {
+                for (const id of ids) void deleteDrinkEntry(db, id);
+              },
+            },
+          });
       }}
       onClose={() => navigate('/')}
     />

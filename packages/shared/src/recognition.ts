@@ -28,6 +28,8 @@ export const recognizedDishSchema = z.object({
   ref: z.string().nullable().optional(),
   /** 'ml' for drinks (ADR-0038 §3); loose so one odd value cannot fail the answer, the server narrows it. */
   unit: z.string().nullable().optional(),
+  /** Something drunk, `grams` are millilitres (ADR-0028 §6); none: food, as in older answers. */
+  drink: z.boolean().nullable().optional(),
   /** From the model (ADR-0039 §2): a read gross weight, a reference key, its own edible share. Loose; the server narrows them. */
   grossG: z.number().nullable().optional(),
   edibleRef: z.string().nullable().optional(),
@@ -114,6 +116,11 @@ const modelDish = {
         ? v.trim().toLowerCase()
         : null,
     z.enum(['g', 'ml']).nullable(),
+  ),
+  /** Something drunk (ADR-0028 §6); anything but a boolean becomes null, i.e. food. */
+  drink: z.preprocess(
+    (v) => (typeof v === 'boolean' ? v : null),
+    z.boolean().nullable(),
   ),
   // ADR-0039 §2: garbage becomes null rather than failing the whole answer.
   grossG: looseNumber,

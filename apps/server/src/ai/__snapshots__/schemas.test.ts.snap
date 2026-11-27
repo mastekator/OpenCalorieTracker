@@ -591,6 +591,12 @@ exports[`model response schemas (OCT-437) > recognize: no optional fields or len
           "confidence": {
             "type": "number",
           },
+          "drink": {
+            "type": [
+              "boolean",
+              "null",
+            ],
+          },
           "ediblePct": {
             "type": [
               "number",
@@ -660,6 +666,7 @@ exports[`model response schemas (OCT-437) > recognize: no optional fields or len
           "carbsG",
           "confidence",
           "unit",
+          "drink",
           "grossG",
           "edibleRef",
           "ediblePct",
@@ -765,6 +772,12 @@ exports[`model response schemas (OCT-437) > refine: no optional fields or length
           "confidence": {
             "type": "number",
           },
+          "drink": {
+            "type": [
+              "boolean",
+              "null",
+            ],
+          },
           "ediblePct": {
             "type": [
               "number",
@@ -828,6 +841,7 @@ exports[`model response schemas (OCT-437) > refine: no optional fields or length
           "carbsG",
           "confidence",
           "unit",
+          "drink",
           "grossG",
           "edibleRef",
           "ediblePct",

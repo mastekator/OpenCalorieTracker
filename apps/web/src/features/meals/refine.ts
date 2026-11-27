@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import {
   DISH_GRAMS,
+  DRINK_ML,
   edibleGrams,
   illustrationIdSchema,
   nameKey,
@@ -12,6 +13,7 @@ import {
   uuid,
   type AiQuestion,
   type Amount,
+  type DrinkEntryInput,
   type DishSource,
   type Edible,
   type FixedField,
@@ -92,6 +94,8 @@ export type Row = {
    * `whole`: «Whole», all of it is eaten, `pct` stays for «Peeled».
    */
   edible?: RowEdible;
+  /** Saved as a drink entry, not a dish (ADR-0028 §6); false: a drink the user made food; none: never a drink. */
+  drink?: boolean;
 };
 
 export type RowEdible = Edible & {
@@ -301,6 +305,40 @@ function withQuestions(rows: Row[], questions: AiQuestion[] = []) {
   return rows;
 }
 
+/** A drink row as `createDrinkEntry` takes it, without the day and time. */
+export type PhotoDrink = Pick<
+  Extract<DrinkEntryInput, { photo: unknown }>,
+  'ml' | 'photo'
+>;
+
+const clamp = (n: number, max: number, min = 0) =>
+  Math.min(max, Math.max(min, n));
+
+/**
+ * The photo snapshot of a drink row (ADR-0028 §6), always within `drinkEntryInputSchema`: whole ml
+ * in 10–2000, a cut volume scales the numbers. A refused entry would get stuck in the queue.
+ */
+export function drinkOf(
+  item: MealItemInput,
+  illustration: IllustrationId,
+): PhotoDrink {
+  const ml = clamp(Math.round(item.grams), DRINK_ML.max, DRINK_ML.min);
+  const k = ml === Math.round(item.grams) ? 1 : ml / item.grams;
+  const part = (n: number, max: number) => clamp(round1(n * k), max);
+  return {
+    ml,
+    photo: {
+      name: item.name.trim().slice(0, 80),
+      illustration,
+      kcal: part(item.kcal, 20_000),
+      proteinG: part(item.proteinG, 2000),
+      fatG: part(item.fatG, 2000),
+      carbsG: part(item.carbsG, 2000),
+      countsWater: true,
+    },
+  };
+}
+
 /** The server keeps it as the user's own product on save (ADR-0034 §6). */
 export const remembers = (i: MealItemInput) =>
   !!i.barcode && i.kcal > 0 && (i.source === 'label' || i.source === 'manual');
@@ -316,12 +354,13 @@ export type Recognized = Omit<Dish, 'barcode' | 'unit'> & {
   barcode?: string | null;
   /** Loose as the AI's answer; anything but 'ml' is grams. */
   unit?: string | null;
+  drink?: boolean | null;
 };
 
 /** Initial rows of a recognition with its questions. */
 export const toRows = (dishes: Recognized[], questions?: AiQuestion[]) =>
   withQuestions(
-    dishes.map(({ source, barcode, unit, edible, ...d }) => ({
+    dishes.map(({ source, barcode, unit, edible, drink, ...d }) => ({
       ...toRow(
         {
           ...d,
@@ -332,6 +371,7 @@ export const toRows = (dishes: Recognized[], questions?: AiQuestion[]) =>
         source,
       ),
       ...(edible && { edible }),
+      ...(drink && { drink: true }),
     })),
     questions,
   );
@@ -472,6 +512,7 @@ const aiRow = ({
   confidence,
   unit,
   edible,
+  drink,
 }: RecognizedDish): Row => ({
   ...toRow({
     name,
@@ -485,6 +526,7 @@ const aiRow = ({
     ...unitOf(unit),
   }),
   ...(edible && { edible }),
+  ...(drink && { drink: true }),
 });
 
 /**
@@ -515,6 +557,8 @@ export function applyRefine(
     row.fixed = fixedOf(old).filter((f) => !changes[f]);
     if (!changes.name && old.original.illustration)
       row.original.illustration = old.original.illustration;
+    // Refine does not send the flag: the dish stays what it was, the user's switch included.
+    if (old.drink !== undefined) row.drink = old.drink;
     marks[row.id] = changedMark(old);
     return row;
   });

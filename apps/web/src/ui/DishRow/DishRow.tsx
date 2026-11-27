@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import {
   CircleAlert,
   CirclePlus,
+  Droplet,
   Minus,
   Pencil,
   Plus,
@@ -72,6 +73,8 @@ type Props = {
   edible?: Edible & { chosen?: boolean; unlinked?: boolean; whole?: boolean };
   /** «Restore» after `unlinked`: the grams of the share again. */
   onRelink?: () => void;
+  /** The «Drink ↔ Food» chip (OCT-147 4.5): `drink` saves it as a drink entry; none: no chip. */
+  kind?: { drink: boolean; onToggle: () => void };
 };
 
 /** One dish on the edit screen: name and kcal, source badge and macros, weight stepper, delete. */
@@ -87,6 +90,7 @@ export function DishRow({
   share,
   edible,
   onRelink,
+  kind,
 }: Props) {
   const { t, num, locale } = useT();
   const unit = share?.product.per ?? dish.unit ?? 'g';
@@ -152,6 +156,17 @@ export function DishRow({
             </span>
           </div>
           <div className="dish-row__meta">
+            {kind && (
+              <button
+                type="button"
+                className={`dish-row__kind${kind.drink ? ' dish-row__kind--drink' : ''}`}
+                aria-label={t(kind.drink ? 'water.to_food' : 'water.to_drink')}
+                onClick={kind.onToggle}
+              >
+                {kind.drink && <Droplet aria-hidden="true" />}
+                {t(kind.drink ? 'water.kind_drink' : 'water.kind_food')}
+              </button>
+            )}
             {/* A recipe answer: its «recipe» badge says it instead (OCT-352 3.2). */}
             {mark && !(mark.kind === 'changed' && dish.source === 'recipe') && (
               // Not by colour only: an icon and a word (AC-3.1).

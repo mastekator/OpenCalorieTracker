@@ -2357,6 +2357,14 @@ export const en = {
     undo: 'Undo',
     drinks: 'Drinks',
     until: 'until {time}',
+    kind_drink: 'Drink',
+    kind_food: 'Food',
+    to_food: 'Drink. Save as food',
+    to_drink: 'Food. Save as a drink',
+    saved_drinks: {
+      one: '+{count} drink · {kcal}\u00a0kcal',
+      other: '+{count} drinks · {kcal}\u00a0kcal',
+    },
   },
   drinks: {
     water: 'Water',

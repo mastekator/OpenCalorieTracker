@@ -12,6 +12,7 @@ import {
   recognizeMeal,
   RECOGNIZE_TIMEOUT_MS,
   RECOGNIZE_PROMPT_VERSION,
+  DRINK_RULE,
   sanitizeDish,
   UNIT_RULE,
 } from './recognize.js';
@@ -94,7 +95,7 @@ describe('recognizeMeal', () => {
     });
     expect(logs()).toEqual([
       expect.stringMatching(
-        /^ai\.recognize provider=mock model=vision-1 prompt=9 ms=\d+ dishes=1 questions=0 recipes=0 result=ok$/,
+        /^ai\.recognize provider=mock model=vision-1 prompt=10 ms=\d+ dishes=1 questions=0 recipes=0 result=ok$/,
       ),
     ]);
   });
@@ -290,7 +291,7 @@ describe('recognizeMeal', () => {
     await expect(
       readLabel(model, jpeg, 'en', '4006381333931'),
     ).resolves.toEqual({ dishes: [], questions: [] });
-    expect(logs()[0]).toMatch(/^ai\.label .* prompt=9 /);
+    expect(logs()[0]).toMatch(/^ai\.label .* prompt=10 /);
   });
 
   it('maps a no-image error to ai_no_vision and remembers it', async () => {
@@ -352,8 +353,16 @@ describe('sanitizeDish', () => {
   it('asks for ml only for drinks in both prompts', () => {
     expect(recognizePrompt('en')).toContain(UNIT_RULE);
     expect(refinePrompt('refine', true, 'en')).toContain(UNIT_RULE);
-    expect(RECOGNIZE_PROMPT_VERSION).toBe(9);
-    expect(REFINE_PROMPT_VERSION).toBe(5);
+    expect(recognizePrompt('en')).toContain(DRINK_RULE);
+    expect(refinePrompt('refine', true, 'en')).toContain(DRINK_RULE);
+    expect(RECOGNIZE_PROMPT_VERSION).toBe(10);
+    expect(REFINE_PROMPT_VERSION).toBe(6);
+  });
+
+  it('marks a drink only on true; no field or false is food (ADR-0028 §6)', () => {
+    expect(sanitizeDish({ ...egg, drink: true }).drink).toBe(true);
+    for (const drink of [undefined, null, false])
+      expect(sanitizeDish({ ...egg, drink })).not.toHaveProperty('drink');
   });
 
   it.each([{ kcal: 12_000 }, { proteinG: 2000, fatG: 2000, carbsG: 2000 }])(

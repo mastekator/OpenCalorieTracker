@@ -2501,6 +2501,16 @@ const ru: DeepPartial<typeof en> = {
     undo: 'Отменить',
     drinks: 'Напитки',
     until: 'до {time}',
+    kind_drink: 'Напиток',
+    kind_food: 'Еда',
+    to_food: 'Напиток. Сохранить как еду',
+    to_drink: 'Еда. Сохранить как напиток',
+    saved_drinks: {
+      one: '+{count} напиток · {kcal}\u00a0ккал',
+      few: '+{count} напитка · {kcal}\u00a0ккал',
+      many: '+{count} напитков · {kcal}\u00a0ккал',
+      other: '+{count} напитка · {kcal}\u00a0ккал',
+    },
   },
   drinks: {
     water: 'Вода',
