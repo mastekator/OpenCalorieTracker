@@ -96,6 +96,8 @@ describe('PUT /api/admin/ai/settings', () => {
     });
     expect(createModel).toHaveBeenCalledWith(
       expect.objectContaining({ apiKey: KEY, source: 'admin' }),
+      undefined,
+      t.ai.chatgpt,
     );
     const row = t.row() as { api_key_enc: string; updated_by: number };
     expect(row.api_key_enc).toMatch(/^v1\./);
@@ -152,6 +154,8 @@ describe('PUT /api/admin/ai/settings', () => {
     expect(await res.json()).toMatchObject({ model: 'gpt-y', rev: 2 });
     expect(createModel).toHaveBeenLastCalledWith(
       expect.objectContaining({ model: 'gpt-y', apiKey: KEY }),
+      undefined,
+      t.ai.chatgpt,
     );
   });
 
@@ -289,6 +293,8 @@ describe('POST /api/admin/ai/check with a draft', () => {
     expect(text).not.toContain(KEY);
     expect(createModel).toHaveBeenLastCalledWith(
       expect.objectContaining({ model: 'nope', apiKey: KEY }),
+      undefined,
+      t.ai.chatgpt,
     );
     expect(await t.get()).toMatchObject({
       model: 'gpt-x',

@@ -103,6 +103,13 @@ describe('/api/ai/own', () => {
     });
   });
 
+  it('refuses the ChatGPT subscription as an own key (ADR-0031 §4)', async () => {
+    const t = await setup();
+    const res = await t.put({ provider: 'chatgpt', model: 'gpt-5.4' });
+    expect(res.status).toBe(400);
+    expect(createModel).not.toHaveBeenCalled();
+  });
+
   it('saves nothing when the check fails, and the key is in no answer or log', async () => {
     const t = await setup();
     vi.mocked(createModel).mockResolvedValueOnce(

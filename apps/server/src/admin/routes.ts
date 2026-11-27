@@ -211,7 +211,7 @@ export function adminRoutes({ config, db, ai, secrets, chatgpt }: RouteDeps) {
         const settings = draftSettings(parsed.data);
         throttleCheck();
         const { state, checkedAt, details } = await runCheck(
-          (await createModel(settings))!,
+          (await createModel(settings, undefined, chatgpt))!,
           settings.apiKey,
         );
         return c.json({
@@ -235,7 +235,7 @@ export function adminRoutes({ config, db, ai, secrets, chatgpt }: RouteDeps) {
           let checked: AiModel | undefined;
           if (!force) {
             throttleSave();
-            const model = (await createModel(settings))!;
+            const model = (await createModel(settings, undefined, chatgpt))!;
             const { state, details } = await runCheck(model, settings.apiKey);
             if (state !== 'ok')
               throw new ApiError(422, 'ai_check_failed', {
@@ -358,7 +358,9 @@ export function adminRoutes({ config, db, ai, secrets, chatgpt }: RouteDeps) {
           const runningId = tests.runningId();
           if (runningId !== null)
             throw new ApiError(409, 'ai_test_running', { id: runningId });
-          const model = same ? active.model : (await createModel(settings))!;
+          const model = same
+            ? active.model
+            : (await createModel(settings, undefined, chatgpt))!;
           const testId = await tests.start(settings, model);
           return c.json({ id: testId }, 201);
         },

@@ -8,6 +8,7 @@ export const aiProviders = [
   'anthropic',
   'openrouter',
   'openai-compatible',
+  'chatgpt',
 ] as const;
 export type AiProvider = (typeof aiProviders)[number];
 

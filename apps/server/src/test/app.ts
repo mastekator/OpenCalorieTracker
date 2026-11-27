@@ -26,7 +26,7 @@ export function testApp(
   const secrets = secretsFrom(randomBytes(32));
   // Without AI_* the model still needs settings: openai-compatible has no display name.
   const ai = createAiRuntime(
-    { db, secrets, config },
+    { db, secrets, config, fetch },
     model && {
       model,
       settings: getAiSettings(config) ?? {
