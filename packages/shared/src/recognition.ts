@@ -89,13 +89,17 @@ const packageHints = {
 export const orNull = <T extends z.ZodType>(schema: T) =>
   z.preprocess((v) => v ?? null, schema.nullable());
 
+/** A length bound checked after parsing, left out of the JSON schema: Gemini turns length limits into too many states (OCT-525). */
+export const lengthIn = (min: number, max: number) => (v: { length: number }) =>
+  v.length >= min && v.length <= max;
+
 const looseNumber = z.preprocess(
   (v) => (typeof v === 'number' && Number.isFinite(v) ? v : null),
   z.number().nullable(),
 );
 
 const modelDish = {
-  name: z.string().min(1).max(80),
+  name: z.string().refine(lengthIn(1, 80)),
   grams: z.number(),
   kcal: z.number(),
   proteinG: z.number(),
@@ -147,7 +151,9 @@ const modelQuestions = z.preprocess(
 
 /** What the model returns in refine (ADR-0020 §3): `ref` is the id of the input dish, null for a new one. */
 export const refineModelSchema = z.object({
-  dishes: z.array(z.object({ ...modelDish, ref: orNull(z.string()) })).max(20),
+  dishes: z
+    .array(z.object({ ...modelDish, ref: orNull(z.string()) }))
+    .refine(lengthIn(0, 20)),
   questions: modelQuestions,
 });
 
@@ -165,7 +171,7 @@ export type PackageModelDish = z.infer<typeof packageModelDishSchema>;
 
 /** What the model returns in recognition. */
 export const packageModelSchema = z.object({
-  dishes: z.array(packageModelDishSchema).max(20),
+  dishes: z.array(packageModelDishSchema).refine(lengthIn(0, 20)),
   questions: modelQuestions,
 });
 export type PackageModelRecognition = z.infer<typeof packageModelSchema>;
