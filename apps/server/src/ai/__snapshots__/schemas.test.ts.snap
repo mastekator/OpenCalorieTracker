@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`model response schemas (OCT-437) > ingredients: no optional fields, shallow and small > ingredients 1`] = `
+exports[`model response schemas (OCT-437) > ingredients: no optional fields or length bounds, shallow and small > ingredients 1`] = `
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "additionalProperties": false,
@@ -58,8 +58,6 @@ exports[`model response schemas (OCT-437) > ingredients: no optional fields, sha
             ],
           },
           "name": {
-            "maxLength": 80,
-            "minLength": 1,
             "type": "string",
           },
           "pieces": {
@@ -162,7 +160,7 @@ exports[`model response schemas (OCT-437) > ingredients: no optional fields, sha
 }
 `;
 
-exports[`model response schemas (OCT-437) > interview: no optional fields, shallow and small > interview 1`] = `
+exports[`model response schemas (OCT-437) > interview: no optional fields or length bounds, shallow and small > interview 1`] = `
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "additionalProperties": false,
@@ -371,8 +369,6 @@ exports[`model response schemas (OCT-437) > interview: no optional fields, shall
       "type": "object",
     },
     "reply": {
-      "maxLength": 500,
-      "minLength": 1,
       "type": "string",
     },
   },
@@ -384,7 +380,7 @@ exports[`model response schemas (OCT-437) > interview: no optional fields, shall
 }
 `;
 
-exports[`model response schemas (OCT-437) > lighter: no optional fields, shallow and small > lighter 1`] = `
+exports[`model response schemas (OCT-437) > lighter: no optional fields or length bounds, shallow and small > lighter 1`] = `
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "additionalProperties": false,
@@ -482,7 +478,7 @@ exports[`model response schemas (OCT-437) > lighter: no optional fields, shallow
 }
 `;
 
-exports[`model response schemas (OCT-437) > parse: no optional fields, shallow and small > parse 1`] = `
+exports[`model response schemas (OCT-437) > parse: no optional fields or length bounds, shallow and small > parse 1`] = `
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "additionalProperties": false,
@@ -574,7 +570,7 @@ exports[`model response schemas (OCT-437) > parse: no optional fields, shallow a
 }
 `;
 
-exports[`model response schemas (OCT-437) > recognize: no optional fields, shallow and small > recognize 1`] = `
+exports[`model response schemas (OCT-437) > recognize: no optional fields or length bounds, shallow and small > recognize 1`] = `
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "additionalProperties": false,
@@ -629,8 +625,6 @@ exports[`model response schemas (OCT-437) > recognize: no optional fields, shall
             ],
           },
           "name": {
-            "maxLength": 80,
-            "minLength": 1,
             "type": "string",
           },
           "printedBarcode": {
@@ -675,7 +669,6 @@ exports[`model response schemas (OCT-437) > recognize: no optional fields, shall
         ],
         "type": "object",
       },
-      "maxItems": 20,
       "type": "array",
     },
     "questions": {
@@ -757,7 +750,7 @@ exports[`model response schemas (OCT-437) > recognize: no optional fields, shall
 }
 `;
 
-exports[`model response schemas (OCT-437) > refine: no optional fields, shallow and small > refine 1`] = `
+exports[`model response schemas (OCT-437) > refine: no optional fields or length bounds, shallow and small > refine 1`] = `
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "additionalProperties": false,
@@ -800,8 +793,6 @@ exports[`model response schemas (OCT-437) > refine: no optional fields, shallow 
             "type": "number",
           },
           "name": {
-            "maxLength": 80,
-            "minLength": 1,
             "type": "string",
           },
           "proteinG": {
@@ -844,7 +835,6 @@ exports[`model response schemas (OCT-437) > refine: no optional fields, shallow 
         ],
         "type": "object",
       },
-      "maxItems": 20,
       "type": "array",
     },
     "questions": {

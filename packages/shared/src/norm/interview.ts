@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { orNull } from '../recognition.js';
+import { lengthIn, orNull } from '../recognition.js';
 import { REQUIRED_FIELDS, type NormResult } from './calculate.js';
 import {
   activitySchema,
@@ -36,7 +36,7 @@ export const interviewTurnSchema = z
         deadline: opt(z.union([z.iso.date(), z.literal('unknown')])),
       })
       .strict(),
-    reply: z.string().min(1).max(500),
+    reply: z.string().refine(lengthIn(1, 500)),
   })
   .strict();
 export type InterviewTurn = z.infer<typeof interviewTurnSchema>;

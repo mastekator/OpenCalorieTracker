@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { amountGrams, defaultAmount } from '../barcodes/amount.js';
 import { productSchema, type Product } from '../barcodes/barcodes.js';
-import { edibleSchema, orNull } from '../recognition.js';
+import { edibleSchema, lengthIn, orNull } from '../recognition.js';
 import { DISH_GRAMS, G_PER_OZ, KG_PER_LB, round1 } from '../units.js';
 
 const looseNumber = z.preprocess(
@@ -25,7 +25,7 @@ const READ_UNITS = ['g', 'kg', 'ml', 'l', 'lb', 'oz'] as const;
  * The model only reads numbers and units; the server picks the weight and does the arithmetic.
  */
 export const ingredientModelSchema = z.object({
-  name: z.string().min(1).max(80),
+  name: z.string().refine(lengthIn(1, 80)),
   readValue: looseNumber,
   readUnit: looseEnum(READ_UNITS),
   weightFrom: looseEnum(['scale', 'package']),
