@@ -1,0 +1,27 @@
+/* OCT-147 2.1–2.2 */
+.amount-sheet {
+  display: grid;
+  gap: var(--space-4);
+  font-variant-numeric: tabular-nums;
+}
+
+.amount-sheet__per,
+.amount-sheet__macros {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+}
+
+.amount-sheet__result {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.amount-sheet__line {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-lh);
+}

@@ -14,6 +14,7 @@ import {
   sumDay,
   summarize,
   weekOf,
+  type AccountSettingsPatch,
   type Macros,
   type DrinkEntry,
   type Meal,
@@ -38,6 +39,7 @@ import {
   createDrinkEntry,
   deleteDrinkEntry,
   deleteWeighing,
+  patchSettings,
   putWeighing,
 } from '../../data/outbox';
 import { useT } from '../../i18n';
@@ -52,7 +54,9 @@ import { DropZone } from '../meals/DropZone';
 import { saveProfile } from '../profile/ProfileScreen';
 import { DrinksMealRow, kcalDrinks } from '../water/DrinksMealRow';
 import { useVolume } from '../water/format';
-import { TAP_ML, WaterCard, type DrinkTileInfo } from '../water/WaterCard';
+import { AmountSheet } from '../water/AmountSheet';
+import { WaterCard, type DrinkTileInfo } from '../water/WaterCard';
+import { WaterDaySheet } from '../water/WaterDaySheet';
 import { periodDays } from '../week/period';
 import { WeighInSheet } from '../weight/WeighInSheet';
 import { WeightCard } from '../weight/WeightCard';
@@ -249,7 +253,9 @@ export function TodayScreen() {
   const weekMeals = usePeriod(week.from, week.to)?.filter(
     (m) => !hidden.has(m.clientId),
   );
-  const weekDrinks = useDrinkEntries(week.from, week.to);
+  const weekDrinks = useDrinkEntries(week.from, week.to)?.filter(
+    (e) => !hidden.has(e.clientId),
+  );
   // The week is counted against today's norm (summarize takes one).
   const norm = useNorm(today);
   const [, navigate] = useLocation();
@@ -348,10 +354,16 @@ function useWater(today: string, units: Units) {
   const volume = useVolume(units);
   const settings = useSettings();
   const profile = useProfile();
-  const entries = useDrinkEntries(addDays(today, -29), today);
+  const online = useOnline();
+  const { hidden, hide } = useUndoDelete();
+  const entries = useDrinkEntries(addDays(today, -29), today)?.filter(
+    (e) => !hidden.has(e.clientId),
+  );
   const custom = useCustomDrinks();
   const goals = useWaterGoals();
   const any = useHasDrinkEntries();
+  const [other, setOther] = useState<DrinkTileInfo | null>(null);
+  const [day, setDay] = useState(false);
   if (!settings?.waterEnabled || !entries || !custom || !goals) return null;
 
   const tiles = drinkRowOrder({
@@ -361,26 +373,27 @@ function useWater(today: string, units: Units) {
     today,
   }).map((key): DrinkTileInfo => {
     const own = custom.find((d) => `custom:${d.id}` === key);
-    if (own) return { key, ...own };
+    if (own) return { key, ...own, per100: own };
     const builtin = BUILTIN_DRINKS.find((d) => d.key === key)!;
     return {
       key,
       name: t(`drinks.${builtin.key}`),
       illustration: builtin.illustration,
       countsWater: true,
+      per100: builtin.per100,
     };
   });
 
-  const log = async (key: string) => {
+  const log = async (key: string, ml: number) => {
     const clientId = await createDrinkEntry(db, {
       drinkKey: key,
-      ml: TAP_ML,
+      ml,
       date: today,
       takenAt: new Date().toISOString(),
     });
     const entry = await db.get('drinkEntries', clientId);
     const name = tiles.find((d) => d.key === key)!.name;
-    const amount = volume(TAP_ML);
+    const amount = volume(ml);
     toast({
       text: entry?.kcal
         ? t('water.logged_kcal', { amount, name, kcal: num(entry.kcal) })
@@ -394,15 +407,53 @@ function useWater(today: string, units: Units) {
     });
   };
 
+  const todays = entries.filter((e) => e.date === today);
+  const ml = waterOfDay(todays);
+  const goalMl = waterGoalOn(goals, today, profile?.profile.sex ?? null);
   return (
-    <WaterCard
-      today={today}
-      ml={waterOfDay(entries.filter((e) => e.date === today))}
-      goalMl={waterGoalOn(goals, today, profile?.profile.sex ?? null)}
-      units={units}
-      drinks={tiles}
-      hint={any === false}
-      onLog={(key) => void log(key)}
-    />
+    <>
+      <WaterCard
+        today={today}
+        ml={ml}
+        goalMl={goalMl}
+        units={units}
+        drinks={tiles}
+        hint={any === false}
+        onLog={(key, ml) => void log(key, ml)}
+        onOther={(key) => setOther(tiles.find((d) => d.key === key)!)}
+        onHide={(key) =>
+          void patchSettings(db, {
+            // Only hideable keys reach here: built-ins without water (DrinkMenu).
+            hiddenDrinks: [...(settings.hiddenDrinks ?? []), key].filter(
+              (k) => k !== 'water',
+            ) as NonNullable<AccountSettingsPatch['hiddenDrinks']>,
+          })
+        }
+        onOpenDay={() => setDay(true)}
+      />
+      <AmountSheet
+        drink={other}
+        units={units}
+        onClose={() => setOther(null)}
+        onAdd={(ml) => other && void log(other.key, ml)}
+      />
+      <WaterDaySheet
+        open={day}
+        onClose={() => setDay(false)}
+        entries={todays.filter((e) => !e.deleted)}
+        ml={ml}
+        goalMl={goalMl}
+        units={units}
+        online={online}
+        onDelete={(e) =>
+          hide(
+            e.clientId,
+            t('water.deleted'),
+            // Sent and offline when the window ends: the delete waits in the queue.
+            () => deleteDrinkEntry(db, e.clientId),
+          )
+        }
+      />
+    </>
   );
 }

@@ -251,7 +251,7 @@ export const useHasDrinkEntries = () =>
     async (db) => (await db.count('drinkEntries')) > 0,
   );
 
-/** The user's own drinks, deleted ones dropped. */
+/** The user's own drinks in the local copy, any order; sync removes deleted ones (data/sync). */
 export const useCustomDrinks = () =>
   useLocal('customDrinks', (db) => db.getAll('drinks'));
 

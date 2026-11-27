@@ -17,9 +17,19 @@
 .water-card__sum {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: var(--space-1);
   flex: 1;
   min-width: 0;
+  min-height: var(--tap-min);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
 }
 
 .water-card__label {
@@ -97,6 +107,40 @@
 
 .water-card__drinks::-webkit-scrollbar {
   display: none;
+}
+
+.water-card__drinks > li {
+  position: relative;
+  flex: none;
+}
+
+/* Desktop D.1: a chevron on the hovered tile opens the amount menu. */
+.drink-tile__more {
+  position: absolute;
+  top: 0;
+  inset-inline-end: 0;
+  display: none;
+  place-items: center;
+  width: var(--icon-size);
+  height: var(--icon-size);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  box-shadow: 0 0 0 1px var(--color-separator);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.drink-tile__more svg {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+}
+
+@media (hover: hover) {
+  .water-card__drinks > li:hover .drink-tile__more {
+    display: grid;
+  }
 }
 
 .drink-tile {

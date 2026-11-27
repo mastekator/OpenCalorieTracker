@@ -1,0 +1,121 @@
+/* OCT-147 1.2: the amount menu of a drink tile. The dialog is a transparent full-screen layer. */
+.drink-menu {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-text);
+}
+
+.drink-menu::backdrop {
+  background: var(--color-scrim);
+}
+
+/* The held tile, lifted above the scrim where it stands in the row. */
+.drink-menu__tile {
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) 0;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  transform: scale(var(--lift-scale));
+  pointer-events: none;
+}
+
+.drink-menu__list {
+  position: fixed;
+  width: var(--drink-menu-width);
+  max-width: calc(100vw - 2 * var(--space-2));
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-toast);
+  animation: drink-menu-in var(--duration-fast) var(--ease-out);
+}
+
+@keyframes drink-menu-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drink-menu__list {
+    animation: none;
+  }
+}
+
+.drink-menu__head {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-separator);
+  color: var(--color-text-secondary);
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+  font-variant-numeric: tabular-nums;
+}
+
+.drink-menu__item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: var(--control-height);
+  padding: 0 var(--space-4);
+  border: 0;
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--text-body-size);
+  text-align: start;
+  cursor: pointer;
+}
+
+.drink-menu__item + .drink-menu__item::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  border-top: 1px solid var(--color-separator);
+}
+
+.drink-menu__item:focus-visible {
+  outline-offset: calc(-1 * var(--focus-ring-width));
+}
+
+@media (hover: hover) {
+  .drink-menu__item:hover {
+    background: var(--color-hover);
+  }
+}
+
+.drink-menu__kcal,
+.drink-menu__item svg {
+  margin-inline-start: auto;
+  color: var(--color-text-secondary);
+}
+
+.drink-menu__kcal {
+  font-size: var(--text-subhead-size);
+  font-variant-numeric: tabular-nums;
+}
+
+.drink-menu__item svg {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+}
+
+.drink-menu__gap {
+  height: var(--space-2);
+  background: var(--color-surface-2);
+}

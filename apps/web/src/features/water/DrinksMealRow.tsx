@@ -66,8 +66,13 @@ export function DrinksMealRow({ entries, units }: Props) {
           {entries.map((e) => (
             <li key={e.clientId} className="drinks-row__entry">
               <span className="drinks-row__time">{time(e)}</span>
-              <span className="drinks-row__name">
-                {t('water.entry', { name: name(e), amount: volume(e.ml) })}
+              {/* A long name shortens, the amount stays whole. */}
+              <span className="drinks-row__what">
+                <span className="drinks-row__name">{name(e)}</span>
+                <span className="drinks-row__amount">
+                  {'·\u00a0'}
+                  {volume(e.ml)}
+                </span>
               </span>
               <span>{t('meal.kcal', { n: num(e.kcal) })}</span>
             </li>

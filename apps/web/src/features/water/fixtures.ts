@@ -1,24 +1,34 @@
-import type { DrinkEntry } from '@oct/shared';
+import { BUILTIN_DRINKS, type DrinkEntry } from '@oct/shared';
+import { useT } from '../../i18n';
 import type { DrinkTileInfo } from './WaterCard';
 
-/** Story fixtures: the drinks row and a day of kcal drinks. */
-export const ROW: DrinkTileInfo[] = [
-  ['water', 'Water', 'drinks-water'],
-  ['coffee_milk', 'Coffee with milk', 'coffee'],
-  ['tea', 'Tea', 'coffee-tea'],
-  ['coffee', 'Coffee', 'coffee'],
-  ['juice', 'Juice', 'drinks'],
-  ['milk', 'Milk', 'dairy'],
-  ['soda', 'Soda', 'drinks'],
-  ['kefir', 'Kefir', 'dairy-yogurt'],
-].map(([key, name, illustration]) => ({
-  key: key!,
-  name: name!,
-  illustration: illustration as DrinkTileInfo['illustration'],
-  countsWater: true,
-}));
+const ORDER = [
+  'water',
+  'coffee_milk',
+  'tea',
+  'coffee',
+  'juice',
+  'milk',
+  'soda',
+  'kefir',
+] as const;
 
-const entry = (over: Partial<DrinkEntry>): DrinkEntry => ({
+/** Story fixtures: the drinks row in the story's locale, and a day of kcal drinks. */
+export function useRow(): DrinkTileInfo[] {
+  const { t } = useT();
+  return ORDER.map((key) => {
+    const d = BUILTIN_DRINKS.find((b) => b.key === key)!;
+    return {
+      key,
+      name: t(`drinks.${key}`),
+      illustration: d.illustration,
+      countsWater: true,
+      per100: d.per100,
+    };
+  });
+}
+
+export const entry = (over: Partial<DrinkEntry>): DrinkEntry => ({
   clientId: 'd1',
   date: '2026-11-14',
   takenAt: '2026-11-14T13:20:00Z',

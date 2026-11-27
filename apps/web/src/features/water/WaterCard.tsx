@@ -1,8 +1,17 @@
-import { useEffect, useId, useRef, useState } from 'react';
-import { Check, Droplet, Plus } from 'lucide-react';
-import type { IllustrationId, Units } from '@oct/shared';
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type MouseEvent,
+  type PointerEvent,
+} from 'react';
+import { Check, ChevronDown, Droplet, Plus } from 'lucide-react';
+import type { IllustrationId, Macros, Units } from '@oct/shared';
 import { useT } from '../../i18n';
 import { DishIllustration } from '../../ui/DishIllustration/DishIllustration';
+import { DrinkMenu } from './DrinkMenu';
 import { useVolume } from './format';
 import './WaterCard.css';
 
@@ -10,6 +19,10 @@ import './WaterCard.css';
 export const TAP_ML = 250;
 /** `YYYY-MM-DD` the goal sparks last played: once a day (OCT-147 1.4). */
 export const SPARKS_KEY = 'oct.water.sparks';
+/** Holding a tile this long opens its amount menu (OCT-147 1.2). */
+export const HOLD_MS = 500;
+/** A hold that moves further is a scroll of the row. */
+const HOLD_SLOP_PX = 10;
 
 export type DrinkTileInfo = {
   /** `water`, a built-in key or `custom:<id>`. */
@@ -17,6 +30,7 @@ export type DrinkTileInfo = {
   name: string;
   illustration: IllustrationId;
   countsWater: boolean;
+  per100: Macros;
 };
 
 type Props = {
@@ -30,7 +44,13 @@ type Props = {
   drinks: readonly DrinkTileInfo[];
   /** No entry in the local copy yet: how to log (OCT-147 1.6). */
   hint: boolean;
-  onLog: (key: string) => void;
+  onLog: (key: string, ml: number) => void;
+  /** «Other amount…» from the menu (OCT-147 2.1). */
+  onOther: (key: string) => void;
+  /** «Hide from the row»: built-ins except water only. */
+  onHide: (key: string) => void;
+  /** A tap on the amount: the day's entries (OCT-147 2.3). */
+  onOpenDay: () => void;
 };
 
 // Glass geometry from the OCT-147 prototype, viewBox 0 0 100 120.
@@ -60,6 +80,9 @@ export function WaterCard({
   drinks,
   hint,
   onLog,
+  onOther,
+  onHide,
+  onOpenDay,
 }: Props) {
   const { t } = useT();
   const volume = useVolume(units);
@@ -84,6 +107,72 @@ export function WaterCard({
     localStorage.setItem(SPARKS_KEY, today);
     setSparkle(true);
   }, [done, today]);
+
+  const [menu, setMenu] = useState<{
+    drink: DrinkTileInfo;
+    anchor: HTMLElement;
+  } | null>(null);
+  const hold = useRef<{
+    x: number;
+    y: number;
+    timer: ReturnType<typeof setTimeout>;
+  } | null>(null);
+  // A hold that opened the menu: the click that ends it logs nothing.
+  const held = useRef(false);
+  const stop = () => {
+    if (hold.current) clearTimeout(hold.current.timer);
+    hold.current = null;
+  };
+  useEffect(() => stop, []);
+  const openMenu = (drink: DrinkTileInfo, anchor: HTMLElement) => {
+    stop();
+    held.current = true;
+    setMenu({ drink, anchor });
+  };
+  const tileEvents = (d: DrinkTileInfo) => ({
+    onPointerDown: (event: PointerEvent<HTMLButtonElement>) => {
+      held.current = false;
+      if (event.button !== 0) return;
+      const li = event.currentTarget.parentElement!;
+      stop();
+      hold.current = {
+        x: event.clientX,
+        y: event.clientY,
+        timer: setTimeout(() => openMenu(d, li), HOLD_MS),
+      };
+    },
+    onPointerMove: (event: PointerEvent) => {
+      const h = hold.current;
+      if (
+        h &&
+        Math.hypot(event.clientX - h.x, event.clientY - h.y) > HOLD_SLOP_PX
+      )
+        stop();
+    },
+    onPointerUp: stop,
+    onPointerCancel: stop,
+    onPointerLeave: stop,
+    onContextMenu: (event: MouseEvent<HTMLButtonElement>) => {
+      event.preventDefault();
+      openMenu(d, event.currentTarget.parentElement!);
+    },
+    // Shift+F10 and the menu key, as a native context menu.
+    onKeyDown: (event: KeyboardEvent<HTMLButtonElement>) => {
+      if (
+        event.key !== 'ContextMenu' &&
+        !(event.shiftKey && event.key === 'F10')
+      )
+        return;
+      event.preventDefault();
+      openMenu(d, event.currentTarget.parentElement!);
+    },
+    onClick: (event: { detail: number }) => {
+      // detail 0: Enter or Space, never the end of a hold.
+      if (held.current && event.detail !== 0)
+        return void (held.current = false);
+      onLog(d.key, TAP_ML);
+    },
+  });
 
   return (
     <section className="water-card" aria-label={t('water.title')}>
@@ -182,7 +271,12 @@ export function WaterCard({
             d="M22 18q1.8-1 2.6.4l6 80q0 1.8-1.6 1.6q-1.2-.2-1.4-1.6z"
           />
         </svg>
-        <div className="water-card__sum">
+        <button
+          type="button"
+          className="water-card__sum"
+          aria-haspopup="dialog"
+          onClick={onOpenDay}
+        >
           <span className="water-card__label">
             <Droplet aria-hidden="true" />
             {t('water.title')}
@@ -200,7 +294,7 @@ export function WaterCard({
               {t('water.done')}
             </span>
           )}
-        </div>
+        </button>
       </div>
       <ul
         className="water-card__drinks"
@@ -218,7 +312,8 @@ export function WaterCard({
                   amount: volume(TAP_ML),
                 },
               )}
-              onClick={() => onLog(d.key)}
+              aria-haspopup="menu"
+              {...tileEvents(d)}
             >
               <DishIllustration
                 id={d.illustration}
@@ -231,6 +326,18 @@ export function WaterCard({
                 {d.name}
               </span>
             </button>
+            {/* Desktop hover (D.1); the keyboard has Shift+F10, so no extra Tab stop. */}
+            <button
+              type="button"
+              className="drink-tile__more"
+              tabIndex={-1}
+              aria-label={t('water.more', { name: d.name })}
+              onClick={(event) =>
+                openMenu(d, event.currentTarget.parentElement!)
+              }
+            >
+              <ChevronDown aria-hidden="true" />
+            </button>
           </li>
         ))}
       </ul>
@@ -239,6 +346,15 @@ export function WaterCard({
           {t('water.hint', { amount: volume(TAP_ML) })}
         </p>
       )}
+      <DrinkMenu
+        drink={menu?.drink ?? null}
+        anchor={menu?.anchor ?? null}
+        units={units}
+        onClose={() => setMenu(null)}
+        onPick={(ml) => menu && onLog(menu.drink.key, ml)}
+        onOther={() => menu && onOther(menu.drink.key)}
+        onHide={() => menu && onHide(menu.drink.key)}
+      />
     </section>
   );
 }

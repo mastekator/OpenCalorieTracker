@@ -21,6 +21,8 @@ type UndoDelete = {
   hidden: ReadonlySet<string>;
   /** Hides the meal with a «Deleted · Undo» toast; the local delete waits for the window. */
   remove: (meal: Meal) => void;
+  /** The same for any row: `run` deletes it locally once the window ends. */
+  hide: (clientId: string, text: string, run: () => Promise<void>) => void;
 };
 
 const Context = createContext<UndoDelete | null>(null);
@@ -36,6 +38,7 @@ export function UndoDeleteProvider({ children }: { children: ReactNode }) {
   const [hidden, setHidden] = useState<ReadonlySet<string>>(new Set());
   const pending = useRef<{
     clientId: string;
+    run: () => Promise<void>;
     timer: ReturnType<typeof setTimeout>;
   } | null>(null);
 
@@ -45,8 +48,8 @@ export function UndoDeleteProvider({ children }: { children: ReactNode }) {
     pending.current = null;
     clearTimeout(p.timer);
     // Rejects only when the database is closed by a sign-out or user switch.
-    deleteMeal(db, p.clientId).catch(() => {});
-  }, [db]);
+    p.run().catch(() => {});
+  }, []);
 
   // Also when the app goes to the background or is left (AC-2.7).
   useEffect(() => {
@@ -58,13 +61,12 @@ export function UndoDeleteProvider({ children }: { children: ReactNode }) {
     };
   }, [commit]);
 
-  const remove = (meal: Meal) => {
+  const hide = (clientId: string, text: string, run: () => Promise<void>) => {
     commit(); // one undo at a time: the previous delete goes through
-    const { clientId } = meal;
-    pending.current = { clientId, timer: setTimeout(commit, UNDO_MS) };
+    pending.current = { clientId, run, timer: setTimeout(commit, UNDO_MS) };
     setHidden((s) => new Set(s).add(clientId));
     toast({
-      text: t('diary.deleted', { meal: t(`meal.type.${meal.mealType}`) }),
+      text,
       ms: UNDO_MS,
       action: {
         label: t('diary.undo'),
@@ -82,7 +84,14 @@ export function UndoDeleteProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  return <Context value={{ hidden, remove }}>{children}</Context>;
+  const remove = (meal: Meal) =>
+    hide(
+      meal.clientId,
+      t('diary.deleted', { meal: t(`meal.type.${meal.mealType}`) }),
+      () => deleteMeal(db, meal.clientId),
+    );
+
+  return <Context value={{ hidden, remove, hide }}>{children}</Context>;
 }
 
 export function useUndoDelete() {
