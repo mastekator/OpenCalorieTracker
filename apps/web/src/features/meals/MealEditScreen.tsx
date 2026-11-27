@@ -47,10 +47,12 @@ import {
   type Product,
   type Amount,
   type PhotoBarcodesResponse,
+  type AiSource,
   barcodeLookupSchema,
   uuid,
 } from '@oct/shared';
 import { api, ApiError, type ClientErrorCode } from '../../api/client';
+import { AI_SETTINGS_PATH } from '../settings/AiScreen';
 import {
   useAiStatus,
   useDb,
@@ -1096,6 +1098,9 @@ export function MealEditScreen({
   const refineErrorBanner = refineError && (
     <RefineError
       code={refineError}
+      source={
+        refine.state.status === 'error' ? refine.state.aiSource : undefined
+      }
       // The list may have changed since: send it as it is now, `ref` points into it.
       onRetry={() =>
         lastRefine.current &&
@@ -1807,12 +1812,31 @@ export function MealEditScreen({
 /** Errors of POST /api/ai/refine (product OCT-232 §6): the list and the text stay. */
 function RefineError({
   code,
+  source,
   onRetry,
 }: {
   code: ClientErrorCode;
+  source?: AiSource;
   onRetry: () => void;
 }) {
   const { t } = useT();
+  const [, navigate] = useLocation();
+  if (source === 'own_key' && code === 'ai_unavailable')
+    return (
+      <Banner
+        tone="danger"
+        title={t('edit.refine.err.key_bad.title')}
+        actions={
+          <button type="button" onClick={() => navigate(AI_SETTINGS_PATH)}>
+            {t('recog.err.ai_settings')}
+          </button>
+        }
+      >
+        {t('edit.refine.err.key_bad.body')}
+      </Banner>
+    );
+  if (source === 'own_key' && code === 'ai_quota_exceeded')
+    return <Banner tone="warning" title={t('edit.refine.err.key_quota')} />;
   switch (code) {
     case 'ai_quota_exceeded':
     case 'too_many_attempts':
@@ -1833,7 +1857,11 @@ function RefineError({
       return (
         <Banner
           tone="danger"
-          title={t('edit.refine.err.unavailable.title')}
+          title={t(
+            source === 'server'
+              ? 'edit.refine.err.server_down'
+              : 'edit.refine.err.unavailable.title',
+          )}
           actions={
             <button type="button" onClick={onRetry}>
               {t('common.retry')}

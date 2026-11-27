@@ -3,15 +3,21 @@ import {
   refineResponseSchema,
   uuid,
   type RefineRequest,
+  type AiSource,
   type RefineResponse,
 } from '@oct/shared';
-import { api, ApiError, type ClientErrorCode } from '../../api/client';
+import {
+  aiSourceOf,
+  api,
+  ApiError,
+  type ClientErrorCode,
+} from '../../api/client';
 import { SLOW_MS, TIMEOUT_MS, whenBack } from './RecognitionScreen';
 import { useAiConsent } from '../ai/AiConsent';
 
 export type RefineState =
   | { status: 'idle' | 'busy' | 'slow' }
-  | { status: 'error'; code: ClientErrorCode };
+  | { status: 'error'; code: ClientErrorCode; aiSource?: AiSource };
 
 export type RefineInput = Omit<RefineRequest, 'requestId' | 'sessionId'>;
 
@@ -100,6 +106,7 @@ export function useRefine<S>() {
       setState({
         status: 'error',
         code: err instanceof ApiError ? err.code : 'ai_unavailable',
+        aiSource: aiSourceOf(err),
       });
       return null;
     } finally {

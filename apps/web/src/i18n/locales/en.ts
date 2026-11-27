@@ -917,6 +917,12 @@ export const en = {
     retry_error: 'Something went wrong, please try again',
     ai_down: 'The AI isn’t available right now',
     ai_down_body: 'We’ll move what you’ve told us into the form.',
+    key_bad:
+      'Your key doesn’t work, so I can’t reply. Check the key in Settings → AI, or set your goal with the form.',
+    key_quota:
+      'Your key’s limit is used up. We’ll continue once it resets — or set your goal with the form.',
+    server_down: 'Server AI is unavailable',
+    ai_settings: 'AI settings',
     fill_form: 'Fill in the form',
     offline: 'Offline · chat saved',
     offline_disabled: 'The assistant can’t reply offline',
@@ -1462,6 +1468,19 @@ export const en = {
         title: 'AI request limit reached',
         body: 'Enter the dishes manually for now. The photo is saved with the entry — once the limit resets, you can recalculate from it.',
       },
+      key_bad: {
+        title: 'Your key doesn’t work',
+        body: 'Check it in Settings → AI. For now, add dishes manually — the photo is attached.',
+      },
+      key_quota: {
+        title: 'Your key’s limit is used up',
+        body: 'When it resets, tap Recognize. For now, log manually — the photo is attached.',
+      },
+      server_down: {
+        title: 'Server AI is unavailable',
+        body: 'Log it manually — the photo is attached.',
+      },
+      ai_settings: 'AI settings',
       failed: {
         title: 'Couldn’t recognize the photo',
         body: 'Try again or take a closer shot of the plate.',
@@ -2265,6 +2284,12 @@ export const en = {
           title: 'AI request limit reached. Try again later',
           body: 'The list is unchanged.',
         },
+        key_bad: {
+          title: 'Your key doesn’t work',
+          body: 'The list is unchanged. Check the key in Settings → AI.',
+        },
+        key_quota: 'Your key’s limit is used up. The list is unchanged.',
+        server_down: 'Server AI is unavailable',
         invalid: 'Couldn’t refine — try wording it differently',
         empty: 'AI removed every dish — the list is unchanged',
         no_vision:

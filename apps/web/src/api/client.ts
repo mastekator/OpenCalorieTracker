@@ -1,4 +1,4 @@
-import { API_VERSION, type ErrorCode } from '@oct/shared';
+import { API_VERSION, aiSourceSchema, type ErrorCode } from '@oct/shared';
 import type { z } from 'zod';
 
 /** Server codes plus `network`: the request never reached the server (client only). */
@@ -12,6 +12,14 @@ export class ApiError extends Error {
   ) {
     super(code);
   }
+}
+
+/** Whose AI failed (ADR-0031 §2): `details.aiSource` of an AI error, to word the message. */
+export function aiSourceOf(err: unknown) {
+  const details = err instanceof ApiError ? err.details : undefined;
+  return aiSourceSchema.safeParse(
+    (details as { aiSource?: unknown } | undefined)?.aiSource,
+  ).data;
 }
 
 // Set by app/update.ts once the service worker is registered.
