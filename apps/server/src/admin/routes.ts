@@ -340,6 +340,15 @@ export function adminRoutes({ config, db, ai, secrets, chatgpt }: RouteDeps) {
         validate('json', aiModelsRequestSchema),
         async (c) => {
           const draft = c.req.valid('json');
+          if (draft.provider === 'chatgpt') {
+            // Not signed in or a refused refresh: no list, the model id is typed.
+            const apiKey = await chatgpt.accessToken().catch(() => undefined);
+            return c.json({
+              models: apiKey
+                ? await fetchModels({ provider: 'chatgpt', apiKey })
+                : [],
+            } satisfies AiModelsResponse);
+          }
           const { apiKey, baseUrl } = draftConnection(draft);
           return c.json({
             models: await fetchModels({ ...draft, apiKey, baseUrl }),

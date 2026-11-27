@@ -114,11 +114,15 @@ export function throttle() {
   };
 }
 
-/** The provider's model list (ADR-0018 §4); a failure is 502 ai_models_failed with { state, details }. */
+/**
+ * The provider's model list (ADR-0018 §4); a failure is 502 ai_models_failed with { state, details }.
+ * For chatgpt a failure is an empty list: the model id is typed by hand then.
+ */
 export async function fetchModels(args: Parameters<typeof listModels>[0]) {
   try {
     return await listModels(args);
   } catch (err) {
+    if (args.provider === 'chatgpt') return [];
     const timedOut = (err as Error)?.name === 'TimeoutError';
     const { state, details } = aiResultOf(
       err,

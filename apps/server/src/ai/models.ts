@@ -1,5 +1,6 @@
 import { APICallError } from 'ai';
 import type { AiModelInfo, AiProviderId } from '@oct/shared';
+import { CHATGPT_BASE_URL } from './responses.js';
 
 export const MODELS_TIMEOUT_MS = 15_000;
 
@@ -10,7 +11,7 @@ const DEFAULT_BASE: Record<AiProviderId, string | undefined> = {
   anthropic: 'https://api.anthropic.com/v1',
   openrouter: 'https://openrouter.ai/api/v1',
   'openai-compatible': undefined,
-  chatgpt: undefined,
+  chatgpt: CHATGPT_BASE_URL,
 };
 // OpenAI does not report capabilities: models that cannot chat are hidden by name (ADR-0018 §4).
 const OPENAI_HIDDEN =
@@ -86,6 +87,7 @@ export async function listModels({
       break;
     }
     case 'openai':
+    case 'chatgpt': // the apiKey is the admin's sign-in token
       models = ((await get(`${base}/models`, bearer)).data as Json[])
         .filter((m) => !OPENAI_HIDDEN.test(m.id))
         .map((m) => ({ id: m.id, vision: null }));
@@ -128,10 +130,6 @@ export async function listModels({
       models = ((await get(`${base}/models`, bearer)).data as Json[]).map(
         (m) => ({ id: m.id, vision: null }),
       );
-      break;
-    case 'chatgpt':
-      // shortcut: no list yet, the model id is typed; the list with the sign-in token comes with OCT-534.
-      models = [];
       break;
   }
   const rank = (m: AiModelInfo) => (m.vision ? 0 : 1);
