@@ -10,6 +10,8 @@ import {
   refineLimitRequestSchema,
   saveAiSettingsRequestSchema,
   userKeysRequestSchema,
+  chatgptFinishRequestSchema,
+  type ChatgptStartResponse,
   type AdminAiStatus,
   type AiCheckResult,
   type AiDraft,
@@ -42,7 +44,7 @@ import {
   type AiSettings,
 } from '../ai/settings.js';
 import { providerState, recordAiResult } from '../ai/status.js';
-import type { AppDeps } from '../app.js';
+import type { RouteDeps } from '../app.js';
 import { DEVICE_FAILS, IP_FAILS } from '../auth/guard.js';
 import { createLink, LINK_TTL } from '../auth/invites.js';
 import { passkeyName } from '../auth/passkeys.js';
@@ -111,7 +113,7 @@ const deviceName = (ua: string | null) => {
 };
 
 /** Admin-only API (ADR-0003); everything under /api/admin answers 403 to other users (AC-2.8). */
-export function adminRoutes({ config, db, ai, secrets }: AppDeps) {
+export function adminRoutes({ config, db, ai, secrets, chatgpt }: RouteDeps) {
   const publicUrl = () => {
     if (!config.publicUrl) throw new ApiError(409, 'not_configured');
     return config.publicUrl;
@@ -313,6 +315,20 @@ export function adminRoutes({ config, db, ai, secrets }: AppDeps) {
           return c.json({ deleted } satisfies UserKeysResponse);
         },
       )
+      // ChatGPT sign-in by pasting the callback address (ADR-0031 §4); tokens never reach a response.
+      .post('/admin/ai/chatgpt/start', (c) =>
+        c.json({ url: chatgpt.start() } satisfies ChatgptStartResponse),
+      )
+      .post(
+        '/admin/ai/chatgpt/finish',
+        validate('json', chatgptFinishRequestSchema),
+        async (c) =>
+          c.json(await chatgpt.finish(c.req.valid('json').callbackUrl)),
+      )
+      .delete('/admin/ai/chatgpt', async (c) => {
+        await chatgpt.signOut();
+        return c.body(null, 204);
+      })
       // No throttle and no global state: listing models costs nothing and changes nothing.
       .post(
         '/admin/ai/models',

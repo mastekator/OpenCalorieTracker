@@ -40,6 +40,8 @@ export type ErrorCode =
   | 'outbound_env_managed'
   | 'tokens_env_managed'
   | 'user_ai_keys_env_managed'
+  | 'chatgpt_state_invalid'
+  | 'chatgpt_sign_in_failed'
   | 'integrations_disabled'
   | 'invalid_token'
   | 'insufficient_scope'

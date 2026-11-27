@@ -104,6 +104,16 @@ export type UserKeysRequest = z.infer<typeof userKeysRequestSchema>;
 /** PUT /api/admin/ai/user-keys response: how many users' keys were deleted. */
 export type UserKeysResponse = { deleted: number };
 
+/** POST /api/admin/ai/chatgpt/start response: the OpenAI address the admin opens (ADR-0031 §4). */
+export type ChatgptStartResponse = { url: string };
+/** POST /api/admin/ai/chatgpt/finish body: the address the browser failed to open after sign-in. */
+export const chatgptFinishRequestSchema = z.object({
+  callbackUrl: z.string().min(1).max(8192),
+});
+export type ChatgptFinishRequest = z.infer<typeof chatgptFinishRequestSchema>;
+/** The signed-in ChatGPT account; the label is the email, when OpenAI gives one. */
+export type ChatgptSignIn = { accountLabel: string | null; signedInAt: number };
+
 /** POST /api/admin/ai/check body: settings checked without saving (ADR-0018 §4). */
 export const aiDraftSchema = z.object(aiDraftFields);
 export type AiDraft = z.infer<typeof aiDraftSchema>;

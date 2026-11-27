@@ -11,6 +11,7 @@ import { consentRoutes } from './ai/consents.js';
 import { ownAiRoutes } from './ai/own.js';
 import type { AiRuntime } from './ai/runtime.js';
 import { authRoutes } from './auth/routes.js';
+import { createChatgptAuth, type ChatgptAuth } from './ai/chatgpt.js';
 import { photoBarcodes, type PhotoBarcodes } from './barcodes/read.js';
 import { barcodeRoutes } from './barcodes/routes.js';
 import { device } from './auth/device.js';
@@ -72,10 +73,16 @@ export interface AppDeps {
 export type RouteDeps = AppDeps & {
   /** Barcodes read from photos; one cache for the barcode and recognition routes. */
   photoBarcodes: PhotoBarcodes;
+  /** The admin's ChatGPT sign-in; one per process, so refreshes are shared (ADR-0031 §4). */
+  chatgpt: ChatgptAuth;
 };
 
 export function createApp(appDeps: AppDeps) {
-  const deps: RouteDeps = { ...appDeps, photoBarcodes: photoBarcodes() };
+  const deps: RouteDeps = {
+    ...appDeps,
+    photoBarcodes: photoBarcodes(),
+    chatgpt: createChatgptAuth(appDeps),
+  };
   const { config, db } = deps;
   const app = new Hono();
   app.onError(onError);

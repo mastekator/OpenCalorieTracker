@@ -16,7 +16,7 @@ describe('migrate', () => {
   it('brings an empty database to the latest version', () => {
     const db = openDb(':memory:');
     migrate(db);
-    expect(db.pragma('user_version', { simple: true })).toBe(36);
+    expect(db.pragma('user_version', { simple: true })).toBe(37);
     expect(tables(db)).toEqual([
       'agent_drafts',
       'agent_messages',
@@ -27,6 +27,7 @@ describe('migrate', () => {
       'api_tokens',
       'awards',
       'challenge_months',
+      'chatgpt_auth',
       'drink_entries',
       'drinks',
       'edible_prefs',
@@ -97,7 +98,7 @@ describe('migrate', () => {
       .pluck()
       .all();
     migrate(db);
-    expect(db.pragma('user_version', { simple: true })).toBe(36);
+    expect(db.pragma('user_version', { simple: true })).toBe(37);
     expect(
       db.prepare('SELECT sql FROM sqlite_master ORDER BY name').pluck().all(),
     ).toEqual(before);
@@ -140,6 +141,19 @@ describe('migrate', () => {
         ),
       },
     ]);
+  });
+
+  it('keeps at most one chatgpt_auth row (0037)', () => {
+    const db = openDb(':memory:');
+    migrate(db);
+    const insert = (id: number) =>
+      db
+        .prepare(
+          "INSERT INTO chatgpt_auth (id, client_id, access_enc, refresh_enc, expires_at, signed_in_at, rev) VALUES (?, 'c', 'a', 'r', 0, 0, 1)",
+        )
+        .run(id);
+    insert(1);
+    expect(() => insert(2)).toThrow(/CHECK/);
   });
 
   it('marks existing meals recognized and logged when created (0034)', () => {
@@ -269,7 +283,7 @@ describe('migrate', () => {
     const before = db.prepare('SELECT * FROM meal_items ORDER BY id').all();
 
     migrate(db);
-    expect(db.pragma('user_version', { simple: true })).toBe(36);
+    expect(db.pragma('user_version', { simple: true })).toBe(37);
     // Old dishes are grams (ADR-0038 §1).
     expect(db.prepare('SELECT * FROM meal_items ORDER BY id').all()).toEqual(
       before.map((r) => ({

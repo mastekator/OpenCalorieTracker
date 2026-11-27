@@ -2817,6 +2817,9 @@ const ru: DeepPartial<typeof en> = {
       'Токены доступа заданы в окружении сервера (ALLOW_API_TOKENS) — менять там',
     user_ai_keys_env_managed:
       'Свои API-ключи заданы в окружении сервера (ALLOW_USER_AI_KEYS) — менять там',
+    chatgpt_state_invalid:
+      'Адрес входа устарел или уже использован. Войдите в ChatGPT заново',
+    chatgpt_sign_in_failed: 'Не удалось войти в ChatGPT. Попробуйте ещё раз',
     integrations_disabled: 'Администратор выключил токены доступа',
     invalid_token: 'Токен неверный, истёк или отозван',
     rate_limited: 'Слишком много запросов. Повторите через минуту',
