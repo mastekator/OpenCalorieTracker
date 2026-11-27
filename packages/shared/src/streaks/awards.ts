@@ -32,16 +32,16 @@ export interface Award {
   counter: Counter;
 }
 
-const award = (
-  key: string,
+const award = <K extends string>(
+  key: K,
   category: AwardCategory,
   rarity: AwardRarity,
   counter: Counter,
   target = 1,
-): Award => ({ key, category, rarity, target, counter });
+): Award & { key: K } => ({ key, category, rarity, target, counter });
 
 /** The catalog in the order of the awards screen (product OCT-180, table 3.3). */
-export const AWARDS: readonly Award[] = [
+export const AWARDS = [
   award('weeks_1', 'path', 'common', 'weeks', 1),
   award('weeks_4', 'path', 'common', 'weeks', 4),
   award('weeks_12', 'path', 'rare', 'weeks', 12),
@@ -74,7 +74,10 @@ export const AWARDS: readonly Award[] = [
   award('secret_freeze', 'secret', 'common', 'freeze'),
   award('secret_backfill', 'secret', 'common', 'backfill'),
   award('secret_days_100_row', 'secret', 'epic', 'daysInRow', 100),
-];
+] as const;
+
+/** Literal award keys, so per-award data elsewhere (medal glyphs, texts) is checked for completeness. */
+export type AwardKey = (typeof AWARDS)[number]['key'];
 
 export const AWARD_KEYS: ReadonlySet<string> = new Set(
   AWARDS.map((a) => a.key),
