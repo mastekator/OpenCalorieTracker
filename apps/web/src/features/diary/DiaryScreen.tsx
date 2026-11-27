@@ -1,5 +1,5 @@
 import { Redirect, useLocation } from 'wouter';
-import { useMeals, useNorm } from '../../data/DataContext';
+import { useDrinkEntries, useMeals, useNorm } from '../../data/DataContext';
 import { useCapture } from '../meals/CaptureContext';
 import { diaryDay, localToday } from './day';
 import { DiaryDay } from './DiaryDay';
@@ -18,6 +18,7 @@ function Diary({ date, today }: { date: string; today: string }) {
   const capture = useCapture();
   const [, navigate] = useLocation();
   const meals = useMeals(date);
+  const drinks = useDrinkEntries(date, date);
   const norm = useNorm(date);
   const { hidden, remove } = useUndoDelete();
 
@@ -27,10 +28,11 @@ function Diary({ date, today }: { date: string; today: string }) {
       today={today}
       // The norm waits with the meals, so the total doesn't jump from «eaten» to «left».
       meals={
-        norm === undefined
+        norm === undefined || drinks === undefined
           ? undefined
           : meals?.filter((m) => !hidden.has(m.clientId))
       }
+      drinks={drinks}
       norm={norm ?? null}
       onDate={(next) => navigate(`/diary/${next}`, { replace: true })}
       onOpen={(meal) => navigate(mealPath(meal.clientId))}

@@ -4,6 +4,9 @@ import type {
   AiStatus,
   ChallengeMonth,
   ChallengeMonthPut,
+  Drink,
+  DrinkEntry,
+  DrinkEntryInput,
   Integrations,
   AccountSettingsPatch,
   IllustrationChoiceInput,
@@ -17,11 +20,12 @@ import type {
   ProfileResponse,
   Recipe,
   StoredAward,
+  WaterGoal,
   Weighing,
 } from '@oct/shared';
 
 /** Bump with a new `oldVersion` branch in `upgrade` when the stores change. */
-export const DB_VERSION = 5;
+export const DB_VERSION = 6;
 
 export interface OctDb extends DBSchema {
   meals: { key: string; value: Meal; indexes: { localDate: string } };
@@ -67,12 +71,22 @@ export interface OctDb extends DBSchema {
   /** Earned awards and the months' challenges (ADR-0032 §4). */
   awards: { key: string; value: StoredAward };
   challengeMonths: { key: string; value: ChallengeMonth };
+  /** The user's own drinks, deleted ones dropped (ADR-0028 §4). */
+  drinks: { key: number; value: Drink };
+  /** Drink entries by their uuid `clientId`, deleted ones dropped. */
+  drinkEntries: {
+    key: string;
+    value: DrinkEntry;
+    indexes: { date: string };
+  };
+  waterGoals: { key: string; value: WaterGoal };
 }
 
 /**
  * One queued change (ADR-0011 §4). `clientId` groups the ops of one meal;
  * settings use `settings`, the photo period `photoRetention`, an illustration choice `choice:<nameKey>`,
- * a weighing `weighing:<date>`, awards `awards`, a challenge month `challenge:<YYYY-MM>`.
+ * a weighing `weighing:<date>`, awards `awards`, a challenge month `challenge:<YYYY-MM>`,
+ * a drink entry `drink:<uuid>`.
  * `id` is the meal's server id, 0 until its createMeal is answered.
  * `error` is the code of a refused op: it stays for the badge and is not resent.
  * `sent` marks a createMeal that went out at least once: the server may already have it.
@@ -96,6 +110,8 @@ export type Op = {
   | { kind: 'deleteWeighing'; date: string }
   | { kind: 'putAwards'; body: StoredAward[] }
   | { kind: 'putChallengeMonth'; month: string; body: ChallengeMonthPut }
+  | { kind: 'createDrinkEntry'; body: DrinkEntryInput }
+  | { kind: 'deleteDrinkEntry' }
 );
 
 /** `edit`: the server has a newer edit, `theirs`; `deleted`: the meal was deleted there. */
@@ -112,7 +128,7 @@ export const dbName = (userId: number) => `oct-${userId}`;
 /** The user's own database (ADR-0011 §2). */
 export function openUserDb(userId: number) {
   return openDB<OctDb>(dbName(userId), DB_VERSION, {
-    upgrade(db, oldVersion) {
+    upgrade(db, oldVersion, _newVersion, tx) {
       if (oldVersion < 1) {
         db.createObjectStore('meals', { keyPath: 'clientId' }).createIndex(
           'localDate',
@@ -132,6 +148,15 @@ export function openUserDb(userId: number) {
       if (oldVersion < 5) {
         db.createObjectStore('awards', { keyPath: 'key' });
         db.createObjectStore('challengeMonths', { keyPath: 'month' });
+      }
+      if (oldVersion < 6) {
+        db.createObjectStore('drinks', { keyPath: 'id' });
+        db.createObjectStore('drinkEntries', {
+          keyPath: 'clientId',
+        }).createIndex('date', 'date');
+        db.createObjectStore('waterGoals', { keyPath: 'fromDate' });
+        // Drinks synced before this version are past `rev`: pull everything once.
+        if (oldVersion >= 1) void tx.objectStore('kv').delete('fullSyncAt');
       }
     },
     // Another tab (or clearLocal) deletes or upgrades the base: let it through.

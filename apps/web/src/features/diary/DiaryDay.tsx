@@ -2,6 +2,7 @@ import {
   addDays,
   remainingOf,
   sumDay,
+  type DrinkEntry,
   type Macros,
   type Meal,
 } from '@oct/shared';
@@ -23,6 +24,8 @@ type Props = {
   today: string;
   /** The day's meals, early to late; undefined while loading (6.12). */
   meals: Meal[] | undefined;
+  /** The day's drink entries: their kcal are in the total even with the water module off. */
+  drinks?: DrinkEntry[];
   /** Null without a norm: kcal and grams only. */
   norm: Macros | null;
   onDate: (date: string) => void;
@@ -43,6 +46,7 @@ export function DiaryDay({
   date,
   today,
   meals,
+  drinks = [],
   norm,
   onDate,
   onOpen,
@@ -74,7 +78,7 @@ export function DiaryDay({
       ) : (
         <div className="diary__body">
           <div className="diary__total">
-            <DayTotal eaten={sumDay(meals)} norm={norm} />
+            <DayTotal eaten={sumDay([...meals, ...drinks])} norm={norm} />
           </div>
           <div className="diary__list">
             {meals.length ? (

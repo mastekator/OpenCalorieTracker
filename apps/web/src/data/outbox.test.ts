@@ -8,7 +8,9 @@ import type {
 } from '@oct/shared';
 import { dbName, openUserDb, type Db } from './db';
 import {
+  createDrinkEntry,
   createMeal,
+  deleteDrinkEntry,
   deleteMeal,
   deleteWeighing,
   expiringPhotos,
@@ -23,6 +25,7 @@ import {
   putPhotoRetention,
   putWeighing,
 } from './outbox';
+import { pull } from './sync';
 import { clearLocal } from './user';
 
 const A = '00000000-0000-4000-8000-00000000000a';
@@ -945,6 +948,211 @@ describe('awards and challenge months', () => {
     expect(await ops()).toEqual([]);
   });
 });
+
+describe('drink entries', () => {
+  const tea = {
+    date: '2026-11-14',
+    takenAt: '2026-11-14T10:00:00.000Z',
+    ml: 200,
+    drinkKey: 'juice',
+  } as const;
+
+  it('an offline entry is in the copy at once, as the server would store it', async () => {
+    const id = await createDrinkEntry(db, tea);
+    await settle();
+    expect(await db.get('drinkEntries', id)).toMatchObject({
+      clientId: id,
+      drinkKey: 'juice',
+      ml: 200,
+      kcal: 90,
+      carbsG: 20.8,
+      countsWater: true,
+    });
+    expect(await ops()).toMatchObject([
+      {
+        kind: 'createDrinkEntry',
+        clientId: `drink:${id}`,
+        body: { ...tea, clientId: id },
+      },
+    ]);
+    expect(await pendingCount(db)).toBe(1);
+  });
+
+  it('snapshots the user’s own drink from the local copy', async () => {
+    await db.put('drinks', {
+      id: 3,
+      name: 'Cocoa',
+      illustration: 'drinks',
+      kcal: 80,
+      proteinG: 3,
+      fatG: 2,
+      carbsG: 12,
+      countsWater: false,
+      deleted: false,
+    } as never);
+    const id = await createDrinkEntry(db, { ...tea, drinkKey: 'custom:3' });
+    await settle();
+    expect(await db.get('drinkEntries', id)).toMatchObject({
+      name: 'Cocoa',
+      kcal: 160,
+      countsWater: false,
+    });
+  });
+
+  it('undoing an unsent entry drops it without a request', async () => {
+    const id = await createDrinkEntry(db, tea);
+    await settle();
+    await unsend();
+    serve({});
+    await deleteDrinkEntry(db, id);
+    await settle();
+    expect(await db.count('drinkEntries')).toBe(0);
+    expect(await ops()).toEqual([]);
+    expect(sent().filter((k) => k.includes('drink'))).toEqual([]);
+  });
+
+  it('undoing after a failed send still deletes: the server may have it', async () => {
+    const id = await createDrinkEntry(db, tea);
+    await settle();
+    await deleteDrinkEntry(db, id);
+    expect(await ops()).toMatchObject([
+      { kind: 'deleteDrinkEntry', clientId: `drink:${id}` },
+    ]);
+  });
+
+  it('a sent entry is deleted on the server; a 404 there counts as done', async () => {
+    const id = await createDrinkEntry(db, tea);
+    serve({
+      'POST /api/drink-entries': (body) =>
+        Response.json({ ...(body as object), kcal: 90, deleted: false }),
+    });
+    await flush(db);
+    expect(await ops()).toEqual([]);
+    await deleteDrinkEntry(db, id);
+    expect(await db.count('drinkEntries')).toBe(0);
+    serve({
+      [`DELETE /api/drink-entries/${id}`]: () => status(404, 'not_found'),
+    });
+    await flush(db);
+    expect(sent()).toContain(`DELETE /api/drink-entries/${id}`);
+    expect(await ops()).toEqual([]);
+  });
+
+  it('a 404 on create (own drink deleted) drops the op and the entry', async () => {
+    const id = await createDrinkEntry(db, tea);
+    serve({ 'POST /api/drink-entries': () => status(404, 'not_found') });
+    await flush(db);
+    expect(await ops()).toEqual([]);
+    expect(await db.get('drinkEntries', id)).toBeUndefined();
+  });
+
+  it('other refusals stay queued with their code', async () => {
+    await createDrinkEntry(db, tea);
+    serve({ 'POST /api/drink-entries': () => status(400) });
+    await flush(db);
+    expect(await ops()).toMatchObject([
+      { kind: 'createDrinkEntry', error: 'validation_failed' },
+    ]);
+  });
+
+  it('a sync keeps a queued entry and drops deleted ones', async () => {
+    const id = await createDrinkEntry(db, tea);
+    await settle();
+    await db.put('drinkEntries', { ...tea, clientId: A, kcal: 1 } as never);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        Response.json({
+          ...empty,
+          drinkEntries: [
+            { ...tea, clientId: id, kcal: 999, deleted: false },
+            { ...tea, clientId: A, deleted: true },
+          ],
+        }),
+      ),
+    );
+    await pull(db);
+    expect((await db.get('drinkEntries', id))?.kcal).toBe(90);
+    expect(await db.get('drinkEntries', A)).toBeUndefined();
+  });
+});
+
+describe('upgrade from version 5', () => {
+  it('pulls everything once and keeps queued meals and weighings', async () => {
+    db.close();
+    await clearLocal(7);
+    const v5 = await openDB(dbName(7), 5, {
+      upgrade(d) {
+        d.createObjectStore('meals', { keyPath: 'clientId' }).createIndex(
+          'localDate',
+          'localDate',
+        );
+        d.createObjectStore('outbox', {
+          keyPath: 'seq',
+          autoIncrement: true,
+        }).createIndex('clientId', 'clientId');
+        d.createObjectStore('kv');
+        d.createObjectStore('photos');
+        d.createObjectStore('weighings', { keyPath: 'date' });
+        d.createObjectStore('recipes', { keyPath: 'id' });
+        d.createObjectStore('products', { keyPath: 'code' });
+        d.createObjectStore('awards', { keyPath: 'key' });
+        d.createObjectStore('challengeMonths', { keyPath: 'month' });
+      },
+    });
+    await v5.put('kv', 9, 'rev');
+    await v5.put('kv', 1, 'fullSyncAt');
+    await v5.put('meals', { clientId: A, localDate: '2026-11-14', kcal: 1 });
+    await v5.add('outbox', { kind: 'patchMeal', clientId: A, id: 5 });
+    await v5.put('weighings', { date: '2026-11-14', weightKg: 79 });
+    await v5.add('outbox', {
+      kind: 'putWeighing',
+      clientId: 'weighing:2026-11-14',
+      body: { date: '2026-11-14', weightKg: 79 },
+    });
+    v5.close();
+    db = await openUserDb(7);
+    const urls: string[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => {
+        urls.push(url);
+        return Response.json({
+          ...empty,
+          meals: [{ clientId: A, localDate: '2026-11-14', kcal: 999 }],
+          weighings: [{ date: '2026-11-14', weightKg: 90 }],
+          drinkEntries: [{ ...drinkRow, clientId: B }],
+        });
+      }),
+    );
+    await pull(db);
+    expect(urls).toEqual(['/api/sync?since=0']);
+    expect((await db.get('meals', A))?.kcal).toBe(1);
+    expect(await db.get('weighings', '2026-11-14')).toEqual({
+      date: '2026-11-14',
+      weightKg: 79,
+    });
+    expect(await db.get('drinkEntries', B)).toMatchObject({ clientId: B });
+    // Later pulls go on from rev again.
+    urls.length = 0;
+    await pull(db);
+    expect(urls).toEqual(['/api/sync?since=1']);
+  });
+});
+
+const drinkRow = {
+  date: '2026-11-14',
+  takenAt: '2026-11-14T10:00:00.000Z',
+  drinkKey: 'water',
+  illustration: 'drinks-water',
+  ml: 250,
+  countsWater: true,
+  kcal: 0,
+  proteinG: 0,
+  fatG: 0,
+  carbsG: 0,
+  deleted: false,
+};
 
 describe('upgrade from version 1', () => {
   it('keeps meals and the queue and adds the later stores', async () => {

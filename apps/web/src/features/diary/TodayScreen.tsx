@@ -7,11 +7,13 @@ import {
   summarize,
   weekOf,
   type Macros,
+  type DrinkEntry,
   type Meal,
 } from '@oct/shared';
 import { useSession } from '../../app/SessionContext';
 import {
   useDb,
+  useDrinkEntries,
   useNorm,
   usePeriod,
   useProfile,
@@ -53,6 +55,8 @@ type ViewProps = {
   today: string;
   /** Today's meals in any order; undefined while the local copy loads. */
   meals: Meal[] | undefined;
+  /** Today's drink entries: their kcal are in the total even with the water module off. */
+  drinks?: DrinkEntry[];
   /** Null: no norm set; undefined: loading. */
   norm: Macros | null | undefined;
   /** kcal left for the week, negative is over; only with a norm. */
@@ -71,6 +75,7 @@ const newestFirst = (a: Meal, b: Meal) => b.eatenAt.localeCompare(a.eatenAt);
 export function TodayView({
   today,
   meals,
+  drinks = [],
   norm,
   weekRemainingKcal,
   highlight,
@@ -100,7 +105,7 @@ export function TodayView({
       </Delayed>
     );
   else {
-    const eaten = sumDay(meals);
+    const eaten = sumDay([...meals, ...drinks]);
     summary = (
       <>
         <InstallHint />
@@ -184,6 +189,7 @@ export function TodayScreen() {
   const weekMeals = usePeriod(week.from, week.to)?.filter(
     (m) => !hidden.has(m.clientId),
   );
+  const weekDrinks = useDrinkEntries(week.from, week.to);
   // The week is counted against today's norm (summarize takes one).
   const norm = useNorm(today);
   const [, navigate] = useLocation();
@@ -206,9 +212,9 @@ export function TodayScreen() {
   }, [highlight]);
 
   let weekRemainingKcal;
-  if (weekMeals && norm)
+  if (weekMeals && weekDrinks && norm)
     weekRemainingKcal = summarize(
-      periodDays(weekMeals, week.from, week.to),
+      periodDays(weekMeals, week.from, week.to, weekDrinks),
       norm,
       today,
     ).remaining?.kcal;
@@ -216,7 +222,8 @@ export function TodayScreen() {
   return (
     <TodayView
       today={today}
-      meals={weekMeals?.filter((m) => m.localDate === today)}
+      meals={weekDrinks && weekMeals?.filter((m) => m.localDate === today)}
+      drinks={weekDrinks?.filter((e) => e.date === today)}
       norm={norm}
       weekRemainingKcal={weekRemainingKcal}
       highlight={highlight}

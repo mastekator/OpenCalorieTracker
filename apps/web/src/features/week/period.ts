@@ -6,6 +6,7 @@ import {
   sumDay,
   weekOf,
   type DayTotals,
+  type DrinkEntry,
   type Meal,
 } from '@oct/shared';
 
@@ -78,11 +79,14 @@ export function periodDays(
   meals: readonly Meal[],
   from: string,
   to: string,
+  drinks: readonly DrinkEntry[] = [],
 ): DayTotals[] {
   const days = [];
   for (let d = from; d <= to; d = addDays(d, 1)) {
     const dayMeals = meals.filter((m) => m.localDate === d);
-    days.push({ date: d, ...sumDay(dayMeals), meals: dayMeals.length });
+    // Drinks add kcal, not meals: `meals` counts food only (ADR-0028 §5).
+    const eaten = sumDay([...dayMeals, ...drinks.filter((e) => e.date === d)]);
+    days.push({ date: d, ...eaten, meals: dayMeals.length });
   }
   return days;
 }
