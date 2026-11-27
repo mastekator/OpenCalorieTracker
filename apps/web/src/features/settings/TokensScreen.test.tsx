@@ -128,7 +128,7 @@ describe('TokensScreen (OCT-187 §4)', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Copy' }));
     await waitFor(() => expect(writeText).toHaveBeenCalledWith(SECRET));
-    expect(screen.getByRole('button', { name: 'Copied' })).toBeTruthy();
+    expect(await screen.findByRole('button', { name: 'Copied' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Done' }));
     await waitFor(() => expect(screen.queryByText(SECRET)).toBeNull());
     expect(screen.getByText('Home Assistant')).toBeTruthy();
