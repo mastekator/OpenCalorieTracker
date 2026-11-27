@@ -17,6 +17,7 @@ import { useT } from '../../i18n';
 import { DishIllustration } from '../../ui/DishIllustration/DishIllustration';
 import { List, ListRow } from '../../ui/List/List';
 import { useOnline } from '../../ui/OfflineBar/OfflineBar';
+import { useToast } from '../../ui/Toast/Toast';
 import { Switch } from '../../ui/Switch/Switch';
 import { useUndoDelete } from '../diary/undoDelete';
 import { CustomDrinkSheet } from '../water/CustomDrinkSheet';
@@ -32,6 +33,7 @@ export function DrinksScreen() {
   const db = useDb();
   const online = useOnline();
   const settings = useSettings();
+  const toast = useToast();
   const { hidden: deleting, hide } = useUndoDelete();
   const own = useCustomDrinks()
     ?.filter((d) => !deleting.has(`custom:${d.id}`))
@@ -48,7 +50,10 @@ export function DrinksScreen() {
     setOpen(undefined);
     // The id and the row place stay while «Undo» is offered; the DELETE goes after it.
     hide(`custom:${d.id}`, t('drink_list.deleted', { name: d.name }), () =>
-      deleteDrink(db, d.id),
+      // The undo window swallows errors: say so, the drink is back after a reload.
+      deleteDrink(db, d.id).catch(() =>
+        toast({ text: t('drink_list.delete_error') }),
+      ),
     );
   };
 

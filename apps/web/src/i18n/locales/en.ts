@@ -2395,6 +2395,7 @@ export const en = {
     footer:
       'The row is ordered by what you drink most often. Built-in drinks can’t be changed: if you need your own version, create your own drink.',
     deleted: 'Deleted: {name}',
+    delete_error: 'Couldn’t delete the drink. Try again later.',
   },
   drink_form: {
     new: 'Your drink',
