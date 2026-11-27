@@ -1,0 +1,312 @@
+/* OCT-184 §1–§3, D.1: streak row, streak card, streak screen, rules sheet. */
+
+.streak__flame {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: var(--tap-min);
+  height: var(--tap-min);
+  border-radius: 50%;
+  background: var(--color-streak-soft);
+  color: var(--color-streak);
+}
+
+.streak__flame--off {
+  background: var(--color-surface-2);
+  color: var(--color-text-secondary);
+}
+
+/* The row's flame is the round 44 of the card, not the list's 30 tile. */
+.streak-row .list-row__icon {
+  width: auto;
+  height: auto;
+  background: none;
+}
+
+.streak-row .list-row__label {
+  font-weight: var(--text-headline-weight);
+  font-variant-numeric: tabular-nums;
+}
+
+.streak__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.streak__titles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.streak__title {
+  margin: 0;
+  font-size: var(--text-title-size);
+  line-height: var(--text-title-lh);
+  font-weight: var(--text-title-weight);
+}
+
+.streak__title--long {
+  font-size: var(--text-headline-size);
+  line-height: var(--text-headline-lh);
+  font-weight: var(--text-headline-weight);
+}
+
+.streak__sub {
+  font-size: var(--text-footnote-size);
+  color: var(--color-text-secondary);
+}
+
+.streak__days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.streak__day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-caption-size);
+  color: var(--color-text-secondary);
+}
+
+.streak__day i {
+  display: grid;
+  place-items: center;
+  width: var(--streak-day-size);
+  height: var(--streak-day-size);
+  border-radius: 50%;
+  background: var(--color-surface-2);
+  color: var(--color-on-accent);
+}
+
+.streak__day i .lucide {
+  width: var(--icon-size-xs);
+  height: var(--icon-size-xs);
+}
+
+.streak__day--on i {
+  background: var(--color-accent);
+}
+
+.streak__day--ahead i {
+  background: transparent;
+  outline: var(--streak-line-width) dashed var(--color-separator);
+  outline-offset: calc(-1 * var(--streak-line-width));
+}
+
+.streak__day--today {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.streak__day--today i {
+  box-shadow:
+    0 0 0 2px var(--color-surface),
+    0 0 0 4px var(--color-accent);
+}
+
+.streak__week {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-subhead-size);
+}
+
+.streak__done {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.streak__done .lucide {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+}
+
+.streak__hr {
+  margin: var(--space-1) calc(-1 * var(--space-5));
+  border: 0;
+  border-top: 1px solid var(--color-separator);
+}
+
+.streak__trail {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.streak__w {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: var(--trail-week-height);
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-2);
+}
+
+.streak__w .lucide {
+  width: var(--icon-size-xs);
+  height: var(--icon-size-xs);
+}
+
+.streak__w--counted {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+.streak__w--frozen {
+  background: var(--color-freeze-soft);
+  color: var(--color-freeze);
+  outline: var(--streak-line-width) solid var(--color-freeze);
+  outline-offset: calc(-1 * var(--streak-line-width));
+}
+
+.streak__w--short {
+  background: transparent;
+  outline: var(--streak-line-width) dashed var(--color-border-strong);
+  outline-offset: calc(-1 * var(--streak-line-width));
+}
+
+.streak__w--current {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
+.streak__w--current u {
+  position: absolute;
+  inset: auto 0 0;
+  background: var(--color-accent-soft);
+  border-top: 2px solid var(--color-accent);
+}
+
+.streak__w--current b {
+  position: relative;
+  font-size: var(--text-caption-size);
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+.streak__trail-x {
+  margin-top: calc(-1 * var(--space-2));
+  font-size: var(--text-caption-size);
+  color: var(--color-text-secondary);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.streak__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  font-size: var(--text-caption-size);
+  color: var(--color-text-secondary);
+}
+
+.streak__legend span {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.streak__legend i {
+  width: var(--space-3);
+  height: var(--space-2);
+  border-radius: 2px;
+}
+
+.streaks,
+.streaks__main {
+  display: grid;
+  gap: var(--space-4);
+  align-items: start;
+}
+
+/* Heard by screen readers, not shown. */
+.streaks__loading {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.streaks__side:empty {
+  display: none;
+}
+
+/* D.1: two columns; the right one holds awards and past months. */
+@media (min-width: 1024px) {
+  .streaks {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .streaks__side:empty {
+    display: block;
+  }
+}
+
+.streak-rules {
+  display: grid;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-subhead-size);
+}
+
+.streak-rules li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.streak-rules i {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: var(--streak-day-size);
+  height: var(--streak-day-size);
+  border-radius: 50%;
+}
+
+.streak-rules i .lucide {
+  width: var(--icon-size-xs);
+  height: var(--icon-size-xs);
+}
+
+.streak-rules__streak {
+  background: var(--color-streak-soft);
+  color: var(--color-streak);
+}
+
+.streak-rules__freeze {
+  background: var(--color-freeze-soft);
+  color: var(--color-freeze);
+}
+
+.streak-rules__award {
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+
+.streak-rules__foot {
+  margin: var(--space-4) 0 0;
+  font-size: var(--text-footnote-size);
+  color: var(--color-text-secondary);
+}

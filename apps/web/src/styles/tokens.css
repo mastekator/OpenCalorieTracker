@@ -54,6 +54,9 @@
   --step-mark-size: 24px;       /* status mark of a recognition step (OCT-313 §1) */
   --stepper-value-width: 96px;  /* weight field between − and + on the edit screen (OCT-16 §3) */
   --period-label-width: 144px;  /* desktop week head: pager date, so arrows stay put while paging (OCT-19 D.3) */
+  --trail-week-height: 36px;    /* OCT-184: one week pill in the streak trail */
+  --streak-day-size: 28px;      /* OCT-184: day circle of this week on the streak card, rule marks */
+  --streak-line-width: 1.5px;   /* OCT-184: outline of a frozen / short week and a day still ahead */
   --progress-height: 8px;       /* kcal & macro bars on Today / Diary / Week */
   --water-figure-size: 120px;   /* OCT-147: water glass height on the Water card */
   --drink-tile-size: 56px;      /* OCT-147: round drink tile in the drinks row (hit area = tile + label) */
@@ -64,7 +67,7 @@
   --weight-x-tick: 4px;         /* x label ticks under the weight chart (OCT-446) */
   --tabbar-height: 49px;        /* + env(safe-area-inset-bottom) */
   --navbar-height: 44px;        /* + env(safe-area-inset-top) */
-  --icon-size: 24px;  --icon-size-sm: 20px;  --icon-stroke: 1.75;
+  --icon-size: 24px;  --icon-size-sm: 20px;  --icon-size-xs: 16px;  --icon-stroke: 1.75;
   --app-icon-size: 40px;        /* OCT-25: app icon in the install hint card */
   --splash-mark-size: 112px;    /* OCT-217: mark in the launch intro (ui/Splash) */
   --content-max-width: 560px;   /* phone-like column: auth, settings, tablet/narrow window */
@@ -166,6 +169,11 @@
   --color-water: #1A6AB2;
   --color-water-soft: #E8F2FB;
   --color-glass-highlight: rgb(255 255 255 / 0.75); /* glint on the water glass */
+  /* OCT-184: streak flame and freeze (graphics & text, ≥ 4.5:1 on surface) */
+  --color-streak: #B8480C;
+  --color-streak-soft: #FFEEE2;
+  --color-freeze: #1B6F8F;
+  --color-freeze-soft: #E2F2F7;
 
   /* OCT-33: dish illustrations (flat, decorative). Shown on a round "plate" tile so they never pass for a photo */
   --illo-tile: #F6F0E4;   /* round substrate behind every illustration */
@@ -256,6 +264,10 @@
     --color-water: #6DB6F2;
     --color-water-soft: #13263A;
     --color-glass-highlight: rgb(255 255 255 / 0.22);
+    --color-streak: #FF9E5E;
+    --color-streak-soft: #3A2214;
+    --color-freeze: #7FCDE6;
+    --color-freeze-soft: #12303A;
     --shadow-sheet: 0 -8px 32px rgb(0 0 0 / 0.5);
     --shadow-toast: 0 8px 24px rgb(0 0 0 / 0.5);
     --shadow-camera: 0 6px 16px rgb(0 0 0 / 0.5);
@@ -312,6 +324,10 @@
   --color-water: #6DB6F2;
   --color-water-soft: #13263A;
   --color-glass-highlight: rgb(255 255 255 / 0.22);
+  --color-streak: #FF9E5E;
+  --color-streak-soft: #3A2214;
+  --color-freeze: #7FCDE6;
+  --color-freeze-soft: #12303A;
   --shadow-sheet: 0 -8px 32px rgb(0 0 0 / 0.5);
   --shadow-toast: 0 8px 24px rgb(0 0 0 / 0.5);
   --shadow-camera: 0 6px 16px rgb(0 0 0 / 0.5);

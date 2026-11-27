@@ -189,6 +189,13 @@ export const en = {
       hint_on:
         'Your water goal is in the profile. Turn it off and the card goes away; entries and your drinks stay.',
     },
+    streaks: {
+      switch: 'Streaks and awards',
+      hint_on:
+        'Only days with entries count — not calories. Turn it off and streaks, awards and congratulations go away; the history stays.',
+      hint_off:
+        'Only days with entries count — not calories. Turn it on and the whole history shows up at once.',
+    },
     install: 'Add to Home Screen',
     ai: 'AI',
     ai_server: 'Through the server · {provider}',
@@ -2778,6 +2785,55 @@ export const en = {
   },
   unsaved: {
     title: 'Recipe changes aren’t saved',
+  },
+  streaks: {
+    title: 'Streaks and awards',
+    weeks: {
+      one: '{count} week in a row',
+      other: '{count} weeks in a row',
+    },
+    best: {
+      one: 'Best streak: {count} week',
+      other: 'Best streak: {count} weeks',
+    },
+    start: 'Your streak starts with the first week that counts',
+    restart: 'A new streak starts this week',
+    week_days: '{days} of {target} days this week',
+    week_done: 'Week counted',
+    week_logged: '{days} of 7 days',
+    week_progress: 'Days this week',
+    days_label: 'This week',
+    day: {
+      logged: '{day}: logged',
+      empty: '{day}: no entries',
+      ahead: '{day}: still ahead',
+      today: '{day}, today: {state}',
+      state_logged: 'logged',
+      state_empty: 'no entries yet',
+    },
+    trail: {
+      label: 'Last 10 weeks',
+      week: 'Week of {date}: {status}',
+      this: 'this',
+      counted: 'counted',
+      frozen: 'frozen',
+      short: 'didn’t add up',
+      current: 'in progress, {days} of {target} days',
+    },
+    rules: {
+      title: 'How the streak works',
+      week: 'A week counts if you log food on at least 5 of 7 days (Mon–Sun). How much you ate doesn’t matter. A streak is counted weeks in a row.',
+      freeze:
+        'A freeze keeps the streak when a week doesn’t add up. You get one for every 4 weeks in a row and can hold up to 2. It is used on its own.',
+      awards:
+        'Awards are for logging, not for calories: weeks and days with the diary, challenges, photos and precise grams. An award you got stays forever.',
+      foot: 'Only days with entries count — not calories. You can turn it off in Settings.',
+    },
+    off: {
+      title: 'Streaks and awards are off',
+      body: 'Only days with entries count — not calories. Turn it on and the whole history shows up at once, nothing is lost.',
+      enable: 'Turn on',
+    },
   },
   award: {
     category: {

@@ -1,9 +1,10 @@
-import { Settings2 } from 'lucide-react';
+import { Info, Settings2 } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import type { ConfigResponse } from '@oct/shared';
 import { Redirect, Route, Switch, useLocation, useSearch } from 'wouter';
 import { openUserDb } from '../data/db';
-import { flush, pendingCount } from '../data/outbox';
+import { useDb, useStreaks } from '../data/DataContext';
+import { flush, patchSettings, pendingCount } from '../data/outbox';
 import { getLastUser, pendingOf } from '../data/user';
 import { ConfirmDialog } from '../ui/ConfirmDialog/ConfirmDialog';
 import { useT } from '../i18n';
@@ -66,6 +67,9 @@ import { LighterScreen } from '../features/kitchen/LighterScreen';
 import { RecipeEditorScreen } from '../features/kitchen/RecipeEditor';
 import { RecipeScreen } from '../features/kitchen/RecipeScreen';
 import { ProfileScreen } from '../features/profile/ProfileScreen';
+import { useToday } from '../features/diary/useToday';
+import { STREAKS_PATH } from '../features/streaks/StreakRow';
+import { StreaksScreen } from '../features/streaks/StreaksScreen';
 import { periodPath } from '../features/week/period';
 import { WeekNavHead, WeekScreen } from '../features/week/WeekScreen';
 import { WeightScreen } from '../features/weight/WeightScreen';
@@ -90,6 +94,41 @@ function Screen({
       <NavBar {...nav} />
       <main className="screen__body">{children}</main>
     </div>
+  );
+}
+
+/** `/week/streaks`; `?rules` opens the rules sheet (OCT-184 2.2), the ⓘ only while on (3.6). */
+export function StreaksRoute() {
+  const { t } = useT();
+  const [, navigate] = useLocation();
+  const rules = new URLSearchParams(useSearch()).has('rules');
+  const today = useToday();
+  const streaks = useStreaks(today);
+  const db = useDb();
+  const go = (href: string) => () => navigate(href, { replace: true });
+  return (
+    <Screen
+      wide
+      title={t('streaks.title')}
+      back={{ href: '/week', label: t('nav.week') }}
+      action={
+        streaks?.on
+          ? {
+              icon: Info,
+              label: t('streaks.rules.title'),
+              onClick: go(`${STREAKS_PATH}?rules`),
+            }
+          : undefined
+      }
+    >
+      <StreaksScreen
+        streaks={streaks}
+        today={today}
+        rulesOpen={rules && !!streaks?.on}
+        onCloseRules={go(STREAKS_PATH)}
+        onEnable={() => void patchSettings(db, { streaksEnabled: true })}
+      />
+    </Screen>
   );
 }
 
@@ -134,6 +173,9 @@ export function AppScreens() {
       </Route>
       <Route path="/week">
         <Redirect to={periodPath('week', localToday())} replace />
+      </Route>
+      <Route path={STREAKS_PATH}>
+        <StreaksRoute />
       </Route>
       <Route path="/week/:id">
         {({ id }) => (
