@@ -555,6 +555,51 @@ describe('POST /api/admin/ai/models', () => {
   });
 });
 
+describe('POST /api/admin/ai/models for chatgpt', () => {
+  const TOKEN = 'chatgpt-access-SECRET';
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('lists with the sign-in token', async () => {
+    const t = await setup();
+    vi.spyOn(t.ai.chatgpt, 'accessToken').mockResolvedValue(TOKEN);
+    const fn = vi.fn(() =>
+      Promise.resolve(
+        Response.json({ data: [{ id: 'gpt-5.4' }, { id: 'whisper-1' }] }),
+      ),
+    );
+    vi.stubGlobal('fetch', fn);
+    const res = await t.models({ provider: 'chatgpt' });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      models: [{ id: 'gpt-5.4', vision: null }],
+    });
+    expect(fn.mock.calls[0]).toMatchObject([
+      'https://api.openai.com/v1/models',
+      { headers: { Authorization: `Bearer ${TOKEN}` } },
+    ]);
+  });
+
+  it('an expired sign-in or a failed list is an empty list, token kept out', async () => {
+    const t = await setup();
+    const token = vi.spyOn(t.ai.chatgpt, 'accessToken');
+    const fn = vi.fn(() =>
+      Promise.reject(new TypeError(`fetch failed for ${TOKEN}`)),
+    );
+    vi.stubGlobal('fetch', fn);
+    token.mockRejectedValueOnce(new Error('ChatGPT token refresh failed'));
+    token.mockResolvedValueOnce(TOKEN);
+    for (let i = 0; i < 2; i++) {
+      const res = await t.models({ provider: 'chatgpt' });
+      expect(res.status).toBe(200);
+      const text = await res.text();
+      expect(JSON.parse(text)).toEqual({ models: [] });
+      expect(text).not.toContain(TOKEN);
+    }
+    expect(fn).toHaveBeenCalledTimes(1);
+    expect(logged()).not.toContain(TOKEN);
+  });
+});
+
 describe('a saved key and a new address in the draft', () => {
   const LOCAL = 'http://llm.local:11434/v1';
   const local = { provider: 'openai-compatible', model: 'llava' };
