@@ -24,20 +24,30 @@ export function pull(db: Db): Promise<void> {
 }
 
 async function pullPages(db: Db) {
-  let more = true;
-  while (more) {
-    const since = ((await db.get('kv', 'rev')) as number | undefined) ?? 0;
+  // A client from before the awards stores has rev > 0 and empty stores: one pull from 0 fills them (ADR-0032 §4).
+  const full = !(await db.get('kv', 'fullSyncAt'));
+  let since = full ? 0 : (((await db.get('kv', 'rev')) as number) ?? 0);
+  for (;;) {
     const page = await api(`/api/sync?since=${since}`, syncResponse);
-    await apply(db, page);
+    await apply(db, page, full && !page.more);
     emitChange();
-    more = page.more;
+    if (!page.more) return;
+    since = page.rev;
   }
 }
 
 /** One page, one transaction: a broken pull never leaves `rev` ahead of the data. */
-async function apply(db: Db, page: SyncResponse) {
+async function apply(db: Db, page: SyncResponse, fullDone: boolean) {
   const tx = db.transaction(
-    ['meals', 'outbox', 'kv', 'weighings', 'recipes'],
+    [
+      'meals',
+      'outbox',
+      'kv',
+      'weighings',
+      'recipes',
+      'awards',
+      'challengeMonths',
+    ],
     'readwrite',
   );
   const meals = tx.objectStore('meals');
@@ -89,7 +99,15 @@ async function apply(db: Db, page: SyncResponse) {
   const recipes = tx.objectStore('recipes');
   for (const recipe of page.recipes ?? []) await recipes.put(recipe);
   for (const id of page.deletedRecipeIds ?? []) await recipes.delete(id);
+  // A queued op wins until it is sent; its answer brings the server's merge.
+  if (!(await pending.count('awards')))
+    for (const award of page.awards ?? [])
+      await tx.objectStore('awards').put(award);
+  for (const month of page.challengeMonths ?? [])
+    if (!(await pending.count(`challenge:${month.month}`)))
+      await tx.objectStore('challengeMonths').put(month);
   await kv.put(page.rev, 'rev');
+  if (fullDone) await kv.put(Date.now(), 'fullSyncAt');
   await tx.done;
 }
 

@@ -11,7 +11,13 @@ import { I18nProvider, LOCALE_STORAGE_KEY } from '../i18n';
 import { ToastProvider } from '../ui/Toast/Toast';
 import { DataProvider, useMeals, useNorm } from './DataContext';
 import { openUserDb, type Db } from './db';
-import { patchSettings, putWeighing } from './outbox';
+import {
+  flush,
+  patchSettings,
+  putAwards,
+  putChallengeMonth,
+  putWeighing,
+} from './outbox';
 import { pull, storeProfile } from './sync';
 import { clearLocal } from './user';
 
@@ -223,6 +229,64 @@ describe('pull', () => {
     serve(page({ rev: 4, profile: { ...PROFILE, rev: 4 } }));
     await pull(db);
     expect(await db.get('kv', 'profile')).toMatchObject({ rev: 9 });
+  });
+
+  it('sets fullSyncAt only after the last page of a pull from 0', async () => {
+    await open();
+    serve(page({ rev: 5, more: true }), page({ rev: 6, more: true }));
+    await expect(pull(db)).rejects.toThrow();
+    expect(await db.get('kv', 'fullSyncAt')).toBeUndefined();
+    const urls = serve(page({ rev: 7 }));
+    await pull(db);
+    expect(urls).toEqual(['/api/sync?since=0']);
+    expect(await db.get('kv', 'fullSyncAt')).toBeTypeOf('number');
+  });
+
+  it('pulls from 0 once on a client with rev but no fullSyncAt', async () => {
+    await open();
+    await db.put('kv', 40, 'rev');
+    const award = { key: 'days_1', earnedOn: '2026-11-01', seen: true };
+    const urls = serve(page({ rev: 41, awards: [award] }));
+    await pull(db);
+    expect(urls).toEqual(['/api/sync?since=0']);
+    expect(await db.getAll('awards')).toEqual([award]);
+    serve(page({ rev: 41 }));
+    await pull(db);
+    expect(vi.mocked(fetch).mock.calls[0]![0]).toBe('/api/sync?since=41');
+  });
+
+  it('applies awards and months but keeps the ones with a queued op', async () => {
+    await open();
+    vi.stubGlobal('fetch', () => Promise.reject(new TypeError('offline')));
+    const mine = { key: 'days_1', earnedOn: '2026-11-02', seen: false };
+    await putAwards(db, [mine]);
+    await putChallengeMonth(db, '2026-11', {
+      keys: ['days_20'],
+      done: {},
+      closed: false,
+    });
+    await flush(db).catch(() => {});
+    const october = {
+      month: '2026-10',
+      keys: ['profile'],
+      done: {},
+      closed: true,
+    };
+    serve(
+      page({
+        awards: [{ key: 'days_30', earnedOn: '2026-11-01', seen: true }],
+        challengeMonths: [
+          october,
+          { month: '2026-11', keys: ['photo_20'], done: {}, closed: false },
+        ],
+      }),
+    );
+    await pull(db);
+    expect(await db.getAll('awards')).toEqual([mine]);
+    expect(await db.getAll('challengeMonths')).toEqual([
+      october,
+      { month: '2026-11', keys: ['days_20'], done: {}, closed: false },
+    ]);
   });
 
   it('runs one pull at a time', async () => {

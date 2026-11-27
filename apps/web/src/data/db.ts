@@ -2,6 +2,8 @@ import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 import type {
   AccountSettings,
   AiStatus,
+  ChallengeMonth,
+  ChallengeMonthPut,
   Integrations,
   AccountSettingsPatch,
   IllustrationChoiceInput,
@@ -14,20 +16,25 @@ import type {
   Product,
   ProfileResponse,
   Recipe,
+  StoredAward,
   Weighing,
 } from '@oct/shared';
 
 /** Bump with a new `oldVersion` branch in `upgrade` when the stores change. */
-export const DB_VERSION = 4;
+export const DB_VERSION = 5;
 
 export interface OctDb extends DBSchema {
   meals: { key: string; value: Meal; indexes: { localDate: string } };
   /** Unsent changes, in order (OCT-77). */
   outbox: { key: number; value: Op; indexes: { clientId: string } };
   kv: {
-    /** `aiStatus`, `integrations`: the last GET /api/ai/status, /api/integrations, shown offline. */
+    /**
+     * `aiStatus`, `integrations`: the last GET /api/ai/status, /api/integrations, shown offline.
+     * `fullSyncAt`: when a pull from `since = 0` last reached `more: false` (ADR-0032 §4).
+     */
     key:
       | 'rev'
+      | 'fullSyncAt'
       | 'me'
       | 'settings'
       | 'choices'
@@ -51,12 +58,15 @@ export interface OctDb extends DBSchema {
   recipes: { key: number; value: Recipe };
   /** Products found by barcode and the user's own, for the offline lookup (ADR-0034 §7). */
   products: { key: string; value: Product };
+  /** Earned awards and the months' challenges (ADR-0032 §4). */
+  awards: { key: string; value: StoredAward };
+  challengeMonths: { key: string; value: ChallengeMonth };
 }
 
 /**
  * One queued change (ADR-0011 §4). `clientId` groups the ops of one meal;
  * settings use `settings`, the photo period `photoRetention`, an illustration choice `choice:<nameKey>`,
- * a weighing `weighing:<date>`.
+ * a weighing `weighing:<date>`, awards `awards`, a challenge month `challenge:<YYYY-MM>`.
  * `id` is the meal's server id, 0 until its createMeal is answered.
  * `error` is the code of a refused op: it stays for the badge and is not resent.
  * `sent` marks a createMeal that went out at least once: the server may already have it.
@@ -78,6 +88,8 @@ export type Op = {
   | { kind: 'putPhotoRetention'; body: PhotoRetention }
   | { kind: 'putWeighing'; body: Weighing }
   | { kind: 'deleteWeighing'; date: string }
+  | { kind: 'putAwards'; body: StoredAward[] }
+  | { kind: 'putChallengeMonth'; month: string; body: ChallengeMonthPut }
 );
 
 /** `edit`: the server has a newer edit, `theirs`; `deleted`: the meal was deleted there. */
@@ -111,6 +123,10 @@ export function openUserDb(userId: number) {
         db.createObjectStore('weighings', { keyPath: 'date' });
       if (oldVersion < 3) db.createObjectStore('recipes', { keyPath: 'id' });
       if (oldVersion < 4) db.createObjectStore('products', { keyPath: 'code' });
+      if (oldVersion < 5) {
+        db.createObjectStore('awards', { keyPath: 'key' });
+        db.createObjectStore('challengeMonths', { keyPath: 'month' });
+      }
     },
     // Another tab (or clearLocal) deletes or upgrades the base: let it through.
     blocking(_current, _blocked, event) {

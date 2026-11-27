@@ -17,6 +17,8 @@ import {
   patchMeal,
   patchSettings,
   pendingCount,
+  putAwards,
+  putChallengeMonth,
   putIllustrationChoice,
   putPhotoRetention,
   putWeighing,
@@ -845,8 +847,107 @@ describe('weighings', () => {
   });
 });
 
+describe('awards and challenge months', () => {
+  const award = (key: string, earnedOn: string, seen = false) => ({
+    key,
+    earnedOn,
+    seen,
+  });
+
+  it('show at once, merge into one op and store the server answer', async () => {
+    await putAwards(db, [award('days_1', '2026-11-05')]);
+    await settle();
+    await putAwards(db, [
+      award('days_1', '2026-11-03'),
+      award('days_30', '2026-11-20'),
+    ]);
+    await settle();
+    expect(await db.getAll('awards')).toEqual([
+      award('days_1', '2026-11-03'),
+      award('days_30', '2026-11-20'),
+    ]);
+    expect(await ops()).toMatchObject([
+      {
+        kind: 'putAwards',
+        clientId: 'awards',
+        body: [award('days_1', '2026-11-03'), award('days_30', '2026-11-20')],
+      },
+    ]);
+    serve({
+      'PUT /api/awards': () =>
+        Response.json({
+          awards: [
+            award('days_1', '2026-11-01', true),
+            award('days_30', '2026-11-20'),
+          ],
+        }),
+    });
+    await flush(db);
+    expect(calls[0]![0]).toBe('PUT /api/awards');
+    expect(await ops()).toEqual([]);
+    expect(await db.get('awards', 'days_1')).toEqual(
+      award('days_1', '2026-11-01', true),
+    );
+  });
+
+  it('a month from two devices converges on the server keys', async () => {
+    await putChallengeMonth(db, '2026-11', {
+      keys: ['days_20', 'photo_20'],
+      done: { days_20: '2026-11-25' },
+      closed: false,
+    });
+    await settle();
+    expect(await db.get('challengeMonths', '2026-11')).toEqual({
+      month: '2026-11',
+      keys: ['days_20', 'photo_20'],
+      done: { days_20: '2026-11-25' },
+      closed: false,
+    });
+    // The other device stored its set first.
+    const server = {
+      month: '2026-11',
+      keys: ['days_20', 'grams_10', 'profile'],
+      done: { days_20: '2026-11-25' },
+      closed: false,
+    };
+    serve({ 'PUT /api/challenges/2026-11': () => Response.json(server) });
+    await flush(db);
+    expect(calls[0]).toEqual([
+      'PUT /api/challenges/2026-11',
+      {
+        keys: ['days_20', 'photo_20'],
+        done: { days_20: '2026-11-25' },
+        closed: false,
+      },
+    ]);
+    expect(await db.get('challengeMonths', '2026-11')).toEqual(server);
+    expect(await ops()).toEqual([]);
+    // Later puts keep the stored keys and only merge done.
+    serve({});
+    await putChallengeMonth(db, '2026-11', {
+      keys: ['photo_20'],
+      done: { profile: '2026-11-26', days_20: '2026-11-27' },
+      closed: true,
+    });
+    await settle();
+    expect(await db.get('challengeMonths', '2026-11')).toEqual({
+      ...server,
+      done: { days_20: '2026-11-25', profile: '2026-11-26' },
+      closed: true,
+    });
+  });
+
+  it('drops a refused op', async () => {
+    await putAwards(db, [award('days_1', '2026-11-05')]);
+    await settle();
+    serve({ 'PUT /api/awards': () => status(400) });
+    await flush(db);
+    expect(await ops()).toEqual([]);
+  });
+});
+
 describe('upgrade from version 1', () => {
-  it('keeps meals and the queue and adds weighings', async () => {
+  it('keeps meals and the queue and adds the later stores', async () => {
     db.close();
     await clearLocal(7);
     const v1 = await openDB(dbName(7), 1, {
@@ -870,5 +971,7 @@ describe('upgrade from version 1', () => {
     expect(await db.get('meals', A)).toMatchObject({ clientId: A });
     expect(await ops()).toMatchObject([{ kind: 'deleteMeal', id: 5 }]);
     expect(await db.count('weighings')).toBe(0);
+    expect(await db.count('awards')).toBe(0);
+    expect(await db.count('challengeMonths')).toBe(0);
   });
 });
