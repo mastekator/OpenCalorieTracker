@@ -264,6 +264,30 @@ describe('«What should I fix?» on the edit screen (OCT-261)', () => {
     },
   );
 
+  it.each([
+    ['own_key', 503, 'ai_unavailable', 'Your key doesn’t work'],
+    [
+      'own_key',
+      429,
+      'ai_quota_exceeded',
+      'Your key’s limit is used up. The list is unchanged.',
+    ],
+    ['server', 503, 'ai_unavailable', 'Server AI is unavailable'],
+  ] as const)(
+    '%s %i %s: «%s» (ADR-0031 §2)',
+    async (aiSource, status, code, text) => {
+      await setup();
+      await refine(
+        'there is chicken',
+        Response.json({ error: { code, details: { aiSource } } }, { status }),
+      );
+      expect(screen.getByText(text)).toBeTruthy();
+      expect(!!button('AI settings')).toBe(
+        code === 'ai_unavailable' && aiSource === 'own_key',
+      );
+    },
+  );
+
   it('«Try again» after «AI unavailable» sends the same request with a new requestId', async () => {
     await setup();
     await refine('there is chicken', failure(503, 'ai_unavailable'));

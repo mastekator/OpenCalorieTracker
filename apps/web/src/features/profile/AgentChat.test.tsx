@@ -364,6 +364,46 @@ describe('AgentChat errors and exits (OCT-91)', () => {
     },
   );
 
+  it.each([
+    [
+      'own_key',
+      'ai_unavailable',
+      'Your key doesn’t work, so I can’t reply. Check the key in Settings → AI, or set your goal with the form.',
+    ],
+    [
+      'own_key',
+      'ai_quota_exceeded',
+      'Your key’s limit is used up. We’ll continue once it resets — or set your goal with the form.',
+    ],
+    ['server', 'ai_unavailable', 'Server AI is unavailable'],
+  ] as const)(
+    '%s %s: says whose AI failed (ADR-0031 §2)',
+    async (aiSource, code, text) => {
+      serve(opening, {
+        '/api/norm-agent/messages': () => {
+          throw new ApiError(503, code, { aiSource });
+        },
+      });
+      await setup();
+      await screen.findByRole('button', { name: 'Male' });
+
+      send('male');
+      expect(await screen.findByText(text)).toBeTruthy();
+      expect(
+        screen.getByRole('button', { name: 'Fill in the form' }),
+      ).toBeTruthy();
+      const settings = screen.queryByRole('button', { name: 'AI settings' });
+      expect(!!settings).toBe(
+        aiSource === 'own_key' && code === 'ai_unavailable',
+      );
+      if (settings) {
+        fireEvent.click(settings);
+        expect(location.pathname).toBe('/settings/ai');
+        history.replaceState(null, '', '/');
+      }
+    },
+  );
+
   it('agent_closed: only the form and a fresh start', async () => {
     serve(opening, { '/api/norm-agent/messages': fail('agent_closed') });
     await setup();

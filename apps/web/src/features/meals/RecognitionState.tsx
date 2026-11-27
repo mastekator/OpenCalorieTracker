@@ -1,5 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { CircleAlert, CloudOff, Gauge, SearchX, WifiOff } from 'lucide-react';
+import {
+  CircleAlert,
+  CloudOff,
+  Gauge,
+  KeyRound,
+  SearchX,
+  WifiOff,
+} from 'lucide-react';
 import { useT } from '../../i18n';
 import { Banner } from '../../ui/Banner/Banner';
 import { Button } from '../../ui/Button/Button';
@@ -19,6 +26,11 @@ export type RecognitionStateKind =
   | 'slow'
   | 'unavailable'
   | 'quota'
+  /** The user's own key (ADR-0031): rejected, or its limit used up (design OCT-178 4.1). */
+  | 'key_bad'
+  | 'key_quota'
+  /** The server's AI failed while the user is on it (design OCT-178 4.3). */
+  | 'server_down'
   | 'failed'
   | 'gone'
   | 'empty'
@@ -122,6 +134,8 @@ type Props = {
   onRetake?: () => void;
   onManual: () => void;
   onClose: () => void;
+  /** Opens Settings → AI, for `key_bad`. */
+  onAiSettings?: () => void;
 };
 
 /** The photo under recognition and what is happening to it; no requests here. */
@@ -135,6 +149,7 @@ export function RecognitionState({
   onRetake,
   onManual,
   onClose,
+  onAiSettings,
 }: Props) {
   const { t } = useT();
   // No «Retake» means recalculating a saved meal: every way out leads back to it.
@@ -166,6 +181,12 @@ export function RecognitionState({
     </Button>
   );
 
+  const close = (
+    <Button key="close" variant="plain" onClick={onClose}>
+      {t('common.close')}
+    </Button>
+  );
+
   const error = {
     loading: null,
     slow: null,
@@ -181,14 +202,35 @@ export function RecognitionState({
       tone: 'warning',
       title: t('recog.err.quota.title'),
       body: t(recalc ? 'recalc.quota' : 'recog.err.quota.body'),
-      actions: recalc
-        ? [manual('primary')]
-        : [
-            manual('primary'),
-            <Button key="close" variant="plain" onClick={onClose}>
-              {t('common.close')}
-            </Button>,
-          ],
+      actions: recalc ? [manual('primary')] : [manual('primary'), close],
+    },
+    key_bad: {
+      icon: <KeyRound />,
+      tone: 'danger',
+      title: t('recog.err.key_bad.title'),
+      body: t(recalc ? 'recalc.unavailable' : 'recog.err.key_bad.body'),
+      actions: [
+        onAiSettings && (
+          <Button key="settings" variant="primary" onClick={onAiSettings}>
+            {t('recog.err.ai_settings')}
+          </Button>
+        ),
+        manual('tonal'),
+      ],
+    },
+    key_quota: {
+      icon: <Gauge />,
+      tone: 'warning',
+      title: t('recog.err.key_quota.title'),
+      body: t(recalc ? 'recalc.quota' : 'recog.err.key_quota.body'),
+      actions: recalc ? [manual('primary')] : [manual('primary'), close],
+    },
+    server_down: {
+      icon: <CloudOff />,
+      tone: 'danger',
+      title: t('recog.err.server_down.title'),
+      body: t(recalc ? 'recalc.unavailable' : 'recog.err.server_down.body'),
+      actions: [retry('primary'), manual('tonal')],
     },
     failed: {
       icon: <CircleAlert />,

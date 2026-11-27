@@ -25,6 +25,7 @@ const meta = {
     onRetake: fn(),
     onManual: fn(),
     onClose: fn(),
+    onAiSettings: fn(),
   },
 } satisfies Meta<typeof RecognitionState>;
 export default meta;
@@ -48,6 +49,20 @@ export const UnavailableDark: Story = {
 export const Quota: Story = { args: { state: 'quota' } };
 export const QuotaDark: Story = { args: { state: 'quota' }, globals: dark };
 /** 3.5 */
+/** Design OCT-178 4.1, 4.3: whose AI failed. */
+export const KeyBad: Story = { args: { state: 'key_bad' } };
+export const KeyBadDark: Story = { args: { state: 'key_bad' }, globals: dark };
+export const KeyQuota: Story = { args: { state: 'key_quota' } };
+export const KeyQuotaDark: Story = {
+  args: { state: 'key_quota' },
+  globals: dark,
+};
+export const ServerDown: Story = { args: { state: 'server_down' } };
+export const ServerDownDark: Story = {
+  args: { state: 'server_down' },
+  globals: dark,
+};
+
 export const Failed: Story = { args: { state: 'failed' } };
 export const FailedDark: Story = { args: { state: 'failed' }, globals: dark };
 /** 3.5 without «Try again»: the photo is gone or expired. */

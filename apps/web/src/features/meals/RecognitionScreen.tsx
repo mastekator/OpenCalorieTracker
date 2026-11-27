@@ -10,7 +10,7 @@ import {
   type MergedDish,
   type PhotoBarcodesResponse,
 } from '@oct/shared';
-import { api, ApiError } from '../../api/client';
+import { aiSourceOf, api, ApiError } from '../../api/client';
 import { DataContext } from '../../data/DataContext';
 import { keepProduct } from '../../data/products';
 import { useT } from '../../i18n';
@@ -22,6 +22,7 @@ import {
   type RecognitionStateKind,
 } from './RecognitionState';
 import { useAiConsent } from '../ai/AiConsent';
+import { AI_SETTINGS_PATH } from '../settings/AiScreen';
 
 /** The edit screen (OCT-58). */
 export const MEAL_EDIT_PATH = `${MEAL_NEW_PATH}/edit`;
@@ -204,6 +205,7 @@ export function RecognitionScreen({
         if (!(err instanceof ApiError)) return setState('unavailable'); // TimeoutError
         if (err.status === 0)
           return setState(navigator.onLine ? 'unavailable' : 'offline');
+        const source = aiSourceOf(err);
         switch (err.code) {
           case 'ai_not_configured':
             return withoutAi('not_configured');
@@ -212,12 +214,20 @@ export function RecognitionScreen({
           case 'ai_consent_required': // «Not now»: manual entry with the photo (OCT-178 2.4)
             return toEdit({ manual: 'user' });
           case 'ai_quota_exceeded':
-            return setState('quota');
+            return setState(source === 'own_key' ? 'key_quota' : 'quota');
           case 'ai_invalid_response':
             return setState('failed');
           case 'not_found':
           case 'photo_expired':
             return setState('gone');
+          case 'ai_unavailable':
+            return setState(
+              source === 'own_key'
+                ? 'key_bad'
+                : source === 'server'
+                  ? 'server_down'
+                  : 'unavailable',
+            );
           default:
             return setState('unavailable');
         }
@@ -241,7 +251,12 @@ export function RecognitionScreen({
   }, [photoId, attempt]);
 
   const aiDown =
-    state === 'slow' || state === 'unavailable' || state === 'quota';
+    state === 'slow' ||
+    state === 'unavailable' ||
+    state === 'quota' ||
+    state === 'key_bad' ||
+    state === 'key_quota' ||
+    state === 'server_down';
   return (
     <div className="screen">
       <NavBar
@@ -271,6 +286,7 @@ export function RecognitionScreen({
           onRetake={recalc ? undefined : capture.camera}
           onManual={() => toEdit({ manual: aiDown ? 'ai_down' : 'user' })}
           onClose={() => (recalc ? recalc.onBack() : navigate('/'))}
+          onAiSettings={() => navigate(AI_SETTINGS_PATH)}
         />
       </main>
     </div>

@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from 'react';
 import { Ellipsis, Pencil } from 'lucide-react';
+import { useLocation } from 'wouter';
 import { z } from 'zod';
 import {
   activitySchema,
@@ -23,8 +24,9 @@ import {
   type Profile,
   type ProfileResponse,
   type Units,
+  type AiSource,
 } from '@oct/shared';
-import { api, ApiError } from '../../api/client';
+import { aiSourceOf, api, ApiError } from '../../api/client';
 import { useT } from '../../i18n';
 import {
   AgentMessage,
@@ -45,6 +47,7 @@ import { OfflineBar, useOnline } from '../../ui/OfflineBar/OfflineBar';
 import { Sheet } from '../../ui/Sheet/Sheet';
 import { useToast } from '../../ui/Toast/Toast';
 import { useAiConsent } from '../ai/AiConsent';
+import { AI_SETTINGS_PATH } from '../settings/AiScreen';
 
 // Our own server: trust the shape, as data/sync.ts does.
 const agentResponse = z.custom<AgentResponse>();
@@ -108,6 +111,9 @@ export function AgentChat({
   const [how, setHow] = useState(false);
   const [draft, setDraft] = useState<Profile | null>(null);
   const [failure, setFailure] = useState<Failure | null>(null);
+  // Why the AI is gone, to say whose it is (ADR-0031 §2).
+  const [down, setDown] = useState<{ code: string; source?: AiSource }>();
+  const [, navigate] = useLocation();
   const [menu, setMenu] = useState(false);
   // «Continue here» (9.12) hides the offer's capsules; the server makes it once.
   const [dismissed, setDismissed] = useState(-1);
@@ -182,7 +188,10 @@ export function AgentChat({
 
   async function fail(error: unknown) {
     const code = error instanceof ApiError ? error.code : 'internal';
-    if (AI_DOWN.has(code)) return setFailure('ai_down');
+    if (AI_DOWN.has(code)) {
+      setDown({ code, source: aiSourceOf(error) });
+      return setFailure('ai_down');
+    }
     if (code === 'agent_closed') return setFailure('closed');
     if (code !== 'agent_not_ready') return setFailure('retry');
     // Nothing to answer: either the reply is saved already (the response was lost)
@@ -473,14 +482,35 @@ export function AgentChat({
   // No footer under «How it’s calculated» or the summary (9.4).
   let footer: ReactNode;
   if (how || state === 'summary') footer = null;
-  else if (failure === 'ai_down')
+  else if (failure === 'ai_down') {
+    const own = down?.source === 'own_key';
+    const keyBad = own && down.code === 'ai_unavailable';
     footer = (
       <>
-        <Banner title={t('chat.ai_down')}>{t('chat.ai_down_body')}</Banner>
+        {keyBad ? (
+          <Banner tone="danger">{t('chat.key_bad')}</Banner>
+        ) : own && down.code === 'ai_quota_exceeded' ? (
+          <Banner tone="warning">{t('chat.key_quota')}</Banner>
+        ) : (
+          <Banner
+            title={t(
+              down?.source === 'server' && down.code === 'ai_unavailable'
+                ? 'chat.server_down'
+                : 'chat.ai_down',
+            )}
+          >
+            {t('chat.ai_down_body')}
+          </Banner>
+        )}
         <Button onClick={() => onForm(draft)}>{t('chat.fill_form')}</Button>
+        {keyBad && (
+          <Button variant="plain" onClick={() => navigate(AI_SETTINGS_PATH)}>
+            {t('chat.ai_settings')}
+          </Button>
+        )}
       </>
     );
-  else if (failure === 'closed')
+  } else if (failure === 'closed')
     footer = (
       <>
         <Button onClick={() => onForm(draft)}>{t('chat.to_form')}</Button>

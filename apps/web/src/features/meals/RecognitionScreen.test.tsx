@@ -169,6 +169,30 @@ describe('RecognitionScreen', () => {
     },
   );
 
+  it.each([
+    ['own_key', 'ai_unavailable', 503, 'Your key doesn’t work', 'AI settings'],
+    [
+      'own_key',
+      'ai_quota_exceeded',
+      429,
+      'Your key’s limit is used up',
+      'Close',
+    ],
+    ['server', 'ai_unavailable', 503, 'Server AI is unavailable', 'Try again'],
+    ['server', 'ai_quota_exceeded', 429, 'AI request limit reached', 'Close'],
+  ])(
+    '%s %s → says whose AI failed (ADR-0031 §2)',
+    async (aiSource, code, status, title, cta) => {
+      respond(json(status, { error: { code, details: { aiSource } } }));
+      const location = await setup();
+      const alert = await screen.findByRole('alert');
+      expect(alert.textContent).toContain(title);
+      fireEvent.click(screen.getByRole('button', { name: cta }));
+      if (cta === 'AI settings')
+        expect(location.history.at(-1)).toBe('/settings/ai');
+    },
+  );
+
   it('an expired photo offers retake, not retry', async () => {
     respond(fail(410, 'photo_expired'));
     await setup();
