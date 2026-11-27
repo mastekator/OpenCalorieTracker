@@ -168,6 +168,14 @@ export function createChatgptAuth({
   };
 
   return {
+    /** The signed-in account for the admin screen; never a token. */
+    signIn(): ChatgptSignIn | null {
+      const saved = row();
+      return saved
+        ? { accountLabel: saved.account_label, signedInAt: saved.signed_in_at }
+        : null;
+    },
+
     /** The authorization address the admin opens; the state lives 10 minutes, for one attempt. */
     start(): string {
       for (const [state, p] of pending)

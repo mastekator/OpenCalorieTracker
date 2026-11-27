@@ -86,6 +86,7 @@ export function AiSource({ userId, server, onChanged }: Props) {
   const [forbidden, setForbidden] = useState(false);
   const [blocked, setBlocked] = useState(false);
   const [notice, setNotice] = useState(false);
+  const [adminOnly, setAdminOnly] = useState(false);
   const [draft, setDraft] = useState<AiDraftState>(() =>
     draftOf(formStatus(readOwn(userId))),
   );
@@ -131,7 +132,10 @@ export function AiSource({ userId, server, onChanged }: Props) {
       const status = await api('/api/ai/status', aiStatusSchema).catch(
         () => null,
       );
-      if (live && status) setNotice(status.userKeysDisabledNotice);
+      if (live && status) {
+        setNotice(status.userKeysDisabledNotice);
+        setAdminOnly(status.serverAdminOnly);
+      }
       try {
         const next = await api(OWN_AI_PATH, ownAiSchema);
         if (!live) return;
@@ -259,7 +263,11 @@ export function AiSource({ userId, server, onChanged }: Props) {
         ? t('ai_settings.src_server_sub', {
             provider: consentName(server.providerKey),
           })
-        : t('ai_settings.src_server_none'),
+        : t(
+            adminOnly
+              ? 'ai_settings.src_server_admin_only'
+              : 'ai_settings.src_server_none',
+          ),
     },
     ...(forbidden
       ? []

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { z } from 'zod';
-import { CircleAlert, Power, WifiOff } from 'lucide-react';
+import { CircleAlert, LogIn, Power, Users, WifiOff } from 'lucide-react';
 import {
   adminAiStatusSchema,
   aiCheckResultSchema,
@@ -13,12 +13,16 @@ import {
   AiSettingsForm,
   type AiDraftState,
 } from '../../ui/AiSettingsForm/AiSettingsForm';
+import { Banner } from '../../ui/Banner/Banner';
 import { Button } from '../../ui/Button/Button';
 import { ConfirmDialog } from '../../ui/ConfirmDialog/ConfirmDialog';
 import { Field } from '../../ui/Field/Field';
 import { List, ListRow } from '../../ui/List/List';
 import { useOnline } from '../../ui/OfflineBar/OfflineBar';
-import { ProviderStatus } from '../../ui/ProviderStatus/ProviderStatus';
+import {
+  ChatGptUsageLink,
+  ProviderStatus,
+} from '../../ui/ProviderStatus/ProviderStatus';
 import { ScreenState } from '../../ui/ScreenState/ScreenState';
 import { Switch } from '../../ui/Switch/Switch';
 import { useToast } from '../../ui/Toast/Toast';
@@ -29,6 +33,7 @@ import {
   draftOf,
   useModels,
 } from './aiDraft';
+import { ChatGptSignInSheet } from './ChatGptSignInSheet';
 import { ModelCompare } from './ModelCompare';
 import { ModelTest } from './ModelTest';
 import './settings.css';
@@ -39,7 +44,7 @@ const SETTINGS_PATH = `${AI_STATUS_PATH}/settings`;
 
 /** Admin «AI provider» (OCT-25 §5, OCT-248): live status and the settings form, never a stale copy (E-6.2). */
 export function AiProviderScreen() {
-  const { t } = useT();
+  const { t, locale } = useT();
   const toast = useToast();
   const online = useOnline();
   const [status, setStatus] = useState<AdminAiStatus | null>(null);
@@ -52,6 +57,8 @@ export function AiProviderScreen() {
   const [checked, setChecked] = useState<AiCheckResult | null>(null);
   const [conflict, setConflict] = useState(false);
   const [confirmOff, setConfirmOff] = useState(false);
+  const [signingIn, setSigningIn] = useState(false);
+  const [confirmSignOut, setConfirmSignOut] = useState(false);
   const [testsRev, setTestsRev] = useState(0);
   const nextTestsRev = useCallback(() => setTestsRev((n) => n + 1), []);
   const { models, load: loadModels, reset: resetModels } = useModels(draft);
@@ -122,6 +129,39 @@ export function AiProviderScreen() {
     !status.keySet ||
     !!draft.baseUrl.trim();
   const body = draftBody(draft);
+  const chatgpt = draft.provider === 'chatgpt';
+  const signIn = status.chatgpt;
+  // Shown also with AI_PROVIDER=chatgpt in env: the tokens never come from env (ADR-0031 §4).
+  const subscription = signIn ? (
+    <>
+      {signIn.accountLabel && (
+        <ListRow description={signIn.accountLabel}>
+          {t('ai.chatgpt.account')}
+        </ListRow>
+      )}
+      <ListRow
+        description={new Intl.DateTimeFormat(locale, {
+          dateStyle: 'medium',
+        }).format(signIn.signedInAt)}
+      >
+        {t('ai.chatgpt.signed_in')}
+      </ListRow>
+    </>
+  ) : (
+    <ListRow description={t('ai.chatgpt.not_connected_body')}>
+      {t('ai.chatgpt.not_connected')}
+    </ListRow>
+  );
+  const shareWarning = (
+    <Banner
+      tone="warning"
+      icon={<Users aria-hidden="true" />}
+      title={t('ai.chatgpt.share_title')}
+      actions={<ChatGptUsageLink />}
+    >
+      {t('ai.chatgpt.share_body')}
+    </Banner>
+  );
 
   function change(patch: Partial<AiDraftState>) {
     setDraft((d) => ({ ...d, ...patch }));
@@ -201,6 +241,34 @@ export function AiProviderScreen() {
     }
   }
 
+  /** Only the sign-in changed: an unsaved draft (e.g. ChatGPT picked, not saved yet) is kept. */
+  async function reloadSignIn() {
+    try {
+      setStatus(await api(AI_STATUS_PATH, adminAiStatusSchema));
+    } catch (err) {
+      fail(err);
+    }
+  }
+
+  async function signedIn() {
+    setSigningIn(false);
+    toast({ text: t('ai.chatgpt.signed_in_done') });
+    await reloadSignIn();
+  }
+
+  async function signOut() {
+    setConfirmSignOut(false);
+    try {
+      await api(`${AI_STATUS_PATH}/chatgpt`, z.unknown(), {
+        method: 'DELETE',
+      });
+      toast({ text: t('ai.chatgpt.disconnected') });
+      await reloadSignIn();
+    } catch (err) {
+      fail(err);
+    }
+  }
+
   async function turnOff() {
     setConfirmOff(false);
     try {
@@ -241,8 +309,15 @@ export function AiProviderScreen() {
           )
         }
       >
+        {chatgpt && signIn && status.state === 'auth_error' && (
+          <Button onClick={() => setSigningIn(true)}>
+            <LogIn aria-hidden="true" />
+            {t('ai.chatgpt.sign_in_again')}
+          </Button>
+        )}
         <AiSettingsForm
           status={status}
+          subscription={subscription}
           draft={draft}
           onChange={change}
           keyOpen={keyOpen}
@@ -260,6 +335,38 @@ export function AiProviderScreen() {
           models={models}
           onLoadModels={() => void loadModels(draft)}
         />
+        {chatgpt &&
+          (signIn ? (
+            <>
+              <List>
+                <ListRow
+                  icon={<LogIn />}
+                  accent
+                  chevron={false}
+                  onClick={() => setSigningIn(true)}
+                >
+                  {t('ai.chatgpt.sign_in_again')}
+                </ListRow>
+                <ListRow
+                  icon={<Power />}
+                  danger
+                  chevron={false}
+                  onClick={() => setConfirmSignOut(true)}
+                >
+                  {t('ai.chatgpt.disconnect')}
+                </ListRow>
+              </List>
+              {shareWarning}
+            </>
+          ) : (
+            <>
+              {shareWarning}
+              <Button onClick={() => setSigningIn(true)}>
+                <LogIn aria-hidden="true" />
+                {t('ai.chatgpt.sign_in')}
+              </Button>
+            </>
+          ))}
         <RefineLimitField status={status} onSaved={setStatus} />
         <UserKeysGroup
           status={status}
@@ -274,6 +381,19 @@ export function AiProviderScreen() {
         confirmLabel={t('ai.form.off_confirm')}
         onConfirm={() => void turnOff()}
         onCancel={() => setConfirmOff(false)}
+      />
+      <ConfirmDialog
+        open={confirmSignOut}
+        title={t('ai.chatgpt.disconnect_title')}
+        body={t('ai.chatgpt.disconnect_body')}
+        confirmLabel={t('ai.chatgpt.disconnect_confirm')}
+        onConfirm={() => void signOut()}
+        onCancel={() => setConfirmSignOut(false)}
+      />
+      <ChatGptSignInSheet
+        open={signingIn}
+        onClose={() => setSigningIn(false)}
+        onDone={() => void signedIn()}
       />
     </>
   );

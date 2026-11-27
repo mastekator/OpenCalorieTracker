@@ -16,6 +16,7 @@ const gemini: AdminAiStatus = {
   allowUserKeys: true,
   userKeysLocked: false,
   userKeyCount: 0,
+  chatgpt: null,
   refineLimit: null,
   testPhotoCount: 9,
   state: 'ok',

@@ -70,6 +70,11 @@ export const adminAiStatusSchema = z.object({
   userKeysLocked: z.boolean().default(false),
   /** Users with a saved own key: the count turning the switch off deletes. */
   userKeyCount: z.number().int().default(0),
+  /** The ChatGPT sign-in (ADR-0031 §4); null when nobody signed in. Never a token. */
+  chatgpt: z
+    .object({ accountLabel: z.string().nullable(), signedInAt: z.number() })
+    .nullable()
+    .default(null),
   state: aiProviderStateSchema,
   /** Photos in the model test set (expected.json), for the texts before the first run. */
   testPhotoCount: z.number().int(),

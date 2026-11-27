@@ -389,3 +389,13 @@
   flex: 1 1 0;
   min-width: max-content;
 }
+
+/* ChatGPT sign-in sheet (OCT-487): the step's button sits under its text. */
+.chatgpt-sheet__open {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  width: fit-content;
+  margin-top: var(--space-2);
+}

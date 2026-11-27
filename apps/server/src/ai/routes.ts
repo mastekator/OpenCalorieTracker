@@ -172,6 +172,8 @@ export function aiRoutes({ config, db, ai, photoBarcodes, fetch }: RouteDeps) {
           config,
           c.var.user.id,
         ),
+        serverAdminOnly:
+          !resolved && ai.current()?.settings.provider === 'chatgpt',
       } satisfies AiStatus);
     })
     .post('/photos/:id/recognize', requireUser, async (c) => {

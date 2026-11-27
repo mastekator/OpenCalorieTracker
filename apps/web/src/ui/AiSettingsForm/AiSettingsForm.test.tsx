@@ -20,6 +20,7 @@ const off = {
   savedInactive: false,
   rev: null,
   allowUserKeys: true,
+  chatgpt: null,
   userKeysLocked: false,
   userKeyCount: 0,
   refineLimit: null,

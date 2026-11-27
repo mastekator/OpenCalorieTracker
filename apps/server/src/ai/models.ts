@@ -130,7 +130,7 @@ export async function listModels({
       );
       break;
     case 'chatgpt':
-      // shortcut: no list yet, the model id is typed; the list with the sign-in token comes with OCT-487.
+      // shortcut: no list yet, the model id is typed; the list with the sign-in token comes with OCT-534.
       models = [];
       break;
   }

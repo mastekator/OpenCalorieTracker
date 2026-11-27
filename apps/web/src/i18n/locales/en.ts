@@ -1505,6 +1505,7 @@ export const en = {
     src_server: 'Through the server',
     src_server_sub: '{provider} · set up by the admin',
     src_server_none: 'No AI on the server — manual entry',
+    src_server_admin_only: 'Server AI is only available to the admin',
     src_key: 'My own API key',
     src_key_sub: 'You pay for the requests',
     key_group: 'Your key',
@@ -1591,6 +1592,50 @@ export const en = {
     off: {
       name: "AI isn't connected",
       body: 'Photo recognition and the goal assistant are off. Diary, manual entry and goals work.',
+    },
+    chatgpt: {
+      provider: 'ChatGPT subscription',
+      hint: 'Plus or Pro — sign in, no key needed',
+      not_connected: 'Not connected',
+      not_connected_body:
+        'Sign in to ChatGPT with a Plus or Pro account. Until then, server AI is off — everyone logs food manually.',
+      account: 'Account',
+      signed_in: 'Signed in',
+      share_title: 'One limit for everyone',
+      share_body:
+        'Requests from everyone using AI through the server use your subscription limit — shared with ChatGPT and Codex.',
+      usage: 'App usage limit — in ChatGPT settings',
+      sign_in: 'Sign in to ChatGPT',
+      sign_in_again: 'Sign in again',
+      signed_in_done: 'ChatGPT connected',
+      disconnect: 'Disconnect subscription',
+      disconnect_title: 'Disconnect subscription?',
+      disconnect_body:
+        'Server AI will stop working: everyone logs food manually until you sign in again or choose another provider.',
+      disconnect_confirm: 'Disconnect',
+      disconnected: 'Subscription disconnected',
+      auth_error: {
+        title: 'ChatGPT sign-in expired',
+        body: 'Sign in again. Until then, people log food manually.',
+        body_plan:
+          'This account’s plan or workspace doesn’t allow apps. Sign in with a Plus or Pro account.',
+      },
+      quota_exceeded: {
+        title: 'Subscription limit used up',
+        body: 'Recognition will work again when the limit resets. Until then, people log food manually.',
+      },
+      sheet_title: 'Sign in to ChatGPT',
+      step1: 'Open the sign-in page and sign in to ChatGPT.',
+      open: 'Open sign-in page',
+      step2:
+        'After sign-in the browser shows “This site can’t be reached” — that’s expected. Copy the address from the address bar.',
+      step3: 'Paste it below and tap Connect.',
+      field: 'Paste the address from the browser',
+      field_hint: 'The address starts with http://127.0.0.1:1459',
+      wrong_address:
+        'This isn’t the address after sign-in. Copy it from the address bar — it starts with http://127.0.0.1:1459',
+      connect: 'Connect',
+      connecting: 'Connecting…',
     },
     form: {
       connection: 'Connection',
