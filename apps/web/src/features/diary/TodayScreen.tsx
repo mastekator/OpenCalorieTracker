@@ -359,7 +359,10 @@ function useWater(today: string, units: Units) {
   const entries = useDrinkEntries(addDays(today, -29), today)?.filter(
     (e) => !hidden.has(e.clientId),
   );
-  const custom = useCustomDrinks();
+  // A drink deleted in settings leaves the row while «Undo» is offered.
+  const custom = useCustomDrinks()?.filter(
+    (d) => !hidden.has(`custom:${d.id}`),
+  );
   const goals = useWaterGoals();
   const any = useHasDrinkEntries();
   const [other, setOther] = useState<DrinkTileInfo | null>(null);

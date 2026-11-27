@@ -2376,6 +2376,37 @@ export const en = {
     soda: 'Soda',
     kefir: 'Kefir',
   },
+  drink_list: {
+    title: 'Drinks',
+    in_row: '{n} in the row',
+    own: 'Your drinks',
+    add: 'Your drink',
+    builtin: 'Built-in — in the row on Today',
+    always_first: 'always first',
+    per100: '{kcal}\u00a0kcal per 100\u00a0ml',
+    zero: '0\u00a0kcal',
+    footer:
+      'The row is ordered by what you drink most often. Built-in drinks can’t be changed: if you need your own version, create your own drink.',
+    deleted: 'Deleted: {name}',
+  },
+  drink_form: {
+    new: 'Your drink',
+    edit: 'Drink',
+    name: 'Name',
+    name_err: 'Enter a name',
+    per100: 'Per 100\u00a0ml',
+    err_max: 'No more than {max}',
+    not_water: 'Don’t count as water',
+    not_water_hint:
+      'For alcohol and anything that doesn’t quench thirst: we count the calories, but the volume doesn’t go towards water.',
+    delete: 'Delete drink',
+    delete_note: 'Past entries keep their calories.',
+    offline:
+      'Without a connection you can log drinks, but not create or change them.',
+    save: 'Save',
+    saving: 'Saving…',
+    error: 'Couldn’t save the drink. Try again.',
+  },
   day: { today: 'Today', yesterday: 'Yesterday' },
   week: {
     mode: { label: 'Period', week: 'Week', month: 'Month' },

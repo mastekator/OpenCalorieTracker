@@ -19,6 +19,7 @@ import {
 import { useLocation } from 'wouter';
 import {
   adminAiStatusSchema,
+  BUILTIN_DRINKS,
   LOCALES,
   type AiProviderState,
   type AiStatus,
@@ -35,7 +36,12 @@ import {
   type InstallPlatform,
 } from '../../app/install';
 import { applyTheme } from '../../app/theme';
-import { useAiStatus, useDb, useSettings } from '../../data/DataContext';
+import {
+  useAiStatus,
+  useCustomDrinks,
+  useDb,
+  useSettings,
+} from '../../data/DataContext';
 import { useDeviceAi } from '../../data/deviceAi';
 import {
   conflictCount,
@@ -64,6 +70,7 @@ import { Switch } from '../../ui/Switch/Switch';
 import { useToast } from '../../ui/Toast/Toast';
 import { BLOCKS_API, blocksSchema } from '../admin/BlocksScreen';
 import { AI_STATUS_PATH } from './AiProviderScreen';
+import { DRINKS_PATH } from './DrinksScreen';
 import { AI_SETTINGS_PATH } from './AiScreen';
 import { INTEGRATIONS_PATH } from './IntegrationsScreen';
 import { enabledMethods } from './methods';
@@ -110,7 +117,7 @@ type Props = {
  * Language, theme and units apply at once and sync through the queue, also offline (4.8).
  */
 export function SettingsScreen({ user, onLogout, platform: given }: Props) {
-  const { t, locale, setLocale } = useT();
+  const { t, num, locale, setLocale } = useT();
   const db = useDb();
   const settings = useSettings();
   const ai = useAiStatus();
@@ -141,6 +148,12 @@ export function SettingsScreen({ user, onLogout, platform: given }: Props) {
   const units = settings?.units ?? user.units;
   const online = useOnline();
   const water = settings?.waterEnabled ?? false;
+  const custom = useCustomDrinks();
+  // Tiles in the Today row: built-ins not hidden and own drinks (drinkRowOrder).
+  const rowCount =
+    BUILTIN_DRINKS.length -
+    (settings?.hiddenDrinks?.length ?? 0) +
+    (custom?.length ?? 0);
   const requireOnline = useRequireOnline();
   const [, navigate] = useLocation();
   const [hintClosed, setHintClosed] = useState(
@@ -323,6 +336,16 @@ export function SettingsScreen({ user, onLogout, platform: given }: Props) {
           >
             {t('settings.water.switch')}
           </ListRow>
+          {water && (
+            <ListRow
+              // An empty tile keeps the label in line with the switch row (OCT-147 3.2).
+              icon={<span className="settings__no-icon" />}
+              value={t('drink_list.in_row', { n: num(rowCount) })}
+              onClick={go(DRINKS_PATH)}
+            >
+              {t('drink_list.title')}
+            </ListRow>
+          )}
         </List>
 
         <List>

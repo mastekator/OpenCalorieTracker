@@ -26,6 +26,7 @@ import {
 } from '../features/settings/IntegrationsScreen';
 import { ExportScreen } from '../features/settings/ExportScreen';
 import { TokensScreen } from '../features/settings/TokensScreen';
+import { DRINKS_PATH, DrinksScreen } from '../features/settings/DrinksScreen';
 import { WebhookScreen } from '../features/settings/WebhookScreen';
 import { WebhooksScreen } from '../features/settings/WebhooksScreen';
 import { McpScreen } from '../features/settings/McpScreen';
@@ -223,6 +224,11 @@ export function AppScreens() {
       <Route path={AI_SETTINGS_PATH}>
         <Screen wide title={t('settings.ai')} back={toSettings}>
           <AiScreen user={user} />
+        </Screen>
+      </Route>
+      <Route path={DRINKS_PATH}>
+        <Screen title={t('drink_list.title')} back={toSettings}>
+          <DrinksScreen />
         </Screen>
       </Route>
       <Route path="/settings/passkeys">
