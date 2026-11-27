@@ -1631,8 +1631,7 @@ export const en = {
         'After sign-in the browser shows “This site can’t be reached” — that’s expected. Copy the address from the address bar.',
       step3: 'Paste it below and tap Connect.',
       field: 'Paste the address from the browser',
-      field_hint:
-        'The “can’t open this page” error after sign-in is normal: the address is all we need.',
+      field_hint: 'The address starts with http://127.0.0.1:1459',
       wrong_address:
         'This isn’t the address after sign-in. Copy it from the address bar — it starts with http://127.0.0.1:1459',
       connect: 'Connect',
