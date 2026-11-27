@@ -4,6 +4,17 @@ All notable changes to this project are documented in this file.
 
 ## Unreleased
 
+## 0.4.1 — 2026-11-27
+
+Fix for Google Gemini after 0.4.0.
+
+- Photo recognition works again with Google Gemini: the AI response schemas no longer carry length limits, which Gemini rejected with a 400 ("too many states"). The limits are still checked on the server after the answer arrives
+- A test now catches length limits and optional fields in model schemas without a live key
+
+### Upgrade from 0.4.0
+
+Set `image: ghcr.io/mastekator/opencalorietracker:0.4.1` in `docker-compose.yml`, then `docker compose pull && docker compose up -d`. No database migrations; nothing else is required.
+
 ## 0.4.0 — 2026-11-26
 
 Integrations, diary import and export, edible part of products and recipe ingredients by photo.
