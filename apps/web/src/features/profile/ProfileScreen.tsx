@@ -6,15 +6,18 @@ import {
   type Profile,
   type ProfileRequest,
   type ProfileResponse,
+  waterGoalOn,
 } from '@oct/shared';
 import { api } from '../../api/client';
 import { useSession } from '../../app/SessionContext';
 import {
   useAiStatus,
   useDb,
+  putWaterGoal,
   useProfile,
   useRecipes,
   useSettings,
+  useWaterGoals,
   useWeighings,
 } from '../../data/DataContext';
 import { deleteWeighing, patchSettings, putWeighing } from '../../data/outbox';
@@ -26,6 +29,8 @@ import { List, ListRow } from '../../ui/List/List';
 import { useOnline } from '../../ui/OfflineBar/OfflineBar';
 import { Delayed, Skeleton } from '../../ui/Skeleton/Skeleton';
 import { useToast } from '../../ui/Toast/Toast';
+import { WaterGoalSection } from '../water/WaterGoalSection';
+import { WaterGoalSheet } from '../water/WaterGoalSheet';
 import { WeighInSheet } from '../weight/WeighInSheet';
 import { AgentChat } from './AgentChat';
 import { ProfileForm } from './ProfileForm';
@@ -70,6 +75,17 @@ export function ProfileScreen() {
   const today = localToday();
   const disclaimerHidden =
     settings?.normDisclaimerHidden ?? user?.normDisclaimerHidden ?? false;
+  const goals = useWaterGoals();
+  const [goalSheet, setGoalSheet] = useState(false);
+  const sex = profile?.profile?.sex ?? null;
+  const goalMl = waterGoalOn(goals ?? [], today, sex);
+  const referenceMl = waterGoalOn([], today, sex);
+  // Manual only while today's row (the latest from today or before) holds a value: a reset writes null (AC-4.3).
+  const goalRow = (goals ?? [])
+    .filter((g) => g.fromDate <= today)
+    .sort((a, b) => a.fromDate.localeCompare(b.fromDate))
+    .at(-1);
+  const manualGoal = goalRow?.goalMl != null;
 
   if (!profile || (online && !interview))
     return (
@@ -110,24 +126,47 @@ export function ProfileScreen() {
         weighedOn={weighings?.at(-1)?.date}
         onWeighIn={() => setWeighIn(true)}
         sections={
-          <List>
-            {/* A link: the kitchen reads the local copy and works offline, past the disabled fieldset. */}
-            <ListRow
-              href="/kitchen"
-              onClick={(e) => {
-                e.preventDefault();
-                navigate('/kitchen');
-              }}
-              icon={<ChefHat aria-hidden="true" />}
-              description={
-                recipes && t('kitchen.row.sub', { count: recipes.length })
-              }
-            >
-              {t('kitchen.title')}
-            </ListRow>
-          </List>
+          <>
+            <List>
+              {/* A link: the kitchen reads the local copy and works offline, past the disabled fieldset. */}
+              <ListRow
+                href="/kitchen"
+                onClick={(e) => {
+                  e.preventDefault();
+                  navigate('/kitchen');
+                }}
+                icon={<ChefHat aria-hidden="true" />}
+                description={
+                  recipes && t('kitchen.row.sub', { count: recipes.length })
+                }
+              >
+                {t('kitchen.title')}
+              </ListRow>
+            </List>
+            {settings?.waterEnabled && goals && (
+              <WaterGoalSection
+                goalMl={goalMl}
+                manual={manualGoal}
+                online={online}
+                units={units}
+                onOpen={() => setGoalSheet(true)}
+              />
+            )}
+          </>
         }
       />
+      {goalSheet && (
+        <WaterGoalSheet
+          goalMl={goalMl}
+          manual={manualGoal}
+          referenceMl={referenceMl}
+          units={units}
+          onSave={(ml) =>
+            putWaterGoal(db, today, ml).then(() => setGoalSheet(false))
+          }
+          onClose={() => setGoalSheet(false)}
+        />
+      )}
       {weighings && (
         <WeighInSheet
           open={weighIn}

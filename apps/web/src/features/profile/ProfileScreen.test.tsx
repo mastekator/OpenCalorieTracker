@@ -5,11 +5,15 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react';
 import {
+  addDays,
   calculateNorm,
+  waterGoalOn,
   type MeResponse,
   type ProfileResponse,
+  type WaterGoal,
 } from '@oct/shared';
 import { SessionContext } from '../../app/SessionContext';
 import { DataProvider, useAiStatus } from '../../data/DataContext';
@@ -361,5 +365,144 @@ describe('ProfileScreen, goal applied in the chat (OCT-225)', () => {
       }),
     );
     db.close();
+  });
+});
+
+describe('Water goal in the profile (OCT-147 4.1–4.2)', () => {
+  const today = localToday();
+  const AI_READY = {
+    recognition: 'ready',
+    interview: 'ready',
+    providerName: 'x',
+    baseUrlHost: null,
+    refineLimit: null,
+    userKeysDisabledNotice: false,
+    serverAdminOnly: false,
+  };
+  const DISCLAIMER = /EFSA reference for adults/;
+
+  async function open(
+    goals: WaterGoal[],
+    { online = true, sex = 'male' as 'male' | 'female' } = {},
+  ) {
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(online);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string, init?: RequestInit) =>
+        url === '/api/ai/status'
+          ? Response.json(AI_READY)
+          : url === '/api/water/goal' && init?.method === 'PUT'
+            ? new Response(null, { status: 204 })
+            : Promise.reject(new TypeError('no server in this test')),
+      ),
+    );
+    const db = await openUserDb(USER.id);
+    await db.put(
+      'kv',
+      { ...PROFILE, profile: { ...PROFILE.profile!, sex } },
+      'profile',
+    );
+    await db.put('kv', 3, 'rev');
+    await db.put(
+      'kv',
+      { locale: 'en', waterEnabled: true } as never,
+      'settings',
+    );
+    for (const g of goals) await db.put('waterGoals', g);
+    db.close();
+    render(
+      <I18nProvider>
+        <ToastProvider>
+          <SessionContext
+            value={{
+              user: USER,
+              refresh: async () => {},
+              signedIn: async () => {},
+              logout: async () => {},
+            }}
+          >
+            <DataProvider user={USER}>
+              <ProfileScreen />
+            </DataProvider>
+          </SessionContext>
+        </ToastProvider>
+      </I18nProvider>,
+    );
+    return screen.findByRole('button', { name: /^Water goal/ });
+  }
+  const putBodies = () =>
+    vi
+      .mocked(fetch)
+      .mock.calls.filter(([url]) => url === '/api/water/goal')
+      .map(([, init]) => JSON.parse(String(init?.body)));
+
+  it('shows the reference by sex with the disclaimer', async () => {
+    const row = await open([], { sex: 'female' });
+    expect(row.textContent).toContain('1,600');
+    expect(row.textContent).toContain('reference');
+    expect(screen.getByText(DISCLAIMER)).toBeTruthy();
+  });
+
+  it('a reset today after a manual goal is the reference again', async () => {
+    const row = await open([
+      { fromDate: addDays(today, -3), goalMl: 2500 },
+      { fromDate: today, goalMl: null },
+    ]);
+    expect(row.textContent).toContain('2,000');
+    expect(row.textContent).toContain('reference');
+    expect(screen.getByText(DISCLAIMER)).toBeTruthy();
+  });
+
+  it('resets a manual goal: sends null, then the reference with the disclaimer', async () => {
+    const row = await open([{ fromDate: addDays(today, -3), goalMl: 2500 }]);
+    expect(row.textContent).toContain('2,500');
+    expect(row.textContent).toContain('set by you');
+    expect(screen.queryByText(DISCLAIMER)).toBeNull();
+
+    fireEvent.click(row);
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: /Reset to the reference · 2,000/,
+      }),
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: /^Water goal/ }).textContent,
+      ).toContain('reference'),
+    );
+    expect(putBodies()).toEqual([{ date: today, goalMl: null }]);
+    expect(screen.getByText(DISCLAIMER)).toBeTruthy();
+  });
+
+  it('a new goal starts today; past days keep theirs from the history', async () => {
+    const row = await open([{ fromDate: addDays(today, -3), goalMl: 2500 }]);
+    fireEvent.click(row);
+    const field = await screen.findByLabelText('Daily water');
+    fireEvent.change(field, { target: { value: '3000' } });
+    fireEvent.click(
+      within(screen.getByRole('dialog', { name: 'Water goal' })).getByRole(
+        'button',
+        { name: 'Save' },
+      ),
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: /^Water goal/ }).textContent,
+      ).toContain('3,000'),
+    );
+    expect(putBodies()).toEqual([{ date: today, goalMl: 3000 }]);
+    const db = await openUserDb(USER.id);
+    const goals = await db.getAll('waterGoals');
+    db.close();
+    expect(waterGoalOn(goals, addDays(today, -1), 'male')).toBe(2500);
+    expect(waterGoalOn(goals, today, 'male')).toBe(3000);
+  });
+
+  it('offline the goal cannot change, with a note why', async () => {
+    const row = await open([], { online: false });
+    expect(row.matches(':disabled')).toBe(true);
+    expect(
+      screen.getByText('You can change the goal once you are back online.'),
+    ).toBeTruthy();
   });
 });

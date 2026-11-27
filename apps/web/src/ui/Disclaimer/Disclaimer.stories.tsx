@@ -15,3 +15,9 @@ export const CloseFocusVisible: Story = {
   ...Closable,
   parameters: { pseudo: { focusVisible: true } },
 };
+/** Another notice in the same look: the water reference (OCT-147 4.1). */
+export const CustomText: Story = {
+  args: {
+    text: 'EFSA reference for adults, counting water from food. Not medical advice.',
+  },
+};

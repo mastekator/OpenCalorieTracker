@@ -19,15 +19,19 @@ import './AmountSheet.css';
  * Whole ml for the typed amount in the user's units; undefined when empty, null out of
  * range. fl oz is checked against the bounds as shown (0.3–67.6), then clamped in ml.
  */
-export function amountMl(text: string, units: Units) {
+export function amountMl(
+  text: string,
+  units: Units,
+  bounds: { min: number; max: number } = DRINK_ML,
+) {
   const v = parseDecimal(text.trim());
   if (v === null) return undefined;
   const us = units === 'us';
-  const min = us ? mlToFlOz(DRINK_ML.min) : DRINK_ML.min;
-  const max = us ? mlToFlOz(DRINK_ML.max) : DRINK_ML.max;
+  const min = us ? mlToFlOz(bounds.min) : bounds.min;
+  const max = us ? mlToFlOz(bounds.max) : bounds.max;
   if (!(v >= min && v <= max)) return null;
   const ml = Math.round(us ? v * ML_PER_FL_OZ : v);
-  return Math.min(DRINK_ML.max, Math.max(DRINK_ML.min, ml));
+  return Math.min(bounds.max, Math.max(bounds.min, ml));
 }
 
 type Props = {

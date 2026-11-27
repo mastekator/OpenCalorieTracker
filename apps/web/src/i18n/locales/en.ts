@@ -2375,6 +2375,18 @@ export const en = {
     kind_food: 'Food',
     to_food: 'Drink. Save as food',
     to_drink: 'Food. Save as a drink',
+    goal: {
+      title: 'Water goal',
+      label: 'Daily water',
+      reference: 'reference',
+      manual: 'set by you',
+      disclaimer:
+        'EFSA reference for adults, counting water from food. It does not account for heat, workouts, pregnancy or illness. Not medical advice.',
+      offline: 'You can change the goal once you are back online.',
+      reset: 'Reset to the reference · {amount}',
+      save: 'Save',
+      error: 'Could not save the goal. Try again.',
+    },
     saved_drinks: {
       one: '+{count} drink · {kcal}\u00a0kcal',
       other: '+{count} drinks · {kcal}\u00a0kcal',

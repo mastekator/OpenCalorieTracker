@@ -1,0 +1,17 @@
+/* OCT-147 4.2 */
+.water-goal {
+  display: grid;
+  gap: var(--space-4);
+  font-variant-numeric: tabular-nums;
+}
+
+.water-goal > .button {
+  justify-self: start;
+}
+
+.water-goal__note {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+}
