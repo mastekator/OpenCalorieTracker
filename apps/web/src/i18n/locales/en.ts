@@ -2748,6 +2748,157 @@ export const en = {
   unsaved: {
     title: 'Recipe changes aren’t saved',
   },
+  award: {
+    category: {
+      path: 'Journey',
+      streak: 'Streak',
+      days: 'Days',
+      months: 'Months',
+      photo: 'Photo',
+      accuracy: 'Accuracy',
+      secret: 'Secret',
+    },
+    rarity: {
+      common: 'Common',
+      rare: 'Rare',
+      epic: 'Epic',
+      legendary: 'Legendary',
+    },
+    weeks_1: {
+      name: 'First week',
+      rule: 'Get your first week to count: log food on 5 of 7 days',
+    },
+    weeks_4: {
+      name: 'A month of logging',
+      rule: 'Get 4 weeks to count, not necessarily in a row',
+    },
+    weeks_12: {
+      name: 'Three months',
+      rule: 'Get 12 weeks to count, not necessarily in a row',
+    },
+    weeks_26: {
+      name: 'Half a year',
+      rule: 'Get 26 weeks to count, not necessarily in a row',
+    },
+    weeks_52: {
+      name: 'A year of logging',
+      rule: 'Get 52 weeks to count, not necessarily in a row',
+    },
+    weeks_104: {
+      name: 'Two years',
+      rule: 'Get 104 weeks to count, not necessarily in a row',
+    },
+    streak_2: {
+      name: 'Warming up',
+      rule: 'Keep a 2-week streak',
+    },
+    streak_8: {
+      name: 'Two months straight',
+      rule: 'Keep an 8-week streak',
+    },
+    streak_16: {
+      name: 'Steady rhythm',
+      rule: 'Keep a 16-week streak',
+    },
+    streak_26: {
+      name: 'Half a year straight',
+      rule: 'Keep a 26-week streak',
+    },
+    streak_52: {
+      name: 'A year straight',
+      rule: 'Keep a 52-week streak',
+    },
+    days_1: {
+      name: 'First entry',
+      rule: 'Log food for the first time',
+    },
+    days_30: {
+      name: '30 days',
+      rule: 'Log food on 30 different days',
+    },
+    days_100: {
+      name: '100 days',
+      rule: 'Log food on 100 different days',
+    },
+    days_365: {
+      name: '365 days',
+      rule: 'Log food on 365 different days',
+    },
+    days_1000: {
+      name: '1,000 days',
+      rule: 'Log food on 1,000 different days',
+    },
+    challenge_1: {
+      name: 'First challenge',
+      rule: 'Complete any monthly challenge',
+    },
+    month_3of3: {
+      name: 'All three',
+      rule: 'Complete all 3 challenges in one month',
+    },
+    month_3of3_x6: {
+      name: 'Six perfect months',
+      rule: 'Complete all 3 challenges in 6 months, not necessarily in a row',
+    },
+    month_full: {
+      name: 'A full month',
+      rule: 'Log food on every day of a calendar month',
+    },
+    photo_1: {
+      name: 'First photo',
+      rule: 'Log a meal from a photo',
+    },
+    photo_100: {
+      name: 'Food photographer',
+      rule: 'Log 100 meals from photos',
+    },
+    photo_500: {
+      name: 'Photo archive',
+      rule: 'Log 500 meals from photos',
+    },
+    grams_25: {
+      name: 'Precise grams',
+      rule: 'Fine-tune grams after recognition on 25 dishes',
+    },
+    grams_250: {
+      name: 'Scale in your head',
+      rule: 'Fine-tune grams after recognition on 250 dishes',
+    },
+    manual_25: {
+      name: 'Your own kitchen',
+      rule: 'Add 25 of your own dishes by hand with macros',
+    },
+    secret_comeback: {
+      name: 'Welcome back',
+      rule: 'Come back to your log after a break of 4 weeks or more',
+      hint: 'Sometimes the main thing is coming back',
+    },
+    secret_birthday: {
+      name: 'Happy birthday',
+      rule: 'Log food on your birthday',
+      hint: 'A special day of the year',
+    },
+    secret_new_year: {
+      name: 'First day of the year',
+      rule: 'Log food on January 1',
+      hint: 'Start the year with your log',
+    },
+    secret_freeze: {
+      name: 'Covered',
+      rule: 'A freeze saved your streak for the first time',
+      hint: 'A rough week isn’t a reason to quit',
+    },
+    secret_backfill: {
+      name: 'Nothing missed',
+      rule: 'A day you filled in later made a past week count',
+      hint: 'The past can be filled in too',
+    },
+    secret_days_100_row: {
+      name: '100 days in a row',
+      rule: 'Log food 100 days in a row',
+      hint: 'A very long chain',
+    },
+  },
   errors: {
     validation_failed: 'Check the highlighted fields',
     unauthenticated: 'Please sign in',
