@@ -14,6 +14,8 @@ import {
   nameKey,
   type AccountSettings,
   type AiStatus,
+  type Drink,
+  type DrinkInput,
   type Integrations,
   type Meal,
   type MeResponse,
@@ -515,6 +517,32 @@ export async function saveRecipe(
   await db.put('recipes', recipe);
   emitChange();
   return recipe;
+}
+
+/**
+ * POST (new) or PATCH (`id`) /api/drinks, then the server's drink into the local copy.
+ * Past entries keep their snapshot (AC-3.10). A failure throws and leaves the copy as it is.
+ */
+export async function saveDrink(db: Db, input: DrinkInput, id?: number) {
+  const drink = await api(
+    id === undefined ? '/api/drinks' : `/api/drinks/${id}`,
+    z.custom<Drink>((v) => typeof (v as Drink | null)?.id === 'number'),
+    { method: id === undefined ? 'POST' : 'PATCH', body: input },
+  );
+  await db.put('drinks', drink);
+  emitChange();
+  return drink;
+}
+
+/** DELETE /api/drinks/:id, then out of the local copy; a 404 means it is already gone. */
+export async function deleteDrink(db: Db, id: number) {
+  try {
+    await api(`/api/drinks/${id}`, z.unknown(), { method: 'DELETE' });
+  } catch (err) {
+    if (!(err instanceof ApiError && err.status === 404)) throw err;
+  }
+  await db.delete('drinks', id);
+  emitChange();
 }
 
 export type HistoryDish = Nutrients & {

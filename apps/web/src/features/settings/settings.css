@@ -399,3 +399,12 @@
   width: fit-content;
   margin-top: var(--space-2);
 }
+
+/* Drink illustrations fill the icon tile, as recipe thumbs do (OCT-147 3.3). */
+.drinks-screen .list-row:not(.list-row--accent) .list-row__icon {
+  background: none;
+}
+
+.list-row__icon:has(.settings__no-icon) {
+  background: none;
+}

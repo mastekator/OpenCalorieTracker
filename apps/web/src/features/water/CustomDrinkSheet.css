@@ -1,0 +1,74 @@
+.drink-form {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.drink-form__head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: end;
+  gap: var(--space-4);
+}
+
+.drink-form__illo {
+  position: relative;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-full);
+  background: none;
+  cursor: pointer;
+  --dish-illo-size: var(--control-height-lg);
+}
+
+.drink-form__illo-dot {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  display: grid;
+  place-items: center;
+  width: var(--illo-dot-size);
+  height: var(--illo-dot-size);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  box-shadow: 0 0 0 1px var(--color-separator);
+}
+
+.drink-form__illo-dot svg {
+  width: var(--icon-xs);
+  height: var(--icon-xs);
+  stroke-width: 2.25;
+}
+
+.drink-form__label {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+  font-weight: var(--text-footnote-weight);
+  color: var(--color-text-secondary);
+}
+
+.drink-form__numbers {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2) var(--space-3);
+}
+
+/* A field's own column would grow to the input's intrinsic width. */
+.drink-form__numbers .field {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.drink-form__delete,
+.drink-form__footer {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.drink-form__note {
+  margin: 0;
+  text-align: center;
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+  color: var(--color-text-secondary);
+}
