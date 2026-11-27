@@ -165,6 +165,7 @@ export const streaksOf = (
   streak,
   awards: [],
   stored: [],
+  photoAi: true,
   month: '2026-11',
   challenges: streak === NEWBIE ? NEWBIE_CHALLENGES : CHALLENGES,
   months: [],
