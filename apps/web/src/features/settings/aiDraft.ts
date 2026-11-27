@@ -38,7 +38,9 @@ export const connectionOf = (d: AiDraftState) => ({
   apiKey: d.apiKey.trim() || undefined,
 });
 
-export const draftOf = (s: AdminAiStatus | null): AiDraftState => ({
+export const draftOf = (
+  s: Pick<AdminAiStatus, 'provider' | 'model'> | null,
+): AiDraftState => ({
   provider: (s?.provider as AiProviderId | null) ?? 'google',
   // Only the host comes back (ADR-0013): an empty field keeps the saved address.
   baseUrl: '',
@@ -67,8 +69,8 @@ function modelsReason(err: unknown, provider: AiProviderId): Reason {
   return 'failed';
 }
 
-/** The provider's model list for a draft; a typed key fetches it once typing pauses. */
-export function useModels(draft: AiDraftState) {
+/** The provider's model list for a draft (path: the admin's or the user's own key routes); a typed key fetches it once typing pauses. */
+export function useModels(draft: AiDraftState, path = AI_STATUS_PATH) {
   const { t } = useT();
   const [models, setModels] = useState<ModelsState>(NO_MODELS);
   // Only the answer to the latest request is shown: the draft may change meanwhile.
@@ -83,7 +85,7 @@ export function useModels(draft: AiDraftState) {
       setModels({ ...NO_MODELS, loading: true });
       try {
         const { models: list } = await api(
-          `${AI_STATUS_PATH}/models`,
+          `${path}/models`,
           aiModelsResponseSchema,
           { method: 'POST', body: connectionOf(d) },
         );
@@ -100,7 +102,7 @@ export function useModels(draft: AiDraftState) {
           });
       }
     },
-    [t],
+    [t, path],
   );
   // The key itself goes only to the server.
   useEffect(() => {

@@ -218,6 +218,23 @@ export const NotSaved: Story = {
   },
 };
 export const NotSavedDark: Story = { ...NotSaved, ...dark };
+
+/** OCT-178 1.8: a user's own key — the save is the check, so no «Save anyway» and no draft «Check». */
+export const OwnKeyNotSaved: Story = {
+  args: {
+    ...NotSaved.args,
+    title: 'Your key',
+    onSaveAnyway: undefined,
+    failed: { state: 'auth_error', checkedAt: null, details: { status: 401 } },
+    draft: {
+      provider: 'openai',
+      baseUrl: '',
+      apiKey: 'sk-proj-…',
+      model: 'gpt-5-mini',
+    },
+  },
+};
+export const OwnKeyNotSavedDark: Story = { ...OwnKeyNotSaved, ...dark };
 /** 3.2 The saved key doesn't decrypt: AI is off, the key field shows why. */
 export const KeyUnreadable: Story = {
   args: {
