@@ -31,6 +31,7 @@ function Demo({
   children,
   share,
   edible: initialEdible,
+  drink: initialDrink,
 }: {
   dish: DishRowDish;
   units: Units;
@@ -42,7 +43,10 @@ function Demo({
   share?: { product: Product; amount: Amount };
   /** Gross → edible (ADR-0039 §5): a weight edit unlinks, «Restore» relinks. */
   edible?: ComponentProps<typeof DishRow>['edible'];
+  /** The «Drink ↔ Food» chip (OCT-147 4.5); a tap switches it. None: no chip. */
+  drink?: boolean;
 }) {
+  const [drink, setDrink] = useState(initialDrink);
   const [row, setRow] = useState(dish);
   const [edible, setEdible] = useState(initialEdible);
   const [amount, setAmount] = useState(share?.amount);
@@ -72,6 +76,11 @@ function Demo({
       onDelete={onDelete}
       onIllustration={onIllustration}
       mark={mark}
+      kind={
+        drink === undefined
+          ? undefined
+          : { drink, onToggle: () => setDrink(!drink) }
+      }
       share={
         share &&
         amount && {
@@ -460,4 +469,30 @@ export const EdibleNoGrams: Story = {
     dish: { ...sapodilla, grams: 0, kcal: 0 },
     edible: { ...gross, source: 'ref' },
   },
+};
+
+const latte: DishRowDish = {
+  name: 'Latte',
+  grams: 250,
+  unit: 'ml',
+  kcal: 120,
+  proteinG: 6,
+  fatG: 5,
+  carbsG: 10,
+  source: 'ai',
+  confidence: 0.8,
+  illustration: 'coffee',
+};
+/** A drink from the photo: saved as a drink entry; a tap on the chip makes it food (OCT-147 4.5). */
+export const Drink: Story = { args: { dish: latte, drink: true } };
+export const DrinkDark: Story = { ...Drink, globals: { theme: 'dark' } };
+/** The chip switched: saved with the meal; a tap makes it a drink again. */
+export const DrinkAsFood: Story = { args: { dish: latte, drink: false } };
+export const DrinkAsFoodDark: Story = {
+  ...DrinkAsFood,
+  globals: { theme: 'dark' },
+};
+export const DrinkRussian: Story = {
+  args: { dish: { ...latte, name: 'Латте' }, drink: true },
+  globals: { locale: 'ru' },
 };

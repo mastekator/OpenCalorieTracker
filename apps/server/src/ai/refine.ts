@@ -21,10 +21,10 @@ import {
   sanitizeQuestions,
   type RecipeName,
 } from './questions.js';
-import { modelUnit, sanitizeDish, UNIT_RULE } from './recognize.js';
+import { DRINK_RULE, modelUnit, sanitizeDish, UNIT_RULE } from './recognize.js';
 
 /** Bump on every prompt change; it is logged with each call. */
-export const REFINE_PROMPT_VERSION = 5;
+export const REFINE_PROMPT_VERSION = 6;
 export const REFINE_TIMEOUT_MS = 60_000;
 
 export interface RefineInput {
@@ -66,6 +66,7 @@ The user already added the dishes listed in "user_dishes": do not list them agai
 ${task}
 For each dish give the weight of the edible part in grams and the kcal, protein, fat and carbohydrates in grams for that weight (the whole portion, not per 100 g).
 ${UNIT_RULE}
+${DRINK_RULE}
 ${EDIBLE_PROMPT}
 Write dish names in ${languageName(locale)}.
 Confidence is 0..1:

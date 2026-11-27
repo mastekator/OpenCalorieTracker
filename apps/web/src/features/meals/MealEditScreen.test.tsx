@@ -1456,3 +1456,101 @@ describe('MealEditScreen: recipes (OCT-160 §5, ADR-0023 §5–6)', () => {
     });
   });
 });
+
+describe('MealEditScreen: drinks from a photo (ADR-0028 §6, OCT-147 4.5)', () => {
+  const latte: RecognizedDish = {
+    name: 'Latte',
+    grams: 250,
+    unit: 'ml',
+    kcal: 120,
+    proteinG: 6,
+    fatG: 5,
+    carbsG: 10,
+    confidence: 0.8,
+    drink: true,
+  };
+  async function open(waterEnabled: boolean) {
+    const onSave = vi.fn(
+      async (input: MealInput, photo?: Blob, drinks?: unknown[]) =>
+        void [input, photo, drinks],
+    );
+    await renderLoaded(
+      <I18nProvider>
+        <ToastProvider>
+          <MealEditScreen
+            dishes={[buckwheat, latte]}
+            photoId="p1"
+            units="metric"
+            onSave={onSave}
+            onClose={() => {}}
+            now={() => new Date(2026, 10, 15, 13, 24)}
+            waterEnabled={waterEnabled}
+          />
+        </ToastProvider>
+      </I18nProvider>,
+    );
+    const save = async () => {
+      await act(async () =>
+        fireEvent.click(screen.getByRole('button', { name: 'Save' })),
+      );
+      const [input, , drinks] = onSave.mock.calls[0]!;
+      return { input, drinks };
+    };
+    return save;
+  }
+
+  it('a drink row goes to drinks, the food to the meal with the photo', async () => {
+    const save = await open(true);
+    // Only the drink has the chip: food the AI never called a drink stays plain.
+    expect(screen.getAllByRole('button', { name: /Save as/ })).toHaveLength(1);
+    expect(
+      screen.getByRole('button', { name: 'Drink. Save as food' }).textContent,
+    ).toBe('Drink');
+    const { input, drinks } = await save();
+    expect(input).toMatchObject({ photoId: 'p1' });
+    expect(input.items.map((i) => i.name)).toEqual(['Buckwheat']);
+    expect(drinks).toEqual([
+      {
+        ml: 250,
+        photo: expect.objectContaining({
+          name: 'Latte',
+          kcal: 120,
+          countsWater: true,
+        }),
+      },
+    ]);
+  });
+
+  it('the chip makes a drink food and back', async () => {
+    const save = await open(true);
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Drink. Save as food' }),
+    );
+    const chip = screen.getByRole('button', { name: 'Food. Save as a drink' });
+    expect(chip.textContent).toBe('Food');
+    fireEvent.click(chip);
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Drink. Save as food' }),
+    );
+    const { input, drinks } = await save();
+    expect(input.items.map((i) => i.name)).toEqual(['Buckwheat', 'Latte']);
+    expect(drinks).toEqual([]);
+  });
+
+  it('drinks only: no photo goes with the empty meal', async () => {
+    const save = await open(true);
+    fireEvent.click(screen.getByRole('button', { name: 'Delete Buckwheat' }));
+    const { input, drinks } = await save();
+    expect(input.items).toEqual([]);
+    expect(input).not.toHaveProperty('photoId');
+    expect(drinks).toHaveLength(1);
+  });
+
+  it('module off: no chip, everything is the meal as before', async () => {
+    const save = await open(false);
+    expect(screen.queryByRole('button', { name: /Save as/ })).toBeNull();
+    const { input, drinks } = await save();
+    expect(input.items.map((i) => i.name)).toEqual(['Buckwheat', 'Latte']);
+    expect(drinks).toEqual([]);
+  });
+});

@@ -90,6 +90,48 @@
   color: var(--color-text-secondary);
 }
 
+/* «Drink ↔ Food» (OCT-147 4.5): badge-sized, 44 px to tap through ::after. */
+.dish-row__kind {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px var(--space-2);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-2);
+  color: var(--color-text-secondary);
+  font: inherit;
+  font-size: var(--text-caption-size);
+  line-height: var(--text-caption-lh);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.dish-row__kind::after {
+  content: '';
+  position: absolute;
+  inset: calc(var(--space-3) * -1) 0;
+}
+
+.dish-row__kind--drink {
+  background: var(--color-water-soft);
+  color: var(--color-water);
+}
+
+.dish-row__kind .lucide {
+  flex: none;
+  width: 1.2em;
+  height: 1.2em;
+}
+
+@media (hover: hover) {
+  .dish-row__kind:not(.dish-row__kind--drink):hover {
+    background: var(--color-hover);
+  }
+}
+
 /* C.1: stepper, «was …» beside it, the pencil at the end. */
 .dish-row__weight {
   display: flex;

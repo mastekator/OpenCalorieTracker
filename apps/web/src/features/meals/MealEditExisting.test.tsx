@@ -12,6 +12,8 @@ import { Route, Router, Switch, useLocation } from 'wouter';
 import { memoryLocation } from 'wouter/memory-location';
 import {
   addDays,
+  type AccountSettings,
+  type DrinkEntryInput,
   type Meal,
   type MealPatch,
   type MeResponse,
@@ -307,6 +309,20 @@ describe('MealEditExisting (/meal/:clientId)', () => {
       'fetch',
       vi.fn(async (url: string, init?: RequestInit) => {
         const method = init?.method ?? 'GET';
+        if (url === '/api/drink-entries') {
+          const body = JSON.parse(String(init?.body)) as DrinkEntryInput;
+          sent.push({ method, url, body });
+          if (!('photo' in body)) throw new Error('a photo drink expected');
+          return Response.json({
+            ...body.photo,
+            clientId: body.clientId,
+            date: body.date,
+            takenAt: body.takenAt,
+            ml: body.ml,
+            drinkKey: null,
+            deleted: false,
+          });
+        }
         if (url.startsWith('/api/meals')) {
           sent.push({
             method,
@@ -457,6 +473,67 @@ describe('MealEditExisting (/meal/:clientId)', () => {
     ).toBe(twoAgo);
     fireEvent.click(button('Open'));
     expect(at.history.at(-1)).toBe(`/diary/${twoAgo}`);
+  });
+
+  describe('drinks from a photo (ADR-0028 §6)', () => {
+    const food = { ...saved().items[0]!, source: 'ai' as const };
+    const latte = {
+      ...food,
+      name: 'Latte',
+      grams: 250,
+      unit: 'ml',
+      kcal: 120,
+      drink: true,
+    };
+    const posted = (url: string) => sent.filter((s) => s.url === url);
+
+    async function save(dishes: unknown[]) {
+      const db = await openUserDb(9);
+      await db.put(
+        'kv',
+        {
+          units: 'metric',
+          locale: 'en',
+          waterEnabled: true,
+          // The device zone: otherwise the provider PATCHes it and the mock refuses.
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        } as AccountSettings,
+        'settings',
+      );
+      db.close();
+      history.replaceState({ dishes }, '');
+      const at = setup(saved(), MEAL_EDIT_PATH);
+      await screen.findByRole(
+        'button',
+        { name: 'Drink. Save as food' },
+        { timeout: 5000 },
+      );
+      fireEvent.click(button('Save'));
+      await waitFor(() => expect(at.history.at(-1)).toBe('/'));
+      history.replaceState(null, '');
+      // The queue sends it before the next test clears the local copy.
+      await waitFor(() => expect(posted('/api/drink-entries')).toHaveLength(1));
+    }
+
+    it('food and a drink: a meal without the drink and a drink entry', async () => {
+      await save([food, latte]);
+      await waitFor(() => expect(posted('/api/meals')).toHaveLength(1));
+      const meal = posted('/api/meals')[0]!.body as {
+        items: { name: string }[];
+      };
+      expect(meal.items.map((i) => i.name)).toEqual(['Buckwheat']);
+      expect(posted('/api/drink-entries')[0]!.body).toMatchObject({
+        ml: 250,
+        date: localToday(),
+        photo: { name: 'Latte', kcal: 120, countsWater: true },
+      });
+    });
+
+    it('a drink only: no meal, a toast with the count and kcal', async () => {
+      await save([latte]);
+      await screen.findByText(/^\+1 drink · 120.kcal$/);
+      expect(posted('/api/meals')).toEqual([]);
+    });
   });
 
   describe('«Saved for next time» (OCT-313 2.2, AC-4.5)', () => {

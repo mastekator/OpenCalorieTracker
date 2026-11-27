@@ -1,11 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import type { RecognizedDish } from '@oct/shared';
+import {
+  drinkEntryInputSchema,
+  type MealItemInput,
+  type RecognizedDish,
+} from '@oct/shared';
 import { PILAF } from '../kitchen/fixtures';
 import { CHEESECAKE, QUESTION_CASES } from './questions.fixtures';
 import {
   answer,
   applyAgain,
   applyRefine,
+  drinkOf,
   fixedOf,
   itemOf,
   nudgePct,
@@ -572,5 +577,82 @@ describe('gross → edible (ADR-0039 §5)', () => {
     const [r] = toRows([{ ...fruit, edible }], [q]);
     expect(answer([r!], r!.id, 0).rows[0]!.edible).toEqual(edible);
     expect(answer([r!], r!.id, 1).rows[0]!.edible).toBeUndefined();
+  });
+});
+
+describe('drinks from a photo (ADR-0028 §6)', () => {
+  const entry = (item: MealItemInput) => ({
+    clientId: crypto.randomUUID(),
+    date: '2026-11-27',
+    takenAt: '2026-11-27T10:00:00.000Z',
+    ...drinkOf(item, 'coffee'),
+  });
+  const latte = {
+    name: 'Latte',
+    grams: 250,
+    kcal: 120,
+    proteinG: 6,
+    fatG: 5,
+    carbsG: 10,
+    source: 'ai' as const,
+  };
+
+  it('keeps an ordinary drink as it is, counted in water', () => {
+    expect(drinkOf(latte, 'coffee')).toEqual({
+      ml: 250,
+      photo: {
+        name: 'Latte',
+        illustration: 'coffee',
+        kcal: 120,
+        proteinG: 6,
+        fatG: 5,
+        carbsG: 10,
+        countsWater: true,
+      },
+    });
+  });
+
+  it.each([
+    // Rounded only: the numbers stay.
+    { grams: 250.6, kcal: 120, ml: 251, out: 120 },
+    // Cut to the range: the numbers follow the volume, then the schema's caps.
+    { grams: 4, kcal: 2, ml: 10, out: 5 },
+    { grams: 5000, kcal: 10_000, ml: 2000, out: 4000 },
+    { grams: 4, kcal: 10_000, ml: 10, out: 20_000 },
+  ])('$grams → $ml ml, $out kcal', ({ grams, kcal, ml, out }) => {
+    const e = entry({ ...latte, grams, kcal });
+    expect(e.ml).toBe(ml);
+    expect(e.photo.kcal).toBe(out);
+    expect(drinkEntryInputSchema.safeParse(e).success).toBe(true);
+  });
+
+  it('cuts a long name and huge numbers into what the API takes', () => {
+    const e = entry({
+      ...latte,
+      name: ` ${'x'.repeat(100)} `,
+      proteinG: 5000,
+      fatG: 0.04,
+      carbsG: 1000.06,
+    });
+    expect(e.photo.name).toHaveLength(80);
+    expect(e.photo).toMatchObject({ proteinG: 2000, fatG: 0, carbsG: 1000.1 });
+    expect(drinkEntryInputSchema.safeParse(e).success).toBe(true);
+  });
+
+  it('a recognized drink comes as a drink row; refine keeps the flag, the user switch included', () => {
+    const [row] = toRows([
+      { ...ai('Latte', 250, 120), unit: 'ml', drink: true },
+    ]);
+    expect(row!.drink).toBe(true);
+    expect(toRows([ai('Soup', 300, 150)])[0]!.drink).toBeUndefined();
+    const food = { ...row!, drink: false };
+    const res = applyRefine(
+      [food],
+      [
+        ai('Latte', 300, 150, 'd1'),
+        { ...ai('Tea', 200, 0, null), drink: true },
+      ],
+    );
+    expect(res.rows.map((r) => r.drink)).toEqual([false, true]);
   });
 });
