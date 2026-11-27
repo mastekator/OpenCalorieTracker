@@ -31,6 +31,8 @@ export interface OctDb extends DBSchema {
     /**
      * `aiStatus`, `integrations`: the last GET /api/ai/status, /api/integrations, shown offline.
      * `fullSyncAt`: when a pull from `since = 0` last reached `more: false` (ADR-0032 §4).
+     * `awardsCatalog`: the catalog version awards were last granted by; `awardsRetro`: when an
+     * import was committed; `awardsQuiet`: keys granted retro here, never congratulated.
      */
     key:
       | 'rev'
@@ -40,7 +42,10 @@ export interface OctDb extends DBSchema {
       | 'choices'
       | 'profile'
       | 'aiStatus'
-      | 'integrations';
+      | 'integrations'
+      | 'awardsCatalog'
+      | 'awardsRetro'
+      | 'awardsQuiet';
     value:
       | number
       | MeResponse
@@ -48,7 +53,8 @@ export interface OctDb extends DBSchema {
       | Choices
       | ProfileResponse
       | AiStatus
-      | Integrations;
+      | Integrations
+      | string[];
   };
   /** Photos taken offline, by meal clientId (OCT-77). */
   photos: { key: string; value: Blob };
