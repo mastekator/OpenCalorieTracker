@@ -68,37 +68,41 @@ const geminiStatus: AiStatus = {
 };
 
 /** Answers GET /api/account/passkeys with `list`, /api/admin/ai with a quota state, /api/ai/status with Gemini; anything else succeeds empty. */
-const serve = (list: Passkey[]) => () => {
-  const real = globalThis.fetch;
-  globalThis.fetch = async (input) =>
-    String(input).endsWith('/api/account/passkeys')
-      ? Response.json(list)
-      : String(input).endsWith('/api/ai/status')
-        ? Response.json(geminiStatus)
-        : String(input).endsWith('/api/admin/ai')
-          ? Response.json({
-              provider: 'google',
-              providerName: 'Google Gemini',
-              model: 'gemini-3.8-flash',
-              keySet: true,
-              baseUrlHost: null,
-              source: 'env',
-              keyLast4: null,
-              keyUnreadable: false,
-              savedInactive: false,
-              rev: null,
-              allowUserKeys: true,
-              userKeysLocked: false,
-              refineLimit: 3,
-              testPhotoCount: 9,
-              state: 'quota_exceeded',
-              checkedAt: Date.now(),
-            })
-          : new Response(null, { status: 204 });
-  return () => {
-    globalThis.fetch = real;
+const serve =
+  (list: Passkey[], admin: object = {}) =>
+  () => {
+    const real = globalThis.fetch;
+    globalThis.fetch = async (input) =>
+      String(input).endsWith('/api/account/passkeys')
+        ? Response.json(list)
+        : String(input).endsWith('/api/ai/status')
+          ? Response.json(geminiStatus)
+          : String(input).endsWith('/api/admin/ai')
+            ? Response.json({
+                provider: 'google',
+                providerName: 'Google Gemini',
+                model: 'gemini-3.8-flash',
+                keySet: true,
+                baseUrlHost: null,
+                source: 'env',
+                keyLast4: null,
+                keyUnreadable: false,
+                savedInactive: false,
+                rev: null,
+                allowUserKeys: true,
+                userKeysLocked: false,
+                userKeyCount: 2,
+                refineLimit: 3,
+                testPhotoCount: 9,
+                state: 'quota_exceeded',
+                checkedAt: Date.now(),
+                ...admin,
+              })
+            : new Response(null, { status: 204 });
+    return () => {
+      globalThis.fetch = real;
+    };
   };
-};
 
 /** Settings, OCT-13 §7 (screen 10, 3.3–3.5). Theme and language: toolbar; Dark stories below. */
 const meta = {
@@ -223,6 +227,30 @@ export const AiProviderLimitDesktop: Story = {
 export const AiProviderLimitDesktopDark: Story = {
   ...AiProviderLimit,
   globals: { viewport: { value: 'desktop' }, theme: 'dark' },
+};
+/** OCT-178 3.7: turning off personal keys while two users have one asks first. */
+export const AiProviderUserKeysOff: Story = {
+  ...AiProviderLimit,
+  play: async ({ canvas, globals, userEvent }) => {
+    await userEvent.click(
+      await canvas.findByRole('switch', {
+        name: tr(globals, 'ai.form.allow_keys'),
+      }),
+    );
+  },
+};
+export const AiProviderUserKeysOffDark: Story = {
+  ...AiProviderUserKeysOff,
+  ...dark,
+};
+/** ALLOW_USER_AI_KEYS in env: the switch is locked and names the variable. */
+export const AiProviderUserKeysLocked: Story = {
+  beforeEach: serve([], { allowUserKeys: false, userKeysLocked: true }),
+  render: () => <AiProviderScreen />,
+};
+export const AiProviderUserKeysLockedDark: Story = {
+  ...AiProviderUserKeysLocked,
+  ...dark,
 };
 /** OCT-25 5.6: the AI provider screen offline shows no stale status. */
 export const AiProviderOffline: Story = {

@@ -153,6 +153,10 @@ export function adminRoutes({ config, db, ai, secrets, chatgpt }: RouteDeps) {
       refineLimit: refineLimit(db),
       allowUserKeys: userKeysAllowed(db, config),
       userKeysLocked: config.ai.userKeys !== undefined,
+      userKeyCount: db
+        .prepare('SELECT COUNT(*) FROM user_ai_settings')
+        .pluck()
+        .get() as number,
       state,
       testPhotoCount: (await readExpected()).photos.length,
       checkedAt,

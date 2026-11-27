@@ -21,6 +21,7 @@ const off = {
   rev: null,
   allowUserKeys: true,
   userKeysLocked: false,
+  userKeyCount: 0,
   refineLimit: null,
   testPhotoCount: 9,
   state: 'not_configured',

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { z } from 'zod';
 import { CircleAlert, Power, WifiOff } from 'lucide-react';
 import {
   adminAiStatusSchema,
@@ -19,6 +20,7 @@ import { List, ListRow } from '../../ui/List/List';
 import { useOnline } from '../../ui/OfflineBar/OfflineBar';
 import { ProviderStatus } from '../../ui/ProviderStatus/ProviderStatus';
 import { ScreenState } from '../../ui/ScreenState/ScreenState';
+import { Switch } from '../../ui/Switch/Switch';
 import { useToast } from '../../ui/Toast/Toast';
 import {
   AI_STATUS_PATH,
@@ -259,6 +261,11 @@ export function AiProviderScreen() {
           onLoadModels={() => void loadModels(draft)}
         />
         <RefineLimitField status={status} onSaved={setStatus} />
+        <UserKeysGroup
+          status={status}
+          onSaved={setStatus}
+          onFailed={() => void load()}
+        />
       </ProviderStatus>
       <ConfirmDialog
         open={confirmOff}
@@ -334,5 +341,75 @@ function RefineLimitField({
         </li>
       </ul>
     </form>
+  );
+}
+
+/** «Allow personal API keys» (ADR-0031 §2): turning it off deletes every saved own key, so it asks first. */
+function UserKeysGroup({
+  status,
+  onSaved,
+  onFailed,
+}: {
+  status: AdminAiStatus;
+  /** Only the switch changes: an unsaved draft in the form above is kept. */
+  onSaved: (next: AdminAiStatus) => void;
+  onFailed: () => void;
+}) {
+  const { t } = useT();
+  const toast = useToast();
+  const [confirm, setConfirm] = useState(false);
+
+  async function put(allow: boolean) {
+    setConfirm(false);
+    try {
+      await api(`${AI_STATUS_PATH}/user-keys`, z.unknown(), {
+        method: 'PUT',
+        body: { allow },
+      });
+      onSaved({
+        ...status,
+        allowUserKeys: allow,
+        userKeyCount: allow ? status.userKeyCount : 0,
+      });
+    } catch (err) {
+      // 409 user_ai_keys_env_managed: the .env changed under us; the reload shows the lock.
+      toast({ text: t(`errors.${codeOf(err)}`) });
+      onFailed();
+    }
+  }
+
+  return (
+    <>
+      <List
+        title={t('ai.form.users_title')}
+        footer={t('ai.form.allow_keys_hint')}
+      >
+        <ListRow
+          description={
+            status.userKeysLocked ? t('ai.form.allow_keys_env') : undefined
+          }
+          value={
+            <Switch
+              checked={status.allowUserKeys}
+              onChange={(on) =>
+                on || !status.userKeyCount ? void put(on) : setConfirm(true)
+              }
+              label={t('ai.form.allow_keys')}
+              disabled={status.userKeysLocked}
+            />
+          }
+        >
+          {t('ai.form.allow_keys')}
+        </ListRow>
+      </List>
+      <ConfirmDialog
+        open={confirm}
+        title={t('ai.form.keys_off_title')}
+        body={t('ai.form.keys_off_body', { count: status.userKeyCount })}
+        confirmLabel={t('ai.form.keys_off_confirm')}
+        onConfirm={() => void put(false)}
+        onCancel={() => setConfirm(false)}
+      />
+    </>
   );
 }

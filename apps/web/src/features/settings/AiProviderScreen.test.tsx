@@ -48,6 +48,7 @@ const gemini: AdminAiStatus = {
   rev: null,
   allowUserKeys: true,
   userKeysLocked: false,
+  userKeyCount: 0,
   refineLimit: null,
   testPhotoCount: 9,
   state: 'ok',
@@ -753,5 +754,66 @@ describe('AiProviderScreen: settings form', () => {
         },
       ]),
     );
+  });
+
+  describe('«Allow personal API keys»', () => {
+    const allow = () =>
+      screen.findByRole('switch', { name: 'Allow personal API keys' });
+    const puts = (calls: Call[]) =>
+      calls.filter((c) => c.url === '/api/admin/ai/user-keys');
+
+    it('off with saved keys asks first and names how many are deleted', async () => {
+      const calls = server(({ method }) => [
+        method === 'PUT' ? { deleted: 3 } : { ...saved, userKeyCount: 3 },
+      ]);
+      await wrap(<AiProviderScreen />);
+      fireEvent.click(await allow());
+      expect(screen.getByRole('heading', { name: 'Users' })).toBeTruthy();
+      expect(
+        screen.getByText(
+          'Keys of 3 people will be deleted; they’ll switch to server AI.',
+        ),
+      ).toBeTruthy();
+      expect(puts(calls)).toHaveLength(0);
+      fireEvent.click(screen.getByRole('button', { name: 'Turn off' }));
+      await waitFor(async () =>
+        expect((await allow()).getAttribute('aria-checked')).toBe('false'),
+      );
+      expect(puts(calls)).toEqual([
+        {
+          method: 'PUT',
+          url: '/api/admin/ai/user-keys',
+          body: { allow: false },
+        },
+      ]);
+    });
+
+    it('off without saved keys switches at once; on again too', async () => {
+      const calls = server(({ method }) => [
+        method === 'PUT' ? { deleted: 0 } : saved,
+      ]);
+      await wrap(<AiProviderScreen />);
+      fireEvent.click(await allow());
+      await waitFor(async () =>
+        expect((await allow()).getAttribute('aria-checked')).toBe('false'),
+      );
+      expect(screen.queryByText('Turn off personal keys?')).toBeNull();
+      fireEvent.click(await allow());
+      await waitFor(() =>
+        expect(puts(calls).map((c) => c.body)).toEqual([
+          { allow: false },
+          { allow: true },
+        ]),
+      );
+    });
+
+    it('ALLOW_USER_AI_KEYS in env: the switch is locked and says why', async () => {
+      server(() => [{ ...saved, allowUserKeys: false, userKeysLocked: true }]);
+      await wrap(<AiProviderScreen />);
+      const sw = await allow();
+      expect((sw as HTMLButtonElement).disabled).toBe(true);
+      expect(sw.getAttribute('aria-checked')).toBe('false');
+      expect(screen.getByText('Set in .env (ALLOW_USER_AI_KEYS)')).toBeTruthy();
+    });
   });
 });

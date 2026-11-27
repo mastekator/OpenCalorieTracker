@@ -68,6 +68,8 @@ export const adminAiStatusSchema = z.object({
   allowUserKeys: z.boolean().default(true),
   /** ALLOW_USER_AI_KEYS in env decides; the switch on the screen is locked. */
   userKeysLocked: z.boolean().default(false),
+  /** Users with a saved own key: the count turning the switch off deletes. */
+  userKeyCount: z.number().int().default(0),
   state: aiProviderStateSchema,
   /** Photos in the model test set (expected.json), for the texts before the first run. */
   testPhotoCount: z.number().int(),
