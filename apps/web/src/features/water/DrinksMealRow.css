@@ -33,10 +33,21 @@
   color: var(--color-text-secondary);
 }
 
-.drinks-row__name {
+.drinks-row__what {
+  display: flex;
+  gap: var(--space-1);
   flex: 1;
+  min-width: 0;
+}
+
+.drinks-row__name {
   min-width: 0;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+.drinks-row__amount {
+  flex: none;
+  white-space: nowrap;
 }

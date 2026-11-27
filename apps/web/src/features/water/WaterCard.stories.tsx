@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { ROW } from './fixtures';
+import { fireEvent, waitFor } from 'storybook/test';
+import { useRow } from './fixtures';
 import { WaterCard } from './WaterCard';
 
 const meta = {
@@ -16,9 +17,16 @@ const meta = {
     ml: 750,
     goalMl: 2000,
     units: 'metric',
-    drinks: ROW,
+    drinks: [],
     hint: false,
     onLog: () => {},
+    onOther: () => {},
+    onHide: () => {},
+    onOpenDay: () => {},
+  },
+  // Names follow the story locale.
+  render: function Render(args) {
+    return <WaterCard {...args} drinks={useRow()} />;
   },
 } satisfies Meta<typeof WaterCard>;
 export default meta;
@@ -38,21 +46,19 @@ export const OverGoal: Story = { args: { ml: 2600 } };
 export const Empty: Story = { args: { ml: 0, hint: true } };
 export const EmptyDark: Story = { ...Empty, globals: dark };
 export const FluidOunces: Story = { args: { units: 'us' } };
-export const Russian: Story = {
-  args: {
-    drinks: ROW.map((d, i) => ({
-      ...d,
-      name: [
-        'Вода',
-        'Кофе с молоком',
-        'Чай',
-        'Кофе',
-        'Сок',
-        'Молоко',
-        'Газировка',
-        'Кефир',
-      ][i]!,
-    })),
+export const Russian: Story = { globals: { locale: 'ru' } };
+
+/** 1.2: held «Coffee with milk» — the amount menu with kcal, «Hide from the row». */
+const menu = {
+  play: async ({ canvasElement }: { canvasElement: HTMLElement }) => {
+    const tile = await waitFor(() => {
+      const el = canvasElement.querySelectorAll('.drink-tile')[1];
+      if (!el) throw new Error('no tiles yet');
+      return el;
+    });
+    fireEvent.contextMenu(tile);
   },
-  globals: { locale: 'ru' },
 };
+export const Menu: Story = menu;
+export const MenuDark: Story = { ...menu, globals: dark };
+export const MenuRussian: Story = { ...menu, globals: { locale: 'ru' } };
