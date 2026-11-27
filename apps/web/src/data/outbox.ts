@@ -1,12 +1,16 @@
 import { z } from 'zod';
 import type { IDBPTransaction } from 'idb';
 import {
+  BUILTIN_DRINKS,
+  entryFrom,
   matchIllustration,
   nameKey,
   type AccountSettings,
   type AccountSettingsPatch,
   type ChallengeMonth,
   type ChallengeMonthPut,
+  type DrinkEntry,
+  type DrinkEntryInput,
   type IllustrationChoice,
   type IllustrationId,
   type Meal,
@@ -59,6 +63,8 @@ type Tx = IDBPTransaction<
     | 'products'
     | 'awards'
     | 'challengeMonths'
+    | 'drinks'
+    | 'drinkEntries'
   )[],
   'readwrite'
 >;
@@ -75,6 +81,8 @@ async function local<T>(db: Db, change: (tx: Tx) => Promise<T>) {
       'products',
       'awards',
       'challengeMonths',
+      'drinks',
+      'drinkEntries',
     ],
     'readwrite',
   );
@@ -450,6 +458,73 @@ export const putChallengeMonth = (
     });
   });
 
+/**
+ * Logs a drink (ADR-0028 §4): the snapshot is built here as on the server, so the day's
+ * totals change at once. Resolves to the entry's uuid `clientId`.
+ */
+export function createDrinkEntry(
+  db: Db,
+  // Distributive: a plain Omit of the union loses `drinkKey` and `photo`.
+  input: DrinkEntryInput extends infer T
+    ? T extends unknown
+      ? Omit<T, 'clientId'>
+      : never
+    : never,
+) {
+  const clientId = crypto.randomUUID();
+  const body = { ...input, clientId } as DrinkEntryInput;
+  return local(db, async (tx) => {
+    let entry: DrinkEntry;
+    const base = { clientId, date: body.date, takenAt: body.takenAt };
+    if ('photo' in body)
+      entry = {
+        ...body.photo,
+        ...base,
+        ml: body.ml,
+        drinkKey: null,
+        deleted: false,
+      };
+    else {
+      const source = await drinkSource(tx, body.drinkKey);
+      if (!source) throw new Error(`unknown drink ${body.drinkKey}`);
+      entry = {
+        ...entryFrom(source, body.ml),
+        ...base,
+        drinkKey: body.drinkKey,
+        deleted: false,
+      };
+    }
+    await tx.objectStore('drinkEntries').put(entry);
+    await tx
+      .objectStore('outbox')
+      .add({ kind: 'createDrinkEntry', clientId: `drink:${clientId}`, body });
+    return clientId;
+  });
+}
+
+async function drinkSource(tx: Tx, key: string) {
+  const builtin = BUILTIN_DRINKS.find((d) => d.key === key);
+  if (builtin) return builtin;
+  const own = key.startsWith('custom:')
+    ? await tx.objectStore('drinks').get(Number(key.slice('custom:'.length)))
+    : undefined;
+  return own && { ...own, per100: own };
+}
+
+/** Removes a drink entry by its uuid; an unsent one just leaves the queue, nothing is sent. */
+export const deleteDrinkEntry = (db: Db, clientId: string) =>
+  local(db, async (tx) => {
+    await tx.objectStore('drinkEntries').delete(clientId);
+    const opId = `drink:${clientId}`;
+    const outbox = tx.objectStore('outbox');
+    // A create being sent is not in `queued`, a sent one may be there already: both need the delete.
+    const ops = await queued(db, tx, opId);
+    for (const o of ops) await outbox.delete(o.seq!);
+    const create = ops.find((o) => o.kind === 'createDrinkEntry');
+    if (!create || create.sent)
+      await outbox.add({ kind: 'deleteDrinkEntry', clientId: opId });
+  });
+
 const DAY_MS = 86_400_000;
 
 /** Full photos a shorter period deletes now, by the local copy (OCT-25 §4); as the server's expiry. */
@@ -492,7 +567,10 @@ async function send(db: Db, s: State): Promise<boolean> {
     let op = (await db.getAll('outbox')).find((o) => !o.error && !o.conflict);
     if (!op) break;
     s.sending = op.seq;
-    if (op.kind === 'createMeal' && !op.sent)
+    if (
+      (op.kind === 'createMeal' || op.kind === 'createDrinkEntry') &&
+      !op.sent
+    )
       await db.put('outbox', (op = { ...op, sent: true }));
     try {
       await deliver(db, op);
@@ -534,6 +612,7 @@ const deleteSchema = z.custom<WeighingDeleteResponse>();
 const photoSchema = z.object({ photoId: z.string() });
 const awardsSchema = z.custom<{ awards: StoredAward[] }>();
 const monthSchema = z.custom<ChallengeMonth>();
+const drinkEntrySchema = z.custom<DrinkEntry>();
 
 async function deliver(db: Db, op: Op) {
   switch (op.kind) {
@@ -618,6 +697,22 @@ async function deliver(db: Db, op: Op) {
           body: op.body,
         }),
       ]);
+    case 'createDrinkEntry':
+      return drunk(
+        db,
+        op,
+        await api('/api/drink-entries', drinkEntrySchema, {
+          method: 'POST',
+          body: op.body,
+        }),
+      );
+    case 'deleteDrinkEntry':
+      await api(
+        `/api/drink-entries/${op.clientId.slice('drink:'.length)}`,
+        z.unknown(),
+        { method: 'DELETE' },
+      );
+      break;
   }
   await db.delete('outbox', op.seq!);
 }
@@ -680,6 +775,16 @@ async function saved(db: Db, op: Op, meal: Meal) {
   await tx.done;
 }
 
+/** The server's entry replaces the local one, unless a later delete of it waits. */
+async function drunk(db: Db, op: Op, entry: DrinkEntry) {
+  const tx = db.transaction(['outbox', 'drinkEntries'], 'readwrite');
+  const outbox = tx.objectStore('outbox');
+  await outbox.delete(op.seq!);
+  if (!(await outbox.index('clientId').count(op.clientId)))
+    await tx.objectStore('drinkEntries').put(entry);
+  await tx.done;
+}
+
 /** The server's profile, with the weight of weighings still queued on top. */
 async function weighed(db: Db, op: Op, profile: ProfileResponse) {
   const tx = db.transaction(['outbox', 'kv', 'weighings'], 'readwrite');
@@ -699,8 +804,18 @@ const notMeal = (op: Op) =>
   op.kind === 'putChallengeMonth';
 
 async function refuse(db: Db, op: Op, err: ApiError) {
-  const tx = db.transaction(['outbox', 'meals'], 'readwrite');
+  const tx = db.transaction(['outbox', 'meals', 'drinkEntries'], 'readwrite');
   const outbox = tx.objectStore('outbox');
+  if (op.kind === 'createDrinkEntry' || op.kind === 'deleteDrinkEntry') {
+    // 404: the entry is gone there already, or its own drink was deleted before it went out.
+    if (err.status !== 404) await outbox.put({ ...op, error: err.code });
+    else {
+      await outbox.delete(op.seq!);
+      if (op.kind === 'createDrinkEntry')
+        await tx.objectStore('drinkEntries').delete(op.body.clientId);
+    }
+    return tx.done;
+  }
   const creates = op.kind === 'createMeal' || op.kind === 'uploadPhoto';
   const here = !!(await tx.objectStore('meals').get(op.clientId));
   // Made on an older version, or deleted there: park it for the user's choice, the local copy stays (ADR-0022 §3).

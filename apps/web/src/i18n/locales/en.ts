@@ -171,6 +171,7 @@ export const en = {
       admin: 'Admin',
       appearance: 'Appearance',
       data: 'Data',
+      extra: 'More',
       app: 'App',
       signin: 'Sign-in · {email}',
     },
@@ -181,6 +182,13 @@ export const en = {
     units_option: { metric: 'Metric', us: 'US' },
     units_hint:
       'Food in oz, body weight in lb. Calories and macros stay the same.',
+    water: {
+      switch: 'Water and drinks',
+      hint_off:
+        'A card on Today: how much you drank and the calories in drinks. Only you can see it.',
+      hint_on:
+        'Your water goal is in the profile. Turn it off and the card goes away; entries and your drinks stay.',
+    },
     install: 'Add to Home Screen',
     ai: 'AI',
     ai_server: 'Through the server · {provider}',

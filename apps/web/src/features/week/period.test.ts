@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { periodLabel, periodOfId, periodPath, stepPeriod } from './period';
+import type { DrinkEntry, Meal } from '@oct/shared';
+import {
+  periodDays,
+  periodLabel,
+  periodOfId,
+  periodPath,
+  stepPeriod,
+} from './period';
 
 const t = (key: 'week.this' | 'week.last') =>
   key === 'week.this' ? 'This week' : 'Last week';
@@ -43,5 +50,28 @@ describe('period', () => {
     expect(label('week', '2025-12-17').sub).toBe('2025');
     expect(label('month', TODAY)).toEqual({ label: 'November', sub: '2026' });
     expect(periodLabel('month', TODAY, TODAY, 'ru', t).label).toBe('Ноябрь');
+  });
+
+  it('adds drink kcal to the days, not to the meal count', () => {
+    const meal = {
+      localDate: '2026-11-12',
+      kcal: 500,
+      proteinG: 20,
+      fatG: 10,
+      carbsG: 60,
+    } as Meal;
+    const drink = {
+      date: '2026-11-12',
+      kcal: 100,
+      proteinG: 1,
+      fatG: 0,
+      carbsG: 20,
+    } as DrinkEntry;
+    const [day, next] = periodDays([meal], '2026-11-12', '2026-11-13', [
+      drink,
+      { ...drink, date: '2026-11-13' },
+    ]);
+    expect(day).toMatchObject({ kcal: 600, carbsG: 80, meals: 1 });
+    expect(next).toMatchObject({ kcal: 100, meals: 0 });
   });
 });

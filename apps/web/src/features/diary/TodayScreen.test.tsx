@@ -156,6 +156,32 @@ describe('TodayScreen', () => {
     expect(screen.getByText('12,000 kcal left this week')).toBeTruthy();
   });
 
+  it('counts drink kcal in the day and the week with the water module off (ADR-0028 §5)', async () => {
+    serve(profile(2000));
+    await seed(meal('lunch', '2026-11-14', 12));
+    const db = await openUserDb(USER.id);
+    await db.put('drinkEntries', {
+      clientId: '00000000-0000-4000-8000-0000000000d1',
+      date: '2026-11-14',
+      takenAt: '2026-11-14T10:00:00.000Z',
+      drinkKey: 'juice',
+      illustration: 'drinks',
+      ml: 200,
+      countsWater: true,
+      kcal: 100,
+      proteinG: 1,
+      fatG: 0,
+      carbsG: 20,
+      deleted: false,
+    });
+    db.close();
+    renderToday();
+    await screen.findByText('Dish lunch');
+    // 2000 − 500 − 100
+    expect(screen.getByText('1,400')).toBeTruthy();
+    expect(screen.getByText('13,400 kcal left this week')).toBeTruthy();
+  });
+
   it('moves to the new day when the app comes back after midnight (AC-1.12)', async () => {
     serve(profile(2000));
     await seed(meal('sat', '2026-11-14', 9), meal('sun', '2026-11-15', 9));

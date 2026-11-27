@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   Download,
+  Droplet,
   Globe,
   GlobeLock,
   Image,
@@ -59,6 +60,7 @@ import {
 import { useOnline } from '../../ui/OfflineBar/OfflineBar';
 import { AiStateBadge } from '../../ui/ProviderStatus/ProviderStatus';
 import { SegmentedRow } from '../../ui/SegmentedRow/SegmentedRow';
+import { Switch } from '../../ui/Switch/Switch';
 import { useToast } from '../../ui/Toast/Toast';
 import { BLOCKS_API, blocksSchema } from '../admin/BlocksScreen';
 import { AI_STATUS_PATH } from './AiProviderScreen';
@@ -138,6 +140,7 @@ export function SettingsScreen({ user, onLogout, platform: given }: Props) {
   const theme = settings?.theme ?? user.theme;
   const units = settings?.units ?? user.units;
   const online = useOnline();
+  const water = settings?.waterEnabled ?? false;
   const requireOnline = useRequireOnline();
   const [, navigate] = useLocation();
   const [hintClosed, setHintClosed] = useState(
@@ -298,6 +301,28 @@ export function SettingsScreen({ user, onLogout, platform: given }: Props) {
               void patchSettings(db, { theme: v }).finally(() => applyTheme(v))
             }
           />
+        </List>
+
+        <List
+          title={t('settings.group.extra')}
+          footer={t(
+            water ? 'settings.water.hint_on' : 'settings.water.hint_off',
+          )}
+        >
+          <ListRow
+            icon={<Droplet />}
+            value={
+              <Switch
+                checked={water}
+                // Needs the network, as the design says (OCT-147 3.2).
+                disabled={!online}
+                onChange={(on) => void patchSettings(db, { waterEnabled: on })}
+                label={t('settings.water.switch')}
+              />
+            }
+          >
+            {t('settings.water.switch')}
+          </ListRow>
         </List>
 
         <List>

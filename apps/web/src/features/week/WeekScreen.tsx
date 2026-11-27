@@ -5,7 +5,7 @@ import {
   type Macros,
 } from '@oct/shared';
 import { Redirect, useLocation } from 'wouter';
-import { useNorm, usePeriod } from '../../data/DataContext';
+import { useDrinkEntries, useNorm, usePeriod } from '../../data/DataContext';
 import { useT } from '../../i18n';
 import { Segment } from '../../ui/Segment/Segment';
 import { Delayed, Skeleton } from '../../ui/Skeleton/Skeleton';
@@ -233,6 +233,7 @@ function Week({
 }) {
   const [, navigate] = useLocation();
   const meals = usePeriod(from, to);
+  const drinks = useDrinkEntries(from, to);
   const norm = useNorm(today);
   const nav = usePeriodNav(mode, to, today);
   return (
@@ -240,7 +241,7 @@ function Week({
       mode={mode}
       date={from}
       today={today}
-      days={meals && periodDays(meals, from, to)}
+      days={meals && drinks && periodDays(meals, from, to, drinks)}
       norm={norm}
       {...nav}
       onOpenDay={(date) => navigate(`/diary/${date}`)}

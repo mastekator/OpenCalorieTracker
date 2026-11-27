@@ -350,6 +350,42 @@ describe('Appearance and data (OCT-25 §4)', () => {
   });
 });
 
+describe('Water and drinks switch (ADR-0028 §5)', () => {
+  it('is off by default, unavailable offline', async () => {
+    offlineNow();
+    await seed(synced);
+    await wrap(screenOf(), true);
+    const sw = await screen.findByRole('switch', { name: 'Water and drinks' });
+    expect(sw.getAttribute('aria-checked')).toBe('false');
+    expect((sw as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('online, turning it on sends the setting', async () => {
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
+    serve({});
+    await seed(synced);
+    await wrap(screenOf(), true);
+    fireEvent.click(
+      await screen.findByRole('switch', { name: 'Water and drinks' }),
+    );
+    await waitFor(() =>
+      expect(
+        vi
+          .mocked(fetch)
+          .mock.calls.find(
+            ([url, init]) =>
+              url === '/api/account/settings' && init?.method === 'PATCH',
+          )?.[1]?.body,
+      ).toMatch(/^\{"waterEnabled":true,/),
+    );
+    expect(
+      screen
+        .getByRole('switch', { name: 'Water and drinks' })
+        .getAttribute('aria-checked'),
+    ).toBe('true');
+  });
+});
+
 describe('Offline (4.8)', () => {
   it('banner, local rows active, sign-in and admin rows not, last AI status shown', async () => {
     offlineNow();

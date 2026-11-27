@@ -238,6 +238,12 @@ export const usePeriod = (from: string, to: string) =>
     ).sort(byEatenAt),
   );
 
+/** Drink entries from `from` to `to` inclusive: their kcal count in the totals even with the module off (ADR-0028 §5). */
+export const useDrinkEntries = (from: string, to: string) =>
+  useLocal(`drinkEntries:${from}:${to}`, (db) =>
+    db.getAllFromIndex('drinkEntries', 'date', IDBKeyRange.bound(from, to)),
+  );
+
 /** One meal by clientId; null when it is not in the local copy. */
 export const useMeal = (clientId: string) =>
   useLocal(

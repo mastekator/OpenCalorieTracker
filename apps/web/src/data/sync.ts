@@ -47,6 +47,9 @@ async function apply(db: Db, page: SyncResponse, fullDone: boolean) {
       'recipes',
       'awards',
       'challengeMonths',
+      'drinks',
+      'drinkEntries',
+      'waterGoals',
     ],
     'readwrite',
   );
@@ -106,6 +109,15 @@ async function apply(db: Db, page: SyncResponse, fullDone: boolean) {
   for (const month of page.challengeMonths ?? [])
     if (!(await pending.count(`challenge:${month.month}`)))
       await tx.objectStore('challengeMonths').put(month);
+  const drinks = tx.objectStore('drinks');
+  for (const d of page.drinks ?? [])
+    await (d.deleted ? drinks.delete(d.id) : drinks.put(d));
+  const entries = tx.objectStore('drinkEntries');
+  for (const e of page.drinkEntries ?? [])
+    if (await pending.count(`drink:${e.clientId}`)) continue;
+    else await (e.deleted ? entries.delete(e.clientId) : entries.put(e));
+  const goals = tx.objectStore('waterGoals');
+  for (const g of page.waterGoals ?? []) await goals.put(g);
   await kv.put(page.rev, 'rev');
   if (fullDone) await kv.put(Date.now(), 'fullSyncAt');
   await tx.done;
