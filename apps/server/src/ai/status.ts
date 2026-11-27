@@ -13,7 +13,8 @@ export function markNoVision(model: AiModel) {
 
 export function recognitionStatus(model: AiModel | null): RecognitionStatus {
   if (!model) return 'not_configured';
-  return vision ? 'ready' : 'no_vision';
+  // The flag is the server model's; a user's own key is built per request and never flagged.
+  return vision || model !== active ? 'ready' : 'no_vision';
 }
 
 // shortcut: detected by the provider's 400 error text; add env AI_VISION=true|false if this misfires.
@@ -70,16 +71,29 @@ export function aiResultOf(err?: unknown, timeoutMs?: number): AiResult {
   };
 }
 
+// The last call or check of each user's own key since start (ADR-0031 §2, E-5).
+const ownResults = new Map<number, AiResult>();
+// Own-key models built for a request, to their user: their results go to that user's status.
+const owners = new WeakMap<AiModel, number>();
+export const ownResult = (userId: number) => ownResults.get(userId);
+export const recordOwnResult = (userId: number, result: AiResult) =>
+  ownResults.set(userId, result);
+export const forgetOwnResult = (userId: number) => ownResults.delete(userId);
+export const markOwnModel = (model: AiModel, userId: number) =>
+  owners.set(model, userId);
+
 /**
- * Called after every provider call with the arguments of aiResultOf. A late result of a
- * replaced model is dropped.
+ * Called after every provider call with the arguments of aiResultOf. An own key's result goes
+ * to its user's status; a late result of a replaced server model is dropped.
  */
 export function recordAiResult(
   model: AiModel,
   err?: unknown,
   timeoutMs?: number,
 ) {
-  if (model === active) last = aiResultOf(err, timeoutMs);
+  const userId = owners.get(model);
+  if (userId !== undefined) ownResults.set(userId, aiResultOf(err, timeoutMs));
+  else if (model === active) last = aiResultOf(err, timeoutMs);
 }
 
 export function providerState(model: AiModel | null): AiResult {
@@ -88,7 +102,11 @@ export function providerState(model: AiModel | null): AiResult {
 }
 
 export function interviewStatus(model: AiModel | null): AiStatus['interview'] {
-  const { state } = providerState(model);
+  return interviewOf(providerState(model).state);
+}
+
+/** Interview availability by the provider state, of the server's model or an own key. */
+export function interviewOf(state: AiProviderState): AiStatus['interview'] {
   if (state === 'not_configured') return 'not_configured';
   return [
     'auth_error',

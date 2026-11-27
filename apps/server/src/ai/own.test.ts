@@ -261,3 +261,100 @@ describe('own openai-compatible address of a non-admin (SSRF)', () => {
     expect(createModel).toHaveBeenCalledWith(expect.anything(), undefined);
   });
 });
+
+describe('own key in use (ADR-0031 §2)', () => {
+  it('serves the user’s data, keeps its own status and is gone when keys are turned off', async () => {
+    const server = mockModel();
+    const t = await aiSetup(server);
+    cleanup = t.cleanup;
+    const user = await t.signIn('b@example.com');
+    const userId = t.db
+      .prepare("SELECT id FROM users WHERE email = 'b@example.com'")
+      .pluck()
+      .get() as number;
+    const put = (body: unknown) =>
+      t.app.request('/api/ai/own', {
+        method: 'PUT',
+        headers: {
+          cookie: user,
+          origin: 'http://localhost:3000',
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      });
+    vi.mocked(createModel).mockResolvedValueOnce(mockModel('OK'));
+    expect((await put(draft)).status).toBe(200);
+    t.db
+      .prepare(
+        "INSERT INTO ai_consents (user_id, provider_key, granted_at) VALUES (?, 'openai', 0)",
+      )
+      .run(userId);
+    expect(t.ai.forUser({ id: userId })).toMatchObject({
+      source: 'own_key',
+      providerKey: 'openai',
+      local: false,
+      settings: { provider: 'openai', model: 'gpt-x', apiKey: KEY },
+    });
+
+    // A failed recognition with the own key: its status changes, the server's does not.
+    const serverBefore = await t.status();
+    vi.mocked(createModel).mockResolvedValueOnce(
+      mockModel(apiError(401, 'bad key')),
+    );
+    const res = await t.recognize(await t.upload(user), user);
+    expect(res.status).toBe(503);
+    expect(await res.json()).toMatchObject({
+      error: { details: { aiSource: 'own_key' } },
+    });
+    expect(server.doGenerateCalls).toHaveLength(0);
+    const own = await t.app.request('/api/ai/own', {
+      headers: { cookie: user },
+    });
+    expect(await own.json()).toMatchObject({ state: 'auth_error' });
+    expect(await t.status()).toEqual(serverBefore);
+
+    // The meal recognized with the own key says so, for support (ADR-0031 §2).
+    const meal = await t.app.request('/api/meals', {
+      method: 'POST',
+      headers: {
+        cookie: user,
+        origin: 'http://localhost:3000',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        clientId: crypto.randomUUID(),
+        eatenAt: '2026-01-10T12:00:00.000Z',
+        tzOffsetMin: 0,
+        localDate: '2026-01-10',
+        mealType: 'lunch',
+        items: [
+          {
+            name: 'Egg',
+            grams: 50,
+            kcal: 78,
+            proteinG: 6,
+            fatG: 5,
+            carbsG: 1,
+            source: 'ai',
+            confidence: 0.9,
+          },
+        ],
+      }),
+    });
+    expect(meal.status).toBe(201);
+    expect(
+      t.db
+        .prepare(
+          'SELECT m.ai_source, i.ai_provider, i.ai_model FROM meals m JOIN meal_items i ON i.meal_id = m.id',
+        )
+        .get(),
+    ).toEqual({
+      ai_source: 'own_key',
+      ai_provider: 'openai',
+      ai_model: 'gpt-x',
+    });
+
+    t.db.prepare('UPDATE instance_ai SET allow_user_keys = 0').run();
+    expect(t.ai.forUser({ id: userId })?.source).toBe('server');
+  });
+});

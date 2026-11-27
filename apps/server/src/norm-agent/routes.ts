@@ -115,7 +115,7 @@ export function normAgentRoutes({ db, ai }: AppDeps) {
           ('text' in body && row.user_turns >= MAX_USER_TURNS)
         )
           throw new ApiError(409, 'agent_closed');
-        const { model } = userAi(c, db, ai);
+        const { model } = await userAi(c, db, ai);
 
         const added: ChatMessage[] = [];
         if ('text' in body) {

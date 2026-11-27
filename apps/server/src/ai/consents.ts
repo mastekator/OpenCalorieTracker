@@ -23,7 +23,7 @@ const hasConsent = (db: Database, userId: number, key: string) =>
  * 409 without a model, 403 ai_consent_required without consent to a non-local provider.
  * Puts aiSource on the request, so every AI error of it carries details.aiSource.
  */
-export function userAi(
+export async function userAi(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- any route path and input
   c: Context<AuthEnv & { Variables: { user: User } }, any, any>,
   db: Database,
@@ -42,7 +42,7 @@ export function userAi(
       aiSource: resolved.source,
     } satisfies AiConsentRequired);
   }
-  return resolved;
+  return { ...resolved, model: await resolved.build() };
 }
 
 /** The user's consents to send their data to an AI provider through the server (ADR-0031 §3). */

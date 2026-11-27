@@ -41,7 +41,12 @@ import {
   refineLimit,
   userKeysDisabledNotice,
 } from './settings.js';
-import { interviewStatus, recognitionStatus } from './status.js';
+import {
+  interviewOf,
+  interviewStatus,
+  ownResult,
+  recognitionStatus,
+} from './status.js';
 
 export const RESULT_TTL_MS = 10 * 60_000;
 const SESSION_TTL_MS = 24 * 3600_000;
@@ -144,12 +149,18 @@ export function aiRoutes({ config, db, ai, photoBarcodes, fetch }: RouteDeps) {
   };
 
   return new Hono<AuthEnv>()
-    .get('/ai/status', requireUser, (c) => {
+    .get('/ai/status', requireUser, async (c) => {
       // No data goes out here, so no consent check.
-      const { settings = null, model = null } = ai.forUser(c.var.user) ?? {};
+      const resolved = ai.forUser(c.var.user);
+      const settings = resolved?.settings;
+      // An own key is not built here: a non-admin's address would be resolved for a status read.
+      const own = resolved?.source === 'own_key';
+      const model = own ? null : ((await resolved?.build()) ?? null);
       return c.json({
-        recognition: recognitionStatus(model),
-        interview: interviewStatus(model),
+        recognition: own ? 'ready' : recognitionStatus(model),
+        interview: own
+          ? interviewOf(ownResult(c.var.user.id)?.state ?? 'unknown')
+          : interviewStatus(model),
         providerName: settings ? AI_PROVIDERS[settings.provider].name : null,
         baseUrlHost:
           settings?.provider === 'openai-compatible'
@@ -165,7 +176,7 @@ export function aiRoutes({ config, db, ai, photoBarcodes, fetch }: RouteDeps) {
     })
     .post('/photos/:id/recognize', requireUser, async (c) => {
       // Taken once: a model change mid-request does not touch this call (ADR-0018 §3).
-      const { model } = userAi(c, db, ai);
+      const { model } = await userAi(c, db, ai);
       if (recognitionStatus(model) === 'no_vision')
         throw new ApiError(409, 'ai_no_vision');
 
@@ -233,7 +244,7 @@ export function aiRoutes({ config, db, ai, photoBarcodes, fetch }: RouteDeps) {
       requireUser,
       validate('json', refineRequestSchema),
       async (c) => {
-        const { model } = userAi(c, db, ai);
+        const { model } = await userAi(c, db, ai);
         const user = c.var.user;
         const { mode, requestId, sessionId, photoId, text, dishes } =
           c.req.valid('json');
@@ -345,7 +356,7 @@ export function aiRoutes({ config, db, ai, photoBarcodes, fetch }: RouteDeps) {
       },
     )
     .post('/ai/recipes/:id/lighter', requireUser, async (c) => {
-      const { model } = userAi(c, db, ai);
+      const { model } = await userAi(c, db, ai);
       const user = c.var.user;
       const id = c.req.param('id');
       // The recipe is read here, never taken from the client (ADR-0023 §8).
@@ -375,7 +386,7 @@ export function aiRoutes({ config, db, ai, photoBarcodes, fetch }: RouteDeps) {
       requireUser,
       validate('json', recipeParseRequestSchema),
       async (c) => {
-        const { model } = userAi(c, db, ai);
+        const { model } = await userAi(c, db, ai);
         const user = c.var.user;
         const { text } = c.req.valid('json');
         // By a hash, so the key kept for 10 minutes holds no recipe text; a retry joins the call.
