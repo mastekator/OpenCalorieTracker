@@ -788,6 +788,19 @@ describe('AiProviderScreen: settings form', () => {
       ]);
     });
 
+    it.each([
+      [1, 'Ключ 1 пользователя удалится, он перейдёт на ИИ сервера.'],
+      [21, 'Ключи 21 пользователя удалятся, они перейдут на ИИ сервера.'],
+    ])('ru: the confirm text for %i key(s)', async (count, text) => {
+      localStorage.setItem(LOCALE_STORAGE_KEY, 'ru');
+      server(() => [{ ...saved, userKeyCount: count }]);
+      await wrap(<AiProviderScreen />);
+      fireEvent.click(
+        await screen.findByRole('switch', { name: 'Разрешить свой API-ключ' }),
+      );
+      expect(await screen.findByText(text)).toBeTruthy();
+    });
+
     it('off without saved keys switches at once; on again too', async () => {
       const calls = server(({ method }) => [
         method === 'PUT' ? { deleted: 0 } : saved,

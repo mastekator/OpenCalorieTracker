@@ -1662,6 +1662,8 @@ export const en = {
         other:
           'Keys of {count} people will be deleted; they’ll switch to server AI.',
       },
+      keys_off_body_single:
+        'The key of 1 person will be deleted; they’ll switch to server AI.',
       keys_off_confirm: 'Turn off',
     },
     models: {
@@ -2680,7 +2682,7 @@ export const en = {
     ai_invalid_response: 'The AI returned an unreadable answer. Try again',
     ai_empty_result: 'The AI removed every dish — the list is unchanged',
     ai_consent_required: 'Allow sending your data to the AI provider to use AI',
-    ai_user_keys_disabled: 'The administrator turned off own API keys',
+    ai_user_keys_disabled: 'The admin turned off personal keys',
     ai_base_url_private:
       'This address is in a private network — use a public https address',
     ai_env_managed:

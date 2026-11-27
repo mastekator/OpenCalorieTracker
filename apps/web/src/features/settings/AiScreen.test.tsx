@@ -352,6 +352,57 @@ describe('AiScreen: own API key (OCT-178 §2–4)', () => {
     expect(screen.queryByText('Your key')).toBeNull();
   });
 
+  it('a saved key: «Through the server» still names the server AI', async () => {
+    serve(CONSENTS, 204, () => [SAVED]);
+    wrap();
+    await screen.findByRole('button', { name: 'Delete key' });
+    expect(
+      screen.getByRole('radio', { name: /Through the server/ }).textContent,
+    ).toContain('Google Gemini · set up by the admin');
+  });
+
+  it('arrows move the choice; leaving a saved key asks, cancel keeps it', async () => {
+    serve(CONSENTS, 204, noKey);
+    wrap();
+    const server = await screen.findByRole('radio', {
+      name: /Through the server/,
+    });
+    const own = screen.getByRole('radio', { name: /My own API key/ });
+    expect([server.tabIndex, own.tabIndex]).toEqual([0, -1]);
+    server.focus();
+    fireEvent.keyDown(server, { key: 'ArrowDown' });
+    expect(own.ariaChecked).toBe('true');
+    expect(document.activeElement).toBe(own);
+    expect([server.tabIndex, own.tabIndex]).toEqual([-1, 0]);
+    fireEvent.keyDown(own, { key: 'ArrowUp' });
+    expect(server.ariaChecked).toBe('true');
+    expect(document.activeElement).toBe(server);
+
+    cleanup();
+    serve(CONSENTS, 204, () => [SAVED]);
+    wrap();
+    await screen.findByRole('button', { name: 'Delete key' });
+    const saved = screen.getByRole('radio', { name: /My own API key/ });
+    saved.focus();
+    fireEvent.keyDown(saved, { key: 'ArrowRight' });
+    const dialog = await screen.findByRole('alertdialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+    expect(saved.ariaChecked).toBe('true');
+    expect(document.activeElement).toBe(saved);
+    expect(ownCalls.some((c) => c.method === 'DELETE')).toBe(false);
+  });
+
+  it('a bad saved address does not break the screen', async () => {
+    serve(CONSENTS, 204, () => [
+      { ...SAVED, provider: 'openai-compatible', baseUrl: 'not a url' },
+    ]);
+    wrap();
+    expect(
+      await screen.findByRole('button', { name: 'Delete key' }),
+    ).toBeTruthy();
+  });
+
   it('403 on save: the banner, no «My own API key»', async () => {
     serve(CONSENTS, 204, ({ method, url }) =>
       url.endsWith('/models')
@@ -364,8 +415,9 @@ describe('AiScreen: own API key (OCT-178 §2–4)', () => {
     await fillForm();
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     expect(
-      await screen.findByText('The administrator turned off own API keys'),
+      await screen.findByText('The admin turned off personal keys'),
     ).toBeTruthy();
+    expect(screen.getByText(/Your key was deleted/)).toBeTruthy();
     expect(screen.queryByRole('radio', { name: /My own API key/ })).toBeNull();
     expect(screen.queryByText('Your key')).toBeNull();
   });

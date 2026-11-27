@@ -405,7 +405,11 @@ function UserKeysGroup({
       <ConfirmDialog
         open={confirm}
         title={t('ai.form.keys_off_title')}
-        body={t('ai.form.keys_off_body', { count: status.userKeyCount })}
+        body={
+          status.userKeyCount === 1
+            ? t('ai.form.keys_off_body_single')
+            : t('ai.form.keys_off_body', { count: status.userKeyCount })
+        }
         confirmLabel={t('ai.form.keys_off_confirm')}
         onConfirm={() => void put(false)}
         onCancel={() => setConfirm(false)}
