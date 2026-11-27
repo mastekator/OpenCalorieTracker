@@ -162,8 +162,8 @@
   /* OCT-189: weight diary — one neutral hue, never green/red by direction (AC-9.17) */
   --color-weight: #6B4FA0;
   --color-weight-soft: #F1ECF8;
-  /* OCT-147: water (graphics & text, ≥ 4.5:1 on surface) */
-  --color-water: #1F78C8;
+  /* OCT-147: water (graphics & text, ≥ 4.5:1 on surface and water-soft) */
+  --color-water: #1A6AB2;
   --color-water-soft: #E8F2FB;
   --color-glass-highlight: rgb(255 255 255 / 0.75); /* glint on the water glass */
 
