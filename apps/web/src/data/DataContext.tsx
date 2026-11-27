@@ -40,6 +40,7 @@ import {
   type MealStatus,
 } from './outbox';
 import { refreshMyProducts } from './products';
+import { streaks } from './streaks';
 import { pull } from './sync';
 import { photoIds, prefetchThumbs } from './thumbs';
 
@@ -519,6 +520,10 @@ export async function findHistoryDishes(db: Db, query: string, limit = 10) {
     }
   return [...found.values()];
 }
+
+/** Streaks, awards and month challenges on `today`; it also grants awards and writes months (ADR-0032 §4). */
+export const useStreaks = (today: string) =>
+  useLocal(`streaks:${today}`, (db) => streaks(db, today));
 
 /** Unsent changes, for sign-out and account switch. */
 export const usePendingCount = () => useLocal('pendingCount', pendingCount);

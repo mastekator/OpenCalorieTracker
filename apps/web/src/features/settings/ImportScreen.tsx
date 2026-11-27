@@ -25,6 +25,7 @@ import {
 import { ApiError } from '../../api/client';
 import { useDb, usePendingCount } from '../../data/DataContext';
 import { flush } from '../../data/outbox';
+import { markImportRetro } from '../../data/streaks';
 import { useT } from '../../i18n';
 import { Banner } from '../../ui/Banner/Banner';
 import { Button } from '../../ui/Button/Button';
@@ -217,6 +218,7 @@ export function ImportScreen() {
           void run(async () => {
             const { records } = await commitImport(step.draft.id, step.all);
             // The imported meals come down with the pull at the end of a flush.
+            await markImportRetro(db);
             void flush(db);
             setStep({ name: 'done', records });
           }).finally(() => setCommitting(false));
