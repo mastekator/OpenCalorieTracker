@@ -545,6 +545,23 @@ export async function deleteDrink(db: Db, id: number) {
   emitChange();
 }
 
+/**
+ * PUT /api/water/goal from `date` on (AC-4.3, 4.5), then that day's row into the local copy;
+ * null resets to the reference. Online only: a failure throws and leaves the copy as it is.
+ */
+export async function putWaterGoal(
+  db: Db,
+  date: string,
+  goalMl: number | null,
+) {
+  await api('/api/water/goal', z.unknown(), {
+    method: 'PUT',
+    body: { date, goalMl },
+  });
+  await db.put('waterGoals', { fromDate: date, goalMl });
+  emitChange();
+}
+
 export type HistoryDish = Nutrients & {
   name: string;
   grams: number;

@@ -7,7 +7,12 @@ import {
   waitFor,
   within,
 } from '@testing-library/react';
-import type { AccountSettings, DrinkEntry, MeResponse } from '@oct/shared';
+import {
+  WATER_GOAL_ML,
+  type AccountSettings,
+  type DrinkEntry,
+  type MeResponse,
+} from '@oct/shared';
 import { Router } from 'wouter';
 import { memoryLocation } from 'wouter/memory-location';
 import { SessionContext } from '../../app/SessionContext';
@@ -356,6 +361,15 @@ describe('amountMl', () => {
     expect(amountMl('67.6', 'us')).toBe(1999);
     expect(amountMl('0.2', 'us')).toBeNull();
     expect(amountMl('68', 'us')).toBeNull();
+  });
+
+  it('takes the water goal bounds, clamped in ml', () => {
+    expect(amountMl('499', 'metric', WATER_GOAL_ML)).toBeNull();
+    expect(amountMl('6000', 'metric', WATER_GOAL_ML)).toBe(6000);
+    // 16.9 fl oz is 499.8 ml: clamped, or the server answers 400.
+    expect(amountMl('16.9', 'us', WATER_GOAL_ML)).toBe(500);
+    expect(amountMl('202.9', 'us', WATER_GOAL_ML)).toBe(6000);
+    expect(amountMl('16.8', 'us', WATER_GOAL_ML)).toBeNull();
   });
 });
 
