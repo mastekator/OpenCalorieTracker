@@ -198,6 +198,26 @@
   stroke-width: 3;
 }
 
+.drink-tile__add {
+  display: grid;
+  place-items: center;
+  width: var(--drink-tile-size);
+  height: var(--drink-tile-size);
+  border-radius: var(--radius-full);
+  outline: 2px dashed var(--color-border-strong);
+  outline-offset: -2px;
+  color: var(--color-text-secondary);
+}
+
+.drink-tile__add svg {
+  width: var(--icon-size);
+  height: var(--icon-size);
+}
+
+.drink-tile--new .drink-tile__name {
+  color: var(--color-text-secondary);
+}
+
 .drink-tile__name {
   display: -webkit-box;
   max-width: 100%;

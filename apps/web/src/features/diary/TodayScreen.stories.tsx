@@ -155,6 +155,8 @@ function StoryWater() {
       onLog={() => {}}
       onOther={() => {}}
       onHide={() => {}}
+      onEdit={() => {}}
+      onAdd={() => {}}
       onOpenDay={() => {}}
       drinks={useRow()}
     />
