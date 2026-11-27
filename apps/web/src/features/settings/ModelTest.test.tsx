@@ -28,6 +28,7 @@ const status: AdminAiStatus = {
   allowUserKeys: true,
   userKeysLocked: false,
   userKeyCount: 0,
+  chatgpt: null,
   refineLimit: null,
   testPhotoCount: 17,
 };

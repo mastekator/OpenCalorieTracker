@@ -81,11 +81,32 @@ AI recognizes food on photos and runs the goal assistant. It is optional: withou
 - **Cloud model:** Google Gemini, OpenAI, Anthropic or OpenRouter, with an API key from the provider's console.
 - **Local model** (Ollama, LM Studio or any OpenAI-compatible server): the server's URL, e.g. `http://ollama:11434/v1` when Ollama runs in the same Compose project. A key only if the server asks for one.
 
-The key is stored encrypted in the database with `data/secret.key`, created on the first start. Keep them together: a backup restored without its `secret.key` cannot decrypt the key, and AI stays off until you enter it again.
+The key is stored encrypted in the database with `data/secret.key`, created on the first start. Keep them together: a backup restored without its `secret.key` cannot decrypt the key, and AI stays off until you enter it again. Since the key file sits next to the database, a copy of the `data` folder can use your AI keys and ChatGPT sign-in: keep it like a password.
 
 **From `.env` instead.** If `AI_PROVIDER` is set in `.env`, the `AI_*` variables win as a whole: the screen shows them read-only and anything saved there is ignored until you remove them. Cloud: `AI_PROVIDER` (`google`, `openai`, `anthropic` or `openrouter`), `AI_MODEL` and `AI_API_KEY`. Local: `AI_PROVIDER=openai-compatible`, `AI_MODEL`, `AI_BASE_URL`, and `AI_API_KEY` only if needed. Run `docker compose up -d` again after a change.
 
 The model must read images. Which ones work well: [Tested models](MODELS.md).
+
+#### ChatGPT subscription
+
+Instead of an API key, the admin can use their own ChatGPT Plus or Pro subscription. Pick **ChatGPT subscription** as the provider and tap **Sign in to ChatGPT**:
+
+1. Open the sign-in page from the sheet and sign in to ChatGPT.
+2. After sign-in the browser goes to an address starting with `http://127.0.0.1:1459/auth/callback` and says it can't open the page. That is expected: nothing listens there.
+3. Copy that address from the address bar, paste it into the sheet and tap **Connect**.
+
+No SSH or command line is needed, and OpenAI never has to reach your server. With `AI_PROVIDER=chatgpt` and `AI_MODEL` in `.env` you still sign in on the screen: there are no token variables.
+
+- **Only the admin uses it.** The sign-in belongs to one person's account, so other users get manual entry with "Server AI is only available to the admin", unless they add their own key (below).
+- **One limit.** Requests use your subscription's usage limit, shared with ChatGPT and Codex. When it runs out, recognition pauses until it resets; the app does not switch to another provider. The screen links to the limit in ChatGPT settings.
+- **Sign-in expired.** If OpenAI revokes the sign-in or it is not used for a long time, the screen says so: tap **Sign in again**.
+- **Revoke access.** **Disconnect subscription** deletes the tokens from the database. To also cut off this server at OpenAI, remove the app (OpenCalorieTracker) in your ChatGPT account settings. Do it too if a copy of the `data` folder may have leaked.
+
+#### Users' own API keys
+
+Each user can connect their own API key in **Settings → AI**; their requests then go through the server with their key, and the key's owner pays for them. The key is stored encrypted like the admin's and never shown again. An OpenAI-compatible address of a user must be a public `https` address: users can't make the server call your local network.
+
+Turn this off with **Allow personal API keys** on the AI provider screen: it deletes every saved user key, and those users go back to the server's AI. `ALLOW_USER_AI_KEYS=true` or `false` in `.env` overrides the switch and locks it.
 
 ### Reverse proxy and HTTPS
 
@@ -118,7 +139,7 @@ Database migrations run on start. Back up first.
 
 ### Backup and restore
 
-Everything (database, photos and `secret.key`, which decrypts the saved AI key) is in the `data` folder. Treat a backup like a password. Back it up with the container stopped, so the database is not copied in the middle of a write:
+Everything (database, photos and `secret.key`, which decrypts the saved AI keys and the ChatGPT sign-in) is in the `data` folder. A backup gives access to those keys and to your ChatGPT account: treat it like a password. Back it up with the container stopped, so the database is not copied in the middle of a write:
 
 ```sh
 docker compose stop
@@ -171,12 +192,13 @@ All settings are environment variables. An empty value (`KEY=`) counts as not se
 | `AUTH_METHODS`            | `password,passkey`   | Enabled sign-in methods: `password`, `passkey` or both, comma-separated. See below before changing it.                                                                                     |
 | `REGISTRATION`            | `invite`             | Who can sign up: `invite` (by admin invite link only) or `open`.                                                                                                                           |
 | `TRUST_PROXY_HOPS`        | `1`                  | How many reverse proxies stand in front of the server. See below.                                                                                                                          |
-| `AI_PROVIDER`             | —                    | Optional; overrides the in-app AI settings. `google`, `openai`, `anthropic`, `openrouter` or `openai-compatible` (Ollama, LM Studio, etc.).                                                |
+| `AI_PROVIDER`             | —                    | Optional; overrides the in-app AI settings. `google`, `openai`, `anthropic`, `openrouter`, `openai-compatible` (Ollama, LM Studio, etc.) or `chatgpt` (the admin signs in on the screen).  |
 | `AI_MODEL`                | —                    | Model id at that provider, e.g. `gemini-3.8-flash`. Required with `AI_PROVIDER`.                                                                                                           |
 | `AI_API_KEY`              | —                    | API key of the provider. Never logged.                                                                                                                                                     |
 | `AI_BASE_URL`             | —                    | Endpoint URL; required for `openai-compatible`, e.g. `http://ollama:11434/v1`.                                                                                                             |
 | `ALLOW_OUTBOUND_REQUESTS` | —                    | Optional; `true` or `false` overrides the in-app switch for requests to outside services (barcode lookup in Open Food Facts).                                                              |
 | `ALLOW_API_TOKENS`        | —                    | Optional; `true` or `false` overrides the in-app switch for personal API tokens (scripts, Home Assistant, MCP).                                                                            |
+| `ALLOW_USER_AI_KEYS`      | —                    | Optional; `true` or `false` overrides the in-app switch for users' own AI keys.                                                                                                            |
 | `DATA_DIR`                | `/data` in the image | Where the SQLite database and photos live. Mount a folder or volume here.                                                                                                                  |
 | `PUID`, `PGID`            | `1000`               | User and group the app runs as and gives the data folder to. See [Data folder and its owner](#data-folder-and-its-owner).                                                                  |
 | `PORT`                    | `3000`               | HTTP port inside the container.                                                                                                                                                            |

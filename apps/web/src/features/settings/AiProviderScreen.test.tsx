@@ -49,6 +49,7 @@ const gemini: AdminAiStatus = {
   allowUserKeys: true,
   userKeysLocked: false,
   userKeyCount: 0,
+  chatgpt: null,
   refineLimit: null,
   testPhotoCount: 9,
   state: 'ok',
@@ -827,6 +828,149 @@ describe('AiProviderScreen: settings form', () => {
       expect((sw as HTMLButtonElement).disabled).toBe(true);
       expect(sw.getAttribute('aria-checked')).toBe('false');
       expect(screen.getByText('Set in .env (ALLOW_USER_AI_KEYS)')).toBeTruthy();
+    });
+  });
+
+  describe('ChatGPT subscription (OCT-178 §3)', () => {
+    const START = 'https://auth.openai.com/api/accounts/authorize?state=s1';
+    const CALLBACK = 'http://127.0.0.1:1459/auth/callback?code=c&state=s1';
+    const signIn = { accountLabel: 'admin@example.com', signedInAt: 0 };
+    const sub: AdminAiStatus = {
+      ...saved,
+      provider: 'chatgpt',
+      providerName: 'ChatGPT',
+      model: 'gpt-5.4',
+      keySet: false,
+      keyLast4: null,
+      chatgpt: signIn,
+    };
+    const urls = (calls: Call[]) =>
+      calls.filter((c) => c.url.includes('/chatgpt')).map((c) => c.url);
+
+    it('pick → sign in → paste the address → connected; a wrong address says so first', async () => {
+      let signedIn = false;
+      const calls = server(({ url }) =>
+        url.endsWith('/chatgpt/start')
+          ? [{ url: START }]
+          : url.endsWith('/chatgpt/finish')
+            ? ((signedIn = true), [signIn])
+            : [{ ...saved, chatgpt: signedIn ? signIn : null }],
+      );
+      await wrap(<AiProviderScreen />);
+      fireEvent.click(await screen.findByRole('button', { name: /Provider/ }));
+      fireEvent.click(
+        screen.getByRole('radio', { name: /ChatGPT subscription/ }),
+      );
+      expect(screen.getByText('Not connected')).toBeTruthy();
+      expect(screen.queryByLabelText('API key')).toBeNull();
+      expect(screen.getByText('One limit for everyone')).toBeTruthy();
+
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Sign in to ChatGPT' }),
+      );
+      const open = await screen.findByRole('link', {
+        name: 'Open sign-in page',
+      });
+      expect(open.getAttribute('href')).toBe(START);
+      type('Paste the address from the browser', 'https://example.com/');
+      fireEvent.click(screen.getByRole('button', { name: 'Connect' }));
+      expect(
+        await screen.findByText(/This isn’t the address after sign-in/),
+      ).toBeTruthy();
+      expect(urls(calls)).toEqual(['/api/admin/ai/chatgpt/start']);
+
+      type('Paste the address from the browser', CALLBACK);
+      fireEvent.click(screen.getByRole('button', { name: 'Connect' }));
+      expect(await screen.findByText('ChatGPT connected')).toBeTruthy();
+      expect(await screen.findByText('admin@example.com')).toBeTruthy();
+      expect(calls.find((c) => c.url.endsWith('/finish'))!.body).toEqual({
+        callbackUrl: CALLBACK,
+      });
+      // The unsaved pick survives the reload of the sign-in.
+      expect(screen.getByText('ChatGPT subscription')).toBeTruthy();
+      expect(screen.getByRole('button', { name: 'Save' })).toBeTruthy();
+    });
+
+    it('a refused address keeps the sheet open with the reason and a new attempt', async () => {
+      const calls = server(({ url }) =>
+        url.endsWith('/chatgpt/start')
+          ? [{ url: START }]
+          : url.endsWith('/chatgpt/finish')
+            ? [{ error: { code: 'chatgpt_state_invalid' } }, 400]
+            : [{ ...sub, chatgpt: null }],
+      );
+      await wrap(<AiProviderScreen />);
+      fireEvent.click(
+        await screen.findByRole('button', { name: 'Sign in to ChatGPT' }),
+      );
+      await screen.findByRole('link', { name: 'Open sign-in page' });
+      type('Paste the address from the browser', CALLBACK);
+      fireEvent.click(screen.getByRole('button', { name: 'Connect' }));
+      expect(
+        await screen.findByText(/This sign-in address is old or already used/),
+      ).toBeTruthy();
+      await waitFor(() =>
+        expect(urls(calls)).toEqual([
+          '/api/admin/ai/chatgpt/start',
+          '/api/admin/ai/chatgpt/finish',
+          '/api/admin/ai/chatgpt/start',
+        ]),
+      );
+    });
+
+    it('signed in: account, «Sign in again» and «Disconnect» with a confirm', async () => {
+      const calls = server(({ method }) => [method === 'DELETE' ? null : sub]);
+      await wrap(<AiProviderScreen />);
+      expect(await screen.findByText('admin@example.com')).toBeTruthy();
+      expect(
+        screen.getByRole('button', { name: 'Sign in again' }),
+      ).toBeTruthy();
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Disconnect subscription' }),
+      );
+      expect(urls(calls)).toEqual([]);
+      fireEvent.click(screen.getByRole('button', { name: 'Disconnect' }));
+      await waitFor(() =>
+        expect(
+          calls.filter((c) => c.method === 'DELETE').map((c) => c.url),
+        ).toEqual(['/api/admin/ai/chatgpt']),
+      );
+      expect(await screen.findByText('Subscription disconnected')).toBeTruthy();
+    });
+
+    it('AI_PROVIDER=chatgpt in env still shows the sign-in', async () => {
+      server(() => [{ ...sub, source: 'env', rev: null, chatgpt: null }]);
+      await wrap(<AiProviderScreen />);
+      expect(
+        await screen.findByRole('button', { name: 'Sign in to ChatGPT' }),
+      ).toBeTruthy();
+    });
+
+    it('expired sign-in, plan not allowed and the used-up limit have their own words', async () => {
+      await wrap(status({ ...sub, state: 'auth_error' }));
+      expect(screen.getByText('ChatGPT sign-in expired')).toBeTruthy();
+      expect(
+        screen.getByText(
+          'Sign in again. Until then, people log food manually.',
+        ),
+      ).toBeTruthy();
+      cleanup();
+      await wrap(
+        status({
+          ...sub,
+          state: 'auth_error',
+          details: { status: 403, reason: 'plan_not_allowed' },
+        }),
+      );
+      expect(screen.getByText(/doesn’t allow apps/)).toBeTruthy();
+      cleanup();
+      await wrap(status({ ...sub, state: 'quota_exceeded' }));
+      expect(screen.getByText('Subscription limit used up')).toBeTruthy();
+      expect(
+        screen
+          .getByRole('link', { name: /App usage limit/ })
+          .getAttribute('href'),
+      ).toBe('https://chatgpt.com/#settings');
     });
   });
 });

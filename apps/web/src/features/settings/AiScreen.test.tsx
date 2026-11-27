@@ -42,6 +42,7 @@ const STATUS: AiStatus = {
   baseUrlHost: null,
   refineLimit: null,
   userKeysDisabledNotice: false,
+  serverAdminOnly: false,
 };
 
 /** /api/ai/own* answers; any other call goes to the consents mock. */
@@ -438,5 +439,22 @@ describe('AiScreen: own API key (OCT-178 §2–4)', () => {
         screen.queryByRole('radio', { name: /My own API key/ }),
       ).toBeNull(),
     );
+  });
+
+  it('the server on the admin’s ChatGPT subscription: «only the admin» on «Through the server»', async () => {
+    serve(
+      { ...CONSENTS, server: null },
+      204,
+      noKey,
+      status({
+        recognition: 'not_configured',
+        interview: 'not_configured',
+        serverAdminOnly: true,
+      }),
+    );
+    wrap();
+    expect(
+      await screen.findByText('Server AI is only available to the admin'),
+    ).toBeTruthy();
   });
 });

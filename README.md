@@ -69,6 +69,13 @@ Any model that reads images: Gemini, OpenAI, Anthropic, OpenRouter, or a local o
 </details>
 
 <details>
+<summary>Can I use my ChatGPT subscription instead of an API key?</summary>
+
+Yes, for the admin: sign in to ChatGPT Plus or Pro on the AI provider screen, no key needed. It uses your subscription's limit, shared with ChatGPT and Codex, and serves only your own requests. Others can add their own API key in Settings → AI. See [ChatGPT subscription](docs/SELF_HOSTING.md#chatgpt-subscription).
+
+</details>
+
+<details>
 <summary>How much does one photo cost?</summary>
 
 One resized photo is one request. With a cloud model it's usually well under one US cent; with a local model it's free.

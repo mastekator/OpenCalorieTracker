@@ -396,6 +396,7 @@ describe('Offline (4.8)', () => {
       baseUrlHost: null,
       refineLimit: null,
       userKeysDisabledNotice: false,
+      serverAdminOnly: false,
     });
     await wrap(
       screenOf({ ...admin, id: user.id, passwordFromConfig: false }),
@@ -436,6 +437,7 @@ describe('Offline (4.8)', () => {
       baseUrlHost: null,
       refineLimit: null,
       userKeysDisabledNotice: false,
+      serverAdminOnly: false,
     });
     await wrap(screenOf(), true);
     expect(
@@ -468,6 +470,7 @@ describe('Offline (4.8)', () => {
       baseUrlHost: null,
       refineLimit: null,
       userKeysDisabledNotice: false,
+      serverAdminOnly: false,
     });
     await wrap(screenOf(), true);
     expect(
@@ -482,6 +485,7 @@ describe('Offline (4.8)', () => {
       baseUrlHost: '192.168.1.20:11434',
       refineLimit: null,
       userKeysDisabledNotice: false,
+      serverAdminOnly: false,
     });
     await wrap(screenOf(), true);
     expect(

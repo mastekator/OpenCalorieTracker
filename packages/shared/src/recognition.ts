@@ -203,6 +203,8 @@ export const aiStatusSchema = z.object({
   refineLimit: z.number().int().nullable(),
   /** The admin deleted this user's own key; true until the AI settings are opened (ADR-0031 §2). Default: a status cached before it. */
   userKeysDisabledNotice: z.boolean().default(false),
+  /** The server AI is the admin's ChatGPT subscription: manual mode for this user (ADR-0031 §4). */
+  serverAdminOnly: z.boolean().default(false),
 });
 export type AiStatus = z.infer<typeof aiStatusSchema>;
 export type RecognitionStatus = AiStatus['recognition'];
