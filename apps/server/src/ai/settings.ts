@@ -117,6 +117,26 @@ export function userKeysAllowed(db: Database, config: Pick<Config, 'ai'>) {
   );
 }
 
+/** Deletes every saved own key and re-arms the "keys were turned off" notice for their owners; returns how many. */
+export function deleteOwnKeys(db: Database) {
+  return db.transaction(() => {
+    db.prepare(
+      'UPDATE users SET ai_notice_seen = 0 WHERE id IN (SELECT user_id FROM user_ai_settings)',
+    ).run();
+    return db.prepare('DELETE FROM user_ai_settings').run().changes;
+  })();
+}
+
+/** ALLOW_USER_AI_KEYS=false deletes saved keys at startup, as the admin's switch does (ADR-0031 §2). */
+export function applyUserKeysEnv(db: Database, config: Pick<Config, 'ai'>) {
+  if (config.ai.userKeys !== false) return;
+  const deleted = deleteOwnKeys(db);
+  if (deleted)
+    console.log(
+      `[info] ${deleted} own AI keys deleted: ALLOW_USER_AI_KEYS=false`,
+    );
+}
+
 /** The admin turned own keys off and deleted this user's key, and the user has not opened AI settings since. */
 export function userKeysDisabledNotice(
   db: Database,
