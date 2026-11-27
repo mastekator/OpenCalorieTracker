@@ -99,6 +99,10 @@ describe('webhooks CRUD (ADR-0027 §3)', () => {
     expect((await t.create({ url: 'http://example.com/hook' })).body).toEqual({
       error: { code: 'http_not_private' },
     });
+    // A tailnet is private for own AI addresses, but not a plain-http home network.
+    expect((await t.create({ url: 'http://100.64.0.1/hook' })).body).toEqual({
+      error: { code: 'http_not_private' },
+    });
     expect((await t.create({ url: 'http://192.168.1.10:8123/x' })).status).toBe(
       201,
     );

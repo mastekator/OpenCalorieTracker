@@ -198,6 +198,7 @@ describe('own openai-compatible address of a non-admin (SSRF)', () => {
     'http://llm.example.com/v1',
     'https://localhost:11434/v1',
     'https://10.0.0.5/v1',
+    'https://100.64.0.1/v1',
     'https://ollama/v1',
   ])('refuses %s by name', async (baseUrl) => {
     const t = await setup();
@@ -225,6 +226,35 @@ describe('own openai-compatible address of a non-admin (SSRF)', () => {
         error: { code: 'ai_base_url_private' },
       });
     expect(lookup).toHaveBeenCalledWith('llm.example.com', { all: true });
+    expect(createModel).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [
+      'fails',
+      () => vi.mocked(lookup).mockRejectedValue(new Error('ENOTFOUND')),
+    ],
+    ['is empty', () => vi.mocked(lookup).mockResolvedValue([] as never)],
+    [
+      'gives a tailnet address',
+      () =>
+        vi
+          .mocked(lookup)
+          .mockResolvedValue([{ address: '100.100.1.1', family: 4 }] as never),
+    ],
+  ])('refuses a name whose lookup %s', async (_, mock) => {
+    const t = await setup();
+    mock();
+    for (const res of [
+      await t.put(compatible),
+      await t.models({
+        provider: 'openai-compatible',
+        baseUrl: compatible.baseUrl,
+      }),
+    ])
+      expect(await res.json()).toEqual({
+        error: { code: 'ai_base_url_private' },
+      });
     expect(createModel).not.toHaveBeenCalled();
   });
 
