@@ -1,5 +1,5 @@
 import {
-  useEffect,
+  useLayoutEffect,
   useRef,
   type KeyboardEvent,
   type SyntheticEvent,
@@ -106,7 +106,9 @@ function unlockScroll() {
 export function useModalDialog(open: boolean, onClose: () => void) {
   const ref = useRef<HTMLDialogElement>(null);
 
-  useEffect(() => {
+  // Layout, not passive: the content and the open dialog land in one commit, so there is
+  // no moment where the content is in the DOM inside a still-closed (display: none) dialog.
+  useLayoutEffect(() => {
     const dialog = ref.current;
     if (!open || !dialog) return;
     const from = handoff;
