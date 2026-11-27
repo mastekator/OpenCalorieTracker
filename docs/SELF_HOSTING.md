@@ -106,7 +106,7 @@ No SSH or command line is needed, and OpenAI never has to reach your server. Wit
 
 Each user can connect their own API key in **Settings → AI**; their requests then go through the server with their key, and the key's owner pays for them. The key is stored encrypted like the admin's and never shown again. An OpenAI-compatible address of a user must be a public `https` address: users can't make the server call your local network.
 
-Turn this off with **Allow personal API keys** on the AI provider screen: it deletes every saved user key, and those users go back to the server's AI. `ALLOW_USER_AI_KEYS=true` or `false` in `.env` overrides the switch and locks it.
+Turn this off with **Allow personal API keys** on the AI provider screen: it deletes every saved user key, and those users go back to the server's AI. `ALLOW_USER_AI_KEYS=true` or `false` in `.env` overrides the switch and locks it; with `false`, saved user keys are deleted when the server starts.
 
 ### Reverse proxy and HTTPS
 

@@ -179,7 +179,6 @@ describe('/api/ai/own', () => {
     for (const res of [
       await t.get(),
       await t.put(draft),
-      await t.del(),
       await t.check(),
       await t.models({ provider: 'openai' }),
     ])
@@ -190,6 +189,19 @@ describe('/api/ai/own', () => {
       t.db.prepare('SELECT ai_notice_seen FROM users').pluck().all(),
     ).toEqual([0, 1]);
     expect(createModel).not.toHaveBeenCalled();
+  });
+
+  it('still deletes a saved key while own keys are off', async () => {
+    const t = await setup({ ALLOW_USER_AI_KEYS: 'false' });
+    t.db
+      .prepare(
+        "INSERT INTO user_ai_settings (user_id, provider, model, updated_at) SELECT id, 'openai', 'gpt-x', 0 FROM users WHERE email = 'b@example.com'",
+      )
+      .run();
+    const res = await t.del();
+    expect(res.status).toBe(200);
+    expect(await res.json()).toBeNull();
+    expect(t.rows()).toEqual([]);
   });
 });
 

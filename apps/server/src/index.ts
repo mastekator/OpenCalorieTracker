@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { serve } from '@hono/node-server';
 import { createApp } from './app.js';
 import { createAiRuntime } from './ai/runtime.js';
-import { getAiSettings } from './ai/settings.js';
+import { applyUserKeysEnv, getAiSettings } from './ai/settings.js';
 import { ensureAdmin } from './auth/admin.js';
 import {
   dataDirWritable,
@@ -26,6 +26,7 @@ const db = openDb(
   config.dataDirWritable ? join(config.dataDir, 'oct.sqlite') : ':memory:',
 );
 migrate(db);
+applyUserKeysEnv(db, config);
 if (config.dataDirWritable) await ensureAdmin(config, db);
 
 // Installation problems keep the server up so the sign-in screen can explain them.
