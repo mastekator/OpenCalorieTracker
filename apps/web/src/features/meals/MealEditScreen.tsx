@@ -1194,8 +1194,8 @@ export function MealEditScreen({
           <div className="meal-edit__error">
             <Banner tone="notice">
               {t(
-                manual === 'ai_down'
-                  ? 'manual_dish.ai_down'
+                manual === 'ai_down' || manual === 'offline'
+                  ? `manual_dish.${manual}`
                   : `recog.${manual}`,
               )}
             </Banner>

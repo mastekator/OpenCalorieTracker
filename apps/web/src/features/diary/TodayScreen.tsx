@@ -44,8 +44,10 @@ import {
   patchSettings,
   putWeighing,
 } from '../../data/outbox';
+import { useDeviceAi } from '../../data/deviceAi';
 import { useT } from '../../i18n';
 import { Button } from '../../ui/Button/Button';
+import { DeviceAiOffNote } from '../../ui/DeviceAiOffNote/DeviceAiOffNote';
 import { List } from '../../ui/List/List';
 import { useOnline } from '../../ui/OfflineBar/OfflineBar';
 import { ScreenState } from '../../ui/ScreenState/ScreenState';
@@ -54,6 +56,7 @@ import { useToast } from '../../ui/Toast/Toast';
 import { useCapture } from '../meals/CaptureContext';
 import { DropZone } from '../meals/DropZone';
 import { saveProfile } from '../profile/ProfileScreen';
+import { AI_SETTINGS_PATH } from '../settings/AiScreen';
 import { DrinksMealRow, kcalDrinks } from '../water/DrinksMealRow';
 import { useVolume } from '../water/format';
 import { AmountSheet } from '../water/AmountSheet';
@@ -101,6 +104,8 @@ type ViewProps = {
   water?: ReactNode;
   /** Water module on: kcal drinks get a row among the meals (OCT-147 4.3). */
   waterOn?: boolean;
+  /** «AI on this device» is off: a line under the date says why photos aren't recognized (OCT-178 4.5). */
+  aiOff?: boolean;
   units?: Units;
 };
 
@@ -134,6 +139,7 @@ export function TodayView({
   weight,
   water,
   waterOn = false,
+  aiOff = false,
   units = 'metric',
 }: ViewProps) {
   const { t, locale } = useT();
@@ -224,6 +230,7 @@ export function TodayView({
     <div className="today">
       <div className="today__main">
         <p className="today__date">{date}</p>
+        {aiOff && <DeviceAiOffNote href={AI_SETTINGS_PATH} />}
         {summary}
         <div className="today__capture">
           <Button variant="tonal" onClick={capture.pick}>
@@ -268,6 +275,7 @@ export function TodayScreen() {
   const toast = useToast();
   const online = useOnline();
   const { user } = useSession();
+  const [deviceAi] = useDeviceAi(user?.id);
   const settings = useSettings();
   const units = settings?.units ?? user?.units ?? 'metric';
   const profile = useProfile();
@@ -302,6 +310,7 @@ export function TodayScreen() {
       onSetNorm={() => navigate('/profile')}
       water={water}
       waterOn={settings?.waterEnabled ?? false}
+      aiOff={!deviceAi}
       units={units}
       weight={
         <>

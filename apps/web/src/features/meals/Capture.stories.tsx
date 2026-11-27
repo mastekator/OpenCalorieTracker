@@ -5,10 +5,10 @@ import { Button } from '../../ui/Button/Button';
 import { ConfirmDialog } from '../../ui/ConfirmDialog/ConfirmDialog';
 import { CaptureMenu } from './CaptureMenu';
 
-type Props = { show: 'menu' | 'open' | 'camera' };
+type Props = { show: 'menu' | 'open' | 'camera'; aiOff?: boolean };
 
 /** Menu 5.5 and the two capture dialogs (3.8, E-1.3) as CaptureProvider shows them. */
-function Demo({ show }: Props) {
+function Demo({ show, aiOff }: Props) {
   const { t } = useT();
   const [open, setOpen] = useState(true);
   const close = () => setOpen(false);
@@ -25,6 +25,7 @@ function Demo({ show }: Props) {
           onPhoto={close}
           onGallery={close}
           onManual={close}
+          aiOff={aiOff}
         />
       ) : (
         <ConfirmDialog
@@ -59,6 +60,17 @@ const desktop = { viewport: { value: 'desktop' } };
 export const Menu: Story = {};
 export const MenuDark: Story = { globals: dark };
 export const MenuRussian: Story = { globals: { locale: 'ru' } };
+/** 4.4: «AI on this device» off, the note above «Take photo» (OCT-178). */
+export const MenuAiOff: Story = { args: { aiOff: true } };
+export const MenuAiOffDark: Story = { args: { aiOff: true }, globals: dark };
+export const MenuAiOffRussian: Story = {
+  args: { aiOff: true },
+  globals: { locale: 'ru' },
+};
+export const MenuAiOffDesktop: Story = {
+  args: { aiOff: true },
+  globals: desktop,
+};
 export const OpenError: Story = { args: { show: 'open' } };
 export const OpenErrorDark: Story = { args: { show: 'open' }, globals: dark };
 export const OpenErrorDesktop: Story = {
