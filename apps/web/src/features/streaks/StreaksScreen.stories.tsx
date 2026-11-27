@@ -3,7 +3,16 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { fn } from 'storybook/test';
 import { useT } from '../../i18n';
 import { NavBar } from '../../ui/NavBar/NavBar';
-import { NEWBIE, RESTART, RUNNING, TODAY, streaksOf } from './fixtures';
+import {
+  ALL_DONE,
+  FROZEN,
+  FROZEN_DAYS,
+  NEWBIE,
+  RESTART,
+  RUNNING,
+  TODAY,
+  streaksOf,
+} from './fixtures';
 import { StreaksScreen } from './StreaksScreen';
 
 const meta = {
@@ -36,6 +45,7 @@ const meta = {
     rulesOpen: false,
     onCloseRules: fn(),
     onEnable: fn(),
+    onCloseFreezeNotice: fn(),
   },
 } satisfies Meta<typeof StreaksScreen>;
 export default meta;
@@ -58,6 +68,27 @@ export const NewbieDark: Story = { ...Newbie, globals: dark };
 /** 3.2 */
 export const NewStreak: Story = { args: { streaks: streaksOf(RESTART) } };
 export const NewStreakDark: Story = { ...NewStreak, globals: dark };
+/** 3.3: «Week frozen» until × */
+export const Frozen: Story = {
+  args: { streaks: streaksOf(FROZEN, true, { days: FROZEN_DAYS }) },
+};
+export const FrozenDark: Story = { ...Frozen, globals: dark };
+export const FrozenRussian: Story = { ...Frozen, globals: { locale: 'ru' } };
+/** 3.4: offline before the full pull; the OfflineBar comes from AppShell. */
+export const Offline: Story = {
+  args: {
+    streaks: streaksOf(RUNNING, true, {
+      fullSyncAt: null,
+      pulledAt: new Date(2026, 10, 12, 18).getTime(),
+    }),
+  },
+};
+export const OfflineDark: Story = { ...Offline, globals: dark };
+/** Every challenge of the month done. */
+export const AllDone: Story = {
+  args: { streaks: streaksOf(RUNNING, true, { challenges: ALL_DONE }) },
+};
+export const AllDoneDark: Story = { ...AllDone, globals: dark };
 /** 3.5: skeletons after 300 ms. */
 export const Loading: Story = { args: { streaks: undefined } };
 export const LoadingDark: Story = { ...Loading, globals: dark };
@@ -70,3 +101,9 @@ export const Desktop: Story = { globals: desktop };
 export const DesktopDark: Story = { globals: { ...desktop, ...dark } };
 export const DesktopRules: Story = { ...Rules, globals: desktop };
 export const DesktopOff: Story = { ...Off, globals: desktop };
+export const DesktopFrozen: Story = { ...Frozen, globals: desktop };
+export const DesktopFrozenDark: Story = {
+  ...Frozen,
+  globals: { ...desktop, ...dark },
+};
+export const DesktopOffline: Story = { ...Offline, globals: desktop };

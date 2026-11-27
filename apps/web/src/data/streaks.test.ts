@@ -2,7 +2,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AWARDS, type Meal } from '@oct/shared';
 import { openUserDb, type Db } from './db';
 import { createMeal, flush } from './outbox';
-import { AWARDS_CATALOG, markImportRetro, markSeen, streaks } from './streaks';
+import {
+  AWARDS_CATALOG,
+  closeFreezeNotice,
+  markImportRetro,
+  markSeen,
+  streaks,
+} from './streaks';
 import { clearLocal } from './user';
 
 const TODAY = '2026-11-27';
@@ -207,4 +213,24 @@ it('years of diary compute in reasonable time', async () => {
   console.info(`streaks over 5 years (7300 meals): ${ms.toFixed(0)} ms`);
   expect(s.awards).toHaveLength(AWARDS.length);
   expect(s.streak.best).toBeGreaterThan(200);
+});
+
+describe('freeze notice', () => {
+  it('a frozen last week; × is kept on this device', async () => {
+    // 9–13 November counts, 16 November alone doesn't: the gift freeze keeps the streak.
+    for (const d of ['09', '10', '11', '12', '13', '16'])
+      await db.put('meals', meal(`2026-11-${d}`));
+    let s = await streaks(db, TODAY);
+    expect(s.streak.weeks.at(-2)).toEqual({
+      from: '2026-11-16',
+      status: 'frozen',
+    });
+    expect(s.freezeNoticeSeen).toBe(null);
+    const queued = await db.count('outbox');
+    await closeFreezeNotice(db, '2026-11-16');
+    // Not synced: nothing new is queued.
+    expect(await db.count('outbox')).toBe(queued);
+    s = await streaks(db, TODAY);
+    expect(s.freezeNoticeSeen).toBe('2026-11-16');
+  });
 });

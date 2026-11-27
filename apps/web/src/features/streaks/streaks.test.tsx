@@ -18,7 +18,19 @@ import { renderLoaded } from '../../test-utils';
 import { localToday } from '../diary/useToday';
 import { periodPath } from '../week/period';
 import { WeekScreen } from '../week/WeekScreen';
+import { ChallengeList } from './ChallengeList';
+import {
+  FROZEN,
+  FROZEN_DAYS,
+  NEWBIE,
+  NEWBIE_CHALLENGES,
+  RUNNING,
+  streaksOf,
+  TODAY,
+} from './fixtures';
+import { FreezeCard } from './FreezeCard';
 import { StreakCard } from './StreakCard';
+import { StreaksScreen } from './StreaksScreen';
 
 const user: MeResponse = {
   id: 7,
@@ -271,5 +283,136 @@ describe('StreakCard', () => {
     expect(await screen.findByText('Week counted')).toBeTruthy();
     expect(screen.getByText('6 of 7 days')).toBeTruthy();
     expect(screen.getByText('1 week in a row')).toBeTruthy();
+  });
+});
+
+describe('Streak screen: freezes, challenges, offline (OCT-184 3.3, 3.4)', () => {
+  const screenOf = (
+    streaks: ReturnType<typeof streaksOf>,
+    onCloseFreezeNotice = vi.fn(),
+  ) => (
+    <I18nProvider>
+      <StreaksScreen
+        streaks={streaks}
+        today={TODAY}
+        rulesOpen={false}
+        onCloseRules={() => {}}
+        onEnable={() => {}}
+        onCloseFreezeNotice={onCloseFreezeNotice}
+      />
+    </I18nProvider>
+  );
+  const frozen = streaksOf(FROZEN, true, { days: FROZEN_DAYS });
+
+  it('«Week frozen» is shown once: × closes it for that week', async () => {
+    const close = vi.fn();
+    const { rerender } = await renderLoaded(screenOf(frozen, close));
+    expect(
+      await screen.findByText('Week frozen — your streak is safe'),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(
+        /November 9 – 15: 3 days with entries\. Freezes left: 0 of 2\./,
+      ),
+    ).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(close).toHaveBeenCalledWith('2026-11-09');
+    rerender(screenOf({ ...frozen, freezeNoticeSeen: '2026-11-09' }));
+    expect(screen.queryByText(/Week frozen/)).toBe(null);
+    // A later frozen week shows it again.
+    rerender(screenOf({ ...frozen, freezeNoticeSeen: '2026-11-02' }));
+    expect(screen.getByText(/Week frozen/)).toBeTruthy();
+  });
+
+  it('no notice when the last week counted', async () => {
+    await renderLoaded(
+      screenOf(streaksOf({ ...RUNNING, weeks: RUNNING.trail }, true)),
+    );
+    expect(await screen.findByText('Freezes: 1 of 2')).toBeTruthy();
+    expect(screen.queryByText(/Week frozen/)).toBe(null);
+  });
+
+  it('before the full pull: «Map as of {date}»', async () => {
+    const pulledAt = new Date(2026, 10, 12, 18).getTime();
+    const { rerender } = await renderLoaded(
+      screenOf(streaksOf(RUNNING, true, { fullSyncAt: null, pulledAt })),
+    );
+    expect(
+      await screen.findByText(
+        'Map as of November 12. It will update when you’re back online.',
+      ),
+    ).toBeTruthy();
+    rerender(screenOf(streaksOf(RUNNING, true, { pulledAt })));
+    expect(screen.queryByText(/Map as of/)).toBe(null);
+    // No pull landed yet: nothing to date.
+    rerender(
+      screenOf(streaksOf(RUNNING, true, { fullSyncAt: null, pulledAt: null })),
+    );
+    expect(screen.queryByText(/Map as of/)).toBe(null);
+  });
+
+  it('challenges from useStreaks: progress, done, and the profile row', async () => {
+    await renderLoaded(screenOf(streaksOf(RUNNING)));
+    const card = await screen.findByRole('region', {
+      name: 'This month’s challenges',
+    });
+    expect(within(card).getByText('November · 1 of 3')).toBeTruthy();
+    expect(
+      within(card).getByRole('meter', { name: 'Log 20 days' }).ariaValueText,
+    ).toBe('14 of 20');
+    expect(within(card).getByText('Done')).toBeTruthy();
+    expect(within(card).getByText('Done November 15')).toBeTruthy();
+    cleanup();
+
+    await renderLoaded(
+      <I18nProvider>
+        <ChallengeList
+          challenges={NEWBIE_CHALLENGES}
+          month="2026-11"
+          today={TODAY}
+        />
+      </I18nProvider>,
+    );
+    const link = await screen.findByRole('link', {
+      name: 'Complete your profile and target: open Profile',
+    });
+    expect(link.getAttribute('href')).toBe('/profile');
+  });
+
+  it('a done profile takes its day from the stored month', async () => {
+    await renderLoaded(
+      <I18nProvider>
+        <ChallengeList
+          challenges={[{ ...NEWBIE_CHALLENGES[0]!, value: 1, done: true }]}
+          month="2026-11"
+          today={TODAY}
+          done={{ profile: '2026-11-03' }}
+        />
+      </I18nProvider>,
+    );
+    expect(await screen.findByText('Done November 3')).toBeTruthy();
+    expect(screen.queryByRole('link')).toBe(null);
+  });
+
+  it('freezes card: count and weeks to the next, cap and gift', async () => {
+    const { rerender } = await renderLoaded(
+      <I18nProvider>
+        <FreezeCard streak={RUNNING} />
+      </I18nProvider>,
+    );
+    expect(await screen.findByText('Freezes: 1 of 2')).toBeTruthy();
+    expect(screen.getByText('2 more weeks to a new freeze')).toBeTruthy();
+    rerender(
+      <I18nProvider>
+        <FreezeCard streak={{ ...RUNNING, freezes: 2, weeksToFreeze: null }} />
+      </I18nProvider>,
+    );
+    expect(screen.getByText('No more than two are kept')).toBeTruthy();
+    rerender(
+      <I18nProvider>
+        <FreezeCard streak={NEWBIE} />
+      </I18nProvider>,
+    );
+    expect(screen.getByText('The first one is a gift')).toBeTruthy();
   });
 });

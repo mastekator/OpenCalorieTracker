@@ -2793,6 +2793,40 @@ export const en = {
   },
   streaks: {
     title: 'Streaks and awards',
+    freeze: {
+      count: 'Freezes: {n} of 2',
+      next: {
+        one: '{count} more week to a new freeze',
+        other: '{count} more weeks to a new freeze',
+      },
+      cap: 'No more than two are kept',
+      gift: 'The first one is a gift',
+    },
+    notice: {
+      title: 'Week frozen — your streak is safe',
+      body: {
+        one: '{range}: {count} day with entries. Freezes left: {n} of 2.',
+        other: '{range}: {count} days with entries. Freezes left: {n} of 2.',
+      },
+    },
+    challenges: {
+      title: 'This month’s challenges',
+      count: '{month} · {done} of 3',
+      value: '{value} of {target}',
+      done: 'Done',
+      done_on: 'Done {date}',
+      open_profile: '{name}: open Profile',
+      profile_hint: 'Sex, age, height, weight and goal — in Profile',
+    },
+    challenge: {
+      days_20: 'Log 20 days',
+      full_week: 'A full week of logging',
+      photo_20: '20 meals by photo',
+      grams_10: 'Fine-tune grams on 10 dishes',
+      manual_macros_5: 'Add 5 dishes by hand with macros',
+      profile: 'Complete your profile and target',
+    },
+    map_as_of: 'Map as of {date}. It will update when you’re back online.',
     weeks: {
       one: '{count} week in a row',
       other: '{count} weeks in a row',

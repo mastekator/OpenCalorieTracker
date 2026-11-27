@@ -1,4 +1,9 @@
-import type { DayFact, StreakState, StreakWeek } from '@oct/shared';
+import type {
+  ChallengeProgress,
+  DayFact,
+  StreakState,
+  StreakWeek,
+} from '@oct/shared';
 import type { Streaks } from '../../data/streaks';
 
 /** Thursday, 19 November 2026, as in the design (OCT-184). */
@@ -85,15 +90,82 @@ export const NEWBIE: StreakState = {
   week: { days: 0, target: 5, counted: false },
 };
 
-export const streaksOf = (streak: StreakState, on = true): Streaks => ({
+/** 3.3: the last week ended on 3 days, the freeze was spent. */
+const frozenTrail = trail([
+  'counted',
+  'short',
+  'counted',
+  'counted',
+  'counted',
+  'counted',
+  'counted',
+  'counted',
+  'frozen',
+  'current',
+]);
+export const FROZEN: StreakState = {
+  ...RUNNING,
+  freezes: 0,
+  weeksToFreeze: 4,
+  weeks: frozenTrail,
+  trail: frozenTrail,
+};
+
+/** The days of the frozen week 9–15 November: three logged. */
+export const FROZEN_DAYS = [
+  ...['2026-11-09', '2026-11-11', '2026-11-13'].map(day),
+  ...DAYS,
+];
+
+const challenge = (
+  key: ChallengeProgress['key'],
+  value: number,
+  target: number,
+  doneOn: string | null = null,
+): ChallengeProgress => ({
+  key,
+  value,
+  target,
+  done: value >= target,
+  doneOn,
+});
+
+/** 2.1: two in progress, the full week done on 15 November. */
+export const CHALLENGES = [
+  challenge('days_20', 14, 20),
+  challenge('full_week', 7, 7, '2026-11-15'),
+  challenge('photo_20', 11, 20),
+];
+
+/** 3.1: without AI no photo challenges; the profile isn't filled in. */
+export const NEWBIE_CHALLENGES = [
+  challenge('profile', 0, 1),
+  challenge('days_20', 0, 20),
+  challenge('manual_macros_5', 0, 5),
+];
+
+export const ALL_DONE = [
+  challenge('days_20', 20, 20, '2026-11-24'),
+  challenge('full_week', 7, 7, '2026-11-15'),
+  challenge('photo_20', 20, 20, '2026-11-26'),
+];
+
+export const streaksOf = (
+  streak: StreakState,
+  on = true,
+  more: Partial<Streaks> = {},
+): Streaks => ({
   on,
   fullSyncAt: 1,
+  pulledAt: 1,
+  freezeNoticeSeen: null,
   days: streak === NEWBIE ? [] : DAYS,
   streak,
   awards: [],
   stored: [],
   month: '2026-11',
-  challenges: [],
+  challenges: streak === NEWBIE ? NEWBIE_CHALLENGES : CHALLENGES,
   months: [],
   celebrate: [],
+  ...more,
 });

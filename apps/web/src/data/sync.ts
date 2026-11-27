@@ -119,6 +119,7 @@ async function apply(db: Db, page: SyncResponse, fullDone: boolean) {
   const goals = tx.objectStore('waterGoals');
   for (const g of page.waterGoals ?? []) await goals.put(g);
   await kv.put(page.rev, 'rev');
+  await kv.put(Date.now(), 'pulledAt');
   if (fullDone) await kv.put(Date.now(), 'fullSyncAt');
   await tx.done;
 }

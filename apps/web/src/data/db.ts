@@ -37,6 +37,8 @@ export interface OctDb extends DBSchema {
      * `fullSyncAt`: when a pull from `since = 0` last reached `more: false` (ADR-0032 §4).
      * `awardsCatalog`: the catalog version awards were last granted by; `awardsRetro`: rev when an
      * import was committed; `awardsQuiet`: keys granted retro here, never congratulated.
+     * `pulledAt`: when a pull page last landed; `freezeNoticeSeen`: Monday of the frozen week whose
+     * notice was closed on this device (OCT-184 3.3, not synced).
      */
     key:
       | 'rev'
@@ -49,7 +51,9 @@ export interface OctDb extends DBSchema {
       | 'integrations'
       | 'awardsCatalog'
       | 'awardsRetro'
-      | 'awardsQuiet';
+      | 'awardsQuiet'
+      | 'pulledAt'
+      | 'freezeNoticeSeen';
     value:
       | number
       | MeResponse
@@ -58,6 +62,7 @@ export interface OctDb extends DBSchema {
       | ProfileResponse
       | AiStatus
       | Integrations
+      | string
       | string[];
   };
   /** Photos taken offline, by meal clientId (OCT-77). */
