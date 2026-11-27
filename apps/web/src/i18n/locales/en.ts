@@ -1474,7 +1474,7 @@ export const en = {
       },
       key_quota: {
         title: 'Your key’s limit is used up',
-        body: 'When it resets, tap Recognize. For now, log manually — the photo is attached.',
+        body: 'When it resets, tap Recalculate from photo. For now, log manually — the photo is attached.',
       },
       server_down: {
         title: 'Server AI is unavailable',
