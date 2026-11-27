@@ -91,6 +91,9 @@
   --illo-dot-size: 18px;         /* OCT-33: pencil dot on a dish illustration */
   --illo-check-size: 22px;       /* OCT-33: check badge on the current picker tile */
   --icon-xs: 12px;               /* glyphs inside the illo dot and check (12–14 in the mock) */
+  --medal-size-sm: 44px;        /* OCT-184: medal in the toast and the «Награды» block */
+  --medal-size-md: 64px;        /* OCT-184: medal in the «Все награды» grid */
+  --medal-size-lg: 144px;       /* OCT-184: medal in the award card */
   --weight-ruler-height: 64px;   /* OCT-189: swipe ruler in the weigh-in sheet, 0.1 kg/lb = 1 tick */
   --weight-tick-gap: 10px;       /* OCT-189: distance between 0.1 ticks */
   --calendar-dot-size: 4px;      /* OCT-189: «has a weighing» dot under a calendar day */
@@ -200,6 +203,24 @@
   --tabbar-bg: rgb(248 250 249 / 0.88);
   --color-hover: rgb(24 33 29 / 0.05); /* desktop: pointer hover on rows, nav, plain buttons */
 
+  /* OCT-184 award medals: metal = rarity (same in both themes — it's "metal"), enamel = category (deeper in dark).
+     ui/Medal reads these via style="…var(--medal-*)"; locked silhouettes use theme surfaces. */
+  --medal-bronze-hi: #F3CFA6;   --medal-bronze-base: #C98A52;   --medal-bronze-deep: #8C5426;
+  --medal-silver-hi: #FBFCFD;   --medal-silver-base: #C3CBD3;   --medal-silver-deep: #66727E;
+  --medal-gold-hi: #FFEDB0;     --medal-gold-base: #E6B543;     --medal-gold-deep: #9A6E10;
+  --medal-platinum-hi: #F4F2FF; --medal-platinum-base: #BDB8E8; --medal-platinum-deep: #5F58A6;
+  --medal-plaque-text: #FFFFFF; /* number on the plaque, on *-deep (≥ 4.5:1) */
+  --medal-enamel-path: #E3F4E8;     --medal-ink-path: #22704A;
+  --medal-enamel-streak: #FFE9DA;   --medal-ink-streak: #A8410A;
+  --medal-enamel-days: #E4EEFC;     --medal-ink-days: #23589E;
+  --medal-enamel-months: #F0E7FB;   --medal-ink-months: #6A3FA3;
+  --medal-enamel-photo: #FCE6EE;    --medal-ink-photo: #A3325E;
+  --medal-enamel-accuracy: #DFF3F1; --medal-ink-accuracy: #186E66;
+  --medal-enamel-secret: #2D2848;   --medal-ink-secret: #F3E3A6;
+  --medal-shine: rgb(255 255 255 / 0.55);
+  --medal-locked-fill: var(--color-surface-2);
+  --medal-locked-line: var(--color-border-strong);
+
   --theme-color: #F8FAF9; /* <meta name="theme-color">, status bar */
 }
 
@@ -249,6 +270,15 @@
     --illo-tan: #D29E66;    --illo-brown: #B27A52;  --illo-cocoa: #7A5440;
     --mark-pod: var(--logo-pod-on-dark); --mark-protein: var(--logo-protein-on-dark);
     --mark-fat: var(--logo-fat-on-dark); --mark-carbs: var(--logo-carbs-on-dark);
+    /* OCT-184 medals */
+    --medal-enamel-path: #1E3A2A;     --medal-ink-path: #8FD9AE;
+    --medal-enamel-streak: #3D2414;   --medal-ink-streak: #FFB27A;
+    --medal-enamel-days: #1B2A44;     --medal-ink-days: #9EC3F5;
+    --medal-enamel-months: #2E2142;   --medal-ink-months: #CDAFF2;
+    --medal-enamel-photo: #3D1D2A;    --medal-ink-photo: #F2A4C0;
+    --medal-enamel-accuracy: #153532; --medal-ink-accuracy: #86D9CF;
+    --medal-enamel-secret: #191530;
+    --medal-shine: rgb(255 255 255 / 0.35);
     --theme-color: #0E1110;
   }
 }
@@ -296,6 +326,15 @@
   --illo-tan: #D29E66;    --illo-brown: #B27A52;  --illo-cocoa: #7A5440;
   --mark-pod: var(--logo-pod-on-dark); --mark-protein: var(--logo-protein-on-dark);
   --mark-fat: var(--logo-fat-on-dark); --mark-carbs: var(--logo-carbs-on-dark);
+  /* OCT-184 medals */
+  --medal-enamel-path: #1E3A2A;     --medal-ink-path: #8FD9AE;
+  --medal-enamel-streak: #3D2414;   --medal-ink-streak: #FFB27A;
+  --medal-enamel-days: #1B2A44;     --medal-ink-days: #9EC3F5;
+  --medal-enamel-months: #2E2142;   --medal-ink-months: #CDAFF2;
+  --medal-enamel-photo: #3D1D2A;    --medal-ink-photo: #F2A4C0;
+  --medal-enamel-accuracy: #153532; --medal-ink-accuracy: #86D9CF;
+  --medal-enamel-secret: #191530;
+  --medal-shine: rgb(255 255 255 / 0.35);
   --theme-color: #0E1110;
   color-scheme: dark;
 }
