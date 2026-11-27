@@ -5,6 +5,8 @@ import {
   nameKey,
   type AccountSettings,
   type AccountSettingsPatch,
+  type ChallengeMonth,
+  type ChallengeMonthPut,
   type IllustrationChoice,
   type IllustrationId,
   type Meal,
@@ -15,6 +17,7 @@ import {
   type PhotoRetentionDays,
   type Product,
   type ProfileResponse,
+  type StoredAward,
   type WeighingDeleteResponse,
   type WeighingPutResponse,
 } from '@oct/shared';
@@ -47,14 +50,32 @@ const stateOf = (db: Db) => {
 
 type Tx = IDBPTransaction<
   OctDb,
-  ('meals' | 'outbox' | 'kv' | 'photos' | 'weighings' | 'products')[],
+  (
+    | 'meals'
+    | 'outbox'
+    | 'kv'
+    | 'photos'
+    | 'weighings'
+    | 'products'
+    | 'awards'
+    | 'challengeMonths'
+  )[],
   'readwrite'
 >;
 
 /** Changes the local copy and the queue in one transaction, then sends (ADR-0011 §4). */
 async function local<T>(db: Db, change: (tx: Tx) => Promise<T>) {
   const tx = db.transaction(
-    ['meals', 'outbox', 'kv', 'photos', 'weighings', 'products'],
+    [
+      'meals',
+      'outbox',
+      'kv',
+      'photos',
+      'weighings',
+      'products',
+      'awards',
+      'challengeMonths',
+    ],
     'readwrite',
   );
   const result = await change(tx);
@@ -367,6 +388,68 @@ function weighing(db: Db, op: Op & { kind: 'putWeighing' | 'deleteWeighing' }) {
   });
 }
 
+/** Replaces the unsent ops of `op.clientId` with `op`: its body already holds theirs. */
+async function replaceQueued(db: Db, tx: Tx, op: Op) {
+  const outbox = tx.objectStore('outbox');
+  for (const o of await queued(db, tx, op.clientId))
+    await outbox.delete(o.seq!);
+  await outbox.add(op);
+}
+
+/** Stores earned awards; as on the server, never taken back: the earlier day and `seen` win (ADR-0032 §3). */
+export const putAwards = (db: Db, awards: StoredAward[]) =>
+  local(db, async (tx) => {
+    const store = tx.objectStore('awards');
+    const body = new Map(
+      (await queued(db, tx, 'awards')).flatMap((o) =>
+        o.kind === 'putAwards' ? o.body.map((a) => [a.key, a] as const) : [],
+      ),
+    );
+    for (const a of awards) {
+      const old = await store.get(a.key);
+      const next = {
+        key: a.key,
+        earnedOn: old && old.earnedOn < a.earnedOn ? old.earnedOn : a.earnedOn,
+        seen: !!old?.seen || a.seen,
+      };
+      await store.put(next);
+      body.set(a.key, next);
+    }
+    await replaceQueued(db, tx, {
+      kind: 'putAwards',
+      clientId: 'awards',
+      body: [...body.values()],
+    });
+  });
+
+/** Stores a month's challenges (`YYYY-MM`); as on the server, the first keys win, `done` merges, `closed` stays on. */
+export const putChallengeMonth = (
+  db: Db,
+  month: string,
+  input: ChallengeMonthPut,
+) =>
+  local(db, async (tx) => {
+    const store = tx.objectStore('challengeMonths');
+    const old = await store.get(month);
+    const keys = old?.keys ?? input.keys;
+    const done: Record<string, string> = { ...old?.done };
+    for (const [k, day] of Object.entries(input.done))
+      if (keys.includes(k) && !(done[k] && done[k] <= day)) done[k] = day;
+    const next: ChallengeMonth = {
+      month,
+      keys,
+      done,
+      closed: !!old?.closed || input.closed,
+    };
+    await store.put(next);
+    await replaceQueued(db, tx, {
+      kind: 'putChallengeMonth',
+      clientId: `challenge:${month}`,
+      month,
+      body: { keys, done, closed: next.closed } as ChallengeMonthPut,
+    });
+  });
+
 const DAY_MS = 86_400_000;
 
 /** Full photos a shorter period deletes now, by the local copy (OCT-25 §4); as the server's expiry. */
@@ -449,6 +532,8 @@ const mealSchema = z.custom<Meal>();
 const putSchema = z.custom<WeighingPutResponse>();
 const deleteSchema = z.custom<WeighingDeleteResponse>();
 const photoSchema = z.object({ photoId: z.string() });
+const awardsSchema = z.custom<{ awards: StoredAward[] }>();
+const monthSchema = z.custom<ChallengeMonth>();
 
 async function deliver(db: Db, op: Op) {
   switch (op.kind) {
@@ -514,8 +599,42 @@ async function deliver(db: Db, op: Op) {
           })
         ).profile,
       );
+    case 'putAwards':
+      return merged(
+        db,
+        op,
+        'awards',
+        (
+          await api('/api/awards', awardsSchema, {
+            method: 'PUT',
+            body: { awards: op.body },
+          })
+        ).awards,
+      );
+    case 'putChallengeMonth':
+      return merged(db, op, 'challengeMonths', [
+        await api(`/api/challenges/${op.month}`, monthSchema, {
+          method: 'PUT',
+          body: op.body,
+        }),
+      ]);
   }
   await db.delete('outbox', op.seq!);
+}
+
+/** The server's merge replaces the local copy (its month keys win), unless a newer change waits. */
+async function merged<S extends 'awards' | 'challengeMonths'>(
+  db: Db,
+  op: Op,
+  store: S,
+  values: OctDb[S]['value'][],
+) {
+  const tx = db.transaction(['outbox', store], 'readwrite');
+  const outbox = tx.objectStore('outbox');
+  await outbox.delete(op.seq!);
+  if (!(await outbox.index('clientId').count(op.clientId)))
+    for (const v of values) await tx.objectStore(store).put(v);
+  await tx.done;
 }
 
 async function upload(db: Db, op: Op) {
@@ -574,7 +693,10 @@ async function weighed(db: Db, op: Op, profile: ProfileResponse) {
 const notMeal = (op: Op) =>
   op.kind === 'patchSettings' ||
   op.kind === 'putIllustrationChoice' ||
-  op.kind === 'putPhotoRetention';
+  op.kind === 'putPhotoRetention' ||
+  // shortcut: a refused award or month keeps its local value until the next full pull; no GET to restore from.
+  op.kind === 'putAwards' ||
+  op.kind === 'putChallengeMonth';
 
 async function refuse(db: Db, op: Op, err: ApiError) {
   const tx = db.transaction(['outbox', 'meals'], 'readwrite');
