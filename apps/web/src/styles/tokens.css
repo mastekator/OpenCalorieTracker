@@ -55,6 +55,8 @@
   --stepper-value-width: 96px;  /* weight field between − and + on the edit screen (OCT-16 §3) */
   --period-label-width: 144px;  /* desktop week head: pager date, so arrows stay put while paging (OCT-19 D.3) */
   --progress-height: 8px;       /* kcal & macro bars on Today / Diary / Week */
+  --water-figure-size: 120px;   /* OCT-147: water glass height on the Water card */
+  --drink-tile-size: 56px;      /* OCT-147: round drink tile in the drinks row (hit area = tile + label) */
   --hatch-size: 6px;            /* stripe period of the "over the norm" pattern (not colour-only) */
   --chart-height: 184px;        /* kcal-by-day plot on Week (OCT-19 §4) */
   --chart-height-wide: 280px;   /* the same plot on desktop (OCT-19 D.3) */
@@ -118,6 +120,8 @@
   --duration-spinner: 800ms; /* one turn of the button spinner; kept under reduced motion (it signals progress) */
   --duration-shimmer: 1400ms; /* one sweep of the skeleton shimmer; off under reduced motion */
   --duration-typing: 1200ms; /* one blink cycle of the «typing» dots; off under reduced motion */
+  --duration-fill: 1200ms; /* OCT-147: water level rise after a tap (≤ 1.5 s, AC-2.2) */
+  --duration-wave: 5s; /* OCT-147: one loop of the idle surface wave in the glass; off under reduced motion */
   --duration-highlight: 1200ms; /* a just-saved row holds accent-soft, then fades; kept under reduced motion (colour, not movement) */
 
   /* ── Layers ── */
@@ -153,6 +157,10 @@
   /* OCT-189: weight diary — one neutral hue, never green/red by direction (AC-9.17) */
   --color-weight: #6B4FA0;
   --color-weight-soft: #F1ECF8;
+  /* OCT-147: water (graphics & text, ≥ 4.5:1 on surface) */
+  --color-water: #1F78C8;
+  --color-water-soft: #E8F2FB;
+  --color-glass-highlight: rgb(255 255 255 / 0.75); /* glint on the water glass */
 
   /* OCT-33: dish illustrations (flat, decorative). Shown on a round "plate" tile so they never pass for a photo */
   --illo-tile: #F6F0E4;   /* round substrate behind every illustration */
@@ -222,6 +230,9 @@
     --color-carbs: #5ECFC6;
     --color-weight: #C2A8EE;
     --color-weight-soft: #2A2238;
+    --color-water: #6DB6F2;
+    --color-water-soft: #13263A;
+    --color-glass-highlight: rgb(255 255 255 / 0.22);
     --shadow-sheet: 0 -8px 32px rgb(0 0 0 / 0.5);
     --shadow-toast: 0 8px 24px rgb(0 0 0 / 0.5);
     --shadow-camera: 0 6px 16px rgb(0 0 0 / 0.5);
@@ -266,6 +277,9 @@
   --color-carbs: #5ECFC6;
   --color-weight: #C2A8EE;
   --color-weight-soft: #2A2238;
+  --color-water: #6DB6F2;
+  --color-water-soft: #13263A;
+  --color-glass-highlight: rgb(255 255 255 / 0.22);
   --shadow-sheet: 0 -8px 32px rgb(0 0 0 / 0.5);
   --shadow-toast: 0 8px 24px rgb(0 0 0 / 0.5);
   --shadow-camera: 0 6px 16px rgb(0 0 0 / 0.5);
@@ -286,5 +300,5 @@
 :root[data-theme="light"] { color-scheme: light; }
 
 @media (prefers-reduced-motion: reduce) {
-  :root { --duration-fast: 0ms; --duration-base: 0ms; --duration-slow: 0ms; --press-scale: 1; --duration-splash: 0ms; }
+  :root { --duration-fast: 0ms; --duration-base: 0ms; --duration-slow: 0ms; --press-scale: 1; --duration-splash: 0ms; --duration-fill: 0ms; }
 }

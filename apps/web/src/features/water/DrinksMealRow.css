@@ -1,0 +1,42 @@
+/* OCT-147 4.3: the drinks row among the meals and its entries. */
+.drinks-row__kcal {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.drinks-row__kcal svg {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.drinks-row__entries {
+  margin: 0;
+  padding: 0 var(--space-4) var(--space-2)
+    calc(var(--space-4) + var(--meal-thumb-size) + var(--space-3));
+  list-style: none;
+}
+
+.drinks-row__entry {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: calc(var(--tap-min) - var(--space-2));
+  border-top: 1px solid var(--color-separator);
+  font-size: var(--text-subhead-size);
+  line-height: var(--text-subhead-lh);
+  font-variant-numeric: tabular-nums;
+}
+
+.drinks-row__time {
+  color: var(--color-text-secondary);
+}
+
+.drinks-row__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}

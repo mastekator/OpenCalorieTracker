@@ -6,6 +6,8 @@ import { NavBar } from '../../ui/NavBar/NavBar';
 import { atPath } from '../../ui/navStory';
 import { EMPTY_PROFILE } from '../../data/DataContext';
 import { WeightCard } from '../weight/WeightCard';
+import { DRINKS, ROW } from '../water/fixtures';
+import { WaterCard } from '../water/WaterCard';
 import { TodayView } from './TodayScreen';
 
 const NORM: Macros = { kcal: 2100, proteinG: 120, fatG: 70, carbsG: 240 };
@@ -141,3 +143,29 @@ export const Russian: Story = { globals: { locale: 'ru' } };
 export const Desktop: Story = { globals: desktop };
 export const DesktopDark: Story = { globals: { ...desktop, ...dark } };
 export const DesktopEmpty: Story = { ...EmptyDay, globals: desktop };
+
+/** OCT-147 1.1, 4.3: the water module on — the card and the drinks row among the meals. */
+const WATER = {
+  args: {
+    waterOn: true,
+    drinks: DRINKS,
+    water: (
+      <WaterCard
+        today="2026-11-14"
+        ml={750}
+        goalMl={2000}
+        units="metric"
+        hint={false}
+        onLog={() => {}}
+        drinks={ROW}
+      />
+    ),
+  },
+};
+export const Water: Story = WATER;
+export const WaterDark: Story = { ...WATER, globals: dark };
+export const WaterDesktop: Story = { ...WATER, globals: desktop };
+export const WaterDesktopDark: Story = {
+  ...WATER,
+  globals: { ...desktop, ...dark },
+};
