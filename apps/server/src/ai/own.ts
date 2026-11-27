@@ -25,7 +25,7 @@ import {
   throttle,
 } from './check.js';
 import { createModel } from './model.js';
-import type { AiResult } from './status.js';
+import { forgetOwnResult, ownResult, recordOwnResult } from './status.js';
 import {
   userKeysAllowed,
   type AiProvider,
@@ -65,12 +65,6 @@ export function ownAiRow(db: Database, secrets: Secrets, userId: number) {
   };
 }
 
-// The last check of each user's own key since start (ADR-0031 §2, E-5).
-const results = new Map<number, AiResult>();
-export const ownResult = (userId: number) => results.get(userId);
-export const recordOwnResult = (userId: number, result: AiResult) =>
-  results.set(userId, result);
-
 type Connection = Omit<AiSettings, 'source'>;
 
 const privateAddress = () => new ApiError(400, 'ai_base_url_private');
@@ -100,7 +94,10 @@ const publicFetch: typeof fetch = async (input, init) => {
 };
 
 /** The model of a user's own key; a non-admin's own address is checked at every request. */
-export async function ownModel(user: Pick<User, 'role'>, settings: Connection) {
+export async function ownModel(
+  user: Partial<Pick<User, 'role'>>,
+  settings: Connection,
+) {
   const guard = user.role !== 'admin' && !!settings.baseUrl;
   if (guard) await assertPublicUrl(settings.baseUrl!);
   return (await createModel(settings, guard ? publicFetch : undefined))!;
@@ -128,7 +125,7 @@ export function ownAiRoutes({ config, db, secrets }: RouteDeps) {
   const view = (userId: number): OwnAi => {
     const row = ownAiRow(db, secrets, userId);
     if (!row) return null;
-    const { state, checkedAt, details } = results.get(userId) ?? {
+    const { state, checkedAt, details } = ownResult(userId) ?? {
       state: 'unknown',
       checkedAt: null,
     };
@@ -198,14 +195,14 @@ export function ownAiRoutes({ config, db, secrets }: RouteDeps) {
           last4: settings.apiKey?.slice(-4) ?? null,
           now: Date.now(),
         });
-        results.set(user.id, result);
+        recordOwnResult(user.id, result);
         return c.json(view(user.id));
       })
       .delete('/ai/own', (c) => {
         db.prepare('DELETE FROM user_ai_settings WHERE user_id = ?').run(
           c.var.user.id,
         );
-        results.delete(c.var.user.id);
+        forgetOwnResult(c.var.user.id);
         return c.json(null satisfies OwnAi);
       })
       .post('/ai/own/check', async (c) => {
@@ -213,7 +210,7 @@ export function ownAiRoutes({ config, db, secrets }: RouteDeps) {
         const row = ownAiRow(db, secrets, user.id);
         if (!row) throw new ApiError(409, 'ai_not_configured');
         throttleCheck(user.id);
-        results.set(
+        recordOwnResult(
           user.id,
           await runCheck(await ownModel(user, row), row.apiKey),
         );

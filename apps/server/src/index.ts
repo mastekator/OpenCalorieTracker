@@ -38,7 +38,7 @@ for (const error of setupErrors(config, db)) {
 }
 
 const secrets = loadSecrets(config.dataDirWritable ? config.dataDir : null);
-const ai = createAiRuntime();
+const ai = createAiRuntime({ db, secrets, config });
 await ai.apply(getAiSettings(config, db, secrets));
 
 // A failed sweep is retried next hour; it must not take the server down.
