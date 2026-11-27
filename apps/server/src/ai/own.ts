@@ -77,11 +77,11 @@ export async function assertPublicUrl(raw: string) {
   const url = URL.parse(raw);
   if (url?.protocol !== 'https:' || isLocalAiHost(raw)) throw privateAddress();
   const host = hostOf(url);
-  // A name that does not resolve fails in fetch anyway.
+  // A failed or empty lookup is refused: fetch resolves again and might reach a private address.
   const ips = isIP(host)
     ? [host]
     : (await lookup(host, { all: true }).catch(() => [])).map((a) => a.address);
-  if (ips.some((ip) => isBlockedIp(ip) || isPrivateIp(ip)))
+  if (!ips.length || ips.some((ip) => isBlockedIp(ip) || isPrivateIp(ip)))
     throw privateAddress();
 }
 
