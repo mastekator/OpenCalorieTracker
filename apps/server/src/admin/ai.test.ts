@@ -52,6 +52,7 @@ describe('GET /api/admin/ai', () => {
       refineLimit: null,
       allowUserKeys: true,
       userKeysLocked: false,
+      userKeyCount: 0,
       state: 'unknown',
       // The screen's texts need the set size before the first run (OCT-323).
       testPhotoCount: (await readExpected()).photos.length,

@@ -17,6 +17,7 @@ const saved: AdminAiStatus = {
   rev: 3,
   allowUserKeys: true,
   userKeysLocked: false,
+  userKeyCount: 0,
   refineLimit: null,
   testPhotoCount: 9,
   state: 'ok',
