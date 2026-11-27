@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from 'react';
 import { Check, Info, Trash2 } from 'lucide-react';
 import {
   aiStatusSchema,
@@ -37,6 +43,14 @@ function readOwn(userId: number): OwnAi | undefined {
   }
 }
 
+function hostOf(url: string): string | null {
+  try {
+    return new URL(url).host;
+  } catch {
+    return null;
+  }
+}
+
 /** What the shared form reads: the own key in the shape of the admin's status. */
 const formStatus = (own: OwnAi | undefined): AiFormStatus => ({
   source: null,
@@ -46,7 +60,7 @@ const formStatus = (own: OwnAi | undefined): AiFormStatus => ({
   keySet: !!own?.keyLast4 && !own.keyUnreadable,
   keyLast4: own?.keyLast4 ?? null,
   keyUnreadable: own?.keyUnreadable ?? false,
-  baseUrlHost: own?.baseUrl ? new URL(own.baseUrl).host : null,
+  baseUrlHost: own?.baseUrl ? hostOf(own.baseUrl) : null,
   savedInactive: false,
 });
 
@@ -241,13 +255,11 @@ export function AiSource({ userId, server, onChanged }: Props) {
     {
       value: 'server' as const,
       label: t('ai_settings.src_server'),
-      sub: own
-        ? undefined
-        : server
-          ? t('ai_settings.src_server_sub', {
-              provider: consentName(server.providerKey),
-            })
-          : t('ai_settings.src_server_none'),
+      sub: server
+        ? t('ai_settings.src_server_sub', {
+            provider: consentName(server.providerKey),
+          })
+        : t('ai_settings.src_server_none'),
     },
     ...(forbidden
       ? []
@@ -260,6 +272,23 @@ export function AiSource({ userId, server, onChanged }: Props) {
         ]),
   ];
 
+  const radios = useRef<(HTMLButtonElement | null)[]>([]);
+  // Arrows move the choice like a native radio group (roving tabindex).
+  function onArrow(e: KeyboardEvent) {
+    const step = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[
+      e.key
+    ];
+    if (!step) return;
+    e.preventDefault();
+    const at = options.findIndex((o) => o.value === source);
+    const i = (at + step + options.length) % options.length;
+    const next = options[i]!.value;
+    // Leaving a saved key asks first; on cancel the focus stays on «Own API key».
+    const asks = next === 'server' && !!own;
+    pick(next);
+    if (!asks) radios.current[i]?.focus();
+  }
+
   return (
     <>
       {notice && (
@@ -271,7 +300,9 @@ export function AiSource({ userId, server, onChanged }: Props) {
         </Banner>
       )}
       {blocked && !notice && (
-        <Banner tone="warning" title={t('errors.ai_user_keys_disabled')} />
+        <Banner tone="warning" title={t('errors.ai_user_keys_disabled')}>
+          {t('ai_settings.keys_off_body')}
+        </Banner>
       )}
       <section className="list">
         <h2 className="list__title" id="ai-source">
@@ -281,13 +312,18 @@ export function AiSource({ userId, server, onChanged }: Props) {
           className="list__rows"
           role="radiogroup"
           aria-labelledby="ai-source"
+          onKeyDown={onArrow}
         >
-          {options.map((o) => (
+          {options.map((o, i) => (
             <li key={o.value} className="list__item" role="none">
               <button
                 type="button"
                 role="radio"
                 aria-checked={source === o.value}
+                tabIndex={source === o.value ? 0 : -1}
+                ref={(el) => {
+                  radios.current[i] = el;
+                }}
                 className="list-row list-row--interactive"
                 onClick={() => pick(o.value)}
               >
