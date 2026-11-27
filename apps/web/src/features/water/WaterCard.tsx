@@ -49,6 +49,10 @@ type Props = {
   onOther: (key: string) => void;
   /** «Hide from the row»: built-ins except water only. */
   onHide: (key: string) => void;
+  /** «Edit drink» from the menu of an own drink (OCT-147 3.4). */
+  onEdit: (key: string) => void;
+  /** The «Your drink» tile at the end of the row (OCT-147 3.5). */
+  onAdd: () => void;
   /** A tap on the amount: the day's entries (OCT-147 2.3). */
   onOpenDay: () => void;
 };
@@ -82,6 +86,8 @@ export function WaterCard({
   onLog,
   onOther,
   onHide,
+  onEdit,
+  onAdd,
   onOpenDay,
 }: Props) {
   const { t } = useT();
@@ -340,6 +346,21 @@ export function WaterCard({
             </button>
           </li>
         ))}
+        <li>
+          <button
+            type="button"
+            className="drink-tile drink-tile--new"
+            aria-label={t('water.own_tile_label')}
+            onClick={onAdd}
+          >
+            <span className="drink-tile__add" aria-hidden="true">
+              <Plus />
+            </span>
+            <span className="drink-tile__name" aria-hidden="true">
+              {t('water.own_tile')}
+            </span>
+          </button>
+        </li>
       </ul>
       {hint && (
         <p className="water-card__hint">
@@ -354,6 +375,7 @@ export function WaterCard({
         onPick={(ml) => menu && onLog(menu.drink.key, ml)}
         onOther={() => menu && onOther(menu.drink.key)}
         onHide={() => menu && onHide(menu.drink.key)}
+        onEdit={() => menu && onEdit(menu.drink.key)}
       />
     </section>
   );

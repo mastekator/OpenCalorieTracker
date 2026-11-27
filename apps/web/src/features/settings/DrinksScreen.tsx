@@ -6,7 +6,6 @@ import {
   type Drink,
 } from '@oct/shared';
 import {
-  deleteDrink,
   saveDrink,
   useCustomDrinks,
   useDb,
@@ -17,10 +16,10 @@ import { useT } from '../../i18n';
 import { DishIllustration } from '../../ui/DishIllustration/DishIllustration';
 import { List, ListRow } from '../../ui/List/List';
 import { useOnline } from '../../ui/OfflineBar/OfflineBar';
-import { useToast } from '../../ui/Toast/Toast';
 import { Switch } from '../../ui/Switch/Switch';
 import { useUndoDelete } from '../diary/undoDelete';
 import { CustomDrinkSheet } from '../water/CustomDrinkSheet';
+import { useDeleteDrink } from '../water/useDeleteDrink';
 import './settings.css';
 
 export const DRINKS_PATH = '/settings/drinks';
@@ -33,8 +32,8 @@ export function DrinksScreen() {
   const db = useDb();
   const online = useOnline();
   const settings = useSettings();
-  const toast = useToast();
-  const { hidden: deleting, hide } = useUndoDelete();
+  const { hidden: deleting } = useUndoDelete();
+  const deleteOwn = useDeleteDrink();
   const own = useCustomDrinks()
     ?.filter((d) => !deleting.has(`custom:${d.id}`))
     .sort((a, b) => a.id - b.id);
@@ -49,13 +48,7 @@ export function DrinksScreen() {
 
   const remove = (d: Drink) => {
     setOpen(undefined);
-    // The id and the row place stay while «Undo» is offered; the DELETE goes after it.
-    hide(`custom:${d.id}`, t('drink_list.deleted', { name: d.name }), () =>
-      // The undo window swallows errors: say so, the drink is back after a reload.
-      deleteDrink(db, d.id).catch(() =>
-        toast({ text: t('drink_list.delete_error') }),
-      ),
-    );
+    deleteOwn(d);
     // The row that opened the sheet is gone: put focus on «Your drink» after the sheet returns it.
     requestAnimationFrame(() =>
       addRow.current?.querySelector<HTMLElement>('.list-row--accent')?.focus(),

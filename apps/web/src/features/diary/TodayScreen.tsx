@@ -16,6 +16,7 @@ import {
   weekOf,
   type AccountSettingsPatch,
   type Macros,
+  type Drink,
   type DrinkEntry,
   type Meal,
   type Units,
@@ -24,6 +25,7 @@ import {
 } from '@oct/shared';
 import { useSession } from '../../app/SessionContext';
 import {
+  saveDrink,
   useCustomDrinks,
   useDb,
   useDrinkEntries,
@@ -55,6 +57,8 @@ import { saveProfile } from '../profile/ProfileScreen';
 import { DrinksMealRow, kcalDrinks } from '../water/DrinksMealRow';
 import { useVolume } from '../water/format';
 import { AmountSheet } from '../water/AmountSheet';
+import { CustomDrinkSheet } from '../water/CustomDrinkSheet';
+import { useDeleteDrink } from '../water/useDeleteDrink';
 import { WaterCard, type DrinkTileInfo } from '../water/WaterCard';
 import { WaterDaySheet } from '../water/WaterDaySheet';
 import { periodDays } from '../week/period';
@@ -367,6 +371,9 @@ function useWater(today: string, units: Units) {
   const any = useHasDrinkEntries();
   const [other, setOther] = useState<DrinkTileInfo | null>(null);
   const [day, setDay] = useState(false);
+  // undefined: closed; null: a new drink (OCT-147 3.4–3.5).
+  const [editing, setEditing] = useState<Drink | null | undefined>();
+  const deleteOwn = useDeleteDrink();
   if (!settings?.waterEnabled || !entries || !custom || !goals) return null;
 
   const tiles = drinkRowOrder({
@@ -432,8 +439,31 @@ function useWater(today: string, units: Units) {
             ) as NonNullable<AccountSettingsPatch['hiddenDrinks']>,
           })
         }
+        onEdit={(key) =>
+          setEditing(custom.find((d) => `custom:${d.id}` === key))
+        }
+        onAdd={() => setEditing(null)}
         onOpenDay={() => setDay(true)}
       />
+      {editing !== undefined && (
+        <CustomDrinkSheet
+          drink={editing ?? undefined}
+          online={online}
+          onSave={async (input) => {
+            await saveDrink(db, input, editing?.id);
+            setEditing(undefined);
+          }}
+          onDelete={
+            editing
+              ? () => {
+                  setEditing(undefined);
+                  deleteOwn(editing);
+                }
+              : undefined
+          }
+          onClose={() => setEditing(undefined)}
+        />
+      )}
       <AmountSheet
         drink={other}
         units={units}
