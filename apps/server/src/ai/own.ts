@@ -117,7 +117,9 @@ export function ownAiRoutes({ config, db, secrets }: RouteDeps) {
       db.prepare('UPDATE users SET ai_notice_seen = 1 WHERE id = ?').run(
         c.var.user.id,
       );
-    if (!userKeysAllowed(db, config))
+    // Deleting stays open, so a key saved before the switch-off can still be removed.
+    const deleting = c.req.method === 'DELETE' && c.req.path === '/api/ai/own';
+    if (!deleting && !userKeysAllowed(db, config))
       throw new ApiError(403, 'ai_user_keys_disabled');
     await next();
   };

@@ -3,7 +3,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { secretsFrom, type Secrets } from '../secrets.js';
 import { aiSetup, mockModel } from '../test/ai.js';
 import { testApp } from '../test/app.js';
-import { API_KEY_PURPOSE, getAiSettings } from './settings.js';
+import {
+  API_KEY_PURPOSE,
+  applyUserKeysEnv,
+  getAiSettings,
+} from './settings.js';
 
 const KEY = 'sk-saved-key-abcd';
 const ENV = { AI_PROVIDER: 'google', AI_MODEL: 'gemini-env', AI_API_KEY: 'k' };
@@ -126,4 +130,49 @@ describe('GET /api/admin/ai with a saved row', () => {
     expect(text).not.toContain(KEY);
     await t.cleanup();
   });
+});
+
+describe('applyUserKeysEnv (ADR-0031 §2)', () => {
+  const withKey = (env: Record<string, string>) => {
+    const t = testApp(env);
+    t.db
+      .prepare(
+        "INSERT INTO users (email, name, role, webauthn_user_id, ai_notice_seen, created_at) VALUES ('b@example.com', 'B', 'user', randomblob(16), 1, 0)",
+      )
+      .run();
+    t.db
+      .prepare(
+        "INSERT INTO user_ai_settings (user_id, provider, model, updated_at) SELECT id, 'openai', 'gpt-x', 0 FROM users",
+      )
+      .run();
+    return t;
+  };
+  const state = (t: ReturnType<typeof testApp>) => ({
+    keys: t.db.prepare('SELECT COUNT(*) FROM user_ai_settings').pluck().get(),
+    notice: t.db
+      .prepare("SELECT ai_notice_seen FROM users WHERE email = 'b@example.com'")
+      .pluck()
+      .get(),
+  });
+
+  it('deletes saved keys and re-arms the notice when ALLOW_USER_AI_KEYS=false', () => {
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const t = withKey({ ALLOW_USER_AI_KEYS: 'false' });
+    applyUserKeysEnv(t.db, t.config);
+    expect(state(t)).toEqual({ keys: 0, notice: 0 });
+    expect(log).toHaveBeenCalledWith(
+      '[info] 1 own AI keys deleted: ALLOW_USER_AI_KEYS=false',
+    );
+    applyUserKeysEnv(t.db, t.config);
+    expect(log).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([{}, { ALLOW_USER_AI_KEYS: 'true' }])(
+    'keeps saved keys with %j',
+    (env) => {
+      const t = withKey(env);
+      applyUserKeysEnv(t.db, t.config);
+      expect(state(t)).toEqual({ keys: 1, notice: 1 });
+    },
+  );
 });

@@ -38,6 +38,7 @@ import { createModel, type AiModel } from '../ai/model.js';
 import {
   API_KEY_PURPOSE,
   baseUrlHost,
+  deleteOwnKeys,
   refineLimit,
   savedAiRow,
   userKeysAllowed,
@@ -309,11 +310,7 @@ export function adminRoutes({ config, db, ai, secrets, chatgpt }: RouteDeps) {
             db.prepare('UPDATE instance_ai SET allow_user_keys = ?').run(
               +allow,
             );
-            if (allow) return 0;
-            db.prepare(
-              'UPDATE users SET ai_notice_seen = 0 WHERE id IN (SELECT user_id FROM user_ai_settings)',
-            ).run();
-            return db.prepare('DELETE FROM user_ai_settings').run().changes;
+            return allow ? 0 : deleteOwnKeys(db);
           })();
           if (deleted)
             console.log(`[info] ${deleted} own AI keys deleted by admin`);
