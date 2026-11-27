@@ -1500,7 +1500,26 @@ export const en = {
       'AI will stop sending your data there. We’ll ask again on your next photo. Data already sent stays with the provider.',
     revoked: 'Consent revoked',
     offline_body:
-      'You can see the settings, but revoking consent needs a connection. The device switch works offline.',
+      'You can see the settings, but saving a key or revoking consent needs a connection. The device switch works offline.',
+    how: 'How AI works',
+    src_server: 'Through the server',
+    src_server_sub: '{provider} · set up by the admin',
+    src_server_none: 'No AI on the server — manual entry',
+    src_key: 'My own API key',
+    src_key_sub: 'You pay for the requests',
+    key_group: 'Your key',
+    key_where:
+      'The key is stored encrypted on the server. The admin can’t see it. Requests go through the server.',
+    key_saved: 'Key saved. AI now uses your key',
+    key_delete: 'Delete key',
+    key_delete_q: 'Delete the key?',
+    key_delete_body:
+      'AI will work through the server again. The key will be removed from the server.',
+    key_delete_confirm: 'Delete',
+    key_deleted: 'Key deleted. AI works through the server',
+    keys_off: 'The admin turned off personal keys',
+    keys_off_body:
+      'Your key was deleted. AI now works through the server — we’ll ask for consent on first use.',
   },
   ai: {
     status_label: 'AI status',
@@ -1611,6 +1630,8 @@ export const en = {
       not_saved: 'Not saved: {reason}',
       not_saved_body:
         'You can save without a passing check — the status will show the error until it clears.',
+      not_saved_body_own:
+        'Make sure you copied the whole key and it has access to the model.',
       save_anyway: 'Save anyway',
       env_title: 'Settings come from .env and take priority',
       env_body:

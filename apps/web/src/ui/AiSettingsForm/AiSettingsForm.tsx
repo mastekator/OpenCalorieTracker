@@ -52,18 +52,36 @@ const HINTS: Partial<
   'openai-compatible': 'compatible',
 };
 
+/** What the form reads of the saved settings: the admin's status or the user's own key. */
+export type AiFormStatus = Pick<
+  AdminAiStatus,
+  | 'source'
+  | 'provider'
+  | 'model'
+  | 'state'
+  | 'keySet'
+  | 'keyLast4'
+  | 'keyUnreadable'
+  | 'baseUrlHost'
+  | 'savedInactive'
+>;
+
 type Props = {
-  status: AdminAiStatus;
+  status: AiFormStatus;
+  /** The group title; «Connection» by default. */
+  title?: string;
   draft: AiDraftState;
   onChange: (patch: Partial<AiDraftState>) => void;
   /** The key field instead of «Set · …abcd». */
   keyOpen: boolean;
   onReplaceKey: () => void;
   keyError?: string;
+  /** The server refused the address (400 ai_base_url_private). */
+  addressError?: string;
   /** The draft differs from the active settings: «Check» and «Save» instead of «Check now». */
   dirty: boolean;
   busy: 'check' | 'save' | null;
-  /** 422 ai_check_failed of the last save: «Not saved» and «Save anyway». */
+  /** 422 ai_check_failed of the last save: «Not saved», and «Save anyway» with onSaveAnyway. */
   failed: AiCheckResult | null;
   /** A draft check that did not pass. */
   checked: AiCheckResult | null;
@@ -71,7 +89,8 @@ type Props = {
   conflict: boolean;
   onCheck: () => void;
   onSave: () => void;
-  onSaveAnyway: () => void;
+  /** Left out: the save always checks first (own key), so no «Save anyway» and no separate draft check. */
+  onSaveAnyway?: () => void;
   onReload: () => void;
   models: ModelsState;
   /** Fetch the list for the draft (sheet opened without one, «Refresh list», key field left). */
@@ -88,11 +107,13 @@ const detailsOf = (r: AiCheckResult) =>
 /** The «Connection» group and its buttons on «AI provider» (OCT-248 §1, §3). */
 export function AiSettingsForm({
   status,
+  title,
   draft,
   onChange,
   keyOpen,
   onReplaceKey,
   keyError,
+  addressError,
   dirty,
   busy,
   failed,
@@ -233,7 +254,7 @@ export function AiSettingsForm({
   return (
     <div className="ai-form">
       <section className="list">
-        <h2 className="list__title">{t('ai.form.connection')}</h2>
+        <h2 className="list__title">{title ?? t('ai.form.connection')}</h2>
         <ul className="list__rows">
           <ListRow
             description={providerName(draft.provider)}
@@ -272,9 +293,10 @@ export function AiSettingsForm({
                       : undefined
                   }
                   error={
-                    tried && addressEmpty
+                    addressError ??
+                    (tried && addressEmpty
                       ? t('ai.form.address_required')
-                      : undefined
+                      : undefined)
                   }
                   value={draft.baseUrl}
                   onChange={(event) =>
@@ -385,7 +407,7 @@ export function AiSettingsForm({
       )}
       {checked && detailsOf(checked) && <Details>{detailsOf(checked)}</Details>}
 
-      {!actions ? null : failed ? (
+      {actions && failed && (
         <>
           <Banner
             tone="danger"
@@ -393,38 +415,47 @@ export function AiSettingsForm({
               reason: t(`ai.status.${failed.state}`),
             })}
           >
-            {t('ai.form.not_saved_body')}
+            {t(
+              onSaveAnyway
+                ? 'ai.form.not_saved_body'
+                : 'ai.form.not_saved_body_own',
+            )}
           </Banner>
           {detailsOf(failed) && <Details>{detailsOf(failed)}</Details>}
-          <div className="ai-form__stack">
-            <Button
-              variant="tonal"
-              loading={busy === 'save'}
-              disabled={busy === 'check'}
-              onClick={onSaveAnyway}
-            >
-              {t(busy === 'save' ? 'ai.form.saving' : 'ai.form.save_anyway')}
-            </Button>
-            <Button
-              variant="plain"
-              loading={busy === 'check'}
-              disabled={busy === 'save'}
-              onClick={onCheck}
-            >
-              {t(busy === 'check' ? 'ai.checking' : 'ai.form.check')}
-            </Button>
-          </div>
         </>
-      ) : dirty ? (
-        <div className="ai-form__row">
+      )}
+      {!actions ? null : failed && onSaveAnyway ? (
+        <div className="ai-form__stack">
           <Button
             variant="tonal"
+            loading={busy === 'save'}
+            disabled={busy === 'check'}
+            onClick={onSaveAnyway}
+          >
+            {t(busy === 'save' ? 'ai.form.saving' : 'ai.form.save_anyway')}
+          </Button>
+          <Button
+            variant="plain"
             loading={busy === 'check'}
             disabled={busy === 'save'}
-            onClick={guarded(onCheck)}
+            onClick={onCheck}
           >
             {t(busy === 'check' ? 'ai.checking' : 'ai.form.check')}
           </Button>
+        </div>
+      ) : dirty || failed ? (
+        <div className="ai-form__row">
+          {/* Without «Save anyway» the save itself is the check: no separate draft check. */}
+          {onSaveAnyway && (
+            <Button
+              variant="tonal"
+              loading={busy === 'check'}
+              disabled={busy === 'save'}
+              onClick={guarded(onCheck)}
+            >
+              {t(busy === 'check' ? 'ai.checking' : 'ai.form.check')}
+            </Button>
+          )}
           <Button
             loading={busy === 'save'}
             disabled={busy === 'check'}

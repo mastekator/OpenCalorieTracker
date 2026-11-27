@@ -18,12 +18,13 @@ import { List, ListRow } from '../../ui/List/List';
 import { useOnline } from '../../ui/OfflineBar/OfflineBar';
 import { Switch } from '../../ui/Switch/Switch';
 import { useToast } from '../../ui/Toast/Toast';
+import { AiSource } from './AiSource';
 import './settings.css';
 
 export const AI_SETTINGS_PATH = '/settings/ai';
 
 /**
- * Settings → AI (OCT-178 §1, §5.1): the device switch and the consents. The copy on this
+ * Settings → AI (OCT-178 §1–5): the device switch, the AI source with the own key, and the consents. The copy on this
  * device shows at once and offline; online the server's list replaces it.
  */
 export function AiScreen({ user }: { user: MeResponse }) {
@@ -127,6 +128,15 @@ export function AiScreen({ user }: { user: MeResponse }) {
             {t('ai_settings.device_off_body')}
           </Banner>
         )}
+        <AiSource
+          userId={user.id}
+          server={data?.server}
+          onChanged={() =>
+            void refreshConsents(user.id)
+              .then(setData)
+              .catch(() => {})
+          }
+        />
       </div>
       <div className="settings__col" ref={consentsCol}>
         {data && (
