@@ -4,12 +4,19 @@ import {
   type DayTotals,
   type Macros,
 } from '@oct/shared';
+import type { ReactNode } from 'react';
 import { Redirect, useLocation } from 'wouter';
-import { useDrinkEntries, useNorm, usePeriod } from '../../data/DataContext';
+import {
+  useDrinkEntries,
+  useNorm,
+  usePeriod,
+  useStreaks,
+} from '../../data/DataContext';
 import { useT } from '../../i18n';
 import { Segment } from '../../ui/Segment/Segment';
 import { Delayed, Skeleton } from '../../ui/Skeleton/Skeleton';
 import { DayPager } from '../diary/DayPager';
+import { STREAKS_PATH, StreakRow } from '../streaks/StreakRow';
 import { NormInvite } from '../diary/NormInvite';
 import { usePager } from '../diary/usePager';
 import { useToday } from '../diary/useToday';
@@ -41,6 +48,8 @@ type ViewProps = {
   onMode: (mode: PeriodMode) => void;
   onOpenDay: (date: string) => void;
   onSetNorm: () => void;
+  /** The streak row above the head (OCT-184 1.1); absent while off. */
+  streak?: ReactNode;
 };
 
 /** Bar heights of the 7.8 skeleton, repeated over the period. */
@@ -84,6 +93,7 @@ export function WeekView({
   onMode,
   onOpenDay,
   onSetNorm,
+  streak,
 }: ViewProps) {
   const { t } = useT();
   const period = periodOf(mode, date);
@@ -179,6 +189,7 @@ export function WeekView({
 
   return (
     <div className="week" {...swipe}>
+      {streak}
       <WeekHead
         mode={mode}
         date={date}
@@ -236,6 +247,7 @@ function Week({
   const drinks = useDrinkEntries(from, to);
   const norm = useNorm(today);
   const nav = usePeriodNav(mode, to, today);
+  const streaks = useStreaks(today);
   return (
     <WeekView
       mode={mode}
@@ -246,6 +258,14 @@ function Week({
       {...nav}
       onOpenDay={(date) => navigate(`/diary/${date}`)}
       onSetNorm={() => navigate('/profile')}
+      streak={
+        streaks?.on && (
+          <StreakRow
+            streak={streaks.streak}
+            onOpen={() => navigate(STREAKS_PATH)}
+          />
+        )
+      }
     />
   );
 }

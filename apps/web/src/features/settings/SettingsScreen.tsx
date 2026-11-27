@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import {
   Download,
   Droplet,
+  Flame,
   Globe,
   GlobeLock,
   Image,
@@ -35,7 +36,12 @@ import {
   type InstallPlatform,
 } from '../../app/install';
 import { applyTheme } from '../../app/theme';
-import { useAiStatus, useDb, useSettings } from '../../data/DataContext';
+import {
+  useAiStatus,
+  useDb,
+  useSettings,
+  useStreaks,
+} from '../../data/DataContext';
 import { useDeviceAi } from '../../data/deviceAi';
 import {
   conflictCount,
@@ -47,6 +53,7 @@ import {
 } from '../../data/outbox';
 import { DESKTOP_MEDIA } from '../../styles/breakpoints';
 import { useT } from '../../i18n';
+import { useToday } from '../diary/useToday';
 import { Badge } from '../../ui/Badge/Badge';
 import { Banner } from '../../ui/Banner/Banner';
 import { Button } from '../../ui/Button/Button';
@@ -141,6 +148,8 @@ export function SettingsScreen({ user, onLogout, platform: given }: Props) {
   const units = settings?.units ?? user.units;
   const online = useOnline();
   const water = settings?.waterEnabled ?? false;
+  // The effective switch: off under 18 until chosen (AC-6.2).
+  const streaksOn = useStreaks(useToday())?.on ?? false;
   const requireOnline = useRequireOnline();
   const [, navigate] = useLocation();
   const [hintClosed, setHintClosed] = useState(
@@ -305,10 +314,27 @@ export function SettingsScreen({ user, onLogout, platform: given }: Props) {
 
         <List
           title={t('settings.group.extra')}
-          footer={t(
-            water ? 'settings.water.hint_on' : 'settings.water.hint_off',
-          )}
+          footer={`${t(
+            streaksOn
+              ? 'settings.streaks.hint_on'
+              : 'settings.streaks.hint_off',
+          )} ${t(water ? 'settings.water.hint_on' : 'settings.water.hint_off')}`}
         >
+          <ListRow
+            icon={<Flame />}
+            value={
+              <Switch
+                checked={streaksOn}
+                // Works offline: the outbox sends it later (ADR-0032 §5).
+                onChange={(on) =>
+                  void patchSettings(db, { streaksEnabled: on })
+                }
+                label={t('settings.streaks.switch')}
+              />
+            }
+          >
+            {t('settings.streaks.switch')}
+          </ListRow>
           <ListRow
             icon={<Droplet />}
             value={

@@ -386,6 +386,27 @@ describe('Water and drinks switch (ADR-0028 §5)', () => {
   });
 });
 
+describe('Streaks and awards switch (ADR-0032 §5)', () => {
+  it('on by default, turning it off works offline and goes to the queue', async () => {
+    offlineNow();
+    await seed(synced);
+    await wrap(screenOf(), true);
+    const sw = await screen.findByRole('switch', {
+      name: 'Streaks and awards',
+    });
+    await waitFor(() => expect(sw.getAttribute('aria-checked')).toBe('true'));
+    fireEvent.click(sw);
+    await waitFor(() => expect(sw.getAttribute('aria-checked')).toBe('false'));
+    expect(await outbox()).toEqual([
+      expect.objectContaining({
+        kind: 'patchSettings',
+        body: expect.objectContaining({ streaksEnabled: false }),
+      }),
+    ]);
+    expect(screen.getByText(/Turn it on and the whole history/)).toBeTruthy();
+  });
+});
+
 describe('Offline (4.8)', () => {
   it('banner, local rows active, sign-in and admin rows not, last AI status shown', async () => {
     offlineNow();
