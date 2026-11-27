@@ -13,7 +13,7 @@ import { z } from 'zod';
 import { api, ApiError } from '../../api/client';
 import { useUserId } from '../../app/SessionContext';
 import { readConsents } from '../../data/aiConsents';
-import { readDeviceAi } from '../../data/deviceAi';
+import { readDeviceAi, useDeviceAi } from '../../data/deviceAi';
 import { useT } from '../../i18n';
 import { ConfirmDialog } from '../../ui/ConfirmDialog/ConfirmDialog';
 import { DropOverlay } from '../../ui/DropOverlay/DropOverlay';
@@ -74,6 +74,7 @@ const hasFiles = (event: DragEvent) =>
 export function CaptureProvider({ children }: { children: ReactNode }) {
   const { t } = useT();
   const userId = useUserId();
+  const [deviceAi] = useDeviceAi(userId);
   const [location, navigate] = useLocation();
   const inFlow = location === MEAL_NEW_PATH;
   const cameraInput = useRef<HTMLInputElement>(null);
@@ -201,17 +202,17 @@ export function CaptureProvider({ children }: { children: ReactNode }) {
 
   /**
    * AI off on this device: plain manual entry (no recalc offer). Offline without a consent to the
-   * current provider in the local copy: manual entry offering «Recalculate» once online, whose
-   * tap asks for the consent. Else null: upload and recognize.
+   * current provider in the local copy: manual entry saying «No connection», offering «Recalculate»
+   * once online, whose tap asks for the consent. Else null: upload and recognize.
    */
-  const withoutAi = (): 'user' | 'ai_down' | null => {
+  const withoutAi = (): 'user' | 'offline' | null => {
     if (!readDeviceAi(userId)) return 'user';
     if (navigator.onLine || userId === undefined) return null;
     const copy = readConsents(userId);
     const key = copy?.server?.providerKey;
     return key && copy.consents.some((c) => c.providerKey === key)
       ? null
-      : 'ai_down';
+      : 'offline';
   };
 
   const flowPath = (photoId?: string, path = MEAL_NEW_PATH) => {
@@ -342,6 +343,7 @@ export function CaptureProvider({ children }: { children: ReactNode }) {
         onPhoto={closeMenuThen(camera)}
         onGallery={closeMenuThen(pick)}
         onManual={closeMenuThen(manual)}
+        aiOff={!deviceAi}
       />
       <ConfirmDialog
         open={dialog === 'open'}

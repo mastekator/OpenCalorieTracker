@@ -32,6 +32,7 @@ function Probe() {
     <>
       <button onClick={() => capture.addTo('2026-11-10')}>Add to day</button>
       <button onClick={capture.manual}>Direct manual</button>
+      <button onClick={capture.menu}>Open menu</button>
       <button onClick={capture.retry}>Retry upload</button>
       <output data-testid="pending">{capture.pending?.status ?? 'none'}</output>
     </>
@@ -184,6 +185,27 @@ describe('CaptureProvider', () => {
       expect(fetch).not.toHaveBeenCalled();
     });
 
+    it('AI off: menu 5.5 says so above «Take photo», «Settings» opens Settings → AI (OCT-178 4.4)', async () => {
+      setDeviceAi(user.id, false);
+      const location = await setup();
+      fireEvent.click(screen.getByText('Open menu'));
+      expect(
+        await screen.findByText('AI is off on this device', { exact: false }),
+      ).toBeTruthy();
+      fireEvent.click(screen.getByRole('link', { name: 'Settings' }));
+      expect(location.history.at(-1)).toBe('/settings/ai');
+      await waitFor(() => expect(screen.queryByText('Take photo')).toBeNull());
+    });
+
+    it('AI on: menu 5.5 has no note', async () => {
+      await setup();
+      fireEvent.click(screen.getByText('Open menu'));
+      expect(await screen.findByText('Take photo')).toBeTruthy();
+      expect(
+        screen.queryByText('AI is off on this device', { exact: false }),
+      ).toBeNull();
+    });
+
     it('offline without consent in the copy: manual entry, no recognition request', async () => {
       consents([]);
       offline();
@@ -193,7 +215,7 @@ describe('CaptureProvider', () => {
       await waitFor(() =>
         expect(location.history.at(-1)).toBe('/meal/new/edit'),
       );
-      expect(states.at(-1)).toEqual({ manual: 'ai_down', photo: jpeg });
+      expect(states.at(-1)).toEqual({ manual: 'offline', photo: jpeg });
       expect(fetch).not.toHaveBeenCalled();
     });
 

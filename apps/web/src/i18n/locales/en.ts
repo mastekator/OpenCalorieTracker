@@ -1240,6 +1240,8 @@ export const en = {
   capture: {
     gallery: 'From library',
     manual: 'Manually',
+    ai_off: 'AI is off on this device',
+    ai_off_link: 'Settings',
     menu: {
       photo: 'Take photo',
       gallery: 'Choose from library',
@@ -1399,6 +1401,8 @@ export const en = {
     add: 'Add',
     ai_down:
       'AI is unavailable — enter the dishes manually. Once it’s back, you can recalculate from the photo.',
+    offline:
+      'No connection — enter the dishes manually. Once you’re back online, you can recalculate from the photo.',
   },
   recalc: {
     banner: {

@@ -217,6 +217,14 @@ const aiDown = {
 } satisfies Partial<Props>;
 export const AiDown: Story = { args: aiDown };
 export const AiDownDark: Story = { args: aiDown, globals: dark };
+/** Offline without a consent to the provider: «No connection» (OCT-541). */
+const offlineManual = {
+  dishes: [],
+  manual: 'offline',
+  photoId,
+} satisfies Partial<Props>;
+export const Offline: Story = { args: offlineManual };
+export const OfflineDark: Story = { args: offlineManual, globals: dark };
 /** 4.8: press Save to see the error banner and «Try again». */
 export const SaveFails: Story = { args: failing };
 export const SaveFailsDark: Story = { args: failing, globals: dark };

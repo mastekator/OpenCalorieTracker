@@ -1,0 +1,28 @@
+.device-ai-off {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+}
+
+.device-ai-off svg {
+  flex: none;
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+}
+
+/* 44 px tap area around a footnote-sized inline link. */
+.device-ai-off__link {
+  --pad: calc(
+    (var(--tap-min) - var(--text-footnote-size) * var(--text-footnote-lh)) / 2 +
+      1px
+  );
+  display: inline-block;
+  padding-block: var(--pad);
+  margin-block: calc(var(--pad) * -1);
+  color: var(--color-accent);
+  font-weight: 600;
+}

@@ -644,6 +644,7 @@ describe('MealEditScreen: manual entry (OCT-60)', () => {
     ['not_configured', 'Photo recognition isn’t set up'],
     ['no_vision', 'The current model can’t read photos'],
     ['ai_down', 'AI is unavailable'],
+    ['offline', 'No connection'],
   ] as const)(
     'AI %s with a photo: banner, open sheet, saved with recalcOffer (5.3, 5.6)',
     async (manual, text) => {
@@ -750,7 +751,7 @@ describe('MealEditScreen: manual entry (OCT-60)', () => {
 
   it.each([
     ['AI off on this device', 'user', undefined],
-    ['offline without consent', 'ai_down', true],
+    ['offline without consent', 'offline', true],
   ] as const)(
     '%s: the photo taken without AI is queued with the meal, recalc offer %s',
     async (_, manual, offer) => {

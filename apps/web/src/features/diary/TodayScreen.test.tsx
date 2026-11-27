@@ -5,12 +5,14 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
 } from '@testing-library/react';
 import type { Meal, MeResponse, ProfileResponse } from '@oct/shared';
 import { Router } from 'wouter';
 import { memoryLocation } from 'wouter/memory-location';
 import { SessionContext } from '../../app/SessionContext';
 import { emitChange } from '../../data/changes';
+import { setDeviceAi } from '../../data/deviceAi';
 import { storeProfile } from '../../data/sync';
 import { DataProvider } from '../../data/DataContext';
 import { openUserDb } from '../../data/db';
@@ -122,6 +124,29 @@ afterEach(async () => {
 });
 
 describe('TodayScreen', () => {
+  it('AI off on this device: a line under the date links to Settings → AI; on: no line (OCT-178 4.5)', async () => {
+    serve(profile(null));
+    await seed();
+    setDeviceAi(USER.id, false);
+    try {
+      const location = renderToday();
+      expect(
+        await screen.findByText('AI is off on this device', { exact: false }),
+      ).toBeTruthy();
+      fireEvent.click(screen.getByRole('link', { name: 'Settings' }));
+      expect(location.history.at(-1)).toBe('/settings/ai');
+      act(() => setDeviceAi(USER.id, true));
+      // The CI runner can re-render a beat later than act() returns.
+      await waitFor(() =>
+        expect(
+          screen.queryByText('AI is off on this device', { exact: false }),
+        ).toBeNull(),
+      );
+    } finally {
+      setDeviceAi(USER.id, true);
+    }
+  });
+
   it('without a norm shows «Eaten today» and the invite to set one (AC-1.10)', async () => {
     serve(profile(null));
     await seed(meal('a', '2026-11-14', 9));

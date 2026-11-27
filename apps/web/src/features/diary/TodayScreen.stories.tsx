@@ -144,6 +144,16 @@ export const Desktop: Story = { globals: desktop };
 export const DesktopDark: Story = { globals: { ...desktop, ...dark } };
 export const DesktopEmpty: Story = { ...EmptyDay, globals: desktop };
 
+/** 4.5: «AI on this device» off, a line under the date (OCT-178). */
+export const AiOff: Story = { args: { aiOff: true } };
+export const AiOffDark: Story = { ...AiOff, globals: dark };
+export const AiOffRussian: Story = { ...AiOff, globals: { locale: 'ru' } };
+export const AiOffDesktop: Story = { ...AiOff, globals: desktop };
+export const AiOffDesktopDark: Story = {
+  ...AiOff,
+  globals: { ...desktop, ...dark },
+};
+
 function StoryWater() {
   return (
     <WaterCard

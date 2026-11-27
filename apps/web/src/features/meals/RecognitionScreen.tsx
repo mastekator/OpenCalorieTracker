@@ -40,7 +40,7 @@ export type MealEditState =
       codes?: PhotoBarcodesResponse['codes'];
     }
   | {
-      manual: 'user' | 'ai_down' | 'not_configured' | 'no_vision';
+      manual: 'user' | 'ai_down' | 'offline' | 'not_configured' | 'no_vision';
       barcode?: string;
       /** Taken without AI (off on this device, or offline without consent): kept on the device until saved. */
       photo?: Blob;
