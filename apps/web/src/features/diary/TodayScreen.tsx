@@ -1,7 +1,15 @@
-import { useEffect, useState, type ReactNode } from 'react';
-import { ImagePlus, Pencil, Utensils } from 'lucide-react';
+import {
+  useEffect,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from 'react';
+import { Droplet, ImagePlus, Pencil, Utensils } from 'lucide-react';
 import { useLocation } from 'wouter';
 import {
+  addDays,
+  BUILTIN_DRINKS,
+  drinkRowOrder,
   remainingOf,
   sumDay,
   summarize,
@@ -9,18 +17,29 @@ import {
   type Macros,
   type DrinkEntry,
   type Meal,
+  type Units,
+  waterGoalOn,
+  waterOfDay,
 } from '@oct/shared';
 import { useSession } from '../../app/SessionContext';
 import {
+  useCustomDrinks,
   useDb,
   useDrinkEntries,
+  useHasDrinkEntries,
   useNorm,
   usePeriod,
   useProfile,
   useSettings,
+  useWaterGoals,
   useWeighings,
 } from '../../data/DataContext';
-import { deleteWeighing, putWeighing } from '../../data/outbox';
+import {
+  createDrinkEntry,
+  deleteDrinkEntry,
+  deleteWeighing,
+  putWeighing,
+} from '../../data/outbox';
 import { useT } from '../../i18n';
 import { Button } from '../../ui/Button/Button';
 import { List } from '../../ui/List/List';
@@ -31,6 +50,9 @@ import { useToast } from '../../ui/Toast/Toast';
 import { useCapture } from '../meals/CaptureContext';
 import { DropZone } from '../meals/DropZone';
 import { saveProfile } from '../profile/ProfileScreen';
+import { DrinksMealRow, kcalDrinks } from '../water/DrinksMealRow';
+import { useVolume } from '../water/format';
+import { TAP_ML, WaterCard, type DrinkTileInfo } from '../water/WaterCard';
 import { periodDays } from '../week/period';
 import { WeighInSheet } from '../weight/WeighInSheet';
 import { WeightCard } from '../weight/WeightCard';
@@ -67,7 +89,27 @@ type ViewProps = {
   onSetNorm: () => void;
   /** The weight card: last on the phone, above the drop zone on desktop (OCT-189 §1). */
   weight?: ReactNode;
+  /** The water card, module on: under the day total on the phone, atop the side column on desktop (OCT-147). */
+  water?: ReactNode;
+  /** Water module on: kcal drinks get a row among the meals (OCT-147 4.3). */
+  waterOn?: boolean;
+  units?: Units;
 };
+
+const DESKTOP = '(min-width: 1024px)';
+const desktopQuery = () =>
+  typeof matchMedia === 'function' ? matchMedia(DESKTOP) : null;
+/** The desktop layout is on: the same breakpoint as TodayScreen.css. */
+function useDesktop() {
+  return useSyncExternalStore(
+    (change) => {
+      const q = desktopQuery();
+      q?.addEventListener('change', change);
+      return () => q?.removeEventListener('change', change);
+    },
+    () => desktopQuery()?.matches ?? false,
+  );
+}
 
 const newestFirst = (a: Meal, b: Meal) => b.eatenAt.localeCompare(a.eatenAt);
 
@@ -82,8 +124,12 @@ export function TodayView({
   onOpen,
   onSetNorm,
   weight,
+  water,
+  waterOn = false,
+  units = 'metric',
 }: ViewProps) {
   const { t, locale } = useT();
+  const desktop = useDesktop();
   const capture = useCapture();
   const date = new Intl.DateTimeFormat(locale, {
     weekday: 'long',
@@ -92,6 +138,10 @@ export function TodayView({
     timeZone: 'UTC',
   }).format(new Date(`${today}T00:00:00Z`));
   const loading = meals === undefined || norm === undefined;
+  const drinkRow = waterOn ? kcalDrinks(drinks) : [];
+  const drinksRow = drinkRow.length > 0 && (
+    <DrinksMealRow key="drinks" entries={drinkRow} units={units} />
+  );
 
   // 2.6: the card above the capture buttons, rows below them, so the buttons don't move.
   let summary;
@@ -117,6 +167,7 @@ export function TodayView({
           remaining={norm && remainingOf(norm, eaten)}
           weekRemainingKcal={norm ? weekRemainingKcal : undefined}
         />
+        {!desktop && water}
       </>
     );
   }
@@ -131,20 +182,28 @@ export function TodayView({
         </div>
       </Delayed>
     );
-  else if (meals?.length)
-    list = (
-      <List title={t('today.meals')}>
-        {[...meals].sort(newestFirst).map((meal) => (
-          <MealRow
-            key={meal.clientId}
-            meal={meal}
-            onOpen={() => onOpen(meal)}
-            highlight={meal.clientId === highlight}
-          />
-        ))}
-      </List>
-    );
-  else
+  else if (meals.length || drinksRow) {
+    const rows = [...meals]
+      .sort(newestFirst)
+      .map((meal) => (
+        <MealRow
+          key={meal.clientId}
+          meal={meal}
+          onOpen={() => onOpen(meal)}
+          highlight={meal.clientId === highlight}
+        />
+      ));
+    // By the time of the last drink, among the meals newest first.
+    if (drinksRow) {
+      const last = Date.parse(drinkRow[0]!.takenAt);
+      rows.splice(
+        meals.filter((m) => Date.parse(m.eatenAt) > last).length,
+        0,
+        drinksRow,
+      );
+    }
+    list = <List title={t('today.meals')}>{rows}</List>;
+  } else
     list = (
       <div className="today__empty">
         <ScreenState icon={<Utensils />} title={t('today.empty.title')}>
@@ -171,6 +230,7 @@ export function TodayView({
         {list}
       </div>
       <div className="today__side">
+        {desktop && water}
         {weight}
         <div className="today__drop">
           <DropZone />
@@ -203,6 +263,7 @@ export function TodayScreen() {
   const profile = useProfile();
   const weighings = useWeighings();
   const [weighIn, setWeighIn] = useState(false);
+  const water = useWater(today, units);
   // Read once: a reload or coming back later doesn't flash again.
   const [highlight] = useState(
     () => (history.state as TodayState | null)?.saved,
@@ -229,6 +290,9 @@ export function TodayScreen() {
       highlight={highlight}
       onOpen={(meal) => navigate(mealPath(meal.clientId))}
       onSetNorm={() => navigate('/profile')}
+      water={water}
+      waterOn={settings?.waterEnabled ?? false}
+      units={units}
       weight={
         <>
           <WeightCard
@@ -272,6 +336,73 @@ export function TodayScreen() {
           )}
         </>
       }
+    />
+  );
+}
+
+/** The Water card from the local copy; null with the module off or while it loads (ADR-0028 §5). */
+function useWater(today: string, units: Units) {
+  const db = useDb();
+  const { t, num } = useT();
+  const toast = useToast();
+  const volume = useVolume(units);
+  const settings = useSettings();
+  const profile = useProfile();
+  const entries = useDrinkEntries(addDays(today, -29), today);
+  const custom = useCustomDrinks();
+  const goals = useWaterGoals();
+  const any = useHasDrinkEntries();
+  if (!settings?.waterEnabled || !entries || !custom || !goals) return null;
+
+  const tiles = drinkRowOrder({
+    entries,
+    customDrinks: custom,
+    hidden: settings.hiddenDrinks ?? [],
+    today,
+  }).map((key): DrinkTileInfo => {
+    const own = custom.find((d) => `custom:${d.id}` === key);
+    if (own) return { key, ...own };
+    const builtin = BUILTIN_DRINKS.find((d) => d.key === key)!;
+    return {
+      key,
+      name: t(`drinks.${builtin.key}`),
+      illustration: builtin.illustration,
+      countsWater: true,
+    };
+  });
+
+  const log = async (key: string) => {
+    const clientId = await createDrinkEntry(db, {
+      drinkKey: key,
+      ml: TAP_ML,
+      date: today,
+      takenAt: new Date().toISOString(),
+    });
+    const entry = await db.get('drinkEntries', clientId);
+    const name = tiles.find((d) => d.key === key)!.name;
+    const amount = volume(TAP_ML);
+    toast({
+      text: entry?.kcal
+        ? t('water.logged_kcal', { amount, name, kcal: num(entry.kcal) })
+        : t('water.logged', { amount, name }),
+      icon: <Droplet aria-hidden="true" />,
+      ms: 5000,
+      action: {
+        label: t('water.undo'),
+        onClick: () => void deleteDrinkEntry(db, clientId),
+      },
+    });
+  };
+
+  return (
+    <WaterCard
+      today={today}
+      ml={waterOfDay(entries.filter((e) => e.date === today))}
+      goalMl={waterGoalOn(goals, today, profile?.profile.sex ?? null)}
+      units={units}
+      drinks={tiles}
+      hint={any === false}
+      onLog={(key) => void log(key)}
     />
   );
 }
