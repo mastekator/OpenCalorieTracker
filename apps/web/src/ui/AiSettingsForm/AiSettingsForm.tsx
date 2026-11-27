@@ -43,7 +43,10 @@ export type ModelsState = {
   error: string | null;
 };
 
-const PROVIDERS = Object.keys(AI_PROVIDERS) as AiProviderId[];
+// ChatGPT signs in instead of a key: its own block on the provider screen (OCT-487), never here.
+const PROVIDERS = (Object.keys(AI_PROVIDERS) as AiProviderId[]).filter(
+  (id) => id !== 'chatgpt',
+);
 const HINTS: Partial<
   Record<AiProviderId, 'google' | 'openrouter' | 'compatible'>
 > = {

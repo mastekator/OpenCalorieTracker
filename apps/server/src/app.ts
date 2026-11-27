@@ -11,7 +11,7 @@ import { consentRoutes } from './ai/consents.js';
 import { ownAiRoutes } from './ai/own.js';
 import type { AiRuntime } from './ai/runtime.js';
 import { authRoutes } from './auth/routes.js';
-import { createChatgptAuth, type ChatgptAuth } from './ai/chatgpt.js';
+import type { ChatgptAuth } from './ai/chatgpt.js';
 import { photoBarcodes, type PhotoBarcodes } from './barcodes/read.js';
 import { barcodeRoutes } from './barcodes/routes.js';
 import { device } from './auth/device.js';
@@ -81,7 +81,7 @@ export function createApp(appDeps: AppDeps) {
   const deps: RouteDeps = {
     ...appDeps,
     photoBarcodes: photoBarcodes(),
-    chatgpt: createChatgptAuth(appDeps),
+    chatgpt: appDeps.ai.chatgpt,
   };
   const { config, db } = deps;
   const app = new Hono();

@@ -32,6 +32,16 @@ describe('loadConfig', () => {
     });
   });
 
+  it('takes AI_PROVIDER=chatgpt without AI_API_KEY: it signs in on the screen', () => {
+    expect(
+      loadConfig({ AI_PROVIDER: 'chatgpt', AI_MODEL: 'gpt-5.4' }).ai,
+    ).toMatchObject({
+      provider: 'chatgpt',
+      model: 'gpt-5.4',
+      apiKey: undefined,
+    });
+  });
+
   it('parses AUTH_METHODS', () => {
     expect(loadConfig({ AUTH_METHODS: ' passkey ' }).authMethods).toEqual([
       'passkey',

@@ -3,6 +3,7 @@ import { isLocalAiHost, providerKey, type AiSource } from '@oct/shared';
 import type { User } from '../auth/session.js';
 import type { Config } from '../config.js';
 import type { Secrets } from '../secrets.js';
+import { createChatgptAuth, type ChatgptAuth } from './chatgpt.js';
 import { createModel, type AiModel } from './model.js';
 import { ownAiRow, ownModel } from './own.js';
 import { userKeysAllowed, type AiSettings } from './settings.js';
@@ -36,15 +37,30 @@ export interface AiRuntime {
   forUser(user: { id: number; role?: User['role'] }): ResolvedAi | null;
   /** `model`: one already built for these settings (by the check before saving). */
   apply(settings: AiSettings | null, model?: AiModel): Promise<void>;
+  /** The admin's ChatGPT sign-in; one per process, so refreshes are shared (ADR-0031 §4). */
+  chatgpt: ChatgptAuth;
 }
 
 export function createAiRuntime(
-  { db, secrets, config }: { db: Database; secrets: Secrets; config: Config },
+  {
+    db,
+    secrets,
+    config,
+    fetch,
+  }: {
+    db: Database;
+    secrets: Secrets;
+    config: Config;
+    /** OpenAI sign-in requests; tests pass a fake. */
+    fetch?: typeof globalThis.fetch;
+  },
   initial: ActiveAi | null = null,
 ): AiRuntime {
   let active = initial;
   setActiveModel(active?.model ?? null);
+  const chatgpt = createChatgptAuth({ db, secrets, fetch });
   return {
+    chatgpt,
     current: () => active,
     forUser(user) {
       // An unreadable key (another secret.key) falls back to the server's model.
@@ -65,6 +81,8 @@ export function createAiRuntime(
         };
       if (!active) return null;
       const { settings, model } = active;
+      // One person's subscription: only the admin uses it, others get manual mode (AC-B1.8).
+      if (settings.provider === 'chatgpt' && user.role !== 'admin') return null;
       return {
         settings,
         source: 'server',
@@ -79,7 +97,7 @@ export function createAiRuntime(
       let model: AiModel | null = null;
       // Broken AI settings must not take the server down: it falls back to manual mode.
       try {
-        model = built ?? (await createModel(settings));
+        model = built ?? (await createModel(settings, undefined, chatgpt));
       } catch (err) {
         console.error(
           `[setup] AI model could not be created (${(err as Error).name}); AI is off.`,

@@ -146,6 +146,9 @@ export function ownAiRoutes({ config, db, secrets }: RouteDeps) {
     userId: number,
     draft: Pick<AiDraft, 'provider' | 'apiKey' | 'baseUrl'>,
   ) => {
+    // A ChatGPT subscription is the admin's server provider only, never an own key (ADR-0031 §4, B2).
+    if (draft.provider === 'chatgpt')
+      throw new ApiError(400, 'validation_failed');
     const saved = ownAiRow(db, secrets, userId);
     if (!draft.apiKey && saved?.keyUnreadable)
       throw new ApiError(400, 'ai_key_required');

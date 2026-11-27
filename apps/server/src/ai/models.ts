@@ -10,6 +10,7 @@ const DEFAULT_BASE: Record<AiProviderId, string | undefined> = {
   anthropic: 'https://api.anthropic.com/v1',
   openrouter: 'https://openrouter.ai/api/v1',
   'openai-compatible': undefined,
+  chatgpt: undefined,
 };
 // OpenAI does not report capabilities: models that cannot chat are hidden by name (ADR-0018 §4).
 const OPENAI_HIDDEN =
@@ -127,6 +128,10 @@ export async function listModels({
       models = ((await get(`${base}/models`, bearer)).data as Json[]).map(
         (m) => ({ id: m.id, vision: null }),
       );
+      break;
+    case 'chatgpt':
+      // shortcut: no list yet, the model id is typed; the list with the sign-in token comes with OCT-487.
+      models = [];
       break;
   }
   const rank = (m: AiModelInfo) => (m.vision ? 0 : 1);

@@ -1,6 +1,7 @@
 import { APICallError, UnsupportedFunctionalityError } from 'ai';
 import type { AiProviderState, AiStatus, RecognitionStatus } from '@oct/shared';
 import type { AiModel } from './model.js';
+import { isPlanNotAllowed } from './responses.js';
 
 // The model the app serves now (ADR-0018 §3); results of any other model are ignored.
 let active: AiModel | null = null;
@@ -31,7 +32,12 @@ export interface AiResult {
   state: AiProviderState;
   checkedAt: number | null;
   /** Raw provider text: pass through redactSecrets before it leaves the server. */
-  details?: { status?: number; message?: string; timeoutSec?: number };
+  details?: {
+    status?: number;
+    message?: string;
+    timeoutSec?: number;
+    reason?: 'plan_not_allowed';
+  };
 }
 
 // The last real provider call of the active model (ADR-0013); a restart forgets it (E-6.1).
@@ -67,7 +73,11 @@ export function aiResultOf(err?: unknown, timeoutMs?: number): AiResult {
               ? 'no_vision'
               : 'unavailable',
     checkedAt: Date.now(),
-    details: { status, message: (err as Error)?.message },
+    details: {
+      status,
+      message: (err as Error)?.message,
+      ...(isPlanNotAllowed(err) && { reason: 'plan_not_allowed' as const }),
+    },
   };
 }
 

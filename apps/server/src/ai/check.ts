@@ -95,7 +95,9 @@ export function draftConnection(
     ? (draft.baseUrl ?? (same ? saved.baseUrl : undefined))
     : draft.baseUrl;
   if (compatible && !baseUrl) throw new ApiError(400, 'validation_failed');
-  if (!apiKey && !compatible) throw new ApiError(400, 'ai_key_required');
+  // The chatgpt provider signs in instead of a key (ADR-0031 §4).
+  if (!apiKey && !compatible && draft.provider !== 'chatgpt')
+    throw new ApiError(400, 'ai_key_required');
   return { apiKey, baseUrl };
 }
 

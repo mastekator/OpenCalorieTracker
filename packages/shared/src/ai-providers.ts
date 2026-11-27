@@ -22,6 +22,11 @@ export const AI_PROVIDERS = {
     privacyUrl: 'https://openrouter.ai/privacy',
   },
   'openai-compatible': { name: null, privacyUrl: null },
+  /** The admin's ChatGPT subscription by sign-in, no key (ADR-0031 §4). */
+  chatgpt: {
+    name: 'ChatGPT',
+    privacyUrl: 'https://openai.com/policies/privacy-policy/',
+  },
 } as const;
 export type AiProviderId = keyof typeof AI_PROVIDERS;
 
@@ -75,6 +80,8 @@ export const adminAiStatusSchema = z.object({
       status: z.number().optional(),
       message: z.string().optional(),
       timeoutSec: z.number().optional(),
+      /** auth_error of the chatgpt provider: the account's plan or workspace does not allow apps. */
+      reason: z.literal('plan_not_allowed').optional(),
     })
     .optional(),
 });
