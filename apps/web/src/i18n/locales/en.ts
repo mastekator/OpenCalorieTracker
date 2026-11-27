@@ -2643,6 +2643,9 @@ export const en = {
       'API tokens are set in the server environment (ALLOW_API_TOKENS); change them there',
     user_ai_keys_env_managed:
       'Own API keys are set in the server environment (ALLOW_USER_AI_KEYS); change them there',
+    chatgpt_state_invalid:
+      'This sign-in address is old or already used. Sign in to ChatGPT again',
+    chatgpt_sign_in_failed: 'ChatGPT sign-in failed. Try again',
     integrations_disabled: 'The administrator turned off API tokens',
     invalid_token: 'The token is invalid, expired or revoked',
     rate_limited: 'Too many requests. Try again in a minute',
