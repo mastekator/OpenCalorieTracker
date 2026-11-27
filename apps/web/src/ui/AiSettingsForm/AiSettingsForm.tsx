@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import {
   Check,
   ChevronRight,
@@ -43,10 +43,15 @@ export type ModelsState = {
   error: string | null;
 };
 
-// ChatGPT signs in instead of a key: its own block on the provider screen (OCT-487), never here.
-const PROVIDERS = (Object.keys(AI_PROVIDERS) as AiProviderId[]).filter(
-  (id) => id !== 'chatgpt',
-);
+// ChatGPT signs in instead of a key, right after OpenAI (OCT-178 3.1); only the admin's server has it.
+const PROVIDERS: AiProviderId[] = [
+  'google',
+  'openai',
+  'chatgpt',
+  'anthropic',
+  'openrouter',
+  'openai-compatible',
+];
 const HINTS: Partial<
   Record<AiProviderId, 'google' | 'openrouter' | 'compatible'>
 > = {
@@ -100,6 +105,8 @@ type Props = {
   onLoadModels: () => void;
   /** False in the «Another model for the test» sheet: no check or save there. */
   actions?: boolean;
+  /** The ChatGPT sign-in rows in place of the key; without it ChatGPT is not offered (own keys). */
+  subscription?: ReactNode;
 };
 
 const detailsOf = (r: AiCheckResult) =>
@@ -129,6 +136,7 @@ export function AiSettingsForm({
   models,
   onLoadModels,
   actions = true,
+  subscription,
 }: Props) {
   const { t } = useT();
   const [sheet, setSheet] = useState(false);
@@ -150,7 +158,9 @@ export function AiSettingsForm({
   const env = status.source === 'env';
   const compatible = draft.provider === 'openai-compatible';
   const providerName = (id: AiProviderId) =>
-    AI_PROVIDERS[id].name ?? t('ai.compatible');
+    id === 'chatgpt'
+      ? t('ai.chatgpt.provider')
+      : (AI_PROVIDERS[id].name ?? t('ai.compatible'));
   const lock = <Lock className="ai-form__lock" aria-hidden="true" />;
   // From the provider's list; else known only for the active model: the check sends an image (ADR-0013).
   const listed = models.list?.find((m) => m.id === draft.model);
@@ -190,69 +200,72 @@ export function AiSettingsForm({
     focusKey.current = true;
   }
 
-  const keyRow = env ? (
-    <ListRow
-      description={t(status.keySet ? 'ai.form.key_set' : 'ai.form.key_unset')}
-      value={lock}
-    >
-      {t('ai.form.key')}
-    </ListRow>
-  ) : keyOpen ? (
-    <li className="list__item ai-form__field">
-      <Field
-        ref={keyRef}
-        revealLabels={[t('ai.form.show_key'), t('ai.form.hide_key')]}
-        label={t('ai.form.key')}
-        type="password"
-        autoComplete="off"
-        spellCheck={false}
-        placeholder={t(
-          compatible ? 'ai.form.optional' : 'ai.form.key_placeholder',
-        )}
-        value={draft.apiKey}
-        onChange={(event) => onChange({ apiKey: event.target.value })}
-        onBlur={() =>
-          draft.apiKey.trim() &&
-          !models.list &&
-          !models.loading &&
-          !models.error &&
-          onLoadModels()
+  const keyRow =
+    draft.provider === 'chatgpt' ? (
+      subscription
+    ) : env ? (
+      <ListRow
+        description={t(status.keySet ? 'ai.form.key_set' : 'ai.form.key_unset')}
+        value={lock}
+      >
+        {t('ai.form.key')}
+      </ListRow>
+    ) : keyOpen ? (
+      <li className="list__item ai-form__field">
+        <Field
+          ref={keyRef}
+          revealLabels={[t('ai.form.show_key'), t('ai.form.hide_key')]}
+          label={t('ai.form.key')}
+          type="password"
+          autoComplete="off"
+          spellCheck={false}
+          placeholder={t(
+            compatible ? 'ai.form.optional' : 'ai.form.key_placeholder',
+          )}
+          value={draft.apiKey}
+          onChange={(event) => onChange({ apiKey: event.target.value })}
+          onBlur={() =>
+            draft.apiKey.trim() &&
+            !models.list &&
+            !models.loading &&
+            !models.error &&
+            onLoadModels()
+          }
+          error={
+            keyError ??
+            (status.keyUnreadable && draft.provider === status.provider
+              ? t('ai.form.key_unreadable')
+              : undefined)
+          }
+          hint={
+            status.provider && draft.provider !== status.provider && !compatible
+              ? t('ai.form.new_key', { provider: providerName(draft.provider) })
+              : savedAddress && status.keySet && draft.baseUrl.trim()
+                ? t('ai.form.new_address_key', { host: savedAddress })
+                : undefined
+          }
+        />
+      </li>
+    ) : (
+      <ListRow
+        description={
+          status.keyLast4
+            ? t('ai.form.key_last4', { last4: status.keyLast4 })
+            : t('ai.form.key_set')
         }
-        error={
-          keyError ??
-          (status.keyUnreadable && draft.provider === status.provider
-            ? t('ai.form.key_unreadable')
-            : undefined)
+        action={
+          <button
+            type="button"
+            className="list-row__action ai-form__replace"
+            onClick={onReplaceKey}
+          >
+            {t('ai.form.replace')}
+          </button>
         }
-        hint={
-          status.provider && draft.provider !== status.provider && !compatible
-            ? t('ai.form.new_key', { provider: providerName(draft.provider) })
-            : savedAddress && status.keySet && draft.baseUrl.trim()
-              ? t('ai.form.new_address_key', { host: savedAddress })
-              : undefined
-        }
-      />
-    </li>
-  ) : (
-    <ListRow
-      description={
-        status.keyLast4
-          ? t('ai.form.key_last4', { last4: status.keyLast4 })
-          : t('ai.form.key_set')
-      }
-      action={
-        <button
-          type="button"
-          className="list-row__action ai-form__replace"
-          onClick={onReplaceKey}
-        >
-          {t('ai.form.replace')}
-        </button>
-      }
-    >
-      {t('ai.form.key')}
-    </ListRow>
-  );
+      >
+        {t('ai.form.key')}
+      </ListRow>
+    );
 
   return (
     <div className="ai-form">
@@ -500,32 +513,35 @@ export function AiSettingsForm({
           role="radiogroup"
           aria-label={t('ai.form.provider')}
         >
-          {PROVIDERS.map((id) => {
-            const hint = HINTS[id];
-            return (
-              <li key={id} className="list__item" role="none">
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={id === draft.provider}
-                  className="list-row list-row--interactive"
-                  onClick={() => pick(id)}
-                >
-                  <span className="list-row__label">
-                    {providerName(id)}
-                    {hint && (
-                      <span className="list-row__description">
-                        {t(`ai.form.hint.${hint}`)}
-                      </span>
-                    )}
-                  </span>
-                  <span className="ai-form__radio" aria-hidden="true">
-                    {id === draft.provider && <Check />}
-                  </span>
-                </button>
-              </li>
-            );
-          })}
+          {PROVIDERS.filter((id) => id !== 'chatgpt' || subscription).map(
+            (id) => {
+              const hint =
+                id === 'chatgpt'
+                  ? 'ai.chatgpt.hint'
+                  : HINTS[id] && (`ai.form.hint.${HINTS[id]}` as const);
+              return (
+                <li key={id} className="list__item" role="none">
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={id === draft.provider}
+                    className="list-row list-row--interactive"
+                    onClick={() => pick(id)}
+                  >
+                    <span className="list-row__label">
+                      {providerName(id)}
+                      {hint && (
+                        <span className="list-row__description">{t(hint)}</span>
+                      )}
+                    </span>
+                    <span className="ai-form__radio" aria-hidden="true">
+                      {id === draft.provider && <Check />}
+                    </span>
+                  </button>
+                </li>
+              );
+            },
+          )}
         </ul>
       </Sheet>
     </div>

@@ -65,6 +65,7 @@ const geminiStatus: AiStatus = {
   baseUrlHost: null,
   refineLimit: null,
   userKeysDisabledNotice: false,
+  serverAdminOnly: false,
 };
 
 /** Answers GET /api/account/passkeys with `list`, /api/admin/ai with a quota state, /api/ai/status with Gemini; anything else succeeds empty. */
@@ -251,6 +252,59 @@ export const AiProviderUserKeysLocked: Story = {
 export const AiProviderUserKeysLockedDark: Story = {
   ...AiProviderUserKeysLocked,
   ...dark,
+};
+/** OCT-178 3.2: the server on the ChatGPT subscription, nobody signed in yet. */
+const chatgpt = {
+  provider: 'chatgpt',
+  providerName: 'ChatGPT',
+  model: 'gpt-5.4',
+  keySet: false,
+  source: 'admin',
+  rev: 2,
+  chatgpt: null,
+  state: 'not_configured',
+  checkedAt: null,
+};
+const signedIn = {
+  ...chatgpt,
+  chatgpt: { accountLabel: 'admin@example.com', signedInAt: Date.now() },
+};
+export const AiProviderChatgpt: Story = {
+  beforeEach: serve([], chatgpt),
+  render: () => <AiProviderScreen />,
+};
+export const AiProviderChatgptDark: Story = { ...AiProviderChatgpt, ...dark };
+/** 3.4: signed in, account and date; «Sign in again» and «Disconnect». */
+export const AiProviderChatgptConnected: Story = {
+  beforeEach: serve([], { ...signedIn, state: 'ok', checkedAt: Date.now() }),
+  render: () => <AiProviderScreen />,
+};
+export const AiProviderChatgptConnectedDark: Story = {
+  ...AiProviderChatgptConnected,
+  ...dark,
+};
+/** 3.5: the sign-in expired; «Sign in again» first. */
+export const AiProviderChatgptExpired: Story = {
+  beforeEach: serve([], { ...signedIn, state: 'auth_error' }),
+  render: () => <AiProviderScreen />,
+};
+export const AiProviderChatgptExpiredDark: Story = {
+  ...AiProviderChatgptExpired,
+  ...dark,
+};
+/** 3.6: the subscription limit is used up, with the link to its settings. */
+export const AiProviderChatgptLimit: Story = {
+  beforeEach: serve([], { ...signedIn, state: 'quota_exceeded' }),
+  render: () => <AiProviderScreen />,
+};
+export const AiProviderChatgptLimitDark: Story = {
+  ...AiProviderChatgptLimit,
+  ...dark,
+};
+/** Desktop, signed in. */
+export const AiProviderChatgptDesktop: Story = {
+  ...AiProviderChatgptConnected,
+  globals: { viewport: { value: 'desktop' } },
 };
 /** OCT-25 5.6: the AI provider screen offline shows no stale status. */
 export const AiProviderOffline: Story = {

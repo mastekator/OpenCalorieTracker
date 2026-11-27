@@ -157,6 +157,7 @@ export function adminRoutes({ config, db, ai, secrets, chatgpt }: RouteDeps) {
         .prepare('SELECT COUNT(*) FROM user_ai_settings')
         .pluck()
         .get() as number,
+      chatgpt: chatgpt.signIn(),
       state,
       testPhotoCount: (await readExpected()).photos.length,
       checkedAt,

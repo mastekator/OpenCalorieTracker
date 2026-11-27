@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { migrate } from '../db/migrate.js';
 import { openDb } from '../db/open.js';
 import { secretsFrom } from '../secrets.js';
-import { aiSetup } from '../test/ai.js';
+import { aiSetup, mockModel } from '../test/ai.js';
 import { aiResultOf } from './status.js';
 import {
   ACCESS_PURPOSE,
@@ -370,15 +370,43 @@ describe('/api/admin/ai/chatgpt', () => {
       accountLabel: 'admin@example.com',
     });
     const status = await (await req('GET', '')).text();
+    expect(JSON.parse(status).chatgpt).toEqual({
+      accountLabel: 'admin@example.com',
+      signedInAt: expect.any(Number),
+    });
     for (const text of [url, finishText, status])
       for (const token of issued) expect(text).not.toContain(token);
 
     expect((await req('DELETE', '/chatgpt')).status).toBe(204);
+    expect((await (await req('GET', '')).json()).chatgpt).toBeNull();
     expect(t.db.prepare('SELECT * FROM chatgpt_auth').all()).toEqual([]);
     expect(Object.fromEntries(calls.at(-1)!.body)).toMatchObject({
       token: 'refresh-9',
       token_type_hint: 'refresh_token',
       client_id: CLIENT,
     });
+  });
+});
+
+describe('GET /api/ai/status with the chatgpt provider', () => {
+  it('tells a non-admin the server AI is admin only; the admin sees the usual status', async () => {
+    const t = await aiSetup(mockModel('OK'), {
+      AI_PROVIDER: 'chatgpt',
+      AI_MODEL: 'gpt-5.4',
+    });
+    const status = async (cookie: string) =>
+      (await t.app.request('/api/ai/status', { headers: { cookie } })).json();
+    try {
+      expect(await status(t.cookie)).toMatchObject({
+        recognition: 'ready',
+        serverAdminOnly: false,
+      });
+      expect(await status(await t.signIn('b@example.com'))).toMatchObject({
+        recognition: 'not_configured',
+        serverAdminOnly: true,
+      });
+    } finally {
+      await t.cleanup();
+    }
   });
 });

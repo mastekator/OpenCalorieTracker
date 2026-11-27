@@ -53,6 +53,7 @@ describe('GET /api/admin/ai', () => {
       allowUserKeys: true,
       userKeysLocked: false,
       userKeyCount: 0,
+      chatgpt: null,
       state: 'unknown',
       // The screen's texts need the set size before the first run (OCT-323).
       testPhotoCount: (await readExpected()).photos.length,

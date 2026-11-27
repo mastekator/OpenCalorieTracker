@@ -35,6 +35,25 @@ export const AI_STATES: Record<
   unknown: { tone: 'off', badge: 'neutral' },
 };
 
+/** ChatGPT settings, where the subscription owner sees the app usage limit (OCT-178 3.2, 3.6). */
+export const CHATGPT_USAGE_URL = 'https://chatgpt.com/#settings';
+
+/** «App usage limit — in ChatGPT settings». */
+export function ChatGptUsageLink() {
+  const { t } = useT();
+  return (
+    <a
+      className="provider__link"
+      href={CHATGPT_USAGE_URL}
+      target="_blank"
+      rel="noreferrer"
+    >
+      {t('ai.chatgpt.usage')}
+      <ExternalLink aria-hidden="true" />
+    </a>
+  );
+}
+
 export const README_URL =
   'https://github.com/mastekator/OpenCalorieTracker/blob/main/docs/SELF_HOSTING.md#configuration';
 
@@ -170,6 +189,12 @@ export function ProviderStatus({
     .join('\n');
   // Saved from this screen: no AI_* to fix and nothing to restart (OCT-248 §5).
   const admin = status.source === 'admin';
+  // The subscription's own words: sign in again, or wait for its limit (OCT-178 3.5, 3.6).
+  const sub =
+    status.provider === 'chatgpt' &&
+    (state === 'auth_error' || state === 'quota_exceeded')
+      ? state
+      : null;
   const bannerBody =
     admin && (state === 'auth_error' || state === 'model_not_found')
       ? (`ai.banner.${state}.body_admin` as const)
@@ -208,16 +233,30 @@ export function ProviderStatus({
             </p>
           )}
         </section>
-        {banner && (
+        {sub ? (
           <Banner
             tone={banner}
-            title={t(`ai.banner.${state as Failure}.title`)}
+            title={t(`ai.chatgpt.${sub}.title`)}
+            actions={sub === 'quota_exceeded' && <ChatGptUsageLink />}
           >
-            {t(bannerBody, {
-              model: status.model ?? '',
-              count: status.details?.timeoutSec ?? '',
-            })}
+            {t(
+              status.details?.reason === 'plan_not_allowed'
+                ? 'ai.chatgpt.auth_error.body_plan'
+                : `ai.chatgpt.${sub}.body`,
+            )}
           </Banner>
+        ) : (
+          banner && (
+            <Banner
+              tone={banner}
+              title={t(`ai.banner.${state as Failure}.title`)}
+            >
+              {t(bannerBody, {
+                model: status.model ?? '',
+                count: status.details?.timeoutSec ?? '',
+              })}
+            </Banner>
+          )
         )}
         {detailText && <Details>{detailText}</Details>}
         {children}
