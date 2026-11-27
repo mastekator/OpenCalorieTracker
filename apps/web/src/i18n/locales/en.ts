@@ -2819,12 +2819,12 @@ export const en = {
       profile_hint: 'Sex, age, height, weight and goal — in Profile',
     },
     challenge: {
-      days_20: '20 days with the diary',
-      full_week: 'A week without gaps',
-      photo_20: '20 meals from a photo',
-      grams_10: 'Fix the grams in 10 dishes',
-      manual_macros_5: 'Enter 5 dishes by hand with macros',
-      profile: 'Fill in your profile and norm',
+      days_20: 'Log 20 days',
+      full_week: 'A full week of logging',
+      photo_20: '20 meals by photo',
+      grams_10: 'Fine-tune grams on 10 dishes',
+      manual_macros_5: 'Add 5 dishes by hand with macros',
+      profile: 'Complete your profile and target',
     },
     map_as_of: 'Map as of {date}. It will update when you’re back online.',
     weeks: {

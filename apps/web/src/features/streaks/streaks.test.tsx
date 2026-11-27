@@ -358,8 +358,7 @@ describe('Streak screen: freezes, challenges, offline (OCT-184 3.3, 3.4)', () =>
     });
     expect(within(card).getByText('November · 1 of 3')).toBeTruthy();
     expect(
-      within(card).getByRole('meter', { name: '20 days with the diary' })
-        .ariaValueText,
+      within(card).getByRole('meter', { name: 'Log 20 days' }).ariaValueText,
     ).toBe('14 of 20');
     expect(within(card).getByText('Done')).toBeTruthy();
     expect(within(card).getByText('Done November 15')).toBeTruthy();
@@ -375,7 +374,7 @@ describe('Streak screen: freezes, challenges, offline (OCT-184 3.3, 3.4)', () =>
       </I18nProvider>,
     );
     const link = await screen.findByRole('link', {
-      name: 'Fill in your profile and norm: open Profile',
+      name: 'Complete your profile and target: open Profile',
     });
     expect(link.getAttribute('href')).toBe('/profile');
   });
