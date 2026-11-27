@@ -18,6 +18,18 @@ type Props = {
   today: string;
 };
 
+/** Formats a 'YYYY-MM-DD' day for every date on the streak screen. */
+export function useFormatDay() {
+  const { locale } = useT();
+  return (
+    date: string,
+    options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long' },
+  ) =>
+    new Intl.DateTimeFormat(locale, { ...options, timeZone: 'UTC' }).format(
+      new Date(`${date}T00:00:00Z`),
+    );
+}
+
 /** Head of the card and of the Week row: «6 weeks in a row», a new streak or none yet (OCT-184 §2, §3). */
 export function useStreakTitle(streak: StreakState) {
   const { t } = useT();
@@ -36,11 +48,8 @@ export function useWeekLine(streak: StreakState) {
 
 /** Streak card (OCT-184 §2.1): flame, current and best streak, this week's days, the 10-week trail. */
 export function StreakCard({ streak, days, today }: Props) {
-  const { t, locale } = useT();
-  const fmt = (date: string, options: Intl.DateTimeFormatOptions) =>
-    new Intl.DateTimeFormat(locale, { ...options, timeZone: 'UTC' }).format(
-      new Date(`${date}T00:00:00Z`),
-    );
+  const { t } = useT();
+  const fmt = useFormatDay();
   const title = useStreakTitle(streak);
   const weekLine = useWeekLine(streak);
   const logged = new Set(days.filter((d) => d.meals > 0).map((d) => d.date));

@@ -19,6 +19,7 @@ import {
   type StoredAward,
   type StreakState,
 } from '@oct/shared';
+import { emitChange } from './changes';
 import type { Db } from './db';
 import { putAwards, putChallengeMonth } from './outbox';
 
@@ -30,6 +31,10 @@ export interface Streaks {
   on: boolean;
   /** When the first full pull ended; null before it, and then no award is granted (ADR-0032 §4). */
   fullSyncAt: number | null;
+  /** When a pull page last landed: «Map as of {date}» while the full pull isn't done (OCT-184 3.4). */
+  pulledAt: number | null;
+  /** Monday of the frozen week whose notice was closed here (OCT-184 3.3). */
+  freezeNoticeSeen: string | null;
   days: DayFact[];
   streak: StreakState;
   /** Every award in catalog order. */
@@ -79,12 +84,22 @@ export function streaks(db: Db, today: string): Promise<Streaks> {
 }
 
 async function compute(db: Db, today: string): Promise<Streaks> {
-  const [days, settings, profile, aiStatus, fullSyncAt] = await Promise.all([
+  const [
+    days,
+    settings,
+    profile,
+    aiStatus,
+    fullSyncAt,
+    pulledAt,
+    freezeNoticeSeen,
+  ] = await Promise.all([
     daysOf(db),
     db.get('kv', 'settings') as Promise<AccountSettings | undefined>,
     db.get('kv', 'profile') as Promise<ProfileResponse | undefined>,
     db.get('kv', 'aiStatus') as Promise<AiStatus | undefined>,
     db.get('kv', 'fullSyncAt') as Promise<number | undefined>,
+    db.get('kv', 'pulledAt') as Promise<number | undefined>,
+    db.get('kv', 'freezeNoticeSeen') as Promise<string | undefined>,
   ]);
   const p = profile?.profile ?? null;
   const on = streaksOn(settings ?? {}, p, today);
@@ -165,6 +180,8 @@ async function compute(db: Db, today: string): Promise<Streaks> {
   return {
     on,
     fullSyncAt: fullSyncAt ?? null,
+    pulledAt: pulledAt ?? null,
+    freezeNoticeSeen: freezeNoticeSeen ?? null,
     days,
     streak,
     awards,
@@ -205,4 +222,10 @@ export async function markImportRetro(db: Db) {
     ((await db.get('kv', 'rev')) as number) ?? 0,
     'awardsRetro',
   );
+}
+
+/** × on «Week frozen»: this device doesn't show it for that week again (OCT-184 3.3). */
+export async function closeFreezeNotice(db: Db, from: string) {
+  await db.put('kv', from, 'freezeNoticeSeen');
+  emitChange();
 }

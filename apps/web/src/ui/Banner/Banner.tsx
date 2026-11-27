@@ -3,6 +3,7 @@ import {
   CircleAlert,
   Info,
   PartyPopper,
+  Snowflake,
   Sparkle,
   TriangleAlert,
   X,
@@ -10,7 +11,7 @@ import {
 import { useT } from '../../i18n';
 import './Banner.css';
 
-type Tone = 'notice' | 'warning' | 'danger' | 'accent' | 'weight';
+type Tone = 'notice' | 'warning' | 'danger' | 'accent' | 'weight' | 'freeze';
 
 const ICONS = {
   notice: Info,
@@ -18,6 +19,7 @@ const ICONS = {
   danger: CircleAlert,
   accent: Sparkle,
   weight: PartyPopper,
+  freeze: Snowflake,
 } as const;
 
 type Props = {

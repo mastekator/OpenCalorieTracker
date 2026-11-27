@@ -161,3 +161,13 @@
 .banner--weight .banner__icon {
   color: var(--color-weight);
 }
+
+/* OCT-184 3.3: «Week frozen», the freeze hue. */
+.banner--freeze {
+  background: var(--color-freeze-soft);
+  color: var(--color-text);
+}
+
+.banner--freeze .banner__icon {
+  color: var(--color-freeze);
+}

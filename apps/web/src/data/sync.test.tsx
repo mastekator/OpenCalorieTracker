@@ -236,6 +236,8 @@ describe('pull', () => {
     serve(page({ rev: 5, more: true }), page({ rev: 6, more: true }));
     await expect(pull(db)).rejects.toThrow();
     expect(await db.get('kv', 'fullSyncAt')).toBeUndefined();
+    // Pages that landed still date the local copy (OCT-184 3.4).
+    expect(await db.get('kv', 'pulledAt')).toBeTypeOf('number');
     const urls = serve(page({ rev: 7 }));
     await pull(db);
     expect(urls).toEqual(['/api/sync?since=0']);

@@ -5,6 +5,7 @@ import { Redirect, Route, Switch, useLocation, useSearch } from 'wouter';
 import { openUserDb } from '../data/db';
 import { useDb, useStreaks } from '../data/DataContext';
 import { flush, patchSettings, pendingCount } from '../data/outbox';
+import { closeFreezeNotice } from '../data/streaks';
 import { getLastUser, pendingOf } from '../data/user';
 import { ConfirmDialog } from '../ui/ConfirmDialog/ConfirmDialog';
 import { useT } from '../i18n';
@@ -127,6 +128,7 @@ export function StreaksRoute() {
         rulesOpen={rules && !!streaks?.on}
         onCloseRules={go(STREAKS_PATH)}
         onEnable={() => void patchSettings(db, { streaksEnabled: true })}
+        onCloseFreezeNotice={(from) => void closeFreezeNotice(db, from)}
       />
     </Screen>
   );
