@@ -384,9 +384,11 @@ describe('PUT /api/admin/ai/user-keys', () => {
     expect(await t.get()).toMatchObject({
       allowUserKeys: true,
       userKeysLocked: false,
+      userKeyCount: 0,
     });
     ownKey(t, 'admin@example.com');
     ownKey(t, 'b@example.com');
+    expect(await t.get()).toMatchObject({ userKeyCount: 2 });
 
     const res = await t.userKeys({ allow: false });
     expect(res.status).toBe(200);
@@ -394,7 +396,10 @@ describe('PUT /api/admin/ai/user-keys', () => {
     expect(
       t.db.prepare('SELECT COUNT(*) FROM user_ai_settings').pluck().get(),
     ).toBe(0);
-    expect(await t.get()).toMatchObject({ allowUserKeys: false });
+    expect(await t.get()).toMatchObject({
+      allowUserKeys: false,
+      userKeyCount: 0,
+    });
     expect(await userStatus(t, user)).toMatchObject({
       userKeysDisabledNotice: true,
     });

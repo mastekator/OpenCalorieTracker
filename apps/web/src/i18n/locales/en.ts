@@ -1651,6 +1651,18 @@ export const en = {
         'How many times one meal can be refined or recognized again while it is open. Empty — no limit.',
       limit_invalid: 'A whole number from 1 to 50, or empty',
       limit_saved: 'Refinement limit saved',
+      users_title: 'Users',
+      allow_keys: 'Allow personal API keys',
+      allow_keys_hint:
+        'Anyone can add their own key in Settings → AI. The key’s owner pays for its requests.',
+      allow_keys_env: 'Set in .env (ALLOW_USER_AI_KEYS)',
+      keys_off_title: 'Turn off personal keys?',
+      keys_off_body: {
+        one: 'The key of {count} person will be deleted; they’ll switch to server AI.',
+        other:
+          'Keys of {count} people will be deleted; they’ll switch to server AI.',
+      },
+      keys_off_confirm: 'Turn off',
     },
     models: {
       choose: 'Choose a model',
