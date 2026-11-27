@@ -4,6 +4,8 @@ import { addDays, type DayTotals, type Macros } from '@oct/shared';
 import { fn } from 'storybook/test';
 import { useT } from '../../i18n';
 import { NavBar } from '../../ui/NavBar/NavBar';
+import { RUNNING } from '../streaks/fixtures';
+import { StreakRow } from '../streaks/StreakRow';
 import { WeekHead, WeekView } from './WeekScreen';
 
 const NORM: Macros = { kcal: 2100, proteinG: 120, fatG: 70, carbsG: 240 };
@@ -132,5 +134,14 @@ export const DesktopMonthRussian: Story = {
 export const DesktopLoading: Story = { ...Loading, globals: desktop };
 export const DesktopLoadingDark: Story = {
   ...Loading,
+  globals: { ...desktop, ...dark },
+};
+/** OCT-184 1.1: the streak row above the head. */
+const streak = { streak: <StreakRow streak={RUNNING} onOpen={fn()} /> };
+export const WithStreak: Story = { args: streak };
+export const WithStreakDark: Story = { args: streak, globals: dark };
+export const DesktopWithStreak: Story = { args: streak, globals: desktop };
+export const DesktopWithStreakDark: Story = {
+  args: streak,
   globals: { ...desktop, ...dark },
 };
