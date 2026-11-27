@@ -718,7 +718,10 @@ describe('Sign out (4.6, 4.7)', () => {
     expect(fetch.mock.calls.map(([url]) => url)).toContain(
       '/api/account/settings',
     );
-    expect(await outbox()).toEqual([]);
+    // The streaks switch mounts useStreaks, which writes this month's challenges after the pull.
+    expect(
+      (await outbox()).filter((op) => op.kind !== 'putChallengeMonth'),
+    ).toEqual([]);
   });
 });
 
