@@ -138,6 +138,10 @@ describe('Drinks screen (OCT-147 3.3–3.5)', () => {
     renderScreen();
     fireEvent.click(await screen.findByText('Beer'));
     const kcal = await screen.findByLabelText('Calories');
+    // English shows a decimal point, not a comma.
+    expect((screen.getByLabelText('Carbs') as HTMLInputElement).value).toBe(
+      '3.6',
+    );
     fireEvent.change(kcal, { target: { value: '60' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
@@ -228,6 +232,9 @@ describe('Drinks screen (OCT-147 3.3–3.5)', () => {
       await screen.findByRole('button', { name: 'Delete drink' }),
     );
     await waitFor(() => expect(screen.queryByText('Beer')).toBeNull());
+    await waitFor(() =>
+      expect(document.activeElement?.textContent).toBe('Your drink'),
+    );
     fireEvent.click(await screen.findByRole('button', { name: 'Undo' }));
     expect(await screen.findByText('Beer')).toBeTruthy();
     expect(fetch.mock.calls.some(([p]) => p === '/api/drinks/3')).toBe(false);

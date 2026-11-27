@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Plus } from 'lucide-react';
 import {
   BUILTIN_DRINKS,
@@ -40,6 +40,7 @@ export function DrinksScreen() {
     .sort((a, b) => a.id - b.id);
   // undefined: closed; null: a new drink.
   const [open, setOpen] = useState<Drink | null | undefined>();
+  const addRow = useRef<HTMLDivElement>(null);
   if (!settings || !own) return null;
   const hiddenDrinks = (settings.hiddenDrinks ?? []) as Hidden;
 
@@ -55,34 +56,40 @@ export function DrinksScreen() {
         toast({ text: t('drink_list.delete_error') }),
       ),
     );
+    // The row that opened the sheet is gone: put focus on «Your drink» after the sheet returns it.
+    requestAnimationFrame(() =>
+      addRow.current?.querySelector<HTMLElement>('.list-row--accent')?.focus(),
+    );
   };
 
   return (
     <div className="settings drinks-screen">
-      <List title={t('drink_list.own')}>
-        {own.map((d) => (
+      <div ref={addRow}>
+        <List title={t('drink_list.own')}>
+          {own.map((d) => (
+            <ListRow
+              key={d.id}
+              icon={<DishIllustration id={d.illustration} size="100%" />}
+              description={
+                d.countsWater
+                  ? per100(d.kcal)
+                  : `${per100(d.kcal)} · ${t('water.not_water')}`
+              }
+              onClick={() => setOpen(d)}
+            >
+              {d.name}
+            </ListRow>
+          ))}
           <ListRow
-            key={d.id}
-            icon={<DishIllustration id={d.illustration} size="100%" />}
-            description={
-              d.countsWater
-                ? per100(d.kcal)
-                : `${per100(d.kcal)} · ${t('water.not_water')}`
-            }
-            onClick={() => setOpen(d)}
+            accent
+            chevron={false}
+            icon={<Plus aria-hidden="true" />}
+            onClick={() => setOpen(null)}
           >
-            {d.name}
+            {t('drink_list.add')}
           </ListRow>
-        ))}
-        <ListRow
-          accent
-          chevron={false}
-          icon={<Plus aria-hidden="true" />}
-          onClick={() => setOpen(null)}
-        >
-          {t('drink_list.add')}
-        </ListRow>
-      </List>
+        </List>
+      </div>
       <List title={t('drink_list.builtin')} footer={t('drink_list.footer')}>
         {BUILTIN_DRINKS.map((d) => {
           const water = d.key === 'water';

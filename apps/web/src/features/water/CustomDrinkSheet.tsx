@@ -37,7 +37,9 @@ const NUMBERS = [
 type Num = (typeof NUMBERS)[number][0];
 type Fields = 'name' | Num;
 
-const show = (n: number) => (n ? String(n).replace('.', ',') : '');
+// The decimal separator follows the interface language; the parser takes both.
+const show = (n: number, locale: string) =>
+  n ? (locale === 'ru' ? String(n).replace('.', ',') : String(n)) : '';
 
 type Props = {
   /** Set: «Drink» with its values and «Delete drink»; none: a new one. */
@@ -60,10 +62,10 @@ export function CustomDrinkSheet({
   const { t, locale, num } = useT();
   const [text, setText] = useState<Record<Fields, string>>({
     name: drink?.name ?? '',
-    kcal: show(drink?.kcal ?? 0),
-    proteinG: show(drink?.proteinG ?? 0),
-    fatG: show(drink?.fatG ?? 0),
-    carbsG: show(drink?.carbsG ?? 0),
+    kcal: show(drink?.kcal ?? 0, locale),
+    proteinG: show(drink?.proteinG ?? 0, locale),
+    fatG: show(drink?.fatG ?? 0, locale),
+    carbsG: show(drink?.carbsG ?? 0, locale),
   });
   // null: follows the name, as a dish's picture (OCT-33).
   const [picked, setPicked] = useState<IllustrationId | null>(
@@ -174,7 +176,7 @@ export function CustomDrinkSheet({
               <Field
                 key={k}
                 {...field(k)}
-                label={t(`manual_dish.${label}`)}
+                label={t(`drink_form.${label}`)}
                 inputMode="decimal"
                 suffix={t(k === 'kcal' ? 'today.kcal' : 'unit.g')}
               />

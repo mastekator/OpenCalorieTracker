@@ -2403,6 +2403,10 @@ export const en = {
     name: 'Name',
     name_err: 'Enter a name',
     per100: 'Per 100\u00a0ml',
+    kcal: 'Calories',
+    protein: 'Protein',
+    fat: 'Fat',
+    carbs: 'Carbs',
     err_max: 'No more than {max}',
     not_water: 'Don’t count as water',
     not_water_hint:

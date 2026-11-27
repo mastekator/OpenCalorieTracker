@@ -2549,6 +2549,10 @@ const ru: DeepPartial<typeof en> = {
     name: 'Название',
     name_err: 'Введите название',
     per100: 'На 100\u00a0мл',
+    kcal: 'Калории',
+    protein: 'Белки',
+    fat: 'Жиры',
+    carbs: 'Углеводы',
     err_max: 'Не больше {max}',
     not_water: 'Не считать в воду',
     not_water_hint:
