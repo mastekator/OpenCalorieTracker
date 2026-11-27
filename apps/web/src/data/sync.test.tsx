@@ -371,6 +371,8 @@ describe('useNorm', () => {
     const { rerender } = render(app('2025-12-31'));
     const before = await screen.findByText(/kcal: \d/);
     const age29 = before.textContent;
+    // Start-up sends the pull and then /api/products/mine; a slow runner sends the second late.
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
     const calls = fetch.mock.calls.length;
     rerender(app('2026-01-01'));
     await waitFor(() => expect(before.textContent).not.toBe(age29));

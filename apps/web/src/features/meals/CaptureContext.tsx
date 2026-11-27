@@ -11,14 +11,20 @@ import {
 import { useLocation, useSearch } from 'wouter';
 import { z } from 'zod';
 import { api, ApiError } from '../../api/client';
+import { useUserId } from '../../app/SessionContext';
+import { readConsents } from '../../data/aiConsents';
+import { readDeviceAi } from '../../data/deviceAi';
 import { useT } from '../../i18n';
 import { ConfirmDialog } from '../../ui/ConfirmDialog/ConfirmDialog';
 import { DropOverlay } from '../../ui/DropOverlay/DropOverlay';
 import { CaptureMenu } from './CaptureMenu';
 import { ImageDecodeError, prepareImage } from './prepareImage';
+import type { MealEditState } from './RecognitionScreen';
 
 /** The meal flow; the recognition screen (OCT-57) reads `?photo=` and passes `?date=` on to the edit screen. */
 export const MEAL_NEW_PATH = '/meal/new';
+// Kept here, not imported: RecognitionScreen imports this module.
+const MEAL_EDIT_PATH = `${MEAL_NEW_PATH}/edit`;
 
 type Capture = {
   /** System camera (`capture`); a desktop without one shows the file picker (E-1.4). */
@@ -67,6 +73,7 @@ const hasFiles = (event: DragEvent) =>
  */
 export function CaptureProvider({ children }: { children: ReactNode }) {
   const { t } = useT();
+  const userId = useUserId();
   const [location, navigate] = useLocation();
   const inFlow = location === MEAL_NEW_PATH;
   const cameraInput = useRef<HTMLInputElement>(null);
@@ -171,6 +178,17 @@ export function CaptureProvider({ children }: { children: ReactNode }) {
         return;
       }
       blobRef.current = blob;
+      const manual = withoutAi();
+      if (manual) {
+        // Manual entry with the photo: it is queued with the meal, never recognized (ADR-0031 §6).
+        if (!current(url)) return;
+        navigate(flowPath(undefined, MEAL_EDIT_PATH), {
+          replace: true,
+          state: { manual, photo: blob } satisfies MealEditState,
+        });
+        setPending(null);
+        return;
+      }
       await upload(blob, url);
     });
   const retry = () => {
@@ -181,12 +199,27 @@ export function CaptureProvider({ children }: { children: ReactNode }) {
   const startRef = useRef(start);
   startRef.current = start;
 
-  const flowPath = (photoId?: string) => {
+  /**
+   * AI off on this device: plain manual entry (no recalc offer). Offline without a consent to the
+   * current provider in the local copy: manual entry offering «Recalculate» once online, whose
+   * tap asks for the consent. Else null: upload and recognize.
+   */
+  const withoutAi = (): 'user' | 'ai_down' | null => {
+    if (!readDeviceAi(userId)) return 'user';
+    if (navigator.onLine || userId === undefined) return null;
+    const copy = readConsents(userId);
+    const key = copy?.server?.providerKey;
+    return key && copy.consents.some((c) => c.providerKey === key)
+      ? null
+      : 'ai_down';
+  };
+
+  const flowPath = (photoId?: string, path = MEAL_NEW_PATH) => {
     const query = new URLSearchParams();
     if (photoId) query.set('photo', photoId);
     if (date.current) query.set('date', date.current);
     const q = query.toString();
-    return q ? `${MEAL_NEW_PATH}?${q}` : MEAL_NEW_PATH;
+    return q ? `${path}?${q}` : path;
   };
 
   const pick = () => pickInput.current?.click();

@@ -218,6 +218,8 @@ type Props = {
   /** Set: the manual sheet opens at once; other than 'user', a banner says why (5.3). */
   manual?: ManualReason;
   photoId?: string;
+  /** A photo taken without AI, not uploaded yet: saved with the meal through the queue. */
+  photoBlob?: Blob;
   units: Units;
   /**
    * Writes the meal; a rejection keeps the edits and offers «Try again» (E-4.3).
@@ -278,6 +280,7 @@ export function MealEditScreen({
   questions,
   manual,
   photoId,
+  photoBlob,
   units,
   onSave,
   onClose,
@@ -373,7 +376,9 @@ export function MealEditScreen({
             id: photoId,
             url: `/api/photos/${encodeURIComponent(photoId)}?size=preview`,
           }
-        : null,
+        : photoBlob
+          ? { blob: photoBlob, url: URL.createObjectURL(photoBlob) }
+          : null,
   );
   const [uploading, setUploading] = useState(false);
   const [viewer, setViewer] = useState(false);
@@ -1914,6 +1919,7 @@ export function MealEditRoute() {
           : undefined
       }
       photoId={photoId}
+      photoBlob={state && 'manual' in state ? state.photo : undefined}
       recognition={ai.status?.recognition}
       date={date}
       units={settings?.units ?? user?.units ?? 'metric'}

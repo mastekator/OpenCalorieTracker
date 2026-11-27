@@ -12,6 +12,7 @@ import type { MeResponse } from '@oct/shared';
 import { api } from '../../api/client';
 import { SessionContext } from '../../app/SessionContext';
 import { hasConsent, readConsents } from '../../data/aiConsents';
+import { setDeviceAi } from '../../data/deviceAi';
 import { I18nProvider, LOCALE_STORAGE_KEY } from '../../i18n';
 import { renderLoaded } from '../../test-utils';
 import { AiConsentProvider, useAiConsent } from './AiConsent';
@@ -151,6 +152,15 @@ describe('useAiConsent', () => {
         ([url, init]) => url === CONSENTS && init?.method === 'POST',
       ),
     ).toHaveLength(1);
+  });
+
+  it('AI off on this device → no AI request at all, the caller reads «not configured»', async () => {
+    setDeviceAi(user.id, false);
+    const fetch = serve(() => json(200, { ok: true }));
+    await wrap(<Caller id="a" />);
+    fireEvent.click(screen.getByRole('button', { name: 'call a' }));
+    expect(await screen.findByText('a: ai_not_configured')).toBeTruthy();
+    expect(aiCalls(fetch)).toBe(0);
   });
 
   it('keeps a copy of the consents per user, loaded on start', async () => {

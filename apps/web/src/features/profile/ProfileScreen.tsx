@@ -91,7 +91,7 @@ export function ProfileScreen() {
         readOnly={!online}
         // Offline the status is unknown: the button shows, greyed out (8.15).
         onAgent={
-          online && interview === 'not_configured'
+          ai.off || (online && interview === 'not_configured')
             ? undefined
             : // 8.14: configured but not answering — a banner instead of the chat.
               () =>

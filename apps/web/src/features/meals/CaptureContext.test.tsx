@@ -9,6 +9,9 @@ import {
 } from '@testing-library/react';
 import { Router } from 'wouter';
 import { memoryLocation } from 'wouter/memory-location';
+import type { MeResponse } from '@oct/shared';
+import { SessionContext } from '../../app/SessionContext';
+import { setDeviceAi } from '../../data/deviceAi';
 import { I18nProvider, LOCALE_STORAGE_KEY } from '../../i18n';
 import { ToastProvider } from '../../ui/Toast/Toast';
 import { renderLoaded } from '../../test-utils';
@@ -35,17 +38,41 @@ function Probe() {
   );
 }
 
+const user = { id: 7 } as MeResponse;
+/** The `state` of every navigation, in order (memoryLocation keeps paths only). */
+let states: unknown[] = [];
+
 async function setup(path = '/') {
   const location = memoryLocation({ path, record: true });
+  states = [];
+  const hook = () => {
+    const [at, navigate] = location.hook();
+    return [
+      at,
+      (to: string, options?: { replace?: boolean; state?: unknown }) => {
+        states.push(options?.state);
+        navigate(to, options);
+      },
+    ] as [string, (to: string, options?: { state?: unknown }) => void];
+  };
   await renderLoaded(
     <I18nProvider>
       <ToastProvider>
-        <Router hook={location.hook} searchHook={location.searchHook}>
-          <CaptureProvider>
-            <p>Today</p>
-            <Probe />
-          </CaptureProvider>
-        </Router>
+        <SessionContext.Provider
+          value={{
+            user,
+            refresh: async () => {},
+            signedIn: async () => {},
+            logout: async () => {},
+          }}
+        >
+          <Router hook={hook} searchHook={location.searchHook}>
+            <CaptureProvider>
+              <p>Today</p>
+              <Probe />
+            </CaptureProvider>
+          </Router>
+        </SessionContext.Provider>
       </ToastProvider>
     </I18nProvider>,
   );
@@ -89,6 +116,7 @@ const created = () =>
   });
 
 beforeEach(() => {
+  localStorage.clear();
   localStorage.setItem(LOCALE_STORAGE_KEY, 'en');
   vi.mocked(prepareImage).mockReset().mockResolvedValue(jpeg);
   let n = 0;
@@ -120,6 +148,76 @@ describe('CaptureProvider', () => {
     const [path, init] = fetch.mock.calls[0]!;
     expect(path).toBe('/api/photos');
     expect(init).toMatchObject({ method: 'POST', body: jpeg });
+  });
+
+  describe('without AI (ADR-0031 §6)', () => {
+    const consents = (granted: string[]) =>
+      localStorage.setItem(
+        `oct.aiConsents.${user.id}`,
+        JSON.stringify({
+          consents: granted.map((providerKey) => ({
+            providerKey,
+            grantedAt: 1,
+          })),
+          server: {
+            providerKey: 'google',
+            provider: 'google',
+            host: null,
+            local: false,
+          },
+        }),
+      );
+    const offline = () =>
+      vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+    afterEach(() => vi.restoreAllMocks());
+
+    it('AI off: the photo opens manual entry with it, nothing is uploaded or recognized', async () => {
+      setDeviceAi(user.id, false);
+      const fetch = respond();
+      const location = await setup();
+      choose([photo]);
+      await waitFor(() =>
+        expect(location.history.at(-1)).toBe('/meal/new/edit'),
+      );
+      expect(states.at(-1)).toEqual({ manual: 'user', photo: jpeg });
+      expect(pending()).toBe('none');
+      expect(fetch).not.toHaveBeenCalled();
+    });
+
+    it('offline without consent in the copy: manual entry, no recognition request', async () => {
+      consents([]);
+      offline();
+      const fetch = respond();
+      const location = await setup();
+      choose([photo]);
+      await waitFor(() =>
+        expect(location.history.at(-1)).toBe('/meal/new/edit'),
+      );
+      expect(states.at(-1)).toEqual({ manual: 'ai_down', photo: jpeg });
+      expect(fetch).not.toHaveBeenCalled();
+    });
+
+    it('offline with no copy at all counts as no consent', async () => {
+      offline();
+      const fetch = respond();
+      const location = await setup();
+      choose([photo]);
+      await waitFor(() =>
+        expect(location.history.at(-1)).toBe('/meal/new/edit'),
+      );
+      expect(fetch).not.toHaveBeenCalled();
+    });
+
+    it('offline with consent: uploads as before, the screen waits for the network', async () => {
+      consents(['google']);
+      offline();
+      const fetch = vi.fn().mockRejectedValue(new TypeError('offline'));
+      vi.stubGlobal('fetch', fetch);
+      await setup();
+      choose([photo]);
+      await waitFor(() => expect(pending()).toBe('offline'));
+      expect(fetch.mock.calls[0]![0]).toBe('/api/photos');
+    });
   });
 
   it('«Add an entry for this day» carries the date; other ways in do not (AC-2.11)', async () => {
