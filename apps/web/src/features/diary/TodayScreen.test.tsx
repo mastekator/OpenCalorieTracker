@@ -5,6 +5,7 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
 } from '@testing-library/react';
 import type { Meal, MeResponse, ProfileResponse } from '@oct/shared';
 import { Router } from 'wouter';
@@ -135,9 +136,12 @@ describe('TodayScreen', () => {
       fireEvent.click(screen.getByRole('link', { name: 'Settings' }));
       expect(location.history.at(-1)).toBe('/settings/ai');
       act(() => setDeviceAi(USER.id, true));
-      expect(
-        screen.queryByText('AI is off on this device', { exact: false }),
-      ).toBeNull();
+      // The CI runner can re-render a beat later than act() returns.
+      await waitFor(() =>
+        expect(
+          screen.queryByText('AI is off on this device', { exact: false }),
+        ).toBeNull(),
+      );
     } finally {
       setDeviceAi(USER.id, true);
     }
