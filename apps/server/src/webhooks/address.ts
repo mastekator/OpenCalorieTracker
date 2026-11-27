@@ -24,6 +24,8 @@ const privateNets = list(
   ['10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16'],
   ['fc00::/7'],
 );
+/** Carrier-grade NAT (tailnets): private for users' own AI addresses, but no plain http for webhooks. */
+const cgnat = list(['100.64.0.0/10'], []);
 const PRIVATE_SUFFIXES = ['.lan', '.local', '.home.arpa'];
 
 const v4Mapped = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/i;
@@ -38,8 +40,9 @@ const check = (b: BlockList, ip: string) => {
 /** At every delivery, for each address the name resolves to (ADR-0027 §3). */
 export const isBlockedIp = (ip: string) => check(blocked, ip);
 
-/** RFC 1918 or unique local IPv6: the admin's network, off limits to users' own AI addresses (ADR-0031 §2). */
-export const isPrivateIp = (ip: string) => check(privateNets, ip);
+/** RFC 1918, CGNAT or unique local IPv6: the admin's network, off limits to users' own AI addresses (ADR-0031 §2). */
+export const isPrivateIp = (ip: string) =>
+  check(privateNets, ip) || check(cgnat, ip);
 
 /** The URL's host without IPv6 brackets. */
 export const hostOf = (url: URL) => url.hostname.replace(/^\[|\]$/g, '');
