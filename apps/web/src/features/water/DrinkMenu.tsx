@@ -1,5 +1,5 @@
 import { useLayoutEffect, type KeyboardEvent } from 'react';
-import { EyeOff, Pencil } from 'lucide-react';
+import { ChevronRight, EyeOff, Pencil } from 'lucide-react';
 import { entryFrom, type Units } from '@oct/shared';
 import { useT } from '../../i18n';
 import { DishIllustration } from '../../ui/DishIllustration/DishIllustration';
@@ -27,6 +27,8 @@ type Props = {
   onPick: (ml: number) => void;
   onOther: () => void;
   onHide: () => void;
+  /** «Edit drink»: own drinks only. */
+  onEdit: () => void;
 };
 
 /** OCT-147 1.2: the amount menu of a drink tile, over a scrim; the tile is lifted above it. */
@@ -38,6 +40,7 @@ export function DrinkMenu({
   onPick,
   onOther,
   onHide,
+  onEdit,
 }: Props) {
   const { t, num } = useT();
   const volume = useVolume(units);
@@ -146,19 +149,34 @@ export function DrinkMenu({
               {t('water.other_amount')}
               <Pencil aria-hidden="true" />
             </button>
-            {hideable(drink.key) && (
+            {drink.key.startsWith('custom:') ? (
               <>
                 <div className="drink-menu__gap" role="separator" />
                 <button
                   type="button"
                   role="menuitem"
                   className="drink-menu__item"
-                  onClick={() => choose(onHide)}
+                  onClick={() => choose(onEdit)}
                 >
-                  {t('water.hide')}
-                  <EyeOff aria-hidden="true" />
+                  {t('water.edit_drink')}
+                  <ChevronRight aria-hidden="true" />
                 </button>
               </>
+            ) : (
+              hideable(drink.key) && (
+                <>
+                  <div className="drink-menu__gap" role="separator" />
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="drink-menu__item"
+                    onClick={() => choose(onHide)}
+                  >
+                    {t('water.hide')}
+                    <EyeOff aria-hidden="true" />
+                  </button>
+                </>
+              )
             )}
           </div>
         </>

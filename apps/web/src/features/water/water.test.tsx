@@ -7,7 +7,12 @@ import {
   waitFor,
   within,
 } from '@testing-library/react';
-import type { AccountSettings, DrinkEntry, MeResponse } from '@oct/shared';
+import type {
+  AccountSettings,
+  Drink,
+  DrinkEntry,
+  MeResponse,
+} from '@oct/shared';
 import { Router } from 'wouter';
 import { memoryLocation } from 'wouter/memory-location';
 import { SessionContext } from '../../app/SessionContext';
@@ -40,9 +45,26 @@ const entry = (over: Partial<DrinkEntry>): DrinkEntry => ({
   ...over,
 });
 
+const drink = (id: number, name: string): Drink => ({
+  id,
+  name,
+  illustration: 'drinks',
+  kcal: 43,
+  proteinG: 0.5,
+  fatG: 0,
+  carbsG: 3.6,
+  countsWater: false,
+  deleted: false,
+});
+
 /** Sync brings nothing; a drink entry POST echoes the entry (or fails offline), DELETE succeeds. */
 function serve({ offline = false } = {}) {
   const fetch = vi.fn(async (path: string, init?: RequestInit) => {
+    const body = init?.body ? JSON.parse(init.body as string) : undefined;
+    if (path === '/api/drinks' && init?.method === 'POST')
+      return Response.json({ ...body, id: 9, deleted: false }, { status: 201 });
+    if (path === '/api/drinks/3' && init?.method === 'PATCH')
+      return Response.json({ ...drink(3, 'Beer'), ...body });
     if (offline && path.startsWith('/api/drink-entries'))
       throw new TypeError('Failed to fetch');
     if (path.startsWith('/api/sync'))
@@ -65,7 +87,11 @@ function serve({ offline = false } = {}) {
   return fetch;
 }
 
-async function seed(waterEnabled: boolean, entries: DrinkEntry[] = []) {
+async function seed(
+  waterEnabled: boolean,
+  entries: DrinkEntry[] = [],
+  drinks: Drink[] = [],
+) {
   const db = await openUserDb(USER.id);
   await db.put(
     'kv',
@@ -73,8 +99,17 @@ async function seed(waterEnabled: boolean, entries: DrinkEntry[] = []) {
     'settings',
   );
   for (const e of entries) await db.put('drinkEntries', e);
+  for (const d of drinks) await db.put('drinks', d);
   db.close();
 }
+
+/** The row's tiles by name, «Your drink» last. */
+const row = () =>
+  [
+    ...screen
+      .getByRole('list', { name: /^Drinks: a tap/ })
+      .querySelectorAll('.drink-tile'),
+  ].map((b) => b.getAttribute('aria-label')!.split(',')[0]);
 
 function renderToday() {
   render(
@@ -277,6 +312,101 @@ describe('Water on Today (OCT-147)', () => {
     expect(settings.hiddenDrinks).toEqual(['tea']);
   });
 
+  it('«Edit drink» opens an own drink with its values; saving renames the tile', async () => {
+    const fetch = serve();
+    await seed(true, [], [drink(3, 'Beer')]);
+    renderToday();
+    fireEvent.contextMenu(
+      await screen.findByRole('button', { name: /^Tea, add/ }),
+    );
+    expect(screen.queryByRole('menuitem', { name: 'Edit drink' })).toBeNull();
+    fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
+
+    fireEvent.contextMenu(screen.getByRole('button', { name: /^Beer, not/ }));
+    expect(
+      screen.queryByRole('menuitem', { name: 'Hide from the row' }),
+    ).toBeNull();
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Edit drink' }));
+    const name = (await screen.findByLabelText('Name')) as HTMLInputElement;
+    expect(name.value).toBe('Beer');
+    expect((screen.getByLabelText('Calories') as HTMLInputElement).value).toBe(
+      '43',
+    );
+    fireEvent.change(name, { target: { value: 'Lager' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(
+      await screen.findByRole('button', { name: /^Lager, not/ }),
+    ).toBeTruthy();
+    expect(row().at(-2)).toBe('Lager');
+    expect(fetch).toHaveBeenCalledWith(
+      '/api/drinks/3',
+      expect.objectContaining({ method: 'PATCH' }),
+    );
+  });
+
+  it('«Your drink» at the end of the row creates a drink, which joins the row', async () => {
+    serve();
+    await seed(true, [], [drink(3, 'Beer')]);
+    renderToday();
+    fireEvent.click(await screen.findByRole('button', { name: 'Your drink' }));
+    fireEvent.change(await screen.findByLabelText('Name'), {
+      target: { value: 'My latte' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    // No entries yet: after the built-ins and older own drinks (drinkRowOrder).
+    await waitFor(() =>
+      expect(row().slice(-3)).toEqual(['Beer', 'My latte', 'Your drink']),
+    );
+    expect(screen.queryByLabelText('Name')).toBeNull();
+  });
+
+  it('deleting from the row offers «Undo», which puts the drink back in its place', async () => {
+    const fetch = serve();
+    await seed(true, [], [drink(3, 'Beer'), drink(5, 'Kvass')]);
+    renderToday();
+    await screen.findByRole('button', { name: /^Beer, not/ });
+    const before = row();
+    fireEvent.contextMenu(screen.getByRole('button', { name: /^Beer, not/ }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Edit drink' }));
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Delete drink' }),
+    );
+    await waitFor(() => expect(row()).not.toContain('Beer'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Undo' }));
+    await waitFor(() => expect(row()).toEqual(before));
+    expect(fetch.mock.calls.some(([p]) => p === '/api/drinks/3')).toBe(false);
+  });
+
+  it('offline: an own drink from the row cannot be saved or deleted, with the reason', async () => {
+    serve();
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+    await seed(true, [], [drink(3, 'Beer')]);
+    renderToday();
+    fireEvent.contextMenu(
+      await screen.findByRole('button', { name: /^Beer, not/ }),
+    );
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Edit drink' }));
+    const save = (await screen.findByRole('button', {
+      name: 'Save',
+    })) as HTMLButtonElement;
+    expect(save.disabled).toBe(true);
+    expect(
+      (
+        screen.getByRole('button', {
+          name: 'Delete drink',
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
+    expect(
+      screen.getByText(
+        'Without a connection you can log drinks, but not create or change them.',
+      ),
+    ).toBeTruthy();
+  });
+
   it('«Water today» offline: an unsent entry deletes with «Undo», a sent one cannot', async () => {
     serve({ offline: true });
     vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
@@ -377,6 +507,8 @@ describe('WaterCard', () => {
     onLog: () => {},
     onOther: () => {},
     onHide: () => {},
+    onEdit: () => {},
+    onAdd: () => {},
     onOpenDay: () => {},
   };
   const level = () =>
