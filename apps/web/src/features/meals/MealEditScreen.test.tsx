@@ -754,7 +754,9 @@ describe('MealEditScreen: manual entry (OCT-60)', () => {
   ] as const)(
     '%s: the photo taken without AI is queued with the meal, recalc offer %s',
     async (_, manual, offer) => {
-      const fetch = vi.fn(async (_path: string) => Response.json([]));
+      const fetch = vi.fn<(path: string) => Promise<Response>>(async () =>
+        Response.json([]),
+      );
       vi.stubGlobal('fetch', fetch);
       URL.createObjectURL = () => 'blob:photo';
       URL.revokeObjectURL = () => {};
