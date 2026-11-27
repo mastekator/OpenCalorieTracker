@@ -495,6 +495,8 @@ describe('MealEditExisting (/meal/:clientId)', () => {
           units: 'metric',
           locale: 'en',
           waterEnabled: true,
+          // The device zone: otherwise the provider PATCHes it and the mock refuses.
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         } as AccountSettings,
         'settings',
       );
