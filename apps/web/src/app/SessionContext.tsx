@@ -71,9 +71,26 @@ type Switch = {
 /** The last user's local copy, when there is one to start from without a network (E-8.10). */
 const offlineUser = () => readOfflineUser().catch(() => null);
 
+/** A hanging /me on a weak network ends as a network error, not an endless boot (OCT-553). */
+export const ME_TIMEOUT_MS = 4000;
+
+async function fetchMe() {
+  // Not AbortSignal.timeout: its timer is out of reach of fake timers in tests.
+  const timeout = new AbortController();
+  const timer = setTimeout(() => timeout.abort(), ME_TIMEOUT_MS);
+  try {
+    return await api(ME_PATH, meResponseSchema, { signal: timeout.signal });
+  } catch (err) {
+    if (timeout.signal.aborted) throw new ApiError(0, 'network');
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /**
  * Loads GET /api/auth/me; children render once it is known whether the user is signed in.
- * Without a network the last user starts from the local copy, unchecked.
+ * The last user starts from the local copy at once; /me checks the session in the background.
  */
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<MeResponse | null | undefined>();
@@ -82,6 +99,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const { t } = useT();
   const [path, navigate] = useLocation();
   const search = useSearch();
+  // The same user again keeps the object, else DataProvider would reopen the database.
+  const show = useCallback(
+    (me: MeResponse) =>
+      setUser((prev) =>
+        prev && JSON.stringify(prev) === JSON.stringify(me) ? prev : me,
+      ),
+    [],
+  );
 
   const refresh = useCallback(async () => {
     try {
@@ -89,7 +114,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         await endSession();
         localStorage.removeItem(SIGNED_OUT_KEY);
       }
-      const me = await api(ME_PATH, meResponseSchema);
+      const me = await fetchMe();
       const last = getLastUser();
       // Another user on this device: the previous one's local data goes first (AC-2.7).
       if (last && last.id !== me.id) {
@@ -104,7 +129,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         await clearLocal(last.id);
       }
       if (last?.id !== me.id) rememberUser(me);
-      setUser(me);
+      show(me);
       setError(null);
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
@@ -121,18 +146,24 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       if (isNetwork(err)) {
         const local = await offlineUser();
         if (local) {
-          setUser(local);
+          show(local);
           setError(null);
           return;
         }
       }
       setError(err instanceof ApiError ? err : new ApiError(0, 'internal'));
     }
-  }, []);
+  }, [show]);
 
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    void (async () => {
+      if (!localStorage.getItem(SIGNED_OUT_KEY)) {
+        const local = await offlineUser();
+        if (local) show(local);
+      }
+      await refresh();
+    })();
+  }, [refresh, show]);
 
   const retry = useCallback(() => {
     setError(null);
