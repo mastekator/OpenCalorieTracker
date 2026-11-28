@@ -7,3 +7,6 @@ dist
 /data
 /apps/server/data
 storybook-static
+/.e2e-data
+/playwright-report
+/test-results

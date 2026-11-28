@@ -7,7 +7,7 @@ Thanks for helping! The flow is simple:
 3. **Keep the change small** and focused on the issue. Non-trivial logic comes with a test.
 4. **Commit messages** in English: `OCT-<number> what changed`.
 5. **Open a pull request** to `main` using the PR template and link the issue.
-6. **CI must pass** (lint and formatting, type check, tests, build). Run them locally first:
+6. **CI must pass** (lint and formatting, type check, tests, build, browser tests). Run them locally first:
 
    ```sh
    pnpm install
@@ -15,6 +15,13 @@ Thanks for helping! The flow is simple:
    pnpm typecheck
    pnpm test
    pnpm build
+   ```
+
+   Browser tests (offline, cold start, bad network) run the built app in Chromium and WebKit:
+
+   ```sh
+   pnpm exec playwright install chromium webkit
+   pnpm e2e
    ```
 
 7. **Review.** A PR is merged after review; PRs that change the UI also get a design review.

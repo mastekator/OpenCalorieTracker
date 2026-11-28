@@ -12,11 +12,14 @@
     "build": "pnpm -r build",
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",
-    "typecheck": "pnpm -r typecheck",
-    "test": "vitest run"
+    "typecheck": "pnpm -r typecheck && tsc -p e2e",
+    "test": "vitest run",
+    "e2e": "playwright test"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "1.65.1",
+    "@types/node": "^26.6.6",
     "eslint": "^10.14.0",
     "prettier": "^3.10.1",
     "typescript": "^6.0.3",

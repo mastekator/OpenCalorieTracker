@@ -3,3 +3,6 @@ pnpm-lock.yaml
 LICENSE
 apps/web/src/styles/tokens.css
 storybook-static
+.e2e-data
+playwright-report
+test-results
