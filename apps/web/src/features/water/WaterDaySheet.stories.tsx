@@ -63,3 +63,9 @@ export const Offline: Story = {
 };
 export const OfflineDark: Story = { ...Offline, globals: dark };
 export const Empty: Story = { args: { entries: [], ml: 0 } };
+/** A past day from the diary: its date in the title. */
+export const PastDay: Story = { args: { day: '2026-11-12' } };
+export const PastDayEmpty: Story = {
+  args: { day: '2026-11-12', entries: [], ml: 0 },
+};
+export const PastDayDark: Story = { ...PastDay, globals: dark };

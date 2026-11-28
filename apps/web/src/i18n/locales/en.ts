@@ -2360,6 +2360,8 @@ export const en = {
     macros: 'P {p} · F {f} · C {c}\u00a0g',
     add: 'Add',
     day: 'Water today',
+    day_on: 'Water on {date}',
+    diary_line: 'Water: {ml} of {goal}',
     not_water: 'not counted as water',
     delete: 'Delete: {name}, {time}, {amount}',
     deleted: 'Deleted',
@@ -2367,6 +2369,7 @@ export const en = {
     day_note_offline:
       'Entries logged offline can be deleted right away. Sent ones — once you are back online.',
     day_empty: 'No entries today',
+    day_empty_past: 'No entries that day',
     logged: '+{amount} · {name}',
     logged_kcal: '+{amount} · {name} · {kcal}\u00a0kcal',
     undo: 'Undo',

@@ -9,7 +9,15 @@ import {
 } from '@testing-library/react';
 import { Route, Router } from 'wouter';
 import { memoryLocation } from 'wouter/memory-location';
-import { addDays, type Meal, type MeResponse } from '@oct/shared';
+import {
+  addDays,
+  type AccountSettings,
+  type DrinkEntry,
+  type Meal,
+  type MeResponse,
+} from '@oct/shared';
+import { SessionContext } from '../../app/SessionContext';
+import { openUserDb } from '../../data/db';
 import { DataProvider } from '../../data/DataContext';
 import { clearLocal } from '../../data/user';
 import { I18nProvider, LOCALE_STORAGE_KEY } from '../../i18n';
@@ -37,6 +45,8 @@ const meal = (id: number, mealType: Meal['mealType'], hour: number): Meal => ({
   fatG: 10,
   carbsG: 50,
 });
+
+const USER = { id: 7, email: 'a@example.com' } as MeResponse;
 
 let deletes: string[];
 
@@ -71,15 +81,24 @@ function setup(path: string, meals: Meal[] = []) {
     <I18nProvider>
       <ToastProvider>
         <Router hook={location.hook}>
-          <DataProvider user={{ id: 7, email: 'a@example.com' } as MeResponse}>
-            <UndoDeleteProvider>
-              <CaptureProvider>
-                <Route path="/diary/:date">
-                  {({ date }) => <DiaryScreen date={date} />}
-                </Route>
-              </CaptureProvider>
-            </UndoDeleteProvider>
-          </DataProvider>
+          <SessionContext
+            value={{
+              user: USER,
+              refresh: async () => {},
+              signedIn: async () => {},
+              logout: async () => {},
+            }}
+          >
+            <DataProvider user={USER}>
+              <UndoDeleteProvider>
+                <CaptureProvider>
+                  <Route path="/diary/:date">
+                    {({ date }) => <DiaryScreen date={date} />}
+                  </Route>
+                </CaptureProvider>
+              </UndoDeleteProvider>
+            </DataProvider>
+          </SessionContext>
         </Router>
       </ToastProvider>
     </I18nProvider>,
@@ -212,5 +231,89 @@ describe('DiaryScreen', () => {
     expect(
       screen.getByRole('button', { name: 'Add an entry for this day' }),
     ).toBeTruthy();
+  });
+});
+
+const drinkEntry = (
+  n: number,
+  hour: number,
+  over: Partial<DrinkEntry> = {},
+): DrinkEntry => ({
+  clientId: `00000000-0000-4000-8000-00000000000${n}`,
+  date: yesterday,
+  takenAt: `${yesterday}T${String(hour).padStart(2, '0')}:00:00.000Z`,
+  drinkKey: 'water',
+  illustration: 'drinks-water',
+  ml: 250,
+  countsWater: true,
+  kcal: 0,
+  proteinG: 0,
+  fatG: 0,
+  carbsG: 0,
+  deleted: false,
+  ...over,
+});
+
+/** Settings, water goals and the day's drink entries in the local copy. */
+async function seedWater(waterEnabled: boolean, entries: DrinkEntry[]) {
+  const db = await openUserDb(USER.id);
+  await db.put(
+    'kv',
+    { units: 'metric', locale: 'en', waterEnabled } as AccountSettings,
+    'settings',
+  );
+  await db.put('waterGoals', { fromDate: addDays(today, -30), goalMl: 2500 });
+  await db.put('waterGoals', { fromDate: today, goalMl: 3000 });
+  for (const e of entries) await db.put('drinkEntries', e);
+  db.close();
+}
+
+const ENTRIES = [
+  drinkEntry(1, 12, {
+    drinkKey: 'juice',
+    illustration: 'drinks',
+    ml: 200,
+    countsWater: false,
+    kcal: 90,
+  }),
+  // 0 kcal: water only, not in the «Drinks» row.
+  drinkEntry(2, 13),
+];
+
+describe('DiaryScreen water (OCT-147 4.3–4.4)', () => {
+  it('a past day shows its own goal from the history, the line opens its entries', async () => {
+    await seedWater(true, ENTRIES);
+    setup(`/diary/${yesterday}`);
+    const line = await screen.findByRole('button', {
+      name: 'Water: 250\u00a0ml of 2,500\u00a0ml',
+    });
+    fireEvent.click(line);
+    const sheet = await screen.findByRole('dialog', { name: /^Water on / });
+    expect(sheet.textContent).toContain('Juice');
+  });
+
+  it('«Drinks» stands by the last kcal drink among the meals, without 0 kcal ones, and opens', async () => {
+    await seedWater(true, ENTRIES);
+    setup(`/diary/${yesterday}`, [
+      meal(1, 'breakfast', 8),
+      meal(2, 'dinner', 18),
+    ]);
+    const drinks = await screen.findByRole('button', { name: /^Drinks/ });
+    const rows = [...document.querySelectorAll('.list__item')];
+    expect(rows.findIndex((r) => r.contains(drinks))).toBe(1);
+    expect(drinks.textContent).toContain('90');
+    expect(drinks.textContent).not.toContain('Water');
+    expect(drinks.getAttribute('aria-expanded')).toBe('false');
+    fireEvent.click(drinks);
+    expect(drinks.getAttribute('aria-expanded')).toBe('true');
+    expect(document.querySelectorAll('.drinks-row__entry')).toHaveLength(1);
+  });
+
+  it('with the module off there are no water rows, the drink kcal stay in the total', async () => {
+    await seedWater(false, ENTRIES);
+    setup(`/diary/${yesterday}`, [meal(1, 'breakfast', 8)]);
+    await screen.findByText('490 kcal');
+    expect(screen.queryByRole('button', { name: /^Drinks/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Water:/ })).toBeNull();
   });
 });

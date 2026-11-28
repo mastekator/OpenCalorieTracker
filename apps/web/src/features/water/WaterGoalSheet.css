@@ -7,6 +7,8 @@
 
 .water-goal > .button {
   justify-self: start;
+  /* The icon on the field's edge, the padding stays a tap area. */
+  margin-inline-start: calc(-1 * var(--space-4));
 }
 
 .water-goal__note {
@@ -14,4 +16,10 @@
   color: var(--color-text-secondary);
   font-size: var(--text-footnote-size);
   line-height: var(--text-footnote-lh);
+}
+
+/* OCT-147 4.1: the offline note and the disclaimer apart, but one block. */
+.water-goal-section {
+  display: grid;
+  gap: var(--space-3);
 }
