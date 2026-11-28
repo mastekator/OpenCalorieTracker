@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useT } from '../../i18n';
 import { Badge } from './Badge';
 
-const tones = ['neutral', 'ok', 'warn', 'err'] as const;
+const tones = ['neutral', 'ok', 'warn', 'err', 'new'] as const;
 
 const meta = {
   title: 'UI/Badge',
@@ -17,6 +17,7 @@ export const Neutral: Story = {};
 export const Ok: Story = { args: { tone: 'ok' } };
 export const Warn: Story = { args: { tone: 'warn' } };
 export const Err: Story = { args: { tone: 'err' } };
+export const New: Story = { args: { tone: 'new', children: 'New' } };
 
 /** Every tone with a number and with a word from the dictionary. */
 export const Matrix: Story = {

@@ -7,6 +7,8 @@ import { ScreenState } from '../../ui/ScreenState/ScreenState';
 import { Sheet } from '../../ui/Sheet/Sheet';
 import { Delayed, Skeleton } from '../../ui/Skeleton/Skeleton';
 import type { Streaks } from '../../data/streaks';
+import type { AwardItem } from './awards';
+import { AwardsBlock } from './AwardsScreen';
 import { periodLabel } from '../week/period';
 import { ActivityMap } from './ActivityMap';
 import { ChallengeList } from './ChallengeList';
@@ -25,7 +27,29 @@ type Props = {
   onEnable: () => void;
   /** × on «Week frozen», with that week's Monday. */
   onCloseFreezeNotice: (from: string) => void;
+  /** The catalog with progress; undefined while off or loading. */
+  awards?: AwardItem[];
+  onOpenAward: (item: AwardItem) => void;
+  onAllAwards: () => void;
 };
+
+/** Streaks and awards are off (3.6): one switch brings back the whole history. */
+export function StreaksOff({ onEnable }: { onEnable: () => void }) {
+  const { t } = useT();
+  return (
+    <ScreenState
+      icon={<Flame />}
+      title={t('streaks.off.title')}
+      action={
+        <Button variant="tonal" small onClick={onEnable}>
+          {t('streaks.off.enable')}
+        </Button>
+      }
+    >
+      {t('streaks.off.body')}
+    </ScreenState>
+  );
+}
 
 /** `/week/streaks` (OCT-184 §2, §3, D.1): the streak card; the year map; from 1024px the map on top, awards and past months in a second column. */
 export function StreaksScreen({
@@ -35,22 +59,12 @@ export function StreaksScreen({
   onCloseRules,
   onEnable,
   onCloseFreezeNotice,
+  awards,
+  onOpenAward,
+  onAllAwards,
 }: Props) {
   const { t, locale } = useT();
-  if (streaks && !streaks.on)
-    return (
-      <ScreenState
-        icon={<Flame />}
-        title={t('streaks.off.title')}
-        action={
-          <Button variant="tonal" small onClick={onEnable}>
-            {t('streaks.off.enable')}
-          </Button>
-        }
-      >
-        {t('streaks.off.body')}
-      </ScreenState>
-    );
+  if (streaks && !streaks.on) return <StreaksOff onEnable={onEnable} />;
 
   // 3.3: the week before this one was frozen and its notice not yet closed here.
   const last = streaks?.streak.weeks.at(-2);
@@ -122,8 +136,15 @@ export function StreaksScreen({
       {streaks && (
         <ActivityMap days={streaks.days} today={today} asOf={pulled} />
       )}
-      {/* D.1: awards (OCT-520) and past months. */}
+      {/* D.1: awards and past months. */}
       <div className="streaks__side">
+        {awards && (
+          <AwardsBlock
+            items={awards}
+            onOpen={onOpenAward}
+            onAll={onAllAwards}
+          />
+        )}
         {streaks && (
           <PastMonths
             months={streaks.months}

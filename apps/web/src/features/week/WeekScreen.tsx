@@ -17,6 +17,7 @@ import { Segment } from '../../ui/Segment/Segment';
 import { Delayed, Skeleton } from '../../ui/Skeleton/Skeleton';
 import { DayPager } from '../diary/DayPager';
 import { STREAKS_PATH, StreakRow } from '../streaks/StreakRow';
+import { awardItems, unseenOf } from '../streaks/awards';
 import { NormInvite } from '../diary/NormInvite';
 import { usePager } from '../diary/usePager';
 import { useToday } from '../diary/useToday';
@@ -262,6 +263,7 @@ function Week({
         streaks?.on && (
           <StreakRow
             streak={streaks.streak}
+            fresh={unseenOf(awardItems(streaks)).length}
             onOpen={() => navigate(STREAKS_PATH)}
           />
         )

@@ -649,3 +649,250 @@ svg.challenge__value {
   font-size: var(--text-footnote-size);
   color: var(--color-text-secondary);
 }
+
+/* OCT-184 2.1, 5, D.2: awards block, «All awards», award card. */
+.streaks__side {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.awards {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-5);
+}
+
+.aw-note {
+  margin: 0;
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+  color: var(--color-text-secondary);
+}
+
+.aw-cat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.aw-cat .challenges__head {
+  padding: 0 var(--space-1);
+}
+
+.aw-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.aw-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  inline-size: 100%;
+  min-block-size: var(--tap-min);
+  padding: var(--space-2) var(--space-1);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+}
+
+.aw-tile:hover,
+.aw-next:hover,
+.aw-more:hover {
+  background: var(--color-hover);
+}
+
+.aw-tile .medal {
+  margin-block-end: var(--space-1);
+}
+
+.aw-tile__name {
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+  font-weight: 600;
+}
+
+.aw-tile--lock .aw-tile__name {
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.aw-tile__sub {
+  font-size: var(--text-caption-size);
+  line-height: var(--text-caption-lh);
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.aw-tile__new {
+  position: absolute;
+  inset-block-start: 2px;
+  inset-inline-end: 2px;
+}
+
+.aw-next {
+  display: grid;
+  grid-template-columns: var(--medal-size-sm) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+  min-block-size: var(--tap-min);
+  padding: var(--space-2) 0;
+  border: 0;
+  border-block-start: 1px solid var(--color-separator);
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.aw-next .medal {
+  grid-row: span 2;
+}
+
+.aw-next__name {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: var(--text-subhead-size);
+  line-height: var(--text-subhead-lh);
+}
+
+.aw-next__name span,
+.aw-next__value {
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+  color: var(--color-text-secondary);
+}
+
+.aw-next__value {
+  align-self: start;
+  font-variant-numeric: tabular-nums;
+}
+
+.aw-next__wide {
+  grid-column: 2 / -1;
+}
+
+.aw-more {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-block-size: var(--tap-min);
+  margin-block-end: calc(-1 * var(--space-2));
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-accent);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.aw-more .lucide {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+}
+
+.aw-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding-block-end: var(--space-4);
+  text-align: center;
+}
+
+.aw-card__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 2px var(--space-3);
+  border-radius: var(--radius-full);
+  background: var(--color-surface-2);
+  color: var(--color-text-secondary);
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+  font-weight: 600;
+}
+
+.aw-card__metal {
+  flex: none;
+  width: var(--space-2);
+  height: var(--space-2);
+  border-radius: 50%;
+}
+
+.aw-card__metal--common {
+  background: var(--medal-bronze-base);
+}
+
+.aw-card__metal--rare {
+  background: var(--medal-silver-base);
+}
+
+.aw-card__metal--epic {
+  background: var(--medal-gold-base);
+}
+
+.aw-card__metal--legendary {
+  background: var(--medal-platinum-base);
+}
+
+.aw-card__rule,
+.aw-card__hint {
+  max-inline-size: 30ch;
+  margin: 0;
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-lh);
+}
+
+.aw-card__hint {
+  font-style: italic;
+}
+
+.aw-card__got {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-accent);
+  font-size: var(--text-subhead-size);
+  font-weight: 600;
+}
+
+.aw-card__got .lucide {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+}
+
+.aw-card__progress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-self: stretch;
+  color: var(--color-text-secondary);
+  font-size: var(--text-footnote-size);
+  font-variant-numeric: tabular-nums;
+}
+
+/* D.2: eight medals a row on desktop. */
+@media (min-width: 1024px) {
+  .awards .aw-grid {
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+  }
+}
+
+/* The «N new» badge on the Week row (OCT-184 1.1). */
+.streak-row .badge--new {
+  margin-inline-start: auto;
+}

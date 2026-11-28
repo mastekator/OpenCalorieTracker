@@ -27,3 +27,7 @@ export const NewStreak: Story = { args: { streak: RESTART } };
 export const NewStreakDark: Story = { ...NewStreak, globals: dark };
 export const Newbie: Story = { args: { streak: NEWBIE } };
 export const NewbieDark: Story = { ...Newbie, globals: dark };
+/** 1.1: awards not seen yet. */
+export const Fresh: Story = { args: { fresh: 3 } };
+export const FreshDark: Story = { ...Fresh, globals: dark };
+export const FreshRussian: Story = { ...Fresh, globals: { locale: 'ru' } };
