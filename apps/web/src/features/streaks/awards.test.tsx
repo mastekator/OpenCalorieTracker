@@ -6,10 +6,12 @@ import {
   screen,
   waitFor,
   within,
+  act,
 } from '@testing-library/react';
 import { useState } from 'react';
 import type { AccountSettings, MeResponse, StoredAward } from '@oct/shared';
 import { AwardsRoute, StreaksRoute } from '../../app/routes';
+import { AWARD_TOAST_MS, AwardCelebration } from './AwardCelebration';
 import { DataProvider, EMPTY_PROFILE } from '../../data/DataContext';
 import { openUserDb } from '../../data/db';
 import { clearLocal } from '../../data/user';
@@ -51,17 +53,18 @@ const RETRO: StoredAward = {
   seen: false,
 };
 
-async function seed(streaksEnabled: boolean, stored: StoredAward[] = [RETRO]) {
+async function seed(
+  streaksEnabled: boolean,
+  stored: StoredAward[] = [RETRO],
+  { quiet = stored.map((a) => a.key), fullSync = false } = {},
+) {
   const db = await openUserDb(user.id);
+  if (fullSync) await db.put('kv', 1, 'fullSyncAt');
   await db.put('kv', { ...settings, streaksEnabled }, 'settings');
   await db.put('kv', EMPTY_PROFILE, 'profile');
   await db.put('kv', 1, 'rev');
   for (const a of stored) await db.put('awards', a);
-  await db.put(
-    'kv',
-    stored.map((a) => a.key),
-    'awardsQuiet',
-  );
+  await db.put('kv', quiet, 'awardsQuiet');
   db.close();
 }
 
@@ -158,6 +161,75 @@ describe('All awards (OCT-184 5)', () => {
     expect(within(card).getByText('Log food for the first time')).toBeTruthy();
     expect(within(card).getByText('Got February 9')).toBeTruthy();
     await waitFor(async () => expect(await seenQueued()).toEqual(['days_1']));
+  });
+});
+
+describe('New award strip (OCT-184 1.2)', () => {
+  const NEW: StoredAward = { ...RETRO, seen: false };
+  const live = { quiet: [], fullSync: true };
+  /** The strip next to a screen that shows when the streaks have been read. */
+  const withReady = async () => {
+    await wrap(
+      <>
+        <AwardCelebration />
+        <StreaksRoute />
+      </>,
+    );
+    await screen.findByRole('region', { name: 'Awards' });
+  };
+  const strip = () => screen.queryByText('New award');
+
+  it('shows once: seen goes to the queue, the next visit has no strip', async () => {
+    await seed(true, [NEW], live);
+    await wrap(<AwardCelebration />);
+    expect(await screen.findByText('New award')).toBeTruthy();
+    expect(screen.getByRole('status').textContent).toContain('First entry');
+    await waitFor(async () => expect(await seenQueued()).toEqual(['days_1']));
+
+    cleanup();
+    await withReady();
+    expect(strip()).toBe(null);
+  });
+
+  it('a retro award does not congratulate', async () => {
+    await seed(true, [NEW], { fullSync: true });
+    await withReady();
+    expect(strip()).toBe(null);
+    expect(await seenQueued()).toEqual([]);
+  });
+
+  it('streaks off: no strip', async () => {
+    await seed(false, [NEW], live);
+    await wrap(
+      <>
+        <AwardCelebration />
+        <StreaksRoute />
+      </>,
+    );
+    expect(await screen.findByText('Streaks and awards are off')).toBeTruthy();
+    expect(strip()).toBe(null);
+  });
+
+  it('«View» opens All awards', async () => {
+    await seed(true, [NEW], live);
+    await wrap(<AwardCelebration />);
+    fireEvent.click(await screen.findByRole('button', { name: 'View' }));
+    expect(location.pathname).toBe('/week/streaks/awards');
+    expect(strip()).toBe(null);
+  });
+
+  it('goes by itself after 5 s', async () => {
+    await seed(true, [NEW], live);
+    // The strip's timer starts before findBy returns: fake timers that still run.
+    vi.useFakeTimers({
+      shouldAdvanceTime: true,
+      toFake: ['setTimeout', 'clearTimeout'],
+    });
+    await wrap(<AwardCelebration />);
+    await screen.findByText('New award');
+    act(() => vi.advanceTimersByTime(AWARD_TOAST_MS));
+    vi.useRealTimers();
+    expect(strip()).toBe(null);
   });
 });
 

@@ -3262,6 +3262,9 @@ const ru: DeepPartial<typeof en> = {
     },
   },
   awards: {
+    toast_one: 'Новая награда',
+    toast_many: 'Новых наград: {n}',
+    view: 'Посмотреть',
     title: 'Награды',
     all: 'Все награды',
     back: 'Серии',

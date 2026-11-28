@@ -1,0 +1,123 @@
+/* Phone: at the top, under the safe area. Desktop (≥ 1024px): top centre of the content area, in styles/layout.css. */
+.award-toast {
+  position: fixed;
+  z-index: var(--z-toast);
+  top: calc(var(--safe-top, env(safe-area-inset-top)) + var(--space-2));
+  left: 50%;
+  width: min(
+    calc(100vw - 2 * var(--space-2)),
+    calc(var(--content-max-width) - 2 * var(--screen-gutter))
+  );
+  transform: translateX(-50%);
+}
+
+.award-toast:empty {
+  display: none;
+}
+
+.award-toast__inner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-2) var(--space-4) var(--space-4);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-toast);
+  outline: 1px solid var(--color-separator);
+  touch-action: none;
+  animation: award-toast-drop var(--duration-slow) var(--ease-out) both;
+}
+
+/* The handle: swipe up to close. */
+.award-toast__inner::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: var(--space-1);
+  translate: -50% 0;
+  width: var(--sheet-handle-width);
+  height: var(--sheet-handle-height);
+  border-radius: var(--radius-full);
+  background: var(--color-separator);
+}
+
+@keyframes award-toast-drop {
+  from {
+    translate: 0 calc(-1 * var(--space-4));
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .award-toast__inner {
+    animation: none;
+  }
+}
+
+.award-toast__stack {
+  display: flex;
+  flex: none;
+}
+
+.award-toast__stack .medal {
+  inline-size: var(--medal-size-xs);
+  block-size: var(--medal-size-xs);
+}
+
+.award-toast__stack .medal + .medal {
+  margin-inline-start: calc(var(--medal-size-xs) * -0.4);
+}
+
+.award-toast__text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--text-subhead-size);
+  line-height: var(--text-subhead-lh);
+}
+
+.award-toast__text b {
+  font-weight: var(--text-headline-weight);
+}
+
+.award-toast__text span {
+  color: var(--color-text-secondary);
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-lh);
+}
+
+.award-toast__action {
+  flex: none;
+  min-height: var(--tap-min);
+  padding: 0 var(--space-1);
+  border: none;
+  background: transparent;
+  color: var(--color-accent);
+  font: inherit;
+  font-size: var(--text-subhead-size);
+  font-weight: var(--text-headline-weight);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.award-toast__close {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: var(--tap-min);
+  height: var(--tap-min);
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.award-toast__close .lucide {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+}

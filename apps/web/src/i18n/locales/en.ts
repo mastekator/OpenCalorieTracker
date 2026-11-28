@@ -3065,6 +3065,9 @@ export const en = {
     },
   },
   awards: {
+    toast_one: 'New award',
+    toast_many: 'New awards: {n}',
+    view: 'View',
     title: 'Awards',
     all: 'All awards',
     back: 'Streaks',

@@ -58,6 +58,11 @@
   :root .toast {
     bottom: var(--space-8);
   }
+
+  /* Centred over the content area, right of the sidebar. */
+  :root .award-toast {
+    left: calc(50% + var(--sidebar-width) / 2);
+  }
 }
 
 /* App shell (app/AppShell): tab bar below 1024px, sidebar from 1024px. */
