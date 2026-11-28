@@ -938,6 +938,17 @@ describe('AiProviderScreen: settings form', () => {
       expect(await screen.findByText('Subscription disconnected')).toBeTruthy();
     });
 
+    it('the card is titled «ChatGPT subscription»; the data card says each user consents first', async () => {
+      server(() => [sub]);
+      await wrap(<AiProviderScreen />);
+      expect(
+        await screen.findByRole('heading', { name: 'ChatGPT subscription' }),
+      ).toBeTruthy();
+      expect(
+        screen.getByText(/Each person gives consent first\./),
+      ).toBeTruthy();
+    });
+
     it('AI_PROVIDER=chatgpt in env still shows the sign-in', async () => {
       server(() => [{ ...sub, source: 'env', rev: null, chatgpt: null }]);
       await wrap(<AiProviderScreen />);

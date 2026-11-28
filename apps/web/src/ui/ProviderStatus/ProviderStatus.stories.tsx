@@ -148,3 +148,17 @@ export const Compatible: Story = {
   },
 };
 export const CompatibleDark: Story = { ...Compatible, ...dark };
+/** OCT-178 3.2: the admin's ChatGPT subscription, signed in. */
+export const Subscription: Story = {
+  args: {
+    status: {
+      ...gemini,
+      provider: 'chatgpt',
+      providerName: 'ChatGPT',
+      model: 'gpt-5.4',
+      source: 'admin',
+      chatgpt: { accountLabel: 'admin@example.com', signedInAt: 0 },
+    },
+  },
+};
+export const SubscriptionDark: Story = { ...Subscription, ...dark };

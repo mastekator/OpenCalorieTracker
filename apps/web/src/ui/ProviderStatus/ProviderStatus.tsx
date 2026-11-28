@@ -118,14 +118,16 @@ export function PrivacyCard({ status }: { status: AdminAiStatus }) {
       <li className="provider__card">
         {!configured ? (
           <p>{t('ai.privacy.none')}</p>
-        ) : name ? (
-          <p>{bold(t('ai.privacy.body', { provider: '\u0000' }), name)}</p>
         ) : (
           <p>
-            {bold(
-              t('ai.privacy.host', { host: '\u0000' }),
-              status.baseUrlHost ?? '',
-            )}
+            {name
+              ? bold(t('ai.privacy.body', { provider: '\u0000' }), name)
+              : bold(
+                  t('ai.privacy.host', { host: '\u0000' }),
+                  status.baseUrlHost ?? '',
+                )}{' '}
+            {/* Server AI asks each user before their data first goes out (OCT-178 §2). */}
+            {t('ai.privacy.consent')}
           </p>
         )}
         {configured && name && policy && (
@@ -169,6 +171,7 @@ export function ProviderStatus({
   const off = state === 'not_configured';
   const { tone, banner } = AI_STATES[state];
   const name =
+    (status.provider === 'chatgpt' ? t('ai.chatgpt.provider') : null) ??
     status.providerName ??
     (status.provider === 'openai-compatible'
       ? t('ai.compatible')

@@ -1,5 +1,6 @@
-import type { MouseEvent, ReactNode } from 'react';
+import { isValidElement, type MouseEvent, type ReactNode } from 'react';
 import { ChevronRight } from 'lucide-react';
+import { Switch } from '../Switch/Switch';
 import './List.css';
 
 type ListProps = {
@@ -64,7 +65,16 @@ export function ListRow({
   action,
   current,
 }: RowProps) {
-  const interactive = href !== undefined || onClick !== undefined;
+  // A plain row whose value is a Switch: the whole row is its <label>, so a tap anywhere toggles it.
+  const toggle =
+    href === undefined &&
+    !onClick &&
+    isValidElement<{ disabled?: boolean }>(value) &&
+    value.type === Switch;
+  const interactive =
+    href !== undefined ||
+    onClick !== undefined ||
+    (toggle && !value.props.disabled);
   const className = `list-row${danger ? ' list-row--danger' : ''}${accent ? ' list-row--accent' : ''}${icon ? ' list-row--icon' : ''}${interactive ? ' list-row--interactive' : ''}`;
   const content = (
     <>
@@ -80,7 +90,7 @@ export function ListRow({
         )}
       </span>
       {value !== undefined && <span className="list-row__value">{value}</span>}
-      {(chevron ?? (interactive && !accent && !disabled)) && (
+      {(chevron ?? (interactive && !toggle && !accent && !disabled)) && (
         <ChevronRight className="list-row__chevron" aria-hidden="true" />
       )}
     </>
@@ -110,6 +120,7 @@ export function ListRow({
         {content}
       </button>
     );
+  else if (toggle) row = <label {...common}>{content}</label>;
   else row = <div {...common}>{content}</div>;
   return (
     <li className={`list__item${action ? ' list__item--action' : ''}`}>

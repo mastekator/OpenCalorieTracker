@@ -1518,7 +1518,7 @@ export const en = {
       'Nothing is sent to providers from here. The consents below still apply on your other devices.',
     consents: 'Consents',
     revoke: 'Revoke',
-    via_server: 'Through the server · since {date}',
+    via_server: 'Through the server · since\u00a0{date}',
     local: 'Local model {host}',
     local_sub: 'Your data stays on your network',
     consents_note:
@@ -1903,6 +1903,7 @@ export const en = {
       body: 'Food photos and goal assistant messages are sent to {provider} for processing. Photos have no EXIF or location data. How the data is stored and used is up to the provider.',
       host: 'Food photos and goal assistant messages are sent to {host} for processing. Photos have no EXIF or location data.',
       none: "While AI isn't connected, photos aren't sent anywhere.",
+      consent: 'Each person gives consent first.',
       policy: '{provider} data policy',
     },
     gemini: {

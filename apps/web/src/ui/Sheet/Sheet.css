@@ -50,6 +50,17 @@
   padding: var(--space-2) var(--space-2) var(--space-2) var(--screen-gutter);
 }
 
+.sheet__icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: var(--tap-min);
+  height: var(--tap-min);
+  border-radius: var(--radius-md);
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+
 .sheet__title {
   outline: none; /* focused on open for screen readers, not a control */
   flex: 1;
