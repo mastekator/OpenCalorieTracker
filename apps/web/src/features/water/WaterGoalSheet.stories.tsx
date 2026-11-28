@@ -42,7 +42,7 @@ export const SaveFailed: Story = {
   args: {
     goalMl: 2500,
     manual: true,
-    onSave: () => Promise.reject(new Error()),
+    onSave: () => Promise.reject<void>(new Error()),
   },
   play: async () => {
     fireEvent.click(
