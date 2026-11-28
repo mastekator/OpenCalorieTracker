@@ -1,6 +1,6 @@
 import { Info } from 'lucide-react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { fn } from 'storybook/test';
+import { expect, fn } from 'storybook/test';
 import { useT } from '../../i18n';
 import { NavBar } from '../../ui/NavBar/NavBar';
 import {
@@ -8,9 +8,12 @@ import {
   FROZEN,
   FROZEN_DAYS,
   NEWBIE,
+  PAST_MONTHS,
   RESTART,
   RUNNING,
+  SHORT_YEAR,
   TODAY,
+  YEAR,
   streaksOf,
 } from './fixtures';
 import { StreaksScreen } from './StreaksScreen';
@@ -40,7 +43,7 @@ const meta = {
   ],
   parameters: { layout: 'fullscreen' },
   args: {
-    streaks: streaksOf(RUNNING),
+    streaks: streaksOf(RUNNING, true, { days: YEAR, months: PAST_MONTHS }),
     today: TODAY,
     rulesOpen: false,
     onCloseRules: fn(),
@@ -55,7 +58,14 @@ const dark = { theme: 'dark' };
 const desktop = { viewport: { value: 'desktop' } };
 
 /** 2.1 */
-export const Running: Story = {};
+// 390 px: the year map scrolls inside its card; the page itself must not overflow.
+export const Running: Story = {
+  play: async ({ canvas }) => {
+    await canvas.findAllByRole('group');
+    const root = document.documentElement;
+    await expect(root.scrollWidth).toBeLessThanOrEqual(root.clientWidth);
+  },
+};
 export const RunningDark: Story = { globals: dark };
 export const RunningRussian: Story = { globals: { locale: 'ru' } };
 /** 2.2 */
@@ -78,6 +88,8 @@ export const FrozenRussian: Story = { ...Frozen, globals: { locale: 'ru' } };
 export const Offline: Story = {
   args: {
     streaks: streaksOf(RUNNING, true, {
+      days: SHORT_YEAR,
+      months: PAST_MONTHS,
       fullSyncAt: null,
       pulledAt: new Date(2026, 10, 12, 18).getTime(),
     }),
@@ -96,7 +108,7 @@ export const LoadingDark: Story = { ...Loading, globals: dark };
 export const Off: Story = { args: { streaks: streaksOf(RUNNING, false) } };
 export const OffDark: Story = { ...Off, globals: dark };
 export const OffRussian: Story = { ...Off, globals: { locale: 'ru' } };
-/** D.1: two columns, the right one kept for awards and past months. */
+/** D.1: the year map on top, two columns below; past months on the right. */
 export const Desktop: Story = { globals: desktop };
 export const DesktopDark: Story = { globals: { ...desktop, ...dark } };
 export const DesktopRules: Story = { ...Rules, globals: desktop };
@@ -107,3 +119,9 @@ export const DesktopFrozenDark: Story = {
   globals: { ...desktop, ...dark },
 };
 export const DesktopOffline: Story = { ...Offline, globals: desktop };
+export const DesktopNewbie: Story = { ...Newbie, globals: desktop };
+export const DesktopNewbieDark: Story = {
+  ...Newbie,
+  globals: { ...desktop, ...dark },
+};
+export const NewbieRussian: Story = { ...Newbie, globals: { locale: 'ru' } };

@@ -57,6 +57,11 @@
   --trail-week-height: 36px;    /* OCT-184: one week pill in the streak trail */
   --streak-day-size: 28px;      /* OCT-184: day circle of this week on the streak card, rule marks */
   --streak-line-width: 1.5px;   /* OCT-184: outline of a frozen / short week and a day still ahead */
+  --heat-cell-size: 12px;       /* OCT-184: day cell of the year activity map (phone; tap area = selected-day row below) */
+  --heat-cell-size-wide: 14px;  /* OCT-184: same, desktop */
+  --heat-gap: 3px;
+  --heat-cell-radius: 3px;
+  --past-dot-size: 10px;        /* OCT-184: «Done N of 3» dot of a past month */
   --progress-height: 8px;       /* kcal & macro bars on Today / Diary / Week */
   --water-figure-size: 120px;   /* OCT-147: water glass height on the Water card */
   --drink-tile-size: 56px;      /* OCT-147: round drink tile in the drinks row (hit area = tile + label) */
@@ -149,6 +154,9 @@
   --color-accent-pressed: #0F653E;
   --color-on-accent: #FFFFFF;
   --color-accent-soft: #E5F5EC;
+  --color-heat-1: #C3E7D1;          /* OCT-184: activity map, 1 / 2 / 3+ meals; no good/bad tone */
+  --color-heat-2: #6CC497;
+  --color-heat-3: #13784A;
   --color-danger: #C0362C;
   --color-danger-soft: #FDEDEB;
   --color-on-danger: #FFFFFF;
@@ -247,6 +255,9 @@
     --color-accent-pressed: #4CC183;
     --color-on-accent: #06200F;
     --color-accent-soft: #16301F;
+    --color-heat-1: #1F4430;
+    --color-heat-2: #2F8355;
+    --color-heat-3: #5FD394;
     --color-danger: #FF8A80;
     --color-danger-soft: #3A1916;
     --color-on-danger: #2A0906;
@@ -307,6 +318,9 @@
   --color-accent-pressed: #4CC183;
   --color-on-accent: #06200F;
   --color-accent-soft: #16301F;
+  --color-heat-1: #1F4430;
+  --color-heat-2: #2F8355;
+  --color-heat-3: #5FD394;
   --color-danger: #FF8A80;
   --color-danger-soft: #3A1916;
   --color-on-danger: #2A0906;

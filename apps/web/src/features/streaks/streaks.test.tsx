@@ -8,7 +8,12 @@ import {
   within,
 } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import type { AccountSettings, MeResponse, StreakState } from '@oct/shared';
+import type {
+  AccountSettings,
+  ChallengeMonth,
+  MeResponse,
+  StreakState,
+} from '@oct/shared';
 import { StreaksRoute } from '../../app/routes';
 import { DataProvider, EMPTY_PROFILE } from '../../data/DataContext';
 import { openUserDb } from '../../data/db';
@@ -18,6 +23,7 @@ import { renderLoaded } from '../../test-utils';
 import { localToday } from '../diary/useToday';
 import { periodPath } from '../week/period';
 import { WeekScreen } from '../week/WeekScreen';
+import { ActivityMap } from './ActivityMap';
 import { ChallengeList } from './ChallengeList';
 import {
   FROZEN,
@@ -29,6 +35,7 @@ import {
   TODAY,
 } from './fixtures';
 import { FreezeCard } from './FreezeCard';
+import { PastMonths, pastMonths } from './PastMonths';
 import { StreakCard } from './StreakCard';
 import { StreaksScreen } from './StreaksScreen';
 
@@ -414,5 +421,138 @@ describe('Streak screen: freezes, challenges, offline (OCT-184 3.3, 3.4)', () =>
       </I18nProvider>,
     );
     expect(screen.getByText('The first one is a gift')).toBeTruthy();
+  });
+});
+
+describe('Past months (OCT-184 2.1)', () => {
+  const row = (
+    month: string,
+    done: string[],
+    closed = true,
+  ): ChallengeMonth => ({
+    month,
+    keys: ['days_20', 'full_week', 'photo_20'],
+    done: Object.fromEntries(done.map((k) => [k, `${month}-20`])),
+    closed,
+  });
+  const months = [
+    row('2026-08', ['profile']),
+    row('2026-10', ['days_20', 'photo_20']),
+    row('2026-09', ['days_20', 'full_week', 'photo_20']),
+    // Open rows are still counting: not shown, even with done challenges.
+    row('2026-07', ['days_20'], false),
+    row('2026-11', ['days_20'], true),
+  ];
+
+  it('reads only closed rows before this month, newest first', () => {
+    expect(pastMonths(months, '2026-11').map((m) => m.month)).toEqual([
+      '2026-10',
+      '2026-09',
+      '2026-08',
+    ]);
+  });
+
+  it('«Done N of 3», the names, «All three» and «All months»', async () => {
+    await renderLoaded(
+      <I18nProvider>
+        <PastMonths
+          months={[...months, row('2026-06', ['full_week'])]}
+          month="2026-11"
+          today={TODAY}
+        />
+      </I18nProvider>,
+    );
+    const card = await screen.findByRole('region', { name: 'Past months' });
+    const items = within(card).getAllByRole('listitem');
+    expect(items.map((li) => li.textContent)).toEqual([
+      'October 2026Done 2 of 3Log 20 days, 20 meals by photo',
+      'September 2026Done 3 of 3All three',
+      // A key outside the month's three doesn't count.
+      'August 2026Done 0 of 3',
+    ]);
+    expect(within(card).queryByText(/July/)).toBe(null);
+    fireEvent.click(within(card).getByRole('button', { name: 'All months' }));
+    expect(within(card).getAllByRole('listitem')).toHaveLength(4);
+    expect(within(card).queryByRole('button')).toBe(null);
+  });
+
+  it('no closed months: no card', async () => {
+    await renderLoaded(
+      <I18nProvider>
+        <div data-testid="box">
+          <PastMonths
+            months={[row('2026-10', ['days_20'], false)]}
+            month="2026-11"
+            today={TODAY}
+          />
+        </div>
+      </I18nProvider>,
+    );
+    expect((await screen.findByTestId('box')).textContent).toBe('');
+  });
+});
+
+describe('Activity map (OCT-184 2.1, 3.1, D.1)', () => {
+  const days = [
+    { date: '2026-11-16', meals: 2 },
+    { date: '2026-11-17', meals: 5 },
+    { date: '2026-11-19', meals: 1 },
+  ];
+  const map = (d = days) =>
+    renderLoaded(
+      <I18nProvider>
+        <ActivityMap days={d} today={TODAY} />
+      </I18nProvider>,
+    );
+
+  it('shades by meals, counts days, picks today', async () => {
+    const { container } = await map();
+    const group = await screen.findByRole('group', {
+      name: 'Entries over 12 months: 3 days with entries. Arrow keys pick a day',
+    });
+    expect(screen.getByText('3 days')).toBeTruthy();
+    const level = (date: string) =>
+      group.querySelector(`[data-date="${date}"]`)?.getAttribute('data-level');
+    expect(level('2026-11-16')).toBe('2');
+    expect(level('2026-11-17')).toBe('3');
+    expect(level('2026-11-18')).toBe('0');
+    // Before the first entry and after today: blank.
+    expect(level('2026-11-15')).toBe(undefined);
+    expect(level('2026-11-20')).toBe(undefined);
+    expect(screen.getByRole('status').textContent).toBe('Thu, Nov 19: 1 meal');
+    expect(
+      container.querySelector('.amap__cell--sel')?.getAttribute('data-date'),
+    ).toBe('2026-11-19');
+  });
+
+  it('arrows move by day and week within the map, Enter and tap open the day', async () => {
+    await map();
+    const group = await screen.findByRole('group');
+    const status = screen.getByRole('status');
+    fireEvent.keyDown(group, { key: 'ArrowUp' });
+    expect(status.textContent).toBe('Wed, Nov 18: 0 meals');
+    fireEvent.keyDown(group, { key: 'ArrowUp' });
+    expect(status.textContent).toBe('Tue, Nov 17: 5 meals');
+    // Past today and before the first entry: stays.
+    fireEvent.keyDown(group, { key: 'ArrowRight' });
+    fireEvent.keyDown(group, { key: 'ArrowLeft' });
+    expect(status.textContent).toBe('Tue, Nov 17: 5 meals');
+    expect(
+      screen.getByRole('link', { name: 'Open' }).getAttribute('href'),
+    ).toBe('/diary/2026-11-17');
+    fireEvent.keyDown(group, { key: 'Enter' });
+    expect(location.pathname).toBe('/diary/2026-11-17');
+    fireEvent.click(group.querySelector('[data-date="2026-11-16"]')!);
+    expect(status.textContent).toBe('Mon, Nov 16: 2 meals');
+  });
+
+  it('3.1: no entries yet — one line instead of the grid', async () => {
+    await map([]);
+    expect(
+      await screen.findByText(
+        'A year of your entries will show up here — one cell a day.',
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByRole('group')).toBe(null);
   });
 });

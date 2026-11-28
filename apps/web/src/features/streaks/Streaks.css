@@ -232,6 +232,8 @@
 .streaks,
 .streaks__main {
   display: grid;
+  /* minmax(0, …): the year map must scroll inside its card, not widen the page */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-4);
   align-items: start;
 }
@@ -258,6 +260,16 @@
 
   .streaks__side:empty {
     display: block;
+  }
+
+  /* D.1: the whole year on top, 14px cells, no scrolling. */
+  .amap {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+
+  .amap__row {
+    --cell: var(--heat-cell-size-wide);
   }
 }
 
@@ -463,8 +475,177 @@ svg.challenge__value {
 }
 
 /* OCT-184 3.4; OCT-502 moves it into the activity map card. */
-.streaks__map-note {
+/* OCT-184 2.1, 3.1, D.1: the year activity map; shades say «how many meals», never good or bad. */
+.amap__row {
+  display: flex;
+  gap: var(--space-2);
+  --cell: var(--heat-cell-size);
+}
+
+.amap__weekdays,
+.amap__grid {
+  display: grid;
+  grid-template-rows: var(--space-4) repeat(7, var(--cell));
+  gap: var(--heat-gap);
+  font-size: var(--text-caption-size);
+  line-height: var(--cell);
+  color: var(--color-text-secondary);
+}
+
+.amap__weekdays {
+  flex: none;
+  text-transform: capitalize;
+}
+
+.amap__wrap {
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.amap__wrap::-webkit-scrollbar {
+  display: none;
+}
+
+.amap__grid {
+  grid-auto-flow: column;
+  grid-auto-columns: var(--cell);
+  width: max-content;
+  padding: var(--focus-ring-offset);
+}
+
+.amap__month {
+  line-height: var(--space-4);
+  white-space: nowrap;
+}
+
+.amap__cell {
+  width: var(--cell);
+  height: var(--cell);
+  border-radius: var(--heat-cell-radius);
+}
+
+.amap__cell[data-level='0'] {
+  background: var(--color-surface-2);
+}
+
+.amap__cell[data-level='1'] {
+  background: var(--color-heat-1);
+}
+
+.amap__cell[data-level='2'] {
+  background: var(--color-heat-2);
+}
+
+.amap__cell[data-level='3'] {
+  background: var(--color-heat-3);
+}
+
+.amap__cell--sel {
+  outline: 2px solid var(--color-text);
+  outline-offset: 1px;
+}
+
+.amap__legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+  font-size: var(--text-caption-size);
+  color: var(--color-text-secondary);
+}
+
+.amap__legend-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  --cell: var(--space-3);
+}
+
+.amap__note,
+.amap__empty {
   margin: 0;
+  font-size: var(--text-footnote-size);
+  color: var(--color-text-secondary);
+}
+
+.amap__empty {
+  font-size: var(--text-subhead-size);
+}
+
+.amap__day {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-height: var(--tap-min);
+  margin: 0 calc(-1 * var(--space-5)) calc(-1 * var(--space-5));
+  padding: 0 var(--space-3) 0 var(--space-5);
+  border-top: 1px solid var(--color-separator);
+  font-size: var(--text-subhead-size);
+}
+
+.amap__open {
+  display: flex;
+  align-items: center;
+  min-height: var(--tap-min);
+  color: var(--color-accent);
+  font-weight: 600;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.amap__open .lucide {
+  width: var(--icon-size-xs);
+  height: var(--icon-size-xs);
+}
+
+/* «Past months»: a row per closed month, dots filled per done challenge. */
+.past {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.past__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px var(--space-3);
+  padding: var(--space-3) 0;
+}
+
+.past__row + .past__row {
+  border-top: 1px solid var(--color-separator);
+}
+
+.past__count {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-subhead-size);
+  color: var(--color-text-secondary);
+}
+
+.past__dots {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.past__dots i {
+  width: var(--past-dot-size);
+  height: var(--past-dot-size);
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 var(--streak-line-width) var(--color-border-strong);
+}
+
+.past__dots .past__dot--on {
+  background: var(--color-accent);
+  box-shadow: none;
+}
+
+.past__sub {
+  grid-column: 1 / -1;
   font-size: var(--text-footnote-size);
   color: var(--color-text-secondary);
 }
