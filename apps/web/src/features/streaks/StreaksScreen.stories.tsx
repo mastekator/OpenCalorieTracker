@@ -1,6 +1,6 @@
 import { Info } from 'lucide-react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { fn } from 'storybook/test';
+import { expect, fn } from 'storybook/test';
 import { useT } from '../../i18n';
 import { NavBar } from '../../ui/NavBar/NavBar';
 import {
@@ -58,7 +58,14 @@ const dark = { theme: 'dark' };
 const desktop = { viewport: { value: 'desktop' } };
 
 /** 2.1 */
-export const Running: Story = {};
+// 390 px: the year map scrolls inside its card; the page itself must not overflow.
+export const Running: Story = {
+  play: async ({ canvas }) => {
+    await canvas.findAllByRole('group');
+    const root = document.documentElement;
+    await expect(root.scrollWidth).toBeLessThanOrEqual(root.clientWidth);
+  },
+};
 export const RunningDark: Story = { globals: dark };
 export const RunningRussian: Story = { globals: { locale: 'ru' } };
 /** 2.2 */

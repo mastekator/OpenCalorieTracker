@@ -232,6 +232,8 @@
 .streaks,
 .streaks__main {
   display: grid;
+  /* minmax(0, …): the year map must scroll inside its card, not widen the page */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-4);
   align-items: start;
 }
