@@ -1,12 +1,15 @@
+import type { ReactNode } from 'react';
 import {
   addDays,
   remainingOf,
   sumDay,
   type DrinkEntry,
+  waterOfDay,
   type Macros,
   type Meal,
+  type Units,
 } from '@oct/shared';
-import { BookOpen, CircleAlert } from 'lucide-react';
+import { BookOpen, ChevronRight, CircleAlert, Droplet } from 'lucide-react';
 import { useT } from '../../i18n';
 import { Button } from '../../ui/Button/Button';
 import { List } from '../../ui/List/List';
@@ -14,6 +17,8 @@ import { MacroStat } from '../../ui/MacroStat/MacroStat';
 import { ProgressBar } from '../../ui/ProgressBar/ProgressBar';
 import { ScreenState } from '../../ui/ScreenState/ScreenState';
 import { Delayed, Skeleton } from '../../ui/Skeleton/Skeleton';
+import { DrinksMealRow, kcalDrinks } from '../water/DrinksMealRow';
+import { useVolume } from '../water/format';
 import { DayPager } from './DayPager';
 import { MealRow } from './MealRow';
 import { usePager } from './usePager';
@@ -33,6 +38,9 @@ type Props = {
   onDelete: (meal: Meal) => void;
   /** «Add an entry for this day» (AC-2.11). */
   onAdd: () => void;
+  /** Water module on: «Water: X of Y» under the total and a «Drinks» row (OCT-147 4.3–4.4). */
+  water?: { goalMl: number; onOpen: () => void };
+  units?: Units;
 };
 
 const MACROS = [
@@ -52,6 +60,8 @@ export function DiaryDay({
   onOpen,
   onDelete,
   onAdd,
+  water,
+  units = 'metric',
 }: Props) {
   const { t } = useT();
   // A swipe on a meal row deletes it, not turns the day.
@@ -61,6 +71,7 @@ export function DiaryDay({
   }, '.meal-row');
 
   const add = t(date === today ? 'diary.add' : 'diary.add_here');
+  const drinkRow = water ? kcalDrinks(drinks) : [];
   return (
     <div className="diary" {...swipe}>
       <DayPager date={date} today={today} onChange={onDate} />
@@ -78,19 +89,33 @@ export function DiaryDay({
       ) : (
         <div className="diary__body">
           <div className="diary__total">
-            <DayTotal eaten={sumDay([...meals, ...drinks])} norm={norm} />
+            <DayTotal eaten={sumDay([...meals, ...drinks])} norm={norm}>
+              {water && (
+                <WaterLine
+                  ml={waterOfDay(drinks)}
+                  goalMl={water.goalMl}
+                  units={units}
+                  onOpen={water.onOpen}
+                />
+              )}
+            </DayTotal>
           </div>
           <div className="diary__list">
-            {meals.length ? (
+            {meals.length || drinkRow.length ? (
               <List title={t('diary.count', { count: meals.length })}>
-                {meals.map((meal) => (
-                  <MealRow
-                    key={meal.clientId}
-                    meal={meal}
-                    onOpen={() => onOpen(meal)}
-                    onDelete={() => onDelete(meal)}
-                  />
-                ))}
+                {withDrinks(
+                  meals.map((meal) => (
+                    <MealRow
+                      key={meal.clientId}
+                      meal={meal}
+                      onOpen={() => onOpen(meal)}
+                      onDelete={() => onDelete(meal)}
+                    />
+                  )),
+                  meals,
+                  drinkRow,
+                  units,
+                )}
               </List>
             ) : (
               <ScreenState
@@ -102,7 +127,7 @@ export function DiaryDay({
               </ScreenState>
             )}
           </div>
-          {meals.length > 0 && (
+          {(meals.length > 0 || drinkRow.length > 0) && (
             <div className="diary__add">
               <Button variant="tonal" onClick={onAdd}>
                 {add}
@@ -115,8 +140,60 @@ export function DiaryDay({
   );
 }
 
+/** The «Drinks» row among the meals (early to late) by the time of the last drink. */
+function withDrinks(
+  rows: ReactNode[],
+  meals: Meal[],
+  drinks: DrinkEntry[],
+  units: Units,
+) {
+  if (!drinks.length) return rows;
+  const last = Date.parse(drinks[0]!.takenAt);
+  const at = meals.filter((m) => Date.parse(m.eatenAt) <= last).length;
+  const out = [...rows];
+  out.splice(
+    at,
+    0,
+    <DrinksMealRow key="drinks" entries={drinks} units={units} />,
+  );
+  return out;
+}
+
+/** «Water: 1 500 of 2 000 ml» under the total; opens the day's entries (OCT-147 4.4). */
+function WaterLine({
+  ml,
+  goalMl,
+  units,
+  onOpen,
+}: {
+  ml: number;
+  goalMl: number;
+  units: Units;
+  onOpen: () => void;
+}) {
+  const { t } = useT();
+  const volume = useVolume(units);
+  return (
+    <button type="button" className="day-total__water" onClick={onOpen}>
+      <Droplet aria-hidden="true" />
+      <span>
+        {t('water.diary_line', { ml: volume(ml), goal: volume(goalMl) })}
+      </span>
+      <ChevronRight aria-hidden="true" />
+    </button>
+  );
+}
+
 /** «1 960 of 2 100 kcal · 140 left», the bar and three macros; without a norm only what was eaten. */
-function DayTotal({ eaten, norm }: { eaten: Macros; norm: Macros | null }) {
+function DayTotal({
+  eaten,
+  norm,
+  children,
+}: {
+  eaten: Macros;
+  norm: Macros | null;
+  children?: ReactNode;
+}) {
   const { t, num } = useT();
   const remaining = norm && remainingOf(norm, eaten);
   // Decided on the shown (rounded) number, as on Today (E-1.1).
@@ -164,6 +241,7 @@ function DayTotal({ eaten, norm }: { eaten: Macros; norm: Macros | null }) {
           />
         ))}
       </div>
+      {children}
     </section>
   );
 }

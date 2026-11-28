@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import type { Macros, Meal } from '@oct/shared';
+import { entry } from '../water/fixtures';
 import { DiaryDay } from './DiaryDay';
 
 const TODAY = '2026-11-14';
@@ -118,3 +119,38 @@ export const Desktop: Story = { globals: { viewport: { value: 'desktop' } } };
 export const DesktopDark: Story = {
   globals: { viewport: { value: 'desktop' }, theme: 'dark' },
 };
+
+// OCT-147 4.3–4.4: the water module on; juice by noon goes between lunch and dinner.
+const DRINKS = [
+  entry({ clientId: 'd1', date: DAY, takenAt: `${DAY}T09:30:00Z` }),
+  entry({
+    clientId: 'd2',
+    date: DAY,
+    takenAt: `${DAY}T12:05:00Z`,
+    drinkKey: 'water',
+    illustration: 'drinks-water',
+    ml: 500,
+    kcal: 0,
+    proteinG: 0,
+    carbsG: 0,
+  }),
+];
+const WATER = { goalMl: 2500, onOpen: noop };
+export const Water: Story = { args: { drinks: DRINKS, water: WATER } };
+export const WaterDark: Story = { ...Water, globals: { theme: 'dark' } };
+export const WaterRussian: Story = { ...Water, globals: { locale: 'ru' } };
+export const WaterUs: Story = { args: { ...Water.args, units: 'us' } };
+export const WaterDesktop: Story = {
+  ...Water,
+  globals: { viewport: { value: 'desktop' } },
+};
+export const WaterDesktopDark: Story = {
+  ...Water,
+  globals: { viewport: { value: 'desktop' }, theme: 'dark' },
+};
+/** Only drinks that day: the list instead of the empty state. */
+export const OnlyDrinks: Story = {
+  args: { meals: [], drinks: DRINKS, water: WATER },
+};
+/** Module off: no rows, the juice kcal stay in the total. */
+export const WaterOff: Story = { args: { drinks: DRINKS } };

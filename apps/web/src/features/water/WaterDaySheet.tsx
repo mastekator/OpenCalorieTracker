@@ -12,9 +12,11 @@ import './WaterDaySheet.css';
 type Props = {
   open: boolean;
   onClose: () => void;
-  /** Today's live entries, any order. */
+  /** A past day, YYYY-MM-DD: its date in the title; absent for today. */
+  day?: string;
+  /** The day's live entries, any order. */
   entries: readonly DrinkEntry[];
-  /** Water drunk today, ml. */
+  /** Water drunk that day, ml. */
   ml: number;
   goalMl: number;
   units: Units;
@@ -23,8 +25,9 @@ type Props = {
   onDelete: (entry: DrinkEntry) => void;
 };
 
-/** OCT-147 2.3–2.4: «Water today», the day's entries with delete and no edit (AC-3.9). */
+/** OCT-147 2.3–2.4: «Water today» (or a past day), the day's entries with delete and no edit (AC-3.9). */
 export function WaterDaySheet({
+  day,
   open,
   onClose,
   entries,
@@ -34,13 +37,24 @@ export function WaterDaySheet({
   online,
   onDelete,
 }: Props) {
-  const { t } = useT();
+  const { t, locale } = useT();
   const volume = useVolume(units);
+  const date =
+    day &&
+    new Intl.DateTimeFormat(locale, {
+      day: 'numeric',
+      month: 'long',
+      timeZone: 'UTC',
+    }).format(new Date(`${day}T00:00:00Z`));
   const sorted = [...entries].sort(
     (a, b) => Date.parse(b.takenAt) - Date.parse(a.takenAt),
   );
   return (
-    <Sheet open={open} onClose={onClose} title={t('water.day')}>
+    <Sheet
+      open={open}
+      onClose={onClose}
+      title={date ? t('water.day_on', { date }) : t('water.day')}
+    >
       <div className="water-day">
         <p className="water-day__sum">
           <b>{volume(ml)}</b>{' '}
@@ -62,7 +76,9 @@ export function WaterDaySheet({
             ))}
           </ul>
         ) : (
-          <p className="water-day__note">{t('water.day_empty')}</p>
+          <p className="water-day__note">
+            {t(date ? 'water.day_empty_past' : 'water.day_empty')}
+          </p>
         )}
         {sorted.length > 0 && (
           <p className="water-day__note">

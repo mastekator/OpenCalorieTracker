@@ -3,6 +3,7 @@ import { useT } from '../../i18n';
 import { Disclaimer } from '../../ui/Disclaimer/Disclaimer';
 import { List, ListRow } from '../../ui/List/List';
 import { useVolume } from './format';
+import './WaterGoalSheet.css';
 
 type Props = {
   goalMl: number;
@@ -24,7 +25,7 @@ export function WaterGoalSection({
   const { t } = useT();
   const volume = useVolume(units);
   return (
-    <>
+    <div className="water-goal-section">
       <List
         title={t('water.title')}
         footer={online ? undefined : t('water.goal.offline')}
@@ -39,6 +40,6 @@ export function WaterGoalSection({
         </ListRow>
       </List>
       {!manual && <Disclaimer text={t('water.goal.disclaimer')} />}
-    </>
+    </div>
   );
 }

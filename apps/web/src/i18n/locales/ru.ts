@@ -2504,6 +2504,8 @@ const ru: DeepPartial<typeof en> = {
     macros: 'Б {p} · Ж {f} · У {c}\u00a0г',
     add: 'Добавить',
     day: 'Вода за сегодня',
+    day_on: 'Вода за {date}',
+    diary_line: 'Вода: {ml} из {goal}',
     not_water: 'не в воду',
     delete: 'Удалить: {name}, {time}, {amount}',
     deleted: 'Удалили',
@@ -2511,6 +2513,7 @@ const ru: DeepPartial<typeof en> = {
     day_note_offline:
       'Отметки без сети можно удалить сразу. Отправленные — когда появится сеть.',
     day_empty: 'Сегодня отметок нет',
+    day_empty_past: 'В этот день отметок нет',
     logged: '+{amount} · {name}',
     logged_kcal: '+{amount} · {name} · {kcal}\u00a0ккал',
     undo: 'Отменить',

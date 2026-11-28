@@ -88,3 +88,55 @@
   grid-template-columns: repeat(3, 1fr);
   gap: var(--space-3);
 }
+
+/* OCT-147 4.4: «Water: X of Y» under the total, opens the day's entries. */
+.day-total__water {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--control-height);
+  margin: 0 calc(-1 * var(--space-5)) calc(-1 * var(--space-5));
+  padding-inline: var(--space-5);
+  border: 0;
+  border-top: 1px solid var(--color-separator);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--text-subhead-size);
+  line-height: var(--text-subhead-lh);
+  text-align: start;
+  cursor: pointer;
+}
+
+.day-total__water > span {
+  flex: 1;
+}
+
+.day-total__water > .lucide {
+  flex: none;
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+}
+
+.day-total__water > .lucide:first-child {
+  color: var(--color-water);
+}
+
+.day-total__water > .lucide:last-child {
+  color: var(--color-text-secondary);
+}
+
+@media (hover: hover) {
+  .day-total__water:hover {
+    background: var(--color-hover);
+  }
+}
+
+.day-total__water:focus-visible {
+  outline-offset: calc(var(--focus-ring-width) * -1);
+}
+
+.day-total__water:active {
+  background: var(--color-surface-2);
+}
