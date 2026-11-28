@@ -2833,6 +2833,25 @@ export const en = {
       manual_macros_5: 'Add 5 dishes by hand with macros',
       profile: 'Complete your profile and target',
     },
+    map: {
+      title: 'Entries this year',
+      days: { one: '{count} day', other: '{count} days' },
+      label: {
+        one: 'Entries over 12 months: {count} day with entries. Arrow keys pick a day',
+        other:
+          'Entries over 12 months: {count} days with entries. Arrow keys pick a day',
+      },
+      legend: 'Meals:',
+      day: { one: '{day}: {count} meal', other: '{day}: {count} meals' },
+      open: 'Open',
+      empty: 'A year of your entries will show up here — one cell a day.',
+    },
+    past: {
+      title: 'Past months',
+      count: 'Done {done} of 3',
+      all: 'All three',
+      more: 'All months',
+    },
     map_as_of: 'Map as of {date}. It will update when you’re back online.',
     weeks: {
       one: '{count} week in a row',

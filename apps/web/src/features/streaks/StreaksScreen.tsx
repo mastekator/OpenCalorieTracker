@@ -8,9 +8,11 @@ import { Sheet } from '../../ui/Sheet/Sheet';
 import { Delayed, Skeleton } from '../../ui/Skeleton/Skeleton';
 import type { Streaks } from '../../data/streaks';
 import { periodLabel } from '../week/period';
+import { ActivityMap } from './ActivityMap';
 import { ChallengeList } from './ChallengeList';
 import { FreezeCard } from './FreezeCard';
-import { StreakCard, useFormatDay } from './StreakCard';
+import { PastMonths } from './PastMonths';
+import { StreakCard } from './StreakCard';
 import '../week/WeekCards.css';
 import './Streaks.css';
 
@@ -25,7 +27,7 @@ type Props = {
   onCloseFreezeNotice: (from: string) => void;
 };
 
-/** `/week/streaks` (OCT-184 §2, §3, D.1): the streak card; from 1024px a second column is kept for awards and past months. */
+/** `/week/streaks` (OCT-184 §2, §3, D.1): the streak card; the year map; from 1024px the map on top, awards and past months in a second column. */
 export function StreaksScreen({
   streaks,
   today,
@@ -35,7 +37,6 @@ export function StreaksScreen({
   onCloseFreezeNotice,
 }: Props) {
   const { t, locale } = useT();
-  const fmt = useFormatDay();
   if (streaks && !streaks.on)
     return (
       <ScreenState
@@ -117,13 +118,18 @@ export function StreaksScreen({
           </Delayed>
         )}
       </div>
-      {/* D.1: awards (OCT-520) and past months (OCT-502) go here. */}
+      {/* D.1: the map spans both columns above them. */}
+      {streaks && (
+        <ActivityMap days={streaks.days} today={today} asOf={pulled} />
+      )}
+      {/* D.1: awards (OCT-520) and past months. */}
       <div className="streaks__side">
-        {/* 3.4: until OCT-502 puts it in the map card. */}
-        {pulled && (
-          <p className="streaks__map-note">
-            {t('streaks.map_as_of', { date: fmt(pulled) })}
-          </p>
+        {streaks && (
+          <PastMonths
+            months={streaks.months}
+            month={streaks.month}
+            today={today}
+          />
         )}
       </div>
       <Sheet

@@ -1,4 +1,6 @@
 import type {
+  ChallengeKey,
+  ChallengeMonth,
   ChallengeProgress,
   DayFact,
   StreakState,
@@ -169,3 +171,47 @@ export const streaksOf = (
   celebrate: [],
   ...more,
 });
+
+/** 2.1: a year of entries from 9 February, this week as in {@link DAYS} (Mon, Tue, Thu). */
+export const YEAR: DayFact[] = (() => {
+  let seed = 7;
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const tail: Record<string, number> = {
+    '2026-11-16': 2,
+    '2026-11-17': 3,
+    '2026-11-18': 0,
+    '2026-11-19': 2,
+  };
+  const out: DayFact[] = [];
+  for (let t = Date.UTC(2026, 1, 9); t <= Date.UTC(2026, 10, 19); t += 864e5) {
+    const date = new Date(t).toISOString().slice(0, 10);
+    const r = rnd();
+    const meals =
+      tail[date] ?? (r < 0.18 ? 0 : r < 0.32 ? 1 : r < 0.62 ? 2 : 3);
+    if (meals) out.push({ ...day(date), meals });
+  }
+  return out;
+})();
+
+/** 3.4: the local copy holds only the last months. */
+export const SHORT_YEAR = YEAR.filter((d) => d.date >= '2026-09-01');
+
+const month = (
+  m: string,
+  done: ChallengeKey[],
+  closed = true,
+): ChallengeMonth => ({
+  month: m,
+  keys: ['days_20', 'photo_20', 'profile'],
+  done: Object.fromEntries(done.map((k) => [k, `${m}-20`])),
+  closed,
+});
+
+/** 2.1: four closed months; this month's open row is not one of them. */
+export const PAST_MONTHS: ChallengeMonth[] = [
+  month('2026-11', ['days_20'], false),
+  month('2026-10', ['days_20', 'photo_20']),
+  month('2026-09', ['days_20', 'photo_20', 'profile']),
+  month('2026-08', ['profile']),
+  month('2026-07', []),
+];
