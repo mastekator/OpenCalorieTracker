@@ -37,3 +37,9 @@
   width: 1.2em;
   height: 1.2em;
 }
+
+/* «New» on an award (OCT-184). */
+.badge--new {
+  background: var(--color-streak-soft);
+  color: var(--color-streak);
+}

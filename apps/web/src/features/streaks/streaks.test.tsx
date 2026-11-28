@@ -306,6 +306,8 @@ describe('Streak screen: freezes, challenges, offline (OCT-184 3.3, 3.4)', () =>
         onCloseRules={() => {}}
         onEnable={() => {}}
         onCloseFreezeNotice={onCloseFreezeNotice}
+        onOpenAward={() => {}}
+        onAllAwards={() => {}}
       />
     </I18nProvider>
   );

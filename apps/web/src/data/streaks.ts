@@ -41,6 +41,8 @@ export interface Streaks {
   awards: AwardProgress[];
   /** Earned awards. */
   stored: StoredAward[];
+  /** AI can read photos: else the «Photo» awards are hidden until one is earned (AC-3.10). */
+  photoAi: boolean;
   /** `YYYY-MM` of today. */
   month: string;
   challenges: ChallengeProgress[];
@@ -111,9 +113,10 @@ async function compute(db: Db, today: string): Promise<Streaks> {
 
   let months = await db.getAll('challengeMonths');
   const row = months.find((m) => m.month === month);
+  const photoAi = aiStatus?.recognition === 'ready';
   const keys = (row?.keys ??
     monthChallenges(month, {
-      photoAi: aiStatus?.recognition === 'ready',
+      photoAi,
       profileDone,
     })) as ChallengeKey[];
   const challenges = challengeProgress(month, keys, days, { profileDone });
@@ -186,6 +189,7 @@ async function compute(db: Db, today: string): Promise<Streaks> {
     streak,
     awards,
     stored,
+    photoAi,
     month,
     challenges,
     months,

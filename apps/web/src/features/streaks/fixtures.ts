@@ -6,6 +6,7 @@ import type {
   StreakState,
   StreakWeek,
 } from '@oct/shared';
+import { AWARDS } from '@oct/shared';
 import type { Streaks } from '../../data/streaks';
 
 /** Thursday, 19 November 2026, as in the design (OCT-184). */
@@ -165,6 +166,7 @@ export const streaksOf = (
   streak,
   awards: [],
   stored: [],
+  photoAi: true,
   month: '2026-11',
   challenges: streak === NEWBIE ? NEWBIE_CHALLENGES : CHALLENGES,
   months: [],
@@ -215,3 +217,51 @@ export const PAST_MONTHS: ChallengeMonth[] = [
   month('2026-08', ['profile']),
   month('2026-07', []),
 ];
+
+/** OCT-184 5.1: 31 weeks counted, best streak 9, 241 days; «Covered» just earned, not seen yet. */
+const EARNED: Record<string, string> = {
+  weeks_1: '2026-02-16',
+  weeks_4: '2026-03-16',
+  weeks_12: '2026-05-25',
+  weeks_26: '2026-09-14',
+  streak_2: '2026-02-23',
+  streak_8: '2026-05-04',
+  days_1: '2026-02-09',
+  days_30: '2026-03-24',
+  days_100: '2026-06-12',
+  challenge_1: '2026-02-20',
+  month_3of3: '2026-09-30',
+  month_full: '2026-08-31',
+  photo_1: '2026-02-09',
+  photo_100: '2026-07-02',
+  grams_25: '2026-05-05',
+  secret_freeze: '2026-11-16',
+  secret_backfill: '2026-04-08',
+};
+const PROGRESS: Record<string, number> = {
+  weeks_52: 31,
+  weeks_104: 31,
+  streak_16: 9,
+  streak_26: 9,
+  streak_52: 9,
+  days_365: 241,
+  days_1000: 241,
+  month_3of3_x6: 1,
+  photo_500: 214,
+  grams_250: 61,
+  manual_25: 18,
+};
+
+export const AWARDS_SOME: Pick<Streaks, 'awards' | 'stored'> = {
+  awards: AWARDS.map((a) => ({
+    key: a.key,
+    done: a.key in EARNED,
+    value: a.key in EARNED ? a.target : (PROGRESS[a.key] ?? 0),
+    target: a.target,
+  })),
+  stored: Object.entries(EARNED).map(([key, earnedOn]) => ({
+    key,
+    earnedOn,
+    seen: key !== 'secret_freeze',
+  })),
+};

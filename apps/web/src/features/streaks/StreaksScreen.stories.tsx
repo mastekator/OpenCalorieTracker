@@ -3,8 +3,10 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, fn } from 'storybook/test';
 import { useT } from '../../i18n';
 import { NavBar } from '../../ui/NavBar/NavBar';
+import { awardItems } from './awards';
 import {
   ALL_DONE,
+  AWARDS_SOME,
   FROZEN,
   FROZEN_DAYS,
   NEWBIE,
@@ -49,6 +51,9 @@ const meta = {
     onCloseRules: fn(),
     onEnable: fn(),
     onCloseFreezeNotice: fn(),
+    awards: awardItems(streaksOf(RUNNING, true, AWARDS_SOME)),
+    onOpenAward: fn(),
+    onAllAwards: fn(),
   },
 } satisfies Meta<typeof StreaksScreen>;
 export default meta;
@@ -73,7 +78,9 @@ export const Rules: Story = { args: { rulesOpen: true } };
 export const RulesDark: Story = { ...Rules, globals: dark };
 export const RulesRussian: Story = { ...Rules, globals: { locale: 'ru' } };
 /** 3.1 */
-export const Newbie: Story = { args: { streaks: streaksOf(NEWBIE) } };
+export const Newbie: Story = {
+  args: { streaks: streaksOf(NEWBIE), awards: awardItems(streaksOf(NEWBIE)) },
+};
 export const NewbieDark: Story = { ...Newbie, globals: dark };
 /** 3.2 */
 export const NewStreak: Story = { args: { streaks: streaksOf(RESTART) } };
@@ -102,7 +109,9 @@ export const AllDone: Story = {
 };
 export const AllDoneDark: Story = { ...AllDone, globals: dark };
 /** 3.5: skeletons after 300 ms. */
-export const Loading: Story = { args: { streaks: undefined } };
+export const Loading: Story = {
+  args: { streaks: undefined, awards: undefined },
+};
 export const LoadingDark: Story = { ...Loading, globals: dark };
 /** 3.6 */
 export const Off: Story = { args: { streaks: streaksOf(RUNNING, false) } };

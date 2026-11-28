@@ -5,7 +5,7 @@ import { Redirect, Route, Switch, useLocation, useSearch } from 'wouter';
 import { openUserDb } from '../data/db';
 import { useDb, useStreaks } from '../data/DataContext';
 import { flush, patchSettings, pendingCount } from '../data/outbox';
-import { closeFreezeNotice } from '../data/streaks';
+import { closeFreezeNotice, markSeen, type Streaks } from '../data/streaks';
 import { getLastUser, pendingOf } from '../data/user';
 import { ConfirmDialog } from '../ui/ConfirmDialog/ConfirmDialog';
 import { useT } from '../i18n';
@@ -70,7 +70,18 @@ import { RecipeScreen } from '../features/kitchen/RecipeScreen';
 import { ProfileScreen } from '../features/profile/ProfileScreen';
 import { useToday } from '../features/diary/useToday';
 import { STREAKS_PATH } from '../features/streaks/StreakRow';
-import { StreaksScreen } from '../features/streaks/StreaksScreen';
+import { StreaksOff, StreaksScreen } from '../features/streaks/StreaksScreen';
+import {
+  AwardCard,
+  AwardsScreen,
+  useSeenOnLeave,
+} from '../features/streaks/AwardsScreen';
+import {
+  AWARDS_PATH,
+  awardItems,
+  recentAwards,
+  type AwardItem,
+} from '../features/streaks/awards';
 import { periodPath } from '../features/week/period';
 import { WeekNavHead, WeekScreen } from '../features/week/WeekScreen';
 import { WeightScreen } from '../features/weight/WeightScreen';
@@ -98,6 +109,25 @@ function Screen({
   );
 }
 
+/** `?award=<key>` opens the award card on `path` (OCT-184 5.2); opening a new one marks it seen. */
+function useAwardCard(streaks: Streaks | undefined, path: string) {
+  const [, navigate] = useLocation();
+  const db = useDb();
+  const key = new URLSearchParams(useSearch()).get('award');
+  const items = streaks?.on ? awardItems(streaks) : undefined;
+  const open = (a: AwardItem) => {
+    if (a.got && !a.got.seen) void markSeen(db, [a.got]);
+    navigate(`${path}?award=${a.key}`, { replace: true });
+  };
+  const card = (
+    <AwardCard
+      item={items?.find((a) => a.key === key)}
+      onClose={() => navigate(path, { replace: true })}
+    />
+  );
+  return { items, open, card };
+}
+
 /** `/week/streaks`; `?rules` opens the rules sheet (OCT-184 2.2), the ⓘ only while on (3.6). */
 export function StreaksRoute() {
   const { t } = useT();
@@ -106,6 +136,8 @@ export function StreaksRoute() {
   const today = useToday();
   const streaks = useStreaks(today);
   const db = useDb();
+  const { items, open, card } = useAwardCard(streaks, STREAKS_PATH);
+  useSeenOnLeave(items ? recentAwards(items) : []);
   const go = (href: string) => () => navigate(href, { replace: true });
   return (
     <Screen
@@ -129,7 +161,37 @@ export function StreaksRoute() {
         onCloseRules={go(STREAKS_PATH)}
         onEnable={() => void patchSettings(db, { streaksEnabled: true })}
         onCloseFreezeNotice={(from) => void closeFreezeNotice(db, from)}
+        awards={items}
+        onOpenAward={open}
+        onAllAwards={() => navigate(AWARDS_PATH)}
       />
+      {card}
+    </Screen>
+  );
+}
+
+/** `/week/streaks/awards` (OCT-184 5.1, D.2); back to the streak screen. */
+export function AwardsRoute() {
+  const { t } = useT();
+  const today = useToday();
+  const streaks = useStreaks(today);
+  const db = useDb();
+  const { items, open, card } = useAwardCard(streaks, AWARDS_PATH);
+  useSeenOnLeave(items ?? []);
+  return (
+    <Screen
+      wide
+      title={t('awards.all')}
+      back={{ href: STREAKS_PATH, label: t('awards.back') }}
+    >
+      {streaks && !streaks.on ? (
+        <StreaksOff
+          onEnable={() => void patchSettings(db, { streaksEnabled: true })}
+        />
+      ) : (
+        <AwardsScreen items={items} onOpen={open} />
+      )}
+      {card}
     </Screen>
   );
 }
@@ -178,6 +240,9 @@ export function AppScreens() {
       </Route>
       <Route path={STREAKS_PATH}>
         <StreaksRoute />
+      </Route>
+      <Route path={AWARDS_PATH}>
+        <AwardsRoute />
       </Route>
       <Route path="/week/:id">
         {({ id }) => (
