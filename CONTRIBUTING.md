@@ -26,4 +26,6 @@ Thanks for helping! The flow is simple:
 - **No mentions of other products.** Do not name or link other trackers or apps in code, docs, commits or PRs. CI checks this against a private word list.
 - **UI values** (colors, spacing, fonts…) come only from the design tokens file.
 
+Please follow the [code of conduct](CODE_OF_CONDUCT.md). Report security problems privately as described in [SECURITY.md](SECURITY.md), not in a public issue. UI changes keep to [ACCESSIBILITY.md](ACCESSIBILITY.md): keyboard access, visible focus, labels and 44 px touch targets.
+
 By contributing you agree that your contributions are licensed under [AGPL-3.0](LICENSE).
