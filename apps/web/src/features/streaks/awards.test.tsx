@@ -227,6 +227,8 @@ describe('New award strip (OCT-184 1.2)', () => {
     });
     await wrap(<AwardCelebration />);
     await screen.findByText('New award');
+    // findBy may return before the effect that starts the timer has run.
+    await act(async () => {});
     act(() => vi.advanceTimersByTime(AWARD_TOAST_MS));
     vi.useRealTimers();
     expect(strip()).toBe(null);
