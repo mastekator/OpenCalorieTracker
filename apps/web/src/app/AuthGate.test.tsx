@@ -52,13 +52,19 @@ const emptySync = { rev: 0, more: false, meals: [], deletedMealClientIds: [] };
 function serve(session: object | null, offline = false) {
   vi.stubGlobal(
     'fetch',
-    vi.fn(async (path: string) => {
+    vi.fn(async (path: string, init?: RequestInit) => {
       if (offline) throw new TypeError('Failed to fetch');
       if (path === '/api/config')
         return Response.json({ ...config, ...configPatch });
       if (session && path === ME_PATH) return Response.json(session);
       if (session && path.startsWith('/api/sync'))
         return Response.json(emptySync);
+      // Streaks write this month's challenges from the app shell (OCT-521).
+      if (session && path.startsWith('/api/challenges/'))
+        return Response.json({
+          month: path.split('/').pop(),
+          ...JSON.parse(String(init?.body)),
+        });
       if (session && path === '/api/products/mine')
         return Response.json({ products: [] });
       // The edit screen asks for «What should I fix?» (OCT-261).

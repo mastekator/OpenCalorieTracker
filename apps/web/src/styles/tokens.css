@@ -99,6 +99,7 @@
   --illo-dot-size: 18px;         /* OCT-33: pencil dot on a dish illustration */
   --illo-check-size: 22px;       /* OCT-33: check badge on the current picker tile */
   --icon-xs: 12px;               /* glyphs inside the illo dot and check (12–14 in the mock) */
+  --medal-size-xs: 36px;        /* OCT-184: overlapped medals in the «New awards: n» toast */
   --medal-size-sm: 44px;        /* OCT-184: medal in the toast and the «Награды» block */
   --medal-size-md: 64px;        /* OCT-184: medal in the «Все награды» grid */
   --medal-size-lg: 144px;       /* OCT-184: medal in the award card */

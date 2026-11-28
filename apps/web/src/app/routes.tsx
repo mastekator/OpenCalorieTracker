@@ -86,6 +86,7 @@ import { periodPath } from '../features/week/period';
 import { WeekNavHead, WeekScreen } from '../features/week/WeekScreen';
 import { WeightScreen } from '../features/weight/WeightScreen';
 import { AppShell } from './AppShell';
+import { AwardCelebration } from '../features/streaks/AwardCelebration';
 import { AuthGate } from './AuthGate';
 import { AuthLayout } from './AuthLayout';
 import { ConfigProvider, useConfig } from './ConfigContext';
@@ -648,6 +649,7 @@ function SignedIn() {
               </Route>
               <Route>
                 <AppShell email={user?.email}>
+                  <AwardCelebration />
                   <AppScreens />
                 </AppShell>
               </Route>
