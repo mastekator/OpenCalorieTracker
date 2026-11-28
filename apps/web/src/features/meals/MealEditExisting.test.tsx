@@ -12,6 +12,7 @@ import { Route, Router, Switch, useLocation } from 'wouter';
 import { memoryLocation } from 'wouter/memory-location';
 import {
   addDays,
+  entryDay,
   type AccountSettings,
   type DrinkEntryInput,
   type Meal,
@@ -524,7 +525,12 @@ describe('MealEditExisting (/meal/:clientId)', () => {
       expect(meal.items.map((i) => i.name)).toEqual(['Buckwheat']);
       expect(posted('/api/drink-entries')[0]!.body).toMatchObject({
         ml: 250,
-        date: localToday(),
+        // 00:00-03:59 a new meal defaults to yesterday (AC-0.1a).
+        date: entryDay(
+          new Date(),
+          -new Date().getTimezoneOffset(),
+          'yesterday',
+        ),
         photo: { name: 'Latte', kcal: 120, countsWater: true },
       });
     });
