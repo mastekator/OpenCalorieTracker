@@ -14,7 +14,12 @@ import { openUserDb } from '../data/db';
 import { clearLocal, getLastUser, pendingOf, setLastUser } from '../data/user';
 import { I18nProvider, LOCALE_STORAGE_KEY } from '../i18n';
 import { Routes } from './routes';
-import { SessionProvider, SIGNED_OUT_KEY, useSession } from './SessionContext';
+import {
+  ME_TIMEOUT_MS,
+  SessionProvider,
+  SIGNED_OUT_KEY,
+  useSession,
+} from './SessionContext';
 
 const me = {
   id: 1,
@@ -338,6 +343,89 @@ describe('AuthGate', () => {
     // Not in the local copy: Today.
     location = renderAt('/meal/abc');
     await vi.waitFor(() => expect(location.history).toEqual(['/']));
+  });
+
+  /** /me hangs like on a weak network until its signal aborts; the rest as `serve(session)`. */
+  function hangMe(session: object | null) {
+    serve(session);
+    const served = vi.mocked(fetch).getMockImplementation()!;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((path: string, init?: RequestInit) =>
+        path === ME_PATH
+          ? new Promise((_, reject) =>
+              init?.signal?.addEventListener('abort', () =>
+                reject(init.signal!.reason),
+              ),
+            )
+          : served(path, init),
+      ),
+    );
+  }
+
+  const meCalls = () =>
+    vi.mocked(fetch).mock.calls.filter(([path]) => path === ME_PATH).length;
+
+  it('opens the local copy at once while /me hangs (OCT-553)', async () => {
+    serve(me);
+    renderAt('/week');
+    await screen.findByRole('heading', { name: 'Week' });
+    cleanup();
+
+    hangMe(me);
+    renderAt('/week');
+    expect(await screen.findByRole('heading', { name: 'Week' })).toBeTruthy();
+    expect(meCalls()).toBe(1);
+  });
+
+  it('the background /me answering 401 sends to sign-in', async () => {
+    serve(me);
+    renderAt('/week');
+    await screen.findByRole('heading', { name: 'Week' });
+    cleanup();
+
+    serve(null);
+    renderAt('/week');
+    expect(
+      await screen.findByRole('heading', { name: 'Sign in' }),
+    ).toBeTruthy();
+  });
+
+  it('the background /me with another user asks first (AC-2.7)', async () => {
+    serve({ ...me, ...bob });
+    renderAt('/week');
+    await screen.findByRole('heading', { name: 'Week' });
+    cleanup();
+    await queuedFor(bob, 1);
+
+    serve(me);
+    renderAt('/week');
+    expect(
+      await screen.findByRole('alertdialog', {
+        name: 'Sign in with another account?',
+      }),
+    ).toBeTruthy();
+  });
+
+  it('without a local copy a hanging /me ends in 3.4 after the timeout, «Try again» asks again', async () => {
+    hangMe(null);
+    // Before render: the timeout starts with the first /me.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      renderAt('/week');
+      await act(async () => {});
+      expect(screen.queryByRole('heading')).toBeNull();
+      await act(() => vi.advanceTimersByTimeAsync(ME_TIMEOUT_MS));
+    } finally {
+      vi.useRealTimers();
+    }
+    expect(
+      await screen.findByRole('heading', {
+        name: 'First sign-in needs a connection',
+      }),
+    ).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    await vi.waitFor(() => expect(meCalls()).toBe(2));
   });
 
   it('shows 3.4 offline when nobody has signed in here, with a retry', async () => {
