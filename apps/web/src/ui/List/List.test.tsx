@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { Switch } from '../Switch/Switch';
 import { List, ListRow } from './List';
 
 afterEach(cleanup);
@@ -63,5 +64,31 @@ describe('ListRow', () => {
     const nowrap = 'list-row__description--nowrap';
     expect(screen.getByText('Wrapping').classList.contains(nowrap)).toBe(false);
     expect(screen.getByText('One line').classList.contains(nowrap)).toBe(true);
+  });
+
+  it('a tap anywhere on a switch row toggles the switch once', () => {
+    const onChange = vi.fn();
+    const off = vi.fn();
+    render(
+      <List>
+        <ListRow
+          description="Sub"
+          value={<Switch checked={false} onChange={onChange} label="On" />}
+        >
+          On
+        </ListRow>
+        <ListRow
+          value={<Switch checked={false} onChange={off} label="Off" disabled />}
+        >
+          Off
+        </ListRow>
+      </List>,
+    );
+    fireEvent.click(screen.getByText('Sub'));
+    expect(onChange).toHaveBeenCalledExactlyOnceWith(true);
+    fireEvent.click(screen.getByRole('switch', { name: 'On' }));
+    expect(onChange).toHaveBeenCalledTimes(2);
+    fireEvent.click(screen.getByText('Off'));
+    expect(off).not.toHaveBeenCalled();
   });
 });

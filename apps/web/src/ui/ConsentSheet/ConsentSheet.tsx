@@ -1,4 +1,4 @@
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, Sparkles } from 'lucide-react';
 import { AI_PROVIDERS, type AiConsentRequired } from '@oct/shared';
 import { useT } from '../../i18n';
 import { Banner } from '../Banner/Banner';
@@ -44,6 +44,7 @@ export function ConsentSheet({
       open={open}
       onClose={onClose}
       title={t('ai.consent.title', { provider })}
+      icon={<Sparkles />}
       footer={
         <>
           <Button onClick={onAllow} disabled={busy}>

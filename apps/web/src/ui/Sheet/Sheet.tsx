@@ -9,6 +9,8 @@ type Props = {
   /** Close button, Esc, tap on the scrim and swipe down only call this; the screen closes it. */
   onClose: () => void;
   title: string;
+  /** A tile left of the title, e.g. the AI sparkle in the consent sheet (OCT-178 2.1). */
+  icon?: ReactNode;
   children: ReactNode;
   /** Actions pinned under the content. */
   footer?: ReactNode;
@@ -29,6 +31,7 @@ export function Sheet({
   open,
   onClose,
   title,
+  icon,
   children,
   footer,
   full = false,
@@ -90,6 +93,11 @@ export function Sheet({
           >
             <div className="sheet__handle" aria-hidden="true" />
             <div className="sheet__header">
+              {icon && (
+                <span className="sheet__icon" aria-hidden="true">
+                  {icon}
+                </span>
+              )}
               <h2
                 id={titleId}
                 className="sheet__title"

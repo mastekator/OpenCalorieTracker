@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import { useState } from 'react';
 import { Globe, KeyRound, LogOut, Mail, Moon, Plus, Users } from 'lucide-react';
 import { useT } from '../../i18n';
 import { Badge } from '../Badge/Badge';
@@ -6,6 +7,7 @@ import {
   IntegrationStatus,
   type IntegrationState,
 } from '../IntegrationStatus/IntegrationStatus';
+import { Switch } from '../Switch/Switch';
 import { List, ListRow } from './List';
 
 const noop = () => {};
@@ -142,6 +144,35 @@ export const DescriptionNowrapDark: Story = {
 };
 export const Desktop: Story = {
   globals: { viewport: { value: 'desktop' } },
+};
+function SwitchRows() {
+  const [on, setOn] = useState(true);
+  return (
+    <List footer="A tap anywhere on the row toggles the switch.">
+      <ListRow
+        description="Recognition runs on this device"
+        value={
+          <Switch checked={on} onChange={setOn} label="AI on this device" />
+        }
+      >
+        AI on this device
+      </ListRow>
+      <ListRow
+        description="Set by the server"
+        value={
+          <Switch checked={false} onChange={noop} label="Locked" disabled />
+        }
+      >
+        Locked
+      </ListRow>
+    </List>
+  );
+}
+/** A Switch row: the whole row is the switch's label (OCT-542). */
+export const SwitchRow: Story = { render: () => <SwitchRows /> };
+export const SwitchRowDark: Story = {
+  ...SwitchRow,
+  globals: { theme: 'dark' },
 };
 /** current: the item being worked on, e.g. the step in cooking mode. */
 export const Current: Story = {
