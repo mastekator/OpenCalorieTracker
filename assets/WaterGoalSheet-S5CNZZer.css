@@ -1,0 +1,1 @@
+.water-goal{gap:var(--space-4);font-variant-numeric:tabular-nums;display:grid}.water-goal>.button{justify-self:start;margin-inline-start:calc(-1 * var(--space-4))}.water-goal__note{color:var(--color-text-secondary);font-size:var(--text-footnote-size);line-height:var(--text-footnote-lh);margin:0}.water-goal-section{gap:var(--space-3);display:grid}

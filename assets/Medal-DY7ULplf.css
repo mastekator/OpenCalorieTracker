@@ -1,0 +1,1 @@
+.medal{inline-size:var(--medal-size-md);block-size:var(--medal-size-md);flex:none;display:block}.medal--sm{inline-size:var(--medal-size-sm);block-size:var(--medal-size-sm)}.medal--lg{inline-size:var(--medal-size-lg);block-size:var(--medal-size-lg)}.medal__num{font-family:var(--font-numeric);font-variant-numeric:tabular-nums;font-size:14px;font-weight:700}

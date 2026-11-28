@@ -1,0 +1,378 @@
+import{n as e}from"./rolldown-runtime-sJBDdmOt.js";import{t}from"./jsx-runtime-MKhVqBIO.js";var n;function r(){return(r=e((()=>{n=`/*
+ * OpenCalorieTracker — design tokens (OCT-13).
+ * The ONLY place for visual values. Components use var(--…) only.
+ * Theme: system by default; [data-theme="light"|"dark"] on <html> overrides it (settings → «Тема»).
+ * Contrast verified: text ≥ 4.5:1, field borders and graphics ≥ 3:1, both themes.
+ */
+
+:root {
+  color-scheme: light dark;
+
+  /* ── Typography: system face (SF Pro on iOS) — native feel, zero download, works offline ── */
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-numeric: var(--font-sans); /* always with font-variant-numeric: tabular-nums */
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace; /* OCT-25: env variables, technical details in admin AI status */
+
+  /* size / line-height / weight — iOS Dynamic Type "Large" defaults */
+  --text-display-size: 3.5rem;   --text-display-lh: 1;        --text-display-weight: 700; /* calories left on «Сегодня» */
+  --text-large-title-size: 2.125rem; --text-large-title-lh: 1.2; --text-large-title-weight: 700; /* 34 */
+  --text-title-size: 1.375rem;   --text-title-lh: 1.27;       --text-title-weight: 600;   /* 22 */
+  --text-headline-size: 1.0625rem; --text-headline-lh: 1.3;  --text-headline-weight: 600; /* 17 */
+  --text-body-size: 1.0625rem;   --text-body-lh: 1.3;         --text-body-weight: 400;    /* 17; inputs never < 16 (iOS zoom) */
+  --text-subhead-size: 0.9375rem; --text-subhead-lh: 1.33;    --text-subhead-weight: 400; /* 15 */
+  --text-footnote-size: 0.8125rem; --text-footnote-lh: 1.38;  --text-footnote-weight: 400; /* 13 */
+  --text-tab-size: 0.6875rem;     --text-tab-weight: 500;      /* 11, tab bar labels */
+  --text-caption-size: 0.75rem;  --text-caption-lh: 1.33;     --text-caption-weight: 500; /* 12 */
+  --text-cook-size: 1.625rem;    --text-cook-lh: 1.38;        /* 26, step text in «Cook», read at arm's length (OCT-160 4.1) */
+  --tracking-tight: -0.02em;     /* large title & display only */
+  --tracking-code: 0.15em;       /* setup code: reads like the log line */
+
+  /* ── Spacing (4pt grid) ── */
+  --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
+  --space-5: 20px; --space-6: 24px; --space-8: 32px; --space-10: 40px; --space-12: 48px;
+  --screen-gutter: var(--space-5);          /* left/right page padding — airy */
+  --section-gap: var(--space-10);           /* between grouped sections */
+  --button-row-gap-x: var(--space-3);       /* between buttons in a row (.button-row) */
+  --button-row-gap-y: var(--space-2);       /* between wrapped rows of buttons */
+
+  /* ── Sizes ── */
+  --tap-min: 44px;              /* minimum hit area, every control */
+  --focus-ring-width: 2px;      /* :focus-visible outline */
+  --focus-ring-offset: 2px;
+  --control-height: 44px;       /* rows, regular buttons, segmented */
+  --control-height-lg: 52px;    /* primary buttons, text fields */
+  --camera-button-size: 64px;   /* center of tab bar */
+  --camera-button-lift: 14px;   /* how far the camera circle rises above the tab bar */
+  --camera-icon-size: 30px;     /* icon inside the camera circle */
+  --meal-thumb-size: 44px;      /* meal photo in Today / Diary lists */
+  --test-thumb-w: 64px;         /* reference photo in «Model test» / «Model comparison», 4:3 like the photos (OCT-300) */
+  --test-thumb-h: 48px;
+  --thumb-size: 64px;           /* meal photo next to the total on the edit screen (OCT-16 §3) */
+  --recipe-hero-height: 200px; /* recipe photo on the recipe card, phone (OCT-160 §3) */
+  --swipe-action-width: 96px;   /* «Delete» revealed by swiping a meal row (OCT-19 6.3) */
+  --photo-preview-height: 280px; /* photo on the recognition screen (OCT-16 §2) */
+  --step-mark-size: 24px;       /* status mark of a recognition step (OCT-313 §1) */
+  --stepper-value-width: 96px;  /* weight field between − and + on the edit screen (OCT-16 §3) */
+  --period-label-width: 144px;  /* desktop week head: pager date, so arrows stay put while paging (OCT-19 D.3) */
+  --trail-week-height: 36px;    /* OCT-184: one week pill in the streak trail */
+  --streak-day-size: 28px;      /* OCT-184: day circle of this week on the streak card, rule marks */
+  --streak-line-width: 1.5px;   /* OCT-184: outline of a frozen / short week and a day still ahead */
+  --heat-cell-size: 12px;       /* OCT-184: day cell of the year activity map (phone; tap area = selected-day row below) */
+  --heat-cell-size-wide: 14px;  /* OCT-184: same, desktop */
+  --heat-gap: 3px;
+  --heat-cell-radius: 3px;
+  --past-dot-size: 10px;        /* OCT-184: «Done N of 3» dot of a past month */
+  --progress-height: 8px;       /* kcal & macro bars on Today / Diary / Week */
+  --water-figure-size: 120px;   /* OCT-147: water glass height on the Water card */
+  --drink-tile-size: 56px;      /* OCT-147: round drink tile in the drinks row (hit area = tile + label) */
+  --drink-menu-width: 260px;    /* OCT-147 1.2: the drink amount menu */
+  --hatch-size: 6px;            /* stripe period of the "over the norm" pattern (not colour-only) */
+  --chart-height: 184px;        /* kcal-by-day plot on Week (OCT-19 §4) */
+  --chart-height-wide: 280px;   /* the same plot on desktop (OCT-19 D.3) */
+  --weight-x-tick: 4px;         /* x label ticks under the weight chart (OCT-446) */
+  --tabbar-height: 49px;        /* + env(safe-area-inset-bottom) */
+  --navbar-height: 44px;        /* + env(safe-area-inset-top) */
+  --icon-size: 24px;  --icon-size-sm: 20px;  --icon-size-xs: 16px;  --icon-stroke: 1.75;
+  --app-icon-size: 40px;        /* OCT-25: app icon in the install hint card */
+  --splash-mark-size: 112px;    /* OCT-217: mark in the launch intro (ui/Splash) */
+  --content-max-width: 560px;   /* phone-like column: auth, settings, tablet/narrow window */
+  /* Desktop (window ≥ 1024px; CSS vars can't be used in @media — keep 1024 in one place in code):
+     sidebar instead of tab bar, wider content, sheets become centred dialogs */
+  --sidebar-width: 248px;
+  --content-max-width-wide: 960px; /* desktop main area (Today, Diary, Week) */
+  --dialog-max-width: 480px;       /* desktop: sheets & alerts as centred dialogs */
+  --alert-width: 300px;            /* confirm dialog, every width */
+  --sheet-handle-width: 36px;  --sheet-handle-height: 5px;
+  --modal-flow-max-width: 720px;   /* desktop: camera → recognition → edit window */
+  --modal-summary-width: 240px;    /* desktop edit window: photo and total column (OCT-16 E.2) */
+  --desktop-gutter: var(--space-10);
+  --switch-width: 51px;          /* on/off switch (OCT-22 §2, «Set my own goal») */
+  --switch-height: 31px;
+  --switch-knob-inset: 2px;
+  --chat-avatar-size: 28px;      /* agent icon circle in the norm chat (OCT-22 §3) */
+  --chat-bubble-max-width: 80%;  /* user message bubble */
+  --chat-dot-size: 6px;          /* «typing» dots */
+  --chat-sheet-height: 88dvh;    /* desktop: chat dialog height (D.2) */
+  --dish-illo-size: 40px;        /* OCT-33: dish illustration in edit rows (hit area stays 44) */
+  --illo-pick-size: 64px;        /* OCT-33: tile in the illustration picker grid */
+  --hint-illo-size: 28px;        /* OCT-33: previous entry in the «Same as last time» hint */
+  --illo-dot-size: 18px;         /* OCT-33: pencil dot on a dish illustration */
+  --illo-check-size: 22px;       /* OCT-33: check badge on the current picker tile */
+  --icon-xs: 12px;               /* glyphs inside the illo dot and check (12–14 in the mock) */
+  --medal-size-xs: 36px;        /* OCT-184: overlapped medals in the «New awards: n» toast */
+  --medal-size-sm: 44px;        /* OCT-184: medal in the toast and the «Награды» block */
+  --medal-size-md: 64px;        /* OCT-184: medal in the «Все награды» grid */
+  --medal-size-lg: 144px;       /* OCT-184: medal in the award card */
+  --weight-ruler-height: 64px;   /* OCT-189: swipe ruler in the weigh-in sheet, 0.1 kg/lb = 1 tick */
+  --weight-tick-gap: 10px;       /* OCT-189: distance between 0.1 ticks */
+  --calendar-dot-size: 4px;      /* OCT-189: «has a weighing» dot under a calendar day */
+  --weight-spark-width: 128px;   /* OCT-189: 30-day mini chart on the Today weight card */
+  --weight-spark-height: 56px;
+  --weight-point-r: 3px;         /* OCT-189: weighing dot on the weight charts */
+  --weight-point-opacity: 0.45;  /* OCT-189: dots paler than the trend (AC-9.22) */
+  --weight-trend-width: 2.5px;   /* OCT-189: trend line on the weight screen */
+  --weight-axis-width: 40px;     /* OCT-189: value labels right of the weight chart */
+  --weight-row-height: 52px;     /* OCT-189: weigh-in list row, sizes off-screen months */
+
+  /* ── Radii ── */
+  --radius-sm: 8px;   /* chips, small badges */
+  --radius-md: 12px;  /* fields, buttons, grouped lists */
+  --radius-lg: 16px;  /* cards, banners */
+  --radius-xl: 24px;  /* bottom sheets (top corners) */
+  --radius-full: 999px;
+
+  /* ── Motion ── */
+  --duration-fast: 120ms;   /* press, toggle */
+  --duration-base: 220ms;   /* banners, field state */
+  --duration-slow: 360ms;   /* sheets, screen push */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1); /* small overshoot: peas pop, lid settles */
+  --duration-splash: 1000ms; /* launch intro (ui/Splash), whole sequence; never blocks the app */
+  --press-scale: 0.97;
+  --lift-scale: 1.08;           /* OCT-147 1.2: a held drink tile above the menu scrim */
+  --duration-spinner: 800ms; /* one turn of the button spinner; kept under reduced motion (it signals progress) */
+  --duration-shimmer: 1400ms; /* one sweep of the skeleton shimmer; off under reduced motion */
+  --duration-typing: 1200ms; /* one blink cycle of the «typing» dots; off under reduced motion */
+  --duration-fill: 1200ms; /* OCT-147: water level rise after a tap (≤ 1.5 s, AC-2.2) */
+  --duration-wave: 5s; /* OCT-147: one loop of the idle surface wave in the glass; off under reduced motion */
+  --duration-highlight: 1200ms; /* a just-saved row holds accent-soft, then fades; kept under reduced motion (colour, not movement) */
+
+  /* ── Layers ── */
+  --z-tabbar: 10; --z-banner: 20; --z-sheet: 30; --z-alert: 40; --z-toast: 50; --z-splash: 60;
+
+  /* ── Colour ── */
+  /* light values (default); dark overrides below */
+  --color-bg: #F8FAF9;              /* page canvas, cool airy white */
+  --color-surface: #FFFFFF;
+  --color-surface-2: #F1F4F2;
+  --color-separator: #E7ECEA;
+  --color-border-strong: #7C8782;
+  --color-text: #18211D;
+  --color-text-secondary: #5A6661;
+  --color-text-disabled: #7F8A85;
+  --color-accent: #13784A;          /* fresh green: primary actions, links, focus */
+  --color-accent-pressed: #0F653E;
+  --color-on-accent: #FFFFFF;
+  --color-accent-soft: #E5F5EC;
+  --color-heat-1: #C3E7D1;          /* OCT-184: activity map, 1 / 2 / 3+ meals; no good/bad tone */
+  --color-heat-2: #6CC497;
+  --color-heat-3: #13784A;
+  --color-danger: #C0362C;
+  --color-danger-soft: #FDEDEB;
+  --color-on-danger: #FFFFFF;
+  --color-warning: #8A5A00;
+  --color-warning-soft: #FFF4DB;
+  --color-notice: #EEF3F0;
+  --color-focus-ring: #13784A;
+  --color-scrim: rgb(24 33 29 / 0.32);
+  --color-selection: rgb(19 120 74 / 0.2);
+  /* macros (graphics, ≥ 3:1 on surface) — used by OCT-16/19/22 */
+  --color-protein: #4766C4;
+  --color-fat: #B36F00;
+  --color-carbs: #16847E;
+  /* OCT-189: weight diary — one neutral hue, never green/red by direction (AC-9.17) */
+  --color-weight: #6B4FA0;
+  --color-weight-soft: #F1ECF8;
+  /* OCT-147: water (graphics & text, ≥ 4.5:1 on surface and water-soft) */
+  --color-water: #1A6AB2;
+  --color-water-soft: #E8F2FB;
+  --color-glass-highlight: rgb(255 255 255 / 0.75); /* glint on the water glass */
+  /* OCT-184: streak flame and freeze (graphics & text, ≥ 4.5:1 on surface) */
+  --color-streak: #B8480C;
+  --color-streak-soft: #FFEEE2;
+  --color-freeze: #1B6F8F;
+  --color-freeze-soft: #E2F2F7;
+
+  /* OCT-33: dish illustrations (flat, decorative). Shown on a round "plate" tile so they never pass for a photo */
+  --illo-tile: #F6F0E4;   /* round substrate behind every illustration */
+  --illo-plate: #C9D3CF;  --illo-white: #FFFFFF;  --illo-shade: rgb(60 40 20 / 0.12);
+  --illo-red: #E05A47;    --illo-orange: #F09A3A; --illo-yellow: #F6C945; --illo-pink: #F2A193;
+  --illo-green: #6DB563;  --illo-leaf: #2F8A4E;   --illo-blue: #7DB3E3;
+  --illo-tan: #DDA15E;    --illo-brown: #9A5B32;  --illo-cocoa: #5C3A28;
+
+  /* OCT-217: logo «Macro peas». Fixed brand values, never follow the theme: the icon, favicon and splash
+     masters (docs/design/oct-217/icon.svg, public/favicon.svg, scripts/splash-master.mjs) bake them in. */
+  --logo-tile: #E5F5EC;
+  --logo-pod: #13784A;         --logo-protein: #4766C4;         --logo-fat: #B36F00;         --logo-carbs: #16847E;
+  --logo-pod-on-dark: #5FD394; --logo-protein-on-dark: #93ABF2; --logo-fat-on-dark: #EBB45C; --logo-carbs-on-dark: #5ECFC6;
+  --logo-paper: #F8FAF9;       --logo-ink: #0E1110;             /* splash grounds, light / dark */
+  /* The in-app mark (ui/Mark) follows the theme; --mark-gap is the ring around the peas = the ground under the mark. */
+  --mark-pod: var(--logo-pod); --mark-protein: var(--logo-protein); --mark-fat: var(--logo-fat); --mark-carbs: var(--logo-carbs);
+  --mark-gap: var(--color-bg);
+
+  /* OCT-429: full-screen photo viewer (ui/PhotoViewer). Dark in both themes: a photo reads best on black. */
+  --color-viewer-bg: #0A0D0C;
+  --color-viewer-control: rgb(255 255 255 / 0.16); /* round chip behind viewer buttons */
+  --color-viewer-text: #FFFFFF;                     /* ≥ 15:1 on the bg */
+  --color-viewer-text-secondary: rgb(255 255 255 / 0.72); /* ≥ 9:1 */
+  --color-viewer-notice: rgb(28 33 31 / 0.92);      /* caption plate over the photo */
+  --viewer-dismiss-distance: 120px; /* swipe down past this closes */
+  --viewer-photo-max: 1280px;       /* the full photo's own width (ADR-0008) */
+
+  --shadow-sheet: 0 -4px 24px rgb(24 33 29 / 0.06);
+  --shadow-toast: 0 6px 20px rgb(24 33 29 / 0.10);
+  --shadow-camera: 0 4px 14px rgb(19 120 74 / 0.24);
+  --shadow-segment: 0 1px 3px rgb(24 33 29 / 0.12); /* selected segment on its surface-2 track */
+  --shadow-switch-knob: 0 2px 4px rgb(0 0 0 / 0.2);
+  --color-segment-selected: var(--color-surface); /* raised above the surface-2 track */
+  --tabbar-blur: saturate(180%) blur(20px);
+  --tabbar-bg: rgb(248 250 249 / 0.88);
+  --color-hover: rgb(24 33 29 / 0.05); /* desktop: pointer hover on rows, nav, plain buttons */
+
+  /* OCT-184 award medals: metal = rarity (same in both themes — it's "metal"), enamel = category (deeper in dark).
+     ui/Medal reads these via style="…var(--medal-*)"; locked silhouettes use theme surfaces. */
+  --medal-bronze-hi: #F3CFA6;   --medal-bronze-base: #C98A52;   --medal-bronze-deep: #8C5426;
+  --medal-silver-hi: #FBFCFD;   --medal-silver-base: #C3CBD3;   --medal-silver-deep: #66727E;
+  --medal-gold-hi: #FFEDB0;     --medal-gold-base: #E6B543;     --medal-gold-deep: #9A6E10;
+  --medal-platinum-hi: #F4F2FF; --medal-platinum-base: #BDB8E8; --medal-platinum-deep: #5F58A6;
+  --medal-plaque-text: #FFFFFF; /* number on the plaque, on *-deep (≥ 4.5:1) */
+  --medal-enamel-path: #E3F4E8;     --medal-ink-path: #22704A;
+  --medal-enamel-streak: #FFE9DA;   --medal-ink-streak: #A8410A;
+  --medal-enamel-days: #E4EEFC;     --medal-ink-days: #23589E;
+  --medal-enamel-months: #F0E7FB;   --medal-ink-months: #6A3FA3;
+  --medal-enamel-photo: #FCE6EE;    --medal-ink-photo: #A3325E;
+  --medal-enamel-accuracy: #DFF3F1; --medal-ink-accuracy: #186E66;
+  --medal-enamel-secret: #2D2848;   --medal-ink-secret: #F3E3A6;
+  --medal-shine: rgb(255 255 255 / 0.55);
+  --medal-locked-fill: var(--color-surface-2);
+  --medal-locked-line: var(--color-border-strong);
+
+  --theme-color: #F8FAF9; /* <meta name="theme-color">, status bar */
+}
+
+/* Dark values (duplicated below for explicit choice — CSS can't share one block for media + attribute): applied by system preference or explicit choice */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-bg: #0E1110;
+    --color-surface: #171B19;
+    --color-surface-2: #212624;
+    --color-separator: #2A302E;
+    --color-border-strong: #76817C;
+    --color-text: #EEF3F0;
+    --color-text-secondary: #A4AFAA;
+    --color-text-disabled: #727C78;
+    --color-accent: #5FD394;
+    --color-accent-pressed: #4CC183;
+    --color-on-accent: #06200F;
+    --color-accent-soft: #16301F;
+    --color-heat-1: #1F4430;
+    --color-heat-2: #2F8355;
+    --color-heat-3: #5FD394;
+    --color-danger: #FF8A80;
+    --color-danger-soft: #3A1916;
+    --color-on-danger: #2A0906;
+    --color-warning: #F2C062;
+    --color-warning-soft: #33290F;
+    --color-notice: #212624;
+    --color-focus-ring: #5FD394;
+    --color-scrim: rgb(0 0 0 / 0.56);
+    --color-selection: rgb(95 211 148 / 0.3);
+    --color-protein: #93ABF2;
+    --color-fat: #EBB45C;
+    --color-carbs: #5ECFC6;
+    --color-weight: #C2A8EE;
+    --color-weight-soft: #2A2238;
+    --color-water: #6DB6F2;
+    --color-water-soft: #13263A;
+    --color-glass-highlight: rgb(255 255 255 / 0.22);
+    --color-streak: #FF9E5E;
+    --color-streak-soft: #3A2214;
+    --color-freeze: #7FCDE6;
+    --color-freeze-soft: #12303A;
+    --shadow-sheet: 0 -8px 32px rgb(0 0 0 / 0.5);
+    --shadow-toast: 0 8px 24px rgb(0 0 0 / 0.5);
+    --shadow-camera: 0 6px 16px rgb(0 0 0 / 0.5);
+    --shadow-segment: 0 1px 3px rgb(0 0 0 / 0.5);
+    --color-segment-selected: #353C39;
+    --tabbar-bg: rgb(14 17 16 / 0.86);
+    --color-hover: rgb(238 243 240 / 0.06);
+    --illo-tile: #2B2721;
+    --illo-plate: #4C524F;  --illo-white: #EEE8DC;  --illo-shade: rgb(0 0 0 / 0.28);
+    --illo-red: #EE7564;    --illo-orange: #EFA654; --illo-yellow: #EECB62; --illo-pink: #E39B8F;
+    --illo-green: #7CC472;  --illo-leaf: #4FAA6C;   --illo-blue: #86B9E4;
+    --illo-tan: #D29E66;    --illo-brown: #B27A52;  --illo-cocoa: #7A5440;
+    --mark-pod: var(--logo-pod-on-dark); --mark-protein: var(--logo-protein-on-dark);
+    --mark-fat: var(--logo-fat-on-dark); --mark-carbs: var(--logo-carbs-on-dark);
+    /* OCT-184 medals */
+    --medal-enamel-path: #1E3A2A;     --medal-ink-path: #8FD9AE;
+    --medal-enamel-streak: #3D2414;   --medal-ink-streak: #FFB27A;
+    --medal-enamel-days: #1B2A44;     --medal-ink-days: #9EC3F5;
+    --medal-enamel-months: #2E2142;   --medal-ink-months: #CDAFF2;
+    --medal-enamel-photo: #3D1D2A;    --medal-ink-photo: #F2A4C0;
+    --medal-enamel-accuracy: #153532; --medal-ink-accuracy: #86D9CF;
+    --medal-enamel-secret: #191530;
+    --medal-shine: rgb(255 255 255 / 0.35);
+    --theme-color: #0E1110;
+  }
+}
+:root[data-theme="dark"] {
+  --color-bg: #0E1110;
+  --color-surface: #171B19;
+  --color-surface-2: #212624;
+  --color-separator: #2A302E;
+  --color-border-strong: #76817C;
+  --color-text: #EEF3F0;
+  --color-text-secondary: #A4AFAA;
+  --color-text-disabled: #727C78;
+  --color-accent: #5FD394;
+  --color-accent-pressed: #4CC183;
+  --color-on-accent: #06200F;
+  --color-accent-soft: #16301F;
+  --color-heat-1: #1F4430;
+  --color-heat-2: #2F8355;
+  --color-heat-3: #5FD394;
+  --color-danger: #FF8A80;
+  --color-danger-soft: #3A1916;
+  --color-on-danger: #2A0906;
+  --color-warning: #F2C062;
+  --color-warning-soft: #33290F;
+  --color-notice: #212624;
+  --color-focus-ring: #5FD394;
+  --color-scrim: rgb(0 0 0 / 0.56);
+  --color-selection: rgb(95 211 148 / 0.3);
+  --color-protein: #93ABF2;
+  --color-fat: #EBB45C;
+  --color-carbs: #5ECFC6;
+  --color-weight: #C2A8EE;
+  --color-weight-soft: #2A2238;
+  --color-water: #6DB6F2;
+  --color-water-soft: #13263A;
+  --color-glass-highlight: rgb(255 255 255 / 0.22);
+  --color-streak: #FF9E5E;
+  --color-streak-soft: #3A2214;
+  --color-freeze: #7FCDE6;
+  --color-freeze-soft: #12303A;
+  --shadow-sheet: 0 -8px 32px rgb(0 0 0 / 0.5);
+  --shadow-toast: 0 8px 24px rgb(0 0 0 / 0.5);
+  --shadow-camera: 0 6px 16px rgb(0 0 0 / 0.5);
+  --shadow-segment: 0 1px 3px rgb(0 0 0 / 0.5);
+  --color-segment-selected: #353C39;
+  --tabbar-bg: rgb(14 17 16 / 0.86);
+  --color-hover: rgb(238 243 240 / 0.06);
+  --illo-tile: #2B2721;
+  --illo-plate: #4C524F;  --illo-white: #EEE8DC;  --illo-shade: rgb(0 0 0 / 0.28);
+  --illo-red: #EE7564;    --illo-orange: #EFA654; --illo-yellow: #EECB62; --illo-pink: #E39B8F;
+  --illo-green: #7CC472;  --illo-leaf: #4FAA6C;   --illo-blue: #86B9E4;
+  --illo-tan: #D29E66;    --illo-brown: #B27A52;  --illo-cocoa: #7A5440;
+  --mark-pod: var(--logo-pod-on-dark); --mark-protein: var(--logo-protein-on-dark);
+  --mark-fat: var(--logo-fat-on-dark); --mark-carbs: var(--logo-carbs-on-dark);
+  /* OCT-184 medals */
+  --medal-enamel-path: #1E3A2A;     --medal-ink-path: #8FD9AE;
+  --medal-enamel-streak: #3D2414;   --medal-ink-streak: #FFB27A;
+  --medal-enamel-days: #1B2A44;     --medal-ink-days: #9EC3F5;
+  --medal-enamel-months: #2E2142;   --medal-ink-months: #CDAFF2;
+  --medal-enamel-photo: #3D1D2A;    --medal-ink-photo: #F2A4C0;
+  --medal-enamel-accuracy: #153532; --medal-ink-accuracy: #86D9CF;
+  --medal-enamel-secret: #191530;
+  --medal-shine: rgb(255 255 255 / 0.35);
+  --theme-color: #0E1110;
+  color-scheme: dark;
+}
+:root[data-theme="light"] { color-scheme: light; }
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --duration-fast: 0ms; --duration-base: 0ms; --duration-slow: 0ms; --press-scale: 1; --lift-scale: 1; --duration-splash: 0ms; --duration-fill: 0ms; }
+}
+`})))()}function i(e){let t=e.indexOf(`:root {`);if(t<0)return[];let n=e.indexOf(`
+}`,t),r=e.slice(t,n<0?void 0:n),i=[];for(let[,e,t,n]of r.matchAll(a))e?i.push({title:e,tokens:[]}):t&&n&&(i.length||i.push({title:`Other`,tokens:[]}),i.at(-1).tokens.push({name:t,value:n.trim()}));return i.filter(e=>e.tokens.length)}var a;function o(){return(o=e((()=>{a=/\/\*\s*──\s*(.+?)\s*──\s*\*\/|\/\*[\s\S]*?\*\/|(--[\w-]+)\s*:\s*([^;]+);/g})))()}function s({name:e}){let t=`var(${e})`,n;if(/^--(color|theme-color|tabbar-bg)/.test(e))n={background:t};else if(e.startsWith(`--shadow`))n={boxShadow:t};else if(e.startsWith(`--radius`))n={borderRadius:t,background:`var(--color-accent-soft)`};else if(/^--(space|screen-gutter|section-gap|desktop-gutter)/.test(e))return(0,l.jsx)(`div`,{className:`tokens__sample`,children:(0,l.jsx)(`div`,{className:`tokens__bar`,style:{width:t}})});else if(/^--text-.*-size$/.test(e))return(0,l.jsx)(`div`,{className:`tokens__text`,style:{fontSize:t},children:`Aa`});else if(/^--text-.*-weight$/.test(e))return(0,l.jsx)(`div`,{className:`tokens__text`,style:{fontWeight:t},children:`Aa`});else if(e.startsWith(`--font`))return(0,l.jsx)(`div`,{className:`tokens__text`,style:{fontFamily:t},children:`Aa`});return(0,l.jsx)(`div`,{className:`tokens__sample`,style:n})}function c(){let e=getComputedStyle(document.documentElement);return(0,l.jsx)(`div`,{className:`tokens`,children:i(n).map(t=>(0,l.jsxs)(`section`,{className:`tokens__group`,children:[(0,l.jsx)(`h2`,{className:`tokens__title`,children:t.title}),(0,l.jsx)(`div`,{className:`tokens__rows`,children:t.tokens.map(t=>(0,l.jsxs)(`div`,{className:`tokens__row`,children:[(0,l.jsx)(s,{name:t.name}),(0,l.jsxs)(`div`,{children:[(0,l.jsx)(`div`,{className:`tokens__name`,children:t.name}),(0,l.jsx)(`div`,{className:`tokens__value`,children:e.getPropertyValue(t.name).trim()||t.value})]})]},t.name))})]},t.title))})}var l,u,d,f;function p(){return(p=e((()=>{r(),o(),l=t(),u={title:`Foundations/Tokens`,component:c,parameters:{layout:`fullscreen`},render:(e,{globals:t})=>(0,l.jsx)(c,{},t.theme)},d={},f=[`AllTokens`]})))()}p();export{d as AllTokens,f as __namedExportsOrder,u as default};

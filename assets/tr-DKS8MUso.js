@@ -1,0 +1,1 @@
+import{n as e}from"./rolldown-runtime-sJBDdmOt.js";import{dn as t,n,un as r}from"./dist-Dr9PVxHv.js";import{a as i,c as a,o,s}from"./i18n-BLIJi6mA.js";import{n as c,t as l}from"./ru-QfWmIgs6.js";var u;function d(){return(d=e((()=>{r(),n(),i(),a(),l(),u=(e,n,r)=>{let i=t(e.locale)?e.locale:`en`;return o(i,i===`ru`?c:s,n,r)}})))()}export{u as n,d as t};

@@ -1,0 +1,22 @@
+import{n as e}from"./rolldown-runtime-sJBDdmOt.js";import{t}from"./react-DlPsW1c0.js";import{i as n,r}from"./i18n-BLIJi6mA.js";import{t as i}from"./jsx-runtime-MKhVqBIO.js";import{n as a,t as o}from"./camera-CVJG_1KL.js";import{n as s,t as c}from"./Field-CZ57-Dpm.js";import{n as l,t as u}from"./pencil--phcQLUl.js";import{n as d,t as f}from"./rotate-ccw-clock-Ba7APf2M.js";import{n as p,r as m,t as h}from"./List-CkAZcrhG.js";import{n as g,t as _}from"./Sheet-DBBlidCx.js";function v({search:e,onPick:t,onManual:r,photo:i,onClose:a}){let{t:s,num:l,locale:d}=n(),[m,g]=(0,y.useState)(``),[v,x]=(0,y.useState)([]),S=m.trim();return(0,y.useEffect)(()=>{let t=!0;return S?e(S).then(e=>t&&x(e),()=>{}):x([]),()=>{t=!1}},[S,e]),(0,b.jsx)(_,{open:!0,onClose:a,title:s(`editor.ingredient`),children:(0,b.jsxs)(`div`,{className:`ingredient-picker`,children:[(0,b.jsx)(c,{label:s(`editor.search`),type:`search`,autoComplete:`off`,maxLength:80,autoFocus:!0,value:m,onChange:e=>g(e.target.value)}),v.length>0&&(0,b.jsx)(h,{title:(0,b.jsxs)(`span`,{className:`ingredient-picker__group`,children:[(0,b.jsx)(f,{"aria-hidden":`true`}),s(`editor.from_history`)]}),children:v.map(e=>(0,b.jsx)(p,{description:s(`editor.history_sub`,{k:l(e.kcal/e.grams*100),date:new Date(e.eatenAt).toLocaleDateString(d,{day:`numeric`,month:`short`})}),onClick:()=>t(e),children:e.name},e.name))}),(0,b.jsxs)(h,{footer:s(`editor.picker_note`),children:[i&&(0,b.jsx)(p,{accent:i.online,disabled:!i.online,icon:(0,b.jsx)(o,{}),description:s(i.online?`editor.photo_row_sub`:`editor.photo_offline`),onClick:()=>i.online&&i.onPick(),children:s(`editor.photo_row`)}),(0,b.jsx)(p,{accent:!0,icon:(0,b.jsx)(u,{}),onClick:()=>r(S),children:S?s(`editor.enter_manually`,{q:S}):s(`recipes.manual`)})]})]})})}var y,b;function x(){return(x=e((()=>{y=t(),a(),d(),l(),r(),s(),m(),g(),b=i(),v.__docgenInfo={description:`«+ Ingredient» (OCT-160 2.5): search the history, or enter by hand. Wave 1: no
+«From fridge» group. The editor mounts it while open.`,methods:[],displayName:`IngredientPickerSheet`,props:{search:{required:!0,tsType:{name:`signature`,type:`function`,raw:`(query: string) => Promise<HistoryDish[]>`,signature:{arguments:[{type:{name:`string`},name:`query`}],return:{name:`Promise`,elements:[{name:`Array`,elements:[{name:`intersection`,raw:`Nutrients & {
+  name: string;
+  grams: number;
+  unit?: DishUnit;
+  eatenAt: string;
+}`,elements:[{name:`Nutrients`},{name:`signature`,type:`object`,raw:`{
+  name: string;
+  grams: number;
+  unit?: DishUnit;
+  eatenAt: string;
+}`,signature:{properties:[{key:`name`,value:{name:`string`,required:!0}},{key:`grams`,value:{name:`number`,required:!0}},{key:`unit`,value:{name:`DishUnit`,required:!1}},{key:`eatenAt`,value:{name:`string`,required:!0}}]}}]}],raw:`HistoryDish[]`}],raw:`Promise<HistoryDish[]>`}}},description:`Dishes from the diary matching the query (findHistoryDishes).`},onPick:{required:!0,tsType:{name:`signature`,type:`function`,raw:`(dish: HistoryDish) => void`,signature:{arguments:[{type:{name:`intersection`,raw:`Nutrients & {
+  name: string;
+  grams: number;
+  unit?: DishUnit;
+  eatenAt: string;
+}`,elements:[{name:`Nutrients`},{name:`signature`,type:`object`,raw:`{
+  name: string;
+  grams: number;
+  unit?: DishUnit;
+  eatenAt: string;
+}`,signature:{properties:[{key:`name`,value:{name:`string`,required:!0}},{key:`grams`,value:{name:`number`,required:!0}},{key:`unit`,value:{name:`DishUnit`,required:!1}},{key:`eatenAt`,value:{name:`string`,required:!0}}]}}]},name:`dish`}],return:{name:`void`}}},description:``},onManual:{required:!0,tsType:{name:`signature`,type:`function`,raw:`(query: string) => void`,signature:{arguments:[{type:{name:`string`},name:`query`}],return:{name:`void`}}},description:`«Enter “…” manually»: the typed text becomes the name.`},photo:{required:!1,tsType:{name:`signature`,type:`object`,raw:`{ online: boolean; onPick: () => void }`,signature:{properties:[{key:`online`,value:{name:`boolean`,required:!0}},{key:`onPick`,value:{name:`signature`,type:`function`,raw:`() => void`,signature:{arguments:[],return:{name:`void`}},required:!0}}]}},description:`«Photograph the ingredients» (ADR-0040 §6); none: no AI recognition, no row. Offline: greyed out.`},onClose:{required:!0,tsType:{name:`signature`,type:`function`,raw:`() => void`,signature:{arguments:[],return:{name:`void`}}},description:``}}}})))()}export{x as n,v as t};

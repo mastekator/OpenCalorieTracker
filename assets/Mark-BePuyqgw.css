@@ -1,0 +1,1 @@
+.mark{flex:none;width:100%;height:100%;display:inline-block}.mark__pod{fill:var(--mark-pod)}.mark__lid{opacity:.5}.mark__peas{stroke:var(--mark-gap);stroke-width:3px;paint-order:stroke}.mark__protein{fill:var(--mark-protein)}.mark__fat{fill:var(--mark-fat)}.mark__carbs{fill:var(--mark-carbs)}.mark__stem{fill:none;stroke:var(--mark-pod);stroke-width:5px;stroke-linecap:round}

@@ -1,0 +1,1 @@
+.dish-illo{width:var(--dish-illo-size);height:var(--dish-illo-size);border-radius:var(--radius-full);background:var(--illo-tile);flex:none;place-items:center;display:grid;overflow:hidden}.dish-illo svg{width:80%;height:80%;display:block}
