@@ -3081,6 +3081,7 @@ export const en = {
     not_yet: 'Not yet',
     secret: 'Secret',
     secret_title: 'Secret award',
+    hint_quoted: '“{hint}”',
     secret_foot: 'The name and condition will show once you get it.',
     new: 'New',
     fresh: {

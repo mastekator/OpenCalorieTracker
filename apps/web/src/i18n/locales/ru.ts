@@ -3278,6 +3278,7 @@ const ru: DeepPartial<typeof en> = {
     not_yet: 'Ещё нет',
     secret: 'Секретная',
     secret_title: 'Секретная награда',
+    hint_quoted: '«{hint}»',
     secret_foot: 'Название и условие откроются, когда награда будет получена.',
     new: 'Новая',
     fresh: {

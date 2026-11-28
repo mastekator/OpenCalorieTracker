@@ -278,7 +278,11 @@ export function AwardCard({
                 {t('award.category.secret')}
               </span>
               <p className="aw-card__hint">
-                «{t(`award.${item.key}.hint` as 'award.secret_comeback.hint')}»
+                {t('awards.hint_quoted', {
+                  hint: t(
+                    `award.${item.key}.hint` as 'award.secret_comeback.hint',
+                  ),
+                })}
               </p>
               <p className="aw-note">{t('awards.secret_foot')}</p>
             </>
